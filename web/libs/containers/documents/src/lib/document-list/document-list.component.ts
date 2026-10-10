@@ -40,6 +40,7 @@ import {
   UiCellDirective,
   UiEmptyStateComponent,
   UiFormFieldComponent,
+  UiIconComponent,
   UiInputComponent,
   UiPageHeaderComponent,
   UiPagerComponent,
@@ -66,6 +67,7 @@ import { controlSignal, createPageState, debouncedSignal, loadOnChange } from '@
     UiCellDirective,
     UiEmptyStateComponent,
     UiFormFieldComponent,
+    UiIconComponent,
     UiInputComponent,
     UiPageHeaderComponent,
     UiPagerComponent,
@@ -95,6 +97,8 @@ export class DocumentListPageComponent implements OnInit {
   readonly toControl = new FormControl('', { nonNullable: true });
 
   $searchInput = signal('');
+  /** On a phone the four filters hide behind one button so the first documents are on screen (NV-08). */
+  $filtersOpen = signal(false);
   /** Mine = documents I created (`mine=true`); the choice is remembered per user. */
   $scope = signal<string>(this.scopePreference.initial());
 
@@ -141,6 +145,13 @@ export class DocumentListPageComponent implements OnInit {
       this.$from() !== '' ||
       this.$to() !== ''
   );
+  /** Filters that are set inside the collapsed panel (the search box is always visible). */
+  $panelFilterCount = computed(
+    () =>
+      [this.$status(), this.$warehouseId(), this.$from(), this.$to()].filter(
+        value => value !== null && value !== ''
+      ).length
+  );
   $scopeTabs = computed<readonly TabItem[]>(() => [
     { id: LIST_SCOPE.Mine, label: this.i18n.t('docs.scope.mine') },
     { id: LIST_SCOPE.All, label: this.i18n.t('docs.scope.all') }
@@ -158,21 +169,22 @@ export class DocumentListPageComponent implements OnInit {
   );
   $columns = computed<readonly TableColumn<DocumentListItem>[]>(() => [
     { key: 'no', header: this.i18n.t('doc.no'), value: row => row.no, primary: true },
-    { key: 'date', header: this.i18n.t('doc.date') },
+    { key: 'date', header: this.i18n.t('doc.date'), phoneInline: true },
     {
       key: 'warehouse',
       header: this.i18n.t('doc.warehouse'),
       value: row => row.warehouseName,
-      hideOnPhone: true
+      phoneInline: true
     },
     {
       key: 'partner',
       header: this.i18n.t(this.$isIssue() ? 'doc.customer' : 'doc.supplier'),
-      value: row => row.partnerName ?? ''
+      value: row => row.partnerName ?? '',
+      phoneInline: true
     },
     { key: 'qty', header: this.i18n.t('doc.totalQty'), align: 'end' },
     { key: 'amount', header: this.i18n.t('doc.amount'), align: 'end', hideOnPhone: true },
-    { key: 'status', header: this.i18n.t('product.status') }
+    { key: 'status', header: this.i18n.t('product.status'), phoneEnd: true }
   ]);
   $heading = computed(() => this.i18n.t(this.$isIssue() ? 'issues.title' : 'receipts.title'));
   $emptyKey = computed<MessageKey>(() => {
@@ -206,6 +218,10 @@ export class DocumentListPageComponent implements OnInit {
   onScopeChange(scope: string): void {
     this.$scope.set(scope);
     this.scopePreference.remember(scope === LIST_SCOPE.Mine ? LIST_SCOPE.Mine : LIST_SCOPE.All);
+  }
+
+  onToggleFilters(): void {
+    this.$filtersOpen.update(open => !open);
   }
 
   onClearFilters(): void {

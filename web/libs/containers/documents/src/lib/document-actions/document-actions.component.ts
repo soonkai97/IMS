@@ -4,11 +4,12 @@ import {
   booleanAttribute,
   computed,
   input,
-  output
+  output,
+  signal
 } from '@angular/core';
 import { MessageKey, TranslatePipe } from '@ims/core/i18n';
 import { DOCUMENT_ACTION, DocumentAction, toDocumentActions } from '@ims/models';
-import { UiButtonComponent, UiIconComponent } from '@ims/ui';
+import { UiButtonComponent, UiDialogComponent, UiIconComponent } from '@ims/ui';
 
 /**
  * The buttons of a document, taken ONLY from the server's `allowedActions`: a button that is not listed is not
@@ -16,7 +17,7 @@ import { UiButtonComponent, UiIconComponent } from '@ims/ui';
  */
 @Component({
   selector: 'app-document-actions',
-  imports: [TranslatePipe, UiButtonComponent, UiIconComponent],
+  imports: [TranslatePipe, UiButtonComponent, UiDialogComponent, UiIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './document-actions.component.html',
   styleUrl: './document-actions.component.scss'
@@ -26,6 +27,10 @@ export class DocumentActionsComponent {
   /** Roles that may post get the single "Submit & post" button; others only "Submit" (D4). */
   $canPost = input(false, { alias: 'canPost', transform: booleanAttribute });
   $busy = input(false, { alias: 'busy', transform: booleanAttribute });
+  /** The opened copy is out of date (E4): nothing can be done with it until it is reloaded. */
+  $locked = input(false, { alias: 'locked', transform: booleanAttribute });
+  /** The action that is running: its button shows the spinner (while `busy` disables the others). */
+  $busyAction = input<DocumentAction | undefined>(undefined, { alias: 'busyAction' });
   $selfApprovalBlocked = input(false, {
     alias: 'selfApprovalBlocked',
     transform: booleanAttribute
@@ -39,6 +44,7 @@ export class DocumentActionsComponent {
 
   private readonly $actions = computed(() => toDocumentActions(this.$allowedActions()));
 
+  $inactive = computed(() => this.$busy() || this.$locked());
   $canSave = computed(() => this.$actions().has(DOCUMENT_ACTION.Edit));
   $canSubmit = computed(() => this.$actions().has(DOCUMENT_ACTION.Submit));
   $canApprove = computed(() => this.$actions().has(DOCUMENT_ACTION.Approve));
@@ -47,11 +53,34 @@ export class DocumentActionsComponent {
   $canPostDocument = computed(() => this.$actions().has(DOCUMENT_ACTION.Post));
   $canReverse = computed(() => this.$actions().has(DOCUMENT_ACTION.Reverse));
   $showBlockedApprove = computed(() => this.$selfApprovalBlocked() && !this.$canApprove());
+  /**
+   * Cancel is the one-tap neighbour of the primary button, which is how a worker cancels by mistake (NV-10): on a phone
+   * it moves into the "more" sheet whenever there is something else to do. Alone, it stays where it is.
+   */
+  $cancelInOverflow = computed(
+    () =>
+      this.$canCancel() &&
+      (this.$canSave() ||
+        this.$canSubmit() ||
+        this.$canApprove() ||
+        this.$canReject() ||
+        this.$canPostDocument())
+  );
+  $moreOpen = signal(false);
   $submitLabelKey = computed<MessageKey>(() =>
     this.$canPost() ? 'doc.action.submitAndPost' : 'doc.action.submit'
   );
 
   onTrigger(action: DocumentAction): void {
     this.$triggered.emit(action);
+  }
+
+  onOpenMore(): void {
+    this.$moreOpen.set(true);
+  }
+
+  onCancelFromMore(): void {
+    this.$moreOpen.set(false);
+    this.onTrigger(DOCUMENT_ACTION.Cancel);
   }
 }

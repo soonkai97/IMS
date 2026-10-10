@@ -14,6 +14,14 @@
   }
 }
 
+/// Short windows (< 500px high): a landscape phone, or 400% zoom. Sticky and fixed bars would take the whole
+/// viewport (WCAG 1.4.10 Reflow), so they scroll with the page instead.
+@mixin media-short {
+  @media (height <= 31.25rem) {
+    @content;
+  }
+}
+
 /// Below desktop (< 1024px): phone and tablet.
 @mixin media-below-desktop {
   @media (max-width: #{bp.$breakpoint-desktop - 1px}) {

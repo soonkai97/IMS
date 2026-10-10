@@ -55,7 +55,17 @@
   }
 }
 
-.product-picker-empty {
+.product-picker-empty,
+.product-picker-hint {
   padding: space(1) 0;
   color: color('text-muted');
+}
+
+// What the last pick did ("DEMO-001: now 2"): a visible confirmation, not small print.
+.product-picker-notice {
+  padding: space(1) space(2);
+  font-weight: font-weight('medium');
+  color: color('on-primary-soft');
+  background: color('primary-soft');
+  border-radius: border-radius('md');
 }

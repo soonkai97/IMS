@@ -7,6 +7,9 @@
 }
 
 html {
+  // A focused control is scrolled clear of the sticky top bar and of the bottom bars (tab bar + action bar),
+  // so Tab never lands under them (WCAG 2.4.11 Focus Not Obscured).
+  scroll-padding-block: height('bar') calc(#{height('tabbar')} + 8rem);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }

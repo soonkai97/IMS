@@ -19,9 +19,17 @@ import {
 import { MAX_DOCUMENT_LINES } from '@ims/models';
 import { Observable } from 'rxjs';
 
-const MAX_REMARK_LENGTH = 1000;
+/** The API refuses a longer remark; the form must not offer more than it accepts (EA-18). */
+const MAX_REMARK_LENGTH = 500;
 const QUANTITY_STEP = 1;
 const MIN_STEPPED_QUANTITY = 0.001;
+
+/** What `addProduct` did: a new line, or one more of an existing line. */
+export interface AddedLine {
+  readonly increased: boolean;
+  /** Quantity of the line after the add, in the line's unit. */
+  readonly qty: number;
+}
 
 /**
  * Form model of the document editor (header + lines) and the numbers derived from it. One instance per editor page.
@@ -102,23 +110,32 @@ export class DocumentEditorViewService {
     this.lines.markAsPristine();
   }
 
-  /** Adds the product, or raises the quantity of the line it is already on (repeated scans accumulate). */
-  addProduct(product: ProductDto, available: number | null): void {
+  /**
+   * Adds the product, or raises the quantity of the line it is already on (repeated scans accumulate). Says which of
+   * the two happened and the quantity now, so the page can tell the user (NV-04); undefined = the document is full.
+   */
+  addProduct(product: ProductDto, available: number | null): AddedLine | undefined {
     const existing = this.lines.controls.find(
       group => group.controls.productId.value === product.id
     );
     if (existing) {
       this.step(existing, QUANTITY_STEP);
       existing.controls.available.setValue(available ?? existing.controls.available.value);
-      return;
+      return { increased: true, qty: existing.controls.qty.value ?? 0 };
     }
     if (!this.$canAddLine()) {
-      return;
+      return undefined;
     }
-    this.lines.push(
-      createLineGroup(lineFromProduct(product, this.catalog.$unitCodes(), available))
-    );
+    const line = lineFromProduct(product, this.catalog.$unitCodes(), available);
+    this.lines.push(createLineGroup(line));
     this.lines.markAsDirty();
+    return { increased: false, qty: line.qty ?? 0 };
+  }
+
+  /** The form now mirrors what the server holds (after a save): leaving the page must not ask "Discard changes?". */
+  markPristine(): void {
+    this.header.markAsPristine();
+    this.lines.markAsPristine();
   }
 
   step(group: LineGroup, delta: number): void {

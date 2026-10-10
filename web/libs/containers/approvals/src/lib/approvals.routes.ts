@@ -7,6 +7,7 @@ export const APPROVAL_ROUTES: Routes = [
   {
     path: '',
     component: ApprovalsInboxPageComponent,
+    title: 'approvals.title',
     canActivate: [requirePermission(PERMISSION.DocumentApprove)]
   }
 ];

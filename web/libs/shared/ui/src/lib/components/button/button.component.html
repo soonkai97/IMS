@@ -1,9 +1,14 @@
 <button
   class="ui-button-control"
   [attr.type]="$type()"
-  [disabled]="$isInert()"
+  [disabled]="$isNativeDisabled()"
+  [attr.aria-disabled]="$isAriaDisabled() || null"
+  [attr.aria-describedby]="$describedBy()"
   [attr.aria-busy]="$loading()"
   [attr.aria-label]="$ariaLabel()"
+  [attr.aria-expanded]="$expanded()"
+  [attr.aria-controls]="$controls()"
+  [attr.aria-haspopup]="$popup()"
   (click)="onClick($event)"
 >
   @if ($loading()) {

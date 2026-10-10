@@ -7,8 +7,9 @@
       [label]="$reasonLabel() ?? ''"
       [required]="$reasonRequired()"
       [control]="reason"
+      [messages]="$reasonMessages()"
     >
-      <app-textarea [formControl]="reason" [rows]="3" />
+      <app-textarea [formControl]="reason" [rows]="3" focusOnOpen />
     </app-form-field>
   }
   <div dialogActions class="ui-confirm-dialog-actions">

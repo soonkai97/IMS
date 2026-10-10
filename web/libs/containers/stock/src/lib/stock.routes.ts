@@ -8,10 +8,15 @@ import { StockListPageComponent } from './stock-list/stock-list.component';
 const canRead = requirePermission(PERMISSION.StockRead);
 
 export const STOCK_ROUTES: Routes = [
-  { path: '', component: StockListPageComponent, canActivate: [canRead] },
-  { path: ':productId', component: ProductStockPageComponent, canActivate: [canRead] }
+  { path: '', component: StockListPageComponent, title: 'stock.title', canActivate: [canRead] },
+  {
+    path: ':productId',
+    component: ProductStockPageComponent,
+    title: 'stock.title',
+    canActivate: [canRead]
+  }
 ];
 
 export const LOW_STOCK_ROUTES: Routes = [
-  { path: '', component: LowStockPageComponent, canActivate: [canRead] }
+  { path: '', component: LowStockPageComponent, title: 'lowStock.title', canActivate: [canRead] }
 ];

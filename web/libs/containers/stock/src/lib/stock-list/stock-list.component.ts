@@ -138,7 +138,12 @@ export class StockListPageComponent implements OnInit {
       primary: true,
       sortKey: StockSort.Sku
     },
-    { key: 'name', header: this.i18n.t('product.name'), value: row => row.productName },
+    {
+      key: 'name',
+      header: this.i18n.t('product.name'),
+      value: row => row.productName,
+      phoneInline: true
+    },
     {
       key: 'category',
       header: this.i18n.t('product.category'),
@@ -149,12 +154,14 @@ export class StockListPageComponent implements OnInit {
       key: 'warehouse',
       header: this.i18n.t('stock.warehouse'),
       value: row => row.warehouseName,
+      phoneInline: true,
       sortKey: StockSort.Warehouse
     },
     {
       key: 'onHand',
       header: this.i18n.t('stock.onHand'),
       align: 'end',
+      phoneInline: true,
       sortKey: StockSort.QtyOnHand
     },
     { key: 'safety', header: this.i18n.t('product.safetyStock'), align: 'end', hideOnPhone: true },
@@ -165,7 +172,7 @@ export class StockListPageComponent implements OnInit {
       hideOnPhone: true,
       sortKey: StockSort.Value
     },
-    { key: 'status', header: this.i18n.t('product.status') }
+    { key: 'status', header: this.i18n.t('product.status'), phoneEnd: true }
   ]);
 
   readonly rowLink = (row: StockRow): readonly unknown[] => ['/stock', row.productId];

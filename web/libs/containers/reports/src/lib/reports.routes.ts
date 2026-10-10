@@ -7,6 +7,7 @@ export const REPORT_ROUTES: Routes = [
   {
     path: '',
     component: ReportsPageComponent,
+    title: 'reports.title',
     canActivate: [requirePermission(PERMISSION.ReportsRead)]
   }
 ];
