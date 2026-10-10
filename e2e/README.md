@@ -1,0 +1,78 @@
+# IMS end-to-end behaviour tests (Playwright)
+
+Browser tests for the Phase 1 flows in [`docs/design/mvp-ux.md`](../docs/design/mvp-ux.md), written as given / when / then titles and
+named after the requirement or QA finding they protect. They drive the real web app against the real API and SQL Server, sign in
+through the real login form, and create their data through the public API with unique names. **The suite starts nothing itself.**
+
+| File | Scenario | Protects |
+|---|---|---|
+| `01-receive` | staff saves a draft (exactly one, no discard dialog), submits, posts; stock rises. Back in the Post dialog creates no second document. List search by remark | IN-01, NV-01, NV-02 |
+| `02-issue-shortfall` | issue above available stock: shortfall sentence, "Set to N", submit blocked until fixed | OUT-01, BR-03, E1 |
+| `03-approval-override` | override issue: inbox, approve with a reason of 5+ characters, post, stock and ledger; self-approval blocked | OUT-02, BR-07, E3, PS-09 |
+| `04-reversal` | reversal blocked (message lists the products), unblocked by reversing the later issue; plain reversal; staff has no Reverse | BR-02, E6, PS-01 |
+| `05-stale-document` | two sessions edit one draft: stale banner, locked buttons, Reload | BR-12, E4, PS-08 |
+
+Role matrix, scanning, session, language, phone, accessibility and low-stock scenarios follow in the next pull request.
+A scenario that finds a product bug is marked `test.fixme` with the finding id in the title and the bug is written up in
+`docs/team/HANDOFFS.md`. None are open today.
+
+## Run it
+
+Needs Node 20+ (the web build needs the Node the web app asks for, see `web/README.md`), .NET 10, and a SQL Server the API can use.
+Examples use the free ports 5611 (API) and 5612 (web); any ports work.
+
+1. **API** with a throw-away database. Demo users are only created when `ASPNETCORE_ENVIRONMENT=Development` and the database is
+   local. `Cors__Origins` must list the exact origin of the web app (the refresh cookie only travels to listed origins).
+
+   ```bash
+   dotnet build src/Ims.Api/Ims.Api.csproj -c Release
+   cd src/Ims.Api/bin/Release/net10.0          # start here so appsettings*.json are found
+   ASPNETCORE_ENVIRONMENT=Development \
+   ASPNETCORE_URLS=http://localhost:5611 \
+   Cors__Origins=http://localhost:5612 \
+   "ConnectionStrings__Default=Server=(localdb)\\ImsDev;Database=Ims_E2E_Scratch;Trusted_Connection=True;TrustServerCertificate=True" \
+   dotnet Ims.Api.dll
+   ```
+
+   PowerShell: set `$env:ASPNETCORE_ENVIRONMENT`, `$env:ASPNETCORE_URLS`, `$env:Cors__Origins`, `$env:ConnectionStrings__Default`, then
+   `dotnet Ims.Api.dll`. The demo passwords come from the `Seed` section of `appsettings.Development.json` or `Seed__AdminPassword` /
+   `Seed__DemoPassword`.
+
+2. **Web**: any build works; the tests point the app at `IMS_API_URL` themselves (they answer `assets/config.json`).
+
+   ```bash
+   cd web && npm ci && npm run build:prod       # Node 22.6: NODE_OPTIONS=--experimental-require-module
+   PORT=5612 npm run serve:prod                 # or: npm run dev (port 4200)
+   ```
+
+3. **Tests**:
+
+   ```bash
+   cd e2e && npm ci && npx playwright install chromium
+   export IMS_API_URL=http://localhost:5611 IMS_WEB_URL=http://localhost:5612
+   npm run test:local                           # reads the dev passwords from appsettings.Development.json for this run only
+   ```
+
+   Or set the five passwords yourself and use `npm test`:
+   `IMS_E2E_PASSWORD_ADMIN`, `IMS_E2E_PASSWORD_OWNER`, `IMS_E2E_PASSWORD_SUPERVISOR`, `IMS_E2E_PASSWORD_STAFF`, `IMS_E2E_PASSWORD_CLERK`
+   (users `admin`, `owner`, `supervisor`, `staff`, `clerk`). Passwords are never printed, logged or committed. Defaults:
+   `IMS_WEB_URL=http://localhost:4200`, `IMS_API_URL=http://localhost:5109`. Single scenario:
+   `npm run test:local -- tests/03-approval-override.spec.ts`.
+
+   A missing server or password stops the run with one message (`src/global-setup.ts`). Reports: `npm run report`; failures keep a
+   screenshot and a trace in `test-results/`.
+
+4. **Clean up**: stop the API and the web server, then
+   `sqlcmd -S "(localdb)\ImsDev" -Q "ALTER DATABASE Ims_E2E_Scratch SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE Ims_E2E_Scratch"`.
+
+## Things to know
+
+- **One worker, on purpose.** Two scenarios switch the global setting "allow negative stock" (restored afterwards) and every
+  sign-in shares the API's login limit. Run the suite against a database nobody else is using.
+- **Rate limit.** Sign-in and token refresh share 20 requests a minute per address, and every full page load of a signed-in app
+  refreshes the session. The suite therefore navigates inside the app (`goTo`) and paces its sign-ins and page loads
+  (`src/rate-limit.ts`, which keeps a small log in the temp folder); a full run takes a few minutes because of it.
+- **Data.** Each scenario creates products, partners and documents with unique names (`E2E-<token>`) and leaves them; use a
+  throw-away database. Nothing is deleted through the API (posted documents are append-only by design).
+- **Page objects** live in `src/pages` (`shell`, `documents`, `screens`), API seeding in `src/api.ts`, sign-in fixtures in
+  `src/fixtures.ts`. Prefer roles and accessible names; the few CSS selectors are in the page objects with a reason.
