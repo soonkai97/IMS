@@ -2,8 +2,17 @@
   [(value)]="$term"
   [label]="'picker.label' | t"
   [placeholder]="'picker.placeholder' | t"
+  focusOnOpen
   (submitted)="onSubmitted($event)"
 />
+
+<div aria-live="polite">
+  @if ($notice(); as notice) {
+    <p class="product-picker-notice">{{ notice }}</p>
+  } @else if ($needsMoreLetters()) {
+    <p class="product-picker-hint">{{ 'picker.hint' | t }}</p>
+  }
+</div>
 
 @if ($isSearching()) {
   <app-skeleton [count]="3" />

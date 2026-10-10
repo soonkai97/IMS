@@ -18,6 +18,12 @@
   </div>
 </app-page-header>
 
+@if ($statusHint(); as hint) {
+  <p class="document-editor-hint">
+    {{ hint.key | t: { name: hint.name ?? '', date: (hint.at | appDate) } }}
+  </p>
+}
+
 @if ($isLoading()) {
   <app-skeleton [count]="4" />
 } @else if ($loadFailed()) {
@@ -46,10 +52,23 @@
   @if ($document()?.reversalReason; as reason) {
     <app-banner kind="info" [heading]="'doc.reversedBanner' | t">{{ reason }}</app-banner>
   }
+  @if ($reverseBlocked(); as blocked) {
+    <app-banner kind="danger" [heading]="'doc.reverseBlocked' | t: { docNo: blocked.docNo }">
+      {{
+        'doc.reverseBlockedBody'
+          | t
+            : {
+                sku: blocked.sku,
+                balance: (blocked.balance | appQty),
+                uom: blocked.uom
+              }
+      }}
+    </app-banner>
+  }
   @if ($stockConflict(); as conflict) {
     <app-banner kind="danger" [heading]="'doc.stockChanged' | t">
       {{
-        'doc.stockChangedBody'
+        $stockConflictBodyKey()
           | t
             : {
                 sku: conflict.sku,
@@ -228,42 +247,48 @@
     }
   }
 
-  <footer class="document-editor-bar">
-    @if ($editable()) {
-      <p class="document-editor-totals" aria-live="polite">
-        {{ 'doc.totals' | t: { lines: $totals().lineCount, qty: ($totals().totalQty | appQty) } }}
-        @if (!$isIssue() && $totals().totalAmount > 0) {
-          · {{ $totals().totalAmount | appMoney }}
-        }
-      </p>
-      @if ($linesBlocked()) {
-        <p class="document-editor-error" role="alert">
-          {{ 'doc.linesShort' | t: { count: $totals().shortLineCount } }}
+  @if ($askToReverse()) {
+    <app-banner kind="info">{{ 'doc.askToReverse' | t }}</app-banner>
+  }
+
+  @if ($showBar()) {
+    <footer class="document-editor-bar">
+      @if ($editable()) {
+        <p class="document-editor-totals" aria-live="polite">
+          {{ 'doc.totals' | t: { lines: $totals().lineCount, qty: ($totals().totalQty | appQty) } }}
+          @if (!$isIssue() && $totals().totalAmount > 0) {
+            · {{ $totals().totalAmount | appMoney }}
+          }
         </p>
+        @if ($linesBlocked()) {
+          <p class="document-editor-error" role="alert">
+            {{ 'doc.linesShort' | t: { count: $totals().shortLineCount } }}
+          </p>
+        }
+        @if ($needsOverride()) {
+          <app-status-chip flag="danger" [label]="'doc.overrideNeeded' | t" />
+        }
       }
-      @if ($needsOverride()) {
-        <app-status-chip flag="danger" [label]="'doc.overrideNeeded' | t" />
-      }
-    }
-    <app-document-actions
-      [allowedActions]="$allowedActions()"
-      [canPost]="$canPost()"
-      [busy]="$isBusy()"
-      [selfApprovalBlocked]="$selfApprovalBlocked()"
-      [submitDisabled]="$linesBlocked()"
-      (triggered)="onAction($event)"
-    />
-  </footer>
+      <app-document-actions
+        [allowedActions]="$allowedActions()"
+        [canPost]="$canPost()"
+        [busy]="$isBusy()"
+        [selfApprovalBlocked]="$selfApprovalBlocked()"
+        [submitDisabled]="$linesBlocked()"
+        [locked]="$isStale()"
+        (triggered)="onAction($event)"
+      />
+    </footer>
+  }
 }
 
 <app-dialog [(open)]="$addItemOpen" [heading]="'doc.addItem' | t">
   <app-product-picker
     [warehouseId]="$isIssue() ? $warehouseId() : null"
+    [notice]="$lastAdded()"
     (picked)="onProductPicked($event)"
+    (termChanged)="onPickerTermChanged()"
   />
-  @if ($lastAdded(); as lastAdded) {
-    <p class="document-editor-muted" role="status">{{ lastAdded }}</p>
-  }
   <div dialogActions>
     <app-button variant="primary" (clicked)="$addItemOpen.set(false)">{{
       'common.done' | t

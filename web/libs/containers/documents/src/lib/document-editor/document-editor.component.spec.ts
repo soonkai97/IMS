@@ -1,9 +1,11 @@
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { TestBed } from '@angular/core/testing';
+import { Router, provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
-import { of } from 'rxjs';
-import { DocumentDto, DocumentStatus, DocumentType, IssuePurpose } from '@ims/api';
+import { Subject, of, throwError } from 'rxjs';
+import { DocumentDto, DocumentStatus, DocumentType, IssuePurpose, ProductDto } from '@ims/api';
 import { PermissionService } from '@ims/core/identity';
+import { unsavedChangesGuard } from '@ims/core/navigation';
 import { ConfirmService } from '@ims/core/notification';
 import { SystemSettingsStore } from '@ims/core/settings';
 import { CatalogStore, ProductsStore } from '@ims/features/catalog';
@@ -98,13 +100,23 @@ describe('DocumentEditorPageComponent', () => {
   const detailReload = jest.fn();
   const currentToken = jest.fn();
   const resetCommands = jest.fn();
+  const granted = new Set<string>([PERMISSION.StockRead]);
+  /** What a command answers instead of the opened document (a save that creates, a submit that moves on). */
+  const responses: Record<string, DocumentDto | undefined> = {};
+  /** Commands that fail like a dead network. */
+  const failing = new Set<string>();
   let commands: Record<string, ApiCommand<never, DocumentDto>>;
 
-  /** One recording command per action; each answers with the opened document. */
+  /** One recording command per action; like the real store, each answer becomes the opened document. */
   function command(name: string): ApiCommand<never, DocumentDto> {
     return new ApiCommand<never, DocumentDto>(arg => {
       (calls[name] ??= []).push(arg);
-      return of(opened() as DocumentDto);
+      if (failing.has(name)) {
+        return throwError(() => new Error('offline'));
+      }
+      const answer = responses[name] ?? (opened() as DocumentDto);
+      opened.set(answer);
+      return of(answer);
     });
   }
 
@@ -140,7 +152,7 @@ describe('DocumentEditorPageComponent', () => {
       {
         provide: PermissionService,
         useValue: {
-          has: (permission: string) => permission === PERMISSION.StockRead,
+          has: (permission: string) => granted.has(permission),
           $userId: signal(9)
         }
       },
@@ -176,6 +188,41 @@ describe('DocumentEditorPageComponent', () => {
     spectator.detectChanges();
   }
 
+  async function openNew(): Promise<void> {
+    opened.set(undefined);
+    spectator = createComponent({ props: { type: DocumentType.Issue, id: 'new' } as never });
+    spectator.detectChanges();
+    await spectator.fixture.whenStable();
+    spectator.detectChanges();
+  }
+
+  const WIDGET = {
+    id: 1,
+    sku: 'DEMO-001',
+    name: 'Demo widget',
+    baseUomId: 1,
+    baseUomCode: 'PCS',
+    conversions: [],
+    isActive: true
+  } as unknown as ProductDto;
+
+  /** A complete new issue: Sale, one line of 1 PCS (the warehouse is preselected: there is only one). */
+  function fillNewIssue(): void {
+    const view = spectator.component.view;
+    view.header.controls.purpose.setValue(IssuePurpose.Sale);
+    view.header.markAsDirty();
+    spectator.component.onProductPicked({ product: WIDGET, available: 10 });
+    spectator.detectChanges();
+  }
+
+  const draftOf = (id: number): DocumentDto =>
+    document({
+      id,
+      status: DocumentStatus.Draft,
+      requiresApproval: false,
+      allowedActions: [DOCUMENT_ACTION.Edit, DOCUMENT_ACTION.Submit, DOCUMENT_ACTION.Cancel]
+    });
+
   const confirm = () => spectator.inject(ConfirmService);
   const text = (): string => spectator.element.textContent?.replace(/\s+/g, ' ') ?? '';
 
@@ -186,6 +233,12 @@ describe('DocumentEditorPageComponent', () => {
     detailReload.mockClear();
     resetCommands.mockClear();
     currentToken.mockReset();
+    for (const key of Object.keys(responses)) {
+      delete responses[key];
+    }
+    failing.clear();
+    granted.clear();
+    granted.add(PERMISSION.StockRead);
     commands = Object.fromEntries(
       ['save', 'submit', 'approve', 'reject', 'cancel', 'post', 'reverse'].map(name => [
         name,
@@ -309,5 +362,256 @@ describe('DocumentEditorPageComponent', () => {
 
     expect(text()).toContain('Returned by Supervisor');
     expect(text()).toContain('Please check the quantity first');
+  });
+
+  describe('a new document (regression NV-01, NV-02)', () => {
+    it('NV-01: after the first Save the form is clean when the URL moves, so no "Discard changes?" and no duplicate', async () => {
+      await openNew();
+      fillNewIssue();
+      expect(spectator.component.hasUnsavedChanges()).toBe(true);
+      responses['save'] = draftOf(31);
+      const dirtyWhenNavigating: boolean[] = [];
+      const navigate = jest.spyOn(spectator.inject(Router), 'navigate').mockImplementation(() => {
+        dirtyWhenNavigating.push(spectator.component.hasUnsavedChanges());
+        return Promise.resolve(true);
+      });
+
+      spectator.component.onAction(DOCUMENT_ACTION.Edit);
+      spectator.detectChanges();
+
+      expect(navigate).toHaveBeenCalledWith(['/', 'issues', 31], { replaceUrl: true });
+      expect(dirtyWhenNavigating).toEqual([false]);
+      // The real guard of the route lets the move through without asking.
+      const guardAnswer = TestBed.runInInjectionContext(() =>
+        unsavedChangesGuard(spectator.component, {} as never, {} as never, {} as never)
+      );
+      expect(guardAnswer).toBe(true);
+      expect(confirm().$pending()).toBeUndefined();
+    });
+
+    it('NV-01: a second tap on Save draft updates the saved document instead of creating another one', async () => {
+      await openNew();
+      fillNewIssue();
+      responses['save'] = draftOf(31);
+      jest.spyOn(spectator.inject(Router), 'navigate').mockResolvedValue(true);
+
+      spectator.component.onAction(DOCUMENT_ACTION.Edit);
+      spectator.detectChanges();
+      spectator.component.onAction(DOCUMENT_ACTION.Edit);
+
+      expect(calls['save']).toHaveLength(2);
+      expect(calls['save'][0]).toEqual(expect.objectContaining({ ref: undefined }));
+      expect(calls['save'][1]).toEqual(
+        expect.objectContaining({ ref: { id: 31, concurrencyToken: 'AAAA' } })
+      );
+    });
+
+    it('NV-02: Back in the Post dialog leaves the editor on the saved Submitted document; nothing is created twice', async () => {
+      await openNew();
+      fillNewIssue();
+      responses['save'] = draftOf(31);
+      responses['submit'] = document({
+        id: 31,
+        status: DocumentStatus.Submitted,
+        requiresApproval: false,
+        allowedActions: [DOCUMENT_ACTION.Post]
+      });
+      jest.spyOn(spectator.inject(Router), 'navigate').mockResolvedValue(true);
+
+      spectator.component.onAction(DOCUMENT_ACTION.Submit);
+      expect(confirm().$pending()?.request.heading).toContain('Post');
+      confirm().cancel();
+      spectator.detectChanges();
+
+      expect(spectator.component.$isNew()).toBe(false);
+      expect(spectator.component.$documentId()).toBe(31);
+      expect(calls['save']).toHaveLength(1);
+      expect(calls['submit']).toHaveLength(1);
+      const buttons = spectator
+        .queryAll('app-document-actions button')
+        .map(button => button.textContent?.trim());
+      expect(buttons).toEqual(['Post']);
+    });
+
+    it('a save that fails before the document exists leaves the editor new', async () => {
+      await openNew();
+      fillNewIssue();
+      failing.add('save');
+      const navigate = jest.spyOn(spectator.inject(Router), 'navigate');
+
+      expect(() => spectator.component.onAction(DOCUMENT_ACTION.Edit)).not.toThrow();
+
+      expect(navigate).not.toHaveBeenCalled();
+      expect(spectator.component.$isNew()).toBe(true);
+    });
+
+    it('NV-07: closing the tab with a half-written document asks first; a clean one does not', async () => {
+      await openNew();
+      const event = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+      spectator.component.onBeforeUnload(event);
+      expect(event.defaultPrevented).toBe(false);
+
+      fillNewIssue();
+      spectator.component.onBeforeUnload(event);
+      expect(event.defaultPrevented).toBe(true);
+    });
+  });
+
+  describe('adding the same product twice (NV-04)', () => {
+    it('the message says the line grew and what the quantity is now', async () => {
+      await openNew();
+
+      spectator.component.onProductPicked({ product: WIDGET, available: 10 });
+      expect(spectator.component.$lastAdded()).toBe('DEMO-001 added.');
+      spectator.component.onProductPicked({ product: WIDGET, available: 10 });
+      expect(spectator.component.$lastAdded()).toBe('DEMO-001: now 2.');
+    });
+
+    it('typing something else in the search clears the message', async () => {
+      await openNew();
+      spectator.component.onProductPicked({ product: WIDGET, available: 10 });
+
+      spectator.component.onPickerTermChanged();
+
+      expect(spectator.component.$lastAdded()).toBeUndefined();
+    });
+  });
+
+  describe('what a worker can do with a document (NV-05, NV-06, NV-17)', () => {
+    it('NV-05: a posted document tells a worker without the Reverse right whom to ask', async () => {
+      granted.add(PERMISSION.DocumentCreate);
+      await open(document({ status: DocumentStatus.Posted, allowedActions: [] }));
+
+      expect(text()).toContain('Ask a supervisor to reverse this document');
+      expect(spectator.query('.document-editor-bar')).toBeNull();
+    });
+
+    it('NV-05: a supervisor sees the Reverse button and no such note', async () => {
+      granted.add(PERMISSION.DocumentCreate);
+      await open(
+        document({ status: DocumentStatus.Posted, allowedActions: [DOCUMENT_ACTION.Reverse] })
+      );
+
+      expect(text()).not.toContain('Ask a supervisor');
+      expect(text()).toContain('Reverse');
+    });
+
+    it('NV-06: a submitted issue that cannot be posted says to cancel and redo it, not to adjust the quantity', async () => {
+      await open(
+        document({
+          status: DocumentStatus.Submitted,
+          requiresApproval: false,
+          allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Cancel]
+        })
+      );
+
+      commands['post'].$operation.set(
+        failureOperation({ ...STALE, extensions: { productId: 1, available: 0, requested: 24 } })
+      );
+      spectator.detectChanges();
+
+      expect(text()).toContain('Cancel this document and create a new one with a smaller quantity');
+      expect(text()).not.toContain('Adjust the quantity');
+    });
+
+    it('NV-06: without the right to cancel it says to ask a supervisor', async () => {
+      await open(document({ allowedActions: [DOCUMENT_ACTION.Post] }));
+
+      commands['post'].$operation.set(
+        failureOperation({ ...STALE, extensions: { productId: 1, available: 0, requested: 24 } })
+      );
+      spectator.detectChanges();
+
+      expect(text()).toContain('Ask a supervisor for help');
+    });
+
+    it('NV-06: a draft can still be adjusted, so it keeps the original advice', async () => {
+      await open(draftOf(2));
+
+      commands['submit'].$operation.set(
+        failureOperation({ ...STALE, extensions: { productId: 1, available: 0, requested: 24 } })
+      );
+      spectator.detectChanges();
+
+      expect(text()).toContain('Adjust the quantity and try again');
+    });
+
+    it('PS-01: a reversal the stock cannot take back is explained as such, not as a post failure', async () => {
+      await open(
+        document({ status: DocumentStatus.Posted, allowedActions: [DOCUMENT_ACTION.Reverse] })
+      );
+
+      commands['reverse'].$operation.set(
+        failureOperation({ ...STALE, extensions: { productId: 1, available: -3, requested: 5 } })
+      );
+      spectator.detectChanges();
+
+      expect(text()).toContain("Can't reverse ISS-WH01-2610-0001");
+      expect(text()).toContain('negative (-8 PCS)');
+      expect(text()).not.toContain('Adjust the quantity');
+    });
+
+    it('NV-17: the header says who approved or posted and when', async () => {
+      await open(
+        document({
+          status: DocumentStatus.Posted,
+          postedByName: 'Supervisor',
+          postedAt: '2026-10-09T08:00:00Z',
+          allowedActions: []
+        })
+      );
+
+      expect(text()).toContain('Posted by Supervisor on 09 Oct 2026');
+    });
+
+    it('NV-17: a submitted document that needs no approval says it is ready to post', async () => {
+      await open(document({ requiresApproval: false, allowedActions: [DOCUMENT_ACTION.Post] }));
+
+      expect(text()).toContain('Ready to post');
+    });
+  });
+
+  describe('the stale-document banner (PS-08)', () => {
+    it('goes away after Reload, and the buttons are locked while it shows', async () => {
+      await open(document());
+      currentToken.mockReturnValue(of('BBBB'));
+      spectator.component.onVisibilityChange();
+      spectator.detectChanges();
+
+      expect(text()).toContain('changed since you opened it');
+      const approve = spectator
+        .queryAll('button')
+        .find(button => button.textContent?.includes('Approve'));
+      expect(approve?.hasAttribute('disabled')).toBe(true);
+
+      opened.set(document({ concurrencyToken: 'BBBB' }));
+      spectator.component.onReload();
+      spectator.detectChanges();
+
+      expect(text()).not.toContain('changed since you opened it');
+    });
+
+    it('is not raised by a tab check that was answered after the user own successful command', async () => {
+      await open(
+        document({ status: DocumentStatus.Posted, allowedActions: [DOCUMENT_ACTION.Reverse] })
+      );
+      const answer = new Subject<string | undefined>();
+      currentToken.mockReturnValue(answer);
+      spectator.component.onVisibilityChange();
+
+      // The reversal finished first: a new copy of the document is open.
+      opened.set(
+        document({
+          status: DocumentStatus.Reversed,
+          concurrencyToken: 'CCCC',
+          allowedActions: []
+        })
+      );
+      spectator.detectChanges();
+      answer.next('CCCC');
+      spectator.detectChanges();
+
+      expect(text()).not.toContain('changed since you opened it');
+    });
   });
 });

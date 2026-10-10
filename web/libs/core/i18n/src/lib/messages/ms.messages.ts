@@ -289,7 +289,19 @@ export const MS_MESSAGES: Messages = {
   'doc.action.submitAndPost': 'Hantar & poskan',
   'doc.addItem': 'Tambah item',
   'doc.amount': 'Jumlah',
+  'doc.askToReverse': 'Kuantiti salah? Minta penyelia membalikkan dokumen ini.',
   'doc.awaitingApproval': 'Menunggu kelulusan',
+  'doc.hint.approvedBy': 'Diluluskan oleh {name}',
+  'doc.hint.postedBy': 'Diposkan oleh {name} pada {date}',
+  'doc.hint.readyToPost': 'Sedia untuk diposkan',
+  'doc.itemIncreased': '{sku}: kini {qty}.',
+  'doc.reverseBlocked': 'Tidak dapat membalikkan {docNo}',
+  'doc.reverseBlockedBody':
+    'Ini akan menjadikan {sku} negatif ({balance} {uom}). Balikkan atau laraskan keluar stok kemudian dahulu, atau tanya Admin.',
+  'doc.stockChangedBodyAsk':
+    'Stok untuk {sku} kini {available} {uom}, tetapi dokumen memerlukan {requested}. Minta bantuan penyelia.',
+  'doc.stockChangedBodyCancel':
+    'Stok untuk {sku} kini {available} {uom}, tetapi dokumen memerlukan {requested}. Batalkan dokumen ini dan buat yang baharu dengan kuantiti lebih kecil.',
   'doc.cancelledBanner': 'Dibatalkan',
   'doc.createdBy': 'Dibuat oleh',
   'doc.customer': 'Pelanggan',
@@ -362,7 +374,8 @@ export const MS_MESSAGES: Messages = {
   'picker.noMatch': 'Tiada produk sepadan dengan "{query}".',
   'picker.notFound': 'Tiada produk dengan kod {code}.',
   'picker.inactive': '{sku} telah dinyahaktifkan dan tidak boleh ditambah.',
-  'picker.placeholder': 'Taip 2+ aksara atau imbas kod bar',
+  'picker.hint': 'Taip 2 aksara atau lebih, atau imbas kod bar.',
+  'picker.placeholder': 'Nama, SKU atau kod bar',
 
   'dialog.approve.body': 'Dokumen kemudian boleh diposkan.',
   'dialog.approve.title': 'Luluskan {docNo}?',

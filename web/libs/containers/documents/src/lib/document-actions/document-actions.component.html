@@ -1,29 +1,29 @@
 @if ($canCancel()) {
-  <app-button variant="ghost" [disabled]="$busy()" (clicked)="onTrigger(action.Cancel)">
+  <app-button variant="ghost" [disabled]="$inactive()" (clicked)="onTrigger(action.Cancel)">
     <app-icon name="x" />
     {{ 'doc.action.cancel' | t }}
   </app-button>
 }
 @if ($canReject()) {
-  <app-button variant="danger" [disabled]="$busy()" (clicked)="onTrigger(action.Reject)">
+  <app-button variant="danger" [disabled]="$inactive()" (clicked)="onTrigger(action.Reject)">
     {{ 'doc.action.reject' | t }}
   </app-button>
 }
 @if ($canReverse()) {
-  <app-button variant="danger" [disabled]="$busy()" (clicked)="onTrigger(action.Reverse)">
+  <app-button variant="danger" [disabled]="$inactive()" (clicked)="onTrigger(action.Reverse)">
     <app-icon name="undo" />
     {{ 'doc.action.reverse' | t }}
   </app-button>
 }
 @if ($canSave()) {
-  <app-button [disabled]="$busy()" (clicked)="onTrigger(action.Edit)">{{
+  <app-button [disabled]="$inactive()" (clicked)="onTrigger(action.Edit)">{{
     'doc.action.saveDraft' | t
   }}</app-button>
 }
 @if ($canSubmit()) {
   <app-button
     variant="primary"
-    [disabled]="$submitDisabled()"
+    [disabled]="$submitDisabled() || $locked()"
     [loading]="$busy()"
     (clicked)="onTrigger(action.Submit)"
   >
@@ -31,7 +31,12 @@
   </app-button>
 }
 @if ($canApprove()) {
-  <app-button variant="primary" [loading]="$busy()" (clicked)="onTrigger(action.Approve)">
+  <app-button
+    variant="primary"
+    [disabled]="$locked()"
+    [loading]="$busy()"
+    (clicked)="onTrigger(action.Approve)"
+  >
     <app-icon name="check" />
     {{ 'doc.action.approve' | t }}
   </app-button>
@@ -44,7 +49,12 @@
   <p class="document-actions-hint" role="note">{{ 'doc.selfApproval' | t }}</p>
 }
 @if ($canPostDocument()) {
-  <app-button variant="primary" [loading]="$busy()" (clicked)="onTrigger(action.Post)">
+  <app-button
+    variant="primary"
+    [disabled]="$locked()"
+    [loading]="$busy()"
+    (clicked)="onTrigger(action.Post)"
+  >
     <app-icon name="check-double" />
     {{ 'doc.action.post' | t }}
   </app-button>

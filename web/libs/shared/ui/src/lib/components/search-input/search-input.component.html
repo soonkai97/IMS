@@ -5,6 +5,8 @@
   type="search"
   autocomplete="off"
   enterkeyhint="search"
+  [attr.data-autofocus]="$focusOnOpen() ? '' : null"
+  [attr.maxlength]="$maxLength()"
   [attr.aria-label]="$label()"
   [attr.placeholder]="$placeholder() || null"
   [value]="$value()"

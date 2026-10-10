@@ -85,42 +85,46 @@ export class DocumentsStore {
   /** Home numbers and the approvals badge: four indexed counts for the signed-in user. */
   readonly counts = new QueryLoader<void, DocumentCounts>(() => this.client.counts());
 
-  readonly save = new ApiCommand<SaveDocumentArgs, DocumentDto>(args =>
-    this.accept(this.saveRequest(args))
+  readonly save: ApiCommand<SaveDocumentArgs, DocumentDto> = new ApiCommand(args =>
+    this.accept(this.saveRequest(args), this.save)
   );
-  readonly submit = new ApiCommand<DocumentRef, DocumentDto>(ref =>
-    this.accept(this.client.submit(ref.id, withIfMatch(ref.concurrencyToken)))
+  readonly submit: ApiCommand<DocumentRef, DocumentDto> = new ApiCommand(ref =>
+    this.accept(this.client.submit(ref.id, withIfMatch(ref.concurrencyToken)), this.submit)
   );
-  readonly approve = new ApiCommand<ApproveArgs, DocumentDto>(args =>
+  readonly approve: ApiCommand<ApproveArgs, DocumentDto> = new ApiCommand(args =>
     this.accept(
       this.client.approve(
         args.id,
         { negativeStockOverrideReason: args.negativeStockOverrideReason || undefined },
         withIfMatch(args.concurrencyToken)
-      )
+      ),
+      this.approve
     )
   );
-  readonly reject = new ApiCommand<ReasonArgs, DocumentDto>(args =>
+  readonly reject: ApiCommand<ReasonArgs, DocumentDto> = new ApiCommand(args =>
     this.accept(
-      this.client.reject(args.id, { reason: args.reason }, withIfMatch(args.concurrencyToken))
+      this.client.reject(args.id, { reason: args.reason }, withIfMatch(args.concurrencyToken)),
+      this.reject
     )
   );
-  readonly cancel = new ApiCommand<ReasonArgs, DocumentDto>(args =>
+  readonly cancel: ApiCommand<ReasonArgs, DocumentDto> = new ApiCommand(args =>
     this.accept(
       this.client.cancel(
         args.id,
         { reason: args.reason || undefined },
         withIfMatch(args.concurrencyToken)
-      )
+      ),
+      this.cancel
     )
   );
   /** Posting takes no body: an override reason was given when the document was approved. */
-  readonly post = new ApiCommand<DocumentRef, DocumentDto>(ref =>
-    this.accept(this.client.post(ref.id, withIfMatch(ref.concurrencyToken)))
+  readonly post: ApiCommand<DocumentRef, DocumentDto> = new ApiCommand(ref =>
+    this.accept(this.client.post(ref.id, withIfMatch(ref.concurrencyToken)), this.post)
   );
-  readonly reverse = new ApiCommand<ReasonArgs, DocumentDto>(args =>
+  readonly reverse: ApiCommand<ReasonArgs, DocumentDto> = new ApiCommand(args =>
     this.accept(
-      this.client.reverse(args.id, { reason: args.reason }, withIfMatch(args.concurrencyToken))
+      this.client.reverse(args.id, { reason: args.reason }, withIfMatch(args.concurrencyToken)),
+      this.reverse
     )
   );
 
@@ -147,6 +151,10 @@ export class DocumentsStore {
 
   /** Forgets the outcome of every command (their errors drive banners such as "changed by someone else"). */
   resetCommands(): void {
+    this.resetCommandsExcept(undefined);
+  }
+
+  private resetCommandsExcept(keep: { reset(): void } | undefined): void {
     for (const command of [
       this.save,
       this.submit,
@@ -156,7 +164,9 @@ export class DocumentsStore {
       this.post,
       this.reverse
     ]) {
-      command.reset();
+      if (command !== keep) {
+        command.reset();
+      }
     }
   }
 
@@ -169,8 +179,20 @@ export class DocumentsStore {
       : this.client.createIssue(args.body);
   }
 
-  /** Every state change returns the fresh document; keep it as the opened one. */
-  private accept(source$: Observable<DocumentDto>): Observable<DocumentDto> {
-    return source$.pipe(tap(document => this.detail.$data.set(document)));
+  /**
+   * Every state change returns the fresh document; keep it as the opened one. The document is now in a new state, so
+   * what the OTHER commands failed with ('Stock changed' after a failed post, then the document was cancelled) no
+   * longer describes it and must not keep a banner on screen.
+   */
+  private accept(
+    source$: Observable<DocumentDto>,
+    command: { reset(): void }
+  ): Observable<DocumentDto> {
+    return source$.pipe(
+      tap(document => {
+        this.detail.$data.set(document);
+        this.resetCommandsExcept(command);
+      })
+    );
   }
 }
