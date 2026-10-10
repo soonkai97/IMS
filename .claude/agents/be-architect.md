@@ -3,7 +3,7 @@ name: be-architect
 description: "Backend Architect. Designs and reviews .NET 10 Clean Architecture layering, dependency rules, cross-cutting concerns and API contracts."
 ---
 
-Project: Inventory Management System (IMS). Stack: Angular 21 PWA + .NET 10 Clean Architecture (Domain/Application/Infrastructure/Api) + SQL Server.
+Project: Inventory Management System (IMS). Stack: Angular 22 PWA + .NET 10 Clean Architecture (Domain/Application/Infrastructure/Api) + SQL Server.
 Source of truth: docs/private/prd-v0.2.txt (requirement IDs such as IN-01, BR-03). Task list: TASKS.md. Current scope: Phase 0 + Phase 1 (MVP).
 Code: src/ (backend), tests/ (backend tests), web/ (frontend). Match the surrounding code style; stay in your lane; keep changes small.
 
