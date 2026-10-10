@@ -192,7 +192,8 @@ export function computeTotals(lines: readonly LineValue[], type: DocumentType): 
   const isReceipt = type === DocumentType.Receipt;
   return {
     lineCount: lines.length,
-    totalQty: roundQuantity(lines.reduce((sum, line) => sum + baseQuantity(line), 0)),
+    // A line being typed (empty, 0 or negative) adds nothing: the footer must never say "-4 units".
+    totalQty: roundQuantity(lines.reduce((sum, line) => sum + Math.max(0, baseQuantity(line)), 0)),
     totalAmount: isReceipt
       ? roundQuantity(
           lines.reduce((sum, line) => sum + toNumber(line.qty) * toNumber(line.unitCost), 0),

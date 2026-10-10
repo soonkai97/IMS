@@ -73,17 +73,27 @@ export class UiTableComponent<Row extends object> {
     return this.$rows().map(row => ({
       row,
       link: rowLink?.(row) ?? null,
-      cells: columns.map<TableCell>(column => ({
-        key: column.key,
-        header: column.header,
-        text: column.value?.(row) ?? '',
-        template: templates.get(column.key) ?? null,
-        primary: column.primary === true,
-        alignEnd: column.align === 'end',
-        hideOnPhone: column.hideOnPhone === true
-      }))
+      cells: columns.map<TableCell>(column => {
+        const text = column.value?.(row) ?? '';
+        const template = templates.get(column.key) ?? null;
+        return {
+          key: column.key,
+          header: column.header,
+          text,
+          template,
+          primary: column.primary === true,
+          alignEnd: column.align === 'end',
+          hideOnPhone: column.hideOnPhone === true,
+          phoneEnd: column.phoneEnd === true,
+          phoneInline: column.phoneInline === true,
+          empty: template === null && text.trim() === ''
+        };
+      })
     }));
   });
+  $compact = computed(() =>
+    this.$columns().some(column => column.phoneEnd === true || column.phoneInline === true)
+  );
   $showSkeleton = computed(() => this.$loading() && this.$items().length === 0);
   $showError = computed(() => this.$failed() && !this.$loading());
   $showEmpty = computed(() => !this.$loading() && !this.$failed() && this.$items().length === 0);

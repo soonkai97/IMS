@@ -5,7 +5,7 @@ import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { Subject, of, throwError } from 'rxjs';
 import { DocumentDto, DocumentStatus, DocumentType, IssuePurpose, ProductDto } from '@ims/api';
 import { PermissionService } from '@ims/core/identity';
-import { unsavedChangesGuard } from '@ims/core/navigation';
+import { PageTitleService, unsavedChangesGuard } from '@ims/core/navigation';
 import { ConfirmService } from '@ims/core/notification';
 import { SystemSettingsStore } from '@ims/core/settings';
 import { CatalogStore, ProductsStore } from '@ims/features/catalog';
@@ -15,7 +15,9 @@ import { PartnersStore, WarehousesStore } from '@ims/features/warehousing';
 import {
   API_ERROR_KIND,
   ApiError,
+  ApiOperation,
   DOCUMENT_ACTION,
+  IDLE_OPERATION,
   PERMISSION,
   failureOperation
 } from '@ims/models';
@@ -100,6 +102,7 @@ describe('DocumentEditorPageComponent', () => {
   const detailReload = jest.fn();
   const currentToken = jest.fn();
   const resetCommands = jest.fn();
+  const detailOperation = signal<ApiOperation>(IDLE_OPERATION);
   const granted = new Set<string>([PERMISSION.StockRead]);
   /** What a command answers instead of the opened document (a save that creates, a submit that moves on). */
   const responses: Record<string, DocumentDto | undefined> = {};
@@ -138,6 +141,7 @@ describe('DocumentEditorPageComponent', () => {
             $data: opened,
             $isLoading: signal(false),
             $isFailed: signal(false),
+            $operation: detailOperation,
             load: jest.fn(),
             reload: detailReload,
             reset: jest.fn()
@@ -237,6 +241,7 @@ describe('DocumentEditorPageComponent', () => {
       delete responses[key];
     }
     failing.clear();
+    detailOperation.set(IDLE_OPERATION);
     granted.clear();
     granted.add(PERMISSION.StockRead);
     commands = Object.fromEntries(
@@ -364,6 +369,30 @@ describe('DocumentEditorPageComponent', () => {
     expect(text()).toContain('Please check the quantity first');
   });
 
+  describe('a document that cannot be opened (NV-12, PS-20)', () => {
+    it('an unknown id is a not-found page with a way home, not a retry button', async () => {
+      opened.set(undefined);
+      detailOperation.set(
+        failureOperation({ ...STALE, kind: API_ERROR_KIND.NotFound, status: 404, detail: '' })
+      );
+      spectator = createComponent({ props: { type: DocumentType.Receipt, id: '99999' } as never });
+      spectator.detectChanges();
+
+      expect(text()).toContain("This page or document doesn't exist or was removed.");
+      expect(spectator.query('h1')?.textContent).toContain('Page not found');
+      expect(spectator.query('a[href="/"]')?.textContent).toContain('Go to Home');
+      expect(text()).not.toContain('Retry');
+    });
+
+    it('while a saved document loads the title is not "New receipt"', async () => {
+      opened.set(undefined);
+      spectator = createComponent({ props: { type: DocumentType.Receipt, id: '5' } as never });
+      spectator.detectChanges();
+
+      expect(spectator.query('h1')?.textContent).not.toContain('New receipt');
+    });
+  });
+
   describe('a new document (regression NV-01, NV-02)', () => {
     it('NV-01: after the first Save the form is clean when the URL moves, so no "Discard changes?" and no duplicate', async () => {
       await openNew();
@@ -456,6 +485,14 @@ describe('DocumentEditorPageComponent', () => {
       fillNewIssue();
       spectator.component.onBeforeUnload(event);
       expect(event.defaultPrevented).toBe(true);
+    });
+
+    it('the screen title names the new document, then the saved one (EA-03)', async () => {
+      await openNew();
+      expect(spectator.inject(PageTitleService).$title()).toContain('New issue');
+
+      await open(document());
+      expect(spectator.inject(PageTitleService).$title()).toContain('ISS-WH01-2610-0001');
     });
   });
 

@@ -40,6 +40,26 @@ describe('errorInterceptor', () => {
     return result;
   }
 
+  it('EA-15: a gateway timeout with an HTML body says the server cannot be reached, not "something went wrong"', async () => {
+    await failWith(504, null);
+
+    expect(toast.$toasts()[0].message).toBe(
+      "Can't reach the server. Check your connection and try again."
+    );
+  });
+
+  it('EA-15: a 503 that carries the API sentence keeps it', async () => {
+    await failWith(503, problem(503, { detail: 'The database is not available.' }));
+
+    expect(toast.$toasts()[0].message).toBe('The database is not available.');
+  });
+
+  it('EA-24: too many requests gets a sentence with the wait, not "could not be processed"', async () => {
+    await failWith(429, problem(429, { detail: 'The request could not be processed.' }));
+
+    expect(toast.$toasts()[0].message).toBe('Too many attempts. Wait a minute and try again.');
+  });
+
   it('maps ProblemDetails to an ApiError and shows the server detail as a toast', async () => {
     const error = await failWith(
       409,

@@ -13,7 +13,7 @@ import { Router } from '@angular/router';
 import { tap } from 'rxjs';
 import { I18nService, LanguageSelectComponent, TranslatePipe } from '@ims/core/i18n';
 import { AuthService, HOME_ROUTE, SESSION_EXPIRED_REASON } from '@ims/core/identity';
-import { API_ERROR_KIND, MAX_PASSWORD_LENGTH, MAX_USERNAME_LENGTH } from '@ims/models';
+import { API_ERROR_KIND, HTTP_STATUS, MAX_PASSWORD_LENGTH, MAX_USERNAME_LENGTH } from '@ims/models';
 import {
   UiBannerComponent,
   UiButtonComponent,
@@ -73,6 +73,9 @@ export class LoginPageComponent {
     const error = this.auth.login.$operation().error;
     if (!error) {
       return undefined;
+    }
+    if (error.status === HTTP_STATUS.TooManyRequests) {
+      return this.i18n.t('error.tooManyRequests');
     }
     return error.kind === API_ERROR_KIND.Unauthorized
       ? this.i18n.t('login.error.invalid')

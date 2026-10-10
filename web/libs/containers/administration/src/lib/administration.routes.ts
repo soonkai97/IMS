@@ -8,6 +8,7 @@ export const USER_ROUTES: Routes = [
   {
     path: '',
     component: UsersPageComponent,
+    title: 'users.title',
     canActivate: [requirePermission(PERMISSION.UsersManage)]
   }
 ];
@@ -16,6 +17,7 @@ export const SETTINGS_ROUTES: Routes = [
   {
     path: '',
     component: SettingsPageComponent,
+    title: 'settings.title',
     canActivate: [requirePermission(PERMISSION.SettingsManage)]
   }
 ];

@@ -8,6 +8,19 @@
   justify-content: flex-end;
 }
 
+// On a phone Cancel lives in the "more" sheet when other actions exist; elsewhere the button is inline.
+.document-actions-cancel.--overflow {
+  @include media-phone {
+    display: none;
+  }
+}
+
+.document-actions-more {
+  @include media-tablet {
+    display: none;
+  }
+}
+
 .document-actions-hint {
   flex-basis: 100%;
   font-size: font-size(2);
