@@ -7,7 +7,7 @@ public class RefreshTokenHandler(IRepository<RefreshToken> tokensRepo, IReadRepo
 {
     public async Task<AuthResult> HandleAsync(RefreshTokenCommand cmd, CancellationToken ct)
     {
-        var stored = await tokensRepo.FirstOrDefaultAsync(new RefreshTokenByHashSpec(tokens.Hash(cmd.Body.RefreshToken)), ct);
+        var stored = await tokensRepo.FirstOrDefaultAsync(new RefreshTokenByHashSpec(tokens.Hash(cmd.Body.RefreshToken ?? "")), ct);
         var now = clock.UtcNow;
         if (stored is null || !stored.IsActive(now))
             throw new UnauthorizedException(Messages.SessionExpired);

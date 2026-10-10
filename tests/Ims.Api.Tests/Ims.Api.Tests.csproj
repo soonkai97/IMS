@@ -29,4 +29,9 @@
     <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- One builder of tiny valid JPEG/PNG/WebP files (with and without metadata) shared with the domain tests. -->
+    <Compile Include="..\Ims.Domain.Tests\Attachments\TestImages.cs" Link="Support\TestImages.cs" />
+  </ItemGroup>
+
 </Project>

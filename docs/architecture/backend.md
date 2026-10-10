@@ -99,6 +99,13 @@ No magic numbers or strings: `Ims.Domain/Common/Constants` (limits, audit names,
 Serilog: console + rolling daily file (30 days), structured, every line tagged with `CorrelationId` (`X-Correlation-Id` echoed to the client).
 Request logging records the final mapped status; business rejections are warnings, unexpected failures are errors with the stack.
 
+## Security cross-cutting (Ims.Api)
+
+- `SecurityHeadersMiddleware` (first in the pipeline after forwarded headers/HSTS): defensive headers on every response, added at response start so errors and 429s carry them; an endpoint may override (attachments do). Values: `SecurityHeaders`.
+- Sign-in transport: the refresh token is also an `HttpOnly; Secure; SameSite=Strict; Path=/api/auth` cookie (`RefreshTokenCookie`); a request that relies on the cookie must pass `CsrfGuard` (custom header + Origin/Referer in `Cors:Origins`). `AuthController` chooses body or cookie; Application handlers do not know about cookies. Switch `Auth:ReturnRefreshTokenInBody`. See `docs/security/refresh-cookie.md`.
+- Ports for pluggable security adapters live in Application and get a safe default in Infrastructure (`IUploadScanner` / `NoOpUploadScanner`).
+- Static web hosting headers (CSP etc.) are a proxy concern: `docs/security/web-headers.md`. Runtime scan: `docs/security/dast.md`.
+
 ## Trade-offs recorded
 
 - Application references `Ardalis.Specification` (persistence-ignorant) but not EF Core.

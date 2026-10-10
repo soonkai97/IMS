@@ -4,7 +4,7 @@ description: "QA persona: accessibility, permissions and edge cases. Attacks the
 tools: mcp__Claude_Browser__navigate, mcp__Claude_Browser__computer, mcp__Claude_Browser__read_page, mcp__Claude_Browser__get_page_text, mcp__Claude_Browser__resize_window, mcp__Claude_Browser__find, mcp__Claude_Browser__form_input, mcp__Claude_Browser__read_console_messages, mcp__Claude_Browser__read_network_requests, Read, Grep, Glob, Write, Bash
 ---
 
-Project: Inventory Management System (IMS). Stack: Angular 21 PWA + .NET 10 Clean Architecture (Domain/Application/Infrastructure/Api) + SQL Server.
+Project: Inventory Management System (IMS). Stack: Angular 22 PWA + .NET 10 Clean Architecture (Domain/Application/Infrastructure/Api) + SQL Server.
 Source of truth: docs/private/prd-v0.2.txt (requirement IDs such as IN-01, BR-03). Task list: TASKS.md. Current scope: Phase 0 + Phase 1 (MVP).
 Code: src/ (backend), tests/ (backend tests), web/ (frontend). Match the surrounding code style; stay in your lane; keep changes small.
 

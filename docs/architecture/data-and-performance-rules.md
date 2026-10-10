@@ -74,7 +74,10 @@ No N+1 queries: a use case issues a fixed number of queries regardless of how ma
 
 - Bytes are stored as physical files under `Storage:RootPath`; the database keeps only metadata (`Attachment`).
 - The type is decided from the file's bytes (JPEG, PNG, WebP, PDF), never from the client's name or content type; the stored name is generated;
-  size is enforced while streaming; PDFs with scripts, launch actions or embedded files are refused.
+  size is enforced while reading (never more than 10 MB in memory); PDFs with scripts, launch actions or embedded files are refused.
+- Images are stored without metadata (EXIF/GPS, XMP, IPTC, comments, bytes after the end marker) and a damaged image is refused
+  (`ImageMetadataStripper`); every upload then passes `IUploadScanner` (default no-op; plug a malware scanner in there) before it reaches storage.
+  Details: `docs/security/upload-scanning.md`.
 - Access is decided per owner by an `IAttachmentOwnerPolicy` (warehouse scope for documents, master-data permissions for products).
 - Downloads are sent inert: `nosniff`, `Content-Security-Policy: default-src 'none'; sandbox`, `Cache-Control: private, no-store`.
 - Back the storage folder up together with the database (docker-compose mounts it as a volume).

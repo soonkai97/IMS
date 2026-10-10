@@ -12,6 +12,7 @@ public static class Messages
     public static readonly string PasswordTooShort = $"Password must be at least {Limits.PasswordMinLength} characters.";
     public const string CurrentPasswordWrong = "The current password is not correct.";
     public const string PasswordUnchanged = "Choose a password different from the current one.";
+    public const string CrossSiteRequestRefused = "This request did not come from a trusted application.";
 
     public const string CannotLockOutSelf = "You cannot deactivate your own account or remove your own administrator role.";
     public const string LastAdminRequired = "At least one active administrator must remain.";
@@ -121,6 +122,8 @@ public static class Messages
     public const string WorkbookTooLarge = "The workbook is too large once unpacked.";
     public const string PageTooDeep = "That page is too deep to list. Narrow the filter, or continue from the last row with afterId.";
     public const string FileHasActiveContent = "PDF files with scripts, launch actions or embedded files are not accepted.";
+    public const string FileNotAValidImage = "The image is damaged or not a supported image. Choose another file.";
+    public const string FileRejectedByScanner = "The file was rejected by the security check and was not stored.";
     public const string NotAWorkbook = "The file is not a valid .xlsx workbook.";
     public const string WorkbookEmpty = "The workbook has no sheets.";
     public const string UnknownTemplate = "Unknown template.";
