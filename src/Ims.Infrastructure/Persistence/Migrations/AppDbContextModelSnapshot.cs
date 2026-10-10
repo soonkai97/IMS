@@ -776,6 +776,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Property<string>("ReversalReason")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("ReversedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int?>("ReversesDocumentId")
                         .HasColumnType("int");
 
@@ -824,6 +827,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.HasIndex("PostedBy");
 
                     b.HasIndex("RejectedBy");
+
+                    b.HasIndex("ReversedAt")
+                        .HasFilter("[REC_DELETED] = 0 AND [ReversedAt] IS NOT NULL");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ReversedAt"), new[] { "Status", "Type", "WarehouseId", "PartnerId", "No" });
 
                     b.HasIndex("SubmittedBy");
 

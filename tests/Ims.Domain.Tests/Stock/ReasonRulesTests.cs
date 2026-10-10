@@ -59,7 +59,7 @@ public class ReasonRulesTests
     {
         var doc = NewPostedReceipt();
 
-        var ex = Assert.Throws<DomainException>(() => doc.MarkReversed(reason));
+        var ex = Assert.Throws<DomainException>(() => doc.MarkReversed(reason, Now));
 
         Assert.Equal(Messages.ReasonTooShort, ex.Message);
         Assert.Equal(DocumentStatus.Posted, doc.Status);
@@ -70,7 +70,7 @@ public class ReasonRulesTests
     {
         var doc = NewPostedReceipt();
 
-        doc.MarkReversed("  wrong supplier ");
+        doc.MarkReversed("  wrong supplier ", Now);
 
         Assert.Equal("wrong supplier", doc.ReversalReason);
     }
