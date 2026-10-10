@@ -13,7 +13,11 @@ export const PERMISSION = {
   StockRead: 'stock.read',
   ReportsRead: 'reports.read',
   AuditRead: 'audit.read',
-  SettingsManage: 'settings.manage'
+  SettingsManage: 'settings.manage',
+  /** Unit cost, line cost, document totals and approval amounts (Clerk, Supervisor, Owner, Admin). */
+  CostView: 'cost.view',
+  /** Average cost, stock value, the stock total and ledger cost (Supervisor, Owner, Admin). */
+  ValuationView: 'valuation.view'
 } as const;
 
 export const ROLE = {

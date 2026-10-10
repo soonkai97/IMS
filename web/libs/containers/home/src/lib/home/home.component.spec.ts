@@ -106,6 +106,36 @@ describe('HomePageComponent', () => {
     expect(text).not.toContain('My drafts');
   });
 
+  describe('the stock value tile (valuation.view, docs/design/mvp-ux.md 1.4)', () => {
+    it('is shown to a supervisor, who holds valuation.view', () => {
+      const text = render(
+        PERMISSION.StockRead,
+        PERMISSION.DocumentApprove,
+        PERMISSION.DocumentPost,
+        PERMISSION.CostView,
+        PERMISSION.ValuationView
+      );
+
+      expect(text).toContain('Stock value 40.00');
+      expect(text).toContain('Low stock 4');
+    });
+
+    it('is not rendered for warehouse staff: no tile, no empty value, the other tiles stay', () => {
+      const text = render(PERMISSION.StockRead, PERMISSION.DocumentCreate);
+
+      expect(text).not.toContain('Stock value');
+      expect(text).not.toContain('0.00');
+      expect(text).toContain('Low stock 4');
+      expect(text).toContain('My drafts 5');
+    });
+
+    it('is not rendered for a clerk: cost.view alone does not unlock a value', () => {
+      const text = render(PERMISSION.StockRead, PERMISSION.DocumentCreate, PERMISSION.CostView);
+
+      expect(text).not.toContain('Stock value');
+    });
+  });
+
   it('asks for no numbers when the user cannot read stock', () => {
     render();
 

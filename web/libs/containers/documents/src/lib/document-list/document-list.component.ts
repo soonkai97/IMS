@@ -36,6 +36,7 @@ import {
   StatusTone,
   TabItem,
   TableColumn,
+  columnWhen,
   UiButtonComponent,
   UiCellDirective,
   UiEmptyStateComponent,
@@ -167,6 +168,8 @@ export class DocumentListPageComponent implements OnInit {
       .$activeWarehouses()
       .map(warehouse => ({ value: warehouse.id, label: warehouse.name }))
   );
+  /** The amount column exists only for a caller with cost.view; the server sends null to the others (mvp-ux 1.4). */
+  private readonly $canViewCost = computed(() => this.permissions.has(PERMISSION.CostView));
   $columns = computed<readonly TableColumn<DocumentListItem>[]>(() => [
     { key: 'no', header: this.i18n.t('doc.no'), value: row => row.no, primary: true },
     { key: 'date', header: this.i18n.t('doc.date'), phoneInline: true },
@@ -183,7 +186,12 @@ export class DocumentListPageComponent implements OnInit {
       phoneInline: true
     },
     { key: 'qty', header: this.i18n.t('doc.totalQty'), align: 'end' },
-    { key: 'amount', header: this.i18n.t('doc.amount'), align: 'end', hideOnPhone: true },
+    ...columnWhen<DocumentListItem>(this.$canViewCost(), {
+      key: 'amount',
+      header: this.i18n.t('doc.amount'),
+      align: 'end',
+      hideOnPhone: true
+    }),
     { key: 'status', header: this.i18n.t('product.status'), phoneEnd: true }
   ]);
   $heading = computed(() => this.i18n.t(this.$isIssue() ? 'issues.title' : 'receipts.title'));

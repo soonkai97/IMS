@@ -37,7 +37,7 @@ import {
   MessageKey,
   TranslatePipe
 } from '@ims/core/i18n';
-import { PermissionService } from '@ims/core/identity';
+import { CanDirective, PermissionService } from '@ims/core/identity';
 import { HasUnsavedChanges, PageTitleService } from '@ims/core/navigation';
 import { ConfirmService, ToastService } from '@ims/core/notification';
 import { SystemSettingsStore } from '@ims/core/settings';
@@ -131,6 +131,7 @@ interface HistoryEvent {
     AppDatePipe,
     AppMoneyPipe,
     AppQtyPipe,
+    CanDirective,
     DocumentActionsComponent,
     DocumentLineEditorComponent,
     ProductPickerComponent,
@@ -504,13 +505,14 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     });
     const quantity = new Intl.NumberFormat(locale, { maximumFractionDigits: 3 });
     return (this.$document()?.approvalTriggers ?? []).map(trigger => {
-      const format = trigger.metric === ApprovalMetric.Amount ? amount : quantity;
+      const isAmount = trigger.metric === ApprovalMetric.Amount;
+      const format = isAmount ? amount : quantity;
+      // A caller without cost.view gets the kind of rule and the approver, but null numbers for an amount rule.
+      const known = isDefined(trigger.actual) && isDefined(trigger.threshold);
       return {
-        key: (trigger.metric === ApprovalMetric.Amount
-          ? 'doc.trigger.Amount'
-          : 'doc.trigger.Quantity') as MessageKey,
-        actual: format.format(trigger.actual),
-        threshold: format.format(trigger.threshold),
+        key: this.triggerKey(isAmount, known),
+        actual: known ? format.format(trigger.actual ?? 0) : '',
+        threshold: known ? format.format(trigger.threshold ?? 0) : '',
         role: this.i18n.enumLabel(ROLE_LABELS, trigger.roleRequired)
       };
     });
@@ -756,6 +758,13 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   }
 
   /** "DEMO-001 (-3 PCS)" for each product a refused reversal would leave negative. */
+  private triggerKey(isAmount: boolean, known: boolean): MessageKey {
+    if (!isAmount) {
+      return 'doc.trigger.Quantity';
+    }
+    return known ? 'doc.trigger.Amount' : 'doc.trigger.AmountHidden';
+  }
+
   private reversalItems(error: ApiError | undefined): string[] {
     if (isReversalBlockedError(error)) {
       return reversalShortages(error).map(

@@ -146,7 +146,8 @@ export function lineFromDocument(line: DocumentLineDto): LineValue {
     productName: line.productName,
     qty: line.qty,
     uomId: line.uomId,
-    unitCost: line.unitCost > 0 ? line.unitCost : null,
+    // Absent (null on the wire) for a caller without cost.view: the line then has no cost to edit or send.
+    unitCost: (line.unitCost ?? 0) > 0 ? (line.unitCost ?? null) : null,
     remark: line.remark ?? '',
     available: line.available ?? null,
     baseUomCode: line.uomCode,

@@ -14,18 +14,21 @@ import {
   AppDatePipe,
   AppMoneyPipe,
   AppQtyPipe,
+  AppSignedQtyPipe,
   DOCUMENT_STATUS_LABELS,
   DOCUMENT_TYPE_LABELS,
   I18nService,
   TranslatePipe
 } from '@ims/core/i18n';
+import { PermissionService } from '@ims/core/identity';
 import { MovementFilter, MovementQuery, ReportsStore } from '@ims/features/reports';
 import { WarehousesStore } from '@ims/features/warehousing';
-import { DEFAULT_PAGE_SIZE } from '@ims/models';
+import { DEFAULT_PAGE_SIZE, PERMISSION } from '@ims/models';
 import {
   SelectOption,
   TabItem,
   TableColumn,
+  columnWhen,
   UiButtonComponent,
   UiCardComponent,
   UiCellDirective,
@@ -36,6 +39,7 @@ import {
   UiPageHeaderComponent,
   UiPagerComponent,
   UiSelectComponent,
+  UiStatusChipComponent,
   UiTableComponent,
   UiTabsComponent
 } from '@ims/ui';
@@ -51,6 +55,7 @@ const TAB_EXPORTS = 'exports';
     AppDatePipe,
     AppMoneyPipe,
     AppQtyPipe,
+    AppSignedQtyPipe,
     ReactiveFormsModule,
     TranslatePipe,
     UiButtonComponent,
@@ -63,6 +68,7 @@ const TAB_EXPORTS = 'exports';
     UiPageHeaderComponent,
     UiPagerComponent,
     UiSelectComponent,
+    UiStatusChipComponent,
     UiTableComponent,
     UiTabsComponent
   ],
@@ -73,6 +79,7 @@ const TAB_EXPORTS = 'exports';
 export class ReportsPageComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly i18n = inject(I18nService);
+  private readonly permissions = inject(PermissionService);
   private readonly store = inject(ReportsStore);
   private readonly warehouses = inject(WarehousesStore);
 
@@ -125,8 +132,10 @@ export class ReportsPageComponent implements OnInit {
       .$activeWarehouses()
       .map(warehouse => ({ value: warehouse.id, label: warehouse.name }))
   );
+  private readonly $canViewCost = computed(() => this.permissions.has(PERMISSION.CostView));
   $columns = computed<readonly TableColumn<MovementRow>[]>(() => [
-    { key: 'docNo', header: this.i18n.t('doc.no'), value: row => row.docNo, primary: true },
+    // The reversal badge sits next to the number so it also shows on the phone card, where Status is hidden.
+    { key: 'docNo', header: this.i18n.t('doc.no'), primary: true },
     { key: 'date', header: this.i18n.t('reports.postedAt') },
     {
       key: 'type',
@@ -154,7 +163,14 @@ export class ReportsPageComponent implements OnInit {
     },
     { key: 'sku', header: this.i18n.t('product.sku'), value: row => row.sku },
     { key: 'qty', header: this.i18n.t('doc.qty'), align: 'end' },
-    { key: 'amount', header: this.i18n.t('doc.amount'), align: 'end', hideOnPhone: true }
+    { key: 'effect', header: this.i18n.t('reports.stockEffect'), align: 'end' },
+    // Money columns need cost.view; the server sends null to the others (docs/design/mvp-ux.md 1.4).
+    ...columnWhen<MovementRow>(this.$canViewCost(), {
+      key: 'amount',
+      header: this.i18n.t('doc.amount'),
+      align: 'end',
+      hideOnPhone: true
+    })
   ]);
 
   constructor() {

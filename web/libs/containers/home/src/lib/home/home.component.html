@@ -62,11 +62,14 @@
             [link]="['/low-stock']"
             [attention]="summary.lowCount > 0"
           />
-          <app-stat-card
-            icon="stock"
-            [label]="'home.stockValue' | t"
-            [value]="summary.totalValue | appMoney"
-          />
+          <!-- A value is for roles with valuation.view; the server sends null to the others (mvp-ux 1.4). -->
+          <ng-container *appCan="'valuation.view'">
+            <app-stat-card
+              icon="stock"
+              [label]="'home.stockValue' | t"
+              [value]="summary.totalValue | appMoney"
+            />
+          </ng-container>
           <app-stat-card
             icon="tag"
             [label]="'home.skuCount' | t"

@@ -374,6 +374,8 @@ export const MS_MESSAGES: Messages = {
   'doc.unit': 'Unit',
   'doc.unitCost': 'Kos seunit',
   'doc.trigger.Amount': 'Nilai {actual} mencapai had {threshold}. Pelulus: {role}.',
+  // TODO-review: machine draft (cost visibility).
+  'doc.trigger.AmountHidden': 'Nilainya mencapai had kelulusan. Pelulus: {role}.',
   'doc.trigger.Quantity': 'Kuantiti {actual} mencapai had {threshold}. Pelulus: {role}.',
   'doc.whyApproval': 'Mengapa ini perlu kelulusan',
   'doc.warehouse': 'Gudang',
@@ -447,6 +449,9 @@ export const MS_MESSAGES: Messages = {
   'reports.export.stock': 'Ringkasan stok',
   'reports.export.stockHint': 'Stok di tangan dan nilai bagi setiap produk dan gudang.',
   'reports.postedAt': 'Diposkan',
+  // TODO-review: machine draft (signed stock effect).
+  'reports.reversal': 'Pembalikan',
+  'reports.stockEffect': 'Kesan stok',
   'reports.tab.exports': 'Eksport Excel',
   'reports.tab.movements': 'Butiran penerimaan dan pengeluaran',
   'reports.title': 'Laporan',

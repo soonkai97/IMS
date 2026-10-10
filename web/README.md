@@ -81,6 +81,19 @@ release left in localStorage is deleted once. Production serves the web app and 
 CSP in [`../docs/security/web-headers.md`](../docs/security/web-headers.md) works because the production build sets
 `inlineCritical: false` (no inline style or `onload` handler in `index.html`).
 
+## Cost and value visibility
+
+A cost or value shows only to a user who holds the permission, never by role name (`docs/design/mvp-ux.md` 1.4): `cost.view`
+(unit cost, line cost, document totals, approval amounts, the movements Amount column) and `valuation.view` (stock value, the
+stock total on Home, sorting stock by value). Both come in the `permissions` list of the sign-in and `me` answers
+(`PERMISSION.CostView`, `PERMISSION.ValuationView`). The API sends `null` for a field the caller may not see, and the screens do
+not render it at all (no `0.00`, no `-`, no empty column):
+
+- templates: `<ng-container *appCan="'cost.view'">...</ng-container>` (`CanDirective`, `@ims/core/identity`);
+- table columns: `...columnWhen(permissions.has(PERMISSION.CostView), { key: 'amount', ... })` (`@ims/ui`).
+
+The e2e scenario `13-cost-visibility` checks Warehouse staff, Clerk and Supervisor on the real screens.
+
 ## Internationalisation
 
 English, Chinese (zh), Malay (ms); switch at runtime (login page or account menu), stored in localStorage.

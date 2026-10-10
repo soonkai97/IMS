@@ -140,17 +140,19 @@
         <dt>{{ 'doc.warehouse' | t }}</dt>
         <dd>{{ document.warehouseName }}</dd>
       </div>
-      @if (document.totalAmount > 0) {
-        <div>
-          <dt>{{ 'doc.amount' | t }}</dt>
-          <dd>
-            {{ document.totalAmount | appMoney }}
-            @if (document.amountIsEstimate) {
-              <span class="document-editor-muted">{{ 'doc.estimate' | t }}</span>
-            }
-          </dd>
-        </div>
-      }
+      <ng-container *appCan="'cost.view'">
+        @if ((document.totalAmount ?? 0) > 0) {
+          <div>
+            <dt>{{ 'doc.amount' | t }}</dt>
+            <dd>
+              {{ document.totalAmount | appMoney }}
+              @if (document.amountIsEstimate) {
+                <span class="document-editor-muted">{{ 'doc.estimate' | t }}</span>
+              }
+            </dd>
+          </div>
+        }
+      </ng-container>
       <div>
         <dt>{{ $partnerLabelKey() | t }}</dt>
         <dd>{{ document.partnerName || '-' }}</dd>
@@ -224,9 +226,11 @@
             </span>
             <span>
               {{ line.qty | appQty }} {{ line.uomCode }}
-              @if (!$isIssue() && line.unitCost > 0) {
-                · {{ line.unitCost | appMoney }}
-              }
+              <ng-container *appCan="'cost.view'">
+                @if (!$isIssue() && (line.unitCost ?? 0) > 0) {
+                  · {{ line.unitCost | appMoney }}
+                }
+              </ng-container>
               @if ($isIssue() && line.available !== undefined && line.available !== null) {
                 ·
                 @if (line.baseQty > line.available) {
@@ -291,9 +295,11 @@
       @if ($editable()) {
         <p class="document-editor-totals" aria-live="polite">
           {{ 'doc.totals' | t: { lines: $totals().lineCount, qty: $totals().totalQty } }}
-          @if (!$isIssue() && $totals().totalAmount > 0) {
-            · {{ $totals().totalAmount | appMoney }}
-          }
+          <ng-container *appCan="'cost.view'">
+            @if (!$isIssue() && $totals().totalAmount > 0) {
+              · {{ $totals().totalAmount | appMoney }}
+            }
+          </ng-container>
         </p>
         @if ($linesBlocked()) {
           <p class="document-editor-error document-editor-bar-note" role="alert">

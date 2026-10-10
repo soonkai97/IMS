@@ -21,6 +21,7 @@ import { DEFAULT_PAGE_SIZE, PERMISSION } from '@ims/models';
 import {
   SelectOption,
   TableColumn,
+  columnWhen,
   TableSort,
   UiButtonComponent,
   UiCellDirective,
@@ -108,7 +109,7 @@ export class StockListPageComponent implements OnInit {
     lowOnly: this.$lowOnly() || undefined,
     page: this.pageState.$page(),
     pageSize: DEFAULT_PAGE_SIZE,
-    sortBy: SORT_KEYS[this.$sort()?.sortBy ?? ''],
+    sortBy: this.sortKey(this.$sort()),
     desc: this.$sort()?.desc
   }));
 
@@ -118,6 +119,9 @@ export class StockListPageComponent implements OnInit {
   $isExporting = this.reports.exportStockSummary.$isRunning;
   $canExport = computed(() => this.permissions.has(PERMISSION.ReportsRead));
   $canCreate = computed(() => this.permissions.has(PERMISSION.DocumentCreate));
+  private readonly $canViewValuation = computed(() =>
+    this.permissions.has(PERMISSION.ValuationView)
+  );
   $showWarehouseFilter = computed(() => this.warehouses.$activeWarehouses().length > 1);
   $hasFilters = computed(
     () => this.$search().length > 0 || this.$lowOnly() || this.$categoryId() !== null
@@ -165,13 +169,14 @@ export class StockListPageComponent implements OnInit {
       sortKey: StockSort.QtyOnHand
     },
     { key: 'safety', header: this.i18n.t('product.safetyStock'), align: 'end', hideOnPhone: true },
-    {
+    // Value and sorting by it need valuation.view; the server answers 400 to sortBy=Value without it (mvp-ux 1.4).
+    ...columnWhen<StockRow>(this.$canViewValuation(), {
       key: 'value',
       header: this.i18n.t('stock.value'),
       align: 'end',
       hideOnPhone: true,
       sortKey: StockSort.Value
-    },
+    }),
     { key: 'status', header: this.i18n.t('product.status'), phoneEnd: true }
   ]);
 
@@ -184,6 +189,12 @@ export class StockListPageComponent implements OnInit {
   ngOnInit(): void {
     this.catalog.ensureLoaded();
     this.warehouses.ensureLoaded();
+  }
+
+  /** Never ask for the value order without the right to see values: the API refuses it with 400. */
+  private sortKey(sort: TableSort | undefined): StockSort | undefined {
+    const key = SORT_KEYS[sort?.sortBy ?? ''];
+    return key === StockSort.Value && !this.$canViewValuation() ? undefined : key;
   }
 
   onPageChange(page: number): void {

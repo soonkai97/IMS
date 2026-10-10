@@ -108,8 +108,13 @@ export class DocumentEditor {
     await this.qty(sku).fill(String(qty));
   }
 
+  /** The unit cost input of a receipt line: there only for a user with cost.view (Clerk, Supervisor, Owner, Admin). */
+  unitCost(sku: string): Locator {
+    return this.page.getByRole('spinbutton', { name: `Unit cost of ${sku}` });
+  }
+
   async setUnitCost(sku: string, cost: number): Promise<void> {
-    await this.page.getByRole('spinbutton', { name: `Unit cost of ${sku}` }).fill(String(cost));
+    await this.unitCost(sku).fill(String(cost));
   }
 
   /** A document action by its exact name (Save draft, Submit & post, Post, Approve, Reverse ...). */

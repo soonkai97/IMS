@@ -61,21 +61,24 @@
         }
       </div>
 
-      @if ($isReceipt()) {
-        <app-form-field
-          class="line-editor-cost"
-          [label]="'doc.unitCost' | t"
-          [control]="row.group.controls.unitCost"
-        >
-          <app-input
-            type="number"
-            formControlName="unitCost"
-            inputMode="decimal"
-            min="0"
-            [ariaLabel]="'line.costFor' | t: { sku: row.value.sku }"
-          />
-        </app-form-field>
-      }
+      <!-- Warehouse staff receive by quantity only: the server ignores a cost they send (docs/design/mvp-ux.md 1.4). -->
+      <ng-container *appCan="'cost.view'">
+        @if ($isReceipt()) {
+          <app-form-field
+            class="line-editor-cost"
+            [label]="'doc.unitCost' | t"
+            [control]="row.group.controls.unitCost"
+          >
+            <app-input
+              type="number"
+              formControlName="unitCost"
+              inputMode="decimal"
+              min="0"
+              [ariaLabel]="'line.costFor' | t: { sku: row.value.sku }"
+            />
+          </app-form-field>
+        }
+      </ng-container>
 
       @if (row.blocked) {
         <p class="line-editor-message --blocked" role="alert">

@@ -14,12 +14,15 @@ import {
   I18nService,
   TranslatePipe
 } from '@ims/core/i18n';
+import { PermissionService } from '@ims/core/identity';
 import { ApprovalsStore } from '@ims/features/approvals';
 import { DOCUMENT_ROUTE } from '@ims/features/documents';
+import { PERMISSION } from '@ims/models';
 
 import {
   TabItem,
   TableColumn,
+  columnWhen,
   UiCellDirective,
   UiEmptyStateComponent,
   UiPageHeaderComponent,
@@ -60,6 +63,7 @@ interface InboxRow {
 export class ApprovalsInboxPageComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly store = inject(ApprovalsStore);
+  private readonly permissions = inject(PermissionService);
 
   $tab = signal<string>(TAB_WAITING);
 
@@ -87,6 +91,8 @@ export class ApprovalsInboxPageComponent implements OnInit {
       waiting: this.waitingText(document.submittedAt)
     }));
   });
+  /** The value column needs cost.view: without it the server sends null and the flags still say why (mvp-ux 1.4). */
+  private readonly $canViewCost = computed(() => this.permissions.has(PERMISSION.CostView));
   $columns = computed<readonly TableColumn<InboxRow>[]>(() => [
     { key: 'no', header: this.i18n.t('doc.no'), value: row => row.document.no, primary: true },
     {
@@ -107,7 +113,11 @@ export class ApprovalsInboxPageComponent implements OnInit {
     },
     { key: 'flags', header: this.i18n.t('approvals.flags') },
     { key: 'qty', header: this.i18n.t('doc.totalQty'), align: 'end' },
-    { key: 'amount', header: this.i18n.t('doc.amount'), align: 'end' },
+    ...columnWhen<InboxRow>(this.$canViewCost(), {
+      key: 'amount',
+      header: this.i18n.t('doc.amount'),
+      align: 'end'
+    }),
     { key: 'waiting', header: this.i18n.t('approvals.waiting'), value: row => row.waiting }
   ]);
 

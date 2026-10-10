@@ -82,6 +82,11 @@ describe('LowStockPageComponent Create receipt shortcut (NV-13)', () => {
     expect(spectator.query('app-status-chip')?.textContent).toContain('Negative');
   });
 
+  it('carries no cost or value, and the Excel export is not offered to a role that gets 403 on it', () => {
+    expect(spectator.query('app-page-header button')).toBeNull();
+    expect(spectator.element.textContent).not.toMatch(/\d\.\d{2}/);
+  });
+
   it('the shortcut is on the phone card too, not hidden with the desktop columns', () => {
     const cell = spectator.query('td[data-label="Actions"]');
 

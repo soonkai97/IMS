@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AppMoneyPipe, AppQtyPipe, TranslatePipe } from '@ims/core/i18n';
-import { PermissionService } from '@ims/core/identity';
+import { CanDirective, PermissionService } from '@ims/core/identity';
 import { DocumentsStore } from '@ims/features/documents';
 import { StockStore } from '@ims/features/stock';
 import { PERMISSION } from '@ims/models';
@@ -20,6 +20,7 @@ import {
   imports: [
     AppMoneyPipe,
     AppQtyPipe,
+    CanDirective,
     RouterLink,
     TranslatePipe,
     UiBannerComponent,
