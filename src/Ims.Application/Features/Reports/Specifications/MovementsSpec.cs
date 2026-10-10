@@ -8,6 +8,7 @@ public sealed class MovementsSpec : Specification<StockDocumentLine, MovementRow
     public MovementsSpec(MovementFilter f, IReadOnlyCollection<int>? scope)
     {
         MovementFilters.Apply(Query, f, scope);
-        Query.OrderByDescending(l => l.Document.PostedAt).ThenBy(l => l.Id).Take(Limits.MaxExportRows).Select(MovementProjection.Expression);
+        MovementOrder.Apply(Query);
+        Query.Take(Limits.MaxExportRows).Select(MovementProjection.Expression);
     }
 }

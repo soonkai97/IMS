@@ -7,6 +7,8 @@ internal static class MovementFilters
     public static void Apply(ISpecificationBuilder<StockDocumentLine> query, MovementFilter f, IReadOnlyCollection<int>? scope)
     {
         query.AsNoTracking().Where(l => l.Document.Status == DocumentStatus.Posted || l.Document.Status == DocumentStatus.Reversed);
+        // Redundant for posted documents; it lets the filtered PostedAt index answer the query.
+        query.Where(l => l.Document.PostedAt != null);
         if (scope is not null) query.Where(l => scope.Contains(l.Document.WarehouseId));
         if (f.Type is { } t) query.Where(l => l.Document.Type == t);
         if (f.WarehouseId is { } w) query.Where(l => l.Document.WarehouseId == w);
