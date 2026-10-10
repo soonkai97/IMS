@@ -11,8 +11,14 @@ through the real login form, and create their data through the public API with u
 | `03-approval-override` | override issue: inbox, approve with a reason of 5+ characters, post, stock and ledger; self-approval blocked | OUT-02, BR-07, E3, PS-09 |
 | `04-reversal` | reversal blocked (message lists the products), unblocked by reversing the later issue; plain reversal; staff has no Reverse | BR-02, E6, PS-01 |
 | `05-stale-document` | two sessions edit one draft: stale banner, locked buttons, Reload | BR-12, E4, PS-08 |
+| `06-roles` | menu per role, polite forbidden page, deep link, Clerk creates but cannot edit a partner (409 duplicate sentence) | AUTH-02, E8 |
+| `07-scan` | barcode / SKU + Enter hit, repeat, miss, deactivated; search box focused on open | D8, NV-03, PS-05 |
+| `08-session` | wrong password (E7), reload restores the session from the cookie, no token in web storage, return URL | AUTH-01, SEC-34 |
+| `09-language` | en / zh / ms switch keeps the half-filled form; choice survives a reload | PRD 9 |
+| `10-phone` | scenario 1 at 360x740, no horizontal scroll on the main screens | D1, EA-04 |
+| `11-accessibility` | axe (WCAG 2.2 AA) finds no serious or critical violation on the main screens; exceptions need a finding id (`KNOWN` in the file, empty today) | EA-03, EA-21 |
+| `12-low-stock` | never-stocked product is listed, "New receipt" shortcut is prefilled, product leaves the list after posting | T16, PS-04, NV-13 |
 
-Role matrix, scanning, session, language, phone, accessibility and low-stock scenarios follow in the next pull request.
 A scenario that finds a product bug is marked `test.fixme` with the finding id in the title and the bug is written up in
 `docs/team/HANDOFFS.md`. None are open today.
 
@@ -56,8 +62,8 @@ Examples use the free ports 5611 (API) and 5612 (web); any ports work.
    Or set the five passwords yourself and use `npm test`:
    `IMS_E2E_PASSWORD_ADMIN`, `IMS_E2E_PASSWORD_OWNER`, `IMS_E2E_PASSWORD_SUPERVISOR`, `IMS_E2E_PASSWORD_STAFF`, `IMS_E2E_PASSWORD_CLERK`
    (users `admin`, `owner`, `supervisor`, `staff`, `clerk`). Passwords are never printed, logged or committed. Defaults:
-   `IMS_WEB_URL=http://localhost:4200`, `IMS_API_URL=http://localhost:5109`. Single scenario:
-   `npm run test:local -- tests/03-approval-override.spec.ts`.
+   `IMS_WEB_URL=http://localhost:4200`, `IMS_API_URL=http://localhost:5109`. The phone scenarios
+   set their own 360x740 viewport. Single scenario: `npm run test:local -- tests/03-approval-override.spec.ts`.
 
    A missing server or password stops the run with one message (`src/global-setup.ts`). Reports: `npm run report`; failures keep a
    screenshot and a trace in `test-results/`.
@@ -71,8 +77,13 @@ Examples use the free ports 5611 (API) and 5612 (web); any ports work.
   sign-in shares the API's login limit. Run the suite against a database nobody else is using.
 - **Rate limit.** Sign-in and token refresh share 20 requests a minute per address, and every full page load of a signed-in app
   refreshes the session. The suite therefore navigates inside the app (`goTo`) and paces its sign-ins and page loads
-  (`src/rate-limit.ts`, which keeps a small log in the temp folder); a full run takes a few minutes because of it.
+  (`src/rate-limit.ts`, which keeps a small log in the temp folder); a full run takes about five minutes because of it.
 - **Data.** Each scenario creates products, partners and documents with unique names (`E2E-<token>`) and leaves them; use a
   throw-away database. Nothing is deleted through the API (posted documents are append-only by design).
 - **Page objects** live in `src/pages` (`shell`, `documents`, `screens`), API seeding in `src/api.ts`, sign-in fixtures in
   `src/fixtures.ts`. Prefer roles and accessible names; the few CSS selectors are in the page objects with a reason.
+
+## CI
+
+`.github/workflows/e2e.yml` (manual `workflow_dispatch` and weekly, never on pull requests): SQL Server service container, API from
+its build output, web production build served on :4200, Chromium, HTML report and traces uploaded on failure.
