@@ -306,7 +306,19 @@ export const EN_MESSAGES = {
   'doc.action.submitAndPost': 'Submit & post',
   'doc.addItem': 'Add item',
   'doc.amount': 'Amount',
+  'doc.askToReverse': 'Wrong quantity? Ask a supervisor to reverse this document.',
   'doc.awaitingApproval': 'Awaiting approval',
+  'doc.hint.approvedBy': 'Approved by {name}',
+  'doc.hint.postedBy': 'Posted by {name} on {date}',
+  'doc.hint.readyToPost': 'Ready to post',
+  'doc.itemIncreased': '{sku}: now {qty}.',
+  'doc.reverseBlocked': "Can't reverse {docNo}",
+  'doc.reverseBlockedBody':
+    'It would make {items} negative. Reverse or adjust the later issues first, or ask an Admin.',
+  'doc.stockChangedBodyAsk':
+    'Stock for {sku} is now {available} {uom}, but the document needs {requested}. Ask a supervisor for help.',
+  'doc.stockChangedBodyCancel':
+    'Stock for {sku} is now {available} {uom}, but the document needs {requested}. Cancel this document and create a new one with a smaller quantity.',
   'doc.cancelledBanner': 'Cancelled',
   'doc.createdBy': 'Created by',
   'doc.customer': 'Customer',
@@ -350,6 +362,8 @@ export const EN_MESSAGES = {
   'doc.stale': '{docNo} changed since you opened it',
   'doc.staleBody':
     'Someone else changed this document. Reload to see the latest version. Your changes were not saved.',
+  'doc.staleBodyBy':
+    '{name} changed this document at {time}. Reload to see the latest version. Your changes were not saved.',
   'doc.reload': 'Reload',
   'doc.supplier': 'Supplier',
   'doc.tab.history': 'History',
@@ -380,7 +394,8 @@ export const EN_MESSAGES = {
   'picker.noMatch': 'No product matches "{query}".',
   'picker.notFound': 'No product has the code {code}.',
   'picker.inactive': "{sku} is deactivated and can't be added.",
-  'picker.placeholder': 'Type 2+ characters or scan a barcode',
+  'picker.hint': 'Type 2 or more letters, or scan a barcode.',
+  'picker.placeholder': 'Name, SKU or barcode',
 
   // Dialogs
   'dialog.approve.body': 'The document can then be posted.',

@@ -26,6 +26,8 @@ export class DocumentActionsComponent {
   /** Roles that may post get the single "Submit & post" button; others only "Submit" (D4). */
   $canPost = input(false, { alias: 'canPost', transform: booleanAttribute });
   $busy = input(false, { alias: 'busy', transform: booleanAttribute });
+  /** The opened copy is out of date (E4): nothing can be done with it until it is reloaded. */
+  $locked = input(false, { alias: 'locked', transform: booleanAttribute });
   $selfApprovalBlocked = input(false, {
     alias: 'selfApprovalBlocked',
     transform: booleanAttribute
@@ -39,6 +41,7 @@ export class DocumentActionsComponent {
 
   private readonly $actions = computed(() => toDocumentActions(this.$allowedActions()));
 
+  $inactive = computed(() => this.$busy() || this.$locked());
   $canSave = computed(() => this.$actions().has(DOCUMENT_ACTION.Edit));
   $canSubmit = computed(() => this.$actions().has(DOCUMENT_ACTION.Submit));
   $canApprove = computed(() => this.$actions().has(DOCUMENT_ACTION.Approve));

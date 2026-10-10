@@ -40,6 +40,16 @@ describe('DocumentActionsComponent (buttons come from the server allowedActions)
     expect(labels()).toEqual(['Cancel document', 'Save draft', 'Submit']);
   });
 
+  it('PS-08: a stale copy locks every button until it is reloaded', () => {
+    render([DOCUMENT_ACTION.Approve, DOCUMENT_ACTION.Reject]);
+    spectator.setInput({ locked: true } as never);
+    spectator.detectChanges();
+
+    const disabled = spectator.queryAll('button').map(button => button.hasAttribute('disabled'));
+    expect(disabled.length).toBeGreaterThan(0);
+    expect(disabled.every(Boolean)).toBe(true);
+  });
+
   it('labels the single submit button "Submit & post" for roles that may post (D4)', () => {
     render([DOCUMENT_ACTION.Edit, DOCUMENT_ACTION.Submit], { canPost: true });
 

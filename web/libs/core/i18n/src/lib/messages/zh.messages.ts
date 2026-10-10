@@ -282,7 +282,19 @@ export const ZH_MESSAGES: Messages = {
   'doc.action.submitAndPost': '提交并过账',
   'doc.addItem': '添加商品',
   'doc.amount': '金额',
+  'doc.askToReverse': '数量不对？请联系主管冲销这张单据。',
   'doc.awaitingApproval': '等待审批',
+  'doc.hint.approvedBy': '{name} 已批准',
+  'doc.hint.postedBy': '{name} 于 {date} 过账',
+  'doc.hint.readyToPost': '可以过账',
+  'doc.itemIncreased': '{sku}：现为 {qty}。',
+  'doc.reverseBlocked': '无法冲销 {docNo}',
+  'doc.reverseBlockedBody':
+    '冲销后 {items} 将变为负库存。请先冲销或调整之后的出库单，或联系管理员。',
+  'doc.stockChangedBodyAsk':
+    '{sku} 的库存现为 {available} {uom}，但单据需要 {requested}。请联系主管协助。',
+  'doc.stockChangedBodyCancel':
+    '{sku} 的库存现为 {available} {uom}，但单据需要 {requested}。请取消这张单据，并以较小的数量新建一张。',
   'doc.cancelledBanner': '已取消',
   'doc.createdBy': '创建人',
   'doc.customer': '客户',
@@ -323,6 +335,7 @@ export const ZH_MESSAGES: Messages = {
     '{sku} 的库存现为 {available} {uom}，但单据需要 {requested}。请调整数量后重试。',
   'doc.stale': '{docNo} 在您打开后已被修改',
   'doc.staleBody': '其他人修改了这张单据。请重新加载以查看最新版本。您的修改未保存。',
+  'doc.staleBodyBy': '{name} 于 {time} 修改了这张单据。请重新加载以查看最新版本。您的修改未保存。',
   'doc.reload': '重新加载',
   'doc.supplier': '供应商',
   'doc.tab.history': '历史',
@@ -353,7 +366,8 @@ export const ZH_MESSAGES: Messages = {
   'picker.noMatch': '没有商品匹配“{query}”。',
   'picker.notFound': '没有编码为 {code} 的商品。',
   'picker.inactive': '{sku} 已停用，不能添加。',
-  'picker.placeholder': '输入 2 个以上字符或扫描条码',
+  'picker.hint': '输入至少 2 个字符，或扫描条码。',
+  'picker.placeholder': '名称、编码或条码',
 
   'dialog.approve.body': '批准后即可过账。',
   'dialog.approve.title': '批准 {docNo}？',

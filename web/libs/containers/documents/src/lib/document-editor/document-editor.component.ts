@@ -3,7 +3,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  Injector,
   OnInit,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -42,14 +44,19 @@ import {
   DOCUMENT_ROUTE,
   DocumentsStore,
   LineGroup,
+  NEW_DOCUMENT_ID,
   STATUS_TONE,
+  isReversalBlockedError,
   isStaleDocumentError,
   isStockConflictError,
+  reversalShortages,
+  staleDetails,
   toDocumentRef
 } from '@ims/features/documents';
 import { StockStore } from '@ims/features/stock';
 import { PartnersStore, WarehousesStore } from '@ims/features/warehousing';
 import {
+  ApiError,
   DOCUMENT_ACTION,
   DocumentAction,
   MIN_REASON_LENGTH,
@@ -87,6 +94,19 @@ const TAB_ITEMS = 'items';
 const TAB_HISTORY = 'history';
 const TAB_LEDGER = 'ledger';
 const LEDGER_PAGE_SIZE = 100;
+
+interface StatusHint {
+  readonly key: MessageKey;
+  readonly name?: string;
+  readonly at?: string;
+}
+
+interface StockConflict {
+  readonly sku: string;
+  readonly available: number;
+  readonly requested: number;
+  readonly uom: string;
+}
 
 interface HistoryEvent {
   readonly labelKey: MessageKey;
@@ -127,7 +147,10 @@ interface HistoryEvent {
     UiTextareaComponent
   ],
   providers: [DocumentEditorViewService],
-  host: { '(document:visibilitychange)': 'onVisibilityChange()' },
+  host: {
+    '(document:visibilitychange)': 'onVisibilityChange()',
+    '(window:beforeunload)': 'onBeforeUnload($event)'
+  },
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './document-editor.component.html',
   styleUrl: './document-editor.component.scss'
@@ -138,6 +161,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   private readonly destroyRef = inject(DestroyRef);
   private readonly documents = inject(DocumentsStore);
   private readonly i18n = inject(I18nService);
+  private readonly injector = inject(Injector);
   private readonly page = inject(DOCUMENT);
   private readonly partners = inject(PartnersStore);
   private readonly permissions = inject(PermissionService);
@@ -153,18 +177,25 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   /** Route parameter; absent on /new. */
   $id = input<string | undefined>(undefined, { alias: 'id' });
 
-  private destroyed = false;
-  private savedDocumentId: number | undefined;
+  /** Id of the document this editor just created: the store already holds it, so the route change needs no reload. */
+  private justCreatedId: number | undefined;
 
   $tab = signal<string>(TAB_ITEMS);
   $addItemOpen = signal(false);
   $lastAdded = signal<string | undefined>(undefined);
   $showLineError = signal(false);
 
-  readonly $documentId = computed(() => {
+  /** The id in the URL; undefined on `/new`. */
+  private readonly $routeDocumentId = computed(() => {
     const id = this.$id();
-    return id === undefined ? undefined : Number(id);
+    return id === undefined || id === NEW_DOCUMENT_ID ? undefined : Number(id);
   });
+  /**
+   * Set the moment a new document is created. The editor is bound to the saved document from then on (so a repeated
+   * Save or Submit updates it instead of creating a second one) even before the router has moved `/new` to `/<id>`.
+   */
+  private readonly $createdId = signal<number | undefined>(undefined);
+  readonly $documentId = computed(() => this.$routeDocumentId() ?? this.$createdId());
   readonly $isNew = computed(() => this.$documentId() === undefined);
   readonly $isIssue = computed(() => this.$type() === DocumentType.Issue);
   readonly $document = computed<DocumentDto | undefined>(() => {
@@ -348,43 +379,110 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       hideOnPhone: true
     }
   ]);
-  /** The last error of each document command, newest state only: a command that succeeded later clears its own. */
-  private readonly $commandErrors = computed(() => [
+  /**
+   * The last error of each document command, newest state only: a command that succeeded later clears its own, and any
+   * command that changes the document clears the others' (the store does that), so a stale banner cannot outlive the
+   * state it described (NV-06).
+   */
+  private readonly $postingErrors = computed(() => [
     this.documents.save.$operation().error,
     this.documents.submit.$operation().error,
     this.documents.approve.$operation().error,
     this.documents.reject.$operation().error,
     this.documents.cancel.$operation().error,
-    this.documents.post.$operation().error,
+    this.documents.post.$operation().error
+  ]);
+  private readonly $commandErrors = computed(() => [
+    ...this.$postingErrors(),
     this.documents.reverse.$operation().error
   ]);
-  /** Token the server holds now, seen when the user came back to this tab; undefined = not checked. */
-  private readonly $serverToken = signal<string | undefined>(undefined);
+  /**
+   * Token the server held when the user came back to this tab, and the token of the opened copy it was compared with.
+   * A check that was started for an older copy (a command or a reload replaced the document meanwhile) says nothing
+   * about the current one and is ignored (PS-08).
+   */
+  private readonly $serverCheck = signal<
+    { opened: string; server: string | undefined } | undefined
+  >(undefined);
   /**
    * Someone changed the document since it was opened: E4, with a Reload button. Seen either BEFORE saving (the token
    * on the server differs from the one of the opened copy) or when a command is refused with 409 on its If-Match.
    */
   readonly $isStale = computed(() => {
-    const serverToken = this.$serverToken();
+    const check = this.$serverCheck();
+    const opened = this.$document()?.concurrencyToken;
     const outdated =
-      serverToken !== undefined && serverToken !== this.$document()?.concurrencyToken;
+      check !== undefined &&
+      check.server !== undefined &&
+      check.opened === opened &&
+      check.server !== opened;
     return outdated || this.$commandErrors().some(isStaleDocumentError);
   });
   /** A rejected submit / post because stock moved (409 with product, available, requested): E5. */
-  readonly $stockConflict = computed(() => {
-    const extensions = this.$commandErrors().find(isStockConflictError)?.extensions;
-    if (!extensions) {
-      return undefined;
-    }
-    const productId = Number(extensions['productId']);
-    const line = this.$values().find(value => value.productId === productId);
-    return {
-      sku: line?.sku ?? String(productId),
-      available: Number(extensions['available'] ?? 0),
-      requested: Number(extensions['requested'] ?? 0),
-      uom: line?.baseUomCode ?? ''
-    };
+  readonly $stockConflict = computed(() =>
+    this.$postingErrors()
+      .map(error => this.toStockConflict(error))
+      .find(isDefined)
+  );
+  /**
+   * A reversal the stock cannot take back (E6): a posted document cannot be adjusted, so the advice differs from E5.
+   * The API names every product that would go below zero (`shortages`); an older API named one, through the
+   * insufficient-stock members, and that case is read too.
+   */
+  readonly $reverseBlocked = computed(() => {
+    const items = this.reversalItems(this.documents.reverse.$operation().error);
+    return items.length > 0
+      ? { docNo: this.$document()?.no ?? '', items: items.join(', ') }
+      : undefined;
   });
+  /** Who changed the document and when, when the API says so (E4); the banner falls back to the plain sentence. */
+  readonly $staleDetails = computed(() =>
+    this.$commandErrors()
+      .map(error => staleDetails(error))
+      .find(isDefined)
+  );
+  /** What to tell the user when posting failed on stock: edit (draft), cancel and redo (submitted), or ask (no right). */
+  readonly $stockConflictBodyKey = computed<MessageKey>(() => {
+    if (this.$editable()) {
+      return 'doc.stockChangedBody';
+    }
+    return this.$actions().has(DOCUMENT_ACTION.Cancel)
+      ? 'doc.stockChangedBodyCancel'
+      : 'doc.stockChangedBodyAsk';
+  });
+  /** One line under the title for what the status chip alone does not say (design 7.1). */
+  readonly $statusHint = computed<StatusHint | undefined>(() => {
+    const document = this.$document();
+    switch (document?.status) {
+      case DocumentStatus.Submitted:
+        return document.requiresApproval ? undefined : { key: 'doc.hint.readyToPost' };
+      case DocumentStatus.Approved:
+        return {
+          key: 'doc.hint.approvedBy',
+          name: document.approvedByName ?? document.approvedBy ?? '',
+          at: document.approvedAt
+        };
+      case DocumentStatus.Posted:
+        return {
+          key: 'doc.hint.postedBy',
+          name: document.postedByName ?? document.postedBy ?? '',
+          at: document.postedAt
+        };
+      default:
+        return undefined;
+    }
+  });
+  /** NV-05: a worker without the Reverse right has no button; say what to do about a wrong quantity. */
+  readonly $askToReverse = computed(
+    () =>
+      this.$status() === DocumentStatus.Posted &&
+      !this.$actions().has(DOCUMENT_ACTION.Reverse) &&
+      this.permissions.has(PERMISSION.DocumentCreate)
+  );
+  /** The action bar is only worth its space when it has something to show. */
+  readonly $showBar = computed(
+    () => this.$editable() || this.$allowedActions().length > 0 || this.$selfApprovalBlocked()
+  );
   readonly $saveGeneralErrors = computed(() => {
     const error = this.documents.save.$operation().error;
     if (!error) {
@@ -393,6 +491,28 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     return Object.entries(error.fieldErrors)
       .filter(([field]) => !this.view.header.get(field) && !field.startsWith('lines'))
       .flatMap(([, messages]) => messages);
+  });
+
+  /** The URL caught up with a document this editor created: the route drives from now on. */
+  private readonly releaseCreatedId = effect(() => {
+    if (this.$routeDocumentId() !== undefined) {
+      untracked(() => this.$createdId.set(undefined));
+    }
+  });
+
+  /** Opens what the route names; also when the same page is reused for another document (EA-20). */
+  private readonly openDocument = effect(() => {
+    const id = this.$documentId();
+    untracked(() => {
+      if (id === undefined) {
+        this.documents.detail.reset();
+        this.view.startNew(null);
+      } else if (id === this.justCreatedId) {
+        this.justCreatedId = undefined;
+      } else {
+        this.documents.detail.load(id);
+      }
+    });
   });
 
   private readonly populateForm = effect(() => {
@@ -432,26 +552,12 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     }
   });
 
-  constructor() {
-    this.destroyRef.onDestroy(() => {
-      this.destroyed = true;
-    });
-  }
-
   ngOnInit(): void {
     this.view.configure(this.$type());
     this.catalog.ensureLoaded();
     this.warehouses.ensureLoaded();
     this.settings.ensureLoaded();
     this.partners.loadActive(this.$isIssue() ? PartnerType.Customer : PartnerType.Supplier);
-
-    const documentId = this.$documentId();
-    if (documentId === undefined) {
-      this.documents.detail.reset();
-      this.view.startNew(null);
-    } else {
-      this.documents.detail.load(documentId);
-    }
 
     this.view.header.controls.warehouseId.valueChanges
       .pipe(
@@ -475,10 +581,19 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     if (this.page.visibilityState !== 'visible' || !opened || this.$isBusy()) {
       return;
     }
+    // Remember WHICH copy was checked: if a command or a reload replaces it before the answer arrives, the answer is moot.
+    const checked = opened.concurrencyToken;
     this.documents
       .currentToken(opened)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(token => this.$serverToken.set(token));
+      .subscribe(server => this.$serverCheck.set({ opened: checked, server }));
+  }
+
+  /** A reload or a close of the tab with a half-written document asks first (NV-07). */
+  onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (this.hasUnsavedChanges()) {
+      event.preventDefault();
+    }
   }
 
   onTabChange(tab: string): void {
@@ -490,9 +605,23 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     this.$addItemOpen.set(true);
   }
 
+  /** Says whether the line is new or one more of an existing one, with the quantity now (NV-04). */
   onProductPicked(picked: PickedProduct): void {
-    this.view.addProduct(picked.product, picked.available);
-    this.$lastAdded.set(this.i18n.t('doc.itemAdded', { sku: picked.product.sku }));
+    const added = this.view.addProduct(picked.product, picked.available);
+    if (added === undefined) {
+      return;
+    }
+    this.$lastAdded.set(
+      this.i18n.t(added.increased ? 'doc.itemIncreased' : 'doc.itemAdded', {
+        sku: picked.product.sku,
+        qty: added.qty
+      })
+    );
+  }
+
+  /** The user is searching for something else: the message about the last pick is out of date. */
+  onPickerTermChanged(): void {
+    this.$lastAdded.set(undefined);
   }
 
   onStep(event: { group: LineGroup; delta: number }): void {
@@ -514,6 +643,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   /** E4: drop the outdated copy (and the edits on it) and read the document again. */
   onReload(): void {
     this.documents.resetCommands();
+    this.$serverCheck.set(undefined);
     this.documents.detail.reload();
   }
 
@@ -535,12 +665,44 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         this.cancel();
         break;
       case DOCUMENT_ACTION.Post:
-        this.runPost(this.$document()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+        this.runPost(this.$document())
+          .pipe(
+            finalize(() => this.settleFocus()),
+            takeUntilDestroyed(this.destroyRef)
+          )
+          .subscribe();
         break;
       case DOCUMENT_ACTION.Reverse:
         this.reverse();
         break;
     }
+  }
+
+  /** "DEMO-001 (-3 PCS)" for each product a refused reversal would leave negative. */
+  private reversalItems(error: ApiError | undefined): string[] {
+    if (isReversalBlockedError(error)) {
+      return reversalShortages(error).map(
+        shortage => `${shortage.sku} (${shortage.balance} ${shortage.uomCode})`
+      );
+    }
+    // An older API named one product through the insufficient-stock members.
+    const legacy = this.toStockConflict(error);
+    return legacy ? [`${legacy.sku} (${legacy.available - legacy.requested} ${legacy.uom})`] : [];
+  }
+
+  /** The insufficient-stock 409 (product, available, requested), or undefined for any other error. */
+  private toStockConflict(error: ApiError | undefined): StockConflict | undefined {
+    if (!isStockConflictError(error) || !error) {
+      return undefined;
+    }
+    const productId = Number(error.extensions['productId']);
+    const line = this.$values().find(value => value.productId === productId);
+    return {
+      sku: line?.sku ?? String(productId),
+      available: Number(error.extensions['available'] ?? 0),
+      requested: Number(error.extensions['requested'] ?? 0),
+      uom: line?.baseUomCode ?? ''
+    };
   }
 
   private saveDraft(): void {
@@ -550,7 +712,6 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     this.save()
       .pipe(
         tap(() => this.toast.success(this.i18n.t('doc.toast.draftSaved'))),
-        finalize(() => this.openSavedDocument()),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();
@@ -564,7 +725,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       .pipe(
         switchMap(document => this.documents.submit.run(toDocumentRef(document))),
         switchMap(document => this.afterSubmit(document)),
-        finalize(() => this.openSavedDocument()),
+        finalize(() => this.settleFocus()),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();
@@ -600,6 +761,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         ),
         tap(() => this.toast.success(this.i18n.t('doc.toast.approved'))),
         tap(() => this.afterChange(false)),
+        finalize(() => this.settleFocus()),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();
@@ -627,6 +789,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
           this.toast.success(this.i18n.t('doc.toast.returned', { name: document.createdBy }))
         ),
         tap(() => this.afterChange(false)),
+        finalize(() => this.settleFocus()),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();
@@ -651,6 +814,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         switchMap(reason => this.documents.cancel.run({ ...toDocumentRef(document), reason })),
         tap(() => this.toast.success(this.i18n.t('doc.toast.cancelled'))),
         tap(() => this.afterChange(false)),
+        finalize(() => this.settleFocus()),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();
@@ -676,6 +840,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         switchMap(reason => this.documents.reverse.run({ ...toDocumentRef(document), reason })),
         tap(() => this.toast.success(this.i18n.t('doc.toast.reversed'))),
         tap(() => this.afterChange(true)),
+        finalize(() => this.settleFocus()),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();
@@ -728,7 +893,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         ref: opened ? toDocumentRef(opened) : undefined,
         body: this.view.toRequest()
       })
-      .pipe(tap(document => (this.savedDocumentId = document.id)));
+      .pipe(tap(document => this.bindToCreated(document)));
   }
 
   private validate(): boolean {
@@ -737,14 +902,40 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     return this.view.isValid();
   }
 
-  /** A new document gets its own URL once the whole save / submit / post chain has finished. */
-  private openSavedDocument(): void {
-    if (this.destroyed || !this.$isNew() || this.savedDocumentId === undefined) {
+  /**
+   * The moment a new document exists on the server the editor becomes ITS editor and the URL follows (NV-01, NV-02):
+   * the form is clean (it mirrors the server), so the move does not ask "Discard changes?", and a second Save or Submit
+   * - also after Back in the Post dialog - updates this document instead of creating another one.
+   */
+  private bindToCreated(document: DocumentDto): void {
+    if (!this.$isNew()) {
       return;
     }
-    void this.router.navigate(['/', DOCUMENT_ROUTE[this.$type()], this.savedDocumentId], {
+    this.justCreatedId = document.id;
+    this.$createdId.set(document.id);
+    this.view.markPristine();
+    void this.router.navigate(['/', DOCUMENT_ROUTE[this.$type()], document.id], {
       replaceUrl: true
     });
+  }
+
+  /**
+   * A command closes its dialog and then disables or removes the button that opened it, which leaves the focus on
+   * <body> and a keyboard user back at the top of the page (EA-07). Move it to the error banner, else to the title.
+   */
+  private settleFocus(): void {
+    afterNextRender(
+      () => {
+        const active = this.page.activeElement;
+        if (active && active !== this.page.body) {
+          return;
+        }
+        this.page
+          .querySelector<HTMLElement>('app-banner[role="alert"][tabindex], app-page-header h1')
+          ?.focus();
+      },
+      { injector: this.injector }
+    );
   }
 
   /** Keeps menu badges and the dashboard honest after a state change. */

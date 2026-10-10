@@ -20,6 +20,11 @@
 
   padding-right: height('touch');
   padding-left: space(5);
+
+  // The app draws its own 48px clear button; the browser's small one would be a second, tiny "x".
+  &::-webkit-search-cancel-button {
+    appearance: none;
+  }
 }
 
 .ui-search-input-clear {
