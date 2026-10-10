@@ -83,3 +83,16 @@ No N+1 queries: a use case issues a fixed number of queries regardless of how ma
 
 Every list that can grow returns `{ items, total, page, pageSize, nextCursor }`. Sort keys are enums. Small lookup lists (units, categories,
 warehouses, approval rules) return plain arrays with a hard cap.
+
+## 9. Indexes
+
+Measured results, rejected proposals and how to re-run them: `docs/dba/README.md`.
+
+- Indexes on soft-deleted tables are filtered `WHERE [REC_DELETED] = 0` (EF adds `REC_DELETED = 0` to every query, so the filtered index answers it
+  for free); the append-only tables (ledger, audit log) have no query filter and get unfiltered indexes.
+- An index needs a named consumer: it must show reads in `docs/dba/03-index-usage.sql` after a realistic run. Foreign-key indexes EF creates
+  by default are kept; extra indexes on the posting path (ledger, document lines) need a measured read win.
+- Never combine a column of the main table and `EXISTS` on another table in one `OR` (a text search over SKU, name and barcode): SQL Server probes
+  the other table once per row. Resolve the exact-match side first and pass its id (`ProductSearch`).
+- A sort that an index should serve ends in a unique key (`Id`, or the primary key), not in a column of another table.
+- After a migration that adds columns to a big table, rebuild the indexes (`docs/dba/07-maintenance.sql`) before measuring or going live.

@@ -5,6 +5,7 @@ import { THRESHOLDS, setupData, readOp, writeFlow, summaryTo } from './scenarios
 export const options = {
   scenarios: { reads: { executor: 'constant-vus', vus: parseInt(__ENV.VUS || '50'), duration: __ENV.DURATION || '2m' } },
   thresholds: THRESHOLDS,
+  summaryTrendStats: ['avg', 'min', 'med', 'p(90)', 'p(95)', 'p(99)', 'max', 'count'],
   noConnectionReuse: false,
 };
 export function setup() { return setupData(); }

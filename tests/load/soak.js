@@ -5,6 +5,7 @@ import { THRESHOLDS, setupData, readOp, writeFlow, summaryTo } from './scenarios
 export const options = {
   scenarios: { soak: { executor: 'constant-vus', vus: parseInt(__ENV.VUS || '50'), duration: __ENV.DURATION || '10m' } },
   thresholds: THRESHOLDS,
+  summaryTrendStats: ['avg', 'min', 'med', 'p(90)', 'p(95)', 'p(99)', 'max', 'count'],
 };
 export function setup() { return setupData(); }
 export default function (d) {
