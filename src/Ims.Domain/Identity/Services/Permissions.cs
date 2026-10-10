@@ -7,6 +7,8 @@ public static class Permissions
     public const string UsersRead = "users.read";
     public const string MasterDataManage = "masterdata.manage";
     public const string MasterDataRead = "masterdata.read";
+    /// <summary>Create a supplier or customer. Editing and deactivating partners stays under <see cref="MasterDataManage"/>.</summary>
+    public const string PartnersCreate = "partners.create";
     public const string DocumentCreate = "document.create";
     public const string DocumentApprove = "document.approve";
     public const string DocumentPost = "document.post";
@@ -18,7 +20,7 @@ public static class Permissions
 
     public static readonly string[] All =
     [
-        UsersManage, UsersRead, MasterDataManage, MasterDataRead, DocumentCreate, DocumentApprove,
+        UsersManage, UsersRead, MasterDataManage, MasterDataRead, PartnersCreate, DocumentCreate, DocumentApprove,
         DocumentPost, DocumentReverse, StockRead, ReportsRead, AuditRead, SettingsManage
     ];
 
@@ -28,11 +30,11 @@ public static class Permissions
         [Roles.Owner] = [UsersRead, MasterDataRead, DocumentApprove, StockRead, ReportsRead, AuditRead],
         [Roles.Supervisor] =
         [
-            UsersRead, MasterDataManage, MasterDataRead, DocumentCreate, DocumentApprove, DocumentPost,
+            UsersRead, MasterDataManage, MasterDataRead, PartnersCreate, DocumentCreate, DocumentApprove, DocumentPost,
             DocumentReverse, StockRead, ReportsRead
         ],
         [Roles.WarehouseStaff] = [MasterDataRead, DocumentCreate, DocumentPost, StockRead],
-        [Roles.Clerk] = [MasterDataRead, DocumentCreate, StockRead],
+        [Roles.Clerk] = [MasterDataRead, PartnersCreate, DocumentCreate, StockRead],
     };
 
     public static IReadOnlyCollection<string> For(string role) =>

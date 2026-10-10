@@ -12,7 +12,7 @@ public class PartnersController(IDispatcher dispatcher) : ApiControllerBase(disp
     [ProducesResponseType<PagedResult<PartnerDto>>(StatusCodes.Status200OK)]
     public Task<IActionResult> List([FromQuery] PartnerFilter filter) => SendOk(new ListPartnersQuery(filter));
 
-    [HttpPost, Authorize(Policy = Permissions.MasterDataManage)]
+    [HttpPost, Authorize(Policy = Permissions.PartnersCreate)]
     [ProducesResponseType<PartnerDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Create([FromBody] PartnerSaveRequest body) => SendOk(new CreatePartnerCommand(body));
 

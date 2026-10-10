@@ -13,7 +13,7 @@ public static class RoleMatrix
     {
         [Roles.Admin] =
         [
-            Permissions.UsersManage, Permissions.UsersRead, Permissions.MasterDataManage, Permissions.MasterDataRead,
+            Permissions.UsersManage, Permissions.UsersRead, Permissions.MasterDataManage, Permissions.MasterDataRead, Permissions.PartnersCreate,
             Permissions.DocumentCreate, Permissions.DocumentApprove, Permissions.DocumentPost, Permissions.DocumentReverse,
             Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead, Permissions.SettingsManage
         ],
@@ -24,11 +24,11 @@ public static class RoleMatrix
         ],
         [Roles.Supervisor] =
         [
-            Permissions.UsersRead, Permissions.MasterDataManage, Permissions.MasterDataRead, Permissions.DocumentCreate,
+            Permissions.UsersRead, Permissions.MasterDataManage, Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate,
             Permissions.DocumentApprove, Permissions.DocumentPost, Permissions.DocumentReverse, Permissions.StockRead, Permissions.ReportsRead
         ],
         [Roles.WarehouseStaff] = [Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.StockRead],
-        [Roles.Clerk] = [Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.StockRead]
+        [Roles.Clerk] = [Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.StockRead]
     };
 
     public static bool MayUse(string role, string permission) => Allowed[role].Contains(permission);

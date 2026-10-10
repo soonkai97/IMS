@@ -63,6 +63,7 @@ public static class Messages
     public const string PartnerMissing = "Partner does not exist.";
     public const string PartnerInactive = "Partner is inactive.";
     public const string PartnerNameRequired = "Name is required.";
+    public static string PartnerExists(PartnerType type, string name) => $"A {type.ToString().ToLowerInvariant()} named '{name}' already exists.";
     public static string PartnerWrongType(DocumentType doc, PartnerType expected) =>
         $"A {doc.ToString().ToLowerInvariant()} needs a {expected.ToString().ToLowerInvariant()}.";
 
