@@ -23,6 +23,9 @@
   >
   <ng-template appCell="safety" let-row>{{ row.safetyStock | appQty }}</ng-template>
   <ng-template appCell="short" let-row>
+    @if (row.isNegative) {
+      <app-status-chip flag="danger" [label]="'stock.negative' | t" />
+    }
     <span class="low-stock-page-short">{{ row.shortfall | appQty }}</span>
   </ng-template>
   <ng-template appCell="actions" let-row>

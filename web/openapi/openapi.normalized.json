@@ -1531,11 +1531,13 @@
         "tags": [
           "Audit"
         ],
+        "summary": "The audit log, newest first. Text filters are partial or prefix matches that the indexes answer (no table scan): `entityType` is a fragment of\r\nthe entity name, `entityId`, `actor` and `action` are prefixes, `search` tries an entity name fragment and an id prefix at once.",
         "operationId": "Audit_list",
         "parameters": [
           {
             "name": "EntityType",
             "in": "query",
+            "description": "A fragment of the entity name, case-insensitive: \"doc\" finds StockDocument, \"product\" finds Product and ProductBarcode (see `GET /api/audit/filters`).",
             "schema": {
               "type": "string"
             }
@@ -1543,6 +1545,7 @@
           {
             "name": "Actor",
             "in": "query",
+            "description": "User name starts with (case-insensitive): \"staf\" finds staff.",
             "schema": {
               "type": "string"
             }
@@ -1595,6 +1598,30 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "EntityId",
+            "in": "query",
+            "description": "Id of the entity starts with: a document number such as ISS-WH01-2610-0017, a user id, a SKU prefix of the bulk events.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Action",
+            "in": "query",
+            "description": "Action starts with: \"document.\" for every document event, \"login\" for sign-ins, \"document.posted\" for one.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "One box for a person: matches an entity name fragment OR an entity id prefix, so a document number and \"Document\" both work.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1614,6 +1641,37 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PagedResultOfAuditLogDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit/filters": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "summary": "The entity names and action names an audit row can carry, for the filter dropdowns.",
+        "operationId": "Audit_filters",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditFilterOptions"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditFilterOptions"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditFilterOptions"
                 }
               }
             }
@@ -2971,7 +3029,7 @@
         "tags": [
           "Auth"
         ],
-        "description": "Signs in and returns the access token. The refresh token is set as an HttpOnly, Secure, SameSite=Strict cookie scoped to /api/auth. DEPRECATED: while Auth:ReturnRefreshTokenInBody is true the refresh token is also returned in the JSON body; clients must stop reading it.",
+        "description": "Signs in and returns the access token. The refresh token is set as an HttpOnly, Secure, SameSite=Strict cookie scoped to /api/auth. DEPRECATED: only when Auth:ReturnRefreshTokenInBody is switched on (off by default) is the refresh token also returned in the JSON body; clients must not read it.",
         "operationId": "Auth_login",
         "requestBody": {
           "content": {
@@ -3022,7 +3080,7 @@
         "tags": [
           "Auth"
         ],
-        "description": "Rotates the refresh token and returns a new access token. The refresh token is read from the HttpOnly cookie; the browser must send credentials, the header X-Requested-With: XMLHttpRequest, and an Origin that is in Cors:Origins (otherwise 403). DEPRECATED: a refreshToken in the request body is still accepted and takes precedence; so is the refresh token in the response body while Auth:ReturnRefreshTokenInBody is true.",
+        "description": "Rotates the refresh token and returns a new access token. The refresh token is read from the HttpOnly cookie; the browser must send credentials, the header X-Requested-With: XMLHttpRequest, and an Origin that is in Cors:Origins (otherwise 403). DEPRECATED: a refreshToken in the request body is still accepted and takes precedence; so is the refresh token in the response body only when Auth:ReturnRefreshTokenInBody is switched on (off by default).",
         "operationId": "Auth_refresh",
         "requestBody": {
           "content": {
@@ -3378,6 +3436,14 @@
   },
   "components": {
     "schemas": {
+      "ApprovalMetric": {
+        "enum": [
+          "Amount",
+          "Quantity"
+        ],
+        "type": "string",
+        "description": "What an approval rule measures: the document value or its total quantity."
+      },
       "ApprovalRuleDto": {
         "required": [
           "id",
@@ -3447,6 +3513,33 @@
         },
         "additionalProperties": false
       },
+      "ApprovalTrigger": {
+        "required": [
+          "metric",
+          "threshold",
+          "actual",
+          "roleRequired"
+        ],
+        "type": "object",
+        "properties": {
+          "metric": {
+            "$ref": "#/components/schemas/ApprovalMetric"
+          },
+          "threshold": {
+            "type": "number",
+            "format": "double"
+          },
+          "actual": {
+            "type": "number",
+            "format": "double"
+          },
+          "roleRequired": {
+            "type": "string"
+          }
+        },
+        "description": "One reason a document needs approval: Actual reached Threshold of a rule that needs RoleRequired.",
+        "additionalProperties": false
+      },
       "ApproveRequest": {
         "required": [
           "negativeStockOverrideReason"
@@ -3513,6 +3606,29 @@
         "type": "string",
         "description": "What a file is attached to. Adding an owner type means adding one owner policy in the application layer."
       },
+      "AuditFilterOptions": {
+        "required": [
+          "entityTypes",
+          "actions"
+        ],
+        "type": "object",
+        "properties": {
+          "entityTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "What the audit log filters can be offered as dropdowns: the entity names and action names an audit row can carry.",
+        "additionalProperties": false
+      },
       "AuditLogDto": {
         "required": [
           "id",
@@ -3575,7 +3691,7 @@
           },
           "refreshToken": {
             "type": "string",
-            "description": "DEPRECATED. The refresh token now travels in an HttpOnly cookie; this property is only filled while Auth:ReturnRefreshTokenInBody is true.",
+            "description": "DEPRECATED. The refresh token now travels in an HttpOnly cookie; this property is null unless Auth:ReturnRefreshTokenInBody is switched on (off by default).",
             "deprecated": true,
             "nullable": true
           },
@@ -3665,7 +3781,7 @@
           },
           "postedToday": {
             "type": "integer",
-            "description": "Documents posted since local midnight (Asia/Kuala_Lumpur, BR-10), whoever posted them.",
+            "description": "Documents posted since local midnight (Asia/Kuala_Lumpur, BR-10), whoever posted them, that are still Posted: a document reversed since is not counted, so this equals the Posted list filtered to today.",
             "format": "int32"
           },
           "approvalsWaiting": {
@@ -3719,6 +3835,8 @@
           "totalAmount",
           "lines",
           "allowedActions",
+          "approvalTriggers",
+          "amountIsEstimate",
           "concurrencyToken"
         ],
         "type": "object",
@@ -3879,6 +3997,7 @@
           },
           "totalAmount": {
             "type": "number",
+            "description": "Value of the document: receipts at their entered cost; an issue at its booked cost once posted, and before that at the average cost when it was last saved or submitted (see `AmountIsEstimate`). For a Submitted document this is the value the approval rules were tested against.",
             "format": "double"
           },
           "lines": {
@@ -3892,7 +4011,18 @@
             "items": {
               "type": "string"
             },
-            "description": "What the caller may do right now (edit, submit, approve, reject, cancel, post, reverse). The UI shows buttons from this list only."
+            "description": "What the caller may do right now (edit, submit, approve, reject, cancel, post, reverse). The UI shows buttons from this list only. It already accounts for ownership (Warehouse staff and Clerk act only on their own documents), the approver the document is routed to (an Owner reviews only `isLarge` documents, a Supervisor the rest) and self-approval, so a listed action is one the API will accept."
+          },
+          "approvalTriggers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalTrigger"
+            },
+            "description": "While the document is Submitted or Approved and an approval rule held it back: which thresholds it reaches (value or quantity), for the approver and the \"sent for approval\" message. Empty otherwise, and when only a negative-stock override (`requiresOverride`) sent it to approval."
+          },
+          "amountIsEstimate": {
+            "type": "boolean",
+            "description": "True for an issue that has not posted yet: its lines carry the average cost seen when it was last saved or submitted, and posting books the real cost. Label the amount \"estimated\"."
           },
           "concurrencyToken": {
             "type": "string",
@@ -4020,7 +4150,9 @@
           "requiresOverride",
           "isLarge",
           "isReturned",
-          "concurrencyToken"
+          "concurrencyToken",
+          "amountIsEstimate",
+          "canAct"
         ],
         "type": "object",
         "properties": {
@@ -4059,6 +4191,7 @@
           },
           "totalAmount": {
             "type": "number",
+            "description": "Same meaning as on the full document: an unposted issue is valued at the average cost seen when it was last saved or submitted (`AmountIsEstimate`).",
             "format": "double"
           },
           "createdBy": {
@@ -4106,6 +4239,14 @@
           "concurrencyToken": {
             "type": "string",
             "description": "Same value as `concurrencyToken` on the full document: compare it to know whether an open document has gone stale."
+          },
+          "amountIsEstimate": {
+            "type": "boolean",
+            "description": "True for an issue that has not posted yet: `totalAmount` is an estimate at the average cost seen when it was last saved or submitted."
+          },
+          "canAct": {
+            "type": "boolean",
+            "description": "The caller may approve or reject this document right now: it is Submitted and held for approval, routed to the caller's role\r\n(an Owner reviews only `isLarge` documents, a Supervisor the rest, an Admin all) and, unless self-approval is on, not submitted by the caller.\r\nThis is exactly the rule behind the \"waiting for approval\" count. A single document's `allowedActions` additionally tests the live approval rules."
           }
         },
         "additionalProperties": false
@@ -4373,7 +4514,8 @@
           "warehouseName",
           "qtyOnHand",
           "safetyStock",
-          "shortfall"
+          "shortfall",
+          "isNegative"
         ],
         "type": "object",
         "properties": {
@@ -4399,6 +4541,7 @@
           },
           "qtyOnHand": {
             "type": "number",
+            "description": "Zero for a product that has never been stocked (it has no balance row). Negative when stock went below zero.",
             "format": "double"
           },
           "safetyStock": {
@@ -4407,7 +4550,12 @@
           },
           "shortfall": {
             "type": "number",
+            "description": "Safety stock minus on hand: how many units are missing (more than the safety level when the balance is negative).",
             "format": "double"
+          },
+          "isNegative": {
+            "type": "boolean",
+            "description": "On hand is below zero: show it as a warning, not just as \"low\"."
           }
         },
         "additionalProperties": false
@@ -5036,7 +5184,7 @@
         "properties": {
           "refreshToken": {
             "type": "string",
-            "description": "DEPRECATED. The refresh token now travels in an HttpOnly cookie; this property is only filled while Auth:ReturnRefreshTokenInBody is true.",
+            "description": "DEPRECATED. The refresh token now travels in an HttpOnly cookie; this property is null unless Auth:ReturnRefreshTokenInBody is switched on (off by default).",
             "deprecated": true,
             "nullable": true
           }
@@ -5104,7 +5252,8 @@
           "avgCost",
           "value",
           "safetyStock",
-          "isLow"
+          "isLow",
+          "isNegative"
         ],
         "type": "object",
         "properties": {
@@ -5156,7 +5305,12 @@
             "format": "double"
           },
           "isLow": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Below the product's safety stock (when it has one) or below zero."
+          },
+          "isNegative": {
+            "type": "boolean",
+            "description": "On hand is below zero: show a warning, not just a \"Low\" chip (also true when the product has no safety stock)."
           }
         },
         "additionalProperties": false
@@ -5180,14 +5334,17 @@
         "properties": {
           "totalValue": {
             "type": "number",
+            "description": "Net value of the stock in the caller's warehouses (quantity x average cost). A negative balance lowers it, so it can be less than the sum of the positive lines.",
             "format": "double"
           },
           "skuCount": {
             "type": "integer",
+            "description": "Products with stock: distinct products that have a positive quantity in at least one of the caller's warehouses (zero and negative balances are not counted).",
             "format": "int32"
           },
           "lowCount": {
             "type": "integer",
+            "description": "Product x warehouse pairs on the low-stock list (see `GET /api/stock/low-stock`): below safety stock, never stocked with a safety level, or negative. Equals that list's total.",
             "format": "int32"
           }
         },

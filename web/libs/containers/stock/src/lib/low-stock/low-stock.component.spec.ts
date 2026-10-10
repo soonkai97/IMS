@@ -17,7 +17,8 @@ const ROW: LowStockAlert = {
   warehouseName: 'Store B',
   qtyOnHand: 2,
   safetyStock: 10,
-  shortfall: 8
+  shortfall: 8,
+  isNegative: false
 };
 
 describe('LowStockPageComponent Create receipt shortcut (NV-13)', () => {
@@ -60,6 +61,25 @@ describe('LowStockPageComponent Create receipt shortcut (NV-13)', () => {
     const link = spectator.query('a.low-stock-page-create');
 
     expect(link?.getAttribute('href')).toBe('/receipts/new?sku=DEMO-002&warehouseId=3');
+  });
+
+  it('PS-04: a negative balance carries its own chip', () => {
+    expect(spectator.query('app-status-chip')).toBeNull();
+
+    const rowData = (
+      spectator.inject(StockStore) as unknown as {
+        lowStock: { $data: ReturnType<typeof signal<PagedResultOfLowStockAlert>> };
+      }
+    ).lowStock.$data;
+    rowData.set({
+      items: [{ ...ROW, isNegative: true, qtyOnHand: -4 }],
+      page: 1,
+      pageSize: 25,
+      total: 1
+    } as PagedResultOfLowStockAlert);
+    spectator.detectChanges();
+
+    expect(spectator.query('app-status-chip')?.textContent).toContain('Negative');
   });
 
   it('the shortcut is on the phone card too, not hidden with the desktop columns', () => {

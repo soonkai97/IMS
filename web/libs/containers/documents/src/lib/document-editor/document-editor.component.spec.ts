@@ -3,7 +3,14 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { Subject, of, throwError } from 'rxjs';
-import { DocumentDto, DocumentStatus, DocumentType, IssuePurpose, ProductDto } from '@ims/api';
+import {
+  ApprovalMetric,
+  DocumentDto,
+  DocumentStatus,
+  DocumentType,
+  IssuePurpose,
+  ProductDto
+} from '@ims/api';
 import { PermissionService } from '@ims/core/identity';
 import { PageTitleService, unsavedChangesGuard } from '@ims/core/navigation';
 import { ConfirmService } from '@ims/core/notification';
@@ -81,6 +88,8 @@ function document(overrides: Partial<DocumentDto> = {}): DocumentDto {
     ],
     allowedActions: [DOCUMENT_ACTION.Approve, DOCUMENT_ACTION.Reject],
     concurrencyToken: 'AAAA',
+    amountIsEstimate: false,
+    approvalTriggers: [],
     ...overrides
   };
 }
@@ -838,6 +847,46 @@ describe('DocumentEditorPageComponent', () => {
       );
 
       expect(text()).toContain('Posted by Supervisor on 09 Oct 2026');
+    });
+
+    it('PS-03: the approver sees why approval is needed and the estimated value', async () => {
+      await open(
+        document({
+          totalAmount: 5100,
+          amountIsEstimate: true,
+          approvalTriggers: [
+            {
+              metric: ApprovalMetric.Amount,
+              threshold: 5000,
+              actual: 5100,
+              roleRequired: 'Supervisor'
+            }
+          ]
+        })
+      );
+
+      expect(text()).toContain('Why this needs approval');
+      expect(text()).toContain(
+        'The value 5,100.00 reaches the 5,000.00 limit. Approver: Supervisor.'
+      );
+      expect(text()).toContain('5,100.00 est.');
+    });
+
+    it('PS-03: a quantity rule reads as a quantity', async () => {
+      await open(
+        document({
+          approvalTriggers: [
+            {
+              metric: ApprovalMetric.Quantity,
+              threshold: 1000,
+              actual: 1000,
+              roleRequired: 'Owner'
+            }
+          ]
+        })
+      );
+
+      expect(text()).toContain('The quantity 1,000 reaches the 1,000 limit. Approver: Owner.');
     });
 
     it('NV-17: a submitted document that needs no approval says it is ready to post', async () => {

@@ -29,6 +29,8 @@ function item(id: number, overrides: Partial<DocumentListItem> = {}): DocumentLi
     isLarge: false,
     isReturned: false,
     concurrencyToken: 'AAAA',
+    canAct: true,
+    amountIsEstimate: false,
     ...overrides
   };
 }
@@ -80,6 +82,22 @@ describe('ApprovalsInboxPageComponent', () => {
     expect(first).toContain('5 min');
     expect(second).toContain('Other Staff');
     expect(second).toContain('Large');
+  });
+
+  it('PS-03: shows the value that decides approval, marked as an estimate for an unposted issue', () => {
+    waiting.set([item(1, { totalAmount: 11250.5, amountIsEstimate: true })]);
+    spectator = createComponent();
+
+    expect(rows()[0]).toContain('11,250.50');
+    expect(rows()[0]).toContain('est.');
+  });
+
+  it('PS-03: a value that is not an estimate carries no mark', () => {
+    waiting.set([item(1, { totalAmount: 800, amountIsEstimate: false })]);
+    spectator = createComponent();
+
+    expect(rows()[0]).toContain('800.00');
+    expect(rows()[0]).not.toContain('est.');
   });
 
   it('shows what I submitted on the other tab', () => {

@@ -14,12 +14,12 @@ copied from another project.
 
 ### Four tiers (enforced)
 
-| Tier (tag) | Aliases | May import | Holds |
-|---|---|---|---|
-| shared (`scope:shared`) | `@ims/api`, `@ims/models`, `@ims/utils`, `@ims/ui`, `@ims/styles`, `@ims/assets` | shared | generated client, models and constants, helpers, `app-*` UI kit, design tokens, static assets |
-| core (`scope:core`) | `@ims/core/{http,i18n,identity,navigation,notification,pwa,settings,theme}` | core, shared | system infrastructure: interceptors, i18n, auth + permissions, shell/menus, toasts/confirm, service worker, theme |
-| features (`scope:features`) | `@ims/features/{administration,approvals,audit,catalog,documents,reports,stock,warehousing}` | features, core, shared | business logic and data access (stores). **No pages.** |
-| containers (`scope:containers`, `scope:containers-shared`) | `@ims/containers/{...}` | containers-shared, features, core, shared | routed UI pages per area, lazy-loaded. `*-shared` containers hold UI several containers reuse (`catalog-shared`: product picker) |
+| Tier (tag)                                                 | Aliases                                                                                      | May import                                | Holds                                                                                                                            |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| shared (`scope:shared`)                                    | `@ims/api`, `@ims/models`, `@ims/utils`, `@ims/ui`, `@ims/styles`, `@ims/assets`             | shared                                    | generated client, models and constants, helpers, `app-*` UI kit, design tokens, static assets                                    |
+| core (`scope:core`)                                        | `@ims/core/{http,i18n,identity,navigation,notification,pwa,settings,theme}`                  | core, shared                              | system infrastructure: interceptors, i18n, auth + permissions, shell/menus, toasts/confirm, service worker, theme                |
+| features (`scope:features`)                                | `@ims/features/{administration,approvals,audit,catalog,documents,reports,stock,warehousing}` | features, core, shared                    | business logic and data access (stores). **No pages.**                                                                           |
+| containers (`scope:containers`, `scope:containers-shared`) | `@ims/containers/{...}`                                                                      | containers-shared, features, core, shared | routed UI pages per area, lazy-loaded. `*-shared` containers hold UI several containers reuse (`catalog-shared`: product picker) |
 
 Dependencies point downward only. A higher tier never reaches sideways into a peer container: extract to a lower tier or a
 `*-shared` container. `apps/main` (`scope:app`) may use everything and wires tiers together (`NAV_BADGE_SOURCES` lets features feed menu badges
@@ -34,34 +34,34 @@ Page (container)  ->  feature store (signals)  ->  NSwag client (@ims/api)  ->  
         +---- $data / $operation signals (idle | loading | success | failure + ApiError)
 ```
 
-* Every feature has small `@Injectable({ providedIn: 'root' })` stores that wrap the generated client. Reads use
+- Every feature has small `@Injectable({ providedIn: 'root' })` stores that wrap the generated client. Reads use
   `QueryLoader<Query, Result>` (latest-wins, exposes `$data`, `$operation`, `$isLoading`); writes use `ApiCommand<Arg, Result>`
   (`run(arg)` returns an observable that emits once and completes **empty** on failure, so callers never need an error callback).
   Both live in `@ims/utils`; the operation model (`ApiOperation`, `API_STATUS`) in `@ims/models`. Every call therefore has the same
   uniform status for loading / error / empty UI.
-* Pages build a `computed()` query from filter signals and call `loadOnChange(query, load)`; `createPageState()` resets the page
+- Pages build a `computed()` query from filter signals and call `loadOnChange(query, load)`; `createPageState()` resets the page
   number whenever a filter changes; `debouncedSignal()` debounces search boxes (300 ms). No `subscribe()` callbacks with logic:
   side effects go in `tap`.
-* Paging is server-side everywhere a list can grow (`PagedQuery { page, pageSize, sortBy?, desc? }`); `app-table` shows server
+- Paging is server-side everywhere a list can grow (`PagedQuery { page, pageSize, sortBy?, desc? }`); `app-table` shows server
   sort, `app-pager` the range. Seek paging (`afterId`) exists for ledger / documents / audit and is not needed for the current grids.
-* Documents: the server sends `allowedActions[]`; `app-document-actions` renders **only** those buttons (D3). The UI never
+- Documents: the server sends `allowedActions[]`; `app-document-actions` renders **only** those buttons (D3). The UI never
   re-implements who may do what. `DocumentEditorViewService` holds the typed reactive form (header + `FormArray` of line groups),
   totals and shortfall maths (`features-documents/lines`). Insufficient stock: E1 inline per line (blocked) or E2 (override needed when the
   system setting allows negative stock); the server re-checks and a 409 with `productId/available/requested` is shown as E5.
 
 ## 3. Cross-cutting (core)
 
-| Concern | Where | Notes |
-|---|---|---|
-| Auth | `core-identity` | access token in memory only; the refresh token is an **HttpOnly cookie** (SEC-34, `docs/security/refresh-cookie.md`) the app never reads, stores or sends; **single-flight refresh** with rotation; `restoreSession()` = one `POST /api/auth/refresh` at start-up (401 = signed out, silently); 401 -> refresh -> replay once -> else sign out with return URL. A leftover localStorage refresh token of an older release is deleted once |
-| Permissions | `core-identity` `PermissionService` | built from `GET /api/auth/me`; route guards `requirePermission(...)`, menus filter by permission; unknown permission -> `/forbidden`, unknown URL -> not-found page |
-| HTTP | `core-http` | interceptor order: error mapping (ProblemDetails -> `ApiError`, toast of `detail`), correlation id, credentials (`withCredentials` on API calls), CSRF header (`X-Requested-With` on refresh and logout), If-Match (from the call's `HttpContext`), loading bar, timeout (35 s, 125 s for export/import), auth. Field errors (`errors`) go to the form, never a toast; a 409 on a call that sent If-Match is explained by the screen (banner), not by a toast |
-| Config | `core-http` `AppConfig` | `assets/config.json` overrides the build default at start-up; AuthService is created only after it loads |
-| i18n | `core-i18n` | runtime language switch (en bundled, zh/ms lazy), typed keys (`MessageKey`), ICU-lite plural, impure `t` pipe, `enumLabel`, date/qty/money pipes (Asia/Kuala_Lumpur, <= 4 decimals) |
-| UI text for the kit | `UI_TEXT` token | shared/ui cannot depend on core, so i18n provides the kit's words |
-| Theme | `core-theme` + `libs/shared/styles` | light/dark/system, tokens as CSS custom properties, WCAG AA verified by `npm run contrast` |
-| PWA | `core-pwa`, `apps/main/ngsw-config.json` | installable; offline shell; master-data GETs cached with refresh-ahead (SWR); update prompt toast; cached API data deleted on sign-out. No offline writes |
-| Notifications | `core-notification` | `ToastService` (aria-live; errors persist), `ConfirmService.ask()` returns an observable that emits the reason on confirm |
+| Concern             | Where                                    | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth                | `core-identity`                          | access token in memory only; the refresh token is an **HttpOnly cookie** (SEC-34, `docs/security/refresh-cookie.md`) the app never reads, stores or sends; **single-flight refresh** with rotation; `restoreSession()` = one `POST /api/auth/refresh` at start-up (401 = signed out, silently); 401 -> refresh -> replay once -> else sign out with return URL. A leftover localStorage refresh token of an older release is deleted once                     |
+| Permissions         | `core-identity` `PermissionService`      | built from `GET /api/auth/me`; route guards `requirePermission(...)`, menus filter by permission; unknown permission -> `/forbidden`, unknown URL -> not-found page                                                                                                                                                                                                                                                                                           |
+| HTTP                | `core-http`                              | interceptor order: error mapping (ProblemDetails -> `ApiError`, toast of `detail`), correlation id, credentials (`withCredentials` on API calls), CSRF header (`X-Requested-With` on refresh and logout), If-Match (from the call's `HttpContext`), loading bar, timeout (35 s, 125 s for export/import), auth. Field errors (`errors`) go to the form, never a toast; a 409 on a call that sent If-Match is explained by the screen (banner), not by a toast |
+| Config              | `core-http` `AppConfig`                  | `assets/config.json` overrides the build default at start-up; AuthService is created only after it loads                                                                                                                                                                                                                                                                                                                                                      |
+| i18n                | `core-i18n`                              | runtime language switch (en bundled, zh/ms lazy), typed keys (`MessageKey`), ICU-lite plural, impure `t` pipe, `enumLabel`, date/qty/money pipes (Asia/Kuala_Lumpur, <= 4 decimals)                                                                                                                                                                                                                                                                           |
+| UI text for the kit | `UI_TEXT` token                          | shared/ui cannot depend on core, so i18n provides the kit's words                                                                                                                                                                                                                                                                                                                                                                                             |
+| Theme               | `core-theme` + `libs/shared/styles`      | light/dark/system, tokens as CSS custom properties, WCAG AA verified by `npm run contrast`                                                                                                                                                                                                                                                                                                                                                                    |
+| PWA                 | `core-pwa`, `apps/main/ngsw-config.json` | installable; offline shell; master-data GETs cached with refresh-ahead (SWR); update prompt toast; cached API data deleted on sign-out. No offline writes                                                                                                                                                                                                                                                                                                     |
+| Notifications       | `core-notification`                      | `ToastService` (aria-live; errors persist), `ConfirmService.ask()` returns an observable that emits the reason on confirm                                                                                                                                                                                                                                                                                                                                     |
 
 ## 4. API contract
 
@@ -74,19 +74,19 @@ no index signature). The generated file is committed and never edited.
 
 Contract features the screens rely on:
 
-* **Concurrency (E4)**: every document response carries `concurrencyToken` (= the `ETag`). Commands (`save` of an existing draft,
+- **Concurrency (E4)**: every document response carries `concurrencyToken` (= the `ETag`). Commands (`save` of an existing draft,
   submit, approve, reject, cancel, post, reverse) send it back with `withIfMatch(token)`; a stale copy answers 409 and the editor shows
   the "changed since you opened it" banner with Reload. Coming back to the tab compares the token of the list item with the opened
   copy, so the banner can appear before any save.
-* **Counts and flags**: Home and the approvals badge read `GET /api/documents/counts`; the approvals inbox is one list call
+- **Counts and flags**: Home and the approvals badge read `GET /api/documents/counts`; the approvals inbox is one list call
   (`status=Submitted&requiresApproval=true`) built from the list item flags (`isLarge`, `requiresOverride`, `isReturned`,
   `submittedById`); Receipts and Issues use `mine=true` for "Mine" (default Mine for warehouse staff and clerks, remembered per user).
-* **Override reason at Approve**: `requiresOverride` documents ask for the reason in the Approve dialog; Post has no body.
-* **Lines carry `available`** (stock on hand now), so opening a document needs no stock query; stock rows, low-stock alerts and ledger
+- **Override reason at Approve**: `requiresOverride` documents ask for the reason in the Approve dialog; Post has no body.
+- **Lines carry `available`** (stock on hand now), so opening a document needs no stock query; stock rows, low-stock alerts and ledger
   rows carry `warehouseName`.
-* **Product lookup** answers `{ found, product }` (a miss is a quiet message, not an error); import rows carry `New` / `Update` /
+- **Product lookup** answers `{ found, product }` (a miss is a quiet message, not an error); import rows carry `New` / `Update` /
   `Error` and the preview fills the counts.
-* **Partners**: `partners.create` shows New (Clerk, Supervisor, Admin); `masterdata.manage` (Supervisor, Admin) shows edit and
+- **Partners**: `partners.create` shows New (Clerk, Supervisor, Admin); `masterdata.manage` (Supervisor, Admin) shows edit and
   deactivate; a 409 duplicate shows the server's sentence on the name field.
 
 ## 5. Decisions (others must respect)
@@ -100,6 +100,11 @@ Contract features the screens rely on:
    "assume UTC" patching). Date-only filters (`from`, `to`) are Kuala Lumpur calendar days.
 7. The document editor reserves a tab list so an Attachments panel (photos, PDFs stored as server files, never base64) can be added without restructuring.
 8. No token is ever written to web storage. A new call that needs the concurrency check passes `withIfMatch(...)`; it never builds the header by hand.
+9. `new` and a document id are ONE route (`/receipts/:id`, `NEW_DOCUMENT_ID`), so the editor lives on when a save moves `/new` to `/<id>`: the form is marked clean when the first save returns and the editor follows the saved document, which makes Save, Submit and a repeat after Back in the Post dialog idempotent (no "Discard changes?", no second document).
+10. A 409 is told apart by its `code` (`document_changed`, `insufficient_stock`, `reversal_blocked`); an API without codes falls back to the old product-id test (`libs/features/documents/src/lib/rules/stale-document.ts`).
+11. Routes carry `title: '<message key>'`; `PageTitleStrategy` translates it, `PageTitleService` adds a detail (the document number) and feeds the live region of the shell that announces route changes.
+12. A dialog focuses the native control marked `data-autofocus` once its content exists (`app-search-input focusOnOpen`); the real `autofocus` attribute is banned by lint. A busy `app-button` keeps the focus (it is `aria-disabled`, not natively disabled).
+13. Sticky and fixed bars become part of the page flow on windows shorter than 500px (`media-short`), and `html` has `scroll-padding` for the top bar and the bottom bars (WCAG 1.4.10, 2.4.11).
 
 ## 6. Testing
 

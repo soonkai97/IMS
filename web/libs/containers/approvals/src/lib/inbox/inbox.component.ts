@@ -7,7 +7,13 @@ import {
   signal
 } from '@angular/core';
 import { DocumentListItem } from '@ims/api';
-import { AppQtyPipe, DOCUMENT_TYPE_LABELS, I18nService, TranslatePipe } from '@ims/core/i18n';
+import {
+  AppMoneyPipe,
+  AppQtyPipe,
+  DOCUMENT_TYPE_LABELS,
+  I18nService,
+  TranslatePipe
+} from '@ims/core/i18n';
 import { ApprovalsStore } from '@ims/features/approvals';
 import { DOCUMENT_ROUTE } from '@ims/features/documents';
 
@@ -37,6 +43,7 @@ interface InboxRow {
 @Component({
   selector: 'app-approvals-inbox-page',
   imports: [
+    AppMoneyPipe,
     AppQtyPipe,
     TranslatePipe,
     UiCellDirective,
@@ -100,6 +107,7 @@ export class ApprovalsInboxPageComponent implements OnInit {
     },
     { key: 'flags', header: this.i18n.t('approvals.flags') },
     { key: 'qty', header: this.i18n.t('doc.totalQty'), align: 'end' },
+    { key: 'amount', header: this.i18n.t('doc.amount'), align: 'end' },
     { key: 'waiting', header: this.i18n.t('approvals.waiting'), value: row => row.waiting }
   ]);
 

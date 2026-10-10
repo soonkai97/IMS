@@ -244,6 +244,7 @@ export const ZH_MESSAGES: Messages = {
 
   'stock.byWarehouse': '各仓库库存',
   'stock.empty': '暂无库存。请先过账一张入库单。',
+  'stock.negative': '负库存',
   'stock.low': '低',
   'stock.lowOnly': '仅低库存',
   'stock.noMatch': '没有符合筛选条件的商品。',
@@ -287,6 +288,7 @@ export const ZH_MESSAGES: Messages = {
   'doc.action.submit': '提交',
   'doc.action.submitAndPost': '提交并过账',
   'doc.addItem': '添加商品',
+  'doc.estimate': '估算',
   'doc.amount': '金额',
   'doc.askToReverse': '数量不对？请联系主管冲销这张单据。',
   'doc.awaitingApproval': '等待审批',
@@ -361,6 +363,9 @@ export const ZH_MESSAGES: Messages = {
   'doc.type': '类型',
   'doc.unit': '单位',
   'doc.unitCost': '单价',
+  'doc.trigger.Amount': '金额 {actual} 已达到 {threshold} 的限额。审批人：{role}。',
+  'doc.trigger.Quantity': '数量 {actual} 已达到 {threshold} 的限额。审批人：{role}。',
+  'doc.whyApproval': '为什么需要审批',
   'doc.warehouse': '仓库',
   'line.available': '可用 {qty} {uom}',
   'line.costFor': '{sku} 的单价',
@@ -475,6 +480,8 @@ export const ZH_MESSAGES: Messages = {
   'audit.details': '详情',
   'audit.empty': '这些筛选条件下没有记录。',
   'audit.entity': '对象',
+  'audit.searchLabel': '搜索审计日志',
+  'audit.searchPlaceholder': '单号或对象名称',
   'audit.show': '查看',
   'audit.title': '审计日志'
 };

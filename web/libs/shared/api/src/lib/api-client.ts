@@ -1769,17 +1769,22 @@ export class AuditClient {
     }
 
     /**
-     * @param entityType (optional) 
-     * @param actor (optional) 
+     * The audit log, newest first. Text filters are partial or prefix matches that the indexes answer (no table scan): `entityType` is a fragment of
+    the entity name, `entityId`, `actor` and `action` are prefixes, `search` tries an entity name fragment and an id prefix at once.
+     * @param entityType (optional) A fragment of the entity name, case-insensitive: "doc" finds StockDocument, "product" finds Product and ProductBarcode (see `GET /api/audit/filters`).
+     * @param actor (optional) User name starts with (case-insensitive): "staf" finds staff.
      * @param from (optional) 
      * @param to (optional) 
      * @param page (optional) 
      * @param pageSize (optional) 
      * @param afterId (optional) Seek paging: return entries older than this id.
      * @param includeTotal (optional) False skips the row count.
+     * @param entityId (optional) Id of the entity starts with: a document number such as ISS-WH01-2610-0017, a user id, a SKU prefix of the bulk events.
+     * @param action (optional) Action starts with: "document." for every document event, "login" for sign-ins, "document.posted" for one.
+     * @param search (optional) One box for a person: matches an entity name fragment OR an entity id prefix, so a document number and "Document" both work.
      * @return OK
      */
-    list(entityType?: string | undefined, actor?: string | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfAuditLogDto> {
+    list(entityType?: string | undefined, actor?: string | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined, entityId?: string | undefined, action?: string | undefined, search?: string | undefined, httpContext?: HttpContext): Observable<PagedResultOfAuditLogDto> {
         let url_ = this.baseUrl + "/api/audit?";
         if (entityType === null)
             throw new globalThis.Error("The parameter 'entityType' cannot be null.");
@@ -1813,6 +1818,18 @@ export class AuditClient {
             throw new globalThis.Error("The parameter 'includeTotal' cannot be null.");
         else if (includeTotal !== undefined)
             url_ += "IncludeTotal=" + encodeURIComponent("" + includeTotal) + "&";
+        if (entityId === null)
+            throw new globalThis.Error("The parameter 'entityId' cannot be null.");
+        else if (entityId !== undefined)
+            url_ += "EntityId=" + encodeURIComponent("" + entityId) + "&";
+        if (action === null)
+            throw new globalThis.Error("The parameter 'action' cannot be null.");
+        else if (action !== undefined)
+            url_ += "Action=" + encodeURIComponent("" + action) + "&";
+        if (search === null)
+            throw new globalThis.Error("The parameter 'search' cannot be null.");
+        else if (search !== undefined)
+            url_ += "Search=" + encodeURIComponent("" + search) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_ : any = {
@@ -1849,6 +1866,58 @@ export class AuditClient {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
             let result200: any = null;
             result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PagedResultOfAuditLogDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * The entity names and action names an audit row can carry, for the filter dropdowns.
+     * @return OK
+     */
+    filters(httpContext?: HttpContext): Observable<AuditFilterOptions> {
+        let url_ = this.baseUrl + "/api/audit/filters";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processFilters(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processFilters(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<AuditFilterOptions>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<AuditFilterOptions>;
+        }));
+    }
+
+    protected processFilters(response: HttpResponseBase): Observable<AuditFilterOptions> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as AuditFilterOptions;
             return _observableOf(result200);
             }));
         } else if (status !== 200 && status !== 204) {
@@ -3945,6 +4014,12 @@ export class AttachmentsClient {
     }
 }
 
+/** What an approval rule measures: the document value or its total quantity. */
+export enum ApprovalMetric {
+    Amount = "Amount",
+    Quantity = "Quantity",
+}
+
 export interface ApprovalRuleDto {
     id: number;
     docType: DocumentType;
@@ -3960,6 +4035,14 @@ export interface ApprovalRuleSaveRequest {
     qtyThreshold: number | undefined;
     roleRequired: string;
     isActive: boolean;
+}
+
+/** One reason a document needs approval: Actual reached Threshold of a rule that needs RoleRequired. */
+export interface ApprovalTrigger {
+    metric: ApprovalMetric;
+    threshold: number;
+    actual: number;
+    roleRequired: string;
 }
 
 export interface ApproveRequest {
@@ -3984,6 +4067,12 @@ export enum AttachmentOwnerType {
     Product = "Product",
 }
 
+/** What the audit log filters can be offered as dropdowns: the entity names and action names an audit row can carry. */
+export interface AuditFilterOptions {
+    entityTypes: string[];
+    actions: string[];
+}
+
 export interface AuditLogDto {
     id: number;
     actor: string;
@@ -3999,7 +4088,7 @@ export interface AuditLogDto {
 export interface AuthResult {
     accessToken: string;
     expiresAt: string;
-    /** DEPRECATED. The refresh token now travels in an HttpOnly cookie; this property is only filled while Auth:ReturnRefreshTokenInBody is true. */
+    /** DEPRECATED. The refresh token now travels in an HttpOnly cookie; this property is null unless Auth:ReturnRefreshTokenInBody is switched on (off by default). */
     refreshToken: string | undefined;
     user: UserInfo;
 }
@@ -4028,7 +4117,7 @@ export interface DocumentCounts {
     returnedToMe: number;
     /** All my Drafts (returned ones included). */
     myDrafts: number;
-    /** Documents posted since local midnight (Asia/Kuala_Lumpur, BR-10), whoever posted them. */
+    /** Documents posted since local midnight (Asia/Kuala_Lumpur, BR-10), whoever posted them, that are still Posted: a document reversed since is not counted, so this equals the Posted list filtered to today. */
     postedToday: number;
     /** Submitted documents held for approval that I could act on: not mine to approve when self-approval is off, only large ones for the Owner, none large for a Supervisor, zero for roles that cannot approve. */
     approvalsWaiting: number;
@@ -4077,10 +4166,15 @@ export interface DocumentDto {
     returnedByName: string | undefined;
     returnedAt: string | undefined;
     totalQty: number;
+    /** Value of the document: receipts at their entered cost; an issue at its booked cost once posted, and before that at the average cost when it was last saved or submitted (see `AmountIsEstimate`). For a Submitted document this is the value the approval rules were tested against. */
     totalAmount: number;
     lines: DocumentLineDto[];
-    /** What the caller may do right now (edit, submit, approve, reject, cancel, post, reverse). The UI shows buttons from this list only. */
+    /** What the caller may do right now (edit, submit, approve, reject, cancel, post, reverse). The UI shows buttons from this list only. It already accounts for ownership (Warehouse staff and Clerk act only on their own documents), the approver the document is routed to (an Owner reviews only `isLarge` documents, a Supervisor the rest) and self-approval, so a listed action is one the API will accept. */
     allowedActions: string[];
+    /** While the document is Submitted or Approved and an approval rule held it back: which thresholds it reaches (value or quantity), for the approver and the "sent for approval" message. Empty otherwise, and when only a negative-stock override (`requiresOverride`) sent it to approval. */
+    approvalTriggers: ApprovalTrigger[];
+    /** True for an issue that has not posted yet: its lines carry the average cost seen when it was last saved or submitted, and posting books the real cost. Label the amount "estimated". */
+    amountIsEstimate: boolean;
     /** Changes whenever the document (header, status or lines) changes. Also sent as the ETag header; send it back as If-Match to refuse a stale save. */
     concurrencyToken: string;
 }
@@ -4118,6 +4212,7 @@ export interface DocumentListItem {
     createdAt: string;
     postedAt: string | undefined;
     totalQty: number;
+    /** Same meaning as on the full document: an unposted issue is valued at the average cost seen when it was last saved or submitted (`AmountIsEstimate`). */
     totalAmount: number;
     createdBy: string;
     createdById: number;
@@ -4134,6 +4229,12 @@ export interface DocumentListItem {
     isReturned: boolean;
     /** Same value as `concurrencyToken` on the full document: compare it to know whether an open document has gone stale. */
     concurrencyToken: string;
+    /** True for an issue that has not posted yet: `totalAmount` is an estimate at the average cost seen when it was last saved or submitted. */
+    amountIsEstimate: boolean;
+    /** The caller may approve or reject this document right now: it is Submitted and held for approval, routed to the caller's role
+(an Owner reviews only `isLarge` documents, a Supervisor the rest, an Admin all) and, unless self-approval is on, not submitted by the caller.
+This is exactly the rule behind the "waiting for approval" count. A single document's `allowedActions` additionally tests the live approval rules. */
+    canAct: boolean;
 }
 
 export interface DocumentSaveRequest {
@@ -4234,9 +4335,13 @@ export interface LowStockAlert {
     warehouseId: number;
     warehouseCode: string;
     warehouseName: string;
+    /** Zero for a product that has never been stocked (it has no balance row). Negative when stock went below zero. */
     qtyOnHand: number;
     safetyStock: number;
+    /** Safety stock minus on hand: how many units are missing (more than the safety level when the balance is negative). */
     shortfall: number;
+    /** On hand is below zero: show it as a warning, not just as "low". */
+    isNegative: boolean;
 }
 
 export interface MovementRow {
@@ -4413,7 +4518,7 @@ export enum ProductSort {
 
 /** The refresh token to redeem or revoke. Optional on the wire: when absent, the API reads it from the HttpOnly cookie. */
 export interface RefreshRequest {
-    /** DEPRECATED. The refresh token now travels in an HttpOnly cookie; this property is only filled while Auth:ReturnRefreshTokenInBody is true. */
+    /** DEPRECATED. The refresh token now travels in an HttpOnly cookie; this property is null unless Auth:ReturnRefreshTokenInBody is switched on (off by default). */
     refreshToken: string | undefined;
 }
 
@@ -4445,7 +4550,10 @@ export interface StockRow {
     avgCost: number;
     value: number;
     safetyStock: number;
+    /** Below the product's safety stock (when it has one) or below zero. */
     isLow: boolean;
+    /** On hand is below zero: show a warning, not just a "Low" chip (also true when the product has no safety stock). */
+    isNegative: boolean;
 }
 
 export enum StockSort {
@@ -4456,8 +4564,11 @@ export enum StockSort {
 }
 
 export interface StockSummary {
+    /** Net value of the stock in the caller's warehouses (quantity x average cost). A negative balance lowers it, so it can be less than the sum of the positive lines. */
     totalValue: number;
+    /** Products with stock: distinct products that have a positive quantity in at least one of the caller's warehouses (zero and negative balances are not counted). */
     skuCount: number;
+    /** Product x warehouse pairs on the low-stock list (see `GET /api/stock/low-stock`): below safety stock, never stocked with a safety level, or negative. Equals that list's total. */
     lowCount: number;
 }
 

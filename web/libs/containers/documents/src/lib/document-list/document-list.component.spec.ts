@@ -35,7 +35,9 @@ const ITEM: DocumentListItem = {
   requiresOverride: true,
   isLarge: true,
   isReturned: true,
-  concurrencyToken: 'AAAA'
+  concurrencyToken: 'AAAA',
+  canAct: false,
+  amountIsEstimate: false
 };
 
 describe('DocumentListPageComponent Mine / All', () => {
