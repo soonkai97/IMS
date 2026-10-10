@@ -1,0 +1,22 @@
+{
+  "name": "ims-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end behaviour tests (Playwright) for the IMS web app. Starts nothing itself: point it at a running API and web.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:local": "node scripts/run-local.mjs",
+    "typecheck": "tsc --noEmit",
+    "report": "playwright show-report",
+    "install:browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@playwright/test": "^1.58.0",
+    "@types/node": "^20.19.0",
+    "typescript": "~5.9.3"
+  }
+}

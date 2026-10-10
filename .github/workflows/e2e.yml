@@ -1,0 +1,123 @@
+name: E2E (Playwright)
+
+# Browser end-to-end tests are slow and touch every layer, so they never run on pull requests: start them by hand
+# (Actions tab -> E2E -> Run workflow) or wait for the weekly run. Instructions for a local run: e2e/README.md.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1" # Mondays, 03:17 UTC
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  # Throwaway credentials for the CI-only SQL Server container and the demo users it seeds. Not secrets: the job's
+  # containers and processes are gone when it ends. The same values are used by the smoke step in ci.yml.
+  CI_DB_PASSWORD: "Ci-Only#Passw0rd-2026"
+  CI_ADMIN_PASSWORD: "Ci-Admin#2026"
+  CI_DEMO_PASSWORD: "Ci-Demo#2026"
+
+jobs:
+  e2e:
+    name: Playwright (Chromium) against the real API and web build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      sql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: ${{ env.CI_DB_PASSWORD }}
+        ports: ["1433:1433"]
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -Q 'SELECT 1'"
+          --health-interval 10s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Build the API
+        run: dotnet build src/Ims.Api/Ims.Api.csproj -c Release
+
+      - name: Start the API (throw-away database, CORS for the web origin)
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5109
+          ConnectionStrings__Default: "Server=localhost,1433;Database=Ims_CI_E2E;User Id=sa;Password=${{ env.CI_DB_PASSWORD }};TrustServerCertificate=True"
+          Cors__Origins: http://localhost:4200
+          Seed__AdminPassword: ${{ env.CI_ADMIN_PASSWORD }}
+          Seed__DemoPassword: ${{ env.CI_DEMO_PASSWORD }}
+        run: |
+          # The content root is the working directory, so start from the build output where appsettings*.json were copied.
+          (cd src/Ims.Api/bin/Release/net10.0 && nohup dotnet Ims.Api.dll > "$GITHUB_WORKSPACE/api.log" 2>&1 &)
+          for i in $(seq 1 40); do
+            curl -fsS http://localhost:5109/health && exit 0
+            sleep 2
+          done
+          echo "API did not become healthy"; cat api.log; exit 1
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            e2e/package-lock.json
+
+      - name: Build and serve the web app
+        working-directory: web
+        run: |
+          npm ci
+          npm run build:prod
+          (PORT=4200 nohup npm run serve:prod > "$GITHUB_WORKSPACE/web.log" 2>&1 &)
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:4200/login > /dev/null && exit 0
+            sleep 1
+          done
+          echo "Web server did not start"; cat "$GITHUB_WORKSPACE/web.log"; exit 1
+
+      - name: Install Playwright and Chromium
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run the scenarios
+        working-directory: e2e
+        env:
+          IMS_WEB_URL: http://localhost:4200
+          IMS_API_URL: http://localhost:5109
+          IMS_E2E_PASSWORD_ADMIN: ${{ env.CI_ADMIN_PASSWORD }}
+          IMS_E2E_PASSWORD_OWNER: ${{ env.CI_DEMO_PASSWORD }}
+          IMS_E2E_PASSWORD_SUPERVISOR: ${{ env.CI_DEMO_PASSWORD }}
+          IMS_E2E_PASSWORD_STAFF: ${{ env.CI_DEMO_PASSWORD }}
+          IMS_E2E_PASSWORD_CLERK: ${{ env.CI_DEMO_PASSWORD }}
+        run: npx playwright test
+
+      - name: Upload the HTML report, traces, screenshots and logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+            api.log
+            web.log
+          if-no-files-found: ignore
+          retention-days: 14
