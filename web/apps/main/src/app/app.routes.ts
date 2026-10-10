@@ -17,6 +17,7 @@ export const APP_ROUTES: Routes = [
       {
         path: '',
         pathMatch: 'full',
+        title: 'home.title',
         loadComponent: () => import('@ims/containers/home').then(module => module.HomePageComponent)
       },
       {
@@ -79,11 +80,13 @@ export const APP_ROUTES: Routes = [
       },
       {
         path: 'forbidden',
+        title: 'forbidden.title',
         loadComponent: () =>
           import('@ims/containers/system').then(module => module.ForbiddenPageComponent)
       },
       {
         path: '**',
+        title: 'notFound.title',
         loadComponent: () =>
           import('@ims/containers/system').then(module => module.NotFoundPageComponent)
       }

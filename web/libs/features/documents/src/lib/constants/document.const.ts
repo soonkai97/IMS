@@ -8,6 +8,12 @@ export const DOCUMENT_ROUTE: Readonly<Record<DocumentType, string>> = {
   [DocumentType.Adjust]: 'receipts'
 };
 
+/**
+ * Route parameter of a document that does not exist yet. It shares the `:id` route with saved documents so the editor
+ * stays alive when a save gives the document its number and its own URL (NV-01, NV-02).
+ */
+export const NEW_DOCUMENT_ID = 'new';
+
 export const STATUS_TONE: Readonly<Record<DocumentStatus, StatusTone>> = {
   [DocumentStatus.Draft]: 'draft',
   [DocumentStatus.Submitted]: 'submitted',

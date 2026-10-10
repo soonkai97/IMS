@@ -5,7 +5,8 @@
 @if ($showSkeleton()) {
   <app-skeleton />
 } @else if ($showError()) {
-  <div class="ui-table-state" role="alert">
+  <!-- No live role: the error toast of the same failure is the one announcement (EA-26). -->
+  <div class="ui-table-state">
     <p>{{ $errorMessage() || $text().errorTitle }}</p>
     <app-button (clicked)="onRetry()">{{ $text().retry }}</app-button>
   </div>
@@ -46,7 +47,11 @@
     </thead>
     <tbody>
       @for (item of $items(); track $index) {
-        <tr class="ui-table-row" [class.--linked]="item.link !== null">
+        <tr
+          class="ui-table-row"
+          [class.--linked]="item.link !== null"
+          [class.--compact]="$compact()"
+        >
           @for (cell of item.cells; track cell.key) {
             <td
               class="ui-table-cell"
@@ -54,6 +59,9 @@
               [class.--primary]="cell.primary"
               [class.--end]="cell.alignEnd"
               [class.--phone-hidden]="cell.hideOnPhone"
+              [class.--phone-end]="cell.phoneEnd"
+              [class.--phone-inline]="cell.phoneInline"
+              [class.--empty]="cell.empty"
             >
               @if (cell.primary && item.link) {
                 <a class="ui-table-link" [routerLink]="item.link">

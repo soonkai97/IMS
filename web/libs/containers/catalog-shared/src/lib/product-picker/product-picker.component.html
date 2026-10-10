@@ -2,8 +2,17 @@
   [(value)]="$term"
   [label]="'picker.label' | t"
   [placeholder]="'picker.placeholder' | t"
+  focusOnOpen
   (submitted)="onSubmitted($event)"
 />
+
+<div aria-live="polite">
+  @if ($notice(); as notice) {
+    <p class="product-picker-notice">{{ notice }}</p>
+  } @else if ($needsMoreLetters()) {
+    <p class="product-picker-hint">{{ 'picker.hint' | t }}</p>
+  }
+</div>
 
 @if ($isSearching()) {
   <app-skeleton [count]="3" />
@@ -11,7 +20,12 @@
   <ul class="product-picker-list">
     @for (item of $results(); track item.product.id) {
       <li>
-        <button type="button" class="product-picker-item" (click)="onPick(item)">
+        <button
+          type="button"
+          class="product-picker-item"
+          [attr.aria-label]="item.product.sku + ', ' + item.product.name"
+          (click)="onPick(item)"
+        >
           <span class="product-picker-sku">{{ item.product.sku }}</span>
           <span class="product-picker-name">{{ item.product.name }}</span>
           @if ($showAvailable()) {

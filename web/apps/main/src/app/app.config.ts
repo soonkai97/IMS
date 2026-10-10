@@ -7,7 +7,7 @@ import {
   provideBrowserGlobalErrorListeners,
   runInInjectionContext
 } from '@angular/core';
-import { provideRouter, withComponentInputBinding } from '@angular/router';
+import { TitleStrategy, provideRouter, withComponentInputBinding } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import {
   AppConfig,
@@ -22,7 +22,7 @@ import {
 } from '@ims/core/http';
 import { I18nService, provideUiText } from '@ims/core/i18n';
 import { AuthService, authInterceptor } from '@ims/core/identity';
-import { NAV_BADGE_SOURCES } from '@ims/core/navigation';
+import { NAV_BADGE_SOURCES, PageTitleStrategy } from '@ims/core/navigation';
 import { PwaService, providePwa } from '@ims/core/pwa';
 import { ApprovalsStore } from '@ims/features/approvals';
 import { StockStore } from '@ims/features/stock';
@@ -48,6 +48,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(APP_ROUTES, withComponentInputBinding()),
+    { provide: TitleStrategy, useExisting: PageTitleStrategy },
     // Order = request order. Error mapping is first so it sees failures after the auth interceptor tried to recover.
     provideHttpClient(
       withXhr(),

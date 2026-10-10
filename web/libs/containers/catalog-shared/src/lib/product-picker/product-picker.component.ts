@@ -6,7 +6,8 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
+  viewChild
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
@@ -58,9 +59,17 @@ export class ProductPickerComponent {
   /** When set, results show how much of each product is on hand there (issues). */
   $warehouseId = input<number | null>(null, { alias: 'warehouseId' });
 
+  /** What the page wants to say about the last pick ("DEMO-001: now 2"); the picker shows it under the search box. */
+  $notice = input<string | undefined>(undefined, { alias: 'notice' });
+
   $picked = output<PickedProduct>({ alias: 'picked' });
+  /** The user typed something else: a message about the previous pick is stale now. */
+  $termChanged = output<string>({ alias: 'termChanged' });
+
+  private readonly $search = viewChild.required(UiSearchInputComponent);
 
   $term = signal('');
+  $needsMoreLetters = computed(() => this.$term().trim().length < MIN_SEARCH_LENGTH);
   /** Result of the last exact-code lookup when it picked nothing ("no product has the code ..."). */
   $lookupMessage = signal<string | undefined>(undefined);
   $results = signal<readonly ResultItem[]>([]);
@@ -73,7 +82,12 @@ export class ProductPickerComponent {
   constructor() {
     toObservable(this.$term)
       .pipe(
-        tap(() => this.$lookupMessage.set(undefined)),
+        tap(term => {
+          this.$lookupMessage.set(undefined);
+          if (term !== '') {
+            this.$termChanged.emit(term);
+          }
+        }),
         debounceTime(SEARCH_DEBOUNCE_MS),
         distinctUntilChanged(),
         tap(term => this.$isSearching.set(term.trim().length >= MIN_SEARCH_LENGTH)),
@@ -106,8 +120,10 @@ export class ProductPickerComponent {
       .subscribe();
   }
 
+  /** The tapped result disappears from under the finger: keep the cursor in the box for the next scan or search. */
   onPick(item: ResultItem): void {
     this.$picked.emit({ product: item.product, available: item.available });
+    this.$search().focus();
   }
 
   private search(term: string) {

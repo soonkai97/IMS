@@ -28,6 +28,8 @@ export class UiTextareaComponent implements ControlValueAccessor {
   $placeholder = input('', { alias: 'placeholder' });
   $maxLength = input<number | undefined>(undefined, { alias: 'maxLength' });
   $readonly = input(false, { alias: 'readonly', transform: booleanAttribute });
+  /** Focused when its dialog opens (the dialog looks for `[data-autofocus]`). */
+  $focusOnOpen = input(false, { alias: 'focusOnOpen', transform: booleanAttribute });
 
   $value = signal('');
   $disabled = signal(false);

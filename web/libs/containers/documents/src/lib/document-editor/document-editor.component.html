@@ -18,8 +18,18 @@
   </div>
 </app-page-header>
 
+@if ($statusHint(); as hint) {
+  <p class="document-editor-hint">
+    {{ hint.key | t: { name: hint.name ?? '', date: (hint.at | appDate) } }}
+  </p>
+}
+
 @if ($isLoading()) {
   <app-skeleton [count]="4" />
+} @else if ($notFound()) {
+  <app-empty-state icon="file" [message]="'notFound.body' | t">
+    <a class="ui-link-button --primary" routerLink="/">{{ 'system.goHome' | t }}</a>
+  </app-empty-state>
 } @else if ($loadFailed()) {
   <app-banner kind="danger">
     {{ 'error.generic' | t }}
@@ -28,7 +38,11 @@
 } @else {
   @if ($isStale()) {
     <app-banner kind="danger" [heading]="'doc.stale' | t: { docNo: $document()?.no ?? '' }">
-      {{ 'doc.staleBody' | t }}
+      @if ($staleDetails(); as by) {
+        {{ 'doc.staleBodyBy' | t: { name: by.name, time: (by.at | appDate) } }}
+      } @else {
+        {{ 'doc.staleBody' | t }}
+      }
       <app-button bannerActions (clicked)="onReload()">{{ 'doc.reload' | t }}</app-button>
     </app-banner>
   }
@@ -46,10 +60,15 @@
   @if ($document()?.reversalReason; as reason) {
     <app-banner kind="info" [heading]="'doc.reversedBanner' | t">{{ reason }}</app-banner>
   }
+  @if ($reverseBlocked(); as blocked) {
+    <app-banner kind="danger" [heading]="'doc.reverseBlocked' | t: { docNo: blocked.docNo }">
+      {{ 'doc.reverseBlockedBody' | t: { items: blocked.items } }}
+    </app-banner>
+  }
   @if ($stockConflict(); as conflict) {
     <app-banner kind="danger" [heading]="'doc.stockChanged' | t">
       {{
-        'doc.stockChangedBody'
+        $stockConflictBodyKey()
           | t
             : {
                 sku: conflict.sku,
@@ -87,17 +106,24 @@
         </app-form-field>
       </div>
       @if ($isIssue()) {
+        @let purposeInvalid =
+          view.header.controls.purpose.touched && view.header.controls.purpose.invalid;
         <app-radio-group
           formControlName="purpose"
           [legend]="'doc.purpose' | t"
           [options]="$purposeOptions()"
+          [required]="true"
+          [invalid]="purposeInvalid"
+          errorId="document-purpose-error"
         />
-        @if (view.header.controls.purpose.touched && view.header.controls.purpose.invalid) {
-          <p class="document-editor-error" role="alert">{{ 'validation.required' | t }}</p>
+        @if (purposeInvalid) {
+          <p id="document-purpose-error" class="document-editor-error" role="alert">
+            {{ 'doc.purposeRequired' | t }}
+          </p>
         }
       }
       <app-form-field [label]="'doc.remark' | t" [control]="view.header.controls.remark">
-        <app-textarea formControlName="remark" [rows]="2" [maxLength]="1000" />
+        <app-textarea formControlName="remark" [rows]="2" [maxLength]="500" />
       </app-form-field>
     </form>
   } @else if ($document(); as document) {
@@ -124,6 +150,15 @@
         <dt>{{ 'doc.createdBy' | t }}</dt>
         <dd>{{ document.createdByName }} · {{ document.createdAt | appDate }}</dd>
       </div>
+      @if (document.submittedAt) {
+        <div>
+          <dt>{{ 'approvals.submittedBy' | t }}</dt>
+          <dd>
+            {{ document.submittedByName ?? document.submittedBy }} ·
+            {{ document.submittedAt | appDate }}
+          </dd>
+        </div>
+      }
     </dl>
   }
 
@@ -228,42 +263,49 @@
     }
   }
 
-  <footer class="document-editor-bar">
-    @if ($editable()) {
-      <p class="document-editor-totals" aria-live="polite">
-        {{ 'doc.totals' | t: { lines: $totals().lineCount, qty: ($totals().totalQty | appQty) } }}
-        @if (!$isIssue() && $totals().totalAmount > 0) {
-          · {{ $totals().totalAmount | appMoney }}
-        }
-      </p>
-      @if ($linesBlocked()) {
-        <p class="document-editor-error" role="alert">
-          {{ 'doc.linesShort' | t: { count: $totals().shortLineCount } }}
+  @if ($askToReverse()) {
+    <app-banner kind="info">{{ 'doc.askToReverse' | t }}</app-banner>
+  }
+
+  @if ($showBar()) {
+    <footer class="document-editor-bar">
+      @if ($editable()) {
+        <p class="document-editor-totals" aria-live="polite">
+          {{ 'doc.totals' | t: { lines: $totals().lineCount, qty: $totals().totalQty } }}
+          @if (!$isIssue() && $totals().totalAmount > 0) {
+            · {{ $totals().totalAmount | appMoney }}
+          }
         </p>
+        @if ($linesBlocked()) {
+          <p class="document-editor-error document-editor-bar-note" role="alert">
+            {{ 'doc.linesShort' | t: { count: $totals().shortLineCount } }}
+          </p>
+        }
+        @if ($needsOverride()) {
+          <app-status-chip flag="danger" [label]="'doc.overrideNeeded' | t" />
+        }
       }
-      @if ($needsOverride()) {
-        <app-status-chip flag="danger" [label]="'doc.overrideNeeded' | t" />
-      }
-    }
-    <app-document-actions
-      [allowedActions]="$allowedActions()"
-      [canPost]="$canPost()"
-      [busy]="$isBusy()"
-      [selfApprovalBlocked]="$selfApprovalBlocked()"
-      [submitDisabled]="$linesBlocked()"
-      (triggered)="onAction($event)"
-    />
-  </footer>
+      <app-document-actions
+        [allowedActions]="$allowedActions()"
+        [canPost]="$canPost()"
+        [busy]="$isBusy()"
+        [selfApprovalBlocked]="$selfApprovalBlocked()"
+        [submitDisabled]="$linesBlocked()"
+        [locked]="$isStale()"
+        [busyAction]="$busyAction()"
+        (triggered)="onAction($event)"
+      />
+    </footer>
+  }
 }
 
 <app-dialog [(open)]="$addItemOpen" [heading]="'doc.addItem' | t">
   <app-product-picker
     [warehouseId]="$isIssue() ? $warehouseId() : null"
+    [notice]="$lastAdded()"
     (picked)="onProductPicked($event)"
+    (termChanged)="onPickerTermChanged()"
   />
-  @if ($lastAdded(); as lastAdded) {
-    <p class="document-editor-muted" role="status">{{ lastAdded }}</p>
-  }
   <div dialogActions>
     <app-button variant="primary" (clicked)="$addItemOpen.set(false)">{{
       'common.done' | t

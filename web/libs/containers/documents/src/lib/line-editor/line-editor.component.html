@@ -23,7 +23,7 @@
         @if (!$readonly()) {
           <app-button
             variant="ghost"
-            [ariaLabel]="'line.decrease' | t"
+            [ariaLabel]="'line.decrease' | t: { sku: row.value.sku }"
             (clicked)="onStep(row.group, -1)"
           >
             <app-icon name="minus" />
@@ -33,13 +33,20 @@
           class="line-editor-qty-field"
           [label]="'doc.qty' | t"
           [control]="row.group.controls.qty"
+          [messages]="{ min: 'line.qtyMin' | t }"
         >
-          <app-input type="number" formControlName="qty" inputMode="decimal" min="0" />
+          <app-input
+            type="number"
+            formControlName="qty"
+            inputMode="decimal"
+            min="0"
+            [ariaLabel]="'line.qtyFor' | t: { sku: row.value.sku }"
+          />
         </app-form-field>
         @if (!$readonly()) {
           <app-button
             variant="ghost"
-            [ariaLabel]="'line.increase' | t"
+            [ariaLabel]="'line.increase' | t: { sku: row.value.sku }"
             (clicked)="onStep(row.group, 1)"
           >
             <app-icon name="plus" />
@@ -60,7 +67,13 @@
           [label]="'doc.unitCost' | t"
           [control]="row.group.controls.unitCost"
         >
-          <app-input type="number" formControlName="unitCost" inputMode="decimal" min="0" />
+          <app-input
+            type="number"
+            formControlName="unitCost"
+            inputMode="decimal"
+            min="0"
+            [ariaLabel]="'line.costFor' | t: { sku: row.value.sku }"
+          />
         </app-form-field>
       }
 
@@ -75,7 +88,7 @@
                     warehouse: $warehouseName()
                   }
           }}
-          @if (!$readonly()) {
+          @if (!$readonly() && row.maxCovered > 0) {
             <app-button (clicked)="onSetToAvailable(row.group)">
               {{ 'line.setToAvailable' | t: { qty: (row.maxCovered | appQty) } }}
             </app-button>
@@ -92,7 +105,12 @@
       }
 
       @if (!$readonly()) {
-        <app-button class="line-editor-remove" variant="ghost" (clicked)="onRemove(row.index)">
+        <app-button
+          class="line-editor-remove"
+          variant="ghost"
+          [ariaLabel]="'line.removeFor' | t: { sku: row.value.sku }"
+          (clicked)="onRemove(row.index)"
+        >
           <app-icon name="trash" />
           {{ 'common.remove' | t }}
         </app-button>

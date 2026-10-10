@@ -1,10 +1,10 @@
 @use 'libs' as *;
 
-// Phones: above the sticky action bar / tab bar. Desktop: top right.
+// Phones: under the top bar, so a toast never covers the sticky action bar or the tab bar (NV-21). Desktop: top right.
 :host {
   position: fixed;
+  top: calc(#{height('bar')} + #{space(1)});
   right: space(2);
-  bottom: calc(#{height('tabbar')} + #{space(2)});
   left: space(2);
   z-index: z-index('toast');
   display: flex;
@@ -18,7 +18,6 @@
 
   @include media-desktop {
     top: space(2);
-    bottom: auto;
     left: auto;
     width: width('toast');
   }
