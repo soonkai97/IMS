@@ -84,6 +84,10 @@ No N+1 queries: a use case issues a fixed number of queries regardless of how ma
 Every list that can grow returns `{ items, total, page, pageSize, nextCursor }`. Sort keys are enums. Small lookup lists (units, categories,
 warehouses, approval rules) return plain arrays with a hard cap.
 
+The order of a list is part of its contract: it is total (it ends in unique keys), so a walk through the pages never skips or repeats a row,
+and the export of a list uses the very same order as its pages. The receipt/issue detail (`/api/reports/movements` and its export) is
+`PostedAt DESC, DocumentId DESC, line Id` (`MovementOrder`); rows of documents posted at the same instant therefore appear newest document first, and the lines of one document in entry order.
+
 ## 9. Indexes
 
 Measured results, rejected proposals and how to re-run them: `docs/dba/README.md`.
@@ -94,5 +98,12 @@ Measured results, rejected proposals and how to re-run them: `docs/dba/README.md
   by default are kept; extra indexes on the posting path (ledger, document lines) need a measured read win.
 - Never combine a column of the main table and `EXISTS` on another table in one `OR` (a text search over SKU, name and barcode): SQL Server probes
   the other table once per row. Resolve the exact-match side first and pass its id (`ProductSearch`).
-- A sort that an index should serve ends in a unique key (`Id`, or the primary key), not in a column of another table.
+- A sort that an index should serve ends in unique keys (`Id`, or the primary key), not in a column of another table. A report that lists child
+  rows newest-parent-first (movements: document lines by `PostedAt` of the document) sorts by the parent's column, then the parent id, then the
+  child id, so a backward scan of an index on the parent's column streams the first rows instead of sorting every row
+  (`IX_StockDocument_PostedAt_Movements`). A filtered index skips rows its filter excludes only if the query states the same predicate
+  (`PostedAt IS NOT NULL`, in `MovementFilters`).
+- The child side of such a report keeps its foreign-key index and gets one narrow filtered index (`IX_StockDocumentLine_DocumentId_Live`, so the
+  count and page answer EF's `REC_DELETED` predicate without reading the table). A covering index on the lines (36 MB, on the posting path) was
+  measured and rejected for lack of need; see `docs/dba/README.md` section 5 for when to revisit it.
 - After a migration that adds columns to a big table, rebuild the indexes (`docs/dba/07-maintenance.sql`) before measuring or going live.

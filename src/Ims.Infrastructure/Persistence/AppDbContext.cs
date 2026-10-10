@@ -113,6 +113,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             // List filters are Status and/or Type, newest first (Id DESC); filtered on live rows so EF's REC_DELETED predicate is answered by the index itself.
             e.HasIndex(x => new { x.Status, x.Type, x.Id }).IsDescending(false, false, true).IncludeProperties(x => x.WarehouseId).HasFilter(LiveRows);
             e.HasIndex(x => x.CreatedAt).HasFilter(LiveRows);
+            // The movements report reads documents newest posting first, ties by document id descending (MovementOrder): a backward scan of this index delivers exactly that order.
+            // Unposted documents have no PostedAt and are not in the index; the report states "PostedAt IS NOT NULL" so the optimizer can use it.
+            e.HasIndex(x => x.PostedAt, "IX_StockDocument_PostedAt_Movements").IncludeProperties(x => new { x.Status, x.Type, x.WarehouseId }).HasFilter($"{LiveRows} AND [PostedAt] IS NOT NULL");
             e.Property(x => x.No).HasMaxLength(Limits.DocumentNoMaxLength);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
             e.Property(x => x.RowVersion).IsRowVersion();
@@ -132,6 +135,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.BaseQty).HasColumnType(SqlTypes.Quantity);
             e.Property(x => x.UnitCost).HasColumnType(SqlTypes.Cost);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
+            // The movements report counts and pages lines through their document; the filtered index answers EF's REC_DELETED predicate without reading the table.
+            // The unfiltered foreign-key index stays (declared here, or EF would drop it as redundant): a physical delete of a document must find its soft-deleted lines too.
+            e.HasIndex(x => x.DocumentId, "IX_StockDocumentLine_DocumentId");
+            e.HasIndex(x => x.DocumentId, "IX_StockDocumentLine_DocumentId_Live").HasFilter(LiveRows);
             e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Uom).WithMany().HasForeignKey(x => x.UomId).OnDelete(DeleteBehavior.Restrict);
         });
