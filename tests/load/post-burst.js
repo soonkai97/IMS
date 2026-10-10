@@ -5,6 +5,7 @@ import { THRESHOLDS, setupData, readOp, writeFlow, summaryTo } from './scenarios
 export const options = {
   scenarios: { burst: { executor: 'per-vu-iterations', vus: 50, iterations: parseInt(__ENV.ITERATIONS || '3'), maxDuration: '2m' } },
   thresholds: THRESHOLDS,
+  summaryTrendStats: ['avg', 'min', 'med', 'p(90)', 'p(95)', 'p(99)', 'max', 'count'],
 };
 export function setup() { return setupData(); }
 export default function (d) {

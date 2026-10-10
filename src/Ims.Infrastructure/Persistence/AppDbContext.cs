@@ -50,6 +50,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         b.Entity<Product>(e =>
         {
             e.HasIndex(x => x.Sku).IsUnique();
+            // ORDER BY Name (product list) reads this narrow index in order instead of sorting the whole table; Sku and IsActive ride along for the search scan.
+            e.HasIndex(x => x.Name).IncludeProperties(x => new { x.Sku, x.IsActive }).HasFilter(LiveRows);
             e.Property(x => x.Sku).HasMaxLength(Limits.SkuMaxLength);
             e.Property(x => x.Name).HasMaxLength(Limits.NameMaxLength);
             e.Property(x => x.SafetyStock).HasColumnType(SqlTypes.Quantity);
@@ -91,6 +93,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         {
             e.HasIndex(x => new { x.EntityType, x.EntityId });
             e.HasIndex(x => x.At);
+            // Audit page filtered by user, newest first: a seek instead of a backwards scan of the whole table for a rare actor.
+            e.HasIndex(x => new { x.Actor, x.Id }).IsDescending(false, true);
             e.Property(x => x.Actor).HasMaxLength(Limits.AuditTextMaxLength);
             e.Property(x => x.Action).HasMaxLength(Limits.AuditTextMaxLength);
             e.Property(x => x.EntityType).HasMaxLength(Limits.AuditTextMaxLength);
@@ -106,7 +110,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         b.Entity<StockDocument>(e =>
         {
             e.HasIndex(x => x.No).IsUnique();
-            e.HasIndex(x => new { x.Type, x.Status, x.WarehouseId });
+            // List filters are Status and/or Type, newest first (Id DESC); filtered on live rows so EF's REC_DELETED predicate is answered by the index itself.
+            e.HasIndex(x => new { x.Status, x.Type, x.Id }).IsDescending(false, false, true).IncludeProperties(x => x.WarehouseId).HasFilter(LiveRows);
+            e.HasIndex(x => x.CreatedAt).HasFilter(LiveRows);
             e.Property(x => x.No).HasMaxLength(Limits.DocumentNoMaxLength);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
             e.Property(x => x.RowVersion).IsRowVersion();
@@ -149,7 +155,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.Sha256).HasMaxLength(Limits.Sha256HexLength).IsFixedLength().IsUnicode(false);
             e.HasIndex(x => x.StoragePath).IsUnique();
             // The list for one owner: live files only, in the order they were added.
-            e.HasIndex(x => new { x.OwnerType, x.OwnerId }).HasFilter("[REC_DELETED] = 0");
+            e.HasIndex(x => new { x.OwnerType, x.OwnerId }).HasFilter(LiveRows);
             e.HasOne<User>().WithMany().HasForeignKey(x => x.UploadedBy).OnDelete(DeleteBehavior.Restrict);
         });
         b.Entity<StockBalance>(e =>
@@ -165,6 +171,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
 
         ConfigureAuditColumns(b);
     }
+
+    /// <summary>Filter of every index that only needs live rows: the global query filter adds this predicate to every query, so the index answers it for free.</summary>
+    private const string LiveRows = "[REC_DELETED] = 0";
 
     /// <summary>The ledger and the audit log: they carry the audit columns but are never updated or deleted (triggers enforce it).</summary>
     private static readonly HashSet<Type> AppendOnly = [typeof(StockLedgerEntry), typeof(AuditLog)];
@@ -192,7 +201,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.HasQueryFilter(Expression.Lambda(Expression.Not(Expression.Property(row, nameof(AuditableEntity.RecDeleted))), row));
 
             foreach (var index in entityType.GetIndexes().Where(i => i.IsUnique))
-                index.SetFilter(string.IsNullOrEmpty(index.GetFilter()) ? "[REC_DELETED] = 0" : $"({index.GetFilter()}) AND [REC_DELETED] = 0");
+                index.SetFilter(string.IsNullOrEmpty(index.GetFilter()) ? LiveRows : $"({index.GetFilter()}) AND {LiveRows}");
         }
     }
 

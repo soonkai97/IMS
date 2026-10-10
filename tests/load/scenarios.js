@@ -1,8 +1,8 @@
-// Shared helpers for the IMS k6 load tests (see tests/load/README section in docs/dba/load-test.md).
+// Shared helpers for the IMS k6 load tests (how to run them: tests/load/README.md).
 //
 // Environment (all optional):
-//   BASE_URL      default http://localhost:5120
-//   ADMIN_PASSWORD / DEMO_PASSWORD   dev seed passwords from src/Ims.Api/appsettings.Development.json
+//   BASE_URL      default http://localhost:5109
+//   ADMIN_PASSWORD / DEMO_PASSWORD   default: Seed:AdminPassword / Seed:DemoPassword of src/Ims.Api/appsettings.Development.json
 //   OUT_DIR       where handleSummary writes <scenario>.json (default tests/load/results, git-ignored)
 //   WAREHOUSES    number of warehouses to spread writes over (default 5, matching the 1M/2M seed tiers)
 //   HOT_PRODUCTS  size of the hot product set for the hot variants (default 5)
@@ -14,9 +14,10 @@ import http from 'k6/http';
 import { check, fail } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
-export const BASE = __ENV.BASE_URL || 'http://localhost:5120';
-const ADMIN_PW = __ENV.ADMIN_PASSWORD || 'Dev-Admin#2026';
-const DEMO_PW = __ENV.DEMO_PASSWORD || 'Dev-Demo#2026';
+export const BASE = __ENV.BASE_URL || 'http://localhost:5109';
+const SEED = JSON.parse(open('../../src/Ims.Api/appsettings.Development.json')).Seed;   // open() runs in the init context, path is relative to this file
+const ADMIN_PW = __ENV.ADMIN_PASSWORD || SEED.AdminPassword;
+const DEMO_PW = __ENV.DEMO_PASSWORD || SEED.DemoPassword;
 const WAREHOUSES = parseInt(__ENV.WAREHOUSES || '5');
 const HOT_N = parseInt(__ENV.HOT_PRODUCTS || '5');
 
@@ -63,6 +64,13 @@ export function setupData() {
     clerk: login('clerk', DEMO_PW),
   };
   // product ids: SKU-00001 is the hottest product of the seed; ids are sequential after the two demo products
+  // inactive products are rejected by the business rules (400): exclude them so the load test measures the system, not validation
+  const inactive = {};
+  for (let pg = 1; pg <= 30; pg++) {
+    const r = getJson(`/api/products?active=false&pageSize=200&page=${pg}`, tokens.admin);
+    for (const it of r.items) inactive[it.id] = 1;
+    if (r.items.length < 200) break;
+  }
   const first = getJson('/api/products/lookup?code=SKU-00001', tokens.admin);
   const offset = first.id - 1;
   const hot = [];
@@ -70,7 +78,7 @@ export function setupData() {
   const stocked = {};   // per warehouse: products with plenty of stock to issue from [{id, qty, avg}]
   for (let w = 1; w <= WAREHOUSES; w++) {
     const page = getJson(`/api/stock?warehouseId=${w}&sortBy=QtyOnHand&desc=true&pageSize=300`, tokens.admin);
-    stocked[w] = page.items.filter((x) => x.qtyOnHand >= 500 && x.avgCost > 0)
+    stocked[w] = page.items.filter((x) => x.qtyOnHand >= 500 && x.avgCost > 0 && !inactive[x.productId])
       .map((x) => ({ id: x.productId, qty: x.qtyOnHand, avg: x.avgCost }));
   }
   const stockedHot = [];   // hot products that have stock in warehouse 1 (hot variant issues)
@@ -80,13 +88,15 @@ export function setupData() {
   const docs = getJson('/api/documents?pageSize=1', tokens.admin);
   const sku = getJson('/api/stock?pageSize=1', tokens.admin);
   return {
-    tokens, offset, hot, stocked, stockedHot, maxDocId: docs.items[0].id, ledgerTotal: ledger.total, docTotal: docs.total,
+    tokens, offset, hot, stocked, stockedHot, inactive, maxDocId: docs.items[0].id, ledgerTotal: ledger.total, docTotal: docs.total,
     stockTotal: sku.total, products: 50000,
   };
 }
 
 // --- request helpers ---------------------------------------------------------------------------------------------
+let dbgCount = 0;
 function track(r) {
+  if (__ENV.DEBUG && r.status >= 400 && dbgCount++ < 8) console.log(`${r.request.method} ${r.url} -> ${r.status} ${String(r.body).slice(0, 300)}`);
   if (r.status === 401) c401.add(1);
   else if (r.status === 409) c409.add(1);
   else if (r.status === 504) c504.add(1);
@@ -117,7 +127,7 @@ export function zipf(n) { return 1 + Math.floor(n * Math.pow(Math.random(), 2));
 
 // --- READ operations (weights roughly follow a stock-clerk day) ----------------------------------------------------
 export function readOp(d) {
-  const t = d.tokens.supervisor;
+  const t = Math.random() < 0.5 ? d.tokens.admin : d.tokens.owner;   // both see every warehouse
   const x = Math.random() * 100;
   if (x < 20) {                         // stock enquiry, various filters
     const f = rnd(7);
@@ -163,8 +173,10 @@ export function writeFlow(d, opts = {}) {
   const wh = hot ? 1 : 1 + rnd(WAREHOUSES);
   const isIssue = Math.random() < 0.5;
   const approval = isIssue && wh === 1 && Math.random() < 0.1;     // ~5 % of all flows take the approval path
-  const creator = approval ? d.tokens.staff : (Math.random() < 0.5 ? d.tokens.admin : d.tokens.supervisor);
-  const poster = d.tokens.supervisor;
+  // supervisor/staff/clerk are scoped to warehouse 1 in the demo seed; admin and owner see every warehouse
+  const creator = approval ? d.tokens.staff : (wh === 1 ? pick([d.tokens.admin, d.tokens.supervisor, d.tokens.staff]) : d.tokens.admin);
+  const poster = (wh === 1 && Math.random() < 0.5) ? d.tokens.supervisor : d.tokens.admin;
+  const approver = d.tokens.admin;
   const started = Date.now();
   const lines = [];
   const n = hot ? 1 + rnd(3) : 1 + rnd(5);
@@ -172,6 +184,7 @@ export function writeFlow(d, opts = {}) {
   if (!isIssue) {
     for (let i = 0; i < n; i++) {
       const pid = hot ? pick(d.hot) : d.offset + zipf(d.products);
+      if (d.inactive[pid]) continue;
       if (used[pid]) continue; used[pid] = 1;
       lines.push({ productId: pid, qty: 10 + rnd(90), unitCost: 5 + rnd(50) });
     }
@@ -189,6 +202,7 @@ export function writeFlow(d, opts = {}) {
       }
     }
   }
+  if (lines.length === 0) return;
   const body = { warehouseId: wh, partnerId: null, purpose: isIssue ? 1 : null, remark: 'k6 load', lines };
   const created = post(creator, isIssue ? '/api/documents/issues' : '/api/documents/receipts', body, 'doc.create');
   if (created.status !== 200) { writeFlowFail.add(1); return; }
@@ -196,7 +210,7 @@ export function writeFlow(d, opts = {}) {
   const submitted = post(creator, `/api/documents/${id}/submit`, undefined, 'doc.submit');
   if (submitted.status !== 200) { writeFlowFail.add(1); return; }
   if (submitted.json('requiresApproval') === true && submitted.json('status') !== 'Approved' && submitted.json('status') !== 2) {
-    const ap = post(d.tokens.supervisor, `/api/documents/${id}/approve`, undefined, 'doc.approve');
+    const ap = post(approver, `/api/documents/${id}/approve`, undefined, 'doc.approve');
     if (ap.status !== 200) { writeFlowFail.add(1); return; }
   }
   const posted = post(poster, `/api/documents/${id}/post`, { negativeStockOverrideReason: null }, 'doc.post');

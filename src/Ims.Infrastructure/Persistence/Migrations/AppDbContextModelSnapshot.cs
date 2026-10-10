@@ -248,6 +248,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("At");
 
+                    b.HasIndex("Actor", "Id")
+                        .IsDescending(false, true);
+
                     b.HasIndex("EntityType", "EntityId");
 
                     b.ToTable("AuditLogs");
@@ -483,6 +486,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.HasIndex("BaseUomId");
 
                     b.HasIndex("CategoryId");
+
+                    b.HasIndex("Name")
+                        .HasFilter("[REC_DELETED] = 0");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Name"), new[] { "Sku", "IsActive" });
 
                     b.HasIndex("Sku")
                         .IsUnique()
@@ -777,6 +785,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ApprovedBy");
 
+                    b.HasIndex("CreatedAt")
+                        .HasFilter("[REC_DELETED] = 0");
+
                     b.HasIndex("CreatedBy");
 
                     b.HasIndex("No")
@@ -791,7 +802,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("WarehouseId");
 
-                    b.HasIndex("Type", "Status", "WarehouseId");
+                    b.HasIndex("Status", "Type", "Id")
+                        .IsDescending(false, false, true)
+                        .HasFilter("[REC_DELETED] = 0");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Status", "Type", "Id"), new[] { "WarehouseId" });
 
                     b.ToTable("StockDocument");
                 });

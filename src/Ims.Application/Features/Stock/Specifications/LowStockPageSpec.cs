@@ -7,7 +7,7 @@ public sealed class LowStockPageSpec : Specification<StockBalance, LowStockAlert
 {
     public LowStockPageSpec(LowStockFilter f, IReadOnlyCollection<int>? scope)
     {
-        StockFilters.Apply(Query, new StockFilter(f.WarehouseId, null, null, null, LowOnly: true), scope);
+        StockFilters.Apply(Query, new StockFilter(f.WarehouseId, null, null, null, LowOnly: true), scope, search: null);
         var (page, size) = Paging.Normalize(f.Page, f.PageSize, Limits.MaxStockPageSize);
         Query.OrderByDescending(b => b.Product.SafetyStock - b.QtyOnHand).ThenBy(b => b.Product.Sku)
             .Skip((page - 1) * size).Take(size)

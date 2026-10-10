@@ -16,6 +16,7 @@ export const options = {
     },
   },
   thresholds: THRESHOLDS,
+  summaryTrendStats: ['avg', 'min', 'med', 'p(90)', 'p(95)', 'p(99)', 'max', 'count'],
 };
 export function setup() { return setupData(); }
 export default function (d) {
