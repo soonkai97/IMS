@@ -82,10 +82,17 @@ public sealed class StockScenario
 
     public async Task<DocumentDto> GetAsync(int documentId) => (await Admin.Documents.GetAsync(documentId)).Data<DocumentDto>();
 
-    /// <summary>Approves if the submitted document needs it (by the owner, who is never the submitter here, giving the override reason if there is one), then posts as the admin.</summary>
+    /// <summary>
+    /// The reviewer a submitted document is routed to (PRD 3.1) who is not its submitter: the Owner for a large document, otherwise a Supervisor,
+    /// or the Admin when the supervisor submitted it.
+    /// </summary>
+    public ApiClient ApproverFor(DocumentDto submitted) =>
+        submitted.IsLarge ? Owner : submitted.SubmittedBy == TestUsers.UsernameOf(Roles.Supervisor) ? Admin : Supervisor;
+
+    /// <summary>Approves if the submitted document needs it (by its reviewer, who is never the submitter here, giving the override reason if there is one), then posts as the admin.</summary>
     public async Task<DocumentDto> CompleteAsync(DocumentDto submitted, string? negativeStockOverrideReason = null)
     {
-        if (submitted.RequiresApproval) (await Owner.Documents.ApproveWithReasonAsync(submitted.Id, negativeStockOverrideReason)).ShouldBeOk();
+        if (submitted.RequiresApproval) (await ApproverFor(submitted).Documents.ApproveWithReasonAsync(submitted.Id, negativeStockOverrideReason)).ShouldBeOk();
         return (await Admin.Documents.PostAsync(submitted.Id)).Data<DocumentDto>();
     }
 

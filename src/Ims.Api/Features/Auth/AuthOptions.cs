@@ -4,9 +4,9 @@ namespace Ims.Api.Features.Auth;
 public sealed class AuthOptions
 {
     /// <summary>
-    /// Whether login and refresh still return the refresh token in the JSON body (deprecated) in addition to the HttpOnly cookie.
-    /// True keeps clients that read the token from JavaScript working; set <c>Auth:ReturnRefreshTokenInBody=false</c> once the web app
-    /// uses the cookie, so no script can ever read the token.
+    /// Whether login and refresh also return the refresh token in the JSON body (deprecated) in addition to the HttpOnly cookie.
+    /// Off by default: the web app uses the cookie, so no script (and no proxy log of a response body) ever sees the 7-day token.
+    /// Set <c>Auth:ReturnRefreshTokenInBody=true</c> only for an old client that still reads the token from JavaScript.
     /// </summary>
-    public bool ReturnRefreshTokenInBody { get; set; } = true;
+    public bool ReturnRefreshTokenInBody { get; set; }
 }

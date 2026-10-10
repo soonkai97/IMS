@@ -16,4 +16,12 @@ public record DocumentListItem(int Id, DocumentType Type, string No, DocumentSta
     /// <summary>Same value as <c>concurrencyToken</c> on the full document: compare it to know whether an open document has gone stale.</summary>
     [Required]
     public string ConcurrencyToken { get; init; } = DocumentVersion.Token(RowVersion);
+
+    /// <summary>
+    /// The caller may approve or reject this document right now: it is Submitted and held for approval, routed to the caller's role
+    /// (an Owner reviews only <c>isLarge</c> documents, a Supervisor the rest, an Admin all) and, unless self-approval is on, not submitted by the caller.
+    /// This is exactly the rule behind the "waiting for approval" count. A single document's <c>allowedActions</c> additionally tests the live approval rules.
+    /// </summary>
+    [Required]
+    public bool CanAct { get; init; }
 }

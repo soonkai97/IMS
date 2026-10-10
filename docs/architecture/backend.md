@@ -48,7 +48,8 @@ Handlers depend on interfaces only (`IRepository<T>`, `IReadRepository<T>`, `IUn
 Entities have private setters and factories (`Product.Create`, `StockDocument.Create`, ...). State changes happen through
 methods (`Submit`, `Approve`, `Reject`, `MarkPosted`, `MarkReversed`, `Receive`, `Issue`) so an invalid state cannot be built.
 Rules that span entities are domain services, not handler code: `PostingEngine` + `IPostingStrategy` per document type
-(open/closed: a new document type adds a strategy), `ApprovalPolicy`, `DocumentActionPolicy` (the `allowedActions` the UI shows),
+(open/closed: a new document type adds a strategy), `ApprovalPolicy` (who needs to approve and which reviewer role a document is routed to),
+`DocumentActionPolicy` (the `allowedActions` the UI shows AND the ownership guards the commands enforce, so a listed action is one the API accepts),
 `StockAvailabilityPolicy`, `CostingPolicy`. They are pure and unit-tested without a database.
 
 ## Persistence
@@ -102,7 +103,7 @@ Request logging records the final mapped status; business rejections are warning
 ## Security cross-cutting (Ims.Api)
 
 - `SecurityHeadersMiddleware` (first in the pipeline after forwarded headers/HSTS): defensive headers on every response, added at response start so errors and 429s carry them; an endpoint may override (attachments do). Values: `SecurityHeaders`.
-- Sign-in transport: the refresh token is also an `HttpOnly; Secure; SameSite=Strict; Path=/api/auth` cookie (`RefreshTokenCookie`); a request that relies on the cookie must pass `CsrfGuard` (custom header + Origin/Referer in `Cors:Origins`). `AuthController` chooses body or cookie; Application handlers do not know about cookies. Switch `Auth:ReturnRefreshTokenInBody`. See `docs/security/refresh-cookie.md`.
+- Sign-in transport: the refresh token is also an `HttpOnly; Secure; SameSite=Strict; Path=/api/auth` cookie (`RefreshTokenCookie`); a request that relies on the cookie must pass `CsrfGuard` (custom header + Origin/Referer in `Cors:Origins`). `AuthController` chooses body or cookie; Application handlers do not know about cookies. The deprecated body delivery is off by default (`Auth:ReturnRefreshTokenInBody=false`); the switch stays for a rollback. See `docs/security/refresh-cookie.md`.
 - Ports for pluggable security adapters live in Application and get a safe default in Infrastructure (`IUploadScanner` / `NoOpUploadScanner`).
 - Static web hosting headers (CSP etc.) are a proxy concern: `docs/security/web-headers.md`. Runtime scan: `docs/security/dast.md`.
 

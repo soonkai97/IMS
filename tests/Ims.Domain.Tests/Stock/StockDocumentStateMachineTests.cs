@@ -209,7 +209,7 @@ public class StockDocumentStateMachineTests
     {
         var doc = SubmittedOverride();
 
-        doc.Reject("fix the qty", Approver, Later);
+        doc.Reject("fix the qty", Approver, allowSelfApproval: false, Later);
 
         Assert.Null(doc.NegativeStockOverrideReason);
     }
@@ -220,7 +220,7 @@ public class StockDocumentStateMachineTests
     {
         var doc = InStatus(DocumentStatus.Submitted);
 
-        doc.Reject("price looks wrong", Approver, Later);
+        doc.Reject("price looks wrong", Approver, allowSelfApproval: false, Later);
 
         Assert.Equal(DocumentStatus.Draft, doc.Status);
         Assert.Equal("price looks wrong", doc.RejectionReason);
@@ -236,7 +236,7 @@ public class StockDocumentStateMachineTests
     {
         var doc = InStatus(DocumentStatus.Submitted);
 
-        var ex = Assert.Throws<DomainException>(() => doc.Reject(reason!, Approver, Later));
+        var ex = Assert.Throws<DomainException>(() => doc.Reject(reason!, Approver, allowSelfApproval: false, Later));
 
         Assert.Equal(Messages.RejectReasonRequired, ex.Message);
         Assert.Equal(DocumentStatus.Submitted, doc.Status);
@@ -253,7 +253,7 @@ public class StockDocumentStateMachineTests
     {
         var doc = InStatus(status);
 
-        var ex = Assert.Throws<DomainException>(() => doc.Reject("no", Approver, Later));
+        var ex = Assert.Throws<DomainException>(() => doc.Reject("no", Approver, allowSelfApproval: false, Later));
 
         Assert.Equal(Messages.OnlySubmittedCanReject(status), ex.Message);
     }
@@ -262,7 +262,7 @@ public class StockDocumentStateMachineTests
     public void Resubmit_AfterReject_ClearsRejectionReasonAndAllowsEditing()
     {
         var doc = InStatus(DocumentStatus.Submitted);
-        doc.Reject("fix the qty", Approver, Later);
+        doc.Reject("fix the qty", Approver, allowSelfApproval: false, Later);
 
         doc.ReplaceLines([NewLine(NewProduct(), DocumentType.Receipt, 7m, 2m)]); // editable again
         doc.Submit(Submitter, true, Later);
@@ -276,7 +276,7 @@ public class StockDocumentStateMachineTests
     {
         var doc = InStatus(DocumentStatus.Submitted);
 
-        doc.Reject("price looks wrong", Approver, Later);
+        doc.Reject("price looks wrong", Approver, allowSelfApproval: false, Later);
 
         Assert.Equal(Approver, doc.RejectedBy);
         Assert.Equal(Later, doc.RejectedAt);
@@ -289,7 +289,7 @@ public class StockDocumentStateMachineTests
         var doc = NewReceipt(1, (NewProduct(), 5m, 2m));
         doc.Submit(Submitter, requiresApproval: true, Now, isLarge: true, requiresOverride: true);
 
-        doc.Reject("fix it", Approver, Later);
+        doc.Reject("fix it", Approver, allowSelfApproval: false, Later);
 
         Assert.False(doc.RequiresApproval);
         Assert.False(doc.IsLarge);
@@ -300,7 +300,7 @@ public class StockDocumentStateMachineTests
     public void Resubmit_AfterReject_ClearsWhoReturnedItAndNoLongerCountsAsReturned()
     {
         var doc = InStatus(DocumentStatus.Submitted);
-        doc.Reject("fix the qty", Approver, Later);
+        doc.Reject("fix the qty", Approver, allowSelfApproval: false, Later);
 
         doc.Submit(Submitter, true, Later.AddHours(1));
 

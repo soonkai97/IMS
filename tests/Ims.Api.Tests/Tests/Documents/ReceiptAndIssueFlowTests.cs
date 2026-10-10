@@ -231,9 +231,9 @@ public class ReceiptAndIssueFlowTests(ApiFixture fixture)
         (await s.Admin.Documents.SubmitAsync(missing)).ShouldBeProblem(HttpStatusCode.NotFound);
         (await s.Admin.Documents.PostAsync(missing)).ShouldBeProblem(HttpStatusCode.NotFound);
         (await s.Admin.Documents.CancelAsync(missing)).ShouldBeProblem(HttpStatusCode.NotFound);
-        (await s.Admin.Documents.ReverseAsync(missing, "x")).ShouldBeProblem(HttpStatusCode.NotFound);
+        (await s.Admin.Documents.ReverseAsync(missing, "not needed here")).ShouldBeProblem(HttpStatusCode.NotFound);
         (await s.Owner.Documents.ApproveAsync(missing)).ShouldBeProblem(HttpStatusCode.NotFound);
-        (await s.Owner.Documents.RejectAsync(missing, "x")).ShouldBeProblem(HttpStatusCode.NotFound);
+        (await s.Owner.Documents.RejectAsync(missing, "not needed here")).ShouldBeProblem(HttpStatusCode.NotFound);
     }
 
     // ---------- lists ----------

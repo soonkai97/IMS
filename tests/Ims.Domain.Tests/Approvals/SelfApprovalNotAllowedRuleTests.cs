@@ -10,7 +10,7 @@ public class SelfApprovalNotAllowedRuleTests
     [InlineData(null, 6, false, false)] // submitter unknown
     public void IsBroken_FollowsSegregationOfDuties(int? submittedBy, int approver, bool allowSelf, bool broken)
     {
-        var rule = new SelfApprovalNotAllowedRule(submittedBy, approver, allowSelf);
+        var rule = new SelfApprovalNotAllowedRule(submittedBy, approver, allowSelf, Messages.SelfApproval);
 
         Assert.Equal(broken, rule.IsBroken());
         Assert.Equal(Messages.SelfApproval, rule.Message);

@@ -25,4 +25,17 @@ public class ApprovalEvaluator(IReadRepository<ApprovalRule> rules, IReadReposit
             amount,
             ApprovalPolicy.IsLarge(active, document.Type, qty, amount));
     }
+
+    public async Task<string?> ReviewRefusalAsync(StockDocument document, CancellationToken ct) =>
+        await ReviewRefusalAsync(document.Type, document.IsLarge, document.TotalQty, (await AssessAsync(document, ct)).Amount, ct);
+
+    public async Task<string?> ReviewRefusalAsync(DocumentType type, bool isLarge, decimal totalQty, decimal totalAmount, CancellationToken ct)
+    {
+        // Routing first: the Owner reviews only large documents, a Supervisor only the rest (PRD 3.1).
+        if (!ApprovalPolicy.MayReview(current.Role, isLarge))
+            return current.Role == Roles.Owner ? Messages.OwnerReviewsLargeOnly : Messages.AboveApprovalLimit;
+
+        var active = await rules.ListAsync(new ActiveRulesForTypeSpec(type), ct);
+        return ApprovalPolicy.CanApprove(current.Role, active, type, totalQty, totalAmount) ? null : Messages.AboveApprovalLimit;
+    }
 }

@@ -78,7 +78,7 @@ public class ReportExportTests(ApiFixture fixture)
         var product = await s.NewProductAsync();
         var posted = await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 5, 1m));
         var reversed = await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 2, 1m));
-        (await s.Admin.Documents.ReverseAsync(reversed.Id, "undo")).ShouldBeOk();
+        (await s.Admin.Documents.ReverseAsync(reversed.Id, "undo the receipt")).ShouldBeOk();
         var draft = await s.DraftReceiptAsync(s.Admin, fixture.Reference.DefaultWarehouseId, new Line(product.Id, 9, 1m));
 
         var rows = (await s.Admin.Reports.MovementsAsync(product.Id)).Data<PagedResult<MovementRow>>().Items;
@@ -109,7 +109,7 @@ public class ReportExportTests(ApiFixture fixture)
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
         var receipt = await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 6, 2m));
-        (await s.Admin.Documents.ReverseAsync(receipt.Id, "undo")).ShouldBeOk();
+        (await s.Admin.Documents.ReverseAsync(receipt.Id, "undo the receipt")).ShouldBeOk();
 
         var response = await s.Admin.Reports.LedgerExportAsync(product.Id);
 

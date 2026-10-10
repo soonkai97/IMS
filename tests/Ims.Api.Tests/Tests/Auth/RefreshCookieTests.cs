@@ -6,6 +6,8 @@ using Ims.Api.Tests.Support;
 using Ims.Application.Features.Auth;
 using Ims.Domain;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Ims.Api.Tests.Tests.Auth;
 
@@ -60,6 +62,22 @@ public class RefreshCookieTests(ApiFixture fixture)
 
         Assert.False(string.IsNullOrEmpty(body.RefreshToken));
         Assert.Equal(body.RefreshToken, SetCookie.Find(login, CookieName)!.Value);
+    }
+
+    [Fact]
+    public void The_code_default_keeps_the_refresh_token_out_of_the_response_body()
+    {
+        Assert.False(new Ims.Api.Features.Auth.AuthOptions().ReturnRefreshTokenInBody);
+    }
+
+    [Fact]
+    public void The_shipped_appsettings_keep_the_refresh_token_out_of_the_response_body()
+    {
+        // The test host forces the deprecated body delivery on for the session tests; the file an operator deploys must say off (EA-05).
+        var contentRoot = fixture.Host.Services.GetRequiredService<IWebHostEnvironment>().ContentRootPath;
+        var shipped = new ConfigurationBuilder().AddJsonFile(Path.Combine(contentRoot, "appsettings.json")).Build();
+
+        Assert.False(shipped.GetValue<bool?>("Auth:ReturnRefreshTokenInBody"));
     }
 
     [Fact]

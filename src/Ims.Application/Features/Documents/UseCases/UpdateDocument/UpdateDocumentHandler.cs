@@ -8,7 +8,8 @@ public class UpdateDocumentHandler(IRepository<StockDocument> documents, IReadRe
     public async Task<DocumentDto> HandleAsync(UpdateDocumentCommand cmd, CancellationToken ct)
     {
         var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
-        access.EnsureWarehouse(doc.WarehouseId);
+        access.EnsureDocumentInScope(doc.WarehouseId);
+        access.EnsureMayEditOrSubmit(doc);
         DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
         if (doc.WarehouseId != cmd.Data.WarehouseId) throw new ValidationException(Messages.WarehouseCannotChange);
 

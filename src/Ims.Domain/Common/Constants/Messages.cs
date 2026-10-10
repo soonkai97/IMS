@@ -19,6 +19,7 @@ public static class Messages
     public static string TooManyLines(int max) => $"A document can have at most {max} lines.";
     public const string QtyTooLarge = "Quantity is too large or has too many decimal places.";
     public const string ReasonTooLong = "The reason is too long.";
+    public static readonly string ReasonTooShort = $"Enter a reason of at least {Limits.ReasonMinLength} characters.";
 
     // ----- Users -----
     public const string UserNotFound = "User not found.";
@@ -83,6 +84,10 @@ public static class Messages
     public const string OnlyReceiptAndIssue = "Only receipts and issues are available in this version.";
     public const string RejectReasonRequired = "A rejection reason is required.";
     public const string ReverseReasonRequired = "A reversal reason is required.";
+    public const string OwnDocumentsOnly = "You can only change documents you created.";
+    public const string OwnSubmissionsOnly = "You can only cancel documents you submitted.";
+    public const string SelfRejection = "You cannot reject a document you submitted.";
+    public const string OwnerReviewsLargeOnly = "Owners review only large documents. A supervisor reviews this one.";
     public const string NeedsApprovalNotForStaff = "This document needs approval; warehouse staff can only post documents that do not.";
     public const string AboveApprovalLimit = "This document is above your approval limit. A higher role must approve it.";
     public const string NoLines = "A document needs at least one line.";

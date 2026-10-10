@@ -28,6 +28,9 @@ public sealed class TestHostFactory(TestHostSettings settings) : WebApplicationF
         builder.UseSetting("RateLimit:PerMinute", "1000000");
         builder.UseSetting("Logging:Directory", Path.Combine(Path.GetTempPath(), "ims-api-tests-logs"));
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
+        // The session tests below drive refresh and logout with the token from the (deprecated) response body. The shipped default is off;
+        // RefreshCookieTests checks that default on a host which removes this override.
+        builder.UseSetting("Auth:ReturnRefreshTokenInBody", "true");
 
         builder.ConfigureServices(services =>
         {
