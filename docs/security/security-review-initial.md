@@ -23,6 +23,19 @@ No unauthenticated data access, no privilege escalation, no cross-warehouse read
 
 Snapshot note: be-framework was editing `src/` while this review ran (the Attachments feature appeared during the review, `GetStockSummary` was rewritten, several be-architect findings were fixed). Findings are against the tree as read on 2026-10-09 around 23:00. Attachments have no integration tests yet.
 
+### Status log
+
+Updated 2026-10-10 (security hardening pass, be-framework). Only the items touched in that pass are listed here; the other findings keep the state described in their rows until their own fix is recorded.
+
+| ID | Status | What was done | Left |
+|---|---|---|---|
+| SEC-34 | **API done, web pending** | Login and refresh set the refresh token as `HttpOnly; Secure; SameSite=Strict; Path=/api/auth` cookie (`__Secure-` prefix; `__Host-` is impossible with a path scope). Refresh and logout read it. CSRF: SameSite plus required `X-Requested-With: XMLHttpRequest` plus Origin/Referer against `Cors:Origins`. Rotation unchanged. Backward compatible: body token still accepted and returned (deprecated in OpenAPI); switch `Auth:ReturnRefreshTokenInBody` (default true). Design and the migration steps for the web app: `docs/security/refresh-cookie.md`. | Web app must move to the cookie, then set `Auth__ReturnRefreshTokenInBody=false`. Strict CSP for the static host: `docs/security/web-headers.md`. Shorter refresh life for Admin/Owner not done. |
+| SEC-18 | **Done, scanner pluggable** | Images lose EXIF/GPS/XMP/IPTC/comments and any bytes after the end marker; broken images are refused; the PDF active-content check runs before storage; `IUploadScanner` hook (default `NoOpUploadScanner`, fail closed, generic 400 for a refused file). `docs/security/upload-scanning.md`. | Plug in a real AV engine (ClamAV) behind the hook; PDF metadata is kept (documented). |
+| SEC-24 | **Done** | `SecurityHeadersMiddleware` on every response (nosniff, `Referrer-Policy: no-referrer`, `Cross-Origin-Resource-Policy: same-site`, `Permissions-Policy`, `X-Frame-Options: DENY`, `default-src 'none'` CSP, `no-store` on `/api/auth/*`); endpoints may override (attachments do). Pinned by `SecurityHeadersTests`. | none |
+| SEC-21 | Partly | HSTS is now 1 year with subdomains (outside Development, HTTPS only). Header and TLS configuration for the proxy: `docs/security/web-headers.md`. | TLS termination stays a deployment duty; SQL `TrustServerCertificate` unchanged. |
+| SEC-25 | Partly | A wildcard in `Cors:Origins` stops start-up (credentials cannot be combined with `*`). | `AllowedHosts`, https-only origins outside Development. |
+| new | **Done** | Weekly authenticated ZAP API scan in CI (`.github/workflows/dast.yml`), fails on high-risk alerts only, accepted findings in `.github/zap/rules.tsv`. `docs/security/dast.md`. | First run to be triaged by security-engineer. |
+
 ## 1. Scope and method
 
 Read in full: `src/Ims.Api` (Program, Composition, Common, all controllers), `src/Ims.Application` (Auth, Users, Audit, Documents, Stock, Reports, Import, Attachments, Settings, Warehouses, Partners, Catalog validators, Common), `src/Ims.Domain` (Identity, Attachments, constants, document/product models), `src/Ims.Infrastructure` (Security, Excel, Storage, Persistence mapping, UnitOfWork, Seeder, DI), `appsettings*.json`, `Dockerfile`, `docker-compose.yml`, `.gitignore`, `.github/**`, plus the front-end token storage and service-worker config for the threat model. Existing tests were listed to avoid proposing duplicates.
@@ -153,6 +166,8 @@ API Top 10 (2023): API1 BOLA held up for documents, attachments, stock, reports 
 
 Owner: integration-test-engineer (xUnit on real SQL Server, `tests/Ims.Api.Tests`) and unit-test-engineer (architecture tests, `tests/Ims.Architecture.Tests`). [exists] marks behaviour already covered; extend rather than duplicate. Each line is given / when / then.
 
+Implemented 2026-10-10: 39 (`UploadSecurityTests`), 43 headers part (`SecurityHeadersTests`), the polyglot half of 34 (a file that only starts like an image is refused), plus new cookie/CSRF cases (`RefreshCookieTests`).
+
 **Authentication and session**
 1. Given one account with 5 wrong-password attempts sent in parallel (>= 10 concurrent requests), when the lock window is read, then the account is locked and the correct password is refused. (SEC-01)
 2. Given one valid refresh token, when 10 refresh calls with it run in parallel behind a barrier, then exactly one returns 200 and the rest 401, and exactly one new token row exists. (SEC-01; replaces the timing-dependent `TokenTests.cs:36`)
@@ -223,7 +238,7 @@ TLS and network
 - [ ] TLS 1.2+ terminates at a reverse proxy/load balancer with a managed certificate; the API port is reachable only from the proxy; HSTS (1 year, includeSubDomains) on the proxy and in the app behind it.
 - [ ] `ForwardedHeaders:Enabled=true` with explicit `KnownProxies`/networks; real client IP appears in logs and rate limits.
 - [ ] SQL Server not exposed to the internet; `Encrypt=True;TrustServerCertificate=False` with a certificate the API trusts; firewall to the API host only.
-- [ ] CSP, `frame-ancestors 'none'`, Referrer-Policy and HSTS set on the static host serving the PWA.
+- [ ] CSP, `frame-ancestors 'none'`, Referrer-Policy and HSTS set on the static host serving the PWA (copy-paste Caddy and nginx config: `docs/security/web-headers.md`).
 
 Secrets and keys
 - [ ] `Jwt:Key` (>= 32 random bytes), DB password, `Seed:AdminPassword` come from a secret store (Key Vault, Docker/Kubernetes secrets), never from the repo or image; remove the seed password after first start.

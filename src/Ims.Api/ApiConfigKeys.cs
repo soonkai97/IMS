@@ -10,4 +10,5 @@ public static class ApiConfigKeys
     public const string MigrateOnStartup = "Database:MigrateOnStartup";
     public const string ForwardedHeadersEnabled = "ForwardedHeaders:Enabled";
     public const string KnownProxies = "ForwardedHeaders:KnownProxies";
+    public const string AuthSection = "Auth";
 }

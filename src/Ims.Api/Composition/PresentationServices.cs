@@ -19,6 +19,8 @@ public static class PresentationServices
         services.AddJwtAuthentication()
                 .AddPermissionPolicies()
                 .AddCorsPolicy(cfg, env)
+                .AddAuthCookies(cfg)
+                .AddTransportSecurity()
                 .AddRateLimits(cfg)
                 .AddRequestTimeoutPolicies()
                 .AddForwardedHeaderSupport(cfg);
@@ -62,7 +64,12 @@ public static class PresentationServices
             throw new InvalidOperationException($"{ApiConfigKeys.CorsOrigins} must be configured.");
         var origins = (configured ?? ApiConfigKeys.DefaultCorsOrigin)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod()
+        // The refresh token travels in a cookie, which a cross-origin page can only send when the response allows credentials; browsers
+        // refuse that combination with a wildcard origin, so a wildcard is rejected here instead of failing on the first request.
+        if (origins.Any(origin => origin.Contains('*')))
+            throw new InvalidOperationException($"{ApiConfigKeys.CorsOrigins} must list explicit origins; wildcards are not allowed.");
+        services.AddSingleton(new AllowedOrigins(origins));
+        services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials()
             .WithExposedHeaders(HeaderNames.CorrelationId, HeaderNames.ContentDisposition)));
         return services;
     }
