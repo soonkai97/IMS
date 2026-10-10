@@ -121,6 +121,23 @@ public class ApprovalTests(ApiFixture fixture)
     }
 
     [Fact]
+    public async Task A_document_that_needs_no_override_is_approved_without_a_reason_and_ignores_one()
+    {
+        var (s, product) = await ExpensiveStockAsync();
+        var withoutBody = await SubmitBigIssueAsync(s, product);
+        var withReason = await SubmitBigIssueAsync(s, product);
+        Assert.False(withoutBody.RequiresOverride);
+
+        var plain = (await s.Supervisor.Documents.ApproveAsync(withoutBody.Id)).Data<DocumentDto>();
+        var ignored = (await s.Supervisor.Documents.ApproveWithReasonAsync(withReason.Id, "not needed here")).Data<DocumentDto>();
+
+        Assert.Equal(DocumentStatus.Approved, plain.Status);
+        Assert.Null(plain.NegativeStockOverrideReason);
+        Assert.Equal(DocumentStatus.Approved, ignored.Status);
+        Assert.Null(ignored.NegativeStockOverrideReason);
+    }
+
+    [Fact]
     public async Task A_rule_that_names_the_owner_cannot_be_approved_by_a_supervisor()
     {
         var s = await StockScenario.CreateAsync(fixture);

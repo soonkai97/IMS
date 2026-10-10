@@ -82,11 +82,11 @@ public sealed class StockScenario
 
     public async Task<DocumentDto> GetAsync(int documentId) => (await Admin.Documents.GetAsync(documentId)).Data<DocumentDto>();
 
-    /// <summary>Approves if the submitted document needs it (by the owner, who is never the submitter here), then posts as the admin.</summary>
+    /// <summary>Approves if the submitted document needs it (by the owner, who is never the submitter here, giving the override reason if there is one), then posts as the admin.</summary>
     public async Task<DocumentDto> CompleteAsync(DocumentDto submitted, string? negativeStockOverrideReason = null)
     {
-        if (submitted.RequiresApproval) (await Owner.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();
-        return (await Admin.Documents.PostAsync(submitted.Id, negativeStockOverrideReason)).Data<DocumentDto>();
+        if (submitted.RequiresApproval) (await Owner.Documents.ApproveWithReasonAsync(submitted.Id, negativeStockOverrideReason)).ShouldBeOk();
+        return (await Admin.Documents.PostAsync(submitted.Id)).Data<DocumentDto>();
     }
 
     public async Task<DocumentDto> ReceiveAsync(int warehouseId, params Line[] lines)

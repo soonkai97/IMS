@@ -105,6 +105,27 @@ check('supervisor approves', r.body.status === 'Approved', JSON.stringify(r.body
 r = await api('POST', `/api/documents/${big.id}/post`, { token: supervisor, body: {} });
 check('supervisor posts approved issue', r.body.status === 'Posted' && (await stockOf(p1.id)).qty === 350);
 
+console.log('Negative-stock override: the approver gives the reason, posting takes no body');
+const settings0 = (await api('GET', '/api/settings', { token: admin })).body;
+await api('PUT', '/api/settings', { token: admin, body: { ...settings0, allowNegativeStock: true } });
+try {
+  const p3 = await mkProduct(3);
+  r = await api('POST', '/api/documents/issues', { token: staff, body: doc(customer.id, [{ productId: p3.id, qty: 3 }]) });
+  const ovr = r.body;
+  r = await api('POST', `/api/documents/${ovr.id}/submit`, { token: staff });
+  check('short issue is submitted and flagged for override and approval', r.body.status === 'Submitted' && r.body.requiresOverride === true && r.body.requiresApproval === true, JSON.stringify(r.body));
+  r = await api('POST', `/api/documents/${ovr.id}/approve`, { token: supervisor });
+  check('approving an override without a reason is refused (400)', r.status === 400 && /reason/i.test(r.body.detail), JSON.stringify(r.body));
+  r = await api('POST', `/api/documents/${ovr.id}/approve`, { token: supervisor, body: { negativeStockOverrideReason: 'smoke override' } });
+  check('supervisor approves with the reason, which is stored', r.body.status === 'Approved' && r.body.negativeStockOverrideReason === 'smoke override', JSON.stringify(r.body));
+  r = await api('POST', `/api/documents/${ovr.id}/post`, { token: staff });
+  check('staff cannot post an approved override (403)', r.status === 403, String(r.status));
+  r = await api('POST', `/api/documents/${ovr.id}/post`, { token: supervisor });
+  check('supervisor posts it without a body, stock goes to -3', r.body.status === 'Posted' && r.body.negativeStockOverrideReason === 'smoke override' && (await stockOf(p3.id)).qty === -3, JSON.stringify(r.body));
+} finally {
+  await api('PUT', '/api/settings', { token: admin, body: settings0 });
+}
+
 console.log('Self-approval blocked');
 r = await api('POST', '/api/documents/issues', { token: supervisor, body: doc(customer.id, [{ productId: p1.id, qty: 100 }]) });
 const mine = r.body;

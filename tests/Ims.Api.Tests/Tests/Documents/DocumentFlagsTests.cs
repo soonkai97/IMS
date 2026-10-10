@@ -200,10 +200,17 @@ public class DocumentFlagsTests(ApiFixture fixture)
 
         Assert.False(covered.RequiresOverride);
         Assert.True(short_.RequiresOverride);
+        Assert.True(short_.RequiresApproval); // an override always goes to an approver, whatever the value rules say
+        Assert.Null(short_.NegativeStockOverrideReason);
         Assert.True((await ListItemAsync(s.Admin, short_)).RequiresOverride);
 
-        var posted = (await s.Supervisor.Documents.PostAsync(short_.Id, "Customer pickup before goods-in")).Data<DocumentDto>();
+        var approved = (await s.Supervisor.Documents.ApproveWithReasonAsync(short_.Id, "Customer pickup before goods-in")).Data<DocumentDto>();
+        Assert.True(approved.RequiresOverride);
+        Assert.Equal("Customer pickup before goods-in", approved.NegativeStockOverrideReason);
+
+        var posted = (await s.Supervisor.Documents.PostAsync(short_.Id)).Data<DocumentDto>();
         Assert.True(posted.RequiresOverride);
+        Assert.Equal("Customer pickup before goods-in", posted.NegativeStockOverrideReason);
     }
 
     [Fact]

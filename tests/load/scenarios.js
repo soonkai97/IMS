@@ -213,7 +213,7 @@ export function writeFlow(d, opts = {}) {
     const ap = post(approver, `/api/documents/${id}/approve`, undefined, 'doc.approve');
     if (ap.status !== 200) { writeFlowFail.add(1); return; }
   }
-  const posted = post(poster, `/api/documents/${id}/post`, { negativeStockOverrideReason: null }, 'doc.post');
+  const posted = post(poster, `/api/documents/${id}/post`, undefined, 'doc.post');
   if (posted.status === 200) { writeFlows.add(1); flowTime.add(Date.now() - started); } else writeFlowFail.add(1);
 }
 

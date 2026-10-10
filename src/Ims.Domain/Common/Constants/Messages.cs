@@ -90,7 +90,8 @@ public static class Messages
     public const string ApprovalNotNeeded = "This document does not need approval; it can be posted directly.";
     public const string ApprovalRequiredToPost = "This document requires approval before it can be posted.";
     public const string NegativeNeedsSupervisor = "Posting below zero stock needs a supervisor override.";
-    public const string NegativeNeedsReason = "A reason is required to post below zero stock.";
+    public const string NegativeNeedsReason = "Posting below zero stock needs an override reason, which the approver gives when approving.";
+    public const string OverrideReasonRequired = "A reason is required to approve a document that takes stock below zero.";
     public static string NotEditable(string no, DocumentStatus status) => $"Document {no} is {status} and can no longer be edited.";
     public static string OnlyDraftCanSubmit(DocumentStatus status) => $"Only a Draft can be submitted (current: {status}).";
     public static string OnlySubmittedCanApprove(DocumentStatus status) => $"Only a Submitted document can be approved (current: {status}).";

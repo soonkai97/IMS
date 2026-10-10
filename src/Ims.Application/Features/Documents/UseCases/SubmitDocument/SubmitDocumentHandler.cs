@@ -12,7 +12,7 @@ public class SubmitDocumentHandler(IRepository<StockDocument> documents, IApprov
         DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
 
         // Submission is blocked up front when stock is short, unless negative stock is allowed (OUT-02); then the shortfall is flagged
-        // so a supervisor knows an override is coming.
+        // so it is sent to an approver, who gives the override reason when approving.
         var requiresOverride = false;
         if (doc.Type == DocumentType.Issue)
         {
@@ -22,7 +22,8 @@ public class SubmitDocumentHandler(IRepository<StockDocument> documents, IApprov
 
         var assessment = await approvals.AssessAsync(doc, ct);
         var before = doc.Status;
-        doc.Submit(current.UserId, assessment.Required, clock.UtcNow, assessment.IsLarge, requiresOverride);
+        // An override always goes to an approver: the approver is the one who gives the reason, whatever the value thresholds say.
+        doc.Submit(current.UserId, assessment.Required || requiresOverride, clock.UtcNow, assessment.IsLarge, requiresOverride);
         audit.Record(AuditActions.DocumentSubmitted, AuditEntities.StockDocument, doc.No, new { Status = before },
             new { doc.Status, doc.RequiresApproval, doc.IsLarge, doc.RequiresOverride });
         await uow.SaveChangesAsync(ct);

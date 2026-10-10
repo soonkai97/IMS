@@ -28,8 +28,11 @@ public sealed class DocumentsClient(ApiClient api)
     public Task<ApiResponse> ApproveAsync(int id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/approve", null, ifMatch);
     public Task<ApiResponse> RejectAsync(int id, string reason, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/reject", new RejectRequest(reason), ifMatch);
     public Task<ApiResponse> CancelAsync(int id, string? reason = null, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/cancel", new CancelRequest(reason), ifMatch);
-    public Task<ApiResponse> PostAsync(int id, string? negativeStockOverrideReason = null, string? ifMatch = null) =>
-        Send(HttpMethod.Post, $"/api/documents/{id}/post", new PostRequest(negativeStockOverrideReason), ifMatch);
+    /// <summary>Approves with the override reason in the body (needed when the document <c>requiresOverride</c>).</summary>
+    public Task<ApiResponse> ApproveWithReasonAsync(int id, string? negativeStockOverrideReason, string? ifMatch = null) =>
+        Send(HttpMethod.Post, $"/api/documents/{id}/approve", new ApproveRequest(negativeStockOverrideReason), ifMatch);
+    /// <summary>Posting has no request body: the override reason was recorded when the document was approved.</summary>
+    public Task<ApiResponse> PostAsync(int id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/post", null, ifMatch);
     public Task<ApiResponse> ReverseAsync(int id, string reason, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/reverse", new ReverseRequest(reason), ifMatch);
 
     /// <summary>Sends a write with an optional <c>If-Match</c> header. The token is quoted like an ETag unless it already is (or is "*").</summary>

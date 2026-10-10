@@ -19,8 +19,7 @@ public class PostDocumentHandler(IRepository<StockDocument> documents, IReposito
             var statusBefore = doc.Status;
 
             var ctx = new PostingContext(doc, await settings.GetAsync(ct), current.UserId,
-                canOverrideNegative: PostingAuthority.MayOverrideNegativeStock(current.Role),
-                cmd.Data.NegativeStockOverrideReason, clock.UtcNow);
+                canOverrideNegative: PostingAuthority.MayOverrideNegativeStock(current.Role), clock.UtcNow);
             engine.Post(doc, await balances.LoadForUpdateAsync(doc, ct), ctx);
 
             ledger.AddRange(ctx.Entries);

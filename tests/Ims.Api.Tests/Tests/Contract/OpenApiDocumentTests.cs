@@ -183,6 +183,24 @@ public partial class OpenApiDocumentTests(ApiFixture fixture)
         Assert.True(content.TryGetProperty("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", out _));
     }
 
+    // ----- the override reason is given when approving, not when posting -----
+    [Fact]
+    public async Task Approve_takes_the_override_reason_and_post_takes_no_body()
+    {
+        using var doc = await DocumentAsync();
+        var paths = doc.RootElement.GetProperty("paths");
+        var schemas = doc.RootElement.GetProperty("components").GetProperty("schemas");
+
+        var approve = paths.GetProperty("/api/documents/{id}/approve").GetProperty("post");
+        var post = paths.GetProperty("/api/documents/{id}/post").GetProperty("post");
+
+        Assert.True(approve.TryGetProperty("requestBody", out var body), "approve describes its optional body");
+        Assert.False(body.TryGetProperty("required", out var required) && required.GetBoolean(), "the approve body is optional");
+        Assert.True(schemas.GetProperty("ApproveRequest").GetProperty("properties").TryGetProperty("negativeStockOverrideReason", out _));
+        Assert.False(post.TryGetProperty("requestBody", out _), "post takes no body");
+        Assert.False(schemas.TryGetProperty("PostRequest", out _), "PostRequest is gone");
+    }
+
     // ----- the contract changes of this release -----
     [Fact]
     public async Task The_new_document_fields_filters_and_endpoint_are_published()
