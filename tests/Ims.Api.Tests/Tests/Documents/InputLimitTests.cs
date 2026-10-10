@@ -92,7 +92,7 @@ public class InputLimitTests(ApiFixture fixture)
         var draft = await s.DraftReceiptAsync(s.Admin, Warehouse, new Line(product.Id, 1, 1m));
         (await s.Admin.Documents.SubmitAsync(draft.Id)).ShouldBeOk();
 
-        var reject = await s.Owner.PostAsync($"/api/documents/{draft.Id}/reject", new { reason = "" });
+        var reject = await s.Owner.Documents.RejectAsync(draft.Id, "");
         var badLine = await s.Admin.Documents.CreateReceiptAsync(new DocumentBuilder(Warehouse).WithLines(new Line(product.Id, 0, 1m)).Build());
         var badProduct = await s.Admin.Products.CreateAsync(new ProductBuilder(fixture.Reference).WithSku("").Build());
 

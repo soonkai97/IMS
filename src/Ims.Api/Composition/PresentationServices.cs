@@ -81,6 +81,8 @@ public static class PresentationServices
         services.AddRateLimiter(o =>
         {
             o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            o.OnRejected = (context, ct) => new ValueTask(ProblemResponses.WriteRateLimitedAsync(
+                context.HttpContext, context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter) ? retryAfter : null, ct));
             o.AddPolicy(RateLimitPolicies.Login, ctx => RateLimitPartition.GetFixedWindowLimiter(Caller(ctx),
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = Limits.LoginRateLimitPerMinute, Window = window }));
             o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx => RateLimitPartition.GetFixedWindowLimiter(

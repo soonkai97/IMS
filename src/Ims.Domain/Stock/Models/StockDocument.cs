@@ -84,7 +84,7 @@ public class StockDocument : Entity
         return new StockDocument
         {
             Type = type, Warehouse = warehouse, WarehouseId = warehouse.Id, Partner = partner, PartnerId = partner?.Id,
-            Purpose = type == DocumentType.Issue ? purpose ?? IssuePurpose.Sale : null,
+            Purpose = type == DocumentType.Issue ? purpose ?? throw new DomainException(Messages.PurposeRequired) : null,
             Remark = remark, CreatedBy = createdBy, CreatedAt = now
         };
     }
@@ -100,9 +100,11 @@ public class StockDocument : Entity
     {
         EnsureEditable();
         partner?.EnsureUsableFor(Type);
+        // An issue says why stock leaves (UX: required); checked before anything changes, so a refusal leaves the draft as it was.
+        var newPurpose = Type == DocumentType.Issue ? purpose ?? throw new DomainException(Messages.PurposeRequired) : (IssuePurpose?)null;
         Partner = partner;
         PartnerId = partner?.Id;
-        Purpose = Type == DocumentType.Issue ? purpose ?? IssuePurpose.Sale : null;
+        Purpose = newPurpose;
         Remark = remark;
     }
 

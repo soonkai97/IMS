@@ -113,11 +113,25 @@ public class LoginTests(ApiFixture fixture)
         var client = fixture.Anonymous(); // one fake address for every attempt
         var unknownUser = "nobody-" + Guid.NewGuid().ToString("N"); // never a real account, so nothing gets locked
         var statuses = new List<HttpStatusCode>();
+        ApiResponse? limited = null;
 
         for (var attempt = 0; attempt < 30; attempt++)
-            statuses.Add((await client.Auth.LoginAsync(unknownUser, "wrong")).Status);
+        {
+            var response = await client.Auth.LoginAsync(unknownUser, "wrong");
+            statuses.Add(response.Status);
+            if (response.Status == HttpStatusCode.TooManyRequests) limited ??= response;
+        }
 
         Assert.Contains(HttpStatusCode.TooManyRequests, statuses);
         Assert.Equal(HttpStatusCode.Unauthorized, statuses[0]);
+
+        // The answer says how long to wait (EA-24), in the header and in the body.
+        var problem = limited!.ShouldBeProblem(HttpStatusCode.TooManyRequests, "Too many requests");
+        Assert.StartsWith("Too many requests. Try again in", problem.Detail);
+        var seconds = int.Parse(limited.Header("Retry-After")!);
+        Assert.InRange(seconds, 1, 60);
+        var body = limited.Json().RootElement;
+        Assert.Equal("rate_limited", body.GetProperty("code").GetString());
+        Assert.Equal(seconds, body.GetProperty("retryAfterSeconds").GetInt32());
     }
 }

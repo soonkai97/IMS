@@ -6,7 +6,7 @@ public class WarehouseSaveRequestValidator : AbstractValidator<WarehouseSaveRequ
 {
     public WarehouseSaveRequestValidator()
     {
-        RuleFor(x => x.Code).NotEmpty().MaximumLength(Limits.CodeMaxLength).WithMessage(Messages.WarehouseCodeRequired);
-        RuleFor(x => x.Name).NotEmpty().MaximumLength(Limits.ShortNameMaxLength).WithMessage(Messages.WarehouseNameRequired);
+        RuleFor(x => x.Code).NotEmpty().WithMessage(Messages.WarehouseCodeRequired).MaximumLength(Limits.CodeMaxLength).WithMessage(Messages.TextTooLong("Warehouse code", Limits.CodeMaxLength));
+        RuleFor(x => x.Name).NotEmpty().WithMessage(Messages.WarehouseNameRequired).MaximumLength(Limits.ShortNameMaxLength).WithMessage(Messages.TextTooLong("Warehouse name", Limits.ShortNameMaxLength));
     }
 }

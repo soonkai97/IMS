@@ -15,10 +15,14 @@ const check = (name, ok, detail = '') => {
   else { failures.push(name); console.log(`  FAIL ${name} ${detail}`); }
 };
 
+// Every document command must carry the document version in If-Match (428 otherwise); the smoke test uses the explicit "any version" wildcard.
+const DOCUMENT_COMMAND = /^\/api\/documents\/\d+(\/(submit|approve|reject|cancel|post|reverse))?$/;
+const needsIfMatch = (method, path) => DOCUMENT_COMMAND.test(path) && (method === 'PUT' || (method === 'POST' && path.split('/').length === 5));
+
 async function api(method, path, { token, body, headers } = {}) {
   const res = await fetch(BASE + path, {
     method,
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(headers ?? {}) },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(needsIfMatch(method, path) ? { 'If-Match': '*' } : {}), ...(headers ?? {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await res.text();
@@ -48,7 +52,7 @@ const stockOf = async (pid) => {
   const r = (await api('GET', `/api/stock?productId=${pid}`, { token: admin })).body.items[0];
   return r ? { qty: Number(r.qtyOnHand), cost: Number(r.avgCost) } : { qty: 0, cost: 0 };
 };
-const doc = (partnerId, lines) => ({ warehouseId: wh.id, partnerId, lines });
+const doc = (partnerId, lines) => ({ warehouseId: wh.id, partnerId, purpose: 'Sale', lines }); // an issue needs a purpose; a receipt ignores it
 
 console.log('Receive -> issue');
 let r = await api('POST', '/api/documents/receipts', { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 1000, unitCost: 10 }, { productId: p2.id, qty: 1000, unitCost: 2 }]) });

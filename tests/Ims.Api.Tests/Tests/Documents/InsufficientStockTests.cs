@@ -115,6 +115,23 @@ public class InsufficientStockTests(ApiFixture fixture)
     }
 
     [Fact]
+    public async Task A_stock_conflict_names_the_product_the_warehouse_and_the_unit_instead_of_ids()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var warehouse = await s.NewWarehouseAsync();
+        var product = await s.NewProductAsync();
+        await s.ReceiveAsync(warehouse.Id, new Line(product.Id, 3, 1m));
+        var draft = await s.DraftIssueAsync(s.Admin, warehouse.Id, new Line(product.Id, 10));
+
+        var submit = await s.Admin.Documents.SubmitAsync(draft.Id);
+
+        var problem = submit.ShouldBeProblem(HttpStatusCode.Conflict, "Insufficient stock");
+        Assert.Equal($"Not enough stock for {product.Sku} in {warehouse.Name}: 3 PCS available, 10 needed.", problem.Detail);
+        Assert.Equal(product.Id, problem.ProductId); // the machine-readable members are unchanged
+        Assert.Equal((3m, 10m), (problem.Available, problem.Requested));
+    }
+
+    [Fact]
     public async Task A_blocked_reversal_names_every_product_that_would_go_negative_and_says_it_is_a_reversal_not_a_post()
     {
         var s = await StockScenario.CreateAsync(fixture);

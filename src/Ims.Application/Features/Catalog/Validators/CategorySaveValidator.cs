@@ -4,5 +4,6 @@ namespace Ims.Application.Features.Catalog;
 
 public class CategorySaveValidator : AbstractValidator<CategorySaveRequest>
 {
-    public CategorySaveValidator() => RuleFor(x => x.Name).NotEmpty().MaximumLength(Limits.ShortNameMaxLength).WithMessage(Messages.CategoryNameRequired);
+    public CategorySaveValidator() => RuleFor(x => x.Name).NotEmpty().WithMessage(Messages.CategoryNameRequired)
+        .MaximumLength(Limits.ShortNameMaxLength).WithMessage(Messages.TextTooLong("Category name", Limits.ShortNameMaxLength));
 }

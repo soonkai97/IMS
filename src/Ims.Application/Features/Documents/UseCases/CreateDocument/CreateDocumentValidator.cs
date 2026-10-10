@@ -9,5 +9,6 @@ public class CreateDocumentValidator : AbstractValidator<CreateDocumentCommand>
         RuleFor(x => x.Type).Must(t => t is DocumentType.Receipt or DocumentType.Issue)
             .WithMessage(Messages.OnlyReceiptAndIssue);
         RuleFor(x => x.Data).SetValidator(new DocumentSaveRequestValidator());
+        RuleFor(x => x.Data.Purpose).NotNull().When(x => x.Type == DocumentType.Issue).WithMessage(Messages.PurposeRequired);
     }
 }

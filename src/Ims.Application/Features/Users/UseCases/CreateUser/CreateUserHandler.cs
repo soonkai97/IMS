@@ -1,13 +1,14 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Users;
 
-public class CreateUserHandler(IRepository<User> users, IPasswordHasher hasher, IUnitOfWork uow, IAuditTrail audit)
+public class CreateUserHandler(IRepository<User> users, IReadRepository<Warehouse> warehouses, IPasswordHasher hasher, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<CreateUserCommand, UserDto>
 {
     public async Task<UserDto> HandleAsync(CreateUserCommand cmd, CancellationToken ct)
     {
         var r = cmd.Data;
         if (await users.AnyAsync(new UserTakenSpec(r.Username, r.Email), ct)) throw new ConflictException(Messages.UserExists);
+        await UserWarehouses.EnsureExistAsync(warehouses, r.WarehouseIds, ct);
 
         var user = User.Create(r.Username, r.Email, r.DisplayName, r.Role, hasher.Hash(r.Password!), r.WarehouseIds, r.IsActive);
         users.Add(user);

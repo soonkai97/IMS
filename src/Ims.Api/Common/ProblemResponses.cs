@@ -39,6 +39,23 @@ public static class ProblemResponses
         return new ObjectResult(pd) { StatusCode = StatusCodes.Status400BadRequest, ContentTypes = { ProblemJson } };
     }
 
+    /// <summary>
+    /// A request refused by the rate limiter: 429 with a readable sentence, the <c>Retry-After</c> header and <c>retryAfterSeconds</c>, so a client can
+    /// say how long to wait instead of "the request could not be processed".
+    /// </summary>
+    public static async Task WriteRateLimitedAsync(HttpContext http, TimeSpan? retryAfter, CancellationToken ct)
+    {
+        var seconds = (int)Math.Max(1, Math.Ceiling((retryAfter ?? TimeSpan.FromMinutes(Limits.RateLimitWindowMinutes)).TotalSeconds));
+        http.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        http.Response.Headers[Microsoft.Net.Http.Headers.HeaderNames.RetryAfter] = seconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        StampCorrelationId(http);
+        var pd = Create(http, StatusCodes.Status429TooManyRequests, Messages.TooManyRequestsTitle, Messages.TooManyRequests(seconds));
+        pd.Extensions[ProblemExtensions.Code] = ProblemCodes.RateLimited;
+        pd.Extensions[ProblemExtensions.RetryAfterSeconds] = seconds;
+        http.Response.ContentType = ProblemJson;
+        await http.Response.WriteAsJsonAsync(pd, (System.Text.Json.JsonSerializerOptions?)null, ProblemJson, ct);
+    }
+
     /// <summary>401, 403, 404 (no route) and similar statuses that leave the body empty get a ProblemDetails body.</summary>
     public static async Task WriteStatusCodeAsync(StatusCodeContext context)
     {
