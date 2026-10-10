@@ -19,7 +19,8 @@ import {
 import { MAX_DOCUMENT_LINES } from '@ims/models';
 import { Observable } from 'rxjs';
 
-const MAX_REMARK_LENGTH = 1000;
+/** The API refuses a longer remark; the form must not offer more than it accepts (EA-18). */
+const MAX_REMARK_LENGTH = 500;
 const QUANTITY_STEP = 1;
 const MIN_STEPPED_QUANTITY = 0.001;
 

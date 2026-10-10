@@ -5,6 +5,7 @@ import {
   OnInit,
   computed,
   effect,
+  untracked,
   inject,
   input
 } from '@angular/core';
@@ -125,6 +126,21 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
       .flatMap(([, messages]) => messages);
   });
 
+  /**
+   * Opens the product the URL names, and again when the same page is reused for another one (browser Back/Forward
+   * between two products): reading the id once left the form on the previous product (EA-20).
+   */
+  private readonly openProduct = effect(() => {
+    const id = this.$productId();
+    untracked(() => {
+      if (id === undefined) {
+        this.store.detail.reset();
+        return;
+      }
+      this.store.detail.load(id);
+    });
+  });
+
   private readonly populateForm = effect(() => {
     const product = this.store.detail.$data();
     if (product && product.id === this.$productId()) {
@@ -141,12 +157,6 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
 
   ngOnInit(): void {
     this.catalog.ensureLoaded();
-    const id = this.$productId();
-    if (id === undefined) {
-      this.store.detail.reset();
-      return;
-    }
-    this.store.detail.load(id);
   }
 
   hasUnsavedChanges(): boolean {

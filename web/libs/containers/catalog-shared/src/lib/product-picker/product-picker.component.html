@@ -20,7 +20,12 @@
   <ul class="product-picker-list">
     @for (item of $results(); track item.product.id) {
       <li>
-        <button type="button" class="product-picker-item" (click)="onPick(item)">
+        <button
+          type="button"
+          class="product-picker-item"
+          [attr.aria-label]="item.product.sku + ', ' + item.product.name"
+          (click)="onPick(item)"
+        >
           <span class="product-picker-sku">{{ item.product.sku }}</span>
           <span class="product-picker-name">{{ item.product.name }}</span>
           @if ($showAvailable()) {

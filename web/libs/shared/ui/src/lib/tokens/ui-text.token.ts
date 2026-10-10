@@ -19,6 +19,8 @@ export interface UiText {
   readonly selectPlaceholder: string;
   readonly dismiss: string;
   readonly errorTitle: string;
+  /** "Enter a reason of at least {length} characters." for a reason box that is empty or too short. */
+  reasonTooShort(length: number): string;
   pageStatus(page: number, pages: number): string;
   rangeStatus(from: number, to: number, total: number): string;
   validationMessage(key: string, error: unknown): string;
@@ -39,6 +41,7 @@ const DEFAULT_UI_TEXT: UiText = {
   selectPlaceholder: 'Select...',
   dismiss: 'Dismiss',
   errorTitle: 'Something went wrong',
+  reasonTooShort: length => `Enter a reason of at least ${length} characters.`,
   pageStatus: (page, pages) => `Page ${page} of ${pages}`,
   rangeStatus: (from, to, total) => `${from}-${to} of ${total}`,
   validationMessage: (key, error) => (typeof error === 'string' ? error : `Invalid value (${key}).`)

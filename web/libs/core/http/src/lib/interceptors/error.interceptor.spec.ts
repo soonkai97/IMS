@@ -54,8 +54,17 @@ describe('errorInterceptor', () => {
     expect(toast.$toasts()[0].message).toBe('The database is not available.');
   });
 
-  it('EA-24: too many requests gets a sentence with the wait, not "could not be processed"', async () => {
-    await failWith(429, problem(429, { detail: 'The request could not be processed.' }));
+  it('EA-24: too many requests shows the API sentence with the wait', async () => {
+    await failWith(
+      429,
+      problem(429, { detail: 'Too many requests. Try again in 12 seconds.', code: 'rate_limited' })
+    );
+
+    expect(toast.$toasts()[0].message).toBe('Too many requests. Try again in 12 seconds.');
+  });
+
+  it('EA-24: a 429 without a sentence (a proxy) gets ours', async () => {
+    await failWith(429, null);
 
     expect(toast.$toasts()[0].message).toBe('Too many attempts. Wait a minute and try again.');
   });

@@ -25,11 +25,14 @@
   <ng-template appCell="short" let-row>
     <span class="low-stock-page-short">{{ row.shortfall | appQty }}</span>
   </ng-template>
-  <ng-template appCell="actions">
+  <ng-template appCell="actions" let-row>
     @if ($canCreate()) {
-      <a class="ui-link-button low-stock-page-create" routerLink="/receipts/new">{{
-        'receipts.new' | t
-      }}</a>
+      <a
+        class="ui-link-button low-stock-page-create"
+        routerLink="/receipts/new"
+        [queryParams]="receiptParams(row)"
+        >{{ 'receipts.new' | t }}</a
+      >
     }
   </ng-template>
   <app-empty-state empty icon="check" [message]="'lowStock.empty' | t" />

@@ -39,15 +39,18 @@
   </app-button>
 }
 @if ($canSave()) {
-  <app-button [disabled]="$inactive()" (clicked)="onTrigger(action.Edit)">{{
-    'doc.action.saveDraft' | t
-  }}</app-button>
+  <app-button
+    [disabled]="$inactive()"
+    [loading]="$busyAction() === action.Edit"
+    (clicked)="onTrigger(action.Edit)"
+    >{{ 'doc.action.saveDraft' | t }}</app-button
+  >
 }
 @if ($canSubmit()) {
   <app-button
     variant="primary"
     [disabled]="$submitDisabled() || $locked()"
-    [loading]="$busy()"
+    [loading]="$busyAction() === action.Submit"
     (clicked)="onTrigger(action.Submit)"
   >
     {{ $submitLabelKey() | t }}
@@ -57,7 +60,7 @@
   <app-button
     variant="primary"
     [disabled]="$locked()"
-    [loading]="$busy()"
+    [loading]="$busyAction() === action.Approve"
     (clicked)="onTrigger(action.Approve)"
   >
     <app-icon name="check" />
@@ -65,17 +68,20 @@
   </app-button>
 }
 @if ($showBlockedApprove()) {
-  <app-button variant="primary" [disabled]="true">
+  <!-- aria-disabled, not disabled: Tab reaches it and the reason is read out with it (EA-22). -->
+  <app-button variant="primary" [ariaDisabled]="true" describedBy="document-actions-self-approval">
     <app-icon name="check" />
     {{ 'doc.action.approve' | t }}
   </app-button>
-  <p class="document-actions-hint" role="note">{{ 'doc.selfApproval' | t }}</p>
+  <p id="document-actions-self-approval" class="document-actions-hint">
+    {{ 'doc.selfApproval' | t }}
+  </p>
 }
 @if ($canPostDocument()) {
   <app-button
     variant="primary"
     [disabled]="$locked()"
-    [loading]="$busy()"
+    [loading]="$busyAction() === action.Post"
     (clicked)="onTrigger(action.Post)"
   >
     <app-icon name="check-double" />

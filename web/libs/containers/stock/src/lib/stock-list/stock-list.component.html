@@ -53,6 +53,9 @@
   <ng-template appCell="status" let-row>
     @if (row.isLow) {
       <app-status-chip flag="warning" [label]="'stock.low' | t" />
+      <span class="stock-list-page-safety">{{
+        'stock.safety' | t: { qty: (row.safetyStock | appQty) }
+      }}</span>
     }
   </ng-template>
   <app-empty-state

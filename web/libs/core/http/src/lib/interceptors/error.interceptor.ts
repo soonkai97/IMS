@@ -36,6 +36,10 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   const i18n = inject(I18nService);
 
   const messageOf = (error: ApiError, response: HttpErrorResponse): string => {
+    // The API's own sentence names the wait ("Try again in 12 seconds."); ours is for a proxy that sends none (EA-24).
+    if (response.status === HTTP_STATUS.TooManyRequests && error.detail.length === 0) {
+      return i18n.t('error.tooManyRequests');
+    }
     if (response.statusText === TIMEOUT_STATUS_TEXT) {
       return i18n.t('error.timeout');
     }
@@ -45,9 +49,6 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
     // 502/504 from a gateway have no ProblemDetails; a 503 that carries the API's own sentence keeps it (EA-15).
     if (GATEWAY_STATUSES.includes(response.status) && error.detail.length === 0) {
       return i18n.t('error.network');
-    }
-    if (response.status === HTTP_STATUS.TooManyRequests) {
-      return i18n.t('error.tooManyRequests');
     }
     if (error.kind === API_ERROR_KIND.Forbidden) {
       return i18n.t('error.forbidden');

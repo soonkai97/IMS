@@ -2,6 +2,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  Injector,
+  afterNextRender,
   computed,
   inject,
   input,
@@ -20,6 +23,8 @@ import {
   UiFormFieldComponent,
   UiInputComponent
 } from '@ims/ui';
+
+const ACCOUNT_LOCKED_CODE = 'account_locked';
 
 /** Only same-app paths are accepted as a return URL, so a crafted link cannot send the user to another site. */
 function safeReturnUrl(url: string | undefined): string {
@@ -47,7 +52,9 @@ function safeReturnUrl(url: string | undefined): string {
 export class LoginPageComponent {
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly i18n = inject(I18nService);
+  private readonly injector = inject(Injector);
   private readonly router = inject(Router);
 
   $returnUrl = input<string | undefined>(undefined, { alias: 'returnUrl' });
@@ -74,8 +81,12 @@ export class LoginPageComponent {
     if (!error) {
       return undefined;
     }
+    // The API's sentence for a locked account ("Try again in N minutes.") and for the rate limit names the wait.
+    if (error.extensions['code'] === ACCOUNT_LOCKED_CODE && error.detail.length > 0) {
+      return error.detail;
+    }
     if (error.status === HTTP_STATUS.TooManyRequests) {
-      return this.i18n.t('error.tooManyRequests');
+      return error.detail.length > 0 ? error.detail : this.i18n.t('error.tooManyRequests');
     }
     return error.kind === API_ERROR_KIND.Unauthorized
       ? this.i18n.t('login.error.invalid')
@@ -86,6 +97,11 @@ export class LoginPageComponent {
   onSubmit(): void {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
+      // The focus goes to the first field with an error, so a keyboard user does not have to look for it (EA-06).
+      afterNextRender(
+        () => this.host.nativeElement.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
+        { injector: this.injector }
+      );
       return;
     }
     this.auth.login

@@ -106,17 +106,24 @@
         </app-form-field>
       </div>
       @if ($isIssue()) {
+        @let purposeInvalid =
+          view.header.controls.purpose.touched && view.header.controls.purpose.invalid;
         <app-radio-group
           formControlName="purpose"
           [legend]="'doc.purpose' | t"
           [options]="$purposeOptions()"
+          [required]="true"
+          [invalid]="purposeInvalid"
+          errorId="document-purpose-error"
         />
-        @if (view.header.controls.purpose.touched && view.header.controls.purpose.invalid) {
-          <p class="document-editor-error" role="alert">{{ 'validation.required' | t }}</p>
+        @if (purposeInvalid) {
+          <p id="document-purpose-error" class="document-editor-error" role="alert">
+            {{ 'doc.purposeRequired' | t }}
+          </p>
         }
       }
       <app-form-field [label]="'doc.remark' | t" [control]="view.header.controls.remark">
-        <app-textarea formControlName="remark" [rows]="2" [maxLength]="1000" />
+        <app-textarea formControlName="remark" [rows]="2" [maxLength]="500" />
       </app-form-field>
     </form>
   } @else if ($document(); as document) {
@@ -143,6 +150,15 @@
         <dt>{{ 'doc.createdBy' | t }}</dt>
         <dd>{{ document.createdByName }} · {{ document.createdAt | appDate }}</dd>
       </div>
+      @if (document.submittedAt) {
+        <div>
+          <dt>{{ 'approvals.submittedBy' | t }}</dt>
+          <dd>
+            {{ document.submittedByName ?? document.submittedBy }} ·
+            {{ document.submittedAt | appDate }}
+          </dd>
+        </div>
+      }
     </dl>
   }
 
@@ -276,6 +292,7 @@
         [selfApprovalBlocked]="$selfApprovalBlocked()"
         [submitDisabled]="$linesBlocked()"
         [locked]="$isStale()"
+        [busyAction]="$busyAction()"
         (triggered)="onAction($event)"
       />
     </footer>

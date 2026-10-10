@@ -51,7 +51,8 @@ export type LineGroup = FormGroup<{
 export type LinesArray = FormArray<LineGroup>;
 
 export const MIN_LINE_QTY = 0.001;
-const DEFAULT_QTY = 1;
+/** A line starts at one; a worker who never changed it has nothing to lose by removing it. */
+export const DEFAULT_QTY = 1;
 const BASE_FACTOR = 1;
 
 /** The API stores at most 4 decimals; reject more instead of letting the server do it. */

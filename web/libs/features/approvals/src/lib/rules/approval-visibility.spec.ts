@@ -24,6 +24,11 @@ describe('isWaitingForReviewer', () => {
     expect(isWaitingForReviewer(small, reviewer(ROLE.Admin, { role: undefined }))).toBe(false);
   });
 
+  it('trusts canAct from the API over the role rules', () => {
+    expect(isWaitingForReviewer({ ...large, canAct: false }, reviewer(ROLE.Owner))).toBe(false);
+    expect(isWaitingForReviewer({ ...large, canAct: true }, reviewer(ROLE.Supervisor))).toBe(true);
+  });
+
   it('hides own submissions unless self-approval is on', () => {
     const own: HeldDocument = { isLarge: false, submittedById: 9 };
 

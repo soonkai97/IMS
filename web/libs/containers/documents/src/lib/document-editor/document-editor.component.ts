@@ -39,9 +39,10 @@ import { PermissionService } from '@ims/core/identity';
 import { HasUnsavedChanges, PageTitleService } from '@ims/core/navigation';
 import { ConfirmService, ToastService } from '@ims/core/notification';
 import { SystemSettingsStore } from '@ims/core/settings';
-import { CatalogStore } from '@ims/features/catalog';
+import { CatalogStore, ProductsStore } from '@ims/features/catalog';
 import {
   DOCUMENT_ROUTE,
+  DEFAULT_QTY,
   DocumentsStore,
   LineGroup,
   NEW_DOCUMENT_ID,
@@ -95,6 +96,8 @@ const TAB_ITEMS = 'items';
 const TAB_HISTORY = 'history';
 const TAB_LEDGER = 'ledger';
 const LEDGER_PAGE_SIZE = 100;
+/** How many lines the Post dialog names; the rest is "and N more". */
+const POST_SUMMARY_LINES = 3;
 
 interface StatusHint {
   readonly key: MessageKey;
@@ -168,6 +171,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   private readonly pageTitle = inject(PageTitleService);
   private readonly partners = inject(PartnersStore);
   private readonly permissions = inject(PermissionService);
+  private readonly products = inject(ProductsStore);
   private readonly router = inject(Router);
   private readonly settings = inject(SystemSettingsStore);
   private readonly stock = inject(StockStore);
@@ -179,6 +183,9 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   $type = input.required<DocumentType>({ alias: 'type' });
   /** Route parameter; absent on /new. */
   $id = input<string | undefined>(undefined, { alias: 'id' });
+  /** Query parameters of a link that starts a document for a product (Low stock: Create receipt). */
+  $sku = input<string | undefined>(undefined, { alias: 'sku' });
+  $warehouseParam = input<string | undefined>(undefined, { alias: 'warehouseId' });
 
   /** Id of the document this editor just created: the store already holds it, so the route change needs no reload. */
   private justCreatedId: number | undefined;
@@ -227,6 +234,9 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     () => this.documents.detail.$operation().error?.kind === API_ERROR_KIND.NotFound
   );
   readonly $canPost = computed(() => this.permissions.has(PERMISSION.DocumentPost));
+  /** The button that was tapped shows the spinner, not whichever button is primary (NV-21). */
+  private readonly $activeAction = signal<DocumentAction | undefined>(undefined);
+  readonly $busyAction = computed(() => (this.$isBusy() ? this.$activeAction() : undefined));
   readonly $isBusy = computed(
     () =>
       this.documents.save.$isRunning() ||
@@ -518,6 +528,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       if (id === undefined) {
         this.documents.detail.reset();
         this.view.startNew(null);
+        this.prefillFromLink();
       } else if (id === this.justCreatedId) {
         this.justCreatedId = undefined;
       } else {
@@ -650,8 +661,29 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     this.view.step(event.group, event.delta);
   }
 
+  /** A line with typed work (another quantity, a cost, a remark) asks first: there is no Undo (NV-18). */
   onRemoveLine(index: number): void {
-    this.view.remove(index);
+    const line = this.$values()[index];
+    const hasTypedWork =
+      line !== undefined &&
+      (line.qty !== DEFAULT_QTY || line.unitCost !== null || line.remark.trim().length > 0);
+    if (!hasTypedWork) {
+      this.view.remove(index);
+      return;
+    }
+    this.confirm
+      .ask({
+        heading: this.i18n.t('dialog.removeLine.title', { sku: line.sku }),
+        body: this.i18n.t('dialog.removeLine.body'),
+        confirmLabel: this.i18n.t('common.remove'),
+        cancelLabel: this.i18n.t('dialog.removeLine.keep'),
+        destructive: true
+      })
+      .pipe(
+        tap(() => this.view.remove(index)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe();
   }
 
   onSetToAvailable(group: LineGroup): void {
@@ -670,6 +702,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   }
 
   onAction(action: DocumentAction): void {
+    this.$activeAction.set(action);
     switch (action) {
       case DOCUMENT_ACTION.Edit:
         this.saveDraft();
@@ -710,6 +743,63 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     // An older API named one product through the insufficient-stock members.
     const legacy = this.toStockConflict(error);
     return legacy ? [`${legacy.sku} (${legacy.available - legacy.requested} ${legacy.uom})`] : [];
+  }
+
+  /** From Low stock: the warehouse and the product are chosen already and the cursor lands on the quantity (NV-13). */
+  private prefillFromLink(): void {
+    const warehouseId = Number(this.$warehouseParam());
+    if (Number.isInteger(warehouseId) && warehouseId > 0) {
+      this.view.header.controls.warehouseId.setValue(warehouseId);
+    }
+    const sku = this.$sku();
+    if (!sku) {
+      return;
+    }
+    this.products
+      .lookup(sku)
+      .pipe(
+        filter(result => result.found && result.product?.isActive === true),
+        tap(result => {
+          if (result.product) {
+            this.view.addProduct(result.product, null);
+          }
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() =>
+        afterNextRender(
+          () => this.page.querySelector<HTMLElement>('app-document-line-editor input')?.focus(),
+          { injector: this.injector }
+        )
+      );
+  }
+
+  /** The last chance to catch a wrong quantity: say what is being posted, not just how many lines (NV-19). */
+  private postSummary(document: DocumentDto): string {
+    const items = document.lines
+      .slice(0, POST_SUMMARY_LINES)
+      .map(line => `${line.sku} x ${line.qty} ${line.uomCode}`)
+      .join(', ');
+    const more = document.lines.length - POST_SUMMARY_LINES;
+    return more > 0
+      ? this.i18n.t('dialog.post.summaryMore', { items, count: more })
+      : this.i18n.t('dialog.post.summary', { items });
+  }
+
+  /** Where each short line ends up, so the approver sees the cost of the override ("QA-004 will go to -40"). */
+  private overrideBalances(document: DocumentDto): string {
+    return document.lines
+      .filter(line => line.available !== undefined && line.available !== null)
+      .map(line => ({ line, balance: (line.available ?? 0) - line.baseQty }))
+      .filter(({ balance }) => balance < 0)
+      .map(({ line, balance }) =>
+        this.i18n.t('dialog.approveOverride.line', {
+          sku: line.sku,
+          balance,
+          uom: line.uomCode
+        })
+      )
+      .join(' ');
   }
 
   /** The insufficient-stock 409 (product, available, requested), or undefined for any other error. */
@@ -765,7 +855,9 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         heading: this.i18n.t(override ? 'dialog.approveOverride.title' : 'dialog.approve.title', {
           docNo: document.no
         }),
-        body: this.i18n.t(override ? 'dialog.approveOverride.body' : 'dialog.approve.body'),
+        body: override
+          ? `${this.i18n.t('dialog.approveOverride.body')} ${this.overrideBalances(document)}`.trim()
+          : this.i18n.t('dialog.approve.body'),
         confirmLabel: this.i18n.t('doc.action.approve'),
         cancelLabel: this.i18n.t('common.back'),
         ...(override && {
@@ -797,7 +889,9 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     this.confirm
       .ask({
         heading: this.i18n.t('dialog.reject.title', { docNo: document.no }),
-        body: this.i18n.t('dialog.reject.body', { name: document.createdBy }),
+        body: this.i18n.t('dialog.reject.body', {
+          name: document.createdByName || document.createdBy
+        }),
         confirmLabel: this.i18n.t('doc.action.reject'),
         cancelLabel: this.i18n.t('common.back'),
         destructive: true,
@@ -808,7 +902,11 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       .pipe(
         switchMap(reason => this.documents.reject.run({ ...toDocumentRef(document), reason })),
         tap(() =>
-          this.toast.success(this.i18n.t('doc.toast.returned', { name: document.createdBy }))
+          this.toast.success(
+            this.i18n.t('doc.toast.returned', {
+              name: document.createdByName || document.createdBy
+            })
+          )
         ),
         tap(() => this.afterChange(false)),
         finalize(() => this.settleFocus()),
@@ -877,12 +975,10 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     return this.confirm
       .ask({
         heading: this.i18n.t('dialog.post.title', { docNo: document.no }),
-        body: this.i18n.t(
+        body: `${this.i18n.t(
           direction === 'decrease' ? 'dialog.post.bodyDecrease' : 'dialog.post.bodyIncrease',
-          {
-            count: document.lines.length
-          }
-        ),
+          { count: document.lines.length }
+        )} ${this.postSummary(document)}`,
         confirmLabel: this.i18n.t('doc.action.post'),
         cancelLabel: this.i18n.t('common.back')
       })
@@ -921,7 +1017,26 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   private validate(): boolean {
     this.view.markAllTouched();
     this.$showLineError.set(this.$noLines());
-    return this.view.isValid();
+    const valid = this.view.isValid();
+    if (!valid) {
+      this.focusFirstInvalid();
+    }
+    return valid;
+  }
+
+  /** After a failed submit the focus goes to the first field with an error, or to Add item when there is no line (EA-06). */
+  private focusFirstInvalid(): void {
+    afterNextRender(
+      () => {
+        const invalid = this.page.querySelector<HTMLElement>(
+          'input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"], fieldset[aria-invalid="true"] input'
+        );
+        const target =
+          invalid ?? this.page.querySelector<HTMLElement>('.document-editor-lines-header button');
+        target?.focus();
+      },
+      { injector: this.injector }
+    );
   }
 
   /**
@@ -952,9 +1067,11 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         if (active && active !== this.page.body) {
           return;
         }
-        this.page
-          .querySelector<HTMLElement>('app-banner[role="alert"][tabindex], app-page-header h1')
-          ?.focus();
+        // The error first (it comes after the title in the page, so one combined selector would pick the title).
+        const target =
+          this.page.querySelector<HTMLElement>('app-banner[role="alert"][tabindex]') ??
+          this.page.querySelector<HTMLElement>('app-page-header h1');
+        target?.focus();
       },
       { injector: this.injector }
     );

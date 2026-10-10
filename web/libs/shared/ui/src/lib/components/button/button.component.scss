@@ -56,11 +56,22 @@
   cursor: pointer;
   transition: background-color duration('fast') easing('smooth');
 
-  &:hover:not(:disabled) {
+  &:hover:not(:disabled, [aria-disabled='true']) {
     background: var(--button-bg-hover);
   }
 
-  &:disabled {
-    @include disabled;
+  // Busy: keeps its colours, with the spinner.
+  &[aria-busy='true'] {
+    cursor: progress;
+    opacity: 0.85;
+  }
+
+  // A disabled button is grey with readable text, not a faded copy of the coloured one (NV-20).
+  &:disabled,
+  &[aria-disabled='true']:not([aria-busy='true']) {
+    color: color('text-muted');
+    cursor: not-allowed;
+    background: color('surface-3');
+    border-color: color('border');
   }
 }
