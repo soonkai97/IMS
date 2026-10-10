@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Ims.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261010052503_AddMovementsReportIndexes")]
+    [Migration("20261010061021_AddMovementsReportIndexes")]
     partial class AddMovementsReportIndexes
     {
         /// <inheritdoc />
@@ -418,7 +418,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Type", "Name");
+                    b.HasIndex("Type", "Name")
+                        .IsUnique()
+                        .HasFilter("[REC_DELETED] = 0");
 
                     b.ToTable("Partner");
                 });
@@ -702,6 +704,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Property<int>("CreatedBy")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsLarge")
+                        .HasColumnType("bit");
+
                     b.Property<string>("NegativeStockOverrideReason")
                         .HasColumnType("nvarchar(max)");
 
@@ -746,6 +751,12 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("int")
                         .HasColumnName("REC_REVISOR");
 
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RejectedBy")
+                        .HasColumnType("int");
+
                     b.Property<string>("RejectionReason")
                         .HasColumnType("nvarchar(max)");
 
@@ -754,6 +765,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("RequiresApproval")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("RequiresOverride")
                         .HasColumnType("bit");
 
                     b.Property<string>("ReversalReason")
@@ -799,7 +813,14 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PartnerId");
 
+                    b.HasIndex("PostedAt")
+                        .HasFilter("[REC_DELETED] = 0 AND [PostedAt] IS NOT NULL");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("PostedAt"), new[] { "Status", "WarehouseId" });
+
                     b.HasIndex("PostedBy");
+
+                    b.HasIndex("RejectedBy");
 
                     b.HasIndex("SubmittedBy");
 
@@ -810,11 +831,6 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasFilter("[REC_DELETED] = 0");
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Status", "Type", "Id"), new[] { "WarehouseId" });
-
-                    b.HasIndex(new[] { "PostedAt" }, "IX_StockDocument_PostedAt_Movements")
-                        .HasFilter("[REC_DELETED] = 0 AND [PostedAt] IS NOT NULL");
-
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex(new[] { "PostedAt" }, "IX_StockDocument_PostedAt_Movements"), new[] { "Status", "Type", "WarehouseId" });
 
                     b.ToTable("StockDocument");
                 });
@@ -1436,6 +1452,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasForeignKey("PostedBy")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Ims.Domain.User", "RejectedByUser")
+                        .WithMany()
+                        .HasForeignKey("RejectedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Ims.Domain.User", "SubmittedByUser")
                         .WithMany()
                         .HasForeignKey("SubmittedBy")
@@ -1454,6 +1475,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Navigation("Partner");
 
                     b.Navigation("PostedByUser");
+
+                    b.Navigation("RejectedByUser");
 
                     b.Navigation("SubmittedByUser");
 

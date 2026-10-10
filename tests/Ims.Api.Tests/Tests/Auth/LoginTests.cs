@@ -25,6 +25,22 @@ public class LoginTests(ApiFixture fixture)
         Assert.Equal(Permissions.For(Roles.Admin).Order(), auth.User.Permissions.Order());
     }
 
+    [Theory]
+    [InlineData(Roles.Clerk, true)]
+    [InlineData(Roles.Supervisor, true)]
+    [InlineData(Roles.Admin, true)]
+    [InlineData(Roles.WarehouseStaff, false)]
+    [InlineData(Roles.Owner, false)]
+    public async Task The_permission_list_for_the_web_app_names_partners_create_only_for_the_roles_that_hold_it(string role, bool expected)
+    {
+        var client = await fixture.AsAsync(role);
+
+        var me = (await client.Auth.MeAsync()).Data<UserInfo>();
+
+        Assert.Equal(expected, me.Permissions.Contains("partners.create"));   // the literal is the wire contract the web app checks
+        Assert.Equal(role is Roles.Supervisor or Roles.Admin, me.Permissions.Contains("masterdata.manage"));
+    }
+
     [Fact]
     public async Task Login_works_with_the_email_address_and_ignores_case()
     {

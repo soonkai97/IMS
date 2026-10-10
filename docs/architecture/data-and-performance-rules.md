@@ -74,7 +74,10 @@ No N+1 queries: a use case issues a fixed number of queries regardless of how ma
 
 - Bytes are stored as physical files under `Storage:RootPath`; the database keeps only metadata (`Attachment`).
 - The type is decided from the file's bytes (JPEG, PNG, WebP, PDF), never from the client's name or content type; the stored name is generated;
-  size is enforced while streaming; PDFs with scripts, launch actions or embedded files are refused.
+  size is enforced while reading (never more than 10 MB in memory); PDFs with scripts, launch actions or embedded files are refused.
+- Images are stored without metadata (EXIF/GPS, XMP, IPTC, comments, bytes after the end marker) and a damaged image is refused
+  (`ImageMetadataStripper`); every upload then passes `IUploadScanner` (default no-op; plug a malware scanner in there) before it reaches storage.
+  Details: `docs/security/upload-scanning.md`.
 - Access is decided per owner by an `IAttachmentOwnerPolicy` (warehouse scope for documents, master-data permissions for products).
 - Downloads are sent inert: `nosniff`, `Content-Security-Policy: default-src 'none'; sandbox`, `Cache-Control: private, no-store`.
 - Back the storage folder up together with the database (docker-compose mounts it as a volume).
@@ -101,9 +104,17 @@ Measured results, rejected proposals and how to re-run them: `docs/dba/README.md
 - A sort that an index should serve ends in unique keys (`Id`, or the primary key), not in a column of another table. A report that lists child
   rows newest-parent-first (movements: document lines by `PostedAt` of the document) sorts by the parent's column, then the parent id, then the
   child id, so a backward scan of an index on the parent's column streams the first rows instead of sorting every row
-  (`IX_StockDocument_PostedAt_Movements`). A filtered index skips rows its filter excludes only if the query states the same predicate
+  (`IX_StockDocument_PostedAt`). A filtered index skips rows its filter excludes only if the query states the same predicate
   (`PostedAt IS NOT NULL`, in `MovementFilters`).
 - The child side of such a report keeps its foreign-key index and gets one narrow filtered index (`IX_StockDocumentLine_DocumentId_Live`, so the
   count and page answer EF's `REC_DELETED` predicate without reading the table). A covering index on the lines (36 MB, on the posting path) was
   measured and rejected for lack of need; see `docs/dba/README.md` section 5 for when to revisit it.
 - After a migration that adds columns to a big table, rebuild the indexes (`docs/dba/07-maintenance.sql`) before measuring or going live.
+- `IX_StockDocument_PostedAt` (filtered on live, posted rows; includes Status, WarehouseId) is read by the Home counts ("posted today", `GET /api/documents/counts`) and by the movements report (page, newest posting first; the report repeats `PostedAt IS NOT NULL` so this filtered index applies, and it needs the lines index above, otherwise the date-filtered report gets slower). The other counts
+  (drafts, returned, approvals waiting) are served by `IX_StockDocument_Status_Type_Id`: they select a Status that only a handful of rows have.
+
+## 10. Time
+
+- Every instant is stored and transmitted in UTC (BR-10). EF reads `datetime2` back with `Kind = Utc` (`UtcKindConverter`, applied to every `DateTime` property by convention) and the JSON
+  converter writes `yyyy-MM-ddTHH:mm:ss[.fffffff]Z`; nothing on the wire is local or zone-less. Only exports and the document-number month convert to Asia/Kuala_Lumpur (+08:00).
+- "Today" for counts and date filters is the Kuala Lumpur calendar day, expressed as a UTC range (`Paging.StartOfDayUtc`).

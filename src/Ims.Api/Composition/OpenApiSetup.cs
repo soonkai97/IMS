@@ -5,7 +5,15 @@ public static class OpenApiSetup
     /// <summary>OpenAPI document (also the source for the NSwag-generated TypeScript client) with a Bearer-token scheme.</summary>
     public static IServiceCollection AddOpenApiDocument(this IServiceCollection services)
     {
-        services.AddOpenApi(OpenApiConstants.DocumentName, o => o.AddDocumentTransformer<BearerSecurityTransformer>());
+        services.AddOpenApi(OpenApiConstants.DocumentName, o =>
+        {
+            o.AddDocumentTransformer<BearerSecurityTransformer>();
+            o.AddOperationTransformer<OperationIdTransformer>();
+            o.AddOperationTransformer<FileResponseTransformer>();
+            o.AddOperationTransformer<MultipartRequiredTransformer>();
+            o.AddDocumentTransformer<FormFileComponentTransformer>();
+            o.AddDocumentTransformer<EnumSchemaTransformer>();
+        });
         return services;
     }
 

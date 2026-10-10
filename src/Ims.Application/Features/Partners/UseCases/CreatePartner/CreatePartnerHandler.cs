@@ -5,7 +5,9 @@ public class CreatePartnerHandler(IRepository<Partner> partners, IUnitOfWork uow
 {
     public async Task<PartnerDto> HandleAsync(CreatePartnerCommand cmd, CancellationToken ct)
     {
-        var p = Partner.Create(cmd.Data.Type, cmd.Data.Name, cmd.Data.Contact, cmd.Data.IsActive);
+        var name = cmd.Data.Name.Trim();
+        if (await partners.AnyAsync(new PartnerNameTakenSpec(cmd.Data.Type, name, 0), ct)) throw new ConflictException(Messages.PartnerExists(cmd.Data.Type, name));
+        var p = Partner.Create(cmd.Data.Type, name, cmd.Data.Contact, cmd.Data.IsActive);
         partners.Add(p);
         await uow.SaveChangesAsync(ct);
         return new PartnerDto(p.Id, p.Type, p.Name, p.Contact, p.IsActive);

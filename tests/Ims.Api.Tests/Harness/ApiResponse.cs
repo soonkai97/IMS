@@ -24,6 +24,8 @@ public sealed class ApiResponse
     public string? Header(string name) =>
         Message.Headers.TryGetValues(name, out var v) ? v.FirstOrDefault() : Message.Content.Headers.TryGetValues(name, out var c) ? c.FirstOrDefault() : null;
 
+    public IReadOnlyList<string> HeaderValues(string name) => Message.Headers.TryGetValues(name, out var v) ? v.ToList() : [];
+
     public bool IsSuccess => Message.IsSuccessStatusCode;
 
     public static async Task<ApiResponse> FromAsync(HttpResponseMessage message) =>

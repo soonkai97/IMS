@@ -8,7 +8,7 @@ public sealed class IssuePostingStrategy : IPostingStrategy
     {
         if (balance.QtyOnHand < line.BaseQty)
         {
-            // BR-03: below-zero stock needs the setting, a supervisor and a reason.
+            // BR-03: below-zero stock needs the setting, a supervisor to post and the reason the approver recorded.
             if (!ctx.Settings.AllowNegativeStock)
                 throw new InsufficientStockException(balance.ProductId, balance.WarehouseId, balance.QtyOnHand, line.BaseQty);
             if (!ctx.CanOverrideNegative)

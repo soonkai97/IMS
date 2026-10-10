@@ -12,6 +12,7 @@ public static class Messages
     public static readonly string PasswordTooShort = $"Password must be at least {Limits.PasswordMinLength} characters.";
     public const string CurrentPasswordWrong = "The current password is not correct.";
     public const string PasswordUnchanged = "Choose a password different from the current one.";
+    public const string CrossSiteRequestRefused = "This request did not come from a trusted application.";
 
     public const string CannotLockOutSelf = "You cannot deactivate your own account or remove your own administrator role.";
     public const string LastAdminRequired = "At least one active administrator must remain.";
@@ -62,6 +63,7 @@ public static class Messages
     public const string PartnerMissing = "Partner does not exist.";
     public const string PartnerInactive = "Partner is inactive.";
     public const string PartnerNameRequired = "Name is required.";
+    public static string PartnerExists(PartnerType type, string name) => $"A {type.ToString().ToLowerInvariant()} named '{name}' already exists.";
     public static string PartnerWrongType(DocumentType doc, PartnerType expected) =>
         $"A {doc.ToString().ToLowerInvariant()} needs a {expected.ToString().ToLowerInvariant()}.";
 
@@ -89,7 +91,8 @@ public static class Messages
     public const string ApprovalNotNeeded = "This document does not need approval; it can be posted directly.";
     public const string ApprovalRequiredToPost = "This document requires approval before it can be posted.";
     public const string NegativeNeedsSupervisor = "Posting below zero stock needs a supervisor override.";
-    public const string NegativeNeedsReason = "A reason is required to post below zero stock.";
+    public const string NegativeNeedsReason = "Posting below zero stock needs an override reason, which the approver gives when approving.";
+    public const string OverrideReasonRequired = "A reason is required to approve a document that takes stock below zero.";
     public static string NotEditable(string no, DocumentStatus status) => $"Document {no} is {status} and can no longer be edited.";
     public static string OnlyDraftCanSubmit(DocumentStatus status) => $"Only a Draft can be submitted (current: {status}).";
     public static string OnlySubmittedCanApprove(DocumentStatus status) => $"Only a Submitted document can be approved (current: {status}).";
@@ -121,6 +124,8 @@ public static class Messages
     public const string WorkbookTooLarge = "The workbook is too large once unpacked.";
     public const string PageTooDeep = "That page is too deep to list. Narrow the filter, or continue from the last row with afterId.";
     public const string FileHasActiveContent = "PDF files with scripts, launch actions or embedded files are not accepted.";
+    public const string FileNotAValidImage = "The image is damaged or not a supported image. Choose another file.";
+    public const string FileRejectedByScanner = "The file was rejected by the security check and was not stored.";
     public const string NotAWorkbook = "The file is not a valid .xlsx workbook.";
     public const string WorkbookEmpty = "The workbook has no sheets.";
     public const string UnknownTemplate = "Unknown template.";
@@ -147,6 +152,7 @@ public static class Messages
     public const string RequestTimedOutTitle = "Request timed out";
     public const string ServiceUnavailableTitle = "Service unavailable";
     public const string ConcurrencyConflict = "The data changed while you were working on it. Reload and try again.";
+    public static string DocumentChangedByAnother(string no) => $"{no} was changed by someone else since you opened it. Reload to see the latest version. Your changes were not saved.";
     public static string ServerError(string reference) => $"Something went wrong. Quote reference {reference} to support.";
     public const string RequestRejectedTitle = "Request rejected";
     public const string UnauthorizedTitle = "Unauthorized";

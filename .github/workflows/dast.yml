@@ -1,0 +1,144 @@
+name: DAST
+
+# Dynamic security scan of OUR OWN API: the API is started inside this runner against a throw-away SQL Server container and
+# attacked with the OWASP ZAP API scan from the OpenAPI document. Never runs on pull requests (it is slow, active and noisy).
+# Manual: Actions -> DAST -> Run workflow.  Weekly: Tuesday 02:41 UTC.  What it checks and how to accept a finding: docs/security/dast.md
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 2 * * 2"
+
+concurrency:
+  group: dast
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  # Throw-away values for this job only: the database container and the demo accounts live for the length of the run and nothing else
+  # uses them. Not secrets.
+  DAST_DB_PASSWORD: "Dast-Only#Passw0rd-2026"
+  DAST_ADMIN_PASSWORD: "Dast-Admin#2026"
+  DAST_DEMO_PASSWORD: "Dast-Demo#2026"
+  DAST_PORT: "5199"
+  # ZAP 2.17.0 (multi-arch index digest). Bump together with the version comment when Dependabot or a release note asks for it.
+  ZAP_IMAGE: "ghcr.io/zaproxy/zaproxy:2.17.0@sha256:7aaa659b0d43078febd82e29bad112285c370727e86ab8340444220e17d9f0d2"
+
+jobs:
+  zap-api-scan:
+    name: ZAP API scan (authenticated)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      sql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: ${{ env.DAST_DB_PASSWORD }}
+        ports: ["1433:1433"]
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -Q 'SELECT 1'"
+          --health-interval 10s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          global-json-file: global.json
+
+      - name: Build the API (Release)
+        run: |
+          dotnet restore src/Ims.Api/Ims.Api.csproj
+          dotnet build src/Ims.Api/Ims.Api.csproj -c Release --no-restore
+
+      - name: Start the API
+        env:
+          # Development: the OpenAPI document is served, the database is migrated and the demo accounts are seeded on start-up.
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:${{ env.DAST_PORT }}
+          ConnectionStrings__Default: "Server=localhost,1433;Database=Ims_CI_Dast;User Id=sa;Password=${{ env.DAST_DB_PASSWORD }};TrustServerCertificate=True"
+          Seed__AdminPassword: ${{ env.DAST_ADMIN_PASSWORD }}
+          Seed__DemoPassword: ${{ env.DAST_DEMO_PASSWORD }}
+          # A scan is thousands of requests from one address with one token: lift the per-minute limit and let the token outlive the scan.
+          # The 20-per-minute limit on the sign-in endpoints stays as it is, so those endpoints are scanned at that pace.
+          RateLimit__PerMinute: "1000000"
+          Jwt__AccessMinutes: "180"
+        run: |
+          # The content root is the working directory, so start from the build output where appsettings*.json were copied.
+          (cd src/Ims.Api/bin/Release/net10.0 && nohup dotnet Ims.Api.dll > "$GITHUB_WORKSPACE/api.log" 2>&1 &)
+          for i in $(seq 1 40); do
+            curl -fsS "http://localhost:${DAST_PORT}/health" && exit 0
+            sleep 2
+          done
+          echo "API did not become healthy"; cat api.log; exit 1
+
+      - name: Sign in for the scan
+        run: |
+          token=$(curl -fsS -X POST "http://localhost:${DAST_PORT}/api/auth/login" \
+            -H 'Content-Type: application/json' \
+            -d "{\"username\":\"admin\",\"password\":\"${DAST_ADMIN_PASSWORD}\"}" | jq -r .accessToken)
+          test -n "$token" -a "$token" != "null"
+          echo "::add-mask::$token"
+          echo "DAST_TOKEN=$token" >> "$GITHUB_ENV"
+          # The OpenAPI document ZAP will import must be there.
+          curl -fsS "http://localhost:${DAST_PORT}/openapi/v1.json" | jq -e '.paths | length > 0' > /dev/null
+
+      - name: Prepare the ZAP working folder
+        run: |
+          mkdir -p zap-wrk
+          cp .github/zap/rules.tsv zap-wrk/rules.tsv
+          # ZAP hook: send the bearer token with every request ZAP makes, so the scan sees the endpoints behind authorization.
+          cat > zap-wrk/hook.py <<'EOF'
+          import os
+
+          def zap_started(zap, target):
+              zap.replacer.add_rule(description='bearer', enabled='true', matchtype='REQ_HEADER', matchregex='false',
+                                    matchstring='Authorization', replacement='Bearer ' + os.environ['DAST_TOKEN'])
+          EOF
+          # The ZAP container runs as an unprivileged user and must write its reports here.
+          chmod -R a+rwX zap-wrk
+
+      - name: ZAP API scan
+        run: |
+          set +e
+          docker run --rm --network host -e DAST_TOKEN -v "$PWD/zap-wrk:/zap/wrk:rw" "$ZAP_IMAGE" \
+            zap-api-scan.py -t "http://localhost:${DAST_PORT}/openapi/v1.json" -f openapi \
+            -c rules.tsv -I -T 60 \
+            -r report.html -w report.md -J report.json \
+            -z "-config scanner.maxScanDurationInMins=30 -config scanner.maxRuleDurationInMins=5" \
+            --hook=/zap/wrk/hook.py
+          code=$?
+          echo "zap-api-scan exit code: $code"
+          # 0 = clean, 1 = a rule set to FAIL (none by default), 2 = warnings (ignored here, -I). Anything else means ZAP itself failed.
+          if [ "$code" -ge 3 ]; then exit 1; fi
+          test -s zap-wrk/report.json
+
+      - name: Fail on high-risk alerts
+        run: |
+          # Accepted findings are the rules set to IGNORE in .github/zap/rules.tsv; they never fail the run.
+          accepted=$(awk -F'\t' '$1 !~ /^#/ && $2 == "IGNORE" { print $1 }' .github/zap/rules.tsv | jq -R . | jq -s .)
+          jq -r --argjson accepted "$accepted" '
+            [.site[]?.alerts[]? | select(.riskcode == "3") | select(.pluginid as $id | $accepted | index($id) | not)]
+            | .[] | "HIGH  \(.pluginid)  \(.name)  (\(.instances | length) instance(s))"' zap-wrk/report.json | tee high.txt
+          echo "---- alerts by risk (all rules) ----"
+          jq -r '[.site[]?.alerts[]?] | group_by(.riskdesc) | .[] | "\(.[0].riskdesc): \(length)"' zap-wrk/report.json
+          if [ -s high.txt ]; then echo "High-risk alerts found. See the report artifact and docs/security/dast.md."; exit 1; fi
+
+      - name: Upload the reports and the API log
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: zap-api-scan
+          path: |
+            zap-wrk/report.html
+            zap-wrk/report.md
+            zap-wrk/report.json
+            api.log
+          if-no-files-found: ignore
+          retention-days: 30

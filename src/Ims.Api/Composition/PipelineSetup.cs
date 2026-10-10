@@ -18,6 +18,8 @@ public static class PipelineSetup
         // HSTS only matters over HTTPS (TLS is terminated by the reverse proxy); it is harmless on plain HTTP and absent in Development.
         if (!app.Environment.IsDevelopment()) app.UseHsts();
 
+        app.UseSecurityHeaders();
+
         app.UseMiddleware<CorrelationIdMiddleware>();
         app.UseSerilogRequestLogging(o =>
         {

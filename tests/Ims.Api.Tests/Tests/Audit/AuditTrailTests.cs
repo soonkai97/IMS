@@ -95,20 +95,26 @@ public class AuditTrailTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task A_negative_stock_override_is_visible_in_the_audit_of_the_posting()
+    public async Task A_negative_stock_override_is_audited_at_approval_with_the_approver_and_the_reason_and_at_posting_as_used()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
+        var (approver, approverClient) = await SignedInAsync(Roles.Supervisor);
         var (_, adminClient) = await SignedInAsync(Roles.Admin);
         await using var _ = await SettingsOverride.ApplyAsync(s.Admin, allowNegativeStock: true);
         var issue = await s.SubmitAsync(s.Clerk, await s.DraftIssueAsync(s.Clerk, fixture.Reference.DefaultWarehouseId, new Line(product.Id, 2)));
 
-        (await adminClient.Documents.PostAsync(issue.Id, "Count pending")).ShouldBeOk();
+        (await approverClient.Documents.ApproveWithReasonAsync(issue.Id, "Count pending")).ShouldBeOk();
+        (await adminClient.Documents.PostAsync(issue.Id)).ShouldBeOk();
 
-        var posted = (await EntriesAsync(entityType: AuditEntities.StockDocument))
-            .Single(e => e.EntityId == issue.No && e.Action == AuditActions.DocumentPosted);
+        var trail = (await EntriesAsync(entityType: AuditEntities.StockDocument)).Where(e => e.EntityId == issue.No).ToList();
+        var approved = trail.Single(e => e.Action == AuditActions.DocumentApproved);
+        Assert.Equal(approver.Username, approved.Actor);
+        Assert.Contains("Count pending", approved.After);
+        var posted = trail.Single(e => e.Action == AuditActions.DocumentPosted);
         Assert.Contains("OverrideUsed", posted.After);
         Assert.Contains("true", posted.After, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Count pending", posted.After);
     }
 
     // ---------- master data ----------
@@ -156,6 +162,38 @@ public class AuditTrailTests(ApiFixture fixture)
         var deactivation = Assert.Single(entries, e => e.EntityType == nameof(Warehouse) && e.Action == AuditActions.RowUpdated);
         Assert.Contains("true", deactivation.Before!, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("false", deactivation.After!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Creating_a_partner_is_audited_with_the_actor_for_clerks_and_supervisors()
+    {
+        foreach (var role in new[] { Roles.Clerk, Roles.Supervisor })
+        {
+            var (account, client) = await SignedInAsync(role);
+            var name = Unique.Name("AuditPartner");
+
+            var partner = (await client.Partners.CreateAsync(new Ims.Application.Features.Partners.PartnerSaveRequest(PartnerType.Supplier, name, "contact", true)))
+                .Data<Ims.Application.Features.Partners.PartnerDto>();
+
+            var entries = await EntriesAsync(account.Username, nameof(Partner));
+            var created = Assert.Single(entries, e => e.Action == AuditActions.RowCreated && e.EntityId == partner.Id.ToString());
+            Assert.Equal(account.Username, created.Actor);
+            Assert.Contains(name, created.After);
+            Assert.True(Math.Abs((DateTime.UtcNow - created.At).TotalMinutes) < 10, $"At {created.At:o} is not recent UTC");
+        }
+    }
+
+    [Fact]
+    public async Task A_refused_partner_edit_by_a_clerk_leaves_no_audit_entry()
+    {
+        var (account, client) = await SignedInAsync(Roles.Clerk);
+        var partner = (await client.Partners.CreateAsync(new Ims.Application.Features.Partners.PartnerSaveRequest(PartnerType.Customer, Unique.Name("AuditPartner"), null, true)))
+            .Data<Ims.Application.Features.Partners.PartnerDto>();
+
+        (await client.Partners.UpdateAsync(partner.Id, new Ims.Application.Features.Partners.PartnerSaveRequest(PartnerType.Customer, partner.Name, null, false))).ShouldBe(System.Net.HttpStatusCode.Forbidden);
+
+        var entries = await EntriesAsync(account.Username, nameof(Partner));
+        Assert.DoesNotContain(entries, e => e.Action == AuditActions.RowUpdated && e.EntityId == partner.Id.ToString());
     }
 
     [Fact]

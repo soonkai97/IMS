@@ -51,3 +51,6 @@ web/.nx/
 
 # Source requirements document: kept locally, not published
 /docs/private/
+
+# Agent worktrees
+/.claude/worktrees/

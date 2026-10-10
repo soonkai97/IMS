@@ -9,6 +9,7 @@ public class UpdateDocumentHandler(IRepository<StockDocument> documents, IReadRe
     {
         var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
         access.EnsureWarehouse(doc.WarehouseId);
+        DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
         if (doc.WarehouseId != cmd.Data.WarehouseId) throw new ValidationException(Messages.WarehouseCannotChange);
 
         var partner = await CreateDocumentHandler.LoadPartnerAsync(partners, cmd.Data.PartnerId, ct);

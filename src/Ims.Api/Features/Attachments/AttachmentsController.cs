@@ -28,7 +28,7 @@ public class AttachmentsController(IDispatcher dispatcher) : ApiControllerBase(d
     }
 
     /// <summary>Downloads the file. Images can be shown inline with <c>inline=true</c>; everything else is a download.</summary>
-    [HttpGet(ApiRoutes.Id), RequestTimeout(RequestTimeoutPolicies.Long)]
+    [ProducesFile, HttpGet(ApiRoutes.Id), RequestTimeout(RequestTimeoutPolicies.Long)]
     public async Task<IActionResult> Download(int id, [FromQuery] bool inline = false)
     {
         var file = await Send(new DownloadAttachmentQuery(id));

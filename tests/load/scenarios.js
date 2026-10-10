@@ -72,7 +72,7 @@ export function setupData() {
     if (r.items.length < 200) break;
   }
   const first = getJson('/api/products/lookup?code=SKU-00001', tokens.admin);
-  const offset = first.id - 1;
+  const offset = first.product.id - 1;
   const hot = [];
   for (let i = 1; i <= HOT_N; i++) hot.push(offset + i);
   const stocked = {};   // per warehouse: products with plenty of stock to issue from [{id, qty, avg}]
@@ -213,7 +213,7 @@ export function writeFlow(d, opts = {}) {
     const ap = post(approver, `/api/documents/${id}/approve`, undefined, 'doc.approve');
     if (ap.status !== 200) { writeFlowFail.add(1); return; }
   }
-  const posted = post(poster, `/api/documents/${id}/post`, { negativeStockOverrideReason: null }, 'doc.post');
+  const posted = post(poster, `/api/documents/${id}/post`, undefined, 'doc.post');
   if (posted.status === 200) { writeFlows.add(1); flowTime.add(Date.now() - started); } else writeFlowFail.add(1);
 }
 

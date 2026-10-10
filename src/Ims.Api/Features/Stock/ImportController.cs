@@ -9,6 +9,7 @@ namespace Ims.Api.Features.Stock;
 [Route(ApiRoutes.Import)]
 public class ImportController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
+    [ProducesFile(ContentTypes.Xlsx)]
     [HttpGet(RouteSegments.Templates), Authorize(Policy = Permissions.MasterDataManage)]
     public async Task<IActionResult> Template(string kind)
     {
@@ -16,7 +17,7 @@ public class ImportController(IDispatcher dispatcher) : ApiControllerBase(dispat
         return File(f.Content, f.ContentType, f.FileName);
     }
 
-    /// <summary>Preview with <c>commit=false</c> (default); write with <c>commit=true</c>. Only valid rows are written.</summary>
+    /// <summary>Preview with <c>commit=false</c> (default); write with <c>commit=true</c>. Import is all-or-nothing: a commit with any invalid row writes nothing.</summary>
     [RequestTimeout(RequestTimeoutPolicies.Long)]
     [HttpPost(RouteSegments.Products), Authorize(Policy = Permissions.MasterDataManage)]
     [RequestSizeLimit(Limits.MaxImportFileBytes)]

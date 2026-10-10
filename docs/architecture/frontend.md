@@ -5,7 +5,7 @@ Owner: fe-architect (decisions), fe-framework (implementation). Source docs: `do
 
 ## 1. Shape
 
-Angular 21 (zoneless, standalone components, signals, strict TypeScript) in an **Nx monorepo** (`web/`). One app, `apps/main`;
+Angular 22 (zoneless, standalone components, signals, strict TypeScript) in an **Nx monorepo** (`web/`). One app, `apps/main`;
 everything else is a library under `libs/`, imported **only through `@ims/*` path aliases** (`tsconfig.base.json`).
 
 Projects are named `{directory}-{name}` (`core-identity`, `containers-documents`). The structure and conventions follow the

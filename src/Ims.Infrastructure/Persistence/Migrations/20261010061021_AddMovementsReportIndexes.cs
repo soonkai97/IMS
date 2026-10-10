@@ -15,13 +15,6 @@ namespace Ims.Infrastructure.Persistence.Migrations
                 table: "StockDocumentLine",
                 column: "DocumentId",
                 filter: "[REC_DELETED] = 0");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_StockDocument_PostedAt_Movements",
-                table: "StockDocument",
-                column: "PostedAt",
-                filter: "[REC_DELETED] = 0 AND [PostedAt] IS NOT NULL")
-                .Annotation("SqlServer:Include", new[] { "Status", "Type", "WarehouseId" });
         }
 
         /// <inheritdoc />
@@ -30,10 +23,6 @@ namespace Ims.Infrastructure.Persistence.Migrations
             migrationBuilder.DropIndex(
                 name: "IX_StockDocumentLine_DocumentId_Live",
                 table: "StockDocumentLine");
-
-            migrationBuilder.DropIndex(
-                name: "IX_StockDocument_PostedAt_Movements",
-                table: "StockDocument");
         }
     }
 }

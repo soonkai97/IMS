@@ -114,6 +114,33 @@ public class PermissionsTests
         Assert.Equal(expected, Permissions.Has(role, Permissions.MasterDataManage));
     }
 
+    [Theory]
+    [InlineData(Roles.Admin, true)]
+    [InlineData(Roles.Supervisor, true)]
+    [InlineData(Roles.Clerk, true)]           // clerks may add a partner, not change one
+    [InlineData(Roles.Owner, false)]
+    [InlineData(Roles.WarehouseStaff, false)]
+    public void CreatePartners(string role, bool expected)
+    {
+        Assert.Equal(expected, Permissions.Has(role, Permissions.PartnersCreate));
+    }
+
+    [Fact]
+    public void Clerk_CanCreatePartners_ButNotEditOrDeactivateThem()
+    {
+        var clerk = Permissions.For(Roles.Clerk);
+
+        Assert.Contains(Permissions.PartnersCreate, clerk);
+        Assert.DoesNotContain(Permissions.MasterDataManage, clerk);   // edit and deactivate need MasterDataManage
+    }
+
+    [Fact]
+    public void EveryRoleThatManagesMasterData_AlsoCreatesPartners()
+    {
+        foreach (var role in Roles.All.Where(r => Permissions.Has(r, Permissions.MasterDataManage)))
+            Assert.True(Permissions.Has(role, Permissions.PartnersCreate), role);
+    }
+
     [Fact]
     public void UnknownRole_HasNoPermissions()
     {

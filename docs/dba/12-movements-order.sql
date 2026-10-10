@@ -2,11 +2,11 @@
   12-movements-order.sql -- evidence for R3 (movements report: order and indexes). The statements are the ones EF Core generates for
   MovementsPageSpec (page), MovementsSpec (export) and MovementsCountSpec (total): the page once with the OLD order (PostedAt DESC, line Id)
   and once with the NEW code (PostedAt IS NOT NULL, order PostedAt DESC, DocumentId DESC, line Id), against index sets that are created and
-  dropped here, so the database is left as it was found. The two indexes of the migration AddMovementsReportIndexes are dropped first and
+  dropped here, so the database is left as it was found. The two indexes under test (IX_StockDocument_PostedAt, from the migration DocumentFlagsAndReturnInfo, and IX_StockDocumentLine_DocumentId_Live, from AddMovementsReportIndexes) are dropped first and
   re-created at the end if they existed.
 
-    V0  the indexes before R3 (AddHotPathIndexes)
-    V1  + IX_StockDocument_PostedAt_Movements   (PostedAt) INCLUDE (Status, Type, WarehouseId) WHERE REC_DELETED = 0 AND PostedAt IS NOT NULL
+    V0  neither of the two (the state before R3)
+    V1  + IX_StockDocument_PostedAt   (PostedAt) INCLUDE (Status, WarehouseId) WHERE REC_DELETED = 0 AND PostedAt IS NOT NULL
     V2  V1 + IX_StockDocumentLine_DocumentId_Live   (DocumentId) WHERE REC_DELETED = 0                                  <- shipped
     V3  V1 + a covering lines index (DocumentId, Id) INCLUDE (ProductId, Qty, UomId, BaseQty, UnitCost) WHERE REC_DELETED = 0    <- rejected
     V4  the lines index of V2 without the PostedAt index
@@ -20,9 +20,9 @@
 SET NOCOUNT ON; SET QUOTED_IDENTIFIER ON; SET ANSI_NULLS ON; SET ANSI_PADDING ON; SET ANSI_WARNINGS ON; SET ARITHABORT ON; SET CONCAT_NULL_YIELDS_NULL ON; SET NUMERIC_ROUNDABORT OFF;
 IF DB_NAME() NOT LIKE N'Ims[_]Perf%' THROW 50000, N'Experiment script: a perf database only.', 1;
 
-DECLARE @hadPosted bit = IIF(EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_StockDocument_PostedAt_Movements'), 1, 0);
+DECLARE @hadPosted bit = IIF(EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_StockDocument_PostedAt'), 1, 0);
 DECLARE @hadLive bit = IIF(EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_StockDocumentLine_DocumentId_Live'), 1, 0);
-DROP INDEX IF EXISTS IX_StockDocument_PostedAt_Movements ON dbo.StockDocument;
+DROP INDEX IF EXISTS IX_StockDocument_PostedAt ON dbo.StockDocument;
 DROP INDEX IF EXISTS IX_StockDocumentLine_DocumentId_Live ON dbo.StockDocumentLine;
 
 DECLARE @today date = CAST(SYSDATETIME() AS date);
@@ -70,10 +70,10 @@ INSERT #w (name, filter, top_, page, countOnly) VALUES
 CREATE TABLE #v (id int IDENTITY, name varchar(40), ddl nvarchar(max));
 INSERT #v (name, ddl) VALUES
  ('V0 before R3', N''),
- ('V1 PostedAt', N'CREATE INDEX IX_StockDocument_PostedAt_Movements ON dbo.StockDocument (PostedAt) INCLUDE (Status, Type, WarehouseId) WHERE REC_DELETED = 0 AND PostedAt IS NOT NULL'),
- ('V2 PostedAt + Live (shipped)', N'CREATE INDEX IX_StockDocument_PostedAt_Movements ON dbo.StockDocument (PostedAt) INCLUDE (Status, Type, WarehouseId) WHERE REC_DELETED = 0 AND PostedAt IS NOT NULL;
+ ('V1 PostedAt', N'CREATE INDEX IX_StockDocument_PostedAt ON dbo.StockDocument (PostedAt) INCLUDE (Status, WarehouseId) WHERE REC_DELETED = 0 AND PostedAt IS NOT NULL'),
+ ('V2 PostedAt + Live (shipped)', N'CREATE INDEX IX_StockDocument_PostedAt ON dbo.StockDocument (PostedAt) INCLUDE (Status, WarehouseId) WHERE REC_DELETED = 0 AND PostedAt IS NOT NULL;
   CREATE INDEX IX_StockDocumentLine_DocumentId_Live ON dbo.StockDocumentLine (DocumentId) WHERE REC_DELETED = 0'),
- ('V3 PostedAt + lines cover (rejected)', N'CREATE INDEX IX_StockDocument_PostedAt_Movements ON dbo.StockDocument (PostedAt) INCLUDE (Status, Type, WarehouseId) WHERE REC_DELETED = 0 AND PostedAt IS NOT NULL;
+ ('V3 PostedAt + lines cover (rejected)', N'CREATE INDEX IX_StockDocument_PostedAt ON dbo.StockDocument (PostedAt) INCLUDE (Status, WarehouseId) WHERE REC_DELETED = 0 AND PostedAt IS NOT NULL;
   CREATE INDEX IX_cand_Lines_Cover ON dbo.StockDocumentLine (DocumentId, Id) INCLUDE (ProductId, Qty, UomId, BaseQty, UnitCost) WHERE REC_DELETED = 0'),
  ('V4 Live only', N'CREATE INDEX IX_StockDocumentLine_DocumentId_Live ON dbo.StockDocumentLine (DocumentId) WHERE REC_DELETED = 0');
 
@@ -111,11 +111,11 @@ BEGIN
         END
         SET @w += 1;
     END
-    DROP INDEX IF EXISTS IX_StockDocument_PostedAt_Movements ON dbo.StockDocument;
+    DROP INDEX IF EXISTS IX_StockDocument_PostedAt ON dbo.StockDocument;
     DROP INDEX IF EXISTS IX_StockDocumentLine_DocumentId_Live ON dbo.StockDocumentLine;
     DROP INDEX IF EXISTS IX_cand_Lines_Cover ON dbo.StockDocumentLine;
     SET @v += 1;
 END
 
-IF @hadPosted = 1 CREATE INDEX IX_StockDocument_PostedAt_Movements ON dbo.StockDocument (PostedAt) INCLUDE (Status, Type, WarehouseId) WHERE REC_DELETED = 0 AND PostedAt IS NOT NULL;
+IF @hadPosted = 1 CREATE INDEX IX_StockDocument_PostedAt ON dbo.StockDocument (PostedAt) INCLUDE (Status, WarehouseId) WHERE REC_DELETED = 0 AND PostedAt IS NOT NULL;
 IF @hadLive = 1 CREATE INDEX IX_StockDocumentLine_DocumentId_Live ON dbo.StockDocumentLine (DocumentId) WHERE REC_DELETED = 0;

@@ -7,9 +7,11 @@ public class IssuePostingStrategyTests
     private readonly IssuePostingStrategy _strategy = new();
     private readonly Product _product = NewProduct(id: 5);
 
-    private (StockDocument Doc, StockDocumentLine Line) IssueOf(decimal qty)
+    /// <summary>An issue; with a reason it has been submitted as an override and approved with that reason (as the approval step does).</summary>
+    private (StockDocument Doc, StockDocumentLine Line) IssueOf(decimal qty, string? approvedReason = null)
     {
         var doc = NewIssue(2, (_product, qty));
+        if (approvedReason is not null) doc.ApprovedWithOverride(approvedReason);
         return (doc, doc.Lines[0]);
     }
 
@@ -55,8 +57,8 @@ public class IssuePostingStrategyTests
     [Fact]
     public void Post_ExactlyWhatIsOnHand_IsNotAnOverride()
     {
-        var (doc, line) = IssueOf(3m);
-        var ctx = NewContext(doc, allowNegative: true, canOverride: true, overrideReason: "x");
+        var (doc, line) = IssueOf(3m, "x");
+        var ctx = NewContext(doc, allowNegative: true, canOverride: true);
 
         _strategy.Post(line, NewBalance(5, 3m, 1m), ctx);
 
@@ -66,9 +68,9 @@ public class IssuePostingStrategyTests
     [Fact]
     public void Post_Insufficient_NegativeSettingOff_ThrowsInsufficientStockAndChangesNothing()
     {
-        var (doc, line) = IssueOf(8m);
+        var (doc, line) = IssueOf(8m, "urgent");
         var balance = NewBalance(5, 3m, 2m);
-        var ctx = NewContext(doc, allowNegative: false, canOverride: true, overrideReason: "urgent");
+        var ctx = NewContext(doc, allowNegative: false, canOverride: true);
 
         var ex = Assert.Throws<InsufficientStockException>(() => _strategy.Post(line, balance, ctx));
 
@@ -82,9 +84,9 @@ public class IssuePostingStrategyTests
     [Fact]
     public void Post_Insufficient_SettingOnButCallerCannotOverride_ThrowsDomainException()
     {
-        var (doc, line) = IssueOf(8m);
+        var (doc, line) = IssueOf(8m, "urgent");
         var balance = NewBalance(5, 3m, 2m);
-        var ctx = NewContext(doc, allowNegative: true, canOverride: false, overrideReason: "urgent");
+        var ctx = NewContext(doc, allowNegative: true, canOverride: false);
 
         var ex = Assert.Throws<DomainException>(() => _strategy.Post(line, balance, ctx));
 
@@ -93,15 +95,13 @@ public class IssuePostingStrategyTests
         Assert.Empty(ctx.Entries);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void Post_Insufficient_OverrideAllowedButNoReason_ThrowsDomainException(string? reason)
+    [Fact]
+    public void Post_Insufficient_NoReasonRecordedAtApproval_ThrowsDomainException()
     {
+        // Stock fell short after the document was submitted, so no approver ever gave a reason; the poster cannot supply one.
         var (doc, line) = IssueOf(8m);
         var balance = NewBalance(5, 3m, 2m);
-        var ctx = NewContext(doc, allowNegative: true, canOverride: true, overrideReason: reason);
+        var ctx = NewContext(doc, allowNegative: true, canOverride: true);
 
         var ex = Assert.Throws<DomainException>(() => _strategy.Post(line, balance, ctx));
 
@@ -113,9 +113,9 @@ public class IssuePostingStrategyTests
     [Fact]
     public void Post_Insufficient_OverrideAllowedWithReason_GoesNegativeAndFlagsOverride()
     {
-        var (doc, line) = IssueOf(8m);
+        var (doc, line) = IssueOf(8m, "customer waiting");
         var balance = NewBalance(5, 3m, 2m);
-        var ctx = NewContext(doc, allowNegative: true, canOverride: true, overrideReason: "customer waiting");
+        var ctx = NewContext(doc, allowNegative: true, canOverride: true);
 
         _strategy.Post(line, balance, ctx);
 
@@ -129,8 +129,8 @@ public class IssuePostingStrategyTests
     [Fact]
     public void Post_FromNothingOnHand_OverrideBooksCostZero()
     {
-        var (doc, line) = IssueOf(2m);
-        var ctx = NewContext(doc, allowNegative: true, canOverride: true, overrideReason: "no stock record yet");
+        var (doc, line) = IssueOf(2m, "no stock record yet");
+        var ctx = NewContext(doc, allowNegative: true, canOverride: true);
 
         _strategy.Post(line, StockBalance.OpenFor(5, 1), ctx);
 

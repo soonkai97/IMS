@@ -35,12 +35,13 @@ public class ImportOpeningStockHandler(IExcelReader excel, IReadRepository<Produ
             decimal cost = 0;
             if (r.Get(ImportColumns.UnitCost) is { Length: > 0 } uc && !(ImportSheet.TryParseDecimal(uc, out cost) && cost >= 0)) errors.Add(Messages.CostNegative);
 
-            results.Add(new ImportRowResult(r.Number, sku, errors.Count == 0, errors));
+            // Every valid row becomes a line on a new draft receipt, so it is always "New".
+            results.Add(new ImportRowResult(r.Number, sku, errors.Count == 0, errors.Count == 0 ? ImportRowStatus.New : ImportRowStatus.Error, errors));
             if (errors.Count == 0) parsed.Add(new Parsed(r.Number, pid, wid, qty, cost));
         }
 
         if (!cmd.Commit)
-            return new ImportResult(false, results.Count, results.Count(r => r.Ok), results.Count(r => !r.Ok), 0, 0, null, results);
+            return new ImportResult(false, results.Count, results.Count(r => r.Ok), results.Count(r => !r.Ok), parsed.Count, 0, null, results);
 
         ImportSheet.EnsureNoErrors(results);
         var firstDoc = await uow.ExecuteAsync(async () =>

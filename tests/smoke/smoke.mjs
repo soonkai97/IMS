@@ -15,15 +15,15 @@ const check = (name, ok, detail = '') => {
   else { failures.push(name); console.log(`  FAIL ${name} ${detail}`); }
 };
 
-async function api(method, path, { token, body } = {}) {
+async function api(method, path, { token, body, headers } = {}) {
   const res = await fetch(BASE + path, {
     method,
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(headers ?? {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await res.text();
   let json; try { json = text ? JSON.parse(text) : null; } catch { json = text; }
-  return { status: res.status, body: json };
+  return { status: res.status, body: json, headers: res.headers };
 }
 const login = async (username, password) => (await api('POST', '/api/auth/login', { body: { username, password } })).body.accessToken;
 
@@ -104,6 +104,27 @@ r = await api('POST', `/api/documents/${big.id}/approve`, { token: supervisor })
 check('supervisor approves', r.body.status === 'Approved', JSON.stringify(r.body));
 r = await api('POST', `/api/documents/${big.id}/post`, { token: supervisor, body: {} });
 check('supervisor posts approved issue', r.body.status === 'Posted' && (await stockOf(p1.id)).qty === 350);
+
+console.log('Negative-stock override: the approver gives the reason, posting takes no body');
+const settings0 = (await api('GET', '/api/settings', { token: admin })).body;
+await api('PUT', '/api/settings', { token: admin, body: { ...settings0, allowNegativeStock: true } });
+try {
+  const p3 = await mkProduct(3);
+  r = await api('POST', '/api/documents/issues', { token: staff, body: doc(customer.id, [{ productId: p3.id, qty: 3 }]) });
+  const ovr = r.body;
+  r = await api('POST', `/api/documents/${ovr.id}/submit`, { token: staff });
+  check('short issue is submitted and flagged for override and approval', r.body.status === 'Submitted' && r.body.requiresOverride === true && r.body.requiresApproval === true, JSON.stringify(r.body));
+  r = await api('POST', `/api/documents/${ovr.id}/approve`, { token: supervisor });
+  check('approving an override without a reason is refused (400)', r.status === 400 && /reason/i.test(r.body.detail), JSON.stringify(r.body));
+  r = await api('POST', `/api/documents/${ovr.id}/approve`, { token: supervisor, body: { negativeStockOverrideReason: 'smoke override' } });
+  check('supervisor approves with the reason, which is stored', r.body.status === 'Approved' && r.body.negativeStockOverrideReason === 'smoke override', JSON.stringify(r.body));
+  r = await api('POST', `/api/documents/${ovr.id}/post`, { token: staff });
+  check('staff cannot post an approved override (403)', r.status === 403, String(r.status));
+  r = await api('POST', `/api/documents/${ovr.id}/post`, { token: supervisor });
+  check('supervisor posts it without a body, stock goes to -3', r.body.status === 'Posted' && r.body.negativeStockOverrideReason === 'smoke override' && (await stockOf(p3.id)).qty === -3, JSON.stringify(r.body));
+} finally {
+  await api('PUT', '/api/settings', { token: admin, body: settings0 });
+}
 
 console.log('Self-approval blocked');
 r = await api('POST', '/api/documents/issues', { token: supervisor, body: doc(customer.id, [{ productId: p1.id, qty: 100 }]) });
@@ -217,6 +238,34 @@ r = await api('GET', '/api/products?sortBy=Name&desc=true&pageSize=5', { token: 
 check('products sort by name descending', r.status === 200 && r.body.items.every((x, i, a) => i === 0 || a[i - 1].name.localeCompare(x.name) >= 0), String(r.status));
 r = await api('GET', "/api/products?search=' OR 1=1 --&pageSize=5", { token: admin });
 check('SQL-injection text in a filter is just text (200, no rows or a few)', r.status === 200 && r.body.items.length === 0, JSON.stringify(r.body).slice(0, 120));
+console.log('API contract (enums, timestamps, flags, lookup, tokens, counts)');
+r = await api('GET', `/api/products/lookup?code=${encodeURIComponent('no-such-code-' + suffix)}`, { token: staff });
+check('an unknown code is 200 with found=false, not a 404', r.status === 200 && r.body.found === false && r.body.product === null, JSON.stringify(r.body));
+r = await api('GET', `/api/products/lookup?code=${p1.sku}`, { token: staff });
+check('a known code is found with its product', r.status === 200 && r.body.found === true && r.body.product.id === p1.id);
+r = await api('POST', '/api/documents/receipts', { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 2, unitCost: 1 }]) });
+const tokenDoc = r.body;
+check('instants are UTC with a Z', /^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(tokenDoc.createdAt), tokenDoc.createdAt);
+check('the document carries a concurrency token equal to its ETag', typeof tokenDoc.concurrencyToken === 'string' && r.headers.get('etag') === `"${tokenDoc.concurrencyToken}"`, String(r.headers.get('etag')));
+check('creator is id, user name and display name', tokenDoc.createdById > 0 && tokenDoc.createdBy && tokenDoc.createdByName);
+check('lines show the stock on hand', typeof tokenDoc.lines[0].available === 'number', JSON.stringify(tokenDoc.lines[0]));
+r = await api('PUT', `/api/documents/${tokenDoc.id}`, { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 3, unitCost: 1 }]), headers: { 'If-Match': `"${tokenDoc.concurrencyToken}"` } });
+check('a save with the current token works and moves the token', r.status === 200 && r.body.concurrencyToken !== tokenDoc.concurrencyToken, String(r.status));
+r = await api('PUT', `/api/documents/${tokenDoc.id}`, { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 4, unitCost: 1 }]), headers: { 'If-Match': `"${tokenDoc.concurrencyToken}"` } });
+check('a save with a stale token is refused (409) before anything changes', r.status === 409 && /changed by someone else/.test(r.body.detail ?? ''), JSON.stringify(r.body));
+r = await api('GET', `/api/documents?mine=true&search=${tokenDoc.no}`, { token: staff });
+check('mine=true lists my document with creator and flags', r.body.items.length === 1 && r.body.items[0].createdById === tokenDoc.createdById && r.body.items[0].requiresApproval === false && typeof r.body.items[0].concurrencyToken === 'string', JSON.stringify(r.body.items[0]));
+r = await api('GET', '/api/documents?status=Submitted&requiresApproval=true&pageSize=5', { token: supervisor });
+check('requiresApproval=true is accepted (approvals inbox)', r.status === 200 && r.body.items.every(i => i.requiresApproval === true), String(r.status));
+r = await api('GET', '/api/documents/counts', { token: staff });
+check('counts: returnedToMe, myDrafts, postedToday, approvalsWaiting', r.status === 200 && ['returnedToMe', 'myDrafts', 'postedToday', 'approvalsWaiting'].every(k => typeof r.body[k] === 'number'), JSON.stringify(r.body));
+r = await api('GET', `/api/stock?productId=${p1.id}`, { token: admin });
+check('stock rows carry the warehouse name', r.body.items[0].warehouseName && r.body.items[0].warehouseCode);
+r = await fetch(`${BASE}/openapi/v1.json`);
+const spec = await r.json().catch(() => null);
+check('OpenAPI: enums are string schemas with values', spec?.components?.schemas?.DocumentStatus?.type === 'string' && spec.components.schemas.DocumentStatus.enum.includes('Posted') && !spec.components.schemas.IssuePurpose.enum.includes(null));
+check('OpenAPI: operation ids are Tag_action', spec?.paths?.['/api/documents']?.get?.operationId === 'Documents_list');
+
 console.log('Reports');
 const x = await fetch(`${BASE}/api/reports/stock-summary/export`, { headers: { Authorization: `Bearer ${admin}` } });
 check('stock summary exports xlsx', x.status === 200 && (x.headers.get('content-type') ?? '').includes('spreadsheetml'));

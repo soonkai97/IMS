@@ -54,12 +54,27 @@ public sealed class ApiFixture : IAsyncLifetime
     /// <summary>A new caller with its own fake address; anonymous unless a token is given.</summary>
     public ApiClient CreateClient(string? accessToken = null)
     {
-        var http = Host.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var http = Host.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false });
         http.DefaultRequestHeaders.Add(ClientAddressStartupFilter.HeaderName, ClientAddresses.Next());
         return new ApiClient(http, accessToken);
     }
 
     public ApiClient Anonymous() => CreateClient();
+
+    /// <summary>
+    /// A second host on the same database with different settings or services (a configuration switch, a replaced adapter). It is built
+    /// from a fresh factory so the shared host and its service registrations stay untouched. The caller disposes it.
+    /// </summary>
+    public WebApplicationFactory<Program> CreateHost(Action<Microsoft.AspNetCore.Hosting.IWebHostBuilder> configure) =>
+        new TestHostFactory(Settings).WithWebHostBuilder(configure);
+
+    /// <summary>A caller of <paramref name="host"/> with its own fake address.</summary>
+    public static ApiClient CreateClient(WebApplicationFactory<Program> host)
+    {
+        var http = host.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false });
+        http.DefaultRequestHeaders.Add(ClientAddressStartupFilter.HeaderName, ClientAddresses.Next());
+        return new ApiClient(http);
+    }
 
     /// <summary>A caller signed in as the seeded user of <paramref name="role"/>. The login is reused between tests.</summary>
     public async Task<ApiClient> AsAsync(string role)

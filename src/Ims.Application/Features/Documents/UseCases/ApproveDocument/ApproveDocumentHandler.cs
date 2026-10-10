@@ -9,12 +9,13 @@ public class ApproveDocumentHandler(IRepository<StockDocument> documents, IAppro
     {
         var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
         access.EnsureWarehouse(doc.WarehouseId);
+        DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
 
         if (!(await approvals.AssessAsync(doc, ct)).CallerMayApprove)
             throw new ForbiddenException(Messages.AboveApprovalLimit);
 
-        doc.Approve(current.UserId, (await settings.GetAsync(ct)).AllowSelfApproval, clock.UtcNow);
-        audit.Record(AuditActions.DocumentApproved, AuditEntities.StockDocument, doc.No, new { Status = DocumentStatus.Submitted }, new { doc.Status });
+        doc.Approve(current.UserId, (await settings.GetAsync(ct)).AllowSelfApproval, clock.UtcNow, cmd.Data.NegativeStockOverrideReason);
+        audit.Record(AuditActions.DocumentApproved, AuditEntities.StockDocument, doc.No, new { Status = DocumentStatus.Submitted }, new { doc.Status, doc.NegativeStockOverrideReason });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);
     }

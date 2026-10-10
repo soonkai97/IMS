@@ -45,15 +45,33 @@ public class ProductTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task Lookup_resolves_a_barcode_or_a_sku_and_returns_404_for_unknown_codes()
+    public async Task Lookup_resolves_a_barcode_or_a_sku()
     {
         var admin = await fixture.AsAsync("Admin");
         var barcode = Unique.Barcode();
         var product = await new ProductBuilder(Ref).WithBarcodes(barcode).CreateAsync(admin);
 
-        Assert.Equal(product.Id, (await admin.Products.LookupAsync(barcode)).Data<ProductDto>().Id);
-        Assert.Equal(product.Id, (await admin.Products.LookupAsync(product.Sku)).Data<ProductDto>().Id);
-        (await admin.Products.LookupAsync("no-such-code-" + Guid.NewGuid().ToString("N"))).ShouldBe(HttpStatusCode.NotFound);
+        foreach (var code in new[] { barcode, product.Sku })
+        {
+            var result = (await admin.Products.LookupAsync(code)).Data<ProductLookupResult>();
+            Assert.True(result.Found);
+            Assert.Equal(product.Id, result.Product!.Id);
+        }
+    }
+
+    [Fact]
+    public async Task Lookup_of_an_unknown_code_is_a_200_with_found_false_not_a_404()
+    {
+        var admin = await fixture.AsAsync("Admin");
+
+        var response = await admin.Products.LookupAsync("no-such-code-" + Guid.NewGuid().ToString("N"));
+
+        response.ShouldBeOk();
+        var result = response.Read<ProductLookupResult>();
+        Assert.False(result.Found);
+        Assert.Null(result.Product);
+        using var json = response.Json();
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, json.RootElement.GetProperty("product").ValueKind);
     }
 
     [Fact]

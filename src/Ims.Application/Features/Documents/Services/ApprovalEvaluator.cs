@@ -22,6 +22,7 @@ public class ApprovalEvaluator(IReadRepository<ApprovalRule> rules, IReadReposit
         return new ApprovalAssessment(
             ApprovalPolicy.RequiresApproval(active, document.Type, qty, amount),
             ApprovalPolicy.CanApprove(current.Role, active, document.Type, qty, amount),
-            amount);
+            amount,
+            ApprovalPolicy.IsLarge(active, document.Type, qty, amount));
     }
 }
