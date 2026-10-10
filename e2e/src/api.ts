@@ -2,6 +2,7 @@
  * Test data through the public API (never the database). Every call signs in with the real login endpoint using the demo
  * password of a role; the access token stays in memory. Data is created with unique names so scenarios stay independent.
  */
+import { randomBytes, randomInt } from 'node:crypto';
 import { API_URL, passwordFor, type Role } from './config';
 import { spendLoginBudget } from './rate-limit';
 
@@ -37,7 +38,7 @@ let counter = 0;
 
 /** A short unique, upper-case token for names, SKUs and barcodes. */
 export const unique = (): string =>
-  `${Date.now().toString(36)}${(counter++).toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`.toUpperCase();
+  `${Date.now().toString(36)}${(counter++).toString(36)}${randomInt(0, 1296).toString(36)}`.toUpperCase();
 
 /** Signs in; sign-in and refresh share a limit of 20 a minute per address, so a 429 waits as long as the API asks. */
 async function signIn(role: Role): Promise<string> {
@@ -194,7 +195,7 @@ export class ImsApi {
   /** A throw-away Clerk with a made-up password, so a wrong-password test never touches a demo account. */
   async createUser(): Promise<{ username: string; password: string }> {
     const token = unique().toLowerCase();
-    const user = { username: `e2e-${token}`, password: `Aa1!${token}-xYz` };
+    const user = { username: `e2e-${token}`, password: `Aa1!${randomBytes(9).toString('base64url')}-xYz` };
     await this.call('POST', '/api/users', {
       username: user.username,
       email: `${user.username}@example.test`,
