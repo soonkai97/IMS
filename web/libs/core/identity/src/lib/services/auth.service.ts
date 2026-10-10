@@ -21,13 +21,15 @@ import {
   SESSION_EXPIRED_REASON,
   SESSION_REASON_PARAM
 } from '../constants/identity.const';
-import { TokenStorage } from './token-storage';
+import { removeLegacyRefreshToken } from './legacy-refresh-token';
 
-const NO_REFRESH_TOKEN = 'No refresh token';
+/** The refresh token travels in an HttpOnly cookie; the body of refresh and logout stays empty. */
+const COOKIE_ONLY_BODY = { refreshToken: undefined } as const;
 
 /**
- * Session owner: login, logout and token refresh with rotation.
- *  - The access token lives in memory; the refresh token is stored by TokenStorage.
+ * Session owner: login, logout and token refresh with rotation (SEC-34).
+ *  - The access token lives in memory only. The refresh token is an HttpOnly cookie that scripts cannot read, so the
+ *    app never stores, reads or sends it; it just calls refresh and the browser attaches the cookie.
  *  - refresh() is single-flight: concurrent 401s share one call, because rotation invalidates the old refresh token.
  *  - When refreshing fails the session ends and the user is sent to the login page with a return URL.
  */
@@ -35,10 +37,9 @@ const NO_REFRESH_TOKEN = 'No refresh token';
 export class AuthService {
   private readonly authClient = inject(AuthClient);
   private readonly router = inject(Router);
-  private readonly storage = inject(TokenStorage);
 
   private accessToken: string | undefined;
-  private refreshInFlight: Observable<string> | undefined;
+  private refreshInFlight: Observable<AuthResult> | undefined;
   private readonly sessionEnded = new Subject<void>();
 
   private readonly $currentUser = signal<UserInfo | undefined>(undefined);
@@ -60,48 +61,25 @@ export class AuthService {
     return this.accessToken;
   }
 
-  /** App start: turn a stored refresh token back into a session; any failure just means "logged out". */
+  /**
+   * App start: one refresh call turns the cookie back into a session. Nothing in the page can tell whether a cookie
+   * exists, so a 401 (or any failure) just means "signed out": no redirect, no notice.
+   */
   restoreSession(): Observable<void> {
-    if (!this.storage.readRefreshToken()) {
-      return of(undefined);
-    }
-    return this.refresh().pipe(
-      switchMap(() => this.authClient.me()),
-      tap(user => this.$currentUser.set(user)),
+    removeLegacyRefreshToken();
+    return this.refreshSession(false).pipe(
       map(() => undefined),
       catchError(() => of(undefined))
     );
   }
 
-  /** New access token (and rotated refresh token). Concurrent callers share one request. */
+  /** New access token (the refresh cookie is rotated by the server). Concurrent callers share one request. */
   refresh(): Observable<string> {
-    if (this.refreshInFlight) {
-      return this.refreshInFlight;
-    }
-    const refreshToken = this.storage.readRefreshToken();
-    if (!refreshToken) {
-      this.endSession(true);
-      return throwError(() => new Error(NO_REFRESH_TOKEN));
-    }
-    this.refreshInFlight = this.authClient.refresh({ refreshToken }).pipe(
-      tap(result => this.acceptTokens(result)),
-      map(result => result.accessToken),
-      catchError((error: unknown) => {
-        this.endSession(true);
-        return throwError(() => error);
-      }),
-      finalize(() => {
-        this.refreshInFlight = undefined;
-      }),
-      shareReplay({ bufferSize: 1, refCount: false })
-    );
-    return this.refreshInFlight;
+    return this.refreshSession(true).pipe(map(result => result.accessToken));
   }
 
   logout(): Observable<void> {
-    const refreshToken = this.storage.readRefreshToken();
-    const revoke$ = refreshToken ? this.authClient.logout({ refreshToken }) : of(undefined);
-    return revoke$.pipe(
+    return this.authClient.logout(COOKIE_ONLY_BODY).pipe(
       catchError(() => EMPTY),
       finalize(() => this.endSession(false))
     );
@@ -110,7 +88,6 @@ export class AuthService {
   /** Clears the session; `expired` adds the "session expired" notice and remembers where the user was. */
   endSession(expired: boolean): void {
     this.accessToken = undefined;
-    this.storage.clear();
     this.$currentUser.set(undefined);
     this.refreshInFlight = undefined;
     this.sessionEnded.next();
@@ -123,11 +100,28 @@ export class AuthService {
     void this.router.navigate([LOGIN_ROUTE], { queryParams });
   }
 
+  private refreshSession(endSessionOnFailure: boolean): Observable<AuthResult> {
+    if (this.refreshInFlight) {
+      return this.refreshInFlight;
+    }
+    this.refreshInFlight = this.authClient.refresh(COOKIE_ONLY_BODY).pipe(
+      tap(result => this.acceptTokens(result)),
+      catchError((error: unknown) => {
+        if (endSessionOnFailure) {
+          this.endSession(true);
+        }
+        return throwError(() => error);
+      }),
+      finalize(() => {
+        this.refreshInFlight = undefined;
+      }),
+      shareReplay({ bufferSize: 1, refCount: false })
+    );
+    return this.refreshInFlight;
+  }
+
   private acceptTokens(result: AuthResult): void {
     this.accessToken = result.accessToken;
-    if (result.refreshToken) {
-      this.storage.writeRefreshToken(result.refreshToken);
-    }
     this.$currentUser.set(result.user);
   }
 }

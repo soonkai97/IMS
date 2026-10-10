@@ -1,4 +1,5 @@
-export const REFRESH_TOKEN_STORAGE_KEY = 'ims.refreshToken';
+/** localStorage key of the refresh token before SEC-34 (only used to delete a leftover entry). */
+export const LEGACY_REFRESH_TOKEN_STORAGE_KEY = 'ims.refreshToken';
 
 export const LOGIN_ROUTE = '/login';
 export const FORBIDDEN_ROUTE = '/forbidden';

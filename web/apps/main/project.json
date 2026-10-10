@@ -36,6 +36,11 @@
               "with": "libs/core/http/src/lib/config/environment.production.ts"
             }
           ],
+          "optimization": {
+            "scripts": true,
+            "styles": { "minify": true, "inlineCritical": false },
+            "fonts": true
+          },
           "outputHashing": "all",
           "serviceWorker": "apps/main/ngsw-config.json"
         },
