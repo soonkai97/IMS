@@ -1,6 +1,6 @@
 # IMS — Task Breakdown (from PRD v0.2)
 
-Stack: Angular 21 (PWA) · .NET 10 (Clean Architecture, CQRS) · SQL Server.
+Stack: Angular 22 (PWA) · .NET 10 (Clean Architecture, CQRS) · SQL Server.
 Scope of this pass: **Phase 0 (Foundation) + Phase 1 (MVP)**. Phases 2–4 are backlog at the bottom.
 Legend: [x] done and verified · [~] in progress · [ ] not started
 
@@ -11,7 +11,7 @@ Legend: [x] done and verified · [~] in progress · [ ] not started
 - [x] T04 AUTH-02 RBAC by feature + warehouse scope (403 on API)
 - [x] T05 AUTH-03 Immutable audit log (row-level + business events)
 - [x] T06 OpenAPI document + Swagger UI (`/swagger`)
-- [~] T07 Angular 21 PWA scaffold, Nx 4-tier layout (four tiers: shared, core, features, containers), `app-*` wrappers, auth, i18n (en/zh/ms)
+- [x] T07 Angular 22 PWA scaffold, Nx 23, four tiers (shared, core, features, containers), `app-*` wrappers, auth, i18n (en/zh/ms)
 
 ## Phase 1 — MVP (backend)
 - [x] T08 MD-01/02/03 Products (+ barcodes, unit conversions), warehouses, partners (deactivate-only)
@@ -24,8 +24,8 @@ Legend: [x] done and verified · [~] in progress · [ ] not started
 - [x] T15 STK-01/02 Stock enquiry + ledger
 - [x] T16 Low-stock list
 - [x] T17 RPT-01 Reports and Excel exports
-- [~] T18 Tests: domain unit + architecture (agent running), API integration on real SQL Server (agent running); smoke test 41/41 green
-- [~] T19 Frontend screens (agent running)
+- [x] T18 Tests: 459 domain unit, 51 architecture, 629 API integration on real SQL Server (CI service container), smoke test in CI
+- [x] T19 Frontend screens (64 Jest tests). Open: attachments panel, "Mine" filter (API gap), E2E
 - [ ] T20 End-to-end verification with UI (behaviour tests, QA personas)
 
 ## Quality
@@ -34,8 +34,8 @@ Legend: [x] done and verified · [~] in progress · [ ] not started
 - [x] Q3 Constants and messages centralised, no magic numbers/strings
 - [x] Q4 Logging (Serilog, correlation id), health checks, ProblemDetails
 - [x] Q5 Deadlock policy (ordered locks, optimistic concurrency, retry on 1205, RCSI) — proven by 24-way parallel postings
-- [~] Q6 Independent architecture review (agent running) → docs/reviews/backend-initial/
-- [~] Q7 DBA performance check at 100k ledger rows (agent running) → docs/dba/
+- [x] Q6 Independent architecture review → docs/reviews/backend-initial/
+- [x] Q7 DBA performance review at 1M ledger rows → docs/dba/README.md (indexes shipped; R3 movements ordering in progress)
 
 - [x] Q8 Standard audit columns on every table (REC_DELETED, REC_CREATOR, REC_CREDATE, REC_REVISOR, REC_REVDATE, ROW_VERSION), soft delete, filtered unique indexes
 - [x] Q9 Physical file storage for images/documents (attachments), type by content, owner policies
@@ -47,8 +47,8 @@ Legend: [x] done and verified · [~] in progress · [ ] not started
 - [ ] Q14 Web app moves to the refresh cookie (steps: `docs/security/refresh-cookie.md` section 5), then set `Auth__ReturnRefreshTokenInBody=false`; apply the header set of `docs/security/web-headers.md` on the static host; plug a real AV engine into `IUploadScanner`; triage the first DAST run
 
 ## Delivery
-- [~] T21 CI/CD written (+ `pr-guard.yml`, `codeql.yml`, npm audit, web job on Nx scripts): `ci.yml` (build, unit, architecture, integration on SQL container, smoke, web, audit), `dast.yml` (weekly ZAP API scan), `release.yml` (image to GHCR), `deploy.yml` (gated skeleton; hosting target undecided, PRD 14.3)
-- [ ] T22 Push to https://github.com/soonkai97/IMS (private). Waiting for the test agents to finish so the first CI run is green; then first push needs the user's browser sign-in for Git Credential Manager
+- [x] T21 CI/CD: `ci.yml` (build, unit, architecture, integration on SQL container, smoke, web on Node 22, audit), `pr-guard.yml`, `codeql.yml`, `dast.yml` (weekly ZAP scan), `release.yml` (image to GHCR after green CI), `dependabot.yml`. Open: `deploy.yml` is a gated skeleton, hosting target undecided (PRD 14.3)
+- [x] T22 Repository https://github.com/soonkai97/IMS (public, `main` protected by ruleset: PR + 4 required checks, squash only)
 - [~] T23 Reusable base: rename script + `docs/TEMPLATE.md` done; framework extraction (Framework.* packages, npm lib) after a second project exists
 
 ## Team (agents in `.claude/agents/`, protocol in `docs/team/PROTOCOL.md`, PR review in `docs/team/PR-REVIEW.md`)
