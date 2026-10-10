@@ -108,7 +108,7 @@ describe('DocumentEditorPageComponent', () => {
   /** What a command answers instead of the opened document (a save that creates, a submit that moves on). */
   const responses: Record<string, DocumentDto | undefined> = {};
   /** Commands that fail like a dead network. */
-  const failing = new Set<string>();
+  const failing = new Map<string, unknown>();
   let commands: Record<string, ApiCommand<never, DocumentDto>>;
 
   /** One recording command per action; like the real store, each answer becomes the opened document. */
@@ -116,7 +116,7 @@ describe('DocumentEditorPageComponent', () => {
     return new ApiCommand<never, DocumentDto>(arg => {
       (calls[name] ??= []).push(arg);
       if (failing.has(name)) {
-        return throwError(() => new Error('offline'));
+        return throwError(() => failing.get(name));
       }
       const answer = responses[name] ?? (opened() as DocumentDto);
       opened.set(answer);
@@ -639,7 +639,7 @@ describe('DocumentEditorPageComponent', () => {
     it('a save that fails before the document exists leaves the editor new', async () => {
       await openNew();
       fillNewIssue();
-      failing.add('save');
+      failing.set('save', new Error('offline'));
       const navigate = jest.spyOn(spectator.inject(Router), 'navigate');
 
       expect(() => spectator.component.onAction(DOCUMENT_ACTION.Edit)).not.toThrow();
@@ -771,6 +771,27 @@ describe('DocumentEditorPageComponent', () => {
       expect(text()).toContain('DEMO-001 (-3 PCS), QA-002 (-6 PCS) negative');
       expect(text()).not.toContain('changed since you opened it');
       expect(text()).not.toContain('Adjust the quantity');
+    });
+
+    it('EA-07: after a refused reversal the focus is on the error, not left on the page body', async () => {
+      await open(
+        document({ status: DocumentStatus.Posted, allowedActions: [DOCUMENT_ACTION.Reverse] })
+      );
+      failing.set('reverse', {
+        ...STALE,
+        extensions: {
+          code: 'reversal_blocked',
+          shortages: [{ productId: 1, sku: 'DEMO-001', uomCode: 'PCS', balance: -1 }]
+        }
+      });
+      (window.document.activeElement as HTMLElement | null)?.blur();
+
+      spectator.component.onAction(DOCUMENT_ACTION.Reverse);
+      confirm().confirm('Wrong supplier note');
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(window.document.activeElement?.tagName).toBe('APP-BANNER');
     });
 
     it('E4: the stale banner names who changed the document and when, when the API says so', async () => {

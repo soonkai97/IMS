@@ -24,6 +24,8 @@ import {
   UiInputComponent
 } from '@ims/ui';
 
+const ACCOUNT_LOCKED_CODE = 'account_locked';
+
 /** Only same-app paths are accepted as a return URL, so a crafted link cannot send the user to another site. */
 function safeReturnUrl(url: string | undefined): string {
   if (!url?.startsWith('/') || url.startsWith('//')) {
@@ -79,8 +81,12 @@ export class LoginPageComponent {
     if (!error) {
       return undefined;
     }
+    // The API's sentence for a locked account ("Try again in N minutes.") and for the rate limit names the wait.
+    if (error.extensions['code'] === ACCOUNT_LOCKED_CODE && error.detail.length > 0) {
+      return error.detail;
+    }
     if (error.status === HTTP_STATUS.TooManyRequests) {
-      return this.i18n.t('error.tooManyRequests');
+      return error.detail.length > 0 ? error.detail : this.i18n.t('error.tooManyRequests');
     }
     return error.kind === API_ERROR_KIND.Unauthorized
       ? this.i18n.t('login.error.invalid')

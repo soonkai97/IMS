@@ -1067,9 +1067,11 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         if (active && active !== this.page.body) {
           return;
         }
-        this.page
-          .querySelector<HTMLElement>('app-banner[role="alert"][tabindex], app-page-header h1')
-          ?.focus();
+        // The error first (it comes after the title in the page, so one combined selector would pick the title).
+        const target =
+          this.page.querySelector<HTMLElement>('app-banner[role="alert"][tabindex]') ??
+          this.page.querySelector<HTMLElement>('app-page-header h1');
+        target?.focus();
       },
       { injector: this.injector }
     );

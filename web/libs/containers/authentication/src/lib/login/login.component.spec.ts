@@ -57,9 +57,28 @@ describe('LoginPageComponent failure messages', () => {
     expect(document.activeElement?.getAttribute('aria-invalid')).toBe('true');
   });
 
-  it('EA-24: the rate limit says to wait, not "could not be processed"', () => {
-    show(error(API_ERROR_KIND.Unknown, 429, 'The request could not be processed.'));
+  it('EA-24: the rate limit shows the API sentence with the wait', () => {
+    show(error(API_ERROR_KIND.Unknown, 429, 'Too many requests. Try again in 12 seconds.'));
+
+    expect(banner()).toContain('Too many requests. Try again in 12 seconds.');
+  });
+
+  it('EA-24: a rate limit without a sentence gets ours', () => {
+    show(error(API_ERROR_KIND.Unknown, 429, ''));
 
     expect(banner()).toContain('Too many attempts. Wait a minute and try again.');
+  });
+
+  it('EA-13: a locked account shows the E7 sentence with the minutes, not the generic one', () => {
+    show({
+      ...error(
+        API_ERROR_KIND.Unauthorized,
+        401,
+        'Too many failed attempts. Try again in 14 minutes.'
+      ),
+      extensions: { code: 'account_locked', retryAfterMinutes: 14 }
+    });
+
+    expect(banner()).toContain('Too many failed attempts. Try again in 14 minutes.');
   });
 });

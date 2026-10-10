@@ -13,12 +13,25 @@ import {
   numberAttribute,
   output
 } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormControl,
+  ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
+  Validators
+} from '@angular/forms';
 import { UI_TEXT } from '../../tokens/ui-text.token';
 import { UiButtonComponent } from '../button/button.component';
 import { UiDialogComponent } from '../dialog/dialog.component';
 import { UiFormFieldComponent } from '../form-field/form-field.component';
 import { UiTextareaComponent } from '../textarea/textarea.component';
+
+/** The API trims a reason before it counts its characters, so five spaces and "abc" are not a reason (PS-09). */
+function trimmedMinLength(length: number): ValidatorFn {
+  return (control: AbstractControl<string>): ValidationErrors | null =>
+    control.value.trim().length >= length ? null : { minlength: { requiredLength: length } };
+}
 
 /**
  * Confirmation for irreversible actions (post, reverse, reject, cancel, discard). Destructive confirmations never
@@ -71,7 +84,7 @@ export class UiConfirmDialogComponent {
       return;
     }
     const validators = this.$reasonRequired()
-      ? [Validators.required, Validators.minLength(this.$minReasonLength())]
+      ? [Validators.required, trimmedMinLength(this.$minReasonLength())]
       : [];
     this.reason.setValidators(validators);
     this.reason.reset('');

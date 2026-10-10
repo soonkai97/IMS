@@ -49,6 +49,20 @@ describe('UiConfirmDialogComponent reason box (EA-06)', () => {
     expect(confirmed).toEqual([]);
   });
 
+  it('spaces do not count: the API trims a reason before measuring it', () => {
+    const confirmed: string[] = [];
+    spectator.output('$confirmed').subscribe(reason => confirmed.push(reason as string));
+
+    spectator.typeInElement('   ab   ', 'textarea');
+    spectator.click(confirmButton());
+    spectator.detectChanges();
+    expect(confirmed).toEqual([]);
+
+    spectator.typeInElement('  Wrong lot  ', 'textarea');
+    spectator.click(confirmButton());
+    expect(confirmed).toEqual(['Wrong lot']);
+  });
+
   it('after a refused confirm the focus goes back to the reason box', async () => {
     spectator.click(confirmButton());
     spectator.detectChanges();
