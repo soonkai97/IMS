@@ -51,7 +51,7 @@ public static class EndpointCatalog
         new("POST units", Post, Permissions.MasterDataManage, _ => "/api/units", _ => new UomSaveRequest(Unique.Code("U"), "Test unit")),
         new("POST warehouses", Post, Permissions.MasterDataManage, _ => "/api/warehouses",
             _ => new WarehouseSaveRequest(Unique.Code("W"), Unique.Name("Warehouse"), null, null, true)),
-        new("POST partners", Post, Permissions.MasterDataManage, _ => "/api/partners",
+        new("POST partners", Post, Permissions.PartnersCreate, _ => "/api/partners",
             _ => new PartnerSaveRequest(PartnerType.Supplier, Unique.Name("Partner"), null, true)),
         new("PUT settings", Put, Permissions.SettingsManage, _ => "/api/settings", _ => new SettingsDto(false, false, 24)),
         new("POST approval-rules", Post, Permissions.SettingsManage, _ => "/api/approval-rules",

@@ -159,6 +159,38 @@ public class AuditTrailTests(ApiFixture fixture)
     }
 
     [Fact]
+    public async Task Creating_a_partner_is_audited_with_the_actor_for_clerks_and_supervisors()
+    {
+        foreach (var role in new[] { Roles.Clerk, Roles.Supervisor })
+        {
+            var (account, client) = await SignedInAsync(role);
+            var name = Unique.Name("AuditPartner");
+
+            var partner = (await client.Partners.CreateAsync(new Ims.Application.Features.Partners.PartnerSaveRequest(PartnerType.Supplier, name, "contact", true)))
+                .Data<Ims.Application.Features.Partners.PartnerDto>();
+
+            var entries = await EntriesAsync(account.Username, nameof(Partner));
+            var created = Assert.Single(entries, e => e.Action == AuditActions.RowCreated && e.EntityId == partner.Id.ToString());
+            Assert.Equal(account.Username, created.Actor);
+            Assert.Contains(name, created.After);
+            Assert.True(Math.Abs((DateTime.UtcNow - created.At).TotalMinutes) < 10, $"At {created.At:o} is not recent UTC");
+        }
+    }
+
+    [Fact]
+    public async Task A_refused_partner_edit_by_a_clerk_leaves_no_audit_entry()
+    {
+        var (account, client) = await SignedInAsync(Roles.Clerk);
+        var partner = (await client.Partners.CreateAsync(new Ims.Application.Features.Partners.PartnerSaveRequest(PartnerType.Customer, Unique.Name("AuditPartner"), null, true)))
+            .Data<Ims.Application.Features.Partners.PartnerDto>();
+
+        (await client.Partners.UpdateAsync(partner.Id, new Ims.Application.Features.Partners.PartnerSaveRequest(PartnerType.Customer, partner.Name, null, false))).ShouldBe(System.Net.HttpStatusCode.Forbidden);
+
+        var entries = await EntriesAsync(account.Username, nameof(Partner));
+        Assert.DoesNotContain(entries, e => e.Action == AuditActions.RowUpdated && e.EntityId == partner.Id.ToString());
+    }
+
+    [Fact]
     public async Task Settings_and_approval_rule_changes_are_audited()
     {
         var (account, client) = await SignedInAsync(Roles.Admin);

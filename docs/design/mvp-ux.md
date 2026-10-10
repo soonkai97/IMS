@@ -25,7 +25,7 @@ Open questions (default in brackets is what this design assumes):
 
 | # | To | Question |
 |---|---|---|
-| Q1 | business-analyst | The permission matrix in the PRD text is garbled in the extract. Section 1.1 states how I read it; please confirm, especially Master data for Clerk ("Yes (drafts)"), Supervisor on Reports, and Stock view for Clerk. |
+| Q1 | business-analyst | The permission matrix in the PRD text is garbled in the extract. Section 1.1 states how I read it; please confirm, especially Master data for Clerk ("Yes (drafts)"), Supervisor on Reports, and Stock view for Clerk. [Clerk and partners answered by the product owner on 2026-10-10: Clerk may create partners, not edit or deactivate them.] |
 | Q2 | business-analyst | After a supervisor approves, may the submitting Warehouse staff post? [No, per matrix: Post is Admin/Supervisor only once approval was required.] I recommend Yes, because staff are the ones holding the goods. |
 | Q3 | business-analyst | Approved documents cannot be cancelled in Fig 5. If posting then fails (stock moved), the document is stuck. [Design follows PRD; Approved shows Post only.] Recommend allowing Cancel on Approved for Supervisor/Admin. |
 | Q4 | be-system-designer | Does reversal create a separate document number? [Design shows original as Reversed with a "Reversed by ... on ... reason ..." block and two ledger lines; no second document.] |
@@ -42,7 +42,7 @@ Warehouse scope: Warehouse staff, Supervisor and Clerk only see warehouses assig
 | Feature | Admin | Owner | Supervisor | Warehouse staff | Clerk |
 |---|---|---|---|---|---|
 | User and role management | Yes | -- | -- | -- | -- |
-| Master data (products, warehouses, partners) | Yes | Read | Yes | Read | Partners only; products and warehouses Read (Q1) |
+| Master data (products, warehouses, partners) | Yes | Read | Yes | Read | Partners: create only (no edit, no deactivate); products and warehouses Read (decided by the product owner, closes Q1) |
 | Create receipt / issue | Yes | -- (read documents) | Yes | Yes | Yes, drafts and submit |
 | Approve | Yes | Yes, large documents only | Yes | -- | -- |
 | Post | Yes | -- | Yes | Yes, only when no approval is required | -- |
@@ -68,7 +68,7 @@ Legend: **Yes** = full; **Read** = view only (no create/edit buttons rendered); 
 | Low stock (badge = count) | Yes | Yes | Yes | Yes (own wh) | Read (own wh) |
 | Products (incl. Import) | Yes | Read | Yes | Read | Read |
 | Warehouses | Yes | Read | Yes | Read | Read |
-| Partners | Yes | Read | Yes | Read | Yes |
+| Partners | Yes | Read | Yes | Read | Yes (list, New; no edit or deactivate) |
 | Reports | Yes | Yes | Yes | -- | -- |
 | Users and roles | Yes | -- | -- | -- | -- |
 | Settings (negative stock, approval rules) | Yes | -- | -- | -- | -- |
@@ -101,7 +101,7 @@ Priority: M = must for MVP, S = should (cut first if time is short). Device: P =
 | S31 | Product edit / view | `/products/new`, `/products/:id` | same | M | D | Multiple barcodes (add/remove chips), active toggle |
 | S32 | Import wizard | `/products/import` | Adm, Sup | M | D | Tabs: Products / Opening stock; 4 steps |
 | S33 | Warehouse list + edit | `/warehouses` | Adm Y, Sup Y, others R | M | D | Edit in side panel/dialog; no delete, deactivate only |
-| S34 | Partner list + edit | `/partners` | Adm Y, Sup Y, Clk Y, others R | M | D | Supplier/Customer type filter; deactivate only |
+| S34 | Partner list + edit | `/partners` | Adm Y, Sup Y, Clk create only (permission `partners.create`: [New] shown, row edit and deactivate hidden), others R | M | D | Supplier/Customer type filter; deactivate only; a duplicate name and type answers 409 |
 | S40 | Reports | `/reports` | Adm, Own, Sup | M | D | Tabs: Stock summary / Receipt-issue detail / Stock ledger; filter form, table, Export Excel |
 | S50 | Users and roles | `/users` | Adm | M | D | Role + assigned warehouses |
 | S51 | Audit log | `/audit-log` | Adm, Own | S | D | Read-only list, filters (actor, entity, date); expand row for before/after |
