@@ -1,4 +1,5 @@
 using Ims.Application;
+using Ims.Application.Features.Attachments;
 using Ims.Domain;
 using Ims.Infrastructure.Excel;
 using Ims.Infrastructure.Persistence;
@@ -87,6 +88,8 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
         services.AddSingleton<IFileStorage, LocalFileStorage>();
+        // Scanning hook for uploads. The default accepts everything; register a real IUploadScanner here to turn scanning on.
+        services.AddSingleton<IUploadScanner, NoOpUploadScanner>();
         return services;
     }
 
