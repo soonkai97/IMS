@@ -72,7 +72,7 @@ export function setupData() {
     if (r.items.length < 200) break;
   }
   const first = getJson('/api/products/lookup?code=SKU-00001', tokens.admin);
-  const offset = first.id - 1;
+  const offset = first.product.id - 1;
   const hot = [];
   for (let i = 1; i <= HOT_N; i++) hot.push(offset + i);
   const stocked = {};   // per warehouse: products with plenty of stock to issue from [{id, qty, avg}]

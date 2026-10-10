@@ -144,6 +144,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.BaseQty).HasColumnType(SqlTypes.Quantity);
             e.Property(x => x.UnitCost).HasColumnType(SqlTypes.Cost);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
+            // The movements report counts and pages lines through their document; the filtered index answers EF's REC_DELETED predicate without reading the table.
+            // The unfiltered foreign-key index stays (declared here, or EF would drop it as redundant): a physical delete of a document must find its soft-deleted lines too.
+            e.HasIndex(x => x.DocumentId, "IX_StockDocumentLine_DocumentId");
+            e.HasIndex(x => x.DocumentId, "IX_StockDocumentLine_DocumentId_Live").HasFilter(LiveRows);
             e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Uom).WithMany().HasForeignKey(x => x.UomId).OnDelete(DeleteBehavior.Restrict);
         });

@@ -895,11 +895,14 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DocumentId");
-
                     b.HasIndex("ProductId");
 
                     b.HasIndex("UomId");
+
+                    b.HasIndex(new[] { "DocumentId" }, "IX_StockDocumentLine_DocumentId");
+
+                    b.HasIndex(new[] { "DocumentId" }, "IX_StockDocumentLine_DocumentId_Live")
+                        .HasFilter("[REC_DELETED] = 0");
 
                     b.ToTable("StockDocumentLine");
                 });

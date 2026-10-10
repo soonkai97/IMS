@@ -9,7 +9,7 @@ public sealed class MovementsPageSpec : Specification<StockDocumentLine, Movemen
     {
         MovementFilters.Apply(Query, f, scope);
         var (page, size) = Paging.Normalize(f.Page, f.PageSize);
-        Query.OrderByDescending(l => l.Document.PostedAt).ThenBy(l => l.Id).Skip((page - 1) * size).Take(size)
-            .Select(MovementProjection.Expression);
+        MovementOrder.Apply(Query);
+        Query.Skip((page - 1) * size).Take(size).Select(MovementProjection.Expression);
     }
 }

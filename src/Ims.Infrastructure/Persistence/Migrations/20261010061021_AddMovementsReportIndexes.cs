@@ -1,0 +1,28 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace Ims.Infrastructure.Persistence.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddMovementsReportIndexes : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.CreateIndex(
+                name: "IX_StockDocumentLine_DocumentId_Live",
+                table: "StockDocumentLine",
+                column: "DocumentId",
+                filter: "[REC_DELETED] = 0");
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropIndex(
+                name: "IX_StockDocumentLine_DocumentId_Live",
+                table: "StockDocumentLine");
+        }
+    }
+}
