@@ -1,38 +1,60 @@
 namespace Ims.Domain.Tests.Stock;
 
-/// <summary>Status x role x requiresApproval x self-submitted. The single source of truth for allowedActions (PRD 3.1, BR-07).</summary>
+/// <summary>
+/// Status x role x requiresApproval x large x who created / submitted it. The single source of truth for allowedActions
+/// (PRD 3.1, UX 7.2, BR-07): the ownership rules of Warehouse staff and Clerk, and the reviewer a document is routed to.
+/// </summary>
 public class DocumentActionPolicyTests
 {
     private const int Me = 42;
     private const int SomeoneElse = 43;
 
-    private static string[] Actions(string role, DocumentStatus status, bool requiresApproval = false, int? submittedBy = SomeoneElse, bool allowSelf = false) =>
-        DocumentActionPolicy.AllowedActions(role, Me, status, requiresApproval, submittedBy, allowSelf).Order().ToArray();
+    private static DocumentActionContext Doc(DocumentStatus status, bool requiresApproval = false, bool isLarge = false,
+        int createdBy = SomeoneElse, int? submittedBy = SomeoneElse) =>
+        new(status, requiresApproval, isLarge, createdBy, submittedBy);
+
+    private static string[] Actions(string role, DocumentStatus status, bool requiresApproval = false, bool isLarge = false,
+        int createdBy = SomeoneElse, int? submittedBy = SomeoneElse, bool allowSelf = false, bool withinLimit = true) =>
+        DocumentActionPolicy.AllowedActions(role, Me, Doc(status, requiresApproval, isLarge, createdBy, submittedBy), allowSelf, withinLimit).Order().ToArray();
 
     private static string[] Sorted(params string[] actions) => actions.Order().ToArray();
 
-    // ----- Draft: edit / submit / cancel for anyone who can create documents -----
+    // ----- Draft: Admin and Supervisor act on any draft; Warehouse staff and Clerk only on their own (UX 7.2) -----
     [Theory]
     [InlineData(Roles.Admin)]
     [InlineData(Roles.Supervisor)]
+    public void Draft_AdminAndSupervisor_MayEditSubmitAndCancelAnyDraft(string role)
+    {
+        Assert.Equal(Sorted(DocumentActions.Edit, DocumentActions.Submit, DocumentActions.Cancel), Actions(role, DocumentStatus.Draft, createdBy: SomeoneElse));
+    }
+
+    [Theory]
     [InlineData(Roles.WarehouseStaff)]
     [InlineData(Roles.Clerk)]
-    public void Draft_RolesThatCanCreate_MayEditSubmitAndCancel(string role)
+    public void Draft_StaffAndClerk_MayEditSubmitAndCancelTheirOwnDraft(string role)
     {
-        Assert.Equal(Sorted(DocumentActions.Edit, DocumentActions.Submit, DocumentActions.Cancel), Actions(role, DocumentStatus.Draft));
+        Assert.Equal(Sorted(DocumentActions.Edit, DocumentActions.Submit, DocumentActions.Cancel), Actions(role, DocumentStatus.Draft, createdBy: Me, submittedBy: null));
+    }
+
+    [Theory]
+    [InlineData(Roles.WarehouseStaff)]
+    [InlineData(Roles.Clerk)]
+    public void Draft_StaffAndClerk_HaveNoActionOnSomeoneElsesDraft(string role)
+    {
+        Assert.Empty(Actions(role, DocumentStatus.Draft, createdBy: SomeoneElse, submittedBy: null));
     }
 
     [Fact]
     public void Draft_Owner_CannotDoAnything()
     {
-        Assert.Empty(Actions(Roles.Owner, DocumentStatus.Draft));
+        Assert.Empty(Actions(Roles.Owner, DocumentStatus.Draft, createdBy: Me));
     }
 
-    // ----- Submitted, approval needed -----
+    // ----- Submitted, approval needed: the reviewer the document is routed to -----
     [Theory]
     [InlineData(Roles.Admin)]
     [InlineData(Roles.Supervisor)]
-    public void SubmittedNeedingApproval_ApproverRoles_MayApproveRejectAndCancel(string role)
+    public void SubmittedNeedingApproval_AdminAndSupervisor_MayApproveRejectAndCancel(string role)
     {
         Assert.Equal(
             Sorted(DocumentActions.Approve, DocumentActions.Reject, DocumentActions.Cancel),
@@ -40,19 +62,49 @@ public class DocumentActionPolicyTests
     }
 
     [Fact]
-    public void SubmittedNeedingApproval_Owner_MayApproveAndRejectButNotCancel()
+    public void SubmittedNeedingApproval_OwnerOnALargeDocument_MayApproveAndRejectButNotCancel()
     {
         Assert.Equal(
             Sorted(DocumentActions.Approve, DocumentActions.Reject),
-            Actions(Roles.Owner, DocumentStatus.Submitted, requiresApproval: true));
+            Actions(Roles.Owner, DocumentStatus.Submitted, requiresApproval: true, isLarge: true));
     }
 
+    [Fact]
+    public void SubmittedNeedingApproval_OwnerOnANonLargeDocument_IsViewOnly()
+    {
+        Assert.Empty(Actions(Roles.Owner, DocumentStatus.Submitted, requiresApproval: true, isLarge: false));
+    }
+
+    [Fact]
+    public void SubmittedNeedingApproval_SupervisorOnALargeDocument_MayOnlyCancel()
+    {
+        // Owner-level documents are not the supervisor's to approve or reject (PS-07): the API would answer 403.
+        Assert.Equal(Sorted(DocumentActions.Cancel), Actions(Roles.Supervisor, DocumentStatus.Submitted, requiresApproval: true, isLarge: true));
+    }
+
+    [Fact]
+    public void SubmittedNeedingApproval_AdminOnALargeDocument_MayApproveAndReject()
+    {
+        Assert.Contains(DocumentActions.Approve, Actions(Roles.Admin, DocumentStatus.Submitted, requiresApproval: true, isLarge: true));
+    }
+
+    [Fact]
+    public void SubmittedNeedingApproval_ApproverWhoseRoleIsBelowTheRulesInForce_IsNotOfferedApproveOrReject()
+    {
+        var actions = Actions(Roles.Admin, DocumentStatus.Submitted, requiresApproval: true, withinLimit: false);
+
+        Assert.DoesNotContain(DocumentActions.Approve, actions);
+        Assert.DoesNotContain(DocumentActions.Reject, actions);
+    }
+
+    // ----- Submitted: Warehouse staff and Clerk may only recall what they submitted -----
     [Theory]
     [InlineData(Roles.WarehouseStaff)]
     [InlineData(Roles.Clerk)]
-    public void SubmittedNeedingApproval_CreatorOnlyRoles_MayOnlyCancel(string role)
+    public void SubmittedNeedingApproval_StaffAndClerk_MayCancelOnlyWhatTheySubmitted(string role)
     {
-        Assert.Equal(Sorted(DocumentActions.Cancel), Actions(role, DocumentStatus.Submitted, requiresApproval: true));
+        Assert.Equal(Sorted(DocumentActions.Cancel), Actions(role, DocumentStatus.Submitted, requiresApproval: true, submittedBy: Me));
+        Assert.Empty(Actions(role, DocumentStatus.Submitted, requiresApproval: true, createdBy: Me, submittedBy: SomeoneElse));
     }
 
     [Theory]
@@ -61,7 +113,7 @@ public class DocumentActionPolicyTests
     [InlineData(Roles.Owner)]
     public void SubmittedNeedingApproval_OwnSubmission_CannotApproveOrReject(string role)
     {
-        var actions = Actions(role, DocumentStatus.Submitted, requiresApproval: true, submittedBy: Me, allowSelf: false);
+        var actions = Actions(role, DocumentStatus.Submitted, requiresApproval: true, isLarge: role == Roles.Owner, submittedBy: Me, allowSelf: false);
 
         Assert.DoesNotContain(DocumentActions.Approve, actions);
         Assert.DoesNotContain(DocumentActions.Reject, actions);
@@ -96,9 +148,9 @@ public class DocumentActionPolicyTests
     [InlineData(Roles.Admin)]
     [InlineData(Roles.Supervisor)]
     [InlineData(Roles.WarehouseStaff)]
-    public void SubmittedWithoutApproval_PostingRoles_MayPost(string role)
+    public void SubmittedWithoutApproval_PostingRoles_MayPostAnyDocumentInScope(string role)
     {
-        Assert.Contains(DocumentActions.Post, Actions(role, DocumentStatus.Submitted, requiresApproval: false));
+        Assert.Contains(DocumentActions.Post, Actions(role, DocumentStatus.Submitted, requiresApproval: false, submittedBy: SomeoneElse));
     }
 
     [Theory]
@@ -176,6 +228,33 @@ public class DocumentActionPolicyTests
             Assert.Empty(Actions("Nobody", status, requiresApproval: true));
     }
 
+    // ----- The guards the command handlers use agree with the action list -----
+    [Theory]
+    [InlineData(Roles.Admin, SomeoneElse, true)]
+    [InlineData(Roles.Supervisor, SomeoneElse, true)]
+    [InlineData(Roles.WarehouseStaff, Me, true)]
+    [InlineData(Roles.WarehouseStaff, SomeoneElse, false)]
+    [InlineData(Roles.Clerk, Me, true)]
+    [InlineData(Roles.Clerk, SomeoneElse, false)]
+    [InlineData(Roles.Owner, Me, false)]
+    public void MayEditOrSubmit_FollowsOwnership(string role, int createdBy, bool expected)
+    {
+        Assert.Equal(expected, DocumentActionPolicy.MayEditOrSubmit(role, Me, Doc(DocumentStatus.Draft, createdBy: createdBy, submittedBy: null)));
+    }
+
+    [Theory]
+    [InlineData(Roles.WarehouseStaff, DocumentStatus.Draft, Me, SomeoneElse, true)]       // own draft
+    [InlineData(Roles.WarehouseStaff, DocumentStatus.Draft, SomeoneElse, Me, false)]      // someone else's draft
+    [InlineData(Roles.WarehouseStaff, DocumentStatus.Submitted, SomeoneElse, Me, true)]   // I submitted it (recall)
+    [InlineData(Roles.WarehouseStaff, DocumentStatus.Submitted, Me, SomeoneElse, false)]  // I created it, a supervisor submitted it
+    [InlineData(Roles.Clerk, DocumentStatus.Submitted, SomeoneElse, SomeoneElse, false)]
+    [InlineData(Roles.Supervisor, DocumentStatus.Submitted, SomeoneElse, SomeoneElse, true)]
+    [InlineData(Roles.Admin, DocumentStatus.Draft, SomeoneElse, null, true)]
+    public void MayCancel_FollowsOwnershipOfADraftAndTheSubmitterOfASubmittedDocument(string role, DocumentStatus status, int createdBy, int? submittedBy, bool expected)
+    {
+        Assert.Equal(expected, DocumentActionPolicy.MayCancel(role, Me, Doc(status, createdBy: createdBy, submittedBy: submittedBy)));
+    }
+
     // ----- Consistency with the document state machine -----
     [Theory]
     [InlineData(DocumentStatus.Draft)]
@@ -187,9 +266,10 @@ public class DocumentActionPolicyTests
     public void NoRoleIsOfferedAnActionTheStateMachineWouldRefuse(DocumentStatus status)
     {
         foreach (var requiresApproval in new[] { true, false })
+        foreach (var isLarge in new[] { true, false })
         foreach (var role in Roles.All)
         {
-            var actions = Actions(role, status, requiresApproval);
+            var actions = Actions(role, status, requiresApproval, isLarge, createdBy: Me, submittedBy: Me);
 
             if (actions.Contains(DocumentActions.Post))
                 Assert.True(status == DocumentStatus.Approved || (status == DocumentStatus.Submitted && !requiresApproval));

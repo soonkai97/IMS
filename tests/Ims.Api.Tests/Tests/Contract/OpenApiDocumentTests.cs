@@ -235,6 +235,17 @@ public partial class OpenApiDocumentTests(ApiFixture fixture)
     }
 
     [Fact]
+    public async Task The_list_item_says_whether_the_caller_can_act_and_it_is_never_null()
+    {
+        using var doc = await DocumentAsync();
+        var schemas = doc.RootElement.GetProperty("components").GetProperty("schemas");
+
+        var listItem = schemas.GetProperty("DocumentListItem");
+        Assert.Equal("boolean", listItem.GetProperty("properties").GetProperty("canAct").GetProperty("type").GetString());
+        Assert.Contains("canAct", listItem.GetProperty("required").EnumerateArray().Select(r => r.GetString()));
+    }
+
+    [Fact]
     public async Task Timestamps_are_published_as_date_time_strings()
     {
         using var doc = await DocumentAsync();

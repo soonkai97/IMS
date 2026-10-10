@@ -76,10 +76,10 @@ public class AuditTrailTests(ApiFixture fixture)
         var product = await s.NewProductAsync();
         await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 100, 100m));
         var (_, clerkClient) = await SignedInAsync(Roles.Clerk);
-        var (_, ownerClient) = await SignedInAsync(Roles.Owner);
+        var (_, supervisorClient) = await SignedInAsync(Roles.Supervisor);
         var toReject = await s.SubmitAsync(clerkClient, await s.DraftIssueAsync(clerkClient, fixture.Reference.DefaultWarehouseId, new Line(product.Id, 60)));
         var toCancel = await s.DraftReceiptAsync(clerkClient, fixture.Reference.DefaultWarehouseId, new Line(product.Id, 1, 1m));
-        (await ownerClient.Documents.RejectAsync(toReject.Id, "Quantity looks wrong")).ShouldBeOk();
+        (await supervisorClient.Documents.RejectAsync(toReject.Id, "Quantity looks wrong")).ShouldBeOk();
         (await clerkClient.Documents.CancelAsync(toCancel.Id, "Duplicate entry")).ShouldBeOk();
 
         var all = await EntriesAsync(entityType: AuditEntities.StockDocument);

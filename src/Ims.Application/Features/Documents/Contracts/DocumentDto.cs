@@ -11,7 +11,7 @@ namespace Ims.Application.Features.Documents;
 /// <param name="NegativeStockOverrideReason">Why the approver let stock go below zero; set when a document that <c>requiresOverride</c> is approved, otherwise null.</param>
 /// <param name="IsLarge">The approval rule that fired needs a role above Supervisor (for example the Owner).</param>
 /// <param name="IsReturned">A Draft that a reviewer sent back (<c>RejectionReason</c> holds why, <c>ReturnedBy*</c> who).</param>
-/// <param name="AllowedActions">What the caller may do right now (edit, submit, approve, reject, cancel, post, reverse). The UI shows buttons from this list only.</param>
+/// <param name="AllowedActions">What the caller may do right now (edit, submit, approve, reject, cancel, post, reverse). The UI shows buttons from this list only. It already accounts for ownership (Warehouse staff and Clerk act only on their own documents), the approver the document is routed to (an Owner reviews only <c>isLarge</c> documents, a Supervisor the rest) and self-approval, so a listed action is one the API will accept.</param>
 /// <param name="RowVersion">Source of <see cref="ConcurrencyToken"/>; not part of the JSON.</param>
 public record DocumentDto(int Id, DocumentType Type, string No, DocumentStatus Status, int WarehouseId, string WarehouseName,
     int? PartnerId, string? PartnerName, IssuePurpose? Purpose, string? Remark,

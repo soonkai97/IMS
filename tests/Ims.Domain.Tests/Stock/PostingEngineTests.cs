@@ -96,7 +96,7 @@ public class PostingEngineTests
     [Fact]
     public void Post_Issue_InsufficientAndSettingOff_ThrowsInsufficientStock()
     {
-        var doc = NewIssue(2, (P(1), 4m)).ApprovedWithOverride("r");
+        var doc = NewIssue(2, (P(1), 4m)).ApprovedWithOverride("recount pending");
 
         Assert.Throws<InsufficientStockException>(() =>
             _engine.Post(doc, Balances(NewBalance(1, 1m, 5m)), NewContext(doc, allowNegative: false, canOverride: true)));
@@ -107,7 +107,7 @@ public class PostingEngineTests
     [Fact]
     public void Post_Issue_InsufficientSettingOnButCallerCannotOverride_ThrowsDomainException()
     {
-        var doc = NewIssue(2, (P(1), 4m)).ApprovedWithOverride("r");
+        var doc = NewIssue(2, (P(1), 4m)).ApprovedWithOverride("recount pending");
 
         var ex = Assert.Throws<DomainException>(() =>
             _engine.Post(doc, Balances(NewBalance(1, 1m, 5m)), NewContext(doc, allowNegative: true, canOverride: false)));
@@ -157,14 +157,14 @@ public class PostingEngineTests
     [Fact]
     public void Post_Issue_OneLineSufficientOneNot_TheShortLineDecidesTheOverride()
     {
-        var doc = NewIssue(2, (P(1), 1m), (P(2), 9m)).ApprovedWithOverride("ok");
+        var doc = NewIssue(2, (P(1), 1m), (P(2), 9m)).ApprovedWithOverride("approved by phone");
         var balances = Balances(NewBalance(1, 5m, 1m), NewBalance(2, 1m, 1m));
         var ctx = NewContext(doc, allowNegative: true, canOverride: true);
 
         _engine.Post(doc, balances, ctx);
 
         Assert.True(ctx.OverrideUsed);
-        Assert.Equal("ok", doc.NegativeStockOverrideReason);
+        Assert.Equal("approved by phone", doc.NegativeStockOverrideReason);
     }
 
     // ----- Unsupported types -----

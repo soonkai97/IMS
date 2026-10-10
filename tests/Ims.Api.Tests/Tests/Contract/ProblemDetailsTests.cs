@@ -105,9 +105,20 @@ public class ProblemDetailsTests(ApiFixture fixture)
         var s = await StockScenario.CreateAsync(fixture);
         var other = await s.NewWarehouseAsync();
         var product = await s.NewProductAsync();
+        var request = new DocumentBuilder(other.Id).WithPartner(fixture.Reference.SupplierId).WithLines(new Line(product.Id, 1, 1m)).Build();
+
+        AssertShape(await s.Staff.Documents.CreateReceiptAsync(request), HttpStatusCode.Forbidden, "Forbidden");
+    }
+
+    [Fact]
+    public async Task A_document_of_another_warehouse_is_a_404_not_a_403()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var other = await s.NewWarehouseAsync();
+        var product = await s.NewProductAsync();
         var draft = await s.DraftReceiptAsync(s.Admin, other.Id, new Line(product.Id, 1, 1m));
 
-        AssertShape(await s.Staff.Documents.GetAsync(draft.Id), HttpStatusCode.Forbidden, "Forbidden");
+        AssertShape(await s.Staff.Documents.GetAsync(draft.Id), HttpStatusCode.NotFound, "Not found");
     }
 
     [Fact]
