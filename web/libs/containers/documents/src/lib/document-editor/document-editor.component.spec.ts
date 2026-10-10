@@ -427,6 +427,8 @@ describe('DocumentEditorPageComponent', () => {
       expect(spectator.component.$documentId()).toBe(31);
       expect(calls['save']).toHaveLength(1);
       expect(calls['submit']).toHaveLength(1);
+      // The call that follows a create in the same click carries the token of the document just created (428 otherwise).
+      expect(calls['submit'][0]).toEqual({ id: 31, concurrencyToken: 'AAAA' });
       const buttons = spectator
         .queryAll('app-document-actions button')
         .map(button => button.textContent?.trim());
@@ -536,7 +538,51 @@ describe('DocumentEditorPageComponent', () => {
       expect(text()).toContain('Adjust the quantity and try again');
     });
 
-    it('PS-01: a reversal the stock cannot take back is explained as such, not as a post failure', async () => {
+    it('PS-01: a blocked reversal names every product that would go negative, and is not the stale banner', async () => {
+      await open(
+        document({ status: DocumentStatus.Posted, allowedActions: [DOCUMENT_ACTION.Reverse] })
+      );
+
+      commands['reverse'].$operation.set(
+        failureOperation({
+          ...STALE,
+          detail: "Can't reverse ISS-WH01-2610-0001. It would make 2 products negative.",
+          extensions: {
+            code: 'reversal_blocked',
+            shortages: [
+              { productId: 1, sku: 'DEMO-001', uomCode: 'PCS', balance: -3 },
+              { productId: 2, sku: 'QA-002', uomCode: 'PCS', balance: -6 }
+            ]
+          }
+        })
+      );
+      spectator.detectChanges();
+
+      expect(text()).toContain("Can't reverse ISS-WH01-2610-0001");
+      expect(text()).toContain('DEMO-001 (-3 PCS), QA-002 (-6 PCS) negative');
+      expect(text()).not.toContain('changed since you opened it');
+      expect(text()).not.toContain('Adjust the quantity');
+    });
+
+    it('E4: the stale banner names who changed the document and when, when the API says so', async () => {
+      await open(document());
+
+      commands['approve'].$operation.set(
+        failureOperation({
+          ...STALE,
+          extensions: {
+            code: 'document_changed',
+            changedBy: 'Raj',
+            changedAt: '2026-10-10T06:42:00Z'
+          }
+        })
+      );
+      spectator.detectChanges();
+
+      expect(text()).toContain('Raj changed this document at 10 Oct 2026');
+    });
+
+    it('PS-01 (older API): one product named through the insufficient-stock members still reads as a blocked reversal', async () => {
       await open(
         document({ status: DocumentStatus.Posted, allowedActions: [DOCUMENT_ACTION.Reverse] })
       );
@@ -547,7 +593,7 @@ describe('DocumentEditorPageComponent', () => {
       spectator.detectChanges();
 
       expect(text()).toContain("Can't reverse ISS-WH01-2610-0001");
-      expect(text()).toContain('negative (-8 PCS)');
+      expect(text()).toContain('DEMO-001 (-8 PCS) negative');
       expect(text()).not.toContain('Adjust the quantity');
     });
 

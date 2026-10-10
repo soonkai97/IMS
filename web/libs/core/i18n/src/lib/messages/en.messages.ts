@@ -314,7 +314,7 @@ export const EN_MESSAGES = {
   'doc.itemIncreased': '{sku}: now {qty}.',
   'doc.reverseBlocked': "Can't reverse {docNo}",
   'doc.reverseBlockedBody':
-    'It would make {sku} negative ({balance} {uom}). Reverse or adjust the later issues first, or ask an Admin.',
+    'It would make {items} negative. Reverse or adjust the later issues first, or ask an Admin.',
   'doc.stockChangedBodyAsk':
     'Stock for {sku} is now {available} {uom}, but the document needs {requested}. Ask a supervisor for help.',
   'doc.stockChangedBodyCancel':
@@ -362,6 +362,8 @@ export const EN_MESSAGES = {
   'doc.stale': '{docNo} changed since you opened it',
   'doc.staleBody':
     'Someone else changed this document. Reload to see the latest version. Your changes were not saved.',
+  'doc.staleBodyBy':
+    '{name} changed this document at {time}. Reload to see the latest version. Your changes were not saved.',
   'doc.reload': 'Reload',
   'doc.supplier': 'Supplier',
   'doc.tab.history': 'History',

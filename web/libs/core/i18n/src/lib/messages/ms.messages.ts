@@ -297,7 +297,7 @@ export const MS_MESSAGES: Messages = {
   'doc.itemIncreased': '{sku}: kini {qty}.',
   'doc.reverseBlocked': 'Tidak dapat membalikkan {docNo}',
   'doc.reverseBlockedBody':
-    'Ini akan menjadikan {sku} negatif ({balance} {uom}). Balikkan atau laraskan keluar stok kemudian dahulu, atau tanya Admin.',
+    'Ini akan menjadikan {items} negatif. Balikkan atau laraskan keluar stok kemudian dahulu, atau tanya Admin.',
   'doc.stockChangedBodyAsk':
     'Stok untuk {sku} kini {available} {uom}, tetapi dokumen memerlukan {requested}. Minta bantuan penyelia.',
   'doc.stockChangedBodyCancel':
@@ -344,6 +344,8 @@ export const MS_MESSAGES: Messages = {
   'doc.stale': '{docNo} telah berubah sejak anda membukanya',
   'doc.staleBody':
     'Orang lain telah mengubah dokumen ini. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',
+  'doc.staleBodyBy':
+    '{name} mengubah dokumen ini pada {time}. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',
   'doc.reload': 'Muat semula',
   'doc.supplier': 'Pembekal',
   'doc.tab.history': 'Sejarah',

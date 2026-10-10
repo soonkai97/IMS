@@ -46,8 +46,11 @@ import {
   LineGroup,
   NEW_DOCUMENT_ID,
   STATUS_TONE,
+  isReversalBlockedError,
   isStaleDocumentError,
   isStockConflictError,
+  reversalShortages,
+  staleDetails,
   toDocumentRef
 } from '@ims/features/documents';
 import { StockStore } from '@ims/features/stock';
@@ -421,17 +424,23 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       .map(error => this.toStockConflict(error))
       .find(isDefined)
   );
-  /** A reversal the stock cannot take back (E6): a posted document cannot be adjusted, so the advice differs from E5. */
+  /**
+   * A reversal the stock cannot take back (E6): a posted document cannot be adjusted, so the advice differs from E5.
+   * The API names every product that would go below zero (`shortages`); an older API named one, through the
+   * insufficient-stock members, and that case is read too.
+   */
   readonly $reverseBlocked = computed(() => {
-    const conflict = this.toStockConflict(this.documents.reverse.$operation().error);
-    return conflict
-      ? {
-          ...conflict,
-          docNo: this.$document()?.no ?? '',
-          balance: conflict.available - conflict.requested
-        }
+    const items = this.reversalItems(this.documents.reverse.$operation().error);
+    return items.length > 0
+      ? { docNo: this.$document()?.no ?? '', items: items.join(', ') }
       : undefined;
   });
+  /** Who changed the document and when, when the API says so (E4); the banner falls back to the plain sentence. */
+  readonly $staleDetails = computed(() =>
+    this.$commandErrors()
+      .map(error => staleDetails(error))
+      .find(isDefined)
+  );
   /** What to tell the user when posting failed on stock: edit (draft), cancel and redo (submitted), or ask (no right). */
   readonly $stockConflictBodyKey = computed<MessageKey>(() => {
     if (this.$editable()) {
@@ -667,6 +676,18 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         this.reverse();
         break;
     }
+  }
+
+  /** "DEMO-001 (-3 PCS)" for each product a refused reversal would leave negative. */
+  private reversalItems(error: ApiError | undefined): string[] {
+    if (isReversalBlockedError(error)) {
+      return reversalShortages(error).map(
+        shortage => `${shortage.sku} (${shortage.balance} ${shortage.uomCode})`
+      );
+    }
+    // An older API named one product through the insufficient-stock members.
+    const legacy = this.toStockConflict(error);
+    return legacy ? [`${legacy.sku} (${legacy.available - legacy.requested} ${legacy.uom})`] : [];
   }
 
   /** The insufficient-stock 409 (product, available, requested), or undefined for any other error. */

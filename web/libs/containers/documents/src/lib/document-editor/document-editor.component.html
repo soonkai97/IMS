@@ -34,7 +34,11 @@
 } @else {
   @if ($isStale()) {
     <app-banner kind="danger" [heading]="'doc.stale' | t: { docNo: $document()?.no ?? '' }">
-      {{ 'doc.staleBody' | t }}
+      @if ($staleDetails(); as by) {
+        {{ 'doc.staleBodyBy' | t: { name: by.name, time: (by.at | appDate) } }}
+      } @else {
+        {{ 'doc.staleBody' | t }}
+      }
       <app-button bannerActions (clicked)="onReload()">{{ 'doc.reload' | t }}</app-button>
     </app-banner>
   }
@@ -54,15 +58,7 @@
   }
   @if ($reverseBlocked(); as blocked) {
     <app-banner kind="danger" [heading]="'doc.reverseBlocked' | t: { docNo: blocked.docNo }">
-      {{
-        'doc.reverseBlockedBody'
-          | t
-            : {
-                sku: blocked.sku,
-                balance: (blocked.balance | appQty),
-                uom: blocked.uom
-              }
-      }}
+      {{ 'doc.reverseBlockedBody' | t: { items: blocked.items } }}
     </app-banner>
   }
   @if ($stockConflict(); as conflict) {

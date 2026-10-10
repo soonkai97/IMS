@@ -290,7 +290,7 @@ export const ZH_MESSAGES: Messages = {
   'doc.itemIncreased': '{sku}：现为 {qty}。',
   'doc.reverseBlocked': '无法冲销 {docNo}',
   'doc.reverseBlockedBody':
-    '冲销后 {sku} 将变为负库存（{balance} {uom}）。请先冲销或调整之后的出库单，或联系管理员。',
+    '冲销后 {items} 将变为负库存。请先冲销或调整之后的出库单，或联系管理员。',
   'doc.stockChangedBodyAsk':
     '{sku} 的库存现为 {available} {uom}，但单据需要 {requested}。请联系主管协助。',
   'doc.stockChangedBodyCancel':
@@ -335,6 +335,7 @@ export const ZH_MESSAGES: Messages = {
     '{sku} 的库存现为 {available} {uom}，但单据需要 {requested}。请调整数量后重试。',
   'doc.stale': '{docNo} 在您打开后已被修改',
   'doc.staleBody': '其他人修改了这张单据。请重新加载以查看最新版本。您的修改未保存。',
+  'doc.staleBodyBy': '{name} 于 {time} 修改了这张单据。请重新加载以查看最新版本。您的修改未保存。',
   'doc.reload': '重新加载',
   'doc.supplier': '供应商',
   'doc.tab.history': '历史',
