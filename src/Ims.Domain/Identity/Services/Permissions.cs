@@ -18,23 +18,32 @@ public static class Permissions
     public const string AuditRead = "audit.read";
     public const string SettingsManage = "settings.manage";
 
+    /// <summary>
+    /// See the cost of the documents one works on: unit cost, line cost, document totals and estimates, and the approval amounts and thresholds.
+    /// Data a role needs to do its job is shown by this permission; data tagged with <see cref="VisibleWithAttribute"/> is withheld without it.
+    /// </summary>
+    public const string CostView = "cost.view";
+
+    /// <summary>See what the stock is worth: average cost and value of stock, the ledger's cost, the stock total. Never the Warehouse staff or Clerk.</summary>
+    public const string ValuationView = "valuation.view";
+
     public static readonly string[] All =
     [
         UsersManage, UsersRead, MasterDataManage, MasterDataRead, PartnersCreate, DocumentCreate, DocumentApprove,
-        DocumentPost, DocumentReverse, StockRead, ReportsRead, AuditRead, SettingsManage
+        DocumentPost, DocumentReverse, StockRead, ReportsRead, AuditRead, SettingsManage, CostView, ValuationView
     ];
 
     private static readonly Dictionary<string, string[]> ByRole = new()
     {
         [Roles.Admin] = All,
-        [Roles.Owner] = [MasterDataRead, DocumentApprove, StockRead, ReportsRead, AuditRead],
+        [Roles.Owner] = [MasterDataRead, DocumentApprove, StockRead, ReportsRead, AuditRead, CostView, ValuationView],
         [Roles.Supervisor] =
         [
             MasterDataManage, MasterDataRead, PartnersCreate, DocumentCreate, DocumentApprove, DocumentPost,
-            DocumentReverse, StockRead, ReportsRead
+            DocumentReverse, StockRead, ReportsRead, CostView, ValuationView
         ],
         [Roles.WarehouseStaff] = [MasterDataRead, DocumentCreate, DocumentPost, StockRead],
-        [Roles.Clerk] = [MasterDataRead, PartnersCreate, DocumentCreate, StockRead],
+        [Roles.Clerk] = [MasterDataRead, PartnersCreate, DocumentCreate, StockRead, CostView],
     };
 
     public static IReadOnlyCollection<string> For(string role) =>

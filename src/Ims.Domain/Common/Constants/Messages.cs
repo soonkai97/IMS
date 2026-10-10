@@ -91,6 +91,7 @@ public static class Messages
     public const string ChooseProduct = "Choose a product on every line.";
     public const string QtyPositive = "Quantity must be greater than zero.";
     public const string CostNegative = "Unit cost cannot be negative.";
+    public static string RestrictedSortKey(string key) => $"Sorting by {key.ToLowerInvariant()} is not available to your role.";
     public const string OnlyReceiptAndIssue = "Only receipts and issues are available in this version.";
     public const string RejectReasonRequired = "A rejection reason is required.";
     public const string ReverseReasonRequired = "A reversal reason is required.";

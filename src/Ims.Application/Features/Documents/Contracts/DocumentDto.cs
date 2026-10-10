@@ -11,7 +11,7 @@ namespace Ims.Application.Features.Documents;
 /// <param name="NegativeStockOverrideReason">Why the approver let stock go below zero; set when a document that <c>requiresOverride</c> is approved, otherwise null.</param>
 /// <param name="IsLarge">The approval rule that fired needs a role above Supervisor (for example the Owner).</param>
 /// <param name="IsReturned">A Draft that a reviewer sent back (<c>RejectionReason</c> holds why, <c>ReturnedBy*</c> who).</param>
-/// <param name="TotalAmount">Value of the document: receipts at their entered cost; an issue at its booked cost once posted, and before that at the average cost when it was last saved or submitted (see <c>AmountIsEstimate</c>). For a Submitted document this is the value the approval rules were tested against.</param>
+/// <param name="TotalAmount">Value of the document: receipts at their entered cost; an issue at its booked cost once posted, and before that at the average cost when it was last saved or submitted (see <c>AmountIsEstimate</c>). For a Submitted document this is the value the approval rules were tested against. Null for a caller without <c>cost.view</c> (the Warehouse staff).</param>
 /// <param name="AllowedActions">What the caller may do right now (edit, submit, approve, reject, cancel, post, reverse). The UI shows buttons from this list only. It already accounts for ownership (Warehouse staff and Clerk act only on their own documents), the approver the document is routed to (an Owner reviews only <c>isLarge</c> documents, a Supervisor the rest) and self-approval, so a listed action is one the API will accept.</param>
 /// <param name="ApprovalTriggers">While the document is Submitted or Approved and an approval rule held it back: which thresholds it reaches (value or quantity), for the approver and the "sent for approval" message. Empty otherwise, and when only a negative-stock override (<c>requiresOverride</c>) sent it to approval.</param>
 /// <param name="RowVersion">Source of <see cref="ConcurrencyToken"/>; not part of the JSON.</param>
@@ -24,8 +24,8 @@ public record DocumentDto(int Id, DocumentType Type, string No, DocumentStatus S
     string? ApprovedBy, string? ApprovedByName, DateTime? ApprovedAt,
     string? PostedBy, string? PostedByName, DateTime? PostedAt,
     int? ReturnedById, string? ReturnedBy, string? ReturnedByName, DateTime? ReturnedAt,
-    decimal TotalQty, decimal TotalAmount, IReadOnlyList<DocumentLineDto> Lines, IReadOnlyList<string> AllowedActions,
-    IReadOnlyList<ApprovalTrigger> ApprovalTriggers, [property: JsonIgnore] byte[] RowVersion)
+    decimal TotalQty, [property: VisibleWith(Permissions.CostView)] decimal? TotalAmount, IReadOnlyList<DocumentLineDto> Lines, IReadOnlyList<string> AllowedActions,
+    IReadOnlyList<ApprovalTriggerDto> ApprovalTriggers, [property: JsonIgnore] byte[] RowVersion)
 {
     /// <summary>True for an issue that has not posted yet: its lines carry the average cost seen when it was last saved or submitted, and posting books the real cost. Label the amount "estimated".</summary>
     [Required]

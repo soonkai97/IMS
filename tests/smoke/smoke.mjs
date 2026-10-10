@@ -55,18 +55,20 @@ const stockOf = async (pid) => {
 const doc = (partnerId, lines) => ({ warehouseId: wh.id, partnerId, purpose: 'Sale', lines }); // an issue needs a purpose; a receipt ignores it
 
 console.log('Receive -> issue');
-let r = await api('POST', '/api/documents/receipts', { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 1000, unitCost: 10 }, { productId: p2.id, qty: 1000, unitCost: 2 }]) });
-check('staff creates receipt (draft)', r.status === 200 && r.body.status === 'Draft', JSON.stringify(r.body));
+// The clerk enters the cost; the warehouse staff receive and post without seeing it (a receipt they enter takes the last known cost).
+let r = await api('POST', '/api/documents/receipts', { token: clerk, body: doc(supplier.id, [{ productId: p1.id, qty: 1000, unitCost: 10 }, { productId: p2.id, qty: 1000, unitCost: 2 }]) });
+check('clerk creates receipt (draft)', r.status === 200 && r.body.status === 'Draft', JSON.stringify(r.body));
 const rcv = r.body;
 check('document number has the RCV prefix', /^RCV-/.test(rcv.no), rcv.no);
 check('draft does not change stock', (await stockOf(p1.id)).qty === 0);
-r = await api('POST', `/api/documents/${rcv.id}/submit`, { token: staff });
+r = await api('POST', `/api/documents/${rcv.id}/submit`, { token: clerk });
 check('submit -> Submitted, no approval needed', r.body.status === 'Submitted' && r.body.requiresApproval === false);
-check('allowedActions offers post', r.body.allowedActions?.includes('post'), JSON.stringify(r.body.allowedActions));
+r = await api('GET', `/api/documents/${rcv.id}`, { token: staff });
+check('allowedActions offers the staff post', r.body.allowedActions?.includes('post'), JSON.stringify(r.body.allowedActions));
 r = await api('POST', `/api/documents/${rcv.id}/post`, { token: staff, body: {} });
 check('staff posts the receipt', r.body.status === 'Posted', JSON.stringify(r.body));
 check('stock increased to 1000', (await stockOf(p1.id)).qty === 1000);
-r = await api('PUT', `/api/documents/${rcv.id}`, { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 1 }]) });
+r = await api('PUT', `/api/documents/${rcv.id}`, { token: clerk, body: doc(supplier.id, [{ productId: p1.id, qty: 1 }]) });
 check('posted document cannot be edited (400)', r.status === 400);
 
 r = await api('POST', '/api/documents/issues', { token: staff, body: doc(customer.id, [{ productId: p1.id, qty: 50 }]) });
@@ -74,7 +76,8 @@ const iss = r.body;
 await api('POST', `/api/documents/${iss.id}/submit`, { token: staff });
 r = await api('POST', `/api/documents/${iss.id}/post`, { token: staff, body: {} });
 check('issue posts, stock 950', r.body.status === 'Posted' && (await stockOf(p1.id)).qty === 950);
-check('issue booked at average cost 10', Number(r.body.lines[0].unitCost) === 10);
+check('the staff who posted the issue see no cost', r.body.lines[0].unitCost == null && r.body.totalAmount == null);
+check('issue booked at average cost 10', Number((await api('GET', `/api/documents/${iss.id}`, { token: admin })).body.lines[0].unitCost) === 10);
 
 console.log('Edit a draft (lines replaced, header updated)');
 r = await api('POST', '/api/documents/receipts', { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 5, unitCost: 1 }, { productId: p2.id, qty: 6, unitCost: 1 }]) });
@@ -270,6 +273,22 @@ const spec = await r.json().catch(() => null);
 check('OpenAPI: enums are string schemas with values', spec?.components?.schemas?.DocumentStatus?.type === 'string' && spec.components.schemas.DocumentStatus.enum.includes('Posted') && !spec.components.schemas.IssuePurpose.enum.includes(null));
 check('OpenAPI: operation ids are Tag_action', spec?.paths?.['/api/documents']?.get?.operationId === 'Documents_list');
 
+console.log('Cost visibility: staff see no cost or value, the clerk sees cost but not value, the supervisor sees both');
+{
+  const get = async (token, path) => (await api('GET', path, { token })).body;
+  check('stock total value: hidden from staff and clerk, shown to the supervisor',
+    (await get(staff, '/api/stock/summary')).totalValue == null && (await get(clerk, '/api/stock/summary')).totalValue == null
+    && typeof (await get(supervisor, '/api/stock/summary')).totalValue === 'number');
+  const row = async (token) => (await get(token, '/api/stock?pageSize=1')).items[0];
+  check('stock row: no average cost or value for staff, both for the supervisor', (await row(staff)).avgCost == null && (await row(staff)).value == null && typeof (await row(supervisor)).avgCost === 'number');
+  check('staff: sorting stock by value is refused (400)', (await api('GET', '/api/stock?sortBy=Value', { token: staff })).status === 400);
+  check('approval rule amounts: hidden from staff, shown to admin', (await get(staff, '/api/approval-rules')).every((r) => r.amountThreshold == null) && (await get(admin, '/api/approval-rules')).some((r) => typeof r.amountThreshold === 'number'));
+  check('staff: audit log is closed', (await api('GET', '/api/audit', { token: staff })).status === 403);
+  const can = async (token, permission) => (await get(token, '/api/auth/me')).permissions.includes(permission);
+  check('permissions: staff none, clerk cost only, supervisor both',
+    !(await can(staff, 'cost.view')) && !(await can(staff, 'valuation.view')) && (await can(clerk, 'cost.view')) && !(await can(clerk, 'valuation.view'))
+    && (await can(supervisor, 'cost.view')) && (await can(supervisor, 'valuation.view')));
+}
 console.log('Reports');
 const x = await fetch(`${BASE}/api/reports/stock-summary/export`, { headers: { Authorization: `Bearer ${admin}` } });
 check('stock summary exports xlsx', x.status === 200 && (x.headers.get('content-type') ?? '').includes('spreadsheetml'));

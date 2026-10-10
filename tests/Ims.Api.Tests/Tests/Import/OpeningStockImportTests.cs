@@ -74,7 +74,7 @@ public class OpeningStockImportTests(ApiFixture fixture)
         var draft = await s.GetAsync(result.DocumentId!.Value);
         Assert.Equal((DocumentType.Receipt, DocumentStatus.Draft, "Opening stock (import)"), (draft.Type, draft.Status, draft.Remark));
         Assert.Equal(fixture.Reference.DefaultWarehouseId, draft.WarehouseId);
-        Assert.Equal(new[] { (a.Sku, 10m, 2.5m), (b.Sku, 4m, 8m) }.Order(), draft.Lines.Select(l => (l.Sku, l.BaseQty, l.UnitCost)).Order());
+        Assert.Equal(new[] { (a.Sku, 10m, 2.5m), (b.Sku, 4m, 8m) }.Order(), draft.Lines.Select(l => (l.Sku, l.BaseQty, l.UnitCost!.Value)).Order());
         Assert.Equal(0, await s.OnHandAsync(a.Id, fixture.Reference.DefaultWarehouseId));
 
         (await s.Admin.Documents.SubmitAsync(draft.Id)).ShouldBeOk();

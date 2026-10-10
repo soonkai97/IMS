@@ -68,6 +68,7 @@ public class StockDocument : Entity
     public User? RejectedByUser { get; private set; }
 
     public decimal TotalQty => Lines.Sum(l => l.BaseQty);
+    [VisibleWith(Permissions.CostView)]
     public decimal TotalAmount => Lines.Sum(l => l.BaseQty * l.UnitCost);
 
     public bool CanPost => Status == DocumentStatus.Approved ||
@@ -134,6 +135,18 @@ public class StockDocument : Entity
     {
         if (Type != DocumentType.Issue || !DocumentStatuses.IsOpen(Status)) return;
         foreach (var line in _lines) line.EstimateIssueCost(averageCostByProduct.GetValueOrDefault(line.ProductId));
+    }
+
+    /// <summary>
+    /// A receipt saved by someone who may not see or enter cost (Warehouse staff) takes the last known cost of each product in the warehouse, or zero
+    /// for a product never stocked there. Receiving at the average cost leaves the average unchanged, so a receipt without a price cannot drag the
+    /// valuation of the stock towards zero. Other documents are left alone.
+    /// </summary>
+    public void ApplyKnownReceiptCosts(IReadOnlyDictionary<int, decimal> averageCostByProduct)
+    {
+        if (Type != DocumentType.Receipt) return;
+        EnsureEditable();
+        foreach (var line in _lines) line.SetKnownCost(averageCostByProduct.GetValueOrDefault(line.ProductId));
     }
 
     public void EnsureEditable()

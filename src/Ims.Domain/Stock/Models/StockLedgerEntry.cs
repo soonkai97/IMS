@@ -9,6 +9,7 @@ public class StockLedgerEntry : AuditableEntity
     public int ProductId { get; private set; }
     public int WarehouseId { get; private set; }
     public decimal QtyDelta { get; private set; }
+    [VisibleWith(Permissions.ValuationView)]
     public decimal UnitCost { get; private set; }
     public int SourceDocId { get; private set; }
     public LedgerReason Reason { get; private set; }

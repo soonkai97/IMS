@@ -28,7 +28,11 @@ public class SubmitDocumentHandler(IRepository<StockDocument> documents, IApprov
         // An override always goes to an approver: the approver is the one who gives the reason, whatever the value thresholds say.
         doc.Submit(current.UserId, assessment.Required || requiresOverride, clock.UtcNow, assessment.IsLarge, requiresOverride);
         audit.Record(AuditActions.DocumentSubmitted, AuditEntities.StockDocument, doc.No, new { Status = before },
-            new { doc.Status, doc.RequiresApproval, doc.IsLarge, doc.RequiresOverride, Amount = assessment.Amount });
+            new Dictionary<string, object?>
+            {
+                [nameof(doc.Status)] = doc.Status, [nameof(doc.RequiresApproval)] = doc.RequiresApproval, [nameof(doc.IsLarge)] = doc.IsLarge,
+                [nameof(doc.RequiresOverride)] = doc.RequiresOverride, [AuditFields.Amount] = assessment.Amount
+            });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);
     }

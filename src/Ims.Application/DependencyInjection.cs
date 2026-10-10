@@ -72,6 +72,9 @@ public static class DependencyInjection
         services.AddScoped<IDispatcher, Dispatcher>();
         services.AddScoped<IPipelineBehavior, LoggingBehavior>();
         services.AddScoped<IPipelineBehavior, ValidationBehavior>();
+        // The cost rule: refuses a restricted sort key and hides cost and value in the result, for every request, from one place.
+        services.AddScoped<ShapingState>();
+        services.AddScoped<IPipelineBehavior, CostVisibilityBehavior>();
         // Innermost: they turn an exception from the handler into one a person can read, after the failed work has been rolled back.
         services.AddScoped<IPipelineBehavior, StaleDocumentBehavior>();
         services.AddScoped<IPipelineBehavior, ShortageNamingBehavior>();

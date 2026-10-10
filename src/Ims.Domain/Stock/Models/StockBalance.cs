@@ -9,6 +9,7 @@ public class StockBalance : AuditableEntity
     public int WarehouseId { get; private set; }
     public decimal QtyOnHand { get; private set; }
     public decimal QtyInTransit { get; private set; }
+    [VisibleWith(Permissions.ValuationView)]
     public decimal AvgCost { get; private set; }
 
     public Product Product { get; private set; } = null!;

@@ -76,7 +76,7 @@ public class ParallelPostingTests(ApiFixture fixture)
         Assert.True(responses.All(r => r.Status == HttpStatusCode.OK), $"Posting results: {Summary(responses)}. {FirstFailures(responses)}");
         await AssertBalanceEqualsLedgerAsync(s, product, Warehouse, 500 + 20 * 5 - 20 * 3);
         var balance = (await s.BalanceAsync(product.Id, Warehouse))!;
-        Assert.InRange(balance.AvgCost, 2m, 3m);
+        Assert.InRange(balance.AvgCost!.Value, 2m, 3m);
     }
 
     [Fact]

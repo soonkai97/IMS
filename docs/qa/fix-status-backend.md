@@ -54,7 +54,7 @@ Legend: **fixed** = done and covered by a test; **not done** = no backend change
 | EA-18 | fixed (part 4) / UI | Too-long product, partner, warehouse, category, unit and user names answer "... is too long (maximum N characters)." (the "is required" text is only for empty values). Aligning the form `maxlength` is UI. |
 | EA-19 | fixed (part 4) | Every document command (`PUT`, submit, approve, reject, cancel, post, reverse) requires `If-Match`: `428` when missing; `*` stays accepted as the explicit "any version" opt-out. **The frontend must send the token on every document command.** |
 | EA-20..22 | UI | |
-| EA-23 | needs decision | Cost visibility to Staff and Clerk (`avgCost`, `value`, stock summary value) is an open product decision; deliberately not changed. |
+| EA-23 | fixed (product decision 2026-10-10) | Warehouse staff see no cost or value anywhere; Clerk sees cost on documents but not stock value; Supervisor, Owner and Admin see everything. Permissions `cost.view` and `valuation.view`, applied in one pipeline step; see `docs/design/mvp-ux.md` 1.4 and `docs/architecture/backend.md` (Cost and value visibility). Frontend part: render nothing for a `null` cost or value and hide the columns and the Home value tile. |
 | EA-24 | fixed (part 4) / not done in part | `429` answers a readable ProblemDetails ("Too many requests. Try again in N seconds.") with `Retry-After`, `code: rate_limited` and `retryAfterSeconds`. The login limiter stays keyed on the client address: keying on user plus address needs the request body read before authentication and was not done. |
 | EA-25 | fixed (part 1) | A document in another warehouse is `404` for every document operation. |
 | EA-26..29 | UI | EA-28 backend part: see PS-08. |

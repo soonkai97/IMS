@@ -142,6 +142,25 @@ public class PermissionsTests
             Assert.True(Permissions.Has(role, Permissions.PartnersCreate), role);
     }
 
+    [Theory]
+    [InlineData(Roles.Admin, true, true)]
+    [InlineData(Roles.Owner, true, true)]
+    [InlineData(Roles.Supervisor, true, true)]
+    [InlineData(Roles.Clerk, true, false)]           // cost on the documents they work on, not what the stock is worth
+    [InlineData(Roles.WarehouseStaff, false, false)] // no cost or value anywhere
+    public void CostAndValuationVisibility(string role, bool cost, bool valuation)
+    {
+        Assert.Equal(cost, Permissions.Has(role, Permissions.CostView));
+        Assert.Equal(valuation, Permissions.Has(role, Permissions.ValuationView));
+    }
+
+    [Fact]
+    public void WhoeverMaySeeValuation_MaySeeCost()
+    {
+        foreach (var role in Roles.All.Where(r => Permissions.Has(r, Permissions.ValuationView)))
+            Assert.True(Permissions.Has(role, Permissions.CostView), role);
+    }
+
     [Fact]
     public void UnknownRole_HasNoPermissions()
     {
