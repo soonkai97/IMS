@@ -7,6 +7,7 @@ public class ApprovalRule : Entity
 
     public DocumentType DocType { get; private set; }
     /// <summary>Document total value at or above this triggers approval. Null = ignore.</summary>
+    [VisibleWith(Permissions.CostView)]
     public decimal? AmountThreshold { get; private set; }
     /// <summary>Document total base quantity at or above this triggers approval. Null = ignore.</summary>
     public decimal? QtyThreshold { get; private set; }

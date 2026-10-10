@@ -1,9 +1,12 @@
+using Ims.Domain;
 namespace Ims.Application;
 
 public static class ImportTemplates
 {
-    public static readonly string[] ProductHeaders = ["SKU", "Name", "Category", "Unit", "SafetyStock", "Barcodes"];
-    public static readonly string[] OpeningStockHeaders = ["SKU", "Warehouse", "Qty", "UnitCost"];
+    public static readonly ReportColumn[] ProductColumns =
+        [new("SKU"), new("Name"), new("Category"), new("Unit"), new("SafetyStock"), new("Barcodes")];
+    /// <summary>The cost column is only in the template of a caller who may see cost (a file without the column imports at zero cost, as before).</summary>
+    public static readonly ReportColumn[] OpeningStockColumns = [new("SKU"), new("Warehouse"), new("Qty"), new("UnitCost", Permissions.CostView)];
     public const string ProductsSheet = "Products";
     public const string OpeningStockSheet = "Opening stock";
     public const string ProductsFile = "products-template.xlsx";

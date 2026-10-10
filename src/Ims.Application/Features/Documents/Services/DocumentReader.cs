@@ -11,10 +11,14 @@ public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentA
         dto = await WithStockAsync(dto, ct);
 
         // A document held for approval: say why (the thresholds it reaches) and whether the caller's role can satisfy the rules in force.
+        // The amount is complete here: it is hidden from a caller without cost.view only when the response leaves the application (CostVisibilityBehavior).
+        var amount = dto.TotalAmount.GetValueOrDefault();
         var heldForApproval = dto.RequiresApproval && dto.Status is DocumentStatus.Submitted or DocumentStatus.Approved;
-        var triggers = heldForApproval ? await approvals.TriggersAsync(dto.Type, dto.TotalQty, dto.TotalAmount, ct) : [];
+        var triggers = heldForApproval
+            ? (await approvals.TriggersAsync(dto.Type, dto.TotalQty, amount, ct)).Select(ApprovalTriggerDto.From).ToList()
+            : [];
         var withinLimit = dto.Status != DocumentStatus.Submitted || !dto.RequiresApproval ||
-                          await approvals.ReviewRefusalAsync(dto.Type, dto.IsLarge, dto.TotalQty, dto.TotalAmount, ct) is null;
+                          await approvals.ReviewRefusalAsync(dto.Type, dto.IsLarge, dto.TotalQty, amount, ct) is null;
         return dto with { ApprovalTriggers = triggers, AllowedActions = access.AllowedActions(dto, await settings.GetAsync(ct), withinLimit) };
     }
 

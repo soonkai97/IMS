@@ -1,14 +1,32 @@
+using Ims.Domain;
 namespace Ims.Application;
 
 public static class ReportHeaders
 {
-    public static readonly string[] StockSummary =
-        ["SKU", "Product", "Category", "Warehouse", "Unit", "On hand", "In transit", "Avg cost", "Value", "Safety stock", "Low"];
-    public static readonly string[] Movements =
-        ["Posted (MYT)", "Document", "Type", "Status", "Warehouse", "Partner", "SKU", "Product", "Qty", "Unit", "Base qty", "Unit cost", "Amount"];
-    public static readonly string[] Ledger =
-        ["Time (MYT)", "SKU", "Product", "Warehouse", "Qty change", "Unit cost", "Reason", "Document", "User"];
-    public static readonly string[] LowStock =
-        ["SKU", "Product", "Warehouse", "On hand", "Safety stock", "Shortfall"];
+    public static readonly ReportColumn[] StockSummaryColumns =
+    [
+        new("SKU"), new("Product"), new("Category"), new("Warehouse"), new("Unit"), new("On hand"), new("In transit"),
+        new("Avg cost", Permissions.ValuationView), new("Value", Permissions.ValuationView), new("Safety stock"), new("Low")
+    ];
+    public static readonly ReportColumn[] MovementColumns =
+    [
+        new("Posted (MYT)"), new("Document"), new("Type"), new("Status"), new("Warehouse"), new("Partner"), new("SKU"), new("Product"), new("Qty"),
+        new("Unit"), new("Base qty"), new("Unit cost", Permissions.CostView), new("Amount", Permissions.CostView)
+    ];
+    public static readonly ReportColumn[] LedgerColumns =
+    [
+        new("Time (MYT)"), new("SKU"), new("Product"), new("Warehouse"), new("Qty change"), new("Unit cost", Permissions.ValuationView),
+        new("Reason"), new("Document"), new("User")
+    ];
+    public static readonly ReportColumn[] LowStockColumns =
+        [new("SKU"), new("Product"), new("Warehouse"), new("On hand"), new("Safety stock"), new("Shortfall")];
+
+    /// <summary>The full header rows, for a caller who may see every column.</summary>
+    public static readonly string[] StockSummary = Names(StockSummaryColumns);
+    public static readonly string[] Movements = Names(MovementColumns);
+    public static readonly string[] Ledger = Names(LedgerColumns);
+    public static readonly string[] LowStock = Names(LowStockColumns);
     public const string LowFlag = "LOW";
+
+    public static string[] Names(IEnumerable<ReportColumn> columns) => columns.Select(c => c.Header).ToArray();
 }

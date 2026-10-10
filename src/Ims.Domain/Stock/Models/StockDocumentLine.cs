@@ -12,6 +12,7 @@ public class StockDocumentLine : Entity
     /// <summary>Quantity converted to the product's base unit (BR-04). The ledger always uses this.</summary>
     public decimal BaseQty { get; private set; }
     /// <summary>Per base unit. Receipts: purchase cost. Issues: filled with the average cost at posting.</summary>
+    [VisibleWith(Permissions.CostView)]
     public decimal UnitCost { get; private set; }
     public string? Remark { get; private set; }
 
@@ -41,6 +42,9 @@ public class StockDocumentLine : Entity
 
     /// <summary>The current average cost, kept on an unposted issue so its value can be shown and tested against approval rules. Posting replaces it.</summary>
     internal void EstimateIssueCost(decimal averageCost) => UnitCost = averageCost;
+
+    /// <summary>The cost a receipt line takes when whoever saved it may not enter a cost: the last known (average) cost per base unit.</summary>
+    internal void SetKnownCost(decimal costPerBaseUnit) => UnitCost = costPerBaseUnit;
 
     /// <summary>Issues are booked at the average cost in force when they post (BR-05).</summary>
     internal void BookIssueCost(decimal averageCost) => UnitCost = averageCost;

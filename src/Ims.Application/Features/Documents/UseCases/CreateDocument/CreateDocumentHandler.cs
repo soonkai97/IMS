@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 public class CreateDocumentHandler(IRepository<StockDocument> documents, IReadRepository<Warehouse> warehouses, IReadRepository<Partner> partners,
-    IDocumentNumbering numbering, IDocumentLineBuilder lineBuilder, IIssueValuation valuation, IDocumentAccess access, IDocumentReader reader,
+    IDocumentNumbering numbering, IDocumentLineBuilder lineBuilder, IIssueValuation valuation, IReceiptCostDefaults receiptCosts, IDocumentAccess access, IDocumentReader reader,
     ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreateDocumentCommand, DocumentDto>
 {
     public async Task<DocumentDto> HandleAsync(CreateDocumentCommand cmd, CancellationToken ct)
@@ -20,6 +20,7 @@ public class CreateDocumentHandler(IRepository<StockDocument> documents, IReadRe
             doc.AssignNumber(await numbering.NextAsync(cmd.Type, warehouse, ct));
             doc.AddLines(await lineBuilder.BuildAsync(cmd.Type, r.Lines, ct));
             await valuation.EstimateAsync(doc, ct);
+            await receiptCosts.ApplyAsync(doc, ct);
 
             documents.Add(doc);
             audit.Record(AuditActions.DocumentCreated, AuditEntities.StockDocument, doc.No, after: new { doc.Type, doc.WarehouseId, Lines = doc.Lines.Count });

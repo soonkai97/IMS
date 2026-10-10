@@ -50,7 +50,18 @@ public class DependencyInjectionTests(ApiFixture fixture)
         using var scope = fixture.Host.Services.CreateScope();
 
         Assert.NotNull(scope.ServiceProvider.GetRequiredService<IDispatcher>());
-        Assert.Equal(4, scope.ServiceProvider.GetServices<IPipelineBehavior>().Count()); // logging, validation, then the two steps that put names into stale and stock conflicts
+        Assert.Equal(5, scope.ServiceProvider.GetServices<IPipelineBehavior>().Count()); // logging, validation, the cost rule, then the two steps that put names into stale and stock conflicts
+    }
+
+    [Fact]
+    public void The_cost_rule_runs_after_validation_for_every_request()
+    {
+        using var scope = fixture.Host.Services.CreateScope();
+
+        var order = scope.ServiceProvider.GetServices<IPipelineBehavior>().Select(b => b.GetType()).ToList();
+
+        Assert.Contains(typeof(CostVisibilityBehavior), order);
+        Assert.True(order.IndexOf(typeof(CostVisibilityBehavior)) > order.IndexOf(typeof(ValidationBehavior)));
     }
 
     [Fact]

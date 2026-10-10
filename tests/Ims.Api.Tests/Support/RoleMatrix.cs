@@ -15,20 +15,21 @@ public static class RoleMatrix
         [
             Permissions.UsersManage, Permissions.UsersRead, Permissions.MasterDataManage, Permissions.MasterDataRead, Permissions.PartnersCreate,
             Permissions.DocumentCreate, Permissions.DocumentApprove, Permissions.DocumentPost, Permissions.DocumentReverse,
-            Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead, Permissions.SettingsManage
+            Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead, Permissions.SettingsManage, Permissions.CostView, Permissions.ValuationView
         ],
         [Roles.Owner] =
         [
             Permissions.MasterDataRead, Permissions.DocumentApprove,
-            Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead
+            Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead, Permissions.CostView, Permissions.ValuationView
         ],
         [Roles.Supervisor] =
         [
             Permissions.MasterDataManage, Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate,
-            Permissions.DocumentApprove, Permissions.DocumentPost, Permissions.DocumentReverse, Permissions.StockRead, Permissions.ReportsRead
+            Permissions.DocumentApprove, Permissions.DocumentPost, Permissions.DocumentReverse, Permissions.StockRead, Permissions.ReportsRead,
+            Permissions.CostView, Permissions.ValuationView
         ],
         [Roles.WarehouseStaff] = [Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.StockRead],
-        [Roles.Clerk] = [Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.StockRead]
+        [Roles.Clerk] = [Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.StockRead, Permissions.CostView]
     };
 
     public static bool MayUse(string role, string permission) => Allowed[role].Contains(permission);

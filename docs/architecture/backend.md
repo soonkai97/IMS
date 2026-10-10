@@ -85,6 +85,17 @@ The OpenAPI document at `/openapi/v1.json` describes the wire format as it is, s
 - **Documents** carry a concurrency token (`concurrencyToken`, also the `ETag` header). A write may send it back as `If-Match`; a stale token is refused with 409 before anything is changed (`DocumentVersion.EnsureCurrent`). Changing only the lines also moves the token (`AppDbContext.TouchDocumentsWithChangedLines`).
 - A barcode lookup miss is `200 { found: false, product: null }`, not a 404 (a scan that matches nothing is a normal outcome).
 
+## Cost and value visibility
+
+Who may see cost and value is decided by two permissions, `cost.view` (Clerk, Supervisor, Owner, Admin) and `valuation.view` (Supervisor, Owner, Admin), and written once: a cost or value is tagged `[VisibleWith(permission)]` where it is declared (`Ims.Domain.VisibleWithAttribute`). The matrix is in `docs/design/mvp-ux.md` 1.4. Nothing else in the code checks a role name for this.
+
+- **Responses.** `CostVisibilityBehavior` (a pipeline step after validation, for every request) runs `ResponseShaper` over the result: a tagged property of a caller without the permission is set to `null`, wherever it sits (nested objects, lists, pages). Tagged properties are therefore nullable `init` properties; `OnlyWhen` limits the rule to one case (an approval trigger hides its numbers only for an amount rule). Handlers see the full values: only the outermost request is shaped (`ShapingState`), so a handler that sends another command reads the complete result.
+- **Audit.** `AuditPayloadScrubber` removes the keys that name a cost or value from the before/after JSON (entity properties tagged in the Domain, plus the payload keys of `AuditFields`); a payload that carries money must name its key with an `AuditFields` constant. The audit log itself is Owner and Admin only.
+- **Excel.** Handlers write spreadsheets only through `IReportWriter` with `ReportColumn`s (`ReportHeaders`, `ImportTemplates`); a column with `VisibleWith` is left out, header and cells, for a caller without the permission.
+- **Sorting and filtering.** An enum member tagged `[VisibleWith]` (`StockSort.Value`) is refused with `400` by `RequestGuard` for a caller without the permission, because the order would reveal the value.
+- **Receipts without cost.** `IReceiptCostDefaults`: a receipt saved by a caller without `cost.view` takes the last known (average) cost per product in the warehouse, or zero for a product never stocked there, whatever cost the request carried (`StockDocument.ApplyKnownReceiptCosts`).
+- **Tests.** `Ims.Architecture.Tests/CostVisibilityCoverageTests` fails when a response property, entity property, export column or sort key whose name looks like cost or value is not tagged, when a tagged property cannot be withheld, when anything but `ReportWriter` uses `IExcelWriter`, or when an audit payload names money without `AuditFields`. `Ims.Api.Tests/Tests/Visibility` asks every read, export and document command as every role and compares the money found (by name) with what the role may see.
+
 ## Data, concurrency and performance rules
 
 Standard audit columns on every table, soft delete, parameterised data access only, split queries, O(1)-minded design, ordered locks, timeouts and

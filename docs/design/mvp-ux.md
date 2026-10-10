@@ -30,7 +30,7 @@ Open questions (default in brackets is what this design assumes):
 | Q3 | business-analyst | Approved documents cannot be cancelled in Fig 5. If posting then fails (stock moved), the document is stuck. [Design follows PRD; Approved shows Post only.] Recommend allowing Cancel on Approved for Supervisor/Admin. |
 | Q4 | be-system-designer | Does reversal create a separate document number? [Design shows original as Reversed with a "Reversed by ... on ... reason ..." block and two ledger lines; no second document.] |
 | Q5 | be-system-designer | When is the document number assigned: at first save or at posting? [At first save; list shows "New" until then.] |
-| Q6 | business-analyst | Receipt line unit cost in MVP? [Optional column on desktop, inside "More" on phone; STK-04 valuation is not MVP.] |
+| Q6 | business-analyst | Receipt line unit cost in MVP? [Optional column on desktop, inside "More" on phone; STK-04 valuation is not MVP. Decided 2026-10-10 (1.4): only roles with `cost.view` see and enter it; the Warehouse staff receive by quantity and the server applies the last known cost.] |
 | Q7 | business-analyst | Locations (MD-02) are optional. [Hidden everywhere unless Admin enables locations; then a required Location field appears on lines.] |
 
 ## 1. Roles, permissions and menus
@@ -50,6 +50,8 @@ Warehouse scope: Warehouse staff, Supervisor and Clerk only see warehouses assig
 | View stock and ledger | Yes | Yes | Yes | Yes, own warehouses | Read, own warehouses |
 | Reports and export | Yes | Yes | Yes (Q1) | -- | -- |
 | Audit log | Yes | Yes | -- | -- | -- |
+| See cost (unit cost, line cost, document totals, approval amounts) | Yes | Yes | Yes | -- | Yes |
+| See stock value (average cost, value, stock total, ledger cost) | Yes | Yes | Yes | -- | -- |
 | Stocktake, transfers | Phase 2, not designed | | | | |
 
 Cross-cutting rule: a user cannot approve a document they submitted (BR-07, configurable). Shown as a disabled Approve with the reason, never as a missing button, so the user understands why (see error E3).
@@ -106,6 +108,23 @@ Priority: M = must for MVP, S = should (cut first if time is short). Device: P =
 | S50 | Users and roles | `/users` | Adm | M | D | Role + assigned warehouses |
 | S51 | Audit log | `/audit-log` | Adm, Own | S | D | Read-only list, filters (actor, entity, date); expand row for before/after |
 | S52 | Settings | `/settings` | Adm | S | D | Negative stock on/off; approval rules table; self-approval on/off. May ship as seeded defaults first. |
+
+### 1.4 Cost and value visibility (product-owner decision, closes EA-23)
+
+Warehouse staff never see any cost or value. The Clerk sees cost on the documents they work on, not what the stock is worth. Supervisor, Owner and Admin see everything. It is decided by two permissions, never by role name, and both are in the `permissions` list the web app receives at sign-in (`cost.view`, `valuation.view`); the app shows a cost or value only when it holds the permission and treats a `null` as "not for you" (render nothing, no placeholder like 0.00).
+
+| Permission | Roles | What it unlocks |
+|---|---|---|
+| `cost.view` | Clerk, Supervisor, Owner, Admin | Unit cost and line cost of documents; document totals and estimates (`totalAmount`); approval amounts (`approvalTriggers[].threshold/actual` of an amount rule, `approval-rules[].amountThreshold`); cost columns of the receipt/issue detail report and its export; the cost column of the opening-stock template; cost keys in audit entries |
+| `valuation.view` | Supervisor, Owner, Admin | Average cost and value on stock rows; the stock total value (the Home value tile); the unit cost of ledger rows; "Avg cost", "Value" and the ledger "Unit cost" columns of the stock summary and ledger exports; sorting stock by value |
+
+The one rule (backend): a cost or value is tagged `[VisibleWith(permission)]` where it is declared. The pipeline step `CostVisibilityBehavior` then sets every tagged field of a response to `null` for a caller without the permission (nested objects, lists and pages included), removes tagged keys from the audit log's before/after JSON, leaves tagged columns out of Excel files (`IReportWriter`), and answers `400` to a tagged sort key (`sortBy=Value`). Architecture tests fail when a response property that looks like cost or value is not tagged, so a new endpoint or export cannot forget it.
+
+- Approval flows keep working without amounts: `requiresApproval`, `isLarge`, `canAct`, `allowedActions` and the approval trigger (`metric`, `roleRequired`) are the same for everyone. A Warehouse staff user sees "Needs approval (amount)" and the role that approves, not the value or the threshold. A quantity rule is not money and shows its numbers to everyone.
+- Receipts: the Warehouse staff enter quantities only. If they send a cost anyway it is ignored: each line takes the last known (average) cost of the product in that warehouse, or zero if it was never stocked there, so the receipt does not change the average. Clerk, Supervisor and Admin enter the cost as before. An Opening-stock import is a Supervisor or Admin act, so its cost column stays.
+- The audit log is Owner and Admin only (so Staff and Clerk get `403`), and still has its cost keys scrubbed for any caller without the permission.
+- Reports and Excel exports are Supervisor, Owner and Admin only; each file leaves out the columns its reader may not see.
+- Counts (Home tiles, menu badges) are numbers of documents, not money; the only value tile is the stock total, which needs `valuation.view`.
 
 ## 2. Reusable components (the whole set)
 
@@ -412,7 +431,7 @@ Add-item bottom sheet (opens from [ + Add item ]):
 +------------------------------------+
 ```
 
-Receipt variant: same layout; "Purpose" and "available" lines are replaced by Supplier and an optional "Unit cost" field in the sheet ("More" disclosure on phone). A deactivated product never appears in results.
+Receipt variant: same layout; "Purpose" and "available" lines are replaced by Supplier and an optional "Unit cost" field in the sheet ("More" disclosure on phone), shown only when the user has `cost.view` (the Warehouse staff never see it, see 1.4). A deactivated product never appears in results.
 
 ### 4.4 Document edit / view - Receipt, desktop (S11)
 
@@ -718,7 +737,7 @@ Rules behind the table (for be-framework to enforce; UI only reflects them):
 - Reasons (Reject, Reverse, override at Approve) have at least 5 characters once trimmed; the API enforces it as well as the dialog (PS-09).
 - Review routing (enforced by the API, shown by `allowedActions` and `canAct`): an Admin approves and rejects any document; the Owner only documents flagged Large; a Supervisor only documents not flagged Large. A document with `requiresOverride` that is not Large is therefore a Supervisor or Admin act, never the Owner's. Reject is a review like Approve, so the submitter cannot reject their own document either when self-approval is off (the recall is Cancel). **Open question for the product owner:** a document that is both Large and `requiresOverride` is reviewed by the Owner (or Admin), who then gives the override reason; D5 calls the override "a supervisor act", so say if that case should be Admin-only.
 - Ownership: Warehouse staff and Clerk edit, submit and cancel only drafts they created, and cancel (recall) only Submitted documents they submitted. A draft that a supervisor submitted can no longer be recalled by its creator. Supervisor and Admin act on any document in their warehouses. A document in a warehouse outside the caller's scope answers 404, not 403, so ids cannot be probed.
-- Amounts: an issue that has not posted yet is valued at the average cost seen when it was last saved or submitted (`amountIsEstimate`); the value on a Submitted document is the one the approval rules were tested against, and `approvalTriggers` says which threshold (value or quantity) it reached.
+- Amounts: an issue that has not posted yet is valued at the average cost seen when it was last saved or submitted (`amountIsEstimate`); the value on a Submitted document is the one the approval rules were tested against, and `approvalTriggers` says which threshold (value or quantity) it reached. Every amount here is `null` for a caller without `cost.view` (the Warehouse staff): they still see that approval is needed and which kind of rule fired, not the number (1.4).
 
 ### 7.3 Phone action bar by state (what the sticky bar shows)
 
