@@ -113,8 +113,8 @@ public static class TestData
     public static SystemSettings Settings(bool allowNegative = false, bool allowSelfApproval = false) =>
         new(allowNegative, allowSelfApproval, Limits.DefaultLowStockCooldownHours);
 
-    public static PostingContext NewContext(StockDocument doc, bool allowNegative = false, bool canOverride = false, string? overrideReason = null) =>
-        new(doc, Settings(allowNegative), Approver, canOverride, overrideReason, Now);
+    public static PostingContext NewContext(StockDocument doc, bool allowNegative = false, bool canOverride = false) =>
+        new(doc, Settings(allowNegative), Approver, canOverride, Now);
 
     public static PostingEngine NewEngine() => new([new ReceiptPostingStrategy(), new IssuePostingStrategy()]);
 
@@ -125,6 +125,14 @@ public static class TestData
     public static StockDocument Submitted(this StockDocument doc, bool requiresApproval = false)
     {
         doc.Submit(Submitter, requiresApproval, Now);
+        return doc;
+    }
+
+    /// <summary>Submits the document as an override (stock is short) and has the approver approve it with the given reason.</summary>
+    public static StockDocument ApprovedWithOverride(this StockDocument doc, string? reason = "customer collecting today")
+    {
+        doc.Submit(Submitter, requiresApproval: true, Now, requiresOverride: true);
+        doc.Approve(Approver, allowSelfApproval: false, Now, reason);
         return doc;
     }
 }

@@ -7,7 +7,8 @@ namespace Ims.Application.Features.Documents;
 /// <c>XxxBy</c> is the user name, <c>XxxById</c> the user id and <c>XxxByName</c> the display name of whoever did it.
 /// </remarks>
 /// <param name="RequiresApproval">An approval rule fired when the document was submitted (false for a Draft).</param>
-/// <param name="RequiresOverride">An issue was submitted although stock is short (negative stock is allowed): a supervisor must give a reason when posting. Still true after posting if an override was used.</param>
+/// <param name="RequiresOverride">An issue was submitted although stock is short (negative stock is allowed): the approver must give a reason when approving, which forces approval whatever the value thresholds say. A fact about the moment of submission: it stays true after approval and posting; the stored reason is in <c>NegativeStockOverrideReason</c>.</param>
+/// <param name="NegativeStockOverrideReason">Why the approver let stock go below zero; set when a document that <c>requiresOverride</c> is approved, otherwise null.</param>
 /// <param name="IsLarge">The approval rule that fired needs a role above Supervisor (for example the Owner).</param>
 /// <param name="IsReturned">A Draft that a reviewer sent back (<c>RejectionReason</c> holds why, <c>ReturnedBy*</c> who).</param>
 /// <param name="AllowedActions">What the caller may do right now (edit, submit, approve, reject, cancel, post, reverse). The UI shows buttons from this list only.</param>

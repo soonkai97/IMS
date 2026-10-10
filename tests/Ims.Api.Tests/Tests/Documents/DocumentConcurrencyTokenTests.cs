@@ -148,7 +148,7 @@ public class DocumentConcurrencyTokenTests(ApiFixture fixture)
         {
             "submit" => await s.Clerk.Documents.SubmitAsync(draft.Id, stale),
             "cancel" => await s.Clerk.Documents.CancelAsync(draft.Id, "no longer needed", stale),
-            "post" => await s.Admin.Documents.PostAsync(draft.Id, null, stale),
+            "post" => await s.Admin.Documents.PostAsync(draft.Id, stale),
             "approve" => await s.Admin.Documents.ApproveAsync(draft.Id, stale),
             "reject" => await s.Admin.Documents.RejectAsync(draft.Id, "not right", stale),
             _ => await s.Admin.Documents.ReverseAsync(draft.Id, "entered twice", stale)

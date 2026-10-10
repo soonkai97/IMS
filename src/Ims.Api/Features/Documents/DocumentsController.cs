@@ -44,9 +44,11 @@ public class DocumentsController(IDispatcher dispatcher) : ApiControllerBase(dis
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Submit(int id) => SendDocument(new SubmitDocumentCommand(id, IfMatch));
 
+    /// <summary>Approves a Submitted document. The body is optional, except that a document with <c>requiresOverride</c> needs <c>negativeStockOverrideReason</c> here: the approver gives the reason, not the person who posts.</summary>
     [HttpPost(RouteSegments.Approve), Authorize(Policy = Permissions.DocumentApprove)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Approve(int id) => SendDocument(new ApproveDocumentCommand(id, IfMatch));
+    public Task<IActionResult> Approve(int id, [FromBody] ApproveRequest? body = null) =>
+        SendDocument(new ApproveDocumentCommand(id, body ?? new ApproveRequest(null), IfMatch));
 
     [HttpPost(RouteSegments.Reject), Authorize(Policy = Permissions.DocumentApprove)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
@@ -56,9 +58,10 @@ public class DocumentsController(IDispatcher dispatcher) : ApiControllerBase(dis
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Cancel(int id, [FromBody] CancelRequest body) => SendDocument(new CancelDocumentCommand(id, body, IfMatch));
 
+    /// <summary>Posts an Approved (or approval-free Submitted) document. There is no request body: the override reason was recorded at approval.</summary>
     [HttpPost(RouteSegments.Post), Authorize(Policy = Permissions.DocumentPost)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Post(int id, [FromBody] PostRequest body) => SendDocument(new PostDocumentCommand(id, body, IfMatch));
+    public Task<IActionResult> Post(int id) => SendDocument(new PostDocumentCommand(id, IfMatch));
 
     [HttpPost(RouteSegments.Reverse), Authorize(Policy = Permissions.DocumentReverse)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]

@@ -15,7 +15,7 @@ public class ReverseDocumentHandler(IRepository<StockDocument> documents, IRepos
             DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
             doc.MarkReversed(cmd.Data.Reason);
 
-            var ctx = new PostingContext(doc, await settings.GetAsync(ct), current.UserId, canOverrideNegative: false, null, clock.UtcNow);
+            var ctx = new PostingContext(doc, await settings.GetAsync(ct), current.UserId, canOverrideNegative: false, clock.UtcNow);
             engine.Reverse(doc, await balances.LoadForUpdateAsync(doc, ct), ctx);
 
             ledger.AddRange(ctx.Entries);

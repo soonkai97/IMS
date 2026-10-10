@@ -12,7 +12,7 @@ public sealed class PostingEngine(IEnumerable<IPostingStrategy> strategies) : IP
         var strategy = StrategyFor(document.Type);
         // Lines are applied in ProductId order so balance rows are always updated in the same global order (no lock cycles).
         foreach (var line in OrderedLines(document)) strategy.Post(line, balances[line.ProductId], ctx);
-        document.MarkPosted(ctx.UserId, ctx.Now, ctx.OverrideUsed ? ctx.OverrideReason : null);
+        document.MarkPosted(ctx.UserId, ctx.Now);
     }
 
     public void Reverse(StockDocument document, IReadOnlyDictionary<int, StockBalance> balances, PostingContext ctx)

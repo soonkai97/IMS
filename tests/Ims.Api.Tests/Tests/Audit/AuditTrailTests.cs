@@ -95,20 +95,26 @@ public class AuditTrailTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task A_negative_stock_override_is_visible_in_the_audit_of_the_posting()
+    public async Task A_negative_stock_override_is_audited_at_approval_with_the_approver_and_the_reason_and_at_posting_as_used()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
+        var (approver, approverClient) = await SignedInAsync(Roles.Supervisor);
         var (_, adminClient) = await SignedInAsync(Roles.Admin);
         await using var _ = await SettingsOverride.ApplyAsync(s.Admin, allowNegativeStock: true);
         var issue = await s.SubmitAsync(s.Clerk, await s.DraftIssueAsync(s.Clerk, fixture.Reference.DefaultWarehouseId, new Line(product.Id, 2)));
 
-        (await adminClient.Documents.PostAsync(issue.Id, "Count pending")).ShouldBeOk();
+        (await approverClient.Documents.ApproveWithReasonAsync(issue.Id, "Count pending")).ShouldBeOk();
+        (await adminClient.Documents.PostAsync(issue.Id)).ShouldBeOk();
 
-        var posted = (await EntriesAsync(entityType: AuditEntities.StockDocument))
-            .Single(e => e.EntityId == issue.No && e.Action == AuditActions.DocumentPosted);
+        var trail = (await EntriesAsync(entityType: AuditEntities.StockDocument)).Where(e => e.EntityId == issue.No).ToList();
+        var approved = trail.Single(e => e.Action == AuditActions.DocumentApproved);
+        Assert.Equal(approver.Username, approved.Actor);
+        Assert.Contains("Count pending", approved.After);
+        var posted = trail.Single(e => e.Action == AuditActions.DocumentPosted);
         Assert.Contains("OverrideUsed", posted.After);
         Assert.Contains("true", posted.After, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Count pending", posted.After);
     }
 
     // ---------- master data ----------

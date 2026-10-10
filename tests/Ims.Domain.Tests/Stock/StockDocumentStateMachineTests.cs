@@ -147,6 +147,73 @@ public class StockDocumentStateMachineTests
         Assert.Equal(Submitter, doc.ApprovedBy);
     }
 
+    // ----- Approve: override reason (BR-03) -----
+    private static StockDocument SubmittedOverride()
+    {
+        var doc = NewIssue(2, (NewProduct(), 1m));
+        doc.Submit(Submitter, requiresApproval: true, Now, requiresOverride: true);
+        return doc;
+    }
+
+    [Fact]
+    public void Approve_WhenOverrideRequired_StoresTheTrimmedReason()
+    {
+        var doc = SubmittedOverride();
+
+        doc.Approve(Approver, allowSelfApproval: false, Later, "  customer collecting today  ");
+
+        Assert.Equal(DocumentStatus.Approved, doc.Status);
+        Assert.Equal("customer collecting today", doc.NegativeStockOverrideReason);
+        Assert.True(doc.RequiresOverride);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Approve_WhenOverrideRequiredWithoutReason_ThrowsAndStaysSubmitted(string? reason)
+    {
+        var doc = SubmittedOverride();
+
+        var ex = Assert.Throws<DomainException>(() => doc.Approve(Approver, false, Later, reason));
+
+        Assert.Equal(Messages.OverrideReasonRequired, ex.Message);
+        Assert.Equal(DocumentStatus.Submitted, doc.Status);
+        Assert.Null(doc.ApprovedBy);
+        Assert.Null(doc.NegativeStockOverrideReason);
+    }
+
+    [Fact]
+    public void Approve_WhenNoOverrideRequired_NeedsNoReasonAndIgnoresOne()
+    {
+        var doc = InStatus(DocumentStatus.Submitted);
+
+        doc.Approve(Approver, allowSelfApproval: false, Later, "not needed here");
+
+        Assert.Equal(DocumentStatus.Approved, doc.Status);
+        Assert.Null(doc.NegativeStockOverrideReason);
+    }
+
+    [Fact]
+    public void Approve_BySubmitterOfAnOverride_StillBlockedWhenSelfApprovalNotAllowed()
+    {
+        var doc = SubmittedOverride();
+
+        var ex = Assert.Throws<DomainException>(() => doc.Approve(Submitter, allowSelfApproval: false, Later, "a good reason"));
+
+        Assert.Equal(Messages.SelfApproval, ex.Message);
+    }
+
+    [Fact]
+    public void Reject_OfAnOverride_LeavesNoReasonBehind()
+    {
+        var doc = SubmittedOverride();
+
+        doc.Reject("fix the qty", Approver, Later);
+
+        Assert.Null(doc.NegativeStockOverrideReason);
+    }
+
     // ----- Reject -----
     [Fact]
     public void Reject_FromSubmitted_ReturnsToDraftKeepingReasonAndClearingSubmitter()
@@ -378,26 +445,13 @@ public class StockDocumentStateMachineTests
     }
 
     [Fact]
-    public void MarkPosted_StoresTrimmedOverrideReason()
+    public void MarkPosted_KeepsTheOverrideReasonRecordedAtApproval()
     {
-        var doc = NewSubmittedReceipt(requiresApproval: false);
+        var doc = NewIssue(2, (NewProduct(), 1m)).ApprovedWithOverride("counted by hand");
 
-        doc.MarkPosted(Approver, Later, "  counted by hand  ");
+        doc.MarkPosted(Approver, Later);
 
         Assert.Equal("counted by hand", doc.NegativeStockOverrideReason);
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void MarkPosted_BlankOverrideReason_IsStoredAsNull(string? reason)
-    {
-        var doc = NewSubmittedReceipt(requiresApproval: false);
-
-        doc.MarkPosted(Approver, Later, reason);
-
-        Assert.Null(doc.NegativeStockOverrideReason);
     }
 
     [Fact]

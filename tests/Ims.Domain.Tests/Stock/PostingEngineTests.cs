@@ -96,43 +96,43 @@ public class PostingEngineTests
     [Fact]
     public void Post_Issue_InsufficientAndSettingOff_ThrowsInsufficientStock()
     {
-        var doc = NewIssue(2, (P(1), 4m)).Submitted();
+        var doc = NewIssue(2, (P(1), 4m)).ApprovedWithOverride("r");
 
         Assert.Throws<InsufficientStockException>(() =>
-            _engine.Post(doc, Balances(NewBalance(1, 1m, 5m)), NewContext(doc, allowNegative: false, canOverride: true, overrideReason: "r")));
+            _engine.Post(doc, Balances(NewBalance(1, 1m, 5m)), NewContext(doc, allowNegative: false, canOverride: true)));
 
-        Assert.Equal(DocumentStatus.Submitted, doc.Status);
+        Assert.Equal(DocumentStatus.Approved, doc.Status);
     }
 
     [Fact]
     public void Post_Issue_InsufficientSettingOnButCallerCannotOverride_ThrowsDomainException()
     {
-        var doc = NewIssue(2, (P(1), 4m)).Submitted();
+        var doc = NewIssue(2, (P(1), 4m)).ApprovedWithOverride("r");
 
         var ex = Assert.Throws<DomainException>(() =>
-            _engine.Post(doc, Balances(NewBalance(1, 1m, 5m)), NewContext(doc, allowNegative: true, canOverride: false, overrideReason: "r")));
+            _engine.Post(doc, Balances(NewBalance(1, 1m, 5m)), NewContext(doc, allowNegative: true, canOverride: false)));
 
         Assert.Equal(Messages.NegativeNeedsSupervisor, ex.Message);
-        Assert.Equal(DocumentStatus.Submitted, doc.Status);
+        Assert.Equal(DocumentStatus.Approved, doc.Status);
     }
 
     [Fact]
-    public void Post_Issue_InsufficientOverrideWithoutReason_ThrowsDomainException()
+    public void Post_Issue_InsufficientAndNoReasonRecordedAtApproval_ThrowsDomainException()
     {
         var doc = NewIssue(2, (P(1), 4m)).Submitted();
 
         var ex = Assert.Throws<DomainException>(() =>
-            _engine.Post(doc, Balances(NewBalance(1, 1m, 5m)), NewContext(doc, allowNegative: true, canOverride: true, overrideReason: null)));
+            _engine.Post(doc, Balances(NewBalance(1, 1m, 5m)), NewContext(doc, allowNegative: true, canOverride: true)));
 
         Assert.Equal(Messages.NegativeNeedsReason, ex.Message);
     }
 
     [Fact]
-    public void Post_Issue_OverrideWithReason_PostsAndStoresTrimmedReasonOnDocument()
+    public void Post_Issue_OverrideWithReasonRecordedAtApproval_PostsAndKeepsTheTrimmedReason()
     {
-        var doc = NewIssue(2, (P(1), 4m)).Submitted();
+        var doc = NewIssue(2, (P(1), 4m)).ApprovedWithOverride("  customer collecting today  ");
         var balances = Balances(NewBalance(1, 1m, 5m));
-        var ctx = NewContext(doc, allowNegative: true, canOverride: true, overrideReason: "  customer collecting today  ");
+        var ctx = NewContext(doc, allowNegative: true, canOverride: true);
 
         _engine.Post(doc, balances, ctx);
 
@@ -143,23 +143,23 @@ public class PostingEngineTests
     }
 
     [Fact]
-    public void Post_Issue_ReasonSuppliedButNoOverrideNeeded_ReasonIsNotStored()
+    public void Post_Issue_ApprovedWithReasonButStockCovers_PostsWithoutUsingTheOverride()
     {
-        var doc = NewIssue(2, (P(1), 1m)).Submitted();
-        var ctx = NewContext(doc, allowNegative: true, canOverride: true, overrideReason: "just in case");
+        var doc = NewIssue(2, (P(1), 1m)).ApprovedWithOverride("just in case");
+        var ctx = NewContext(doc, allowNegative: true, canOverride: true);
 
         _engine.Post(doc, Balances(NewBalance(1, 5m, 1m)), ctx);
 
         Assert.False(ctx.OverrideUsed);
-        Assert.Null(doc.NegativeStockOverrideReason);
+        Assert.Equal("just in case", doc.NegativeStockOverrideReason);
     }
 
     [Fact]
     public void Post_Issue_OneLineSufficientOneNot_TheShortLineDecidesTheOverride()
     {
-        var doc = NewIssue(2, (P(1), 1m), (P(2), 9m)).Submitted();
+        var doc = NewIssue(2, (P(1), 1m), (P(2), 9m)).ApprovedWithOverride("ok");
         var balances = Balances(NewBalance(1, 5m, 1m), NewBalance(2, 1m, 1m));
-        var ctx = NewContext(doc, allowNegative: true, canOverride: true, overrideReason: "ok");
+        var ctx = NewContext(doc, allowNegative: true, canOverride: true);
 
         _engine.Post(doc, balances, ctx);
 
