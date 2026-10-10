@@ -1,5 +1,15 @@
-<fieldset class="ui-radio-group-set" [disabled]="$disabled()">
-  <legend class="ui-radio-group-legend">{{ $legend() }}</legend>
+<fieldset
+  class="ui-radio-group-set"
+  [disabled]="$disabled()"
+  [attr.aria-invalid]="$invalid() || null"
+  [attr.aria-describedby]="$invalid() ? $errorId() : null"
+>
+  <legend class="ui-radio-group-legend">
+    {{ $legend() }}
+    @if ($required()) {
+      <span class="ui-radio-group-required">({{ $requiredText() }})</span>
+    }
+  </legend>
   <div class="ui-radio-group-options">
     @for (item of $items(); track item.value) {
       <label class="ui-radio-group-option" [class.--checked]="item.checked">

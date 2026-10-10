@@ -16,12 +16,28 @@
   (activeChange)="onScopeChange($event)"
 />
 
-<div class="document-list-page-filters">
+<div class="document-list-page-toolbar">
   <app-search-input
     [(value)]="$searchInput"
     [label]="'docs.searchLabel' | t"
     [placeholder]="'docs.searchPlaceholder' | t"
   />
+  <app-button
+    class="document-list-page-filter-toggle"
+    controls="document-list-filters"
+    [expanded]="$filtersOpen()"
+    (clicked)="onToggleFilters()"
+  >
+    <app-icon name="filter" />
+    @if ($panelFilterCount() > 0) {
+      {{ 'filter.showActive' | t: { count: $panelFilterCount() } }}
+    } @else {
+      {{ 'filter.show' | t }}
+    }
+  </app-button>
+</div>
+
+<div id="document-list-filters" class="document-list-page-filters" [class.--open]="$filtersOpen()">
   <app-form-field [label]="'product.status' | t">
     <app-select
       [formControl]="statusControl"

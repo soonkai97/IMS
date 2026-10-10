@@ -4,6 +4,11 @@ export interface HeldDocument {
   /** The approval rule that fired needs a role above Supervisor. */
   readonly isLarge: boolean;
   readonly submittedById: number | undefined;
+  /**
+   * Set by the API (list items): the caller may approve or reject this document now. When present it IS the answer;
+   * the role rules below only stand in for an API that does not send it yet.
+   */
+  readonly canAct?: boolean;
 }
 
 export interface Reviewer {
@@ -20,6 +25,9 @@ export interface Reviewer {
  * when `allowedActions` has it.
  */
 export function isWaitingForReviewer(document: HeldDocument, reviewer: Reviewer): boolean {
+  if (typeof document.canAct === 'boolean') {
+    return document.canAct;
+  }
   if (document.submittedById === reviewer.userId && !reviewer.allowSelfApproval) {
     return false;
   }

@@ -36,6 +36,8 @@ export class UiFormFieldComponent implements FormFieldContext {
   $control = input<AbstractControl | null>(null, { alias: 'control' });
   /** Explicit error text (wins over the control's own errors). */
   $error = input<string | null>(null, { alias: 'error' });
+  /** Field-specific wording per error key ("min": "Enter a quantity above 0.") before the generic sentence. */
+  $messages = input<Readonly<Record<string, string>>>({}, { alias: 'messages' });
 
   readonly inputId = `app-field-${nextFieldId++}`;
   readonly hintId = `${this.inputId}-hint`;
@@ -61,7 +63,7 @@ export class UiFormFieldComponent implements FormFieldContext {
       return null;
     }
     const [key, value] = Object.entries(control.errors)[0];
-    return this.$text().validationMessage(key, value);
+    return this.$messages()[key] ?? this.$text().validationMessage(key, value);
   });
   readonly describedBy = computed(() => {
     const ids = [this.$hint() ? this.hintId : null, this.$errorText() ? this.errorId : null];

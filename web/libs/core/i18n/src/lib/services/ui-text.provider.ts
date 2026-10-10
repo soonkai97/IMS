@@ -24,6 +24,7 @@ export function provideUiText(): EnvironmentProviders {
           selectPlaceholder: i18n.t('ui.selectPlaceholder'),
           dismiss: i18n.t('ui.dismiss'),
           errorTitle: i18n.t('ui.errorTitle'),
+          reasonTooShort: length => i18n.t('validation.reasonMinLength', { length }),
           pageStatus: (page, pages) => i18n.t('ui.pageStatus', { page, pages }),
           rangeStatus: (from, to, total) => i18n.t('ui.rangeStatus', { from, to, total }),
           validationMessage: (key, error) => validationMessage(i18n, key, error)
@@ -40,6 +41,13 @@ function lengthOf(error: unknown): number {
   return 0;
 }
 
+function boundOf(error: unknown, member: 'min' | 'max'): number {
+  if (typeof error === 'object' && error !== null && member in error) {
+    return Number((error as Record<string, unknown>)[member]);
+  }
+  return 0;
+}
+
 function validationMessage(i18n: I18nService, key: string, error: unknown): string {
   switch (key) {
     case 'required':
@@ -49,9 +57,9 @@ function validationMessage(i18n: I18nService, key: string, error: unknown): stri
     case 'maxlength':
       return i18n.t('validation.maxLength', { length: lengthOf(error) });
     case 'min':
-      return i18n.t('validation.min');
+      return i18n.t('validation.min', { min: boundOf(error, 'min') });
     case 'max':
-      return i18n.t('validation.max');
+      return i18n.t('validation.max', { max: boundOf(error, 'max') });
     case 'decimals':
       return i18n.t('validation.decimals');
     case 'email':

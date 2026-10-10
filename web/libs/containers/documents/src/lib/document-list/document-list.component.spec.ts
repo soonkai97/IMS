@@ -129,4 +129,48 @@ describe('DocumentListPageComponent Mine / All', () => {
 
     expect(chips).toEqual(['Draft', 'Returned', 'Override', 'Large']);
   });
+
+  describe('on a phone (NV-08)', () => {
+    const filters = (): HTMLElement => spectator.query('#document-list-filters') as HTMLElement;
+    const toggle = (): HTMLButtonElement =>
+      spectator.query('.document-list-page-filter-toggle button') as HTMLButtonElement;
+
+    it('the four filters hide behind one Filters button, closed at first', async () => {
+      await render();
+
+      expect(toggle().textContent).toContain('Filters');
+      expect(toggle().getAttribute('aria-expanded')).toBe('false');
+      expect(filters().classList).not.toContain('--open');
+    });
+
+    it('the button opens and closes the filters and says so to assistive technology', async () => {
+      await render();
+
+      spectator.click(toggle());
+      expect(toggle().getAttribute('aria-expanded')).toBe('true');
+      expect(toggle().getAttribute('aria-controls')).toBe('document-list-filters');
+      expect(filters().classList).toContain('--open');
+
+      spectator.click(toggle());
+      expect(filters().classList).not.toContain('--open');
+    });
+
+    it('the button shows how many filters are set, so a hidden filter is not forgotten', async () => {
+      await render();
+
+      spectator.component.statusControl.setValue(DocumentStatus.Draft);
+      spectator.component.fromControl.setValue('2026-10-01');
+      spectator.detectChanges();
+
+      expect(toggle().textContent).toContain('Filters (2)');
+    });
+
+    it('the card is two lines: number and chips, then the facts, with the warehouse on it', async () => {
+      await render();
+
+      expect(spectator.query('tr.ui-table-row')?.classList).toContain('--compact');
+      expect(spectator.query('td.--phone-end app-status-chip')).toBeTruthy();
+      expect(spectator.element.textContent).toContain('Main warehouse');
+    });
+  });
 });

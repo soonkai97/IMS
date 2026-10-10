@@ -54,6 +54,16 @@ describe('document line totals', () => {
     expect(computeTotals(lines, DocumentType.Issue).totalAmount).toBe(0);
   });
 
+  it('NV-22: a line being typed (negative or empty quantity) adds nothing: never "-4 units"', () => {
+    const lines = [
+      line({ qty: -5 }),
+      line({ productId: 2, qty: null }),
+      line({ productId: 3, qty: 1 })
+    ];
+
+    expect(computeTotals(lines, DocumentType.Receipt).totalQty).toBe(1);
+  });
+
   it('removes float noise (0.1 + 0.2 shows as 0.3)', () => {
     const totals = computeTotals(
       [line({ qty: 0.1 }), line({ productId: 2, qty: 0.2 })],
