@@ -44,6 +44,19 @@ describe('LoginPageComponent failure messages', () => {
     expect(banner()).toContain('Email, username or password is wrong.');
   });
 
+  it('EA-06: an empty submit puts the focus on the first field with an error', async () => {
+    operation.set(IDLE_OPERATION);
+    spectator = createComponent();
+    spectator.detectChanges();
+
+    spectator.component.onSubmit();
+    spectator.detectChanges();
+    await spectator.fixture.whenStable();
+
+    expect(document.activeElement?.getAttribute('autocomplete')).toBe('username');
+    expect(document.activeElement?.getAttribute('aria-invalid')).toBe('true');
+  });
+
   it('EA-24: the rate limit says to wait, not "could not be processed"', () => {
     show(error(API_ERROR_KIND.Unknown, 429, 'The request could not be processed.'));
 

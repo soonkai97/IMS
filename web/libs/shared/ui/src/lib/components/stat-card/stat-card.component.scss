@@ -30,7 +30,11 @@
   color: color('text-muted');
 }
 
+// The ::after covers the whole card, so the card is the tap target; the link itself is at least 24px high too (EA-21).
 .ui-stat-card-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
   text-decoration: none;
 
   &::after {

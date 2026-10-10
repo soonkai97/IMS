@@ -103,6 +103,7 @@ describe('DocumentEditorPageComponent', () => {
   const currentToken = jest.fn();
   const resetCommands = jest.fn();
   const detailOperation = signal<ApiOperation>(IDLE_OPERATION);
+  const lookup = jest.fn();
   const granted = new Set<string>([PERMISSION.StockRead]);
   /** What a command answers instead of the opened document (a save that creates, a submit that moves on). */
   const responses: Record<string, DocumentDto | undefined> = {};
@@ -132,7 +133,7 @@ describe('DocumentEditorPageComponent', () => {
         provide: CatalogStore,
         useValue: { ensureLoaded: jest.fn(), $unitCodes: signal(new Map()) }
       },
-      { provide: ProductsStore, useValue: {} },
+      { provide: ProductsStore, useValue: { lookup } },
       { provide: StockAvailabilityService, useValue: { bySearch: jest.fn(() => of(new Map())) } },
       {
         provide: DocumentsStore,
@@ -367,6 +368,177 @@ describe('DocumentEditorPageComponent', () => {
 
     expect(text()).toContain('Returned by Supervisor');
     expect(text()).toContain('Please check the quantity first');
+  });
+
+  describe('forms and dialogs (NV-09, NV-13, NV-18, NV-19, EA-06, EA-27, PS-17)', () => {
+    it('EA-06: a failed submit puts the focus on the first field with an error', async () => {
+      await openNew();
+      spectator.component.onProductPicked({ product: WIDGET, available: 10 });
+      spectator.detectChanges();
+
+      spectator.component.onAction(DOCUMENT_ACTION.Submit);
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      // Purpose is the first thing that is wrong: its group is marked, its first option has the focus.
+      expect(spectator.query('fieldset[aria-invalid="true"]')).toBeTruthy();
+      expect(window.document.activeElement?.getAttribute('type')).toBe('radio');
+    });
+
+    it('EA-06: with no line at all the focus goes to Add item, and the error is announced', async () => {
+      await openNew();
+      spectator.component.view.header.controls.purpose.setValue(IssuePurpose.Sale);
+
+      spectator.component.onAction(DOCUMENT_ACTION.Submit);
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(text()).toContain('Add at least one item.');
+      expect(window.document.activeElement?.textContent).toContain('Add item');
+    });
+
+    it('NV-09: Purpose is marked required and the error says what to do', async () => {
+      await openNew();
+      spectator.component.view.header.controls.purpose.markAsTouched();
+      spectator.detectChanges();
+
+      expect(spectator.query('legend')?.textContent).toContain('(required)');
+      expect(spectator.query('#document-purpose-error')?.textContent).toContain(
+        'Choose a purpose.'
+      );
+    });
+
+    it('NV-09: a quantity of -5 says what is allowed', async () => {
+      await openNew();
+      fillNewIssue();
+      const quantity = spectator.component.view.lines.at(0).controls.qty;
+
+      quantity.setValue(-5);
+      quantity.markAsTouched();
+      spectator.detectChanges();
+
+      expect(text()).toContain('Enter a quantity above 0.');
+    });
+
+    it('EA-27: every control of a line names its product', async () => {
+      await openNew();
+      fillNewIssue();
+
+      const labels = spectator
+        .queryAll('app-document-line-editor button, app-document-line-editor input')
+        .map(element => element.getAttribute('aria-label'));
+
+      expect(labels).toEqual(
+        expect.arrayContaining([
+          'Decrease quantity of DEMO-001',
+          'Quantity of DEMO-001',
+          'Increase quantity of DEMO-001',
+          'Remove DEMO-001'
+        ])
+      );
+    });
+
+    it('NV-18: removing a line with a typed quantity asks first; Keep leaves it', async () => {
+      await openNew();
+      fillNewIssue();
+      spectator.component.view.lines.at(0).controls.qty.setValue(7);
+      spectator.detectChanges();
+
+      spectator.component.onRemoveLine(0);
+      expect(confirm().$pending()?.request.heading).toBe('Remove DEMO-001?');
+      confirm().cancel();
+
+      expect(spectator.component.view.lines.length).toBe(1);
+
+      spectator.component.onRemoveLine(0);
+      confirm().confirm('');
+      expect(spectator.component.view.lines.length).toBe(0);
+    });
+
+    it('NV-18: a line nobody changed goes at once', async () => {
+      await openNew();
+      fillNewIssue();
+
+      spectator.component.onRemoveLine(0);
+
+      expect(confirm().$pending()).toBeUndefined();
+      expect(spectator.component.view.lines.length).toBe(0);
+    });
+
+    it('NV-19: the Post dialog names the products and quantities, not only the line count', async () => {
+      await open(
+        document({
+          status: DocumentStatus.Submitted,
+          requiresApproval: false,
+          allowedActions: [DOCUMENT_ACTION.Post]
+        })
+      );
+
+      spectator.component.onAction(DOCUMENT_ACTION.Post);
+
+      expect(confirm().$pending()?.request.body).toContain('Includes DEMO-001 x 15 PCS.');
+    });
+
+    it('PS-17: approving an override says where each short line will end up', async () => {
+      await open(document({ requiresOverride: true }));
+
+      spectator.component.onAction(DOCUMENT_ACTION.Approve);
+
+      expect(confirm().$pending()?.request.body).toContain('DEMO-001 will go to -5 PCS.');
+    });
+
+    it('PS-17: the read-only view says who submitted the document and when', async () => {
+      await open(document());
+
+      expect(text()).toContain('Submitted by Staff');
+    });
+
+    it('NV-21: no button keeps a spinner once the command has finished', async () => {
+      await openNew();
+      fillNewIssue();
+      responses['save'] = draftOf(31);
+      jest.spyOn(spectator.inject(Router), 'navigate').mockResolvedValue(true);
+
+      spectator.component.onAction(DOCUMENT_ACTION.Edit);
+
+      expect(spectator.component.$busyAction()).toBeUndefined();
+    });
+  });
+
+  describe('a link that starts a receipt for a product (NV-13)', () => {
+    it('picks the warehouse and the product and focuses the quantity', async () => {
+      lookup.mockReturnValue(of({ found: true, product: WIDGET }));
+      opened.set(undefined);
+      spectator = createComponent({
+        props: {
+          type: DocumentType.Receipt,
+          id: 'new',
+          sku: 'DEMO-001',
+          warehouseId: '1'
+        } as never
+      });
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(lookup).toHaveBeenCalledWith('DEMO-001');
+      expect(spectator.component.$warehouseId()).toBe(1);
+      expect(spectator.component.view.lines.length).toBe(1);
+      expect(window.document.activeElement?.closest('app-document-line-editor')).toBeTruthy();
+    });
+
+    it('an unknown or deactivated product leaves the form empty', async () => {
+      lookup.mockReturnValue(of({ found: false, product: undefined }));
+      opened.set(undefined);
+      spectator = createComponent({
+        props: { type: DocumentType.Receipt, id: 'new', sku: 'NOPE' } as never
+      });
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(spectator.component.view.lines.length).toBe(0);
+    });
   });
 
   describe('a document that cannot be opened (NV-12, PS-20)', () => {

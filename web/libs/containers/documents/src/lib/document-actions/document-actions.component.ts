@@ -29,6 +29,8 @@ export class DocumentActionsComponent {
   $busy = input(false, { alias: 'busy', transform: booleanAttribute });
   /** The opened copy is out of date (E4): nothing can be done with it until it is reloaded. */
   $locked = input(false, { alias: 'locked', transform: booleanAttribute });
+  /** The action that is running: its button shows the spinner (while `busy` disables the others). */
+  $busyAction = input<DocumentAction | undefined>(undefined, { alias: 'busyAction' });
   $selfApprovalBlocked = input(false, {
     alias: 'selfApprovalBlocked',
     transform: booleanAttribute

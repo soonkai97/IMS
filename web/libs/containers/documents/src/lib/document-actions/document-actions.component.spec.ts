@@ -108,8 +108,38 @@ describe('DocumentActionsComponent (buttons come from the server allowedActions)
     const approve = spectator
       .queryAll('button')
       .find(button => button.textContent?.includes('Approve'));
-    expect(approve?.hasAttribute('disabled')).toBe(true);
-    expect(spectator.element.textContent).toContain("can't approve it");
+    // Focusable (not natively disabled) and tied to the reason, so a keyboard user learns why (EA-22).
+    expect(approve?.hasAttribute('disabled')).toBe(false);
+    expect(approve?.getAttribute('aria-disabled')).toBe('true');
+    const reasonId = approve?.getAttribute('aria-describedby') ?? '';
+    expect(spectator.query(`#${reasonId}`)?.textContent).toContain("can't approve it");
+  });
+
+  it('a blocked Approve does nothing when pressed', () => {
+    render([DOCUMENT_ACTION.Cancel], { selfApprovalBlocked: true });
+    const emitted: DocumentAction[] = [];
+    spectator.output('$triggered').subscribe(action => emitted.push(action as DocumentAction));
+
+    spectator.click(
+      spectator
+        .queryAll('button')
+        .find(button => button.textContent?.includes('Approve')) as HTMLElement
+    );
+
+    expect(emitted).toEqual([]);
+  });
+
+  it('NV-21: only the tapped button shows the spinner', () => {
+    render([DOCUMENT_ACTION.Edit, DOCUMENT_ACTION.Submit]);
+    spectator.setInput({ busy: true, busyAction: DOCUMENT_ACTION.Edit } as never);
+    spectator.detectChanges();
+
+    const spinning = spectator
+      .queryAll('button')
+      .filter(button => button.getAttribute('aria-busy') === 'true')
+      .map(button => button.textContent ?? '');
+    expect(spinning).toHaveLength(1);
+    expect(spinning[0]).toContain('Save draft');
   });
 
   it('disables Submit while lines are short on stock', () => {

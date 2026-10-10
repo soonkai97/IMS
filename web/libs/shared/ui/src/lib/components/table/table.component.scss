@@ -84,12 +84,20 @@
     text-align: end;
   }
 
+  // SKUs and document numbers are one token: never broken at the hyphen ("QA-" / "002").
   &.--primary {
     font-weight: font-weight('medium');
+
+    @include media-desktop {
+      white-space: nowrap;
+    }
   }
 }
 
 .ui-table-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
   color: inherit;
   text-decoration: none;
 

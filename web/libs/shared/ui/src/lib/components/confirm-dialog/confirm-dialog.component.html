@@ -7,6 +7,7 @@
       [label]="$reasonLabel() ?? ''"
       [required]="$reasonRequired()"
       [control]="reason"
+      [messages]="$reasonMessages()"
     >
       <app-textarea [formControl]="reason" [rows]="3" focusOnOpen />
     </app-form-field>

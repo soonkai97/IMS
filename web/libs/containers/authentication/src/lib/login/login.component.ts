@@ -2,6 +2,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  Injector,
+  afterNextRender,
   computed,
   inject,
   input,
@@ -47,7 +50,9 @@ function safeReturnUrl(url: string | undefined): string {
 export class LoginPageComponent {
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly i18n = inject(I18nService);
+  private readonly injector = inject(Injector);
   private readonly router = inject(Router);
 
   $returnUrl = input<string | undefined>(undefined, { alias: 'returnUrl' });
@@ -86,6 +91,11 @@ export class LoginPageComponent {
   onSubmit(): void {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
+      // The focus goes to the first field with an error, so a keyboard user does not have to look for it (EA-06).
+      afterNextRender(
+        () => this.host.nativeElement.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
+        { injector: this.injector }
+      );
       return;
     }
     this.auth.login

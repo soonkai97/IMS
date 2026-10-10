@@ -18,6 +18,11 @@
   font-weight: font-weight('medium');
 }
 
+.ui-radio-group-required {
+  font-weight: font-weight('regular');
+  color: color('text-muted');
+}
+
 .ui-radio-group-options {
   display: flex;
   flex-wrap: wrap;

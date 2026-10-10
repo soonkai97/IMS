@@ -32,6 +32,7 @@ const pairs = [
   ['text-muted', 'surface', 4.5],
   ['text-muted', 'bg', 4.5],
   ['text-muted', 'surface-2', 4.5],
+  ['text-muted', 'surface-3', 4.5],
   ['on-primary', 'primary', 4.5],
   ['on-primary', 'primary-hover', 4.5],
   ['primary', 'surface', 4.5],
