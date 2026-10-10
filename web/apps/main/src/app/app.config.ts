@@ -1,4 +1,4 @@
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/http';
 import {
   ApplicationConfig,
   Injector,
@@ -47,6 +47,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(APP_ROUTES, withComponentInputBinding()),
     // Order = request order. Error mapping is first so it sees failures after the auth interceptor tried to recover.
     provideHttpClient(
+      withXhr(),
       withInterceptors([
         errorInterceptor,
         correlationInterceptor,

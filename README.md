@@ -1,7 +1,7 @@
 # Inventory Management System (IMS)
 
 Warehouse-workflow-centred inventory for SMEs: receive, issue, stock enquiry, approvals and reports, with the phone as the scanner.
-Angular 21 PWA, .NET 10, SQL Server. Requirements: the product requirements document (PRD v0.2), kept locally in `docs/private/` and not published. Task list: [TASKS.md](TASKS.md).
+Angular 22 PWA, .NET 10, SQL Server. Requirements: the product requirements document (PRD v0.2), kept locally in `docs/private/` and not published. Task list: [TASKS.md](TASKS.md).
 Scope built so far: Phase 0 (foundation) and Phase 1 (MVP).
 
 ## Layout

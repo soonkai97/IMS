@@ -1,13 +1,13 @@
 # IMS web
 
-Angular 21 PWA for the Inventory Management System (Phase 1 MVP). Nx monorepo, one app (`apps/main`), strict four-tier libraries
+Angular 22 PWA for the Inventory Management System (Phase 1 MVP). Nx monorepo, one app (`apps/main`), strict four-tier libraries
 under `libs/`. Standalone components, signals, zoneless, lazy routes, strict TypeScript.
 
 Architecture and decisions: [`../docs/architecture/frontend.md`](../docs/architecture/frontend.md). Conventions: [`docs/`](docs).
 
 ## Run it
 
-Needs Node 20.19+ and the API on http://localhost:5109 (CORS allows http://localhost:4200).
+Needs Node 22.22.3+ (or 24.15+) and the API on http://localhost:5109 (CORS allows http://localhost:4200).
 
 ```bash
 npm install
