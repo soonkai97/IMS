@@ -22,6 +22,7 @@ public sealed class StockClient(ApiClient api)
         return api.GetAsync("/api/stock/ledger" + query);
     }
 
-    public Task<ApiResponse> LowStockAsync() => api.GetAsync("/api/stock/low-stock");
+    public Task<ApiResponse> LowStockAsync(int? warehouseId = null, int pageSize = 500) =>
+        api.GetAsync($"/api/stock/low-stock?pageSize={pageSize}" + (warehouseId is null ? "" : $"&warehouseId={warehouseId}"));
     public Task<ApiResponse> SummaryAsync() => api.GetAsync("/api/stock/summary");
 }

@@ -14,6 +14,10 @@ public static class ImportColumns
     public const string UnitCost = "unitcost";
 
     public const string DefaultUnit = "PCS";
+    /// <summary>Column names as shown in a row error ("Safety stock 'abc' is not a number.").</summary>
+    public const string SafetyStockLabel = "Safety stock";
+    public const string QtyLabel = "Quantity";
+    public const string UnitCostLabel = "Unit cost";
     public const string OpeningStockRemark = "Opening stock (import)";
     public static readonly char[] BarcodeSeparators = [',', ';'];
 }

@@ -12,7 +12,8 @@ public static class ImportTemplates
     public const string SampleName = "Sample item";
     public const string SampleCategory = "General";
     public const string SampleWarehouse = "WH01";
-    public const string SampleBarcodes = "9556000000011,9556000000028";
+    /// <summary>Obviously fake and outside the demo data, so the unchanged template can be uploaded without a barcode clash.</summary>
+    public const string SampleBarcodes = "SAMPLE-0000000001,SAMPLE-0000000002";
     public const decimal SampleSafetyStock = 10m;
     public const decimal SampleQty = 100m;
     public const decimal SampleCost = 12.5m;

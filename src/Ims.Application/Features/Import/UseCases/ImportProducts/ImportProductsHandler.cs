@@ -3,13 +3,14 @@ namespace Ims.Application.Features.Import;
 
 /// <summary>
 /// MD-05: previews and validates every row, and writes only when <c>Commit</c> is true. Import is all-or-nothing (UX decision D6):
-/// a commit with any invalid row is refused, and a valid commit is one transaction.
+/// a commit with any invalid row is refused, and a valid commit is one transaction. A category or unit that does not exist is a row error: the
+/// import never creates master data on the side (one typo must not add a category), an admin adds them first.
 /// </summary>
 public class ImportProductsHandler(IExcelReader excel, IRepository<Product> products, IRepository<Category> categories, IRepository<Uom> uoms,
     IReadRepository<ProductBarcode> barcodes, IReadRepository<StockBalance> balances, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<ImportProductsCommand, ImportResult>
 {
-    private record ProductRow(int Row, string Sku, string Name, string Category, string Unit, decimal Safety, List<string> Barcodes);
+    private record ProductRow(int Row, string Sku, string Name, int? CategoryId, int UomId, decimal Safety, List<string> Barcodes);
 
     public async Task<ImportResult> HandleAsync(ImportProductsCommand cmd, CancellationToken ct)
     {
@@ -42,9 +43,15 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
             ? new HashSet<string>()
             : (await products.ListAsync(new ProductSkusBySkusSpec(fileSkus), ct)).Select(p => p.Sku).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        // Categories and units are small lookup lists (hard cap 1,000): read once, matched in memory. A unit matches by code or by name.
+        var categoryIds = (await categories.ListAsync(ct)).GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+        var unitList = await uoms.ListAsync(ct);
+        var unitIds = unitList.GroupBy(u => u.Code, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+        var unitIdsByName = unitList.GroupBy(u => u.Name, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+
         var results = new List<ImportRowResult>();
         var parsed = new List<ProductRow>();
-        var seenSkus = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var firstRowOfSku = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var seenCodes = new Dictionary<string, string>();
 
         foreach (var r in sheet.Rows)
@@ -53,20 +60,33 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
             var sku = r.Get(ImportColumns.Sku);
             var name = r.Get(ImportColumns.Name);
             var category = r.Get(ImportColumns.Category);
-            var unit = r.Get(ImportColumns.Unit).ToUpperInvariant();
+            var unit = r.Get(ImportColumns.Unit);
             if (unit.Length == 0) unit = ImportColumns.DefaultUnit;
 
             if (sku.Length == 0) errors.Add(Messages.SkuRequired);
-            else if (!seenSkus.Add(sku)) errors.Add(Messages.DuplicateSkuInFile(sku));
+            else if (!firstRowOfSku.TryAdd(sku, r.Number)) errors.Add(Messages.DuplicateSkuInFile(sku, firstRowOfSku[sku]));
             if (name.Length == 0) errors.Add(Messages.ProductNameRequired);
             ImportSheet.CheckLength(errors, "SKU", sku, Limits.SkuMaxLength);
             ImportSheet.CheckLength(errors, "Name", name, Limits.NameMaxLength);
             ImportSheet.CheckLength(errors, "Category", category, Limits.ShortNameMaxLength);
             ImportSheet.CheckLength(errors, "Unit", unit, Limits.CodeMaxLength);
 
+            int? categoryId = null;
+            if (category.Length > 0)
+            {
+                if (categoryIds.TryGetValue(category, out var foundCategory)) categoryId = foundCategory;
+                else errors.Add(Messages.ImportCategoryMissing(category));
+            }
+            var unitId = 0;
+            if (unitIds.TryGetValue(unit, out var foundUnit) || unitIdsByName.TryGetValue(unit, out foundUnit)) unitId = foundUnit;
+            else errors.Add(Messages.ImportUnitMissing(unit));
+
             decimal safety = 0;
-            if (r.Get(ImportColumns.SafetyStock) is { Length: > 0 } ss && !(ImportSheet.TryParseDecimal(ss, out safety) && safety >= 0))
-                errors.Add(Messages.SafetyStockNegative);
+            if (r.Get(ImportColumns.SafetyStock) is { Length: > 0 } ss)
+            {
+                if (!ImportSheet.TryParseDecimal(ss, out safety)) errors.Add(Messages.NotANumber(ImportColumns.SafetyStockLabel, ss));
+                else if (safety < 0) errors.Add(Messages.SafetyStockNegative);
+            }
 
             var codes = Split(r.Get(ImportColumns.Barcodes));
             foreach (var code in codes)
@@ -81,15 +101,16 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
 
             var status = errors.Count > 0 ? ImportRowStatus.Error : existingSkus.Contains(sku) ? ImportRowStatus.Update : ImportRowStatus.New;
             results.Add(new ImportRowResult(r.Number, sku, errors.Count == 0, status, errors));
-            if (errors.Count == 0) parsed.Add(new ProductRow(r.Number, sku, name, category, unit, safety, codes));
+            if (errors.Count == 0) parsed.Add(new ProductRow(r.Number, sku, name, categoryId, unitId, safety, codes));
         }
         return (results, parsed);
     }
 
     private async Task<(int Created, int Updated)> CommitAsync(List<ProductRow> parsed, List<ImportRowResult> results, CancellationToken ct)
     {
-        var cats = (await categories.ListAsync(ct)).ToDictionary(c => c.Name.ToLowerInvariant());
-        var units = (await uoms.ListAsync(ct)).ToDictionary(u => u.Code);
+        // Validation found every category and unit, so the commit only looks them up; it never creates one.
+        var cats = (await categories.ListAsync(ct)).ToDictionary(c => c.Id);
+        var units = (await uoms.ListAsync(ct)).ToDictionary(u => u.Id);
         var existing = (await products.ListAsync(new ProductsBySkusSpec(parsed.Select(p => p.Sku).ToList()), ct)).ToDictionary(p => p.Sku.ToLowerInvariant());
         var withStock = (await balances.ListAsync(new ProductIdsWithBalanceSpec(existing.Values.Select(p => p.Id).ToList()), ct)).ToHashSet();
         int created = 0, updated = 0;
@@ -97,19 +118,8 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
 
         foreach (var row in parsed)
         {
-            Category? cat = null;
-            if (row.Category.Length > 0 && !cats.TryGetValue(row.Category.ToLowerInvariant(), out cat))
-            {
-                cat = Category.Create(row.Category);
-                categories.Add(cat);
-                cats[row.Category.ToLowerInvariant()] = cat;
-            }
-            if (!units.TryGetValue(row.Unit, out var uom))
-            {
-                uom = Uom.Create(row.Unit);
-                uoms.Add(uom);
-                units[row.Unit] = uom;
-            }
+            var cat = row.CategoryId is { } categoryId ? cats[categoryId] : null;
+            var uom = units[row.UomId];
 
             if (!existing.TryGetValue(row.Sku.ToLowerInvariant(), out var p))
             {

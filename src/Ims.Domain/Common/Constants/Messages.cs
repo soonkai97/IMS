@@ -152,7 +152,10 @@ public static class Messages
     public static string MissingColumns(IEnumerable<string> columns) =>
         $"Missing column(s): {string.Join(", ", columns)}. Download the template to see the expected columns.";
     public static string TooManyRows(int rows, int limit) => $"Too many rows ({rows}). The limit is {limit} per file.";
-    public static string DuplicateSkuInFile(string sku) => $"SKU '{sku}' appears more than once in the file.";
+    public static string DuplicateSkuInFile(string sku, int firstRow) => $"SKU '{sku}' also appears in row {firstRow}.";
+    public static string ImportCategoryMissing(string name) => $"Category '{name}' doesn't exist. Add it first or fix the name.";
+    public static string ImportUnitMissing(string unit) => $"Unit '{unit}' doesn't exist. Use the code or name of an existing unit, or add it first.";
+    public static string NotANumber(string column, string value) => $"{column} '{value}' is not a number.";
     public static string BarcodeOwnedBy(string code, string sku) => $"Barcode '{code}' already belongs to {sku}.";
     public static string BarcodeDuplicateInFile(string code, string sku) => $"Barcode '{code}' is also used by {sku} in this file.";
     public static string UnknownSku(string sku) => $"Unknown or inactive SKU '{sku}'. Import products first.";

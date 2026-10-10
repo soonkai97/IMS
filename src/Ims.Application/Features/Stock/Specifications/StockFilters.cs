@@ -17,6 +17,7 @@ internal static class StockFilters
             if (s.BarcodeProductId is { } byBarcode) query.Where(b => b.Product.Sku.Contains(s.Text) || b.Product.Name.Contains(s.Text) || b.Product.Id == byBarcode);
             else query.Where(b => b.Product.Sku.Contains(s.Text) || b.Product.Name.Contains(s.Text));
         }
-        if (f.LowOnly) query.Where(b => b.Product.IsActive && b.Product.SafetyStock > 0 && b.QtyOnHand < b.Product.SafetyStock);
+        // Same condition as the low-stock list (without the never-stocked products, who have no balance row to list here).
+        if (f.LowOnly) query.Where(b => b.Product.IsActive && (b.QtyOnHand < 0 || (b.Product.SafetyStock > 0 && b.QtyOnHand < b.Product.SafetyStock)));
     }
 }

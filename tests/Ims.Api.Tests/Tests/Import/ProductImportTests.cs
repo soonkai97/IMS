@@ -29,6 +29,7 @@ public class ProductImportTests(ApiFixture fixture)
         var missingName = Unique.Sku("IMP");
         var negative = Unique.Sku("IMP");
         var category = Unique.Name("ImportCat");
+        (await admin.Categories.CreateAsync(category)).ShouldBeOk(); // the import never creates a category, so it has to exist
         var barcode = Unique.Barcode();
 
         var bytes = Xlsx.Create("Products", Headers,
@@ -55,13 +56,13 @@ public class ProductImportTests(ApiFixture fixture)
         Assert.Equal([2, 3, 4, 5, 6, 7], result.Rows.Select(r => r.Row));
         Assert.True(result.Rows[0].Ok);
         Assert.Contains("name", Assert.Single(result.Rows[1].Errors), StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("appears more than once", Assert.Single(result.Rows[2].Errors));
+        Assert.Contains($"also appears in row 2", Assert.Single(result.Rows[2].Errors));
         Assert.Contains($"already belongs to {file.OwnerSku}", Assert.Single(result.Rows[3].Errors));
         Assert.Contains("safety stock", Assert.Single(result.Rows[4].Errors), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("SKU", Assert.Single(result.Rows[5].Errors));
         Assert.False(await ExistsAsync(admin, file.GoodSku));
         Assert.Equal(productsBefore, (await admin.Products.ListAsync(pageSize: 1)).Data<PagedResult<ProductDto>>().Total);
-        Assert.DoesNotContain((await admin.Categories.ListAsync()).Data<List<CategoryDto>>(), c => c.Name == file.GoodCategory);
+        
     }
 
     [Fact]
@@ -91,7 +92,7 @@ public class ProductImportTests(ApiFixture fixture)
         Assert.Contains("nothing was imported", problem.Detail);
         Assert.False(await ExistsAsync(admin, file.GoodSku), "The one valid row must not be written when others are invalid.");
         Assert.False(await ExistsAsync(admin, file.MissingNameSku));
-        Assert.DoesNotContain((await admin.Categories.ListAsync()).Data<List<CategoryDto>>(), c => c.Name == file.GoodCategory);
+        
         Assert.Equal(file.OwnerSku, (await admin.Products.FindAsync(file.TakenBarcode)).Sku);
     }
 
@@ -102,6 +103,7 @@ public class ProductImportTests(ApiFixture fixture)
         var first = Unique.Sku("IMP");
         var second = Unique.Sku("IMP");
         var category = Unique.Name("ImportCat");
+        (await admin.Categories.CreateAsync(category)).ShouldBeOk();
         var barcode = Unique.Barcode();
         var file = Xlsx.Create("Products", Headers,
             [first, "First product", category, "PCS", 5, barcode + "," + Unique.Barcode()],
@@ -198,21 +200,6 @@ public class ProductImportTests(ApiFixture fixture)
         Assert.Contains("Unit not changed", Assert.Single(row.Errors));
         var after = (await s.Admin.Products.GetAsync(product.Id)).Data<ProductDto>();
         Assert.Equal(("PCS", "Renamed"), (after.BaseUomCode, after.Name));
-    }
-
-    [Fact]
-    public async Task An_unknown_unit_is_created_and_a_missing_unit_defaults_to_pieces()
-    {
-        var admin = await fixture.AsAsync("Admin");
-        var unit = Unique.Code("U");
-        var withUnit = Unique.Sku("IMP");
-        var withoutUnit = Unique.Sku("IMP");
-        var file = Xlsx.Create("Products", Headers, [withUnit, "Has unit", "", unit, 1, null], [withoutUnit, "No unit", "", null, 1, null]);
-
-        (await admin.Import.ProductsAsync(file, commit: true)).ShouldBeOk();
-
-        Assert.Equal(unit.ToUpperInvariant(), (await admin.Products.FindAsync(withUnit)).BaseUomCode);
-        Assert.Equal("PCS", (await admin.Products.FindAsync(withoutUnit)).BaseUomCode);
     }
 
     [Fact]

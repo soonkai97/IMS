@@ -29,7 +29,9 @@ public class AuditTrailTests(ApiFixture fixture)
         return page.Items.OrderBy(e => e.Id).ToList();
     }
 
-    private static int StatusIn(string? json) => JsonDocument.Parse(json ?? throw new Xunit.Sdk.XunitException("audit payload is missing")).RootElement.GetProperty("Status").GetInt32();
+    /// <summary>The status inside an audit payload. Enums are written as names, so the Details view reads "Submitted", not 3.</summary>
+    private static DocumentStatus StatusIn(string? json) =>
+        Enum.Parse<DocumentStatus>(JsonDocument.Parse(json ?? throw new Xunit.Sdk.XunitException("audit payload is missing")).RootElement.GetProperty("Status").GetString()!);
 
     // ---------- documents ----------
 
@@ -60,10 +62,10 @@ public class AuditTrailTests(ApiFixture fixture)
         var statuses = trail.Skip(1).Select(e => (Before: StatusIn(e.Before), After: StatusIn(e.After))).ToList();
         Assert.Equal(
             [
-                ((int)DocumentStatus.Draft, (int)DocumentStatus.Submitted),
-                ((int)DocumentStatus.Submitted, (int)DocumentStatus.Approved),
-                ((int)DocumentStatus.Approved, (int)DocumentStatus.Posted),   // posting an approved document
-                ((int)DocumentStatus.Posted, (int)DocumentStatus.Reversed)
+                (DocumentStatus.Draft, DocumentStatus.Submitted),
+                (DocumentStatus.Submitted, DocumentStatus.Approved),
+                (DocumentStatus.Approved, DocumentStatus.Posted),   // posting an approved document
+                (DocumentStatus.Posted, DocumentStatus.Reversed)
             ],
             statuses);
         Assert.Contains("Customer returned the goods", trail[^1].After);
@@ -87,11 +89,11 @@ public class AuditTrailTests(ApiFixture fixture)
         var cancelled = all.Single(e => e.EntityId == toCancel.No && e.Action == AuditActions.DocumentCancelled);
 
         Assert.Contains("Quantity looks wrong", rejected.After);
-        Assert.Equal((int)DocumentStatus.Submitted, StatusIn(rejected.Before));
-        Assert.Equal((int)DocumentStatus.Draft, StatusIn(rejected.After));
+        Assert.Equal(DocumentStatus.Submitted, StatusIn(rejected.Before));
+        Assert.Equal(DocumentStatus.Draft, StatusIn(rejected.After));
         Assert.Contains("Duplicate entry", cancelled.After);
-        Assert.Equal((int)DocumentStatus.Draft, StatusIn(cancelled.Before));
-        Assert.Equal((int)DocumentStatus.Cancelled, StatusIn(cancelled.After));
+        Assert.Equal(DocumentStatus.Draft, StatusIn(cancelled.Before));
+        Assert.Equal(DocumentStatus.Cancelled, StatusIn(cancelled.After));
     }
 
     [Fact]
