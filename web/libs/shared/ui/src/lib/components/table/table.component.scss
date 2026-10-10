@@ -151,12 +151,50 @@
       }
     }
 
-    &.--phone-hidden {
+    &.--phone-hidden,
+    &.--empty {
       display: none;
     }
 
     &.--end {
       text-align: start;
+    }
+  }
+
+  // Compact card (NV-08): title and chip on the first line, the rest side by side below, about 80px per document
+  // instead of 270px. The row itself is the 48px tap target, so the cells do not need their own height.
+  .ui-table-row.--compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 space(2);
+    align-items: center;
+
+    // Breaks the line after the title and the chip; the other cells follow in order 3.
+    &::after {
+      order: 2;
+      flex-basis: 100%;
+      height: 0;
+      content: '';
+    }
+
+    .ui-table-cell {
+      order: 3;
+      min-height: 0;
+
+      &.--primary {
+        order: 0;
+        flex: 1 1 8rem;
+        min-width: 0;
+      }
+
+      &.--phone-end {
+        order: 1;
+      }
+
+      &.--phone-end::before,
+      &.--phone-inline::before {
+        display: none;
+      }
     }
   }
 }

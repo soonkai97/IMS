@@ -20,6 +20,7 @@ export const EN_MESSAGES = {
   'common.done': 'Done',
   'common.edit': 'Edit',
   'common.exportExcel': 'Export Excel',
+  'common.moreActions': 'More actions',
   'common.remove': 'Remove',
   'common.save': 'Save',
   'common.saved': 'Saved.',
@@ -28,6 +29,8 @@ export const EN_MESSAGES = {
   'filter.clear': 'Clear filters',
   'filter.from': 'From',
   'filter.none': 'None',
+  'filter.show': 'Filters',
+  'filter.showActive': 'Filters ({count})',
   'filter.showInactive': 'Show inactive',
   'filter.to': 'To',
 
@@ -64,6 +67,7 @@ export const EN_MESSAGES = {
   'error.generic': 'Something went wrong. Try again.',
   'error.network': "Can't reach the server. Check your connection and try again.",
   'error.timeout': 'The server took too long to answer. Try again.',
+  'error.tooManyRequests': 'Too many attempts. Wait a minute and try again.',
 
   // Shell and navigation
   'nav.approvals': 'Approvals',
@@ -339,7 +343,7 @@ export const EN_MESSAGES = {
   'doc.lines': 'Lines',
   'doc.linesRequired': 'Add at least one item.',
   'doc.linesShort':
-    '{count, plural, one {1 line is short on stock} other {# lines are short on stock}}. Fix them to submit.',
+    '{count, plural, one {1 line is short on stock. Fix it to submit.} other {# lines are short on stock. Fix them to submit.}}',
   'doc.no': 'No.',
   'doc.noLines': 'No items yet. Add an item to start.',
   'doc.overrideNeeded': 'Override needed',
@@ -368,7 +372,7 @@ export const EN_MESSAGES = {
   'doc.supplier': 'Supplier',
   'doc.tab.history': 'History',
   'doc.tab.items': 'Items',
-  'doc.tab.ledger': 'Stock ledger entries',
+  'doc.tab.ledger': 'Stock ledger',
   'doc.toast.approved': 'Approved.',
   'doc.toast.cancelled': 'Document cancelled.',
   'doc.toast.draftSaved': 'Draft saved.',
@@ -378,7 +382,8 @@ export const EN_MESSAGES = {
   'doc.toast.sentForApproval': 'Sent for approval.',
   'doc.toast.submitted': 'Submitted. A warehouse user or supervisor can post it.',
   'doc.totalQty': 'Total qty',
-  'doc.totals': '{lines, plural, one {1 line} other {# lines}} | {qty} units',
+  'doc.totals':
+    '{lines, plural, one {1 line} other {# lines}} | {qty, plural, one {# unit} other {# units}}',
   'doc.type': 'Type',
   'doc.unit': 'Unit',
   'doc.unitCost': 'Unit cost',

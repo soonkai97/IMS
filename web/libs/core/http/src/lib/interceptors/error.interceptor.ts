@@ -3,10 +3,13 @@ import { inject } from '@angular/core';
 import { catchError, from, map, switchMap, tap, throwError } from 'rxjs';
 import { I18nService } from '@ims/core/i18n';
 import { ToastService } from '@ims/core/notification';
-import { API_ERROR_KIND, ApiError } from '@ims/models';
+import { API_ERROR_KIND, ApiError, HTTP_STATUS } from '@ims/models';
 import { IF_MATCH } from '../concurrency/if-match';
 import { problemToApiError, readErrorBody } from '../errors/problem-details';
 import { TIMEOUT_STATUS_TEXT } from './timeout.interceptor';
+
+/** A proxy or gateway answered instead of the API: its body is HTML, so there is no sentence of ours to show. */
+const GATEWAY_STATUSES: readonly number[] = [502, 503, 504];
 
 /**
  * 401 is handled by the auth interceptor (refresh or redirect); field validation is shown next to the fields; a 409
@@ -38,6 +41,13 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
     }
     if (error.kind === API_ERROR_KIND.Network) {
       return i18n.t('error.network');
+    }
+    // 502/504 from a gateway have no ProblemDetails; a 503 that carries the API's own sentence keeps it (EA-15).
+    if (GATEWAY_STATUSES.includes(response.status) && error.detail.length === 0) {
+      return i18n.t('error.network');
+    }
+    if (response.status === HTTP_STATUS.TooManyRequests) {
+      return i18n.t('error.tooManyRequests');
     }
     if (error.kind === API_ERROR_KIND.Forbidden) {
       return i18n.t('error.forbidden');

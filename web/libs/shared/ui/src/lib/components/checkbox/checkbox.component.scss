@@ -14,8 +14,9 @@
 
 .ui-checkbox-control {
   flex: none;
-  width: 1.375rem;
-  height: 1.375rem;
+  // 24px: the WCAG 2.2 minimum target size (2.5.8).
+  width: 1.5rem;
+  height: 1.5rem;
   margin: 0;
   accent-color: color('primary');
   cursor: pointer;

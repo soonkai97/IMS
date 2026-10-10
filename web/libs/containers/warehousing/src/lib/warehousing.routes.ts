@@ -7,8 +7,13 @@ import { WarehousesPageComponent } from './warehouses/warehouses.component';
 const canRead = requirePermission(PERMISSION.MasterDataRead);
 
 export const WAREHOUSE_ROUTES: Routes = [
-  { path: '', component: WarehousesPageComponent, canActivate: [canRead] }
+  {
+    path: '',
+    component: WarehousesPageComponent,
+    title: 'warehouses.title',
+    canActivate: [canRead]
+  }
 ];
 export const PARTNER_ROUTES: Routes = [
-  { path: '', component: PartnersPageComponent, canActivate: [canRead] }
+  { path: '', component: PartnersPageComponent, title: 'partners.title', canActivate: [canRead] }
 ];

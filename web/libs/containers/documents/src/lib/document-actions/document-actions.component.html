@@ -1,8 +1,31 @@
 @if ($canCancel()) {
-  <app-button variant="ghost" [disabled]="$inactive()" (clicked)="onTrigger(action.Cancel)">
+  <app-button
+    class="document-actions-cancel"
+    [class.--overflow]="$cancelInOverflow()"
+    variant="ghost"
+    [disabled]="$inactive()"
+    (clicked)="onTrigger(action.Cancel)"
+  >
     <app-icon name="x" />
     {{ 'doc.action.cancel' | t }}
   </app-button>
+}
+@if ($cancelInOverflow()) {
+  <app-button
+    class="document-actions-more"
+    variant="ghost"
+    [disabled]="$inactive()"
+    [ariaLabel]="'common.moreActions' | t"
+    (clicked)="onOpenMore()"
+  >
+    <app-icon name="more" />
+  </app-button>
+  <app-dialog [(open)]="$moreOpen" [heading]="'common.moreActions' | t">
+    <app-button variant="danger" (clicked)="onCancelFromMore()">
+      <app-icon name="x" />
+      {{ 'doc.action.cancel' | t }}
+    </app-button>
+  </app-dialog>
 }
 @if ($canReject()) {
   <app-button variant="danger" [disabled]="$inactive()" (clicked)="onTrigger(action.Reject)">

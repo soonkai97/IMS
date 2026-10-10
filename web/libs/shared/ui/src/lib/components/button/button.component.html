@@ -4,6 +4,9 @@
   [disabled]="$isInert()"
   [attr.aria-busy]="$loading()"
   [attr.aria-label]="$ariaLabel()"
+  [attr.aria-expanded]="$expanded()"
+  [attr.aria-controls]="$controls()"
+  [attr.aria-haspopup]="$popup()"
   (click)="onClick($event)"
 >
   @if ($loading()) {

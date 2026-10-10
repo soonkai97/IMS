@@ -26,6 +26,10 @@
 
 @if ($isLoading()) {
   <app-skeleton [count]="4" />
+} @else if ($notFound()) {
+  <app-empty-state icon="file" [message]="'notFound.body' | t">
+    <a class="ui-link-button --primary" routerLink="/">{{ 'system.goHome' | t }}</a>
+  </app-empty-state>
 } @else if ($loadFailed()) {
   <app-banner kind="danger">
     {{ 'error.generic' | t }}
@@ -251,13 +255,13 @@
     <footer class="document-editor-bar">
       @if ($editable()) {
         <p class="document-editor-totals" aria-live="polite">
-          {{ 'doc.totals' | t: { lines: $totals().lineCount, qty: ($totals().totalQty | appQty) } }}
+          {{ 'doc.totals' | t: { lines: $totals().lineCount, qty: $totals().totalQty } }}
           @if (!$isIssue() && $totals().totalAmount > 0) {
             · {{ $totals().totalAmount | appMoney }}
           }
         </p>
         @if ($linesBlocked()) {
-          <p class="document-editor-error" role="alert">
+          <p class="document-editor-error document-editor-bar-note" role="alert">
             {{ 'doc.linesShort' | t: { count: $totals().shortLineCount } }}
           </p>
         }

@@ -15,7 +15,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Observable, filter, finalize, of, switchMap, tap } from 'rxjs';
 import {
   DocumentDto,
@@ -36,7 +36,7 @@ import {
   TranslatePipe
 } from '@ims/core/i18n';
 import { PermissionService } from '@ims/core/identity';
-import { HasUnsavedChanges } from '@ims/core/navigation';
+import { HasUnsavedChanges, PageTitleService } from '@ims/core/navigation';
 import { ConfirmService, ToastService } from '@ims/core/notification';
 import { SystemSettingsStore } from '@ims/core/settings';
 import { CatalogStore } from '@ims/features/catalog';
@@ -56,6 +56,7 @@ import {
 import { StockStore } from '@ims/features/stock';
 import { PartnersStore, WarehousesStore } from '@ims/features/warehousing';
 import {
+  API_ERROR_KIND,
   ApiError,
   DOCUMENT_ACTION,
   DocumentAction,
@@ -129,6 +130,7 @@ interface HistoryEvent {
     DocumentLineEditorComponent,
     ProductPickerComponent,
     ReactiveFormsModule,
+    RouterLink,
     TranslatePipe,
     UiBannerComponent,
     UiButtonComponent,
@@ -163,6 +165,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   private readonly i18n = inject(I18nService);
   private readonly injector = inject(Injector);
   private readonly page = inject(DOCUMENT);
+  private readonly pageTitle = inject(PageTitleService);
   private readonly partners = inject(PartnersStore);
   private readonly permissions = inject(PermissionService);
   private readonly router = inject(Router);
@@ -219,6 +222,10 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     () => this.documents.detail.$isLoading() && this.$document() === undefined
   );
   readonly $loadFailed = this.documents.detail.$isFailed;
+  /** The id in the URL belongs to no document (an old bookmark): a page of its own, and retrying cannot help. */
+  readonly $notFound = computed(
+    () => this.documents.detail.$operation().error?.kind === API_ERROR_KIND.NotFound
+  );
   readonly $canPost = computed(() => this.permissions.has(PERMISSION.DocumentPost));
   readonly $isBusy = computed(
     () =>
@@ -286,7 +293,11 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     if (document) {
       return document.no;
     }
-    return this.i18n.t(this.$isIssue() ? 'issues.new' : 'receipts.new');
+    if (this.$isNew()) {
+      return this.i18n.t(this.$isIssue() ? 'issues.new' : 'receipts.new');
+    }
+    // An opened document that has not arrived yet is not "New receipt" (PS-20).
+    return this.i18n.t(this.$notFound() ? 'notFound.title' : 'ui.loading');
   });
   readonly $partnerLabelKey = computed<MessageKey>(() =>
     this.$isIssue() ? 'doc.customer' : 'doc.supplier'
@@ -515,6 +526,13 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     });
   });
 
+  private readonly syncTitle = effect(() => {
+    const detail = this.$isNew()
+      ? this.i18n.t(this.$isIssue() ? 'issues.new' : 'receipts.new')
+      : this.$document()?.no;
+    this.pageTitle.setDetail(detail);
+  });
+
   private readonly populateForm = effect(() => {
     const document = this.$document();
     const editable = this.$editable();
@@ -551,6 +569,10 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       untracked(() => applyFieldErrors(this.view.header, error));
     }
   });
+
+  constructor() {
+    this.destroyRef.onDestroy(() => this.pageTitle.setDetail(undefined));
+  }
 
   ngOnInit(): void {
     this.view.configure(this.$type());

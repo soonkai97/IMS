@@ -7,6 +7,7 @@ export const AUDIT_ROUTES: Routes = [
   {
     path: '',
     component: AuditLogPageComponent,
+    title: 'audit.title',
     canActivate: [requirePermission(PERMISSION.AuditRead)]
   }
 ];

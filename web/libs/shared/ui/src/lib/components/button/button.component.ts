@@ -32,6 +32,12 @@ export class UiButtonComponent {
   /** Required for icon-only buttons: there is no visible text to name the control. */
   $ariaLabel = input<string | undefined>(undefined, { alias: 'ariaLabel' });
 
+  /** For a button that shows or hides something (a filter panel): true/false is read out as expanded/collapsed. */
+  $expanded = input<boolean | undefined>(undefined, { alias: 'expanded' });
+  $controls = input<string | undefined>(undefined, { alias: 'controls' });
+  /** Opens a dialog: assistive technology announces it ("has popup dialog"). */
+  $popup = input<'dialog' | undefined>(undefined, { alias: 'popup' });
+
   $clicked = output<MouseEvent>({ alias: 'clicked' });
 
   $isInert = computed(() => this.$disabled() || this.$loading());

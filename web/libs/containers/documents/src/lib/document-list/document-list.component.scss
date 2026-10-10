@@ -15,13 +15,40 @@
   gap: space(0);
 }
 
+.document-list-page-toolbar {
+  display: flex;
+  gap: space(1);
+  align-items: center;
+  margin-bottom: space(1);
+
+  app-search-input {
+    flex: 1;
+  }
+
+  @include media-tablet {
+    max-width: width('form-max');
+  }
+}
+
+// The toggle exists for phones; from 600px the filters are always laid out.
+.document-list-page-filter-toggle {
+  @include media-tablet {
+    display: none;
+  }
+}
+
 .document-list-page-filters {
-  display: grid;
+  display: none;
   grid-template-columns: 1fr;
   gap: space(1) space(2);
   margin-bottom: space(2);
 
+  &.--open {
+    display: grid;
+  }
+
   @include media-tablet {
+    display: grid;
     grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
     align-items: end;
   }
