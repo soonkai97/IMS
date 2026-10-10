@@ -23,6 +23,8 @@ public sealed class IssuePostingStrategy : IPostingStrategy
     }
 
     /// <summary>Undo an issue: put the stock back at the cost it left at.</summary>
+    public decimal StockChangeOnReverse(StockDocumentLine line) => +line.BaseQty;
+
     public void Reverse(StockDocumentLine line, StockBalance balance, PostingContext ctx)
     {
         balance.Receive(line.BaseQty, line.UnitCost);

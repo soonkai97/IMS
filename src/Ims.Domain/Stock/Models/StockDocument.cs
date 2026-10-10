@@ -120,6 +120,17 @@ public class StockDocument : Entity
         _lines.AddRange(lines);
     }
 
+    /// <summary>
+    /// Values the lines of an issue that has not posted yet at the current average cost of each product, so the amount an approver sees (and the
+    /// approval rules test) is the value of what is leaving. Posting books the real cost over it (BR-05). Receipts carry their entered cost and
+    /// are left alone, as is any issue that already posted.
+    /// </summary>
+    public void EstimateIssueCosts(IReadOnlyDictionary<int, decimal> averageCostByProduct)
+    {
+        if (Type != DocumentType.Issue || !DocumentStatuses.IsOpen(Status)) return;
+        foreach (var line in _lines) line.EstimateIssueCost(averageCostByProduct.GetValueOrDefault(line.ProductId));
+    }
+
     public void EnsureEditable()
     {
         if (Status != DocumentStatus.Draft)

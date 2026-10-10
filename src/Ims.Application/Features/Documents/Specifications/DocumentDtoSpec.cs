@@ -20,5 +20,5 @@ public sealed class DocumentDtoSpec : Specification<StockDocument, DocumentDto>
             d.Lines.Sum(l => l.BaseQty), d.Lines.Sum(l => l.BaseQty * l.UnitCost),
             d.Lines.OrderBy(l => l.Id).Select(l => new DocumentLineDto(l.Id, l.ProductId, l.Product.Sku, l.Product.Name, l.Qty, l.UomId,
                 l.Uom.Code, l.BaseQty, l.UnitCost, l.Remark, null)).ToList(),
-            new List<string>(), d.RowVersion));
+            new List<string>(), new List<ApprovalTrigger>(), d.RowVersion));
 }

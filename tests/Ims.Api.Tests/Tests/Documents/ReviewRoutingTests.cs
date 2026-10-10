@@ -126,7 +126,7 @@ public class ReviewRoutingTests(ApiFixture fixture)
         var submitted = await SubmitIssueAsync(s, product, s.Clerk);
         Assert.False(submitted.IsLarge);
 
-        await using var _ = await ApprovalRuleScope.AddAsync(s.Admin, DocumentType.Issue, null, 1m, Roles.Admin);
+        await using var _ = await ApprovalRuleScope.AddAsync(s.Admin, DocumentType.Issue, 1m, null, Roles.Admin);
         var seen = (await s.Supervisor.Documents.GetAsync(submitted.Id)).Data<DocumentDto>();
 
         Assert.DoesNotContain(DocumentActions.Approve, seen.AllowedActions);

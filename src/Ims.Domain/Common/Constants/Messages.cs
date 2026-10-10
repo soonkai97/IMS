@@ -105,6 +105,18 @@ public static class Messages
     public static string OnlyDraftOrSubmittedCanCancel(DocumentStatus status) => $"Only Draft or Submitted documents can be cancelled (current: {status}).";
     public static string CannotPostInStatus(DocumentStatus status) => $"A document in status {status} cannot be posted.";
     public const string OnlyPostedCanReverse = "Only a Posted document can be reversed.";
+
+    public static string ReversalBlocked(string docNo, IReadOnlyList<ReversalShortage> items)
+    {
+        const string nextStep = "Reverse or adjust the later issues first, or ask an Admin.";
+        var first = items[0];
+        return items.Count == 1
+            ? $"Can't reverse {docNo}. It would make {first.Sku} negative ({Quantity(first.Balance)} {first.UomCode}). {nextStep}"
+            : $"Can't reverse {docNo}. It would make {items.Count} products negative: {string.Join(", ", items.Select(i => $"{i.Sku} ({Quantity(i.Balance)} {i.UomCode})"))}. {nextStep}";
+    }
+
+    /// <summary>A quantity inside a sentence: invariant culture, no trailing zeros ("-3", "12.5").</summary>
+    private static string Quantity(decimal value) => value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
     public static string PostingNotSupported(DocumentType type) => $"Posting {type} documents is not supported yet.";
 
     // ----- Stock -----
@@ -165,6 +177,7 @@ public static class Messages
     public const string NotFoundTitle = "Not found";
     public const string ConflictTitle = "Conflict";
     public const string InsufficientStockTitle = "Insufficient stock";
+    public const string ReversalBlockedTitle = "Reversal blocked";
     public const string BadRequestTitle = "Bad request";
     public const string ServerErrorTitle = "Server error";
 }

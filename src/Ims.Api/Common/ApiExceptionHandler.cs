@@ -31,7 +31,12 @@ public class ApiExceptionHandler(ILogger<ApiExceptionHandler> log, IProblemDetai
         var pd = ProblemResponses.Create(ctx, outcome.Status, outcome.Title, outcome.Detail);
         switch (ex)
         {
+            case ReversalBlockedException rbe:
+                pd.Extensions[ProblemExtensions.Code] = ProblemCodes.ReversalBlocked;
+                pd.Extensions[ProblemExtensions.Shortages] = rbe.Shortages;
+                break;
             case InsufficientStockException ise:
+                pd.Extensions[ProblemExtensions.Code] = ProblemCodes.InsufficientStock;
                 pd.Extensions[ProblemExtensions.ProductId] = ise.ProductId;
                 pd.Extensions[ProblemExtensions.Available] = ise.Available;
                 pd.Extensions[ProblemExtensions.Requested] = ise.Requested;
@@ -52,6 +57,7 @@ public class ApiExceptionHandler(ILogger<ApiExceptionHandler> log, IProblemDetai
             case NotFoundException: return Expected(StatusCodes.Status404NotFound, Messages.NotFoundTitle, ex);
             case ConflictException: return Expected(StatusCodes.Status409Conflict, Messages.ConflictTitle, ex);
             case InsufficientStockException: return Expected(StatusCodes.Status409Conflict, Messages.InsufficientStockTitle, ex);
+            case ReversalBlockedException: return Expected(StatusCodes.Status409Conflict, Messages.ReversalBlockedTitle, ex);
             case ConcurrencyException:
                 // The message chain of a concurrency exception carries internals; the client gets the plain sentence.
                 return new Outcome(StatusCodes.Status409Conflict, Messages.ConflictTitle, Messages.ConcurrencyConflict, true);

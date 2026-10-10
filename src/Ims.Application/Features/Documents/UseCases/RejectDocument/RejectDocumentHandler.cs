@@ -12,7 +12,7 @@ public class RejectDocumentHandler(IRepository<StockDocument> documents, IApprov
 
         // Rejecting is a review like approving: only the reviewer the document is routed to may do it (a state error is still reported by the domain below).
         if (doc.Status == DocumentStatus.Submitted && doc.RequiresApproval &&
-            await approvals.ReviewRefusalAsync(doc, ct) is { } refusal)
+            await approvals.ReviewRefusalAsync(doc.Type, doc.IsLarge, doc.TotalQty, doc.TotalAmount, ct) is { } refusal)
             throw new ForbiddenException(refusal);
 
         var statusBefore = doc.Status;
