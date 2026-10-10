@@ -251,6 +251,7 @@ export const MS_MESSAGES: Messages = {
 
   'stock.byWarehouse': 'Stok mengikut gudang',
   'stock.empty': 'Belum ada stok. Poskan penerimaan untuk menambah stok.',
+  'stock.negative': 'Negatif',
   'stock.low': 'Rendah',
   'stock.lowOnly': 'Stok rendah sahaja',
   'stock.noMatch': 'Tiada produk sepadan dengan tapisan ini.',
@@ -294,6 +295,7 @@ export const MS_MESSAGES: Messages = {
   'doc.action.submit': 'Hantar',
   'doc.action.submitAndPost': 'Hantar & poskan',
   'doc.addItem': 'Tambah item',
+  'doc.estimate': 'angg.',
   'doc.amount': 'Jumlah',
   'doc.askToReverse': 'Kuantiti salah? Minta penyelia membalikkan dokumen ini.',
   'doc.awaitingApproval': 'Menunggu kelulusan',
@@ -371,6 +373,9 @@ export const MS_MESSAGES: Messages = {
   'doc.type': 'Jenis',
   'doc.unit': 'Unit',
   'doc.unitCost': 'Kos seunit',
+  'doc.trigger.Amount': 'Nilai {actual} mencapai had {threshold}. Pelulus: {role}.',
+  'doc.trigger.Quantity': 'Kuantiti {actual} mencapai had {threshold}. Pelulus: {role}.',
+  'doc.whyApproval': 'Mengapa ini perlu kelulusan',
   'doc.warehouse': 'Gudang',
   'line.available': '{qty} {uom} tersedia',
   'line.costFor': 'Kos seunit {sku}',
@@ -493,6 +498,8 @@ export const MS_MESSAGES: Messages = {
   'audit.details': 'Butiran',
   'audit.empty': 'Tiada aktiviti untuk tapisan ini.',
   'audit.entity': 'Objek',
+  'audit.searchLabel': 'Cari log audit',
+  'audit.searchPlaceholder': 'No. dokumen atau nama objek',
   'audit.show': 'Papar',
   'audit.title': 'Log audit'
 };

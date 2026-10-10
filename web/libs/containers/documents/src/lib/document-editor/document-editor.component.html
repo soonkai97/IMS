@@ -127,11 +127,30 @@
       </app-form-field>
     </form>
   } @else if ($document(); as document) {
+    @for (trigger of $approvalTriggers(); track trigger.key) {
+      <app-banner kind="info" [heading]="'doc.whyApproval' | t">
+        {{
+          trigger.key
+            | t: { actual: trigger.actual, threshold: trigger.threshold, role: trigger.role }
+        }}
+      </app-banner>
+    }
     <dl class="document-editor-summary">
       <div>
         <dt>{{ 'doc.warehouse' | t }}</dt>
         <dd>{{ document.warehouseName }}</dd>
       </div>
+      @if (document.totalAmount > 0) {
+        <div>
+          <dt>{{ 'doc.amount' | t }}</dt>
+          <dd>
+            {{ document.totalAmount | appMoney }}
+            @if (document.amountIsEstimate) {
+              <span class="document-editor-muted">{{ 'doc.estimate' | t }}</span>
+            }
+          </dd>
+        </div>
+      }
       <div>
         <dt>{{ $partnerLabelKey() | t }}</dt>
         <dd>{{ document.partnerName || '-' }}</dd>

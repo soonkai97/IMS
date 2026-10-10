@@ -22,6 +22,7 @@ import {
   UiIconComponent,
   UiPageHeaderComponent,
   UiPagerComponent,
+  UiStatusChipComponent,
   UiTableComponent
 } from '@ims/ui';
 import { createPageState, loadOnChange } from '@ims/utils';
@@ -39,6 +40,7 @@ import { createPageState, loadOnChange } from '@ims/utils';
     UiIconComponent,
     UiPageHeaderComponent,
     UiPagerComponent,
+    UiStatusChipComponent,
     UiTableComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,8 +1,17 @@
 <app-page-header [heading]="'audit.title' | t" />
 
 <div class="audit-log-page-filters">
-  <app-form-field [label]="'audit.entity' | t">
-    <app-input [formControl]="entityControl" />
+  <app-search-input
+    [(value)]="$searchInput"
+    [label]="'audit.searchLabel' | t"
+    [placeholder]="'audit.searchPlaceholder' | t"
+  />
+  <app-form-field [label]="'audit.action' | t">
+    <app-select
+      [formControl]="actionControl"
+      [options]="$actionOptions()"
+      [placeholder]="'filter.any' | t"
+    />
   </app-form-field>
   <app-form-field [label]="'audit.actor' | t">
     <app-input [formControl]="actorControl" />
@@ -27,7 +36,11 @@
   <ng-template appCell="details" let-row>
     <app-button variant="ghost" (clicked)="onShowDetails(row)">{{ 'audit.show' | t }}</app-button>
   </ng-template>
-  <app-empty-state empty icon="audit" [message]="'audit.empty' | t" />
+  <app-empty-state empty icon="audit" [message]="'audit.empty' | t">
+    @if ($hasFilters()) {
+      <app-button (clicked)="onClearFilters()">{{ 'filter.clear' | t }}</app-button>
+    }
+  </app-empty-state>
 </app-table>
 
 @if ($page(); as page) {

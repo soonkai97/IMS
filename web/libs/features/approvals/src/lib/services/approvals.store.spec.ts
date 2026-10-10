@@ -39,6 +39,8 @@ function item(id: number, overrides: Partial<DocumentListItem> = {}): DocumentLi
     isLarge: false,
     isReturned: false,
     concurrencyToken: 'AAAA',
+    canAct: true,
+    amountIsEstimate: false,
     ...overrides
   };
 }
@@ -100,9 +102,9 @@ describe('ApprovalsStore', () => {
       of(
         page([
           item(3, { submittedAt: '2026-10-09T05:00:00Z' }),
-          item(2, { submittedAt: '2026-10-09T03:00:00Z', submittedById: 9 }),
+          item(2, { submittedAt: '2026-10-09T03:00:00Z', submittedById: 9, canAct: false }),
           item(1, { submittedAt: '2026-10-09T01:00:00Z' }),
-          item(4, { submittedAt: '2026-10-09T04:00:00Z', isLarge: true })
+          item(4, { submittedAt: '2026-10-09T04:00:00Z', isLarge: true, canAct: false })
         ])
       )
     );
@@ -112,6 +114,17 @@ describe('ApprovalsStore', () => {
     expect(spectator.service.submitted.$data()?.map(d => d.id)).toEqual([1, 2, 4, 3]);
     expect(spectator.service.$waitingForMe().map(d => d.id)).toEqual([1, 3]);
     expect(spectator.service.$submittedByMe().map(d => d.id)).toEqual([2]);
+  });
+
+  it("trusts canAct from the API over the role rules (an Owner-level document is not the Supervisor's)", () => {
+    const client = spectator.inject(DocumentsClient);
+    client.list.mockReturnValue(
+      of(page([item(1, { canAct: false }), item(2, { canAct: true, isLarge: true })]))
+    );
+
+    spectator.service.refresh();
+
+    expect(spectator.service.$waitingForMe().map(d => d.id)).toEqual([2]);
   });
 
   it('takes the badge number from the server counts', () => {

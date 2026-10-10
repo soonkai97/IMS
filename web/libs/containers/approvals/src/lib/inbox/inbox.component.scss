@@ -5,3 +5,8 @@
   flex-direction: column;
   gap: space(2);
 }
+
+.approvals-inbox-estimate {
+  font-size: font-size(1);
+  color: color('text-muted');
+}

@@ -25,6 +25,13 @@
     }
   </ng-template>
   <ng-template appCell="qty" let-row>{{ row.document.totalQty | appQty }}</ng-template>
+  <!-- The value that decides whether approval is needed; an unposted issue is an estimate at average cost (PS-03). -->
+  <ng-template appCell="amount" let-row>
+    {{ row.document.totalAmount | appMoney }}
+    @if (row.document.amountIsEstimate) {
+      <span class="approvals-inbox-estimate">{{ 'doc.estimate' | t }}</span>
+    }
+  </ng-template>
   <app-empty-state
     empty
     icon="check-double"

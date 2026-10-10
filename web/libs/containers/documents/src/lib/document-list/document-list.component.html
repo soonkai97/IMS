@@ -71,7 +71,12 @@
 >
   <ng-template appCell="date" let-row>{{ row.createdAt | appDate }}</ng-template>
   <ng-template appCell="qty" let-row>{{ row.totalQty | appQty }}</ng-template>
-  <ng-template appCell="amount" let-row>{{ row.totalAmount | appMoney }}</ng-template>
+  <ng-template appCell="amount" let-row>
+    {{ row.totalAmount | appMoney }}
+    @if (row.amountIsEstimate) {
+      <span class="document-list-page-estimate">{{ 'doc.estimate' | t }}</span>
+    }
+  </ng-template>
   <ng-template appCell="status" let-row>
     <span class="document-list-page-chips">
       <app-status-chip [status]="tone[row.status]" [label]="row.status | enumLabel: statusLabels" />

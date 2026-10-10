@@ -9,6 +9,11 @@
   margin-bottom: space(2);
 }
 
+.document-list-page-estimate {
+  font-size: font-size(1);
+  color: color('text-muted');
+}
+
 .document-list-page-chips {
   display: inline-flex;
   flex-wrap: wrap;

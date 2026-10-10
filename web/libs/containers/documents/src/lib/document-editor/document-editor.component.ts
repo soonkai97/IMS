@@ -18,6 +18,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Observable, filter, finalize, of, switchMap, tap } from 'rxjs';
 import {
+  ApprovalMetric,
   DocumentDto,
   DocumentStatus,
   DocumentType,
@@ -32,6 +33,7 @@ import {
   DOCUMENT_STATUS_LABELS,
   I18nService,
   ISSUE_PURPOSE_LABELS,
+  ROLE_LABELS,
   MessageKey,
   TranslatePipe
 } from '@ims/core/i18n';
@@ -492,6 +494,26 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       default:
         return undefined;
     }
+  });
+  /** Why an approval rule held the document back, in words (PS-03): the value or quantity that reached a limit. */
+  readonly $approvalTriggers = computed(() => {
+    const locale = this.i18n.$locale();
+    const amount = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+    const quantity = new Intl.NumberFormat(locale, { maximumFractionDigits: 3 });
+    return (this.$document()?.approvalTriggers ?? []).map(trigger => {
+      const format = trigger.metric === ApprovalMetric.Amount ? amount : quantity;
+      return {
+        key: (trigger.metric === ApprovalMetric.Amount
+          ? 'doc.trigger.Amount'
+          : 'doc.trigger.Quantity') as MessageKey,
+        actual: format.format(trigger.actual),
+        threshold: format.format(trigger.threshold),
+        role: this.i18n.enumLabel(ROLE_LABELS, trigger.roleRequired)
+      };
+    });
   });
   /** NV-05: a worker without the Reverse right has no button; say what to do about a wrong quantity. */
   readonly $askToReverse = computed(
