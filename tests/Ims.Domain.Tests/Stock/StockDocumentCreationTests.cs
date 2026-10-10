@@ -25,11 +25,11 @@ public class StockDocumentCreationTests
     }
 
     [Fact]
-    public void Create_IssueWithoutPurpose_DefaultsToSale()
+    public void Create_IssueWithoutPurpose_IsRefused()
     {
-        var doc = StockDocument.Create(DocumentType.Issue, NewWarehouse(), NewCustomer(), null, null, Creator, Now);
+        var ex = Assert.Throws<DomainException>(() => StockDocument.Create(DocumentType.Issue, NewWarehouse(), NewCustomer(), null, null, Creator, Now));
 
-        Assert.Equal(IssuePurpose.Sale, doc.Purpose);
+        Assert.Equal(Messages.PurposeRequired, ex.Message);
     }
 
     [Theory]
@@ -81,7 +81,7 @@ public class StockDocumentCreationTests
     [Fact]
     public void Create_WithoutPartner_IsAllowed()
     {
-        var doc = StockDocument.Create(DocumentType.Issue, NewWarehouse(), null, null, null, Creator, Now);
+        var doc = StockDocument.Create(DocumentType.Issue, NewWarehouse(), null, IssuePurpose.Sale, null, Creator, Now);
 
         Assert.Null(doc.PartnerId);
     }
@@ -109,14 +109,14 @@ public class StockDocumentCreationTests
     }
 
     [Fact]
-    public void UpdateHeader_OnIssueWithNullPurpose_FallsBackToSale()
+    public void UpdateHeader_OnIssueWithNullPurpose_IsRefusedAndChangesNothing()
     {
         var doc = NewIssue();
 
-        doc.UpdateHeader(null, null, null);
+        var ex = Assert.Throws<DomainException>(() => doc.UpdateHeader(null, null, null));
 
+        Assert.Equal(Messages.PurposeRequired, ex.Message);
         Assert.Equal(IssuePurpose.Sale, doc.Purpose);
-        Assert.Null(doc.PartnerId);
     }
 
     [Fact]

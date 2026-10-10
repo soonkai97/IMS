@@ -57,7 +57,7 @@ public class IssuePostingStrategyTests
     [Fact]
     public void Post_ExactlyWhatIsOnHand_IsNotAnOverride()
     {
-        var (doc, line) = IssueOf(3m, "x");
+        var (doc, line) = IssueOf(3m, "counted by hand");
         var ctx = NewContext(doc, allowNegative: true, canOverride: true);
 
         _strategy.Post(line, NewBalance(5, 3m, 1m), ctx);

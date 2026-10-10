@@ -235,6 +235,25 @@ public partial class OpenApiDocumentTests(ApiFixture fixture)
     }
 
     [Fact]
+    public async Task The_qa_fix_fields_are_published_and_never_null()
+    {
+        using var doc = await DocumentAsync();
+        var schemas = doc.RootElement.GetProperty("components").GetProperty("schemas");
+
+        Assert.True(schemas.GetProperty("DocumentDto").GetProperty("properties").TryGetProperty("approvalTriggers", out _));
+        foreach (var (schema, field) in new[] { ("DocumentDto", "amountIsEstimate"), ("DocumentListItem", "amountIsEstimate"), ("DocumentListItem", "canAct") })
+        {
+            var property = schemas.GetProperty(schema).GetProperty("properties").GetProperty(field);
+            Assert.Equal("boolean", property.GetProperty("type").GetString());
+            Assert.Contains(field, schemas.GetProperty(schema).GetProperty("required").EnumerateArray().Select(r => r.GetString()));
+        }
+
+        var metric = schemas.GetProperty("ApprovalMetric");
+        Assert.Equal("string", metric.GetProperty("type").GetString());
+        Assert.Equal(["Amount", "Quantity"], metric.GetProperty("enum").EnumerateArray().Select(v => v.GetString()));
+    }
+
+    [Fact]
     public async Task Timestamps_are_published_as_date_time_strings()
     {
         using var doc = await DocumentAsync();

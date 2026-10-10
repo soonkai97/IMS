@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Users;
 
-public class UpdateUserHandler(IRepository<User> users, IRepository<RefreshToken> tokens, IPasswordHasher hasher, ICurrentUser current,
+public class UpdateUserHandler(IRepository<User> users, IReadRepository<Warehouse> warehouses, IRepository<RefreshToken> tokens, IPasswordHasher hasher, ICurrentUser current,
     IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<UpdateUserCommand, UserDto>
 {
     public async Task<UserDto> HandleAsync(UpdateUserCommand cmd, CancellationToken ct)
@@ -9,6 +9,7 @@ public class UpdateUserHandler(IRepository<User> users, IRepository<RefreshToken
         var r = cmd.Data;
         var user = await users.FirstOrDefaultAsync(new Auth.UserWithWarehousesSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.UserNotFound);
         if (await users.AnyAsync(new UserTakenSpec(r.Username, r.Email, cmd.Id), ct)) throw new ConflictException(Messages.UserExists);
+        await UserWarehouses.EnsureExistAsync(warehouses, r.WarehouseIds, ct);
 
         // Nobody may lock the system out of administration: not themselves, and not the last active administrator.
         var losesAdmin = user.Role == Roles.Admin && user.IsActive && (!r.IsActive || r.Role != Roles.Admin);

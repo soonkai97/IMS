@@ -90,8 +90,8 @@ public class ReversalTests(ApiFixture fixture)
         var draft = await s.DraftReceiptAsync(s.Admin, Warehouse, new Line(product.Id, 1, 1m));
         var submitted = await s.SubmitAsync(s.Admin, await s.DraftReceiptAsync(s.Admin, Warehouse, new Line(product.Id, 1, 1m)));
 
-        (await s.Admin.Documents.ReverseAsync(draft.Id, "x")).ShouldBeProblem(HttpStatusCode.BadRequest);
-        (await s.Admin.Documents.ReverseAsync(submitted.Id, "x")).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await s.Admin.Documents.ReverseAsync(draft.Id, "not needed here")).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await s.Admin.Documents.ReverseAsync(submitted.Id, "not needed here")).ShouldBeProblem(HttpStatusCode.BadRequest);
     }
 
     [Theory]
@@ -118,7 +118,7 @@ public class ReversalTests(ApiFixture fixture)
         var receipt = await s.ReceiveAsync(Warehouse, new Line(a.Id, 2, 1m), new Line(b.Id, 3, 1m));
         var before = await s.LedgerAsync(sourceDocId: receipt.Id);
 
-        (await s.Supervisor.Documents.ReverseAsync(receipt.Id, "undo")).ShouldBeOk();
+        (await s.Supervisor.Documents.ReverseAsync(receipt.Id, "undo the receipt")).ShouldBeOk();
 
         var after = await s.LedgerAsync(sourceDocId: receipt.Id);
         Assert.Equal(before.Count * 2, after.Count);

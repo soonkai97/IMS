@@ -51,7 +51,7 @@ public class SessionSecurityTests(ApiFixture fixture)
 
         Assert.Equal(GenericFailure, wrongWhileLocked.ShouldBeProblem(HttpStatusCode.Unauthorized).Detail);
         Assert.Equal(unknown.Problem.Detail, wrongWhileLocked.Problem.Detail); // a locked account looks like any other failure
-        Assert.Contains("locked", rightWhileLocked.ShouldBeProblem(HttpStatusCode.Unauthorized).Detail, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(Messages.AccountLockedFor(Limits.LockoutMinutes), rightWhileLocked.ShouldBeProblem(HttpStatusCode.Unauthorized).Detail);
     }
 
     // ---------- sessions end when access changes ----------

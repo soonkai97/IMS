@@ -39,6 +39,9 @@ public class StockDocumentLine : Entity
         };
     }
 
+    /// <summary>The current average cost, kept on an unposted issue so its value can be shown and tested against approval rules. Posting replaces it.</summary>
+    internal void EstimateIssueCost(decimal averageCost) => UnitCost = averageCost;
+
     /// <summary>Issues are booked at the average cost in force when they post (BR-05).</summary>
     internal void BookIssueCost(decimal averageCost) => UnitCost = averageCost;
 }

@@ -12,6 +12,18 @@ public static class ApprovalPolicy
         _ => 0
     };
 
+    /// <summary>
+    /// Which reviewer role a document is routed to (PRD 3.1): the Admin reviews anything, the Owner only large documents, a Supervisor only the
+    /// rest. Used for approving and for rejecting, and by <c>allowedActions</c>, the approvals count and the inbox, so they cannot disagree.
+    /// </summary>
+    public static bool MayReview(string role, bool isLarge) => role switch
+    {
+        Roles.Admin => true,
+        Roles.Owner => isLarge,
+        Roles.Supervisor => !isLarge,
+        _ => false
+    };
+
     public static bool RequiresApproval(IEnumerable<ApprovalRule> rules, DocumentType type, decimal totalQty, decimal totalAmount) =>
         rules.Any(r => r.Matches(type, totalQty, totalAmount));
 

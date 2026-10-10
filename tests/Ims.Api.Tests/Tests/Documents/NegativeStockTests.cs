@@ -161,9 +161,9 @@ public class NegativeStockTests(ApiFixture fixture)
     public async Task Posting_needs_no_request_body_and_ignores_a_reason_sent_by_an_old_client()
     {
         await using var c = await ShortIssueAsync();
-        (await c.S.Owner.Documents.ApproveWithReasonAsync(c.Submitted.Id, "Reason from the approver")).ShouldBeOk();
+        (await c.S.Supervisor.Documents.ApproveWithReasonAsync(c.Submitted.Id, "Reason from the approver")).ShouldBeOk();
 
-        var posted = (await c.S.Admin.PostAsync($"/api/documents/{c.Submitted.Id}/post", new { negativeStockOverrideReason = "Reason from the poster" })).Data<DocumentDto>();
+        var posted = (await c.S.Admin.SendAsync(HttpMethod.Post, $"/api/documents/{c.Submitted.Id}/post", new { negativeStockOverrideReason = "Reason from the poster" }, r => r.Headers.TryAddWithoutValidation("If-Match", "*"))).Data<DocumentDto>();
 
         Assert.Equal(DocumentStatus.Posted, posted.Status);
         Assert.Equal("Reason from the approver", posted.NegativeStockOverrideReason);

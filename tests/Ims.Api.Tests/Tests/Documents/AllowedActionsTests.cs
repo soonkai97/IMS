@@ -46,7 +46,7 @@ public class AllowedActionsTests(ApiFixture fixture)
             (Roles.Admin, Actions("edit", "submit", "cancel")),
             (Roles.Owner, Actions()),
             (Roles.Supervisor, Actions("edit", "submit", "cancel")),
-            (Roles.WarehouseStaff, Actions("edit", "submit", "cancel")),
+            (Roles.WarehouseStaff, Actions()), // not their draft (EA-01)
             (Roles.Clerk, Actions("edit", "submit", "cancel"))
         ]);
     }
@@ -63,7 +63,7 @@ public class AllowedActionsTests(ApiFixture fixture)
             (Roles.Admin, Actions("cancel", "post")),
             (Roles.Owner, Actions()),
             (Roles.Supervisor, Actions("cancel", "post")),
-            (Roles.WarehouseStaff, Actions("cancel", "post")),
+            (Roles.WarehouseStaff, Actions("post")),
             (Roles.Clerk, Actions("cancel"))
         ]);
     }
@@ -78,9 +78,27 @@ public class AllowedActionsTests(ApiFixture fixture)
         await AssertActionsAsync(s, submitted.Id,
         [
             (Roles.Admin, Actions("cancel", "approve", "reject")),
-            (Roles.Owner, Actions("approve", "reject")),
+            (Roles.Owner, Actions()),                       // not a large document: the supervisor's to review (EA-02)
             (Roles.Supervisor, Actions("cancel", "approve", "reject")),
-            (Roles.WarehouseStaff, Actions("cancel")),
+            (Roles.WarehouseStaff, Actions()),              // only the submitter (the clerk) may recall it (EA-01)
+            (Roles.Clerk, Actions("cancel"))
+        ]);
+    }
+
+    [Fact]
+    public async Task A_large_document_is_the_owners_to_review_and_not_the_supervisors()
+    {
+        var (s, productId) = await ScenarioWithStockAsync(); // 100 units at cost 100: an issue of 60 is worth 6000
+        await using var _ = await ApprovalRuleScope.AddAsync(s.Admin, DocumentType.Issue, 6000m, null, Roles.Owner);
+        var submitted = await s.SubmitAsync(s.Clerk, await s.DraftIssueAsync(s.Clerk, Warehouse, new Line(productId, 60)));
+        Assert.True(submitted.IsLarge);
+
+        await AssertActionsAsync(s, submitted.Id,
+        [
+            (Roles.Admin, Actions("cancel", "approve", "reject")),
+            (Roles.Owner, Actions("approve", "reject")),
+            (Roles.Supervisor, Actions("cancel")),          // the API would answer 403 to approve and reject (PS-07)
+            (Roles.WarehouseStaff, Actions()),
             (Roles.Clerk, Actions("cancel"))
         ]);
     }
@@ -95,7 +113,30 @@ public class AllowedActionsTests(ApiFixture fixture)
         [
             (Roles.Supervisor, Actions("cancel")),
             (Roles.Admin, Actions("cancel", "approve", "reject")),
-            (Roles.Owner, Actions("approve", "reject"))
+            (Roles.Owner, Actions())
+        ]);
+    }
+
+    [Fact]
+    public async Task Staff_and_clerk_get_actions_only_on_documents_they_created_or_submitted()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var staffDraft = await s.DraftReceiptAsync(s.Staff, Warehouse, new Line(product.Id, 1, 1m));
+        var clerkSubmitted = await s.SubmitAsync(s.Clerk, await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 1, 1m)));
+
+        await AssertActionsAsync(s, staffDraft.Id,
+        [
+            (Roles.WarehouseStaff, Actions("edit", "submit", "cancel")),
+            (Roles.Clerk, Actions()),
+            (Roles.Supervisor, Actions("edit", "submit", "cancel")),
+            (Roles.Admin, Actions("edit", "submit", "cancel"))
+        ]);
+        await AssertActionsAsync(s, clerkSubmitted.Id,
+        [
+            (Roles.Clerk, Actions("cancel")),
+            (Roles.WarehouseStaff, Actions("post")),
+            (Roles.Supervisor, Actions("cancel", "post"))
         ]);
     }
 
@@ -115,7 +156,7 @@ public class AllowedActionsTests(ApiFixture fixture)
     {
         var (s, productId) = await ScenarioWithStockAsync();
         var submitted = await s.SubmitAsync(s.Clerk, await s.DraftIssueAsync(s.Clerk, Warehouse, new Line(productId, 60)));
-        (await s.Owner.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();
+        (await s.Supervisor.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();
 
         await AssertActionsAsync(s, submitted.Id,
         [
@@ -150,7 +191,7 @@ public class AllowedActionsTests(ApiFixture fixture)
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
         var reversed = await s.ReceiveAsync(Warehouse, new Line(product.Id, 1, 1m));
-        (await s.Admin.Documents.ReverseAsync(reversed.Id, "undo")).ShouldBeOk();
+        (await s.Admin.Documents.ReverseAsync(reversed.Id, "undo the receipt")).ShouldBeOk();
         var cancelled = await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 1, 1m));
         (await s.Clerk.Documents.CancelAsync(cancelled.Id)).ShouldBeOk();
 
@@ -164,7 +205,7 @@ public class AllowedActionsTests(ApiFixture fixture)
     {
         var (s, productId) = await ScenarioWithStockAsync();
         var submitted = await s.SubmitAsync(s.Clerk, await s.DraftIssueAsync(s.Clerk, Warehouse, new Line(productId, 60)));
-        (await s.Owner.Documents.RejectAsync(submitted.Id, "Check the quantity")).ShouldBeOk();
+        (await s.Supervisor.Documents.RejectAsync(submitted.Id, "Check the quantity")).ShouldBeOk();
 
         await AssertActionsAsync(s, submitted.Id,
         [

@@ -70,6 +70,9 @@ public class StockDocument : Entity
     public bool CanPost => Status == DocumentStatus.Approved ||
                            (Status == DocumentStatus.Submitted && !RequiresApproval);
 
+    /// <summary>The facts <see cref="DocumentActionPolicy"/> needs to say what a user may do with this document.</summary>
+    public DocumentActionContext ActionContext => new(Status, RequiresApproval, IsLarge, CreatedBy, SubmittedBy);
+
     /// <summary>Opens a new Draft. The number is assigned separately because allocation needs the database (BR-11).</summary>
     public static StockDocument Create(DocumentType type, Warehouse warehouse, Partner? partner, IssuePurpose? purpose,
         string? remark, int createdBy, DateTime now)
@@ -81,7 +84,7 @@ public class StockDocument : Entity
         return new StockDocument
         {
             Type = type, Warehouse = warehouse, WarehouseId = warehouse.Id, Partner = partner, PartnerId = partner?.Id,
-            Purpose = type == DocumentType.Issue ? purpose ?? IssuePurpose.Sale : null,
+            Purpose = type == DocumentType.Issue ? purpose ?? throw new DomainException(Messages.PurposeRequired) : null,
             Remark = remark, CreatedBy = createdBy, CreatedAt = now
         };
     }
@@ -97,9 +100,11 @@ public class StockDocument : Entity
     {
         EnsureEditable();
         partner?.EnsureUsableFor(Type);
+        // An issue says why stock leaves (UX: required); checked before anything changes, so a refusal leaves the draft as it was.
+        var newPurpose = Type == DocumentType.Issue ? purpose ?? throw new DomainException(Messages.PurposeRequired) : (IssuePurpose?)null;
         Partner = partner;
         PartnerId = partner?.Id;
-        Purpose = Type == DocumentType.Issue ? purpose ?? IssuePurpose.Sale : null;
+        Purpose = newPurpose;
         Remark = remark;
     }
 
@@ -115,6 +120,17 @@ public class StockDocument : Entity
     {
         EnsureEditable();
         _lines.AddRange(lines);
+    }
+
+    /// <summary>
+    /// Values the lines of an issue that has not posted yet at the current average cost of each product, so the amount an approver sees (and the
+    /// approval rules test) is the value of what is leaving. Posting books the real cost over it (BR-05). Receipts carry their entered cost and
+    /// are left alone, as is any issue that already posted.
+    /// </summary>
+    public void EstimateIssueCosts(IReadOnlyDictionary<int, decimal> averageCostByProduct)
+    {
+        if (Type != DocumentType.Issue || !DocumentStatuses.IsOpen(Status)) return;
+        foreach (var line in _lines) line.EstimateIssueCost(averageCostByProduct.GetValueOrDefault(line.ProductId));
     }
 
     public void EnsureEditable()
@@ -150,9 +166,12 @@ public class StockDocument : Entity
             throw new DomainException(Messages.OnlySubmittedCanApprove(Status));
         if (!RequiresApproval)
             throw new DomainException(Messages.ApprovalNotNeeded);
-        BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, allowSelfApproval));
+        BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, allowSelfApproval, Messages.SelfApproval));
         if (RequiresOverride)
+        {
             BusinessRules.Ensure(new ReasonRequiredRule(overrideReason, Messages.OverrideReasonRequired));
+            BusinessRules.Ensure(new ReasonRequiredRule(overrideReason, Messages.ReasonTooShort, Limits.ReasonMinLength));
+        }
 
         Status = DocumentStatus.Approved;
         ApprovedBy = userId;
@@ -160,15 +179,20 @@ public class StockDocument : Entity
         NegativeStockOverrideReason = RequiresOverride ? overrideReason!.Trim() : null;
     }
 
-    /// <summary>Rejection returns the document to Draft and keeps the reason and who returned it. The submit-time flags no longer describe a Draft.</summary>
-    public void Reject(string reason, int userId, DateTime utcNow)
+    /// <summary>
+    /// Rejection returns the document to Draft and keeps the (trimmed) reason and who returned it. The submit-time flags no longer describe a Draft.
+    /// Like approval, it is a review: the submitter may not reject their own document unless self-approval is allowed (the recall is Cancel).
+    /// </summary>
+    public void Reject(string reason, int userId, bool allowSelfApproval, DateTime utcNow)
     {
         if (Status != DocumentStatus.Submitted)
             throw new DomainException(Messages.OnlySubmittedCanReject(Status));
         BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.RejectReasonRequired));
+        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
+        BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, allowSelfApproval, Messages.SelfRejection));
 
         Status = DocumentStatus.Draft;
-        RejectionReason = reason;
+        RejectionReason = reason.Trim();
         RejectedBy = userId;
         RejectedAt = utcNow;
         SubmittedBy = null;
@@ -207,8 +231,9 @@ public class StockDocument : Entity
         if (Status != DocumentStatus.Posted)
             throw new DomainException(Messages.OnlyPostedCanReverse);
         BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReverseReasonRequired));
+        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
 
         Status = DocumentStatus.Reversed;
-        ReversalReason = reason;
+        ReversalReason = reason.Trim();
     }
 }

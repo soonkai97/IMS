@@ -84,7 +84,7 @@ public class StockAvailabilityPolicyTests
     public void EnsureAvailable_UsesBaseQuantity_NotTheEnteredQuantity()
     {
         var carton = NewProduct(1, cartonFactor: 12m);
-        var doc = StockDocument.Create(DocumentType.Issue, NewWarehouse(), null, null, null, Creator, Now).WithId(2);
+        var doc = StockDocument.Create(DocumentType.Issue, NewWarehouse(), null, IssuePurpose.Sale, null, Creator, Now).WithId(2);
         doc.AddLines([NewLine(carton, DocumentType.Issue, 2m, uomId: CartonId)]); // 24 pieces
 
         Assert.Throws<InsufficientStockException>(() =>
@@ -128,7 +128,7 @@ public class StockAvailabilityPolicyTests
     [Fact]
     public void EnsureAvailable_DocumentWithoutLines_DoesNotThrow()
     {
-        var doc = StockDocument.Create(DocumentType.Issue, NewWarehouse(), null, null, null, Creator, Now);
+        var doc = StockDocument.Create(DocumentType.Issue, NewWarehouse(), null, IssuePurpose.Sale, null, Creator, Now);
 
         StockAvailabilityPolicy.EnsureAvailable(doc, new Dictionary<int, decimal>());
     }

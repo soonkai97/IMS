@@ -8,11 +8,11 @@ public class ApproveDocumentHandler(IRepository<StockDocument> documents, IAppro
     public async Task<DocumentDto> HandleAsync(ApproveDocumentCommand cmd, CancellationToken ct)
     {
         var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
-        access.EnsureWarehouse(doc.WarehouseId);
+        access.EnsureDocumentInScope(doc.WarehouseId);
         DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
 
-        if (!(await approvals.AssessAsync(doc, ct)).CallerMayApprove)
-            throw new ForbiddenException(Messages.AboveApprovalLimit);
+        if (await approvals.ReviewRefusalAsync(doc.Type, doc.IsLarge, doc.TotalQty, doc.TotalAmount, ct) is { } refusal)
+            throw new ForbiddenException(refusal);
 
         doc.Approve(current.UserId, (await settings.GetAsync(ct)).AllowSelfApproval, clock.UtcNow, cmd.Data.NegativeStockOverrideReason);
         audit.Record(AuditActions.DocumentApproved, AuditEntities.StockDocument, doc.No, new { Status = DocumentStatus.Submitted }, new { doc.Status, doc.NegativeStockOverrideReason });

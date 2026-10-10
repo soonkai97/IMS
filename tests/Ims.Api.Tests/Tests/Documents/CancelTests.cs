@@ -38,7 +38,7 @@ public class CancelTests(ApiFixture fixture)
         var product = await s.NewProductAsync();
         var submitted = await s.SubmitAsync(s.Clerk, await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 5, 1m)));
 
-        var cancelled = (await s.Staff.Documents.CancelAsync(submitted.Id)).Data<DocumentDto>();
+        var cancelled = (await s.Clerk.Documents.CancelAsync(submitted.Id)).Data<DocumentDto>();
 
         Assert.Equal(DocumentStatus.Cancelled, cancelled.Status);
         Assert.Equal(0, await s.OnHandAsync(product.Id, Warehouse));
@@ -51,7 +51,7 @@ public class CancelTests(ApiFixture fixture)
         var product = await s.NewProductAsync();
         await s.ReceiveAsync(Warehouse, new Line(product.Id, 100, 100m));
         var submitted = await s.SubmitAsync(s.Clerk, await s.DraftIssueAsync(s.Clerk, Warehouse, new Line(product.Id, 60)));
-        (await s.Owner.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();
+        (await s.Supervisor.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();
 
         var response = await s.Admin.Documents.CancelAsync(submitted.Id, "changed my mind");
 

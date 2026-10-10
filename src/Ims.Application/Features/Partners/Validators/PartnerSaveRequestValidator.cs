@@ -6,7 +6,7 @@ public class PartnerSaveRequestValidator : AbstractValidator<PartnerSaveRequest>
 {
     public PartnerSaveRequestValidator()
     {
-        RuleFor(x => x.Name).NotEmpty().MaximumLength(Limits.NameMaxLength).WithMessage(Messages.PartnerNameRequired);
+        RuleFor(x => x.Name).NotEmpty().WithMessage(Messages.PartnerNameRequired).MaximumLength(Limits.NameMaxLength).WithMessage(Messages.TextTooLong("Name", Limits.NameMaxLength));
         RuleFor(x => x.Type).IsInEnum();
     }
 }

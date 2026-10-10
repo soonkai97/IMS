@@ -31,9 +31,15 @@ public class ImportOpeningStockHandler(IExcelReader excel, IReadRepository<Produ
             if (!skus.TryGetValue(sku.ToLowerInvariant(), out var pid)) errors.Add(Messages.UnknownSku(sku));
             if (!whs.TryGetValue(code.ToLowerInvariant(), out var wid)) errors.Add(Messages.UnknownWarehouse(code));
             else if (allowed is not null && !allowed.Contains(wid)) errors.Add(Messages.WarehouseNoAccess(code));
-            if (!ImportSheet.TryParseDecimal(r.Get(ImportColumns.Qty), out var qty) || qty <= 0 || qty > Limits.MaxQuantity) errors.Add(Messages.QtyPositive);
+            var qtyText = r.Get(ImportColumns.Qty);
+            if (!ImportSheet.TryParseDecimal(qtyText, out var qty)) errors.Add(qtyText.Length == 0 ? Messages.QtyPositive : Messages.NotANumber(ImportColumns.QtyLabel, qtyText));
+            else if (qty <= 0 || qty > Limits.MaxQuantity) errors.Add(Messages.QtyPositive);
             decimal cost = 0;
-            if (r.Get(ImportColumns.UnitCost) is { Length: > 0 } uc && !(ImportSheet.TryParseDecimal(uc, out cost) && cost >= 0)) errors.Add(Messages.CostNegative);
+            if (r.Get(ImportColumns.UnitCost) is { Length: > 0 } uc)
+            {
+                if (!ImportSheet.TryParseDecimal(uc, out cost)) errors.Add(Messages.NotANumber(ImportColumns.UnitCostLabel, uc));
+                else if (cost < 0) errors.Add(Messages.CostNegative);
+            }
 
             // Every valid row becomes a line on a new draft receipt, so it is always "New".
             results.Add(new ImportRowResult(r.Number, sku, errors.Count == 0, errors.Count == 0 ? ImportRowStatus.New : ImportRowStatus.Error, errors));

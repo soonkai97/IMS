@@ -66,6 +66,8 @@ public static class Limits
     public const int EmailMaxLength = 256;
     public const int RoleMaxLength = 32;
     public const int RemarkMaxLength = 500;
+    /// <summary>Shortest reason (after trimming) accepted for a reject, a reversal or a negative-stock override (UX 6.4).</summary>
+    public const int ReasonMinLength = 5;
     public const int DocumentNoMaxLength = 40;
     public const int DocumentPrefixMaxLength = 8;
     public const int AuditTextMaxLength = 100;

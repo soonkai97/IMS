@@ -38,7 +38,7 @@ public class PostedDocumentTests(ApiFixture fixture)
 
         (await s.Admin.Documents.PostAsync(posted.Id)).ShouldBeProblem(HttpStatusCode.BadRequest);
         (await s.Admin.Documents.SubmitAsync(posted.Id)).ShouldBeProblem(HttpStatusCode.BadRequest);
-        (await s.Owner.Documents.RejectAsync(posted.Id, "x")).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await s.Owner.Documents.RejectAsync(posted.Id, "not needed here")).ShouldBeProblem(HttpStatusCode.BadRequest);
 
         Assert.Equal(5, await s.OnHandAsync(product.Id, Warehouse));
         Assert.Single(await s.LedgerAsync(sourceDocId: posted.Id));

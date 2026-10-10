@@ -6,6 +6,16 @@ public static class Messages
     // ----- Auth -----
     public const string InvalidCredentials = "Invalid username or password.";
     public const string AccountLocked = "Account is temporarily locked after too many failed attempts. Try again later.";
+    /// <summary>UX E7. Only shown to someone who gave the right password, so it does not reveal that an account exists.</summary>
+    public static string AccountLockedFor(int minutes) =>
+        minutes == 1 ? "Too many failed attempts. Try again in 1 minute." : $"Too many failed attempts. Try again in {minutes} minutes.";
+    public static string TooManyRequests(int seconds) =>
+        seconds <= 1 ? "Too many requests. Try again in a moment." : $"Too many requests. Try again in {seconds} seconds.";
+    public static readonly string SearchTooLong = $"Search text can be at most {Limits.SearchMaxLength} characters.";
+    public const string DateRangeInvalid = "The 'from' date is after the 'to' date.";
+    public const string IfMatchRequired = "Send the document's version in the If-Match header (the ETag you last received), so a change made by someone else is not overwritten.";
+    public const string PurposeRequired = "Choose a purpose for the issue.";
+    public const string UsernameCharacters = "Username can contain letters, digits and . _ - @ + only (no spaces).";
     public const string SessionExpired = "Session expired. Please sign in again.";
     public const string UsernameRequired = "Enter your username or email.";
     public const string PasswordRequired = "Enter your password.";
@@ -19,6 +29,7 @@ public static class Messages
     public static string TooManyLines(int max) => $"A document can have at most {max} lines.";
     public const string QtyTooLarge = "Quantity is too large or has too many decimal places.";
     public const string ReasonTooLong = "The reason is too long.";
+    public static readonly string ReasonTooShort = $"Enter a reason of at least {Limits.ReasonMinLength} characters.";
 
     // ----- Users -----
     public const string UserNotFound = "User not found.";
@@ -83,6 +94,10 @@ public static class Messages
     public const string OnlyReceiptAndIssue = "Only receipts and issues are available in this version.";
     public const string RejectReasonRequired = "A rejection reason is required.";
     public const string ReverseReasonRequired = "A reversal reason is required.";
+    public const string OwnDocumentsOnly = "You can only change documents you created.";
+    public const string OwnSubmissionsOnly = "You can only cancel documents you submitted.";
+    public const string SelfRejection = "You cannot reject a document you submitted.";
+    public const string OwnerReviewsLargeOnly = "Owners review only large documents. A supervisor reviews this one.";
     public const string NeedsApprovalNotForStaff = "This document needs approval; warehouse staff can only post documents that do not.";
     public const string AboveApprovalLimit = "This document is above your approval limit. A higher role must approve it.";
     public const string NoLines = "A document needs at least one line.";
@@ -100,6 +115,18 @@ public static class Messages
     public static string OnlyDraftOrSubmittedCanCancel(DocumentStatus status) => $"Only Draft or Submitted documents can be cancelled (current: {status}).";
     public static string CannotPostInStatus(DocumentStatus status) => $"A document in status {status} cannot be posted.";
     public const string OnlyPostedCanReverse = "Only a Posted document can be reversed.";
+
+    public static string ReversalBlocked(string docNo, IReadOnlyList<ReversalShortage> items)
+    {
+        const string nextStep = "Reverse or adjust the later issues first, or ask an Admin.";
+        var first = items[0];
+        return items.Count == 1
+            ? $"Can't reverse {docNo}. It would make {first.Sku} negative ({Quantity(first.Balance)} {first.UomCode}). {nextStep}"
+            : $"Can't reverse {docNo}. It would make {items.Count} products negative: {string.Join(", ", items.Select(i => $"{i.Sku} ({Quantity(i.Balance)} {i.UomCode})"))}. {nextStep}";
+    }
+
+    /// <summary>A quantity inside a sentence: invariant culture, no trailing zeros ("-3", "12.5").</summary>
+    private static string Quantity(decimal value) => value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
     public static string PostingNotSupported(DocumentType type) => $"Posting {type} documents is not supported yet.";
 
     // ----- Stock -----
@@ -107,6 +134,10 @@ public static class Messages
     public const string IssueQtyPositive = "Issue quantity must be positive.";
     public static string InsufficientStock(int productId, int warehouseId, decimal available, decimal requested) =>
         $"Insufficient stock for product {productId} in warehouse {warehouseId}: available {available}, requested {requested}.";
+
+    /// <summary>The same conflict in words a person recognises: SKU, warehouse name and unit instead of ids (NV-06 / PS-01).</summary>
+    public static string InsufficientStockNamed(string sku, string warehouseName, string uomCode, decimal available, decimal requested) =>
+        $"Not enough stock for {sku} in {warehouseName}: {Quantity(available)} {uomCode} available, {Quantity(requested)} needed.";
 
     // ----- Attachments (files stored on disk, metadata in the database) -----
     public const string AttachmentNotFound = "File not found.";
@@ -135,7 +166,10 @@ public static class Messages
     public static string MissingColumns(IEnumerable<string> columns) =>
         $"Missing column(s): {string.Join(", ", columns)}. Download the template to see the expected columns.";
     public static string TooManyRows(int rows, int limit) => $"Too many rows ({rows}). The limit is {limit} per file.";
-    public static string DuplicateSkuInFile(string sku) => $"SKU '{sku}' appears more than once in the file.";
+    public static string DuplicateSkuInFile(string sku, int firstRow) => $"SKU '{sku}' also appears in row {firstRow}.";
+    public static string ImportCategoryMissing(string name) => $"Category '{name}' doesn't exist. Add it first or fix the name.";
+    public static string ImportUnitMissing(string unit) => $"Unit '{unit}' doesn't exist. Use the code or name of an existing unit, or add it first.";
+    public static string NotANumber(string column, string value) => $"{column} '{value}' is not a number.";
     public static string BarcodeOwnedBy(string code, string sku) => $"Barcode '{code}' already belongs to {sku}.";
     public static string BarcodeDuplicateInFile(string code, string sku) => $"Barcode '{code}' is also used by {sku} in this file.";
     public static string UnknownSku(string sku) => $"Unknown or inactive SKU '{sku}'. Import products first.";
@@ -160,6 +194,9 @@ public static class Messages
     public const string NotFoundTitle = "Not found";
     public const string ConflictTitle = "Conflict";
     public const string InsufficientStockTitle = "Insufficient stock";
+    public const string ReversalBlockedTitle = "Reversal blocked";
+    public const string PreconditionRequiredTitle = "Precondition required";
+    public const string TooManyRequestsTitle = "Too many requests";
     public const string BadRequestTitle = "Bad request";
     public const string ServerErrorTitle = "Server error";
 }

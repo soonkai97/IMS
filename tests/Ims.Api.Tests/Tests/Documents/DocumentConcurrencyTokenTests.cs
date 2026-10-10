@@ -9,7 +9,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 
 /// <summary>
 /// BR-12 / UX error E4: a document hands out a concurrency token (also its ETag). Sent back as If-Match, a stale token is refused with 409
-/// before anything is changed; without it the API behaves as before.
+/// before anything is changed. The header is required on every document command (428 without it); "*" is the explicit "any version".
 /// </summary>
 [Collection(ApiCollection.Name)]
 public class DocumentConcurrencyTokenTests(ApiFixture fixture)
@@ -173,13 +173,12 @@ public class DocumentConcurrencyTokenTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task A_wildcard_or_no_If_Match_means_any_version()
+    public async Task A_wildcard_If_Match_means_any_version_the_explicit_opt_out()
     {
         var (s, draft, productId) = await DraftAsync();
         (await s.Admin.Documents.UpdateAsync(draft.Id, Edited(draft, productId, 7))).ShouldBeOk();
 
         (await s.Clerk.Documents.UpdateAsync(draft.Id, Edited(draft, productId, 8), ifMatch: "*")).ShouldBeOk();
-        (await s.Clerk.Documents.UpdateAsync(draft.Id, Edited(draft, productId, 9))).ShouldBeOk();
     }
 
     [Fact]

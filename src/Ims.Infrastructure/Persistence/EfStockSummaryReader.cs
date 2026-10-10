@@ -11,13 +11,16 @@ public sealed class EfStockSummaryReader(AppDbContext db) : IStockSummaryReader
         var balances = db.Set<StockBalance>().AsNoTracking();
         if (warehouseScope is not null) balances = balances.Where(b => warehouseScope.Contains(b.WarehouseId));
 
-        // One aggregate row computed by SQL Server.
+        // One aggregate row computed by SQL Server. Value is net (a negative balance lowers it); a product counts as "with stock" only when it has a
+        // positive quantity somewhere in the caller's warehouses.
         var row = await balances.GroupBy(_ => 1).Select(g => new
         {
             Value = g.Sum(b => b.QtyOnHand * b.AvgCost),
-            Skus = g.Select(b => b.ProductId).Distinct().Count(),
-            Low = g.Count(b => b.Product.SafetyStock > 0 && b.QtyOnHand < b.Product.SafetyStock)
+            Skus = g.Where(b => b.QtyOnHand > 0).Select(b => b.ProductId).Distinct().Count()
         }).FirstOrDefaultAsync(ct);
-        return row is null ? (0m, 0, 0) : (row.Value, row.Skus, row.Low);
+
+        // Low products come from the shared low-stock query, so the Home count equals the low-stock list total (it includes never-stocked products).
+        var low = await LowStockQuery.Build(db, warehouseScope, warehouseId: null).CountAsync(ct);
+        return row is null ? (0m, 0, low) : (row.Value, row.Skus, low);
     }
 }

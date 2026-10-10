@@ -41,6 +41,7 @@ public static class EndpointCatalog
         new("GET reports ledger export", Get, Permissions.ReportsRead, _ => "/api/reports/ledger/export"),
         new("GET reports low-stock export", Get, Permissions.ReportsRead, _ => "/api/reports/low-stock/export"),
         new("GET audit", Get, Permissions.AuditRead, _ => "/api/audit"),
+        new("GET audit filters", Get, Permissions.AuditRead, _ => "/api/audit/filters"),
         new("GET import template", Get, Permissions.MasterDataManage, _ => "/api/import/templates/products"),
 
         // ----- writes that can succeed with a valid body -----

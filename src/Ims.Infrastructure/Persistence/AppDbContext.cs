@@ -104,6 +104,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.HasIndex(x => x.At);
             // Audit page filtered by user, newest first: a seek instead of a backwards scan of the whole table for a rare actor.
             e.HasIndex(x => new { x.Actor, x.Id }).IsDescending(false, true);
+            // Find by document number or entity id (prefix), and by action prefix, newest first: seeks, not scans of a table that only grows.
+            e.HasIndex(x => new { x.EntityId, x.Id }).IsDescending(false, true);
+            e.HasIndex(x => new { x.Action, x.Id }).IsDescending(false, true);
             e.Property(x => x.Actor).HasMaxLength(Limits.AuditTextMaxLength);
             e.Property(x => x.Action).HasMaxLength(Limits.AuditTextMaxLength);
             e.Property(x => x.EntityType).HasMaxLength(Limits.AuditTextMaxLength);
@@ -127,7 +130,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.No).HasMaxLength(Limits.DocumentNoMaxLength);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
             e.Property(x => x.RowVersion).IsRowVersion();
-            e.Ignore(x => x.TotalQty).Ignore(x => x.TotalAmount).Ignore(x => x.CanPost).Ignore(x => x.IsReturned);
+            e.Ignore(x => x.TotalQty).Ignore(x => x.TotalAmount).Ignore(x => x.CanPost).Ignore(x => x.IsReturned).Ignore(x => x.ActionContext);
             e.HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Partner).WithMany().HasForeignKey(x => x.PartnerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedBy).OnDelete(DeleteBehavior.Restrict);
@@ -222,7 +225,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
     }
 
     // ---------- Immutability + row-level audit ----------
-    private static readonly JsonSerializerOptions Json = new() { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never };
+    private static readonly JsonSerializerOptions Json = new()
+    {
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } // enum names, not numbers, in the audit details
+    };
 
     /// <summary>Row-level audit applies to master data and security data; documents and stock are audited by explicit business events.</summary>
     private static readonly HashSet<Type> Audited =

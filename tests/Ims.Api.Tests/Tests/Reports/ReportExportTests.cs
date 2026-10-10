@@ -78,7 +78,7 @@ public class ReportExportTests(ApiFixture fixture)
         var product = await s.NewProductAsync();
         var posted = await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 5, 1m));
         var reversed = await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 2, 1m));
-        (await s.Admin.Documents.ReverseAsync(reversed.Id, "undo")).ShouldBeOk();
+        (await s.Admin.Documents.ReverseAsync(reversed.Id, "undo the receipt")).ShouldBeOk();
         var draft = await s.DraftReceiptAsync(s.Admin, fixture.Reference.DefaultWarehouseId, new Line(product.Id, 9, 1m));
 
         var rows = (await s.Admin.Reports.MovementsAsync(product.Id)).Data<PagedResult<MovementRow>>().Items;
@@ -109,7 +109,7 @@ public class ReportExportTests(ApiFixture fixture)
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
         var receipt = await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 6, 2m));
-        (await s.Admin.Documents.ReverseAsync(receipt.Id, "undo")).ShouldBeOk();
+        (await s.Admin.Documents.ReverseAsync(receipt.Id, "undo the receipt")).ShouldBeOk();
 
         var response = await s.Admin.Reports.LedgerExportAsync(product.Id);
 
@@ -130,10 +130,11 @@ public class ReportExportTests(ApiFixture fixture)
         var noSafety = await s.NewProductAsync(safetyStock: 0);
         await s.ReceiveAsync(warehouse.Id, new Line(low.Id, 3, 1m), new Line(fine.Id, 10, 1m), new Line(noSafety.Id, 1, 1m));
 
-        var list = (await s.Admin.GetAsync($"/api/stock/low-stock?warehouseId={warehouse.Id}")).Data<PagedResult<LowStockAlert>>().Items;
+        var list = (await s.Admin.Stock.LowStockAsync(warehouse.Id)).Data<PagedResult<LowStockAlert>>().Items;
         var export = Xlsx.Read((await s.Admin.Reports.LowStockExportAsync()).Bytes);
 
-        var alert = Assert.Single(list);
+        var alert = Assert.Single(list, a => a.ProductId == low.Id); // products never stocked anywhere are low too, whatever other tests left
+        Assert.DoesNotContain(list, a => a.ProductId == fine.Id || a.ProductId == noSafety.Id);
         Assert.Equal((low.Id, 3m, 10m, 7m), (alert.ProductId, alert.QtyOnHand, alert.SafetyStock, alert.Shortfall));
         Assert.Equal(ReportHeaders.LowStock, export.Headers);
         var row = export.FindRow("SKU", low.Sku)!;
@@ -149,11 +150,11 @@ public class ReportExportTests(ApiFixture fixture)
         var warehouse = await s.NewWarehouseAsync();
         var product = await s.NewProductAsync(safetyStock: 10);
         await s.ReceiveAsync(warehouse.Id, new Line(product.Id, 3, 1m));
-        Assert.Single((await s.Admin.GetAsync($"/api/stock/low-stock?warehouseId={warehouse.Id}")).Data<PagedResult<LowStockAlert>>().Items);
+        Assert.Single((await s.Admin.Stock.LowStockAsync(warehouse.Id)).Data<PagedResult<LowStockAlert>>().Items, a => a.ProductId == product.Id);
 
         await s.ReceiveAsync(warehouse.Id, new Line(product.Id, 20, 1m));
 
-        Assert.Empty((await s.Admin.GetAsync($"/api/stock/low-stock?warehouseId={warehouse.Id}")).Data<PagedResult<LowStockAlert>>().Items);
+        Assert.DoesNotContain((await s.Admin.Stock.LowStockAsync(warehouse.Id)).Data<PagedResult<LowStockAlert>>().Items, a => a.ProductId == product.Id);
     }
 
     [Fact]

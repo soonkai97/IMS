@@ -59,20 +59,20 @@ public class WarehouseScopeTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task Direct_access_to_a_document_of_another_warehouse_is_403()
+    public async Task Direct_access_to_a_document_of_another_warehouse_is_404_so_ids_cannot_be_probed()
     {
         var setup = await CreateOtherWarehouseAsync();
         var staff = setup.Scenario.Staff;
         var id = setup.DocumentInOther.Id;
 
-        (await staff.Documents.GetAsync(id)).ShouldBeProblem(HttpStatusCode.Forbidden, "Forbidden");
-        (await staff.Documents.SubmitAsync(id)).ShouldBe(HttpStatusCode.Forbidden);
-        (await staff.Documents.CancelAsync(id)).ShouldBe(HttpStatusCode.Forbidden);
-        (await staff.Documents.PostAsync(id)).ShouldBe(HttpStatusCode.Forbidden);
+        (await staff.Documents.GetAsync(id)).ShouldBeProblem(HttpStatusCode.NotFound, "Not found");
+        (await staff.Documents.SubmitAsync(id)).ShouldBe(HttpStatusCode.NotFound);
+        (await staff.Documents.CancelAsync(id)).ShouldBe(HttpStatusCode.NotFound);
+        (await staff.Documents.PostAsync(id)).ShouldBe(HttpStatusCode.NotFound);
         var edit = new DocumentBuilder(setup.OtherWarehouse.Id).WithLines(new Line(setup.Product.Id, 2, 1m)).Build();
-        (await staff.Documents.UpdateAsync(id, edit)).ShouldBe(HttpStatusCode.Forbidden);
+        (await staff.Documents.UpdateAsync(id, edit)).ShouldBe(HttpStatusCode.NotFound);
 
-        // Nothing changed behind the 403s.
+        // Nothing changed behind the 404s.
         Assert.Equal(DocumentStatus.Draft, (await setup.Scenario.GetAsync(id)).Status);
     }
 
@@ -112,7 +112,7 @@ public class WarehouseScopeTests(ApiFixture fixture)
         var accounts = new AccountFactory(fixture);
         var account = await accounts.CreateAsync(Roles.WarehouseStaff, warehouseIds: [fixture.Reference.DefaultWarehouseId]);
         var (before, _) = await accounts.SignInAsync(account);
-        (await before.Documents.GetAsync(setup.DocumentInOther.Id)).ShouldBe(HttpStatusCode.Forbidden);
+        (await before.Documents.GetAsync(setup.DocumentInOther.Id)).ShouldBe(HttpStatusCode.NotFound);
 
         (await accounts.UpdateAsync(account, warehouseIds: [fixture.Reference.DefaultWarehouseId, setup.OtherWarehouse.Id])).ShouldBeOk();
         var (after, _) = await accounts.SignInAsync(account);
@@ -130,7 +130,7 @@ public class WarehouseScopeTests(ApiFixture fixture)
         var (clerk, _) = await accounts.SignInAsync(account);
         var inDefault = await setup.Scenario.DraftReceiptAsync(setup.Scenario.Admin, fixture.Reference.DefaultWarehouseId, new Line(setup.Product.Id, 1, 1m));
 
-        (await clerk.Documents.GetAsync(inDefault.Id)).ShouldBe(HttpStatusCode.Forbidden);
+        (await clerk.Documents.GetAsync(inDefault.Id)).ShouldBe(HttpStatusCode.NotFound);
         var visible = (await clerk.Warehouses.ListAsync()).Data<List<WarehouseDto>>();
         Assert.Equal([setup.OtherWarehouse.Id], visible.Select(w => w.Id));
     }

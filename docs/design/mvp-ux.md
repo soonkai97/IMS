@@ -152,7 +152,7 @@ Draft and Submitted can be cancelled. Approved cannot (Q3). Posted can only be r
 6. Repeat 3-5 per item. Lines list shows product, quantity, remove.
 7. [Submit & post]. {Server checks rules.}
 8. Confirm dialog "Post RCV-...?" -> [Post]. {Toast "Posted. Stock updated." Document opens read-only with chip Posted.}
-   - If approval is required: step 7 submits only; toast "Sent for approval: quantity is over {threshold}." Chip Submitted, sub-label "Awaiting approval". No confirm dialog.
+   - If approval is required: step 7 submits only; toast "Sent for approval: quantity reaches {threshold}." Chip Submitted, sub-label "Awaiting approval". No confirm dialog.
    - Clerk (no Post right): button is [Submit]; toast "Submitted for approval."
    - Leave early: [Save draft] anytime; unsaved-changes guard on back.
    - Error paths: deactivated or unknown product (E-table, section 6.4); network failure keeps the form and shows a retry toast.
@@ -658,7 +658,7 @@ Also needed (shorter, same tone):
 | Network | "Can't reach the server. Check your connection and try again." |
 | Export failed | "Couldn't create the file. Try again." |
 
-Success toasts: "Draft saved." / "Submitted for approval." / "Sent for approval: quantity is over {threshold}." / "Posted. Stock updated." / "Approved." / "Returned to {name} for changes." / "Reversed. Stock adjusted." / "Document cancelled." / "{count} products added, {updated} updated."
+Success toasts: "Draft saved." / "Submitted for approval." / "Sent for approval: quantity reaches {threshold}." / "Posted. Stock updated." / "Approved." / "Returned to {name} for changes." / "Reversed. Stock adjusted." / "Document cancelled." / "{count} products added, {updated} updated."
 
 Dialog copy:
 
@@ -715,6 +715,10 @@ Rules behind the table (for be-framework to enforce; UI only reflects them):
 - Post on Submitted requires `requiresApproval = false` for Warehouse staff; Admin and Supervisor may post Submitted only when no approval is required, and Approved always.
 - Reverse needs Posted status and a reason; E6 applies.
 - A document with `requiresOverride` needs Approve with a reason before Post.
+- Reasons (Reject, Reverse, override at Approve) have at least 5 characters once trimmed; the API enforces it as well as the dialog (PS-09).
+- Review routing (enforced by the API, shown by `allowedActions` and `canAct`): an Admin approves and rejects any document; the Owner only documents flagged Large; a Supervisor only documents not flagged Large. A document with `requiresOverride` that is not Large is therefore a Supervisor or Admin act, never the Owner's. Reject is a review like Approve, so the submitter cannot reject their own document either when self-approval is off (the recall is Cancel). **Open question for the product owner:** a document that is both Large and `requiresOverride` is reviewed by the Owner (or Admin), who then gives the override reason; D5 calls the override "a supervisor act", so say if that case should be Admin-only.
+- Ownership: Warehouse staff and Clerk edit, submit and cancel only drafts they created, and cancel (recall) only Submitted documents they submitted. A draft that a supervisor submitted can no longer be recalled by its creator. Supervisor and Admin act on any document in their warehouses. A document in a warehouse outside the caller's scope answers 404, not 403, so ids cannot be probed.
+- Amounts: an issue that has not posted yet is valued at the average cost seen when it was last saved or submitted (`amountIsEstimate`); the value on a Submitted document is the one the approval rules were tested against, and `approvalTriggers` says which threshold (value or quantity) it reached.
 
 ### 7.3 Phone action bar by state (what the sticky bar shows)
 

@@ -8,7 +8,7 @@ public sealed class DocumentBuilder(int warehouseId)
 {
     private readonly List<Line> _lines = [];
     private int? _partnerId;
-    private IssuePurpose? _purpose;
+    private IssuePurpose? _purpose = IssuePurpose.Sale; // required for an issue, ignored for a receipt
     private string? _remark;
 
     public DocumentBuilder WithPartner(int? partnerId) { _partnerId = partnerId; return this; }

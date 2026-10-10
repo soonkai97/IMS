@@ -106,9 +106,74 @@ public class InsufficientStockTests(ApiFixture fixture)
 
         var response = await s.Supervisor.Documents.ReverseAsync(receipt.Id, "Wrong supplier");
 
-        response.ShouldBeProblem(HttpStatusCode.Conflict, "Insufficient stock");
+        var problem = response.ShouldBeProblem(HttpStatusCode.Conflict, "Reversal blocked");
+        Assert.Contains($"Can't reverse {receipt.No}. It would make {product.Sku} negative (-4 PCS).", problem.Detail);
+        Assert.Contains("Reverse or adjust the later issues first, or ask an Admin.", problem.Detail);
         Assert.Equal(DocumentStatus.Posted, (await s.GetAsync(receipt.Id)).Status);
         Assert.Equal(6, await s.OnHandAsync(product.Id, Warehouse));
         Assert.Single(await s.LedgerAsync(sourceDocId: receipt.Id));
+    }
+
+    [Fact]
+    public async Task A_stock_conflict_names_the_product_the_warehouse_and_the_unit_instead_of_ids()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var warehouse = await s.NewWarehouseAsync();
+        var product = await s.NewProductAsync();
+        await s.ReceiveAsync(warehouse.Id, new Line(product.Id, 3, 1m));
+        var draft = await s.DraftIssueAsync(s.Admin, warehouse.Id, new Line(product.Id, 10));
+
+        var submit = await s.Admin.Documents.SubmitAsync(draft.Id);
+
+        var problem = submit.ShouldBeProblem(HttpStatusCode.Conflict, "Insufficient stock");
+        Assert.Equal($"Not enough stock for {product.Sku} in {warehouse.Name}: 3 PCS available, 10 needed.", problem.Detail);
+        Assert.Equal(product.Id, problem.ProductId); // the machine-readable members are unchanged
+        Assert.Equal((3m, 10m), (problem.Available, problem.Requested));
+    }
+
+    [Fact]
+    public async Task A_blocked_reversal_names_every_product_that_would_go_negative_and_says_it_is_a_reversal_not_a_post()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var first = await s.NewProductAsync();
+        var second = await s.NewProductAsync();
+        var fine = await s.NewProductAsync();
+        var receipt = await s.ReceiveAsync(Warehouse, new Line(first.Id, 10, 1m), new Line(second.Id, 6, 1m), new Line(fine.Id, 5, 1m));
+        await s.IssueAsync(Warehouse, new Line(first.Id, 4), new Line(second.Id, 6));
+
+        var response = await s.Supervisor.Documents.ReverseAsync(receipt.Id, "Wrong supplier");
+
+        var problem = response.ShouldBeProblem(HttpStatusCode.Conflict, "Reversal blocked");
+        Assert.Contains("2 products negative", problem.Detail);
+        Assert.Contains($"{first.Sku} (-4 PCS)", problem.Detail);
+        Assert.Contains($"{second.Sku} (-6 PCS)", problem.Detail);
+        Assert.DoesNotContain(fine.Sku, problem.Detail);
+        var body = response.Json().RootElement;
+        Assert.Equal("reversal_blocked", body.GetProperty("code").GetString());
+        Assert.False(body.TryGetProperty("productId", out _), "productId marks the post-time stock conflict (E5); a reversal is not one.");
+        var shortages = body.GetProperty("shortages").EnumerateArray().ToList();
+        Assert.Equal([first.Id, second.Id], shortages.Select(x => x.GetProperty("productId").GetInt32()));
+        Assert.Equal([first.Sku, second.Sku], shortages.Select(x => x.GetProperty("sku").GetString()));
+        Assert.Equal([-4m, -6m], shortages.Select(x => x.GetProperty("balance").GetDecimal()));
+        Assert.Equal(DocumentStatus.Posted, (await s.GetAsync(receipt.Id)).Status);
+        Assert.Equal(3, (await s.LedgerAsync(sourceDocId: receipt.Id)).Count); // only the original entries, no reversal rows
+    }
+
+    [Fact]
+    public async Task A_post_time_stock_conflict_is_marked_insufficient_stock_with_the_product()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        await s.ReceiveAsync(Warehouse, new Line(product.Id, 5, 1m));
+        var first = await s.SubmitAsync(s.Admin, await s.DraftIssueAsync(s.Admin, Warehouse, new Line(product.Id, 4)));
+        var second = await s.SubmitAsync(s.Admin, await s.DraftIssueAsync(s.Admin, Warehouse, new Line(product.Id, 4)));
+        (await s.Admin.Documents.PostAsync(first.Id)).ShouldBeOk();
+
+        var response = await s.Admin.Documents.PostAsync(second.Id);
+
+        response.ShouldBeProblem(HttpStatusCode.Conflict, "Insufficient stock");
+        var body = response.Json().RootElement;
+        Assert.Equal("insufficient_stock", body.GetProperty("code").GetString());
+        Assert.Equal(product.Id, body.GetProperty("productId").GetInt32());
     }
 }

@@ -87,7 +87,7 @@ public class DocumentCountsTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task A_reversed_document_still_counts_as_posted_today()
+    public async Task A_reversed_document_no_longer_counts_as_posted_today_so_the_tile_matches_the_Posted_list()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
@@ -96,7 +96,7 @@ public class DocumentCountsTests(ApiFixture fixture)
 
         (await s.Supervisor.Documents.ReverseAsync(received.Id, "Entered twice")).ShouldBeOk();
 
-        Assert.Equal(before, (await CountsAsync(s.Admin)).PostedToday);
+        Assert.Equal(before - 1, (await CountsAsync(s.Admin)).PostedToday);
     }
 
     [Fact]

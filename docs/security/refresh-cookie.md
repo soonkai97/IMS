@@ -1,8 +1,9 @@
 # Refresh token in an HttpOnly cookie (SEC-34)
 
-Status: API side done, backward compatible. The web app is migrated (section 5, steps 1 to 5 done in `web/`): it stores no refresh token,
-sends credentials and the CSRF header, and restores the session with one refresh call. Remaining: once that web release is deployed
-everywhere, set `Auth__ReturnRefreshTokenInBody=false` on the API (step 6).
+Status: done. The web app is migrated (section 5, steps 1 to 5 done in `web/`): it stores no refresh token, sends credentials and the CSRF
+header, and restores the session with one refresh call. Step 6 is done in code: `Auth:ReturnRefreshTokenInBody` now defaults to **false**
+(both in `AuthOptions` and in `appsettings.json`), so login and refresh answer `"refreshToken": null` unless an operator switches the
+deprecated body delivery back on. The switch stays for a rollback or for an old non-browser client.
 
 ## 1. What changed and why
 
@@ -22,7 +23,7 @@ the 401 for a replayed token and the 7-day lifetime are unchanged.
 
 | Endpoint | Cookie behaviour | Body behaviour (DEPRECATED, still works) |
 |---|---|---|
-| `POST /api/auth/login` | Sets the cookie. | Response JSON still has `refreshToken` while `Auth:ReturnRefreshTokenInBody` is true. |
+| `POST /api/auth/login` | Sets the cookie. | Response JSON has `"refreshToken": null`; it carries the token only while `Auth:ReturnRefreshTokenInBody` is switched on (off by default). |
 | `POST /api/auth/refresh` | Reads the cookie when the body has no token, rotates it, sets the new cookie. A dead cookie token answers 401 **and** clears the cookie. | `{ "refreshToken": "..." }` is still accepted and wins over the cookie. The response sets the cookie too. |
 | `POST /api/auth/logout` | Revokes the cookie's token and clears the cookie (always 204). | A body token is revoked as before; the cookie is cleared as well. |
 
@@ -36,7 +37,7 @@ operations.
 
 | Key | Default | Meaning |
 |---|---|---|
-| `Auth:ReturnRefreshTokenInBody` | `true` | `false`: login and refresh answer `"refreshToken": null`; the token exists only in the cookie. Turn it off in the same release that migrates the web app. |
+| `Auth:ReturnRefreshTokenInBody` | `false` | `false` (default): login and refresh answer `"refreshToken": null`; the token exists only in the cookie. `true`: the deprecated body delivery is back (rollback, or a client that cannot use cookies). |
 | `Cors:Origins` | required outside Development | Now also the list of origins allowed to send the cookie (section 4). Wildcards are refused at start-up. **Even a same-origin deployment (web and `/api` behind one proxy host) must list the web app's own origin here**, because the CSRF check compares the request's `Origin` with this list. |
 
 CORS now sends `Access-Control-Allow-Credentials: true` for the listed origins, so a cross-origin page (the Angular dev server on
@@ -76,10 +77,10 @@ All in `web/`; none of it needs an API change.
    - "is there a session?" can no longer be answered from storage: on app start try `POST /api/auth/refresh` once; 401 means signed out.
 4. Regenerate the API client (`npm run api:generate`): `refreshToken` is now optional/deprecated on `AuthResult` and `RefreshRequest`.
 5. Update the Jest specs of `AuthService` (no storage of the refresh token; refresh and logout send the header and credentials).
-6. When the web release is deployed everywhere, set `Auth__ReturnRefreshTokenInBody=false` on the API (compose/env) and verify in the browser dev tools: login response has no `refreshToken`, the cookie shows `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/auth`, and `document.cookie` does not list it.
+6. Done in code: the default is `false`. Verify in the browser dev tools: login response has no `refreshToken`, the cookie shows `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/auth`, and `document.cookie` does not list it. An environment that still sets `Auth__ReturnRefreshTokenInBody=true` (older compose files, QA stacks) must remove it.
 7. Deployment: `Cors__Origins` must contain the web app's public origin (for example `https://ims.example.com`), see section 3.
 
-Rollback is a configuration change: set `Auth__ReturnRefreshTokenInBody=true` and the old behaviour returns without a redeploy of the API.
+Rollback is a configuration change: set `Auth__ReturnRefreshTokenInBody=true` and the old body delivery returns without a redeploy of the API.
 
 ## 6. Tests
 

@@ -35,9 +35,16 @@ public sealed class DocumentsClient(ApiClient api)
     public Task<ApiResponse> PostAsync(int id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/post", null, ifMatch);
     public Task<ApiResponse> ReverseAsync(int id, string reason, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/reverse", new ReverseRequest(reason), ifMatch);
 
-    /// <summary>Sends a write with an optional <c>If-Match</c> header. The token is quoted like an ETag unless it already is (or is "*").</summary>
+    /// <summary>A document write with NO If-Match header at all, to test that the server demands one (428).</summary>
+    public Task<ApiResponse> WithoutIfMatchAsync(HttpMethod method, string url, object? body = null) => api.SendAsync(method, url, body, null);
+
+    /// <summary>A document write with the If-Match header exactly as given (no quoting added), e.g. an unquoted token.</summary>
+    public Task<ApiResponse> WithRawIfMatchAsync(HttpMethod method, string url, string raw, object? body = null) =>
+        api.SendAsync(method, url, body, r => r.Headers.TryAddWithoutValidation("If-Match", raw));
+
+    /// <summary>Sends a write with an <c>If-Match</c> header: the given token (quoted like an ETag unless it already is, or is "*"), or "*" (any version) when a test does not care.</summary>
     private Task<ApiResponse> Send(HttpMethod method, string url, object? body, string? ifMatch) =>
-        api.SendAsync(method, url, body, ifMatch is null ? null : r => r.Headers.TryAddWithoutValidation("If-Match", Quote(ifMatch)));
+        api.SendAsync(method, url, body, r => r.Headers.TryAddWithoutValidation("If-Match", Quote(ifMatch ?? "*")));
 
     private static string Quote(string token) => token == "*" || token.StartsWith('"') ? token : $"\"{token}\"";
 }

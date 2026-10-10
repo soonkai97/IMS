@@ -159,4 +159,20 @@ public class ApprovalPolicyTests
 
         Assert.False(ApprovalPolicy.IsLarge(rules, DocumentType.Receipt, 1m, 10m));
     }
+
+    // ----- MayReview: the reviewer a document is routed to (PRD 3.1) -----
+    [Theory]
+    [InlineData(Roles.Admin, false, true)]
+    [InlineData(Roles.Admin, true, true)]
+    [InlineData(Roles.Owner, true, true)]
+    [InlineData(Roles.Owner, false, false)]   // the Owner reviews only large documents (EA-02)
+    [InlineData(Roles.Supervisor, false, true)]
+    [InlineData(Roles.Supervisor, true, false)] // an Owner-level document is not the supervisor's (PS-07)
+    [InlineData(Roles.WarehouseStaff, false, false)]
+    [InlineData(Roles.Clerk, true, false)]
+    [InlineData("Nobody", false, false)]
+    public void MayReview_RoutesTheDocumentToOneReviewerRole(string role, bool isLarge, bool expected)
+    {
+        Assert.Equal(expected, ApprovalPolicy.MayReview(role, isLarge));
+    }
 }

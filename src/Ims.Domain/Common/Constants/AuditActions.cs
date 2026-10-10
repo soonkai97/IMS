@@ -31,4 +31,12 @@ public static class AuditActions
 
     public const string ImportProducts = "import.products";
     public const string ImportOpeningStock = "import.opening-stock";
+
+    /// <summary>Every action name above, for the audit log filter dropdown.</summary>
+    public static readonly IReadOnlyList<string> Known =
+    [
+        RowCreated, RowUpdated, RowDeleted, LoginSuccess, LoginFailed, LoginLocked, LoginLockout, Logout, UserCreated, UserUpdated, PasswordChanged,
+        SettingsUpdated, DocumentCreated, DocumentSubmitted, DocumentApproved, DocumentRejected, DocumentCancelled, DocumentPosted, DocumentReversed,
+        AttachmentUploaded, AttachmentDeleted, ImportProducts, ImportOpeningStock
+    ];
 }

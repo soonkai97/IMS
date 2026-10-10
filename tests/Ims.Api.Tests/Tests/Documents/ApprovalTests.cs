@@ -96,8 +96,10 @@ public class ApprovalTests(ApiFixture fixture)
     public async Task The_owner_approves_a_large_issue_and_the_admin_then_posts_it()
     {
         var (s, product) = await ExpensiveStockAsync();
+        await using var _ = await ApprovalRuleScope.AddAsync(s.Admin, DocumentType.Issue, 6000m, null, Roles.Owner); // 60 x 100 is worth exactly 6000
         var submitted = await SubmitBigIssueAsync(s, product);
         Assert.True(submitted.RequiresApproval);
+        Assert.True(submitted.IsLarge);
 
         var approved = (await s.Owner.Documents.ApproveAsync(submitted.Id)).Data<DocumentDto>();
         var posted = (await s.Admin.Documents.PostAsync(submitted.Id)).Data<DocumentDto>();
@@ -187,7 +189,7 @@ public class ApprovalTests(ApiFixture fixture)
         var submitted = await SubmitBigIssueAsync(s, product);
 
         (await s.Staff.Documents.PostAsync(submitted.Id)).ShouldBeProblem(HttpStatusCode.Forbidden);
-        (await s.Owner.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();
+        (await s.Supervisor.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();
         (await s.Staff.Documents.PostAsync(submitted.Id)).ShouldBeProblem(HttpStatusCode.Forbidden);
 
         Assert.Equal(DocumentStatus.Approved, (await s.GetAsync(submitted.Id)).Status);
@@ -213,7 +215,7 @@ public class ApprovalTests(ApiFixture fixture)
         var product = await s.NewProductAsync();
         var submitted = await s.SubmitAsync(s.Clerk, await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 1, 1m)));
 
-        var response = await s.Owner.Documents.ApproveAsync(submitted.Id);
+        var response = await s.Supervisor.Documents.ApproveAsync(submitted.Id);
 
         Assert.Contains("does not need approval", response.ShouldBeProblem(HttpStatusCode.BadRequest).Detail);
     }
@@ -225,8 +227,8 @@ public class ApprovalTests(ApiFixture fixture)
         var product = await s.NewProductAsync();
         var draft = await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 1, 1m));
 
-        (await s.Owner.Documents.ApproveAsync(draft.Id)).ShouldBeProblem(HttpStatusCode.BadRequest);
-        (await s.Owner.Documents.RejectAsync(draft.Id, "no")).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await s.Supervisor.Documents.ApproveAsync(draft.Id)).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await s.Supervisor.Documents.RejectAsync(draft.Id, "no longer needed")).ShouldBeProblem(HttpStatusCode.BadRequest);
     }
 
     // ---------- rejection ----------

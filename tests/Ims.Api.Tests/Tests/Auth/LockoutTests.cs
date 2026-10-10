@@ -27,7 +27,15 @@ public class LockoutTests(ApiFixture fixture)
 
         var whileLocked = await client.Auth.LoginAsync(account.Username, account.Password);
         var problem = whileLocked.ShouldBeProblem(HttpStatusCode.Unauthorized);
-        Assert.Contains("locked", problem.Detail, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(Messages.AccountLockedFor(Limits.LockoutMinutes), problem.Detail); // UX E7, only for someone who knows the password
+        var body = whileLocked.Json().RootElement;
+        Assert.Equal("account_locked", body.GetProperty("code").GetString());
+        Assert.Equal(Limits.LockoutMinutes, body.GetProperty("retryAfterMinutes").GetInt32());
+
+        // Someone guessing gets the generic sentence and no code, so the lock does not reveal that the account exists.
+        var guess = await client.Auth.LoginAsync(account.Username, "still-wrong");
+        Assert.Equal(GenericFailure, guess.ShouldBeProblem(HttpStatusCode.Unauthorized).Detail);
+        Assert.False(guess.Json().RootElement.TryGetProperty("code", out _));
     }
 
     [Fact]

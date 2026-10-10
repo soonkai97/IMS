@@ -31,10 +31,27 @@ public class ApiExceptionHandler(ILogger<ApiExceptionHandler> log, IProblemDetai
         var pd = ProblemResponses.Create(ctx, outcome.Status, outcome.Title, outcome.Detail);
         switch (ex)
         {
+            case ReversalBlockedException rbe:
+                pd.Extensions[ProblemExtensions.Code] = ProblemCodes.ReversalBlocked;
+                pd.Extensions[ProblemExtensions.Shortages] = rbe.Shortages;
+                break;
             case InsufficientStockException ise:
+                pd.Extensions[ProblemExtensions.Code] = ProblemCodes.InsufficientStock;
                 pd.Extensions[ProblemExtensions.ProductId] = ise.ProductId;
                 pd.Extensions[ProblemExtensions.Available] = ise.Available;
                 pd.Extensions[ProblemExtensions.Requested] = ise.Requested;
+                break;
+            case StaleDocumentException stale:
+                pd.Extensions[ProblemExtensions.Code] = ProblemCodes.DocumentChanged;
+                if (stale.ChangedByName is not null) pd.Extensions[ProblemExtensions.ChangedBy] = stale.ChangedByName;
+                if (stale.ChangedAt is { } at) pd.Extensions[ProblemExtensions.ChangedAt] = at;
+                break;
+            case PreconditionRequiredException:
+                pd.Extensions[ProblemExtensions.Code] = ProblemCodes.IfMatchRequired;
+                break;
+            case AccountLockedException locked:
+                pd.Extensions[ProblemExtensions.Code] = ProblemCodes.AccountLocked;
+                pd.Extensions[ProblemExtensions.RetryAfterMinutes] = locked.RetryAfterMinutes;
                 break;
             case ValidationException { Errors.Count: > 0 } ve:
                 pd.Extensions[ProblemExtensions.Errors] = ve.Errors;
@@ -51,7 +68,9 @@ public class ApiExceptionHandler(ILogger<ApiExceptionHandler> log, IProblemDetai
             case ForbiddenException: return Expected(StatusCodes.Status403Forbidden, Messages.ForbiddenTitle, ex);
             case NotFoundException: return Expected(StatusCodes.Status404NotFound, Messages.NotFoundTitle, ex);
             case ConflictException: return Expected(StatusCodes.Status409Conflict, Messages.ConflictTitle, ex);
+            case PreconditionRequiredException: return Expected(StatusCodes.Status428PreconditionRequired, Messages.PreconditionRequiredTitle, ex);
             case InsufficientStockException: return Expected(StatusCodes.Status409Conflict, Messages.InsufficientStockTitle, ex);
+            case ReversalBlockedException: return Expected(StatusCodes.Status409Conflict, Messages.ReversalBlockedTitle, ex);
             case ConcurrencyException:
                 // The message chain of a concurrency exception carries internals; the client gets the plain sentence.
                 return new Outcome(StatusCodes.Status409Conflict, Messages.ConflictTitle, Messages.ConcurrencyConflict, true);
