@@ -1,0 +1,31 @@
+<app-search-input
+  [(value)]="$term"
+  [label]="'picker.label' | t"
+  [placeholder]="'picker.placeholder' | t"
+  (submitted)="onSubmitted($event)"
+/>
+
+@if ($isSearching()) {
+  <app-skeleton [count]="3" />
+} @else if ($results().length > 0) {
+  <ul class="product-picker-list">
+    @for (item of $results(); track item.product.id) {
+      <li>
+        <button type="button" class="product-picker-item" (click)="onPick(item)">
+          <span class="product-picker-sku">{{ item.product.sku }}</span>
+          <span class="product-picker-name">{{ item.product.name }}</span>
+          @if ($showAvailable()) {
+            <span class="product-picker-available" [class.--empty]="item.available === 0">
+              {{
+                'picker.available'
+                  | t: { qty: (item.available | appQty), uom: item.product.baseUomCode }
+              }}
+            </span>
+          }
+        </button>
+      </li>
+    }
+  </ul>
+} @else if ($hasSearched()) {
+  <p class="product-picker-empty" role="status">{{ 'picker.noMatch' | t: { query: $term() } }}</p>
+}

@@ -1,0 +1,18 @@
+@if ($backLink(); as backLink) {
+  <a class="ui-page-header-back" [routerLink]="backLink">
+    <app-icon name="arrow-left" />
+    <span>{{ $backLabel() }}</span>
+  </a>
+}
+<div class="ui-page-header-row">
+  <div class="ui-page-header-title">
+    <h1 class="ui-page-header-heading">{{ $heading() }}</h1>
+    <ng-content select="[chips]" />
+  </div>
+  <div class="ui-page-header-actions">
+    <ng-content select="[actions]" />
+  </div>
+</div>
+@if ($subtitle(); as subtitle) {
+  <p class="ui-page-header-subtitle">{{ subtitle }}</p>
+}

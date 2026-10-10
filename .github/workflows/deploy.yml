@@ -1,0 +1,56 @@
+name: Deploy
+
+# Manual, environment-gated deployment of an image built by the Release workflow.
+#
+# STATUS: skeleton. The hosting model is an open question in the PRD (14.3: customer-owned servers, our cloud, or hybrid),
+# so the final step is deliberately a clearly-marked placeholder. Everything around it (approval gate, image selection,
+# smoke check, concurrency) is ready; fill in the deploy command for the chosen target.
+#
+# To require a human approval: GitHub -> Settings -> Environments -> staging / production -> "Required reviewers".
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [staging, production]
+        default: staging
+      image_tag:
+        description: Image tag to deploy (for example sha-1a2b3c4 or v1.0.0)
+        required: true
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 15
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/ims-api:${{ inputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Verify the image exists
+        # Secrets and context values go through env, never interpolated into the script text.
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USER: ${{ github.actor }}
+        run: |
+          echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
+          docker manifest inspect "$IMAGE" > /dev/null
+
+      - name: Deploy (PLACEHOLDER - choose a target)
+        run: |
+          echo "Would deploy $IMAGE to ${{ inputs.environment }}."
+          echo "Add the target here, for example: ssh + docker compose pull/up, Azure Container Apps, or Kubernetes."
+          echo "Required environment secrets/variables (set in the GitHub environment, never in the repo):"
+          echo "  IMS_DB_PASSWORD, IMS_JWT_KEY, IMS_ADMIN_PASSWORD, IMS_CORS_ORIGINS"
+          exit 1  # fail loudly until a real deploy command replaces this step

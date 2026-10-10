@@ -1,0 +1,21 @@
+@use 'libs' as *;
+
+:host {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  align-items: center;
+  justify-content: space-between;
+  padding: space(1) 0;
+  color: color('text-muted');
+}
+
+.ui-pager-nav {
+  display: flex;
+  gap: space(1);
+  align-items: center;
+}
+
+.ui-pager-page {
+  font-size: font-size(2);
+}

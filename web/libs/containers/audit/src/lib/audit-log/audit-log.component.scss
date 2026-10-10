@@ -1,0 +1,28 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.audit-log-page-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: space(1) space(2);
+  margin-bottom: space(2);
+
+  @include media-tablet {
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  }
+}
+
+.audit-log-page-json {
+  max-height: 14rem;
+  margin: 0;
+  padding: space(1);
+  overflow: auto;
+  font-family: font-family('mono');
+  font-size: font-size(1);
+  white-space: pre-wrap;
+  background: color('surface-2');
+  border-radius: border-radius('sm');
+}

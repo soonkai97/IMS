@@ -1,0 +1,66 @@
+name: Release (container image)
+
+# Builds the API image and publishes it to GitHub Container Registry, but ONLY for a commit on main whose CI run succeeded.
+# (The workflow_run trigger waits for CI; a red build never produces an image.) Uses the built-in GITHUB_TOKEN: no stored secrets.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit SHA on main to release (its CI run must have passed)
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/ims-api
+
+jobs:
+  image:
+    # Automatic runs need a successful CI conclusion; a manual run is allowed for an explicit commit.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Build exactly the commit CI validated, not whatever main moved to since.
+          ref: ${{ github.event.workflow_run.head_sha || inputs.ref }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=sha,format=short
+            type=raw,value=latest,enable=${{ github.event_name == 'workflow_run' }}
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Supply-chain evidence attached to the image.
+          provenance: true
+          sbom: true

@@ -1,0 +1,25 @@
+<app-page-header [heading]="'approvals.title' | t" />
+
+<app-tabs
+  [label]="'approvals.title' | t"
+  [tabs]="$tabs()"
+  [active]="$tab()"
+  (activeChange)="onTabChange($event)"
+/>
+
+<app-table
+  [columns]="$columns()"
+  [rows]="$rows()"
+  [caption]="'approvals.title' | t"
+  [loading]="$isLoading()"
+  [failed]="$failed()"
+  [rowLink]="rowLink"
+  (retried)="onRetry()"
+>
+  <ng-template appCell="qty" let-row>{{ row.document.totalQty | appQty }}</ng-template>
+  <app-empty-state
+    empty
+    icon="check-double"
+    [message]="($isWaitingTab() ? 'approvals.emptyWaiting' : 'approvals.emptyMine') | t"
+  />
+</app-table>

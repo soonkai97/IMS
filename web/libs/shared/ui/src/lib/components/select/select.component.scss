@@ -1,0 +1,23 @@
+@use 'libs' as *;
+
+:host {
+  position: relative;
+  display: block;
+}
+
+.ui-select-control {
+  @include control-base;
+
+  padding-right: height('touch');
+  appearance: none;
+  cursor: pointer;
+}
+
+.ui-select-arrow {
+  position: absolute;
+  top: 50%;
+  right: space(1);
+  color: color('text-muted');
+  pointer-events: none;
+  transform: translateY(-50%);
+}

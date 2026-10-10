@@ -1,0 +1,15 @@
+<label class="ui-form-field-label" [attr.for]="inputId">
+  {{ $label() }}
+  @if ($required()) {
+    <span class="ui-form-field-required">({{ $text().required }})</span>
+  }
+</label>
+<ng-content />
+@if ($hint(); as hint) {
+  <p class="ui-form-field-hint" [id]="hintId">{{ hint }}</p>
+}
+<div aria-live="polite">
+  @if ($errorText(); as errorText) {
+    <p class="ui-form-field-error" [id]="errorId">{{ errorText }}</p>
+  }
+</div>

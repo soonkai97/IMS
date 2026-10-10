@@ -1,0 +1,25 @@
+{
+  "name": "core-theme",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/core/theme/src",
+  "prefix": "app",
+  "tags": ["scope:core"],
+  "implicitDependencies": ["shared-styles", "shared-assets"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/core/theme"],
+      "options": {
+        "jestConfig": "libs/core/theme/jest.config.ts",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["libs/core/theme/src/**/*.ts", "libs/core/theme/src/**/*.html"]
+      }
+    }
+  }
+}

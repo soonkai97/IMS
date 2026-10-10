@@ -1,0 +1,23 @@
+@use 'sass:map';
+
+$space: (
+  0: 0.25rem,
+  1: 0.5rem,
+  2: 1rem,
+  3: 1.5rem,
+  4: 2rem,
+  5: 2.5rem,
+  6: 3rem,
+  7: 3.5rem,
+  8: 4rem,
+  9: 6rem
+);
+
+/// 8px grid, base unit 0.5rem. space(2) = 1rem.
+@function space($step) {
+  @if not map.has-key($space, $step) {
+    @error 'Unknown space step "#{$step}".';
+  }
+
+  @return map.get($space, $step);
+}

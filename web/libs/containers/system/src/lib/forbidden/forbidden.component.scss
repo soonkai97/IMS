@@ -1,0 +1,22 @@
+@use 'libs' as *;
+
+.sr-only {
+  @include visually-hidden;
+}
+
+.forbidden-page-body {
+  max-width: width('form-max');
+  color: color('text-muted');
+}
+
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: height('touch');
+  padding: 0 space(2);
+  font-weight: font-weight('medium');
+  color: color('on-primary');
+  text-decoration: none;
+  background: color('primary');
+  border-radius: border-radius('md');
+}

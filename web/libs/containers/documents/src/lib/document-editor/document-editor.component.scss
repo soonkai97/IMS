@@ -1,0 +1,125 @@
+@use 'libs' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.document-editor-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: space(0);
+}
+
+.document-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  max-width: width('form-max');
+}
+
+.document-editor-header-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: space(2);
+
+  @include media-tablet {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.document-editor-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: space(2);
+  margin: 0;
+
+  dd {
+    margin: 0;
+    font-weight: font-weight('medium');
+  }
+
+  dt {
+    font-size: font-size(1);
+    color: color('text-muted');
+  }
+}
+
+.document-editor-lines {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+}
+
+.document-editor-lines-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.document-editor-readonly-lines,
+.document-editor-history {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.document-editor-readonly-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  justify-content: space-between;
+  padding: space(1) space(2);
+  background: color('surface');
+  border: border-width('thin') solid color('border');
+  border-radius: border-radius('md');
+}
+
+.document-editor-history > li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  padding: space(1) space(2);
+  background: color('surface');
+  border-left: border-width('focus') solid color('border-strong');
+  border-radius: border-radius('sm');
+}
+
+.document-editor-muted {
+  font-size: font-size(2);
+  color: color('text-muted');
+}
+
+.document-editor-error {
+  font-size: font-size(2);
+  color: color('danger');
+}
+
+// Primary actions stay in reach: sticky above the phone tab bar, at the content bottom elsewhere.
+.document-editor-bar {
+  position: sticky;
+  bottom: calc(#{height('tabbar')} + #{space(1)});
+  z-index: z-index('sticky');
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  padding: space(1) space(2);
+  background: color('surface');
+  border: border-width('thin') solid color('border');
+  border-radius: border-radius('md');
+  box-shadow: shadow(1);
+
+  @include media-tablet {
+    bottom: space(1);
+  }
+}
+
+.document-editor-totals {
+  font-weight: font-weight('medium');
+}

@@ -1,0 +1,22 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.ui-checkbox-row {
+  display: flex;
+  gap: space(1);
+  align-items: center;
+  min-height: height('touch-min');
+  cursor: pointer;
+}
+
+.ui-checkbox-control {
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  margin: 0;
+  accent-color: color('primary');
+  cursor: pointer;
+}

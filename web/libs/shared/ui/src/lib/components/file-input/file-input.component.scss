@@ -1,0 +1,31 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+
+  &.--dragging {
+    --zone-border: #{color('primary')};
+    --zone-bg: #{color('primary-soft')};
+  }
+}
+
+.ui-file-input-zone {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  align-items: center;
+  justify-content: center;
+  padding: space(3) space(2);
+  color: color('text-muted');
+  background: var(--zone-bg, #{color('surface')});
+  border: border-width('thick') dashed var(--zone-border, #{color('border-strong')});
+  border-radius: border-radius('md');
+}
+
+.ui-file-input-hint {
+  font-size: font-size(2);
+}
+
+.sr-only {
+  @include visually-hidden;
+}

@@ -1,0 +1,80 @@
+@use 'libs' as *;
+
+:host {
+  --chip-bg: #{color('surface-3')};
+  --chip-fg: #{color('text')};
+  --chip-border: transparent;
+  --chip-decoration: none;
+
+  display: inline-flex;
+  gap: space(0);
+  align-items: center;
+  max-width: 100%;
+  padding: 2px space(1);
+  font-size: font-size(1);
+  font-weight: font-weight('medium');
+  line-height: 1.3;
+  color: var(--chip-fg);
+  white-space: nowrap;
+  background: var(--chip-bg);
+  border: border-width('thin') solid var(--chip-border);
+  border-radius: border-radius('pill');
+
+  &.--draft {
+    --chip-bg: #{color('status-draft')};
+    --chip-fg: #{color('on-status-draft')};
+  }
+
+  &.--submitted {
+    --chip-bg: #{color('status-submitted')};
+    --chip-fg: #{color('on-status-submitted')};
+  }
+
+  &.--approved {
+    --chip-bg: #{color('status-approved')};
+    --chip-fg: #{color('on-status-approved')};
+  }
+
+  &.--posted {
+    --chip-bg: #{color('status-posted')};
+    --chip-fg: #{color('on-status-posted')};
+  }
+
+  &.--reversed {
+    --chip-bg: #{color('status-reversed')};
+    --chip-fg: #{color('on-status-reversed')};
+  }
+
+  &.--cancelled {
+    --chip-bg: #{color('status-cancelled')};
+    --chip-fg: #{color('on-status-cancelled')};
+    --chip-decoration: line-through;
+  }
+
+  &.--flag-warning {
+    --chip-bg: transparent;
+    --chip-fg: #{color('on-warning-soft')};
+    --chip-border: #{color('warning-border')};
+  }
+
+  &.--flag-danger {
+    --chip-bg: transparent;
+    --chip-fg: #{color('danger')};
+    --chip-border: #{color('danger')};
+  }
+
+  &.--flag-info {
+    --chip-bg: transparent;
+    --chip-fg: #{color('primary')};
+    --chip-border: #{color('primary')};
+  }
+}
+
+.ui-status-chip-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.ui-status-chip-label {
+  text-decoration: var(--chip-decoration);
+}

@@ -1,0 +1,52 @@
+@use 'libs' as *;
+
+:host {
+  --toast-bg: #{color('surface')};
+  --toast-fg: #{color('text')};
+  --toast-accent: #{color('primary')};
+
+  display: flex;
+  gap: space(1);
+  align-items: center;
+  padding: space(1) space(1) space(1) space(2);
+  color: var(--toast-fg);
+  background: var(--toast-bg);
+  border: border-width('thin') solid color('border');
+  border-left: border-width('focus') solid var(--toast-accent);
+  border-radius: border-radius('md');
+  box-shadow: shadow(2);
+
+  &.--success {
+    --toast-accent: #{color('on-success-soft')};
+  }
+
+  &.--error {
+    --toast-bg: #{color('danger-soft')};
+    --toast-fg: #{color('on-danger-soft')};
+    --toast-accent: #{color('danger')};
+  }
+}
+
+.ui-toast-icon {
+  color: var(--toast-accent);
+}
+
+.ui-toast-message {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ui-toast-action,
+.ui-toast-close {
+  @include reset-button;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: height('touch-min');
+  min-height: height('touch-min');
+  font-weight: font-weight('bold');
+  color: inherit;
+  text-decoration: underline;
+}

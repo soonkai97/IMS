@@ -1,0 +1,82 @@
+<app-page-header [heading]="'partners.title' | t">
+  <div actions>
+    @if ($canManage()) {
+      <app-button variant="primary" (clicked)="onAdd()">
+        <app-icon name="plus" />
+        {{ 'partner.new' | t }}
+      </app-button>
+    }
+  </div>
+</app-page-header>
+
+<div class="partners-page-filters">
+  <app-search-input
+    [(value)]="$searchInput"
+    [label]="'partners.searchLabel' | t"
+    [placeholder]="'partners.searchPlaceholder' | t"
+  />
+  <app-form-field [label]="'partner.type' | t">
+    <app-select
+      [formControl]="typeFilter"
+      [options]="$typeOptions()"
+      [placeholder]="'filter.all' | t"
+    />
+  </app-form-field>
+  <app-checkbox [formControl]="inactiveFilter">{{ 'filter.showInactive' | t }}</app-checkbox>
+</div>
+
+<app-table
+  [columns]="$columns()"
+  [rows]="$page()?.items ?? []"
+  [caption]="'partners.title' | t"
+  [loading]="$isLoading()"
+  [failed]="$failed()"
+  (retried)="onRetry()"
+>
+  <ng-template appCell="status" let-row>
+    <app-status-chip
+      [label]="(row.isActive ? 'product.active' : 'product.inactive') | t"
+      [status]="row.isActive ? 'posted' : 'cancelled'"
+    />
+  </ng-template>
+  <ng-template appCell="actions" let-row>
+    <app-button variant="ghost" (clicked)="onEdit(row)">
+      <app-icon name="pencil" />
+      {{ 'common.edit' | t }}
+    </app-button>
+  </ng-template>
+  <app-empty-state empty icon="partners" [message]="'partners.empty' | t" />
+</app-table>
+
+@if ($page(); as page) {
+  <app-pager
+    [page]="page.page"
+    [pageSize]="page.pageSize"
+    [total]="page.total"
+    (pageChange)="onPageChange($event)"
+  />
+}
+
+<app-dialog [(open)]="$dialogOpen" [heading]="$dialogHeading()">
+  <form class="partners-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
+    @for (message of $serverErrors(); track message) {
+      <app-banner kind="danger">{{ message }}</app-banner>
+    }
+    <app-form-field [label]="'partner.type' | t" [required]="true">
+      <app-select formControlName="type" [options]="$typeOptions()" />
+    </app-form-field>
+    <app-form-field [label]="'partner.name' | t" [required]="true" [control]="form.controls.name">
+      <app-input formControlName="name" [maxLength]="256" />
+    </app-form-field>
+    <app-form-field [label]="'partner.contact' | t" [control]="form.controls.contact">
+      <app-input formControlName="contact" [maxLength]="256" />
+    </app-form-field>
+    <app-checkbox formControlName="isActive">{{ 'product.active' | t }}</app-checkbox>
+  </form>
+  <div dialogActions>
+    <app-button (clicked)="$dialogOpen.set(false)">{{ 'common.cancel' | t }}</app-button>
+    <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
+      'common.save' | t
+    }}</app-button>
+  </div>
+</app-dialog>

@@ -1,0 +1,79 @@
+<app-page-header [heading]="'stock.title' | t">
+  <div actions>
+    @if ($canExport()) {
+      <app-button [loading]="$isExporting()" (clicked)="onExport()">
+        <app-icon name="download" />
+        {{ 'common.exportExcel' | t }}
+      </app-button>
+    }
+  </div>
+</app-page-header>
+
+<div class="stock-list-page-filters">
+  <app-search-input
+    [(value)]="$searchInput"
+    [label]="'stock.searchLabel' | t"
+    [placeholder]="'stock.searchPlaceholder' | t"
+  />
+  @if ($showWarehouseFilter()) {
+    <app-form-field [label]="'stock.warehouse' | t">
+      <app-select
+        [formControl]="warehouseControl"
+        [options]="$warehouseOptions()"
+        [placeholder]="'filter.all' | t"
+      />
+    </app-form-field>
+  }
+  <app-form-field [label]="'product.category' | t">
+    <app-select
+      [formControl]="categoryControl"
+      [options]="$categoryOptions()"
+      [placeholder]="'filter.all' | t"
+    />
+  </app-form-field>
+  <app-checkbox [formControl]="lowOnlyControl">{{ 'stock.lowOnly' | t }}</app-checkbox>
+</div>
+
+<app-table
+  [columns]="$columns()"
+  [rows]="$page()?.items ?? []"
+  [caption]="'stock.title' | t"
+  [loading]="$isLoading()"
+  [failed]="$failed()"
+  [rowLink]="rowLink"
+  [sort]="$sort()"
+  (sortChange)="onSortChange($event)"
+  (retried)="onRetry()"
+>
+  <ng-template appCell="onHand" let-row>
+    <strong class="stock-list-page-on-hand">{{ row.qtyOnHand | appQty }} {{ row.uomCode }}</strong>
+  </ng-template>
+  <ng-template appCell="safety" let-row>{{ row.safetyStock | appQty }}</ng-template>
+  <ng-template appCell="value" let-row>{{ row.value | appMoney }}</ng-template>
+  <ng-template appCell="status" let-row>
+    @if (row.isLow) {
+      <app-status-chip flag="warning" [label]="'stock.low' | t" />
+    }
+  </ng-template>
+  <app-empty-state
+    empty
+    icon="stock"
+    [message]="($hasFilters() ? 'stock.noMatch' : 'stock.empty') | t"
+  >
+    @if (!$hasFilters() && $canCreate()) {
+      <a class="ui-link-button --primary" routerLink="/receipts/new">{{ 'receipts.new' | t }}</a>
+    }
+    @if ($hasFilters()) {
+      <app-button (clicked)="onClearFilters()">{{ 'filter.clear' | t }}</app-button>
+    }
+  </app-empty-state>
+</app-table>
+
+@if ($page(); as page) {
+  <app-pager
+    [page]="page.page"
+    [pageSize]="page.pageSize"
+    [total]="page.total"
+    (pageChange)="onPageChange($event)"
+  />
+}

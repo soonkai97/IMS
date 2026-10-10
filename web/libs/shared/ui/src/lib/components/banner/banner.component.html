@@ -1,0 +1,10 @@
+<app-icon class="ui-banner-icon" [name]="$icon()" />
+<div class="ui-banner-content">
+  @if ($heading(); as heading) {
+    <p class="ui-banner-heading">{{ heading }}</p>
+  }
+  <ng-content />
+</div>
+<div class="ui-banner-actions">
+  <ng-content select="[bannerActions]" />
+</div>

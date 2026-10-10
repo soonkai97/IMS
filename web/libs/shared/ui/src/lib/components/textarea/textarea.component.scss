@@ -1,0 +1,11 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.ui-textarea-control {
+  @include control-base;
+
+  resize: vertical;
+}

@@ -1,0 +1,103 @@
+<a class="shell-skip-link" href="#main-content">{{ 'shell.skipToContent' | t }}</a>
+
+@if ($isLoading()) {
+  <div class="shell-progress" aria-hidden="true"></div>
+}
+
+<header class="shell-bar">
+  <a class="shell-brand" routerLink="/">
+    <app-icon name="stock" />
+    <span class="shell-brand-name">{{ 'app.name' | t }}</span>
+  </a>
+  <app-button variant="ghost" (clicked)="onOpenAccount()" [ariaLabel]="'shell.account' | t">
+    <app-icon name="user" />
+    <span class="shell-user-name">{{ $displayName() }}</span>
+  </app-button>
+</header>
+
+<nav class="shell-nav" [attr.aria-label]="'shell.mainNavigation' | t">
+  @for (navGroup of $groups(); track navGroup.group.id) {
+    <section class="shell-nav-group">
+      <h2 class="shell-nav-group-title">{{ navGroup.group.labelKey | t }}</h2>
+      <ul class="shell-nav-list">
+        @for (entry of navGroup.entries; track entry.id) {
+          <li>
+            <a
+              class="shell-nav-link"
+              [routerLink]="entry.route"
+              routerLinkActive="--active"
+              [routerLinkActiveOptions]="{ exact: entry.route === '/' }"
+              [attr.title]="entry.labelKey | t"
+            >
+              <app-icon [name]="entry.icon" />
+              <span class="shell-nav-label">{{ entry.labelKey | t }}</span>
+              @if (entry.badge > 0) {
+                <span class="shell-badge">{{ entry.badge }}</span>
+              }
+            </a>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</nav>
+
+<main class="shell-main" id="main-content" tabindex="-1">
+  <router-outlet />
+</main>
+
+<nav class="shell-tabbar" [attr.aria-label]="'shell.mainNavigation' | t">
+  @for (entry of $phoneTabs(); track entry.id) {
+    <a
+      class="shell-tab"
+      [routerLink]="entry.route"
+      routerLinkActive="--active"
+      [routerLinkActiveOptions]="{ exact: entry.route === '/' }"
+    >
+      <app-icon [name]="entry.icon" />
+      <span class="shell-tab-label">{{ entry.labelKey | t }}</span>
+      @if (entry.badge > 0) {
+        <span class="shell-badge">{{ entry.badge }}</span>
+      }
+    </a>
+  }
+  @if ($moreEntries().length > 0) {
+    <button type="button" class="shell-tab" (click)="onOpenMore()">
+      <app-icon name="menu" />
+      <span class="shell-tab-label">{{ 'nav.more' | t }}</span>
+    </button>
+  }
+</nav>
+
+<app-dialog [(open)]="$moreOpen" [heading]="'nav.more' | t">
+  <ul class="shell-more-list">
+    @for (entry of $moreEntries(); track entry.id) {
+      <li>
+        <a class="shell-more-link" [routerLink]="entry.route" (click)="onCloseMore()">
+          <app-icon [name]="entry.icon" />
+          <span>{{ entry.labelKey | t }}</span>
+          @if (entry.badge > 0) {
+            <span class="shell-badge">{{ entry.badge }}</span>
+          }
+        </a>
+      </li>
+    }
+  </ul>
+</app-dialog>
+
+<app-dialog [(open)]="$accountOpen" [heading]="'shell.account' | t">
+  <p class="shell-account-name">{{ $displayName() }}</p>
+  <p class="shell-account-role">{{ $roleLabel() }}</p>
+  <app-language-select />
+  <app-radio-group
+    [legend]="'shell.theme' | t"
+    [options]="$themeOptions()"
+    [formControl]="themeControl"
+  />
+  <div dialogActions>
+    <app-button variant="danger" (clicked)="onSignOut()">
+      <app-icon name="logout" />
+      {{ 'shell.signOut' | t }}
+    </app-button>
+  </div>
+</app-dialog>

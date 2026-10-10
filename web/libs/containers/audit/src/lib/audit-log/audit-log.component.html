@@ -1,0 +1,51 @@
+<app-page-header [heading]="'audit.title' | t" />
+
+<div class="audit-log-page-filters">
+  <app-form-field [label]="'audit.entity' | t">
+    <app-input [formControl]="entityControl" />
+  </app-form-field>
+  <app-form-field [label]="'audit.actor' | t">
+    <app-input [formControl]="actorControl" />
+  </app-form-field>
+  <app-form-field [label]="'filter.from' | t">
+    <app-input type="date" [formControl]="fromControl" />
+  </app-form-field>
+  <app-form-field [label]="'filter.to' | t">
+    <app-input type="date" [formControl]="toControl" />
+  </app-form-field>
+</div>
+
+<app-table
+  [columns]="$columns()"
+  [rows]="$page()?.items ?? []"
+  [caption]="'audit.title' | t"
+  [loading]="$isLoading()"
+  [failed]="$failed()"
+  (retried)="onRetry()"
+>
+  <ng-template appCell="at" let-row>{{ row.at | appDate }}</ng-template>
+  <ng-template appCell="details" let-row>
+    <app-button variant="ghost" (clicked)="onShowDetails(row)">{{ 'audit.show' | t }}</app-button>
+  </ng-template>
+  <app-empty-state empty icon="audit" [message]="'audit.empty' | t" />
+</app-table>
+
+@if ($page(); as page) {
+  <app-pager
+    [page]="page.page"
+    [pageSize]="page.pageSize"
+    [total]="page.total"
+    (pageChange)="onPageChange($event)"
+  />
+}
+
+<app-dialog [(open)]="$detailOpen" [heading]="'audit.details' | t">
+  <section>
+    <h3>{{ 'audit.before' | t }}</h3>
+    <pre class="audit-log-page-json">{{ $before() || '-' }}</pre>
+  </section>
+  <section>
+    <h3>{{ 'audit.after' | t }}</h3>
+    <pre class="audit-log-page-json">{{ $after() || '-' }}</pre>
+  </section>
+</app-dialog>

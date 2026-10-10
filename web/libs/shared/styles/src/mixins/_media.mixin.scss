@@ -1,0 +1,29 @@
+@use '../variables/breakpoint.var' as bp;
+
+/// Phones only (< 600px).
+@mixin media-phone {
+  @media (max-width: #{bp.$breakpoint-tablet - 1px}) {
+    @content;
+  }
+}
+
+/// Tablet and wider (>= 600px).
+@mixin media-tablet {
+  @media (min-width: #{bp.$breakpoint-tablet}) {
+    @content;
+  }
+}
+
+/// Below desktop (< 1024px): phone and tablet.
+@mixin media-below-desktop {
+  @media (max-width: #{bp.$breakpoint-desktop - 1px}) {
+    @content;
+  }
+}
+
+/// Desktop and wider (>= 1024px).
+@mixin media-desktop {
+  @media (min-width: #{bp.$breakpoint-desktop}) {
+    @content;
+  }
+}

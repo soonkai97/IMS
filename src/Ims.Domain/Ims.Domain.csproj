@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Domain tests exercise the internal posting hooks (for example StockDocumentLine.BookIssueCost). -->
+    <InternalsVisibleTo Include="Ims.Domain.Tests" />
+  </ItemGroup>
+
+</Project>

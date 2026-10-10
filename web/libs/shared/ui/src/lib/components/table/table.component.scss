@@ -1,0 +1,176 @@
+@use 'libs' as *;
+
+:host {
+  position: relative;
+  display: block;
+
+  &.--refreshing .ui-table-grid {
+    opacity: 0.6;
+  }
+}
+
+.ui-table-progress {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: z-index('sticky');
+  height: height('progress');
+  background: linear-gradient(90deg, transparent, color('primary'), transparent);
+  background-size: 50% 100%;
+  animation: ui-table-progress 1s linear infinite;
+}
+
+.ui-table-state {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  align-items: center;
+  padding: space(6) space(2);
+  text-align: center;
+  background: color('surface');
+  border: border-width('thin') solid color('border');
+  border-radius: border-radius('md');
+}
+
+.ui-table-grid {
+  width: 100%;
+  background: color('surface');
+  border: border-width('thin') solid color('border');
+  border-radius: border-radius('md');
+}
+
+.ui-table-header {
+  padding: space(1) space(2);
+  font-size: font-size(1);
+  font-weight: font-weight('bold');
+  color: color('text-muted');
+  text-align: start;
+  text-transform: uppercase;
+  background: color('surface-2');
+
+  &.--end {
+    text-align: end;
+  }
+}
+
+.ui-table-sort {
+  @include reset-button;
+
+  display: inline-flex;
+  gap: space(0);
+  align-items: center;
+  min-height: height('touch-min');
+  font-size: inherit;
+  font-weight: inherit;
+  text-transform: inherit;
+}
+
+.ui-table-row {
+  position: relative;
+  border-top: border-width('thin') solid color('border');
+
+  &.--linked:hover {
+    background: color('surface-2');
+  }
+}
+
+.ui-table-cell {
+  min-height: height('touch');
+  padding: space(1) space(2);
+  vertical-align: middle;
+
+  &.--end {
+    text-align: end;
+  }
+
+  &.--primary {
+    font-weight: font-weight('medium');
+  }
+}
+
+.ui-table-link {
+  color: inherit;
+  text-decoration: none;
+
+  &::after {
+    position: absolute;
+    inset: 0;
+    content: '';
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+
+    outline-offset: -3px;
+  }
+}
+
+// Phones and tablets: one card per row.
+@include media-below-desktop {
+  .ui-table-grid,
+  .ui-table-grid tbody {
+    display: block;
+    background: transparent;
+    border: 0;
+  }
+
+  .ui-table-head {
+    @include visually-hidden;
+  }
+
+  .ui-table-row {
+    display: grid;
+    gap: space(0);
+    margin-bottom: space(1);
+    padding: space(1) space(2);
+    background: color('surface');
+    border: border-width('thin') solid color('border');
+    border-radius: border-radius('md');
+  }
+
+  .ui-table-cell {
+    display: flex;
+    gap: space(2);
+    justify-content: space-between;
+    padding: space(0) 0;
+    text-align: start;
+
+    &::before {
+      flex: none;
+      font-size: font-size(1);
+      color: color('text-muted');
+      content: attr(data-label);
+    }
+
+    &.--primary {
+      font-size: font-size(3);
+
+      &::before {
+        display: none;
+      }
+    }
+
+    &.--phone-hidden {
+      display: none;
+    }
+
+    &.--end {
+      text-align: start;
+    }
+  }
+}
+
+@keyframes ui-table-progress {
+  from {
+    background-position: -100% 0;
+  }
+
+  to {
+    background-position: 200% 0;
+  }
+}
+
+.sr-only {
+  @include visually-hidden;
+}

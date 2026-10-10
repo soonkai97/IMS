@@ -1,0 +1,22 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.stock-list-page-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: space(1) space(2);
+  margin-bottom: space(2);
+
+  @include media-tablet {
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    align-items: end;
+  }
+}
+
+// On-hand is the one number staff look for: biggest text on the card (docs/design/mvp-ux.md 4.6).
+.stock-list-page-on-hand {
+  font-size: font-size(4);
+}

@@ -1,0 +1,238 @@
+<app-page-header [heading]="$heading()" [backLink]="$backLink()" [backLabel]="$backLabel()">
+  <div chips class="document-editor-chips">
+    @if ($document()) {
+      <app-status-chip [status]="$statusTone()" [label]="$statusLabel()" />
+      @if ($returnedReason()) {
+        <app-status-chip flag="warning" [label]="'doc.returned' | t" />
+      }
+      @if ($awaitingApproval()) {
+        <app-status-chip flag="info" [label]="'doc.awaitingApproval' | t" />
+      }
+    }
+  </div>
+</app-page-header>
+
+@if ($isLoading()) {
+  <app-skeleton [count]="4" />
+} @else if ($loadFailed()) {
+  <app-banner kind="danger">
+    {{ 'error.generic' | t }}
+    <app-button bannerActions (clicked)="onRetryLoad()">{{ 'ui.retry' | t }}</app-button>
+  </app-banner>
+} @else {
+  @if ($returnedReason(); as reason) {
+    <app-banner kind="warning" [heading]="'doc.returnedBanner' | t">{{ reason }}</app-banner>
+  }
+  @if ($document()?.cancelReason; as reason) {
+    <app-banner kind="info" [heading]="'doc.cancelledBanner' | t">{{ reason }}</app-banner>
+  }
+  @if ($document()?.reversalReason; as reason) {
+    <app-banner kind="info" [heading]="'doc.reversedBanner' | t">{{ reason }}</app-banner>
+  }
+  @if ($stockConflict(); as conflict) {
+    <app-banner kind="danger" [heading]="'doc.stockChanged' | t">
+      {{
+        'doc.stockChangedBody'
+          | t
+            : {
+                sku: conflict.sku,
+                available: (conflict.available | appQty),
+                uom: conflict.uom,
+                requested: (conflict.requested | appQty)
+              }
+      }}
+    </app-banner>
+  }
+  @for (message of $saveGeneralErrors(); track message) {
+    <app-banner kind="danger">{{ message }}</app-banner>
+  }
+
+  @if ($editable()) {
+    <form class="document-editor-form" [formGroup]="view.header" novalidate>
+      <div class="document-editor-header-fields">
+        <app-form-field
+          [label]="'doc.warehouse' | t"
+          [required]="true"
+          [control]="view.header.controls.warehouseId"
+        >
+          <app-select
+            formControlName="warehouseId"
+            [options]="$warehouseOptions()"
+            [placeholder]="''"
+          />
+        </app-form-field>
+        <app-form-field [label]="$partnerLabelKey() | t" [control]="view.header.controls.partnerId">
+          <app-select
+            formControlName="partnerId"
+            [options]="$partnerOptions()"
+            [placeholder]="'filter.none' | t"
+          />
+        </app-form-field>
+      </div>
+      @if ($isIssue()) {
+        <app-radio-group
+          formControlName="purpose"
+          [legend]="'doc.purpose' | t"
+          [options]="$purposeOptions()"
+        />
+        @if (view.header.controls.purpose.touched && view.header.controls.purpose.invalid) {
+          <p class="document-editor-error" role="alert">{{ 'validation.required' | t }}</p>
+        }
+      }
+      <app-form-field [label]="'doc.remark' | t" [control]="view.header.controls.remark">
+        <app-textarea formControlName="remark" [rows]="2" [maxLength]="1000" />
+      </app-form-field>
+    </form>
+  } @else if ($document(); as document) {
+    <dl class="document-editor-summary">
+      <div>
+        <dt>{{ 'doc.warehouse' | t }}</dt>
+        <dd>{{ document.warehouseName }}</dd>
+      </div>
+      <div>
+        <dt>{{ $partnerLabelKey() | t }}</dt>
+        <dd>{{ document.partnerName || '-' }}</dd>
+      </div>
+      @if ($isIssue()) {
+        <div>
+          <dt>{{ 'doc.purpose' | t }}</dt>
+          <dd>{{ $purposeText() || '-' }}</dd>
+        </div>
+      }
+      <div>
+        <dt>{{ 'doc.remark' | t }}</dt>
+        <dd>{{ document.remark || '-' }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'doc.createdBy' | t }}</dt>
+        <dd>{{ document.createdBy }} · {{ document.createdAt | appDate }}</dd>
+      </div>
+    </dl>
+  }
+
+  @if ($editable()) {
+    <section class="document-editor-lines" [attr.aria-label]="'doc.lines' | t">
+      <div class="document-editor-lines-header">
+        <h2>{{ 'doc.items' | t: { count: $totals().lineCount } }}</h2>
+        <app-button [disabled]="!$canAddItem()" (clicked)="onOpenAddItem()">
+          <app-icon name="plus" />
+          {{ 'doc.addItem' | t }}
+        </app-button>
+      </div>
+      <app-document-line-editor
+        [lines]="view.lines"
+        [values]="$values()"
+        [type]="$type()"
+        [warehouseName]="$warehouseName()"
+        [allowNegativeStock]="$allowNegativeStock()"
+        (stepped)="onStep($event)"
+        (removed)="onRemoveLine($event)"
+        (setToAvailable)="onSetToAvailable($event)"
+      />
+      @if ($noLines()) {
+        <app-empty-state icon="stock" [message]="'doc.noLines' | t" />
+        @if ($showLineError()) {
+          <p class="document-editor-error" role="alert">{{ 'doc.linesRequired' | t }}</p>
+        }
+      }
+    </section>
+  } @else if ($document(); as document) {
+    <app-tabs
+      [label]="'doc.sections' | t"
+      [tabs]="$tabs()"
+      [active]="$tab()"
+      (activeChange)="onTabChange($event)"
+    />
+    @if ($isItemsTab()) {
+      <ul class="document-editor-readonly-lines">
+        @for (line of document.lines; track line.id) {
+          <li class="document-editor-readonly-line">
+            <span>
+              <strong>{{ line.sku }}</strong>
+              {{ line.productName }}
+            </span>
+            <span>
+              {{ line.qty | appQty }} {{ line.uomCode }}
+              @if (!$isIssue() && line.unitCost > 0) {
+                · {{ line.unitCost | appMoney }}
+              }
+            </span>
+          </li>
+        }
+      </ul>
+    }
+    @if ($isHistoryTab()) {
+      <ol class="document-editor-history">
+        @for (event of $history(); track $index) {
+          <li>
+            <strong>{{ event.labelKey | t }}</strong>
+            @if (event.by) {
+              <span>{{ event.by }}</span>
+            }
+            @if (event.at) {
+              <span class="document-editor-muted">{{ event.at | appDate }}</span>
+            }
+            @if (event.reason) {
+              <span class="document-editor-muted">{{
+                'doc.history.reason' | t: { reason: event.reason }
+              }}</span>
+            }
+          </li>
+        }
+      </ol>
+    }
+    @if ($isLedgerTab()) {
+      <app-table
+        [columns]="$ledgerColumns()"
+        [rows]="$ledgerRows()"
+        [caption]="'doc.tab.ledger' | t"
+        [loading]="$ledgerLoading()"
+      >
+        <ng-template appCell="qty" let-row>{{ row.qtyDelta | appQty }}</ng-template>
+        <app-empty-state empty icon="list" [message]="'ledger.empty' | t" />
+      </app-table>
+    }
+  }
+
+  <footer class="document-editor-bar">
+    @if ($editable()) {
+      <p class="document-editor-totals" aria-live="polite">
+        {{ 'doc.totals' | t: { lines: $totals().lineCount, qty: ($totals().totalQty | appQty) } }}
+        @if (!$isIssue() && $totals().totalAmount > 0) {
+          · {{ $totals().totalAmount | appMoney }}
+        }
+      </p>
+      @if ($linesBlocked()) {
+        <p class="document-editor-error" role="alert">
+          {{ 'doc.linesShort' | t: { count: $totals().shortLineCount } }}
+        </p>
+      }
+      @if ($needsOverride()) {
+        <app-status-chip flag="danger" [label]="'doc.overrideNeeded' | t" />
+      }
+    }
+    <app-document-actions
+      [allowedActions]="$allowedActions()"
+      [canPost]="$canPost()"
+      [busy]="$isBusy()"
+      [selfApprovalBlocked]="$selfApprovalBlocked()"
+      [submitDisabled]="$linesBlocked()"
+      (triggered)="onAction($event)"
+    />
+  </footer>
+}
+
+<app-dialog [(open)]="$addItemOpen" [heading]="'doc.addItem' | t">
+  <app-product-picker
+    [warehouseId]="$isIssue() ? $warehouseId() : null"
+    (picked)="onProductPicked($event)"
+  />
+  @if ($lastAdded(); as lastAdded) {
+    <p class="document-editor-muted" role="status">{{ lastAdded }}</p>
+  }
+  <div dialogActions>
+    <app-button variant="primary" (clicked)="$addItemOpen.set(false)">{{
+      'common.done' | t
+    }}</app-button>
+  </div>
+</app-dialog>

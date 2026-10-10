@@ -1,0 +1,43 @@
+{
+  "extends": ["stylelint-config-standard-scss"],
+  "rules": {
+    "declaration-no-important": true,
+    "selector-class-pattern": null,
+    "scss/dollar-variable-pattern": null,
+    "scss/at-mixin-pattern": null,
+    "scss/at-function-pattern": null,
+    "scss/no-global-function-names": null,
+    "no-descending-specificity": null,
+    "value-keyword-case": null,
+    "color-function-notation": null,
+    "alpha-value-notation": null,
+    "custom-property-pattern": null,
+    "scss/double-slash-comment-empty-line-before": null,
+    "declaration-empty-line-before": null,
+    "at-rule-empty-line-before": null,
+    "rule-empty-line-before": null,
+    "scss/at-extend-no-missing-placeholder": null,
+    "selector-pseudo-element-no-unknown": [
+      true,
+      {
+        "ignorePseudoElements": ["ng-deep"]
+      }
+    ],
+    "selector-pseudo-class-no-unknown": [
+      true,
+      {
+        "ignorePseudoClasses": ["host", "host-context"]
+      }
+    ],
+    "selector-type-no-unknown": [
+      true,
+      {
+        "ignore": ["custom-elements"]
+      }
+    ],
+    "property-no-vendor-prefix": null,
+    "color-hex-length": null,
+    "scss/dollar-variable-empty-line-before": null
+  },
+  "ignoreFiles": ["dist/**", "node_modules/**", "coverage/**"]
+}

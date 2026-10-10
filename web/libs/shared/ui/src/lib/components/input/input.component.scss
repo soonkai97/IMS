@@ -1,0 +1,24 @@
+@use 'libs' as *;
+
+:host {
+  position: relative;
+  display: block;
+}
+
+.ui-input-control {
+  @include control-base;
+}
+
+.ui-input-toggle {
+  @include reset-button;
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: height('touch');
+  height: 100%;
+  color: color('text-muted');
+}

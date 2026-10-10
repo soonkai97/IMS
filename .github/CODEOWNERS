@@ -1,0 +1,7 @@
+# Human owner for everything. Agent roles are not GitHub users; their reviews are posted by the orchestrator on request
+# (see docs/team/PR-REVIEW.md). Replace or extend with teammates as the team grows.
+*                       @soonkai97
+/.github/               @soonkai97
+/src/                   @soonkai97
+/web/                   @soonkai97
+/docs/                  @soonkai97

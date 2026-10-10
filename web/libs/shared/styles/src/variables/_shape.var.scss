@@ -1,0 +1,47 @@
+@use 'sass:map';
+
+$border-radius: (
+  'sm': 6px,
+  'md': 10px,
+  'lg': 16px,
+  'pill': 999px,
+  'circle': 50%
+);
+
+$border-width: (
+  'thin': 1px,
+  'thick': 2px,
+  'focus': 3px
+);
+
+$shadows: (
+  1: (
+    0 1px 2px rgb(16 24 40 / 10%),
+    0 1px 3px rgb(16 24 40 / 8%)
+  ),
+  2: 0 8px 24px rgb(16 24 40 / 22%)
+);
+
+@function border-radius($name) {
+  @if not map.has-key($border-radius, $name) {
+    @error 'Unknown radius "#{$name}".';
+  }
+
+  @return map.get($border-radius, $name);
+}
+
+@function border-width($name) {
+  @if not map.has-key($border-width, $name) {
+    @error 'Unknown border width "#{$name}".';
+  }
+
+  @return map.get($border-width, $name);
+}
+
+@function shadow($level) {
+  @if not map.has-key($shadows, $level) {
+    @error 'Unknown shadow level "#{$level}".';
+  }
+
+  @return map.get($shadows, $level);
+}

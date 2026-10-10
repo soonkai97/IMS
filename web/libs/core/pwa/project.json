@@ -1,0 +1,25 @@
+{
+  "name": "core-pwa",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/core/pwa/src",
+  "prefix": "app",
+  "tags": ["scope:core"],
+  "implicitDependencies": ["shared-styles", "shared-assets"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/core/pwa"],
+      "options": {
+        "jestConfig": "libs/core/pwa/jest.config.ts",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["libs/core/pwa/src/**/*.ts", "libs/core/pwa/src/**/*.html"]
+      }
+    }
+  }
+}

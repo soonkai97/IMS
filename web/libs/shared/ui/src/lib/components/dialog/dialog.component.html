@@ -1,0 +1,18 @@
+<dialog #dialog class="ui-dialog" [attr.aria-labelledby]="titleId" (close)="onNativeClose()">
+  @if ($open()) {
+    <div class="ui-dialog-panel">
+      <header class="ui-dialog-header">
+        <h2 class="ui-dialog-title" [id]="titleId">{{ $heading() }}</h2>
+        <app-button variant="ghost" [ariaLabel]="$closeLabel()" (clicked)="onCloseClick()">
+          <app-icon name="x" />
+        </app-button>
+      </header>
+      <div class="ui-dialog-body">
+        <ng-content />
+      </div>
+      <footer class="ui-dialog-footer">
+        <ng-content select="[dialogActions]" />
+      </footer>
+    </div>
+  }
+</dialog>

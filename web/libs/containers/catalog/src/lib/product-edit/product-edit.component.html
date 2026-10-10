@@ -1,0 +1,129 @@
+<app-page-header
+  [heading]="$heading()"
+  [backLink]="['/products']"
+  [backLabel]="'products.title' | t"
+>
+  <div actions>
+    @if ($canManage()) {
+      <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
+        'common.save' | t
+      }}</app-button>
+    }
+  </div>
+</app-page-header>
+
+@if ($isLoading() && !$isNew()) {
+  <app-skeleton [count]="4" />
+} @else {
+  <form class="product-edit-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
+    @for (message of $generalErrors(); track message) {
+      <app-banner kind="danger">{{ message }}</app-banner>
+    }
+
+    <app-card [heading]="'product.details' | t">
+      <app-form-field [label]="'product.sku' | t" [required]="true" [control]="form.controls.sku">
+        <app-input formControlName="sku" [maxLength]="64" />
+      </app-form-field>
+      <app-form-field [label]="'product.name' | t" [required]="true" [control]="form.controls.name">
+        <app-input formControlName="name" [maxLength]="256" />
+      </app-form-field>
+      <app-form-field [label]="'product.category' | t" [control]="form.controls.categoryId">
+        <app-select
+          formControlName="categoryId"
+          [options]="$categoryOptions()"
+          [placeholder]="'filter.none' | t"
+        />
+      </app-form-field>
+      <app-form-field
+        [label]="'product.baseUnit' | t"
+        [required]="true"
+        [hint]="'product.baseUnitHint' | t"
+        [control]="form.controls.baseUomId"
+      >
+        <app-select formControlName="baseUomId" [options]="$unitOptions()" [placeholder]="''" />
+      </app-form-field>
+      <app-form-field
+        [label]="'product.safetyStock' | t"
+        [required]="true"
+        [control]="form.controls.safetyStock"
+      >
+        <app-input type="number" formControlName="safetyStock" inputMode="decimal" min="0" />
+      </app-form-field>
+      <app-checkbox formControlName="isActive">{{ 'product.active' | t }}</app-checkbox>
+    </app-card>
+
+    <app-card [heading]="'product.barcodes' | t">
+      <ul class="product-edit-page-chips">
+        @for (code of form.controls.barcodes.value; track code) {
+          <li class="product-edit-page-chip">
+            <span>{{ code }}</span>
+            @if ($canManage()) {
+              <button
+                type="button"
+                class="product-edit-page-chip-remove"
+                [attr.aria-label]="'common.remove' | t"
+                (click)="onRemoveBarcode(code)"
+              >
+                <app-icon name="x" />
+              </button>
+            }
+          </li>
+        } @empty {
+          <li class="product-edit-page-muted">{{ 'product.noBarcodes' | t }}</li>
+        }
+      </ul>
+      @if ($canManage()) {
+        <div class="product-edit-page-row">
+          <app-form-field class="product-edit-page-grow" [label]="'product.addBarcode' | t">
+            <app-input
+              [formControl]="newBarcode"
+              (keydown.enter)="$event.preventDefault(); onAddBarcode()"
+            />
+          </app-form-field>
+          <app-button (clicked)="onAddBarcode()">{{ 'common.add' | t }}</app-button>
+        </div>
+      }
+    </app-card>
+
+    <app-card [heading]="'product.conversions' | t">
+      <p class="product-edit-page-muted">{{ 'product.conversionsHint' | t }}</p>
+      @for (
+        conversion of form.controls.conversions.controls;
+        track conversion;
+        let index = $index
+      ) {
+        <div class="product-edit-page-row" [formGroup]="conversion">
+          <app-form-field
+            class="product-edit-page-grow"
+            [label]="'product.conversionUnit' | t"
+            [control]="conversion.controls.fromUomId"
+          >
+            <app-select formControlName="fromUomId" [options]="$unitOptions()" [placeholder]="''" />
+          </app-form-field>
+          <app-form-field
+            class="product-edit-page-grow"
+            [label]="'product.conversionFactor' | t"
+            [control]="conversion.controls.factor"
+          >
+            <app-input type="number" formControlName="factor" inputMode="decimal" />
+          </app-form-field>
+          @if ($canManage()) {
+            <app-button
+              variant="ghost"
+              [ariaLabel]="'common.remove' | t"
+              (clicked)="onRemoveConversion(index)"
+            >
+              <app-icon name="trash" />
+            </app-button>
+          }
+        </div>
+      }
+      @if ($canManage()) {
+        <app-button (clicked)="onAddConversion()">
+          <app-icon name="plus" />
+          {{ 'product.addConversion' | t }}
+        </app-button>
+      }
+    </app-card>
+  </form>
+}

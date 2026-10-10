@@ -1,0 +1,9 @@
+<app-icon class="ui-stat-card-icon" [name]="$icon()" />
+<div class="ui-stat-card-text">
+  @if ($link(); as link) {
+    <a class="ui-stat-card-label ui-stat-card-link" [routerLink]="link">{{ $label() }}</a>
+  } @else {
+    <span class="ui-stat-card-label">{{ $label() }}</span>
+  }
+  <span class="ui-stat-card-value">{{ $value() }}</span>
+</div>

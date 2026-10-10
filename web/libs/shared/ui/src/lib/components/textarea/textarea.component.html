@@ -1,0 +1,14 @@
+<textarea
+  [class]="$controlClass()"
+  [attr.id]="$id()"
+  [attr.rows]="$rows()"
+  [attr.placeholder]="$placeholder() || null"
+  [attr.maxlength]="$maxLength()"
+  [attr.aria-describedby]="$describedBy()"
+  [attr.aria-invalid]="$invalid() || null"
+  [readOnly]="$readonly()"
+  [disabled]="$disabled()"
+  [value]="$value()"
+  (input)="onInput($event)"
+  (blur)="onBlur()"
+></textarea>

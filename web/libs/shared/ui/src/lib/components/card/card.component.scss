@@ -1,0 +1,15 @@
+@use 'libs' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(2);
+  background: color('surface');
+  border: border-width('thin') solid color('border');
+  border-radius: border-radius('md');
+}
+
+.ui-card-heading {
+  font-size: font-size(4);
+}

@@ -1,0 +1,11 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.warehouses-page-form {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}

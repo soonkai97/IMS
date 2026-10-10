@@ -1,0 +1,23 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.partners-page-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: space(1) space(2);
+  margin-bottom: space(2);
+
+  @include media-tablet {
+    grid-template-columns: 2fr 1fr auto;
+    align-items: end;
+  }
+}
+
+.partners-page-form {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}

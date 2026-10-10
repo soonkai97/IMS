@@ -1,0 +1,18 @@
+<fieldset class="ui-radio-group-set" [disabled]="$disabled()">
+  <legend class="ui-radio-group-legend">{{ $legend() }}</legend>
+  <div class="ui-radio-group-options">
+    @for (item of $items(); track item.value) {
+      <label class="ui-radio-group-option" [class.--checked]="item.checked">
+        <input
+          class="ui-radio-group-input"
+          type="radio"
+          [name]="groupName"
+          [value]="item.value"
+          [checked]="item.checked"
+          (change)="onSelect(item.value)"
+        />
+        <span>{{ item.label }}</span>
+      </label>
+    }
+  </div>
+</fieldset>

@@ -1,0 +1,13 @@
+<button
+  class="ui-button-control"
+  [attr.type]="$type()"
+  [disabled]="$isInert()"
+  [attr.aria-busy]="$loading()"
+  [attr.aria-label]="$ariaLabel()"
+  (click)="onClick($event)"
+>
+  @if ($loading()) {
+    <app-spinner />
+  }
+  <ng-content />
+</button>

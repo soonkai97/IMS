@@ -1,0 +1,17 @@
+@use 'sass:map';
+@use 'palette.var' as palette;
+
+/// Theme-aware colour. Returns a CSS custom property reference so light/dark switch without recompiling.
+/// color('surface') -> var(--ims-color-surface)
+@function color($name) {
+  @if not map.has-key(palette.$light, $name) {
+    @error 'Unknown colour token "#{$name}".';
+  }
+
+  @return var(--ims-color-#{$name});
+}
+
+/// Mix a token with transparency (used for scrims). color-mix keeps the token theme-aware.
+@function color-alpha($name, $percent) {
+  @return color-mix(in srgb, color($name) $percent, transparent);
+}

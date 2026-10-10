@@ -1,0 +1,9 @@
+@for (toast of $toasts(); track toast.id) {
+  <app-toast
+    [kind]="toast.kind"
+    [message]="toast.message"
+    [actionLabel]="toast.action?.label"
+    (dismissed)="onDismiss(toast)"
+    (actioned)="onAction(toast)"
+  />
+}

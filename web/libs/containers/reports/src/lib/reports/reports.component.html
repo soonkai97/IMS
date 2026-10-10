@@ -1,0 +1,89 @@
+<app-page-header [heading]="'reports.title' | t" />
+
+<div class="reports-page-filters">
+  @if ($isMovementsTab()) {
+    <app-form-field [label]="'doc.type' | t">
+      <app-select
+        [formControl]="typeControl"
+        [options]="$typeOptions()"
+        [placeholder]="'filter.all' | t"
+      />
+    </app-form-field>
+  }
+  <app-form-field [label]="'stock.warehouse' | t">
+    <app-select
+      [formControl]="warehouseControl"
+      [options]="$warehouseOptions()"
+      [placeholder]="'filter.all' | t"
+    />
+  </app-form-field>
+  <app-form-field [label]="'filter.from' | t">
+    <app-input type="date" [formControl]="fromControl" />
+  </app-form-field>
+  <app-form-field [label]="'filter.to' | t">
+    <app-input type="date" [formControl]="toControl" />
+  </app-form-field>
+</div>
+
+<app-tabs
+  [label]="'reports.title' | t"
+  [tabs]="$tabs()"
+  [active]="$tab()"
+  (activeChange)="onTabChange($event)"
+/>
+
+@if ($isMovementsTab()) {
+  <div class="reports-page-toolbar">
+    <app-button [loading]="$exportingMovements()" (clicked)="onExportMovements()">
+      <app-icon name="download" />
+      {{ 'common.exportExcel' | t }}
+    </app-button>
+  </div>
+
+  <app-table
+    [columns]="$columns()"
+    [rows]="$page()?.items ?? []"
+    [caption]="'reports.tab.movements' | t"
+    [loading]="$isLoading()"
+    [failed]="$failed()"
+    (retried)="onRetry()"
+  >
+    <ng-template appCell="date" let-row>{{ row.postedAt | appDate }}</ng-template>
+    <ng-template appCell="qty" let-row>{{ row.qty | appQty }} {{ row.uomCode }}</ng-template>
+    <ng-template appCell="amount" let-row>{{ row.amount | appMoney }}</ng-template>
+    <app-empty-state empty icon="reports" [message]="'reports.empty' | t" />
+  </app-table>
+
+  @if ($page(); as page) {
+    <app-pager
+      [page]="page.page"
+      [pageSize]="page.pageSize"
+      [total]="page.total"
+      (pageChange)="onPageChange($event)"
+    />
+  }
+} @else {
+  <div class="reports-page-exports">
+    <app-card [heading]="'reports.export.stock' | t">
+      <p>{{ 'reports.export.stockHint' | t }}</p>
+      <app-button [loading]="$exportingStock()" (clicked)="onExportStock()">
+        <app-icon name="download" />
+        {{ 'common.exportExcel' | t }}
+      </app-button>
+    </app-card>
+    <app-card [heading]="'reports.export.ledger' | t">
+      <p>{{ 'reports.export.ledgerHint' | t }}</p>
+      <app-button [loading]="$exportingLedger()" (clicked)="onExportLedger()">
+        <app-icon name="download" />
+        {{ 'common.exportExcel' | t }}
+      </app-button>
+    </app-card>
+    <app-card [heading]="'reports.export.lowStock' | t">
+      <p>{{ 'reports.export.lowStockHint' | t }}</p>
+      <app-button [loading]="$exportingLow()" (clicked)="onExportLowStock()">
+        <app-icon name="download" />
+        {{ 'common.exportExcel' | t }}
+      </app-button>
+    </app-card>
+  </div>
+}

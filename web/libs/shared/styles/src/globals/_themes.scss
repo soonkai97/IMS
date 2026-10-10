@@ -1,0 +1,28 @@
+@use '../variables/palette.var' as palette;
+
+@mixin emit($tokens) {
+  @each $name, $value in $tokens {
+    --ims-color-#{$name}: #{$value};
+  }
+}
+
+// Light is the default. Dark follows the OS unless the user forced a theme with <html data-theme="light|dark">.
+:root {
+  color-scheme: light;
+
+  @include emit(palette.$light);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    @include emit(palette.$dark);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  @include emit(palette.$dark);
+}

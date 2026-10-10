@@ -1,0 +1,35 @@
+@use 'libs' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.product-stock-page-list {
+  display: grid;
+  gap: space(1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.product-stock-page-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.product-stock-page-muted {
+  color: color('text-muted');
+}
+
+.product-stock-page-subheading {
+  margin-top: space(2);
+}
+
+.product-stock-page-negative {
+  color: color('danger');
+}

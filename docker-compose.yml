@@ -1,0 +1,43 @@
+# Local stack: SQL Server + API.  docker compose up --build
+# Secrets come from your shell or an untracked .env file (see .env.example); nothing secret is stored here.
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${IMS_DB_PASSWORD:?set IMS_DB_PASSWORD}
+    # Reachable from this machine only. Never publish the database on all interfaces.
+    ports: ["127.0.0.1:1433:1433"]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    volumes: [dbdata:/var/opt/mssql]
+
+  api:
+    build: .
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: "Server=db;Database=Ims;User Id=sa;Password=${IMS_DB_PASSWORD};TrustServerCertificate=True"
+      Jwt__Key: ${IMS_JWT_KEY:?set IMS_JWT_KEY (32+ characters)}
+      Seed__AdminPassword: ${IMS_ADMIN_PASSWORD:?set IMS_ADMIN_PASSWORD}
+      Cors__Origins: ${IMS_CORS_ORIGINS:?set IMS_CORS_ORIGINS}
+      Storage__RootPath: /app/storage
+      Database__MigrateOnStartup: "true"
+    # Put a TLS-terminating reverse proxy in front; set ForwardedHeaders__Enabled and ForwardedHeaders__KnownProxies to its address.
+    ports: ["127.0.0.1:8080:8080"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    volumes: [files:/app/storage, applogs:/app/logs]
+    mem_limit: 1g
+
+volumes:
+  dbdata:
+  files:
+  applogs:

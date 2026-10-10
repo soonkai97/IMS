@@ -1,0 +1,64 @@
+import { EnvironmentProviders, inject, makeEnvironmentProviders } from '@angular/core';
+import { UI_TEXT, UiText } from '@ims/ui';
+import { I18nService } from './i18n.service';
+
+/** Feeds the UI kit (shared/ui) its words from the active language. */
+export function provideUiText(): EnvironmentProviders {
+  return makeEnvironmentProviders([
+    {
+      provide: UI_TEXT,
+      useFactory: () => {
+        const i18n = inject(I18nService);
+        return (): UiText => ({
+          close: i18n.t('ui.close'),
+          loading: i18n.t('ui.loading'),
+          required: i18n.t('ui.required'),
+          showPassword: i18n.t('ui.showPassword'),
+          hidePassword: i18n.t('ui.hidePassword'),
+          previousPage: i18n.t('ui.previousPage'),
+          nextPage: i18n.t('ui.nextPage'),
+          clear: i18n.t('ui.clear'),
+          retry: i18n.t('ui.retry'),
+          chooseFile: i18n.t('ui.chooseFile'),
+          dropFile: i18n.t('ui.dropFile'),
+          selectPlaceholder: i18n.t('ui.selectPlaceholder'),
+          dismiss: i18n.t('ui.dismiss'),
+          errorTitle: i18n.t('ui.errorTitle'),
+          pageStatus: (page, pages) => i18n.t('ui.pageStatus', { page, pages }),
+          rangeStatus: (from, to, total) => i18n.t('ui.rangeStatus', { from, to, total }),
+          validationMessage: (key, error) => validationMessage(i18n, key, error)
+        });
+      }
+    }
+  ]);
+}
+
+function lengthOf(error: unknown): number {
+  if (typeof error === 'object' && error !== null && 'requiredLength' in error) {
+    return Number(error.requiredLength);
+  }
+  return 0;
+}
+
+function validationMessage(i18n: I18nService, key: string, error: unknown): string {
+  switch (key) {
+    case 'required':
+      return i18n.t('validation.required');
+    case 'minlength':
+      return i18n.t('validation.minLength', { length: lengthOf(error) });
+    case 'maxlength':
+      return i18n.t('validation.maxLength', { length: lengthOf(error) });
+    case 'min':
+      return i18n.t('validation.min');
+    case 'max':
+      return i18n.t('validation.max');
+    case 'decimals':
+      return i18n.t('validation.decimals');
+    case 'email':
+      return i18n.t('validation.email');
+    case 'server':
+      return typeof error === 'string' ? error : i18n.t('validation.invalid');
+    default:
+      return i18n.t('validation.invalid');
+  }
+}

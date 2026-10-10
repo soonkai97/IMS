@@ -1,0 +1,77 @@
+@use 'sass:map';
+
+/// Heights: touch targets are 48px on phones and never below 44px (WCAG 2.5.5 / PRD 9).
+$heights: (
+  'touch': 3rem,
+  'touch-min': 2.75rem,
+  'bar': 3.5rem,
+  'tabbar': 4rem,
+  'progress': 0.1875rem
+);
+
+$widths: (
+  'nav': 15rem,
+  'rail': 4.5rem,
+  'content-max': 76rem,
+  'dialog': 30rem,
+  'form-max': 40rem,
+  'toast': 24rem
+);
+
+$z-index: (
+  'base': 0,
+  'sticky': 10,
+  'nav': 20,
+  'overlay': 30,
+  'dialog': 40,
+  'toast': 50
+);
+
+$easings: (
+  'smooth': cubic-bezier(0.4, 0, 0.2, 1)
+);
+
+$durations: (
+  'fast': 120ms,
+  'base': 200ms
+);
+
+@function height($name) {
+  @if not map.has-key($heights, $name) {
+    @error 'Unknown height "#{$name}".';
+  }
+
+  @return map.get($heights, $name);
+}
+
+@function width($name) {
+  @if not map.has-key($widths, $name) {
+    @error 'Unknown width "#{$name}".';
+  }
+
+  @return map.get($widths, $name);
+}
+
+@function z-index($name) {
+  @if not map.has-key($z-index, $name) {
+    @error 'Unknown z-index "#{$name}".';
+  }
+
+  @return map.get($z-index, $name);
+}
+
+@function easing($name) {
+  @if not map.has-key($easings, $name) {
+    @error 'Unknown easing "#{$name}".';
+  }
+
+  @return map.get($easings, $name);
+}
+
+@function duration($name) {
+  @if not map.has-key($durations, $name) {
+    @error 'Unknown duration "#{$name}".';
+  }
+
+  @return map.get($durations, $name);
+}

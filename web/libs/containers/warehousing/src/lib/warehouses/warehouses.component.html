@@ -1,0 +1,60 @@
+<app-page-header [heading]="'warehouses.title' | t">
+  <div actions>
+    @if ($canManage()) {
+      <app-button variant="primary" (clicked)="onAdd()">
+        <app-icon name="plus" />
+        {{ 'warehouse.new' | t }}
+      </app-button>
+    }
+  </div>
+</app-page-header>
+
+<app-table
+  [columns]="$columns()"
+  [rows]="$rows()"
+  [caption]="'warehouses.title' | t"
+  [loading]="$isLoading()"
+  [failed]="$failed()"
+  (retried)="onRetry()"
+>
+  <ng-template appCell="status" let-row>
+    <app-status-chip
+      [label]="(row.isActive ? 'product.active' : 'product.inactive') | t"
+      [status]="row.isActive ? 'posted' : 'cancelled'"
+    />
+  </ng-template>
+  <ng-template appCell="actions" let-row>
+    <app-button variant="ghost" (clicked)="onEdit(row)">
+      <app-icon name="pencil" />
+      {{ 'common.edit' | t }}
+    </app-button>
+  </ng-template>
+  <app-empty-state empty icon="warehouse" [message]="'warehouses.empty' | t" />
+</app-table>
+
+<app-dialog [(open)]="$dialogOpen" [heading]="$dialogHeading()">
+  <form class="warehouses-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
+    @for (message of $serverErrors(); track message) {
+      <app-banner kind="danger">{{ message }}</app-banner>
+    }
+    <app-form-field [label]="'warehouse.code' | t" [required]="true" [control]="form.controls.code">
+      <app-input formControlName="code" [maxLength]="16" />
+    </app-form-field>
+    <app-form-field [label]="'warehouse.name' | t" [required]="true" [control]="form.controls.name">
+      <app-input formControlName="name" [maxLength]="128" />
+    </app-form-field>
+    <app-form-field [label]="'warehouse.contact' | t" [control]="form.controls.contact">
+      <app-input formControlName="contact" [maxLength]="256" />
+    </app-form-field>
+    <app-form-field [label]="'warehouse.notes' | t" [control]="form.controls.notes">
+      <app-textarea formControlName="notes" [maxLength]="1000" />
+    </app-form-field>
+    <app-checkbox formControlName="isActive">{{ 'product.active' | t }}</app-checkbox>
+  </form>
+  <div dialogActions>
+    <app-button (clicked)="$dialogOpen.set(false)">{{ 'common.cancel' | t }}</app-button>
+    <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
+      'common.save' | t
+    }}</app-button>
+  </div>
+</app-dialog>

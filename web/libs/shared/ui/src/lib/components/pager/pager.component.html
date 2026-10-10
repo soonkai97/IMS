@@ -1,0 +1,20 @@
+<p class="ui-pager-range" aria-live="polite">{{ $range() }}</p>
+<nav class="ui-pager-nav" [attr.aria-label]="$pageLabel()">
+  <app-button
+    variant="ghost"
+    [disabled]="!$hasPrevious()"
+    [ariaLabel]="$previousLabel()"
+    (clicked)="onPrevious()"
+  >
+    <app-icon name="chevron-left" />
+  </app-button>
+  <span class="ui-pager-page">{{ $pageLabel() }}</span>
+  <app-button
+    variant="ghost"
+    [disabled]="!$hasNext()"
+    [ariaLabel]="$nextLabel()"
+    (clicked)="onNext()"
+  >
+    <app-icon name="chevron-right" />
+  </app-button>
+</nav>

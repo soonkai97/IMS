@@ -1,0 +1,35 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.home-page-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: space(2);
+  margin-bottom: space(3);
+}
+
+.home-page-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: height('tabbar');
+  font-size: font-size(4);
+  font-weight: font-weight('bold');
+  color: color('on-primary');
+  text-decoration: none;
+  background: color('primary');
+  border-radius: border-radius('lg');
+
+  &:hover {
+    background: color('primary-hover');
+  }
+}
+
+.home-page-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: space(2);
+}

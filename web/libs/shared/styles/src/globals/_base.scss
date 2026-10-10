@@ -1,0 +1,88 @@
+@use '../libs' as *;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: font-family('sans');
+  font-size: font-size(3);
+  line-height: $line-height;
+  color: color('text');
+  background: color('bg');
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: font-size(5);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: font-size(4);
+}
+
+h3 {
+  font-size: font-size(3);
+}
+
+a {
+  color: color('primary');
+  text-underline-offset: 0.15em;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+:focus-visible {
+  @include focus-ring;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+[hidden] {
+  /* stylelint-disable-next-line declaration-no-important -- must beat component display rules */
+  display: none !important;
+}
+
+.sr-only {
+  @include visually-hidden;
+}
+
+/* stylelint-disable declaration-no-important -- reduced motion must win over every component animation */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+/* stylelint-enable declaration-no-important */

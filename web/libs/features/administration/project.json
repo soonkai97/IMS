@@ -1,0 +1,28 @@
+{
+  "name": "features-administration",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/features/administration/src",
+  "prefix": "app",
+  "tags": ["scope:features"],
+  "implicitDependencies": ["shared-styles", "shared-assets"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/features/administration"],
+      "options": {
+        "jestConfig": "libs/features/administration/jest.config.ts",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "libs/features/administration/src/**/*.ts",
+          "libs/features/administration/src/**/*.html"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+@use 'sass:map';
+
+$font-sizes: (
+  1: 0.8125rem,
+  2: 0.9375rem,
+  3: 1rem,
+  4: 1.25rem,
+  5: 1.5rem,
+  6: 2rem
+);
+
+/// font-size(3) is the 16px body size (inputs must stay >= 16px to avoid iOS zoom).
+@function font-size($step) {
+  @if not map.has-key($font-sizes, $step) {
+    @error 'Unknown font size step "#{$step}".';
+  }
+
+  @return map.get($font-sizes, $step);
+}

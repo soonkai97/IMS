@@ -1,0 +1,32 @@
+@use '../libs' as *;
+
+// Anchors that look like <app-button>: navigation actions ("New product", "Import") must be real links.
+.ui-link-button {
+  display: inline-flex;
+  gap: space(1);
+  align-items: center;
+  justify-content: center;
+  min-height: height('touch');
+  padding: 0 space(2);
+  font-weight: font-weight('medium');
+  color: color('text');
+  text-decoration: none;
+  white-space: nowrap;
+  background: color('surface');
+  border: border-width('thin') solid color('border-strong');
+  border-radius: border-radius('md');
+
+  &:hover {
+    background: color('surface-2');
+  }
+
+  &.--primary {
+    color: color('on-primary');
+    background: color('primary');
+    border-color: color('primary');
+
+    &:hover {
+      background: color('primary-hover');
+    }
+  }
+}

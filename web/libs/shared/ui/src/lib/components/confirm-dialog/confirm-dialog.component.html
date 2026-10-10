@@ -1,0 +1,20 @@
+<app-dialog [open]="$open()" [heading]="$heading()" (openChange)="onOpenChange($event)">
+  @if ($body()) {
+    <p class="ui-confirm-dialog-body">{{ $body() }}</p>
+  }
+  @if ($hasReason()) {
+    <app-form-field
+      [label]="$reasonLabel() ?? ''"
+      [required]="$reasonRequired()"
+      [control]="reason"
+    >
+      <app-textarea [formControl]="reason" [rows]="3" />
+    </app-form-field>
+  }
+  <div dialogActions class="ui-confirm-dialog-actions">
+    <app-button (clicked)="onCancel()">{{ $cancelLabel() }}</app-button>
+    <app-button [variant]="$confirmVariant()" [loading]="$busy()" (clicked)="onConfirm()">
+      {{ $confirmLabel() }}
+    </app-button>
+  </div>
+</app-dialog>

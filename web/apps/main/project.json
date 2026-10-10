@@ -1,0 +1,69 @@
+{
+  "name": "main",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/main/src",
+  "prefix": "app",
+  "tags": ["scope:app"],
+  "implicitDependencies": ["shared-assets", "shared-styles"],
+  "targets": {
+    "build": {
+      "executor": "@angular/build:application",
+      "outputs": ["{options.outputPath.base}"],
+      "options": {
+        "outputPath": { "base": "dist/main", "browser": "browser" },
+        "browser": "apps/main/src/main.ts",
+        "index": "apps/main/src/index.html",
+        "tsConfig": "apps/main/tsconfig.app.json",
+        "inlineStyleLanguage": "scss",
+        "assets": [
+          { "glob": "**/*", "input": "libs/shared/assets/src/assets", "output": "/assets" },
+          { "glob": "manifest.webmanifest", "input": "libs/shared/assets/src", "output": "/" },
+          { "glob": "favicon.svg", "input": "libs/shared/assets/src", "output": "/" }
+        ],
+        "styles": ["libs/shared/styles/src/index.scss"],
+        "stylePreprocessorOptions": { "includePaths": ["libs/shared/styles/src"] }
+      },
+      "configurations": {
+        "production": {
+          "budgets": [
+            { "type": "initial", "maximumWarning": "700kB", "maximumError": "1.2MB" },
+            { "type": "anyComponentStyle", "maximumWarning": "8kB", "maximumError": "16kB" }
+          ],
+          "fileReplacements": [
+            {
+              "replace": "libs/core/http/src/lib/config/environment.ts",
+              "with": "libs/core/http/src/lib/config/environment.production.ts"
+            }
+          ],
+          "outputHashing": "all",
+          "serviceWorker": "apps/main/ngsw-config.json"
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "executor": "@angular/build:dev-server",
+      "options": { "port": 4200 },
+      "configurations": {
+        "production": { "buildTarget": "main:build:production" },
+        "development": { "buildTarget": "main:build:development" }
+      },
+      "defaultConfiguration": "development"
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/apps/main"],
+      "options": { "jestConfig": "apps/main/jest.config.ts", "passWithNoTests": true }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": { "lintFilePatterns": ["apps/main/src/**/*.ts", "apps/main/src/**/*.html"] }
+    }
+  }
+}

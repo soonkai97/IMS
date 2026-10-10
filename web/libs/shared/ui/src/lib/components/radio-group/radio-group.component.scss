@@ -1,0 +1,53 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.ui-radio-group-set {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ui-radio-group-legend {
+  margin-bottom: space(0);
+  padding: 0;
+  font-size: font-size(2);
+  font-weight: font-weight('medium');
+}
+
+.ui-radio-group-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+}
+
+.ui-radio-group-option {
+  display: inline-flex;
+  gap: space(1);
+  align-items: center;
+  min-height: height('touch');
+  padding: 0 space(2);
+  cursor: pointer;
+  background: color('surface');
+  border: border-width('thin') solid color('border-strong');
+  border-radius: border-radius('md');
+
+  &.--checked {
+    background: color('primary-soft');
+    border-color: color('primary');
+  }
+
+  &:focus-within {
+    @include focus-ring;
+  }
+}
+
+.ui-radio-group-input {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  accent-color: color('primary');
+}

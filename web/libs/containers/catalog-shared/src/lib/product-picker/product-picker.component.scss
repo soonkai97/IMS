@@ -1,0 +1,61 @@
+@use 'libs' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+}
+
+.product-picker-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: color('surface');
+  border: border-width('thin') solid color('border');
+  border-radius: border-radius('md');
+}
+
+.product-picker-item {
+  @include reset-button;
+
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 space(2);
+  width: 100%;
+  min-height: height('touch');
+  padding: space(1) space(2);
+  text-align: start;
+
+  &:hover {
+    background: color('surface-2');
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+
+    outline-offset: -3px;
+  }
+}
+
+.product-picker-sku {
+  font-weight: font-weight('bold');
+}
+
+.product-picker-name {
+  @include nowrap-text;
+}
+
+.product-picker-available {
+  grid-column: 2;
+  font-size: font-size(2);
+  color: color('text-muted');
+
+  &.--empty {
+    color: color('danger');
+  }
+}
+
+.product-picker-empty {
+  padding: space(1) 0;
+  color: color('text-muted');
+}

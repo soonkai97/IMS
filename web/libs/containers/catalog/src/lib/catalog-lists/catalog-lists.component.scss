@@ -1,0 +1,13 @@
+@use 'libs' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.catalog-lists-page-form {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}

@@ -1,0 +1,156 @@
+namespace Ims.Domain.Tests.Identity;
+
+/// <summary>Spot checks against PRD 3.1 (permission matrix) and the role rules.</summary>
+public class PermissionsTests
+{
+    [Fact]
+    public void Admin_HasEveryPermission()
+    {
+        foreach (var permission in Permissions.All)
+            Assert.True(Permissions.Has(Roles.Admin, permission), permission);
+    }
+
+    [Theory]
+    [InlineData(Permissions.SettingsManage)]
+    [InlineData(Permissions.UsersManage)]
+    public void OnlyAdmin_CanManageSettingsAndUsers(string permission)
+    {
+        foreach (var role in Roles.All)
+            Assert.Equal(role == Roles.Admin, Permissions.Has(role, permission));
+    }
+
+    [Theory]
+    [InlineData(Roles.Admin, true)]
+    [InlineData(Roles.Owner, false)]          // "--" in PRD 3.1
+    [InlineData(Roles.Supervisor, true)]
+    [InlineData(Roles.WarehouseStaff, true)]
+    [InlineData(Roles.Clerk, true)]
+    public void CreateReceiptOrIssue(string role, bool expected)
+    {
+        Assert.Equal(expected, Permissions.Has(role, Permissions.DocumentCreate));
+    }
+
+    [Theory]
+    [InlineData(Roles.Admin, true)]
+    [InlineData(Roles.Owner, true)]           // "Yes (large)"
+    [InlineData(Roles.Supervisor, true)]
+    [InlineData(Roles.WarehouseStaff, false)]
+    [InlineData(Roles.Clerk, false)]
+    public void ApproveDocuments(string role, bool expected)
+    {
+        Assert.Equal(expected, Permissions.Has(role, Permissions.DocumentApprove));
+    }
+
+    [Theory]
+    [InlineData(Roles.Admin, true)]
+    [InlineData(Roles.Owner, false)]
+    [InlineData(Roles.Supervisor, true)]
+    [InlineData(Roles.WarehouseStaff, true)]  // within no-approval rules (enforced by DocumentActionPolicy)
+    [InlineData(Roles.Clerk, false)]
+    public void PostDocuments(string role, bool expected)
+    {
+        Assert.Equal(expected, Permissions.Has(role, Permissions.DocumentPost));
+    }
+
+    [Theory]
+    [InlineData(Roles.Admin, true)]
+    [InlineData(Roles.Owner, false)]
+    [InlineData(Roles.Supervisor, true)]
+    [InlineData(Roles.WarehouseStaff, false)]
+    [InlineData(Roles.Clerk, false)]
+    public void ReversePostedDocuments(string role, bool expected)
+    {
+        Assert.Equal(expected, Permissions.Has(role, Permissions.DocumentReverse));
+    }
+
+    [Theory]
+    [InlineData(Roles.Admin, true)]
+    [InlineData(Roles.Owner, true)]
+    [InlineData(Roles.Supervisor, false)]
+    [InlineData(Roles.WarehouseStaff, false)]
+    [InlineData(Roles.Clerk, false)]
+    public void ReadAuditLog(string role, bool expected)
+    {
+        Assert.Equal(expected, Permissions.Has(role, Permissions.AuditRead));
+    }
+
+    [Theory]
+    [InlineData(Roles.Admin, true)]
+    [InlineData(Roles.Owner, true)]
+    [InlineData(Roles.Supervisor, true)]
+    [InlineData(Roles.WarehouseStaff, false)]
+    [InlineData(Roles.Clerk, false)]
+    public void ReadReports(string role, bool expected)
+    {
+        Assert.Equal(expected, Permissions.Has(role, Permissions.ReportsRead));
+    }
+
+    [Fact]
+    public void EveryRoleCanViewStock()
+    {
+        foreach (var role in Roles.All)
+            Assert.True(Permissions.Has(role, Permissions.StockRead), role);
+    }
+
+    [Fact]
+    public void OwnerIsReadOnlyApart_FromApproving()
+    {
+        var owner = Permissions.For(Roles.Owner);
+
+        Assert.DoesNotContain(Permissions.MasterDataManage, owner);
+        Assert.DoesNotContain(Permissions.DocumentCreate, owner);
+        Assert.DoesNotContain(Permissions.DocumentPost, owner);
+        Assert.Contains(Permissions.DocumentApprove, owner);
+    }
+
+    [Theory]
+    [InlineData(Roles.Admin, true)]
+    [InlineData(Roles.Supervisor, true)]
+    [InlineData(Roles.Owner, false)]
+    [InlineData(Roles.WarehouseStaff, false)]
+    [InlineData(Roles.Clerk, false)]
+    public void ManageMasterData(string role, bool expected)
+    {
+        Assert.Equal(expected, Permissions.Has(role, Permissions.MasterDataManage));
+    }
+
+    [Fact]
+    public void UnknownRole_HasNoPermissions()
+    {
+        Assert.Empty(Permissions.For("Nobody"));
+        Assert.False(Permissions.Has("Nobody", Permissions.StockRead));
+    }
+
+    [Fact]
+    public void EveryPermissionGrantedToARole_IsAKnownPermission()
+    {
+        foreach (var role in Roles.All)
+            Assert.All(Permissions.For(role), p => Assert.Contains(p, Permissions.All));
+    }
+
+    [Fact]
+    public void PermissionNames_AreUnique()
+    {
+        Assert.Equal(Permissions.All.Length, Permissions.All.Distinct().Count());
+    }
+
+    // ----- Roles -----
+    [Theory]
+    [InlineData(Roles.Admin, true)]
+    [InlineData(Roles.Owner, true)]
+    [InlineData(Roles.Supervisor, false)]
+    [InlineData(Roles.WarehouseStaff, false)]
+    [InlineData(Roles.Clerk, false)]
+    public void SeesAllWarehouses_OnlyAdminAndOwner(string role, bool expected)
+    {
+        Assert.Equal(expected, Roles.SeesAllWarehouses(role));
+    }
+
+    [Fact]
+    public void Roles_AllListsTheFiveRolesOfThePrd()
+    {
+        Assert.Equal(
+            new[] { "Admin", "Owner", "Supervisor", "WarehouseStaff", "Clerk" }.Order(),
+            Roles.All.Order());
+    }
+}

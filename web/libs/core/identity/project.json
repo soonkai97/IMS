@@ -1,0 +1,25 @@
+{
+  "name": "core-identity",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/core/identity/src",
+  "prefix": "app",
+  "tags": ["scope:core"],
+  "implicitDependencies": ["shared-styles", "shared-assets"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/core/identity"],
+      "options": {
+        "jestConfig": "libs/core/identity/jest.config.ts",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["libs/core/identity/src/**/*.ts", "libs/core/identity/src/**/*.html"]
+      }
+    }
+  }
+}

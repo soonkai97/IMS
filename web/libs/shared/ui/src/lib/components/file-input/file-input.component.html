@@ -1,0 +1,19 @@
+<input
+  #native
+  class="sr-only"
+  type="file"
+  tabindex="-1"
+  aria-hidden="true"
+  [attr.accept]="$accept() || null"
+  (change)="onFileChange($event)"
+/>
+<div
+  class="ui-file-input-zone"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave()"
+  (drop)="onDrop($event)"
+>
+  <app-icon name="upload" />
+  <app-button (clicked)="onChoose()">{{ $label() }}</app-button>
+  <span class="ui-file-input-hint">{{ $text().dropFile }}</span>
+</div>

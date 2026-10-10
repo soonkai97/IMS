@@ -1,0 +1,27 @@
+@use 'libs' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.product-import-page-card {
+  max-width: width('content-max');
+}
+
+.product-import-page-hint {
+  font-size: font-size(2);
+  color: color('text-muted');
+}
+
+.product-import-page-summary {
+  font-weight: font-weight('bold');
+}
+
+.product-import-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  justify-content: flex-end;
+}

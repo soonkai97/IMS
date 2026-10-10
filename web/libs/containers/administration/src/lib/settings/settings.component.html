@@ -1,0 +1,108 @@
+<app-page-header [heading]="'settings.title' | t" />
+
+<div class="settings-page-layout">
+  <app-card [heading]="'settings.rules' | t">
+    @if ($isLoading() && !$settings()) {
+      <app-skeleton [count]="3" />
+    } @else {
+      <form
+        class="settings-page-form"
+        [formGroup]="settingsForm"
+        (ngSubmit)="onSaveSettings()"
+        novalidate
+      >
+        <app-checkbox formControlName="allowNegativeStock">{{
+          'settings.allowNegativeStock' | t
+        }}</app-checkbox>
+        <p class="settings-page-hint">{{ 'settings.allowNegativeStockHint' | t }}</p>
+        <app-checkbox formControlName="allowSelfApproval">{{
+          'settings.allowSelfApproval' | t
+        }}</app-checkbox>
+        <p class="settings-page-hint">{{ 'settings.allowSelfApprovalHint' | t }}</p>
+        <app-form-field
+          [label]="'settings.alertCooldown' | t"
+          [hint]="'settings.alertCooldownHint' | t"
+          [control]="settingsForm.controls.lowStockAlertCooldownHours"
+          [required]="true"
+        >
+          <app-input
+            type="number"
+            formControlName="lowStockAlertCooldownHours"
+            inputMode="numeric"
+            min="0"
+          />
+        </app-form-field>
+        <app-button type="submit" variant="primary" [loading]="$isSavingSettings()">{{
+          'common.save' | t
+        }}</app-button>
+      </form>
+    }
+  </app-card>
+
+  <section class="settings-page-rules">
+    <div class="settings-page-rules-header">
+      <h2>{{ 'settings.approvalRules' | t }}</h2>
+      <app-button variant="primary" (clicked)="onAddRule()">
+        <app-icon name="plus" />
+        {{ 'rule.new' | t }}
+      </app-button>
+    </div>
+    <p class="settings-page-hint">{{ 'settings.approvalRulesHint' | t }}</p>
+    <app-table
+      [columns]="$ruleColumns()"
+      [rows]="$rules()"
+      [caption]="'settings.approvalRules' | t"
+    >
+      <ng-template appCell="amount" let-row>{{
+        row.amountThreshold === null ? '-' : (row.amountThreshold | appMoney)
+      }}</ng-template>
+      <ng-template appCell="qty" let-row>{{
+        row.qtyThreshold === null ? '-' : (row.qtyThreshold | appQty)
+      }}</ng-template>
+      <ng-template appCell="status" let-row>
+        <app-status-chip
+          [label]="(row.isActive ? 'product.active' : 'product.inactive') | t"
+          [status]="row.isActive ? 'posted' : 'cancelled'"
+        />
+      </ng-template>
+      <ng-template appCell="actions" let-row>
+        <app-button variant="ghost" (clicked)="onEditRule(row)">
+          <app-icon name="pencil" />
+          {{ 'common.edit' | t }}
+        </app-button>
+      </ng-template>
+      <app-empty-state empty icon="settings" [message]="'rule.empty' | t" />
+    </app-table>
+  </section>
+</div>
+
+<app-dialog [(open)]="$ruleDialogOpen" [heading]="$ruleHeading()">
+  <form class="settings-page-form" [formGroup]="ruleForm" (ngSubmit)="onSaveRule()" novalidate>
+    @for (message of $ruleServerErrors(); track message) {
+      <app-banner kind="danger">{{ message }}</app-banner>
+    }
+    <app-form-field [label]="'doc.type' | t" [required]="true">
+      <app-select formControlName="docType" [options]="$docTypeOptions()" />
+    </app-form-field>
+    <app-form-field
+      [label]="'rule.amountThreshold' | t"
+      [hint]="'rule.thresholdHint' | t"
+      [control]="ruleForm.controls.amountThreshold"
+    >
+      <app-input type="number" formControlName="amountThreshold" inputMode="decimal" min="0" />
+    </app-form-field>
+    <app-form-field [label]="'rule.qtyThreshold' | t" [control]="ruleForm.controls.qtyThreshold">
+      <app-input type="number" formControlName="qtyThreshold" inputMode="decimal" min="0" />
+    </app-form-field>
+    <app-form-field [label]="'rule.roleRequired' | t" [required]="true">
+      <app-select formControlName="roleRequired" [options]="$roleOptions()" />
+    </app-form-field>
+    <app-checkbox formControlName="isActive">{{ 'product.active' | t }}</app-checkbox>
+  </form>
+  <div dialogActions>
+    <app-button (clicked)="$ruleDialogOpen.set(false)">{{ 'common.cancel' | t }}</app-button>
+    <app-button variant="primary" [loading]="$isSavingRule()" (clicked)="onSaveRule()">{{
+      'common.save' | t
+    }}</app-button>
+  </div>
+</app-dialog>

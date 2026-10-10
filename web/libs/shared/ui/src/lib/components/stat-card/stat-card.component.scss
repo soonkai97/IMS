@@ -1,0 +1,47 @@
+@use 'libs' as *;
+
+:host {
+  position: relative;
+  display: flex;
+  gap: space(2);
+  align-items: center;
+  padding: space(2);
+  background: color('surface');
+  border: border-width('thin') solid color('border');
+  border-radius: border-radius('md');
+
+  &.--attention {
+    border-color: color('warning-border');
+  }
+}
+
+.ui-stat-card-icon {
+  color: color('primary');
+}
+
+.ui-stat-card-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ui-stat-card-label {
+  font-size: font-size(2);
+  color: color('text-muted');
+}
+
+.ui-stat-card-link {
+  text-decoration: none;
+
+  &::after {
+    position: absolute;
+    inset: 0;
+    content: '';
+  }
+}
+
+.ui-stat-card-value {
+  font-size: font-size(5);
+  font-weight: font-weight('bold');
+  overflow-wrap: anywhere;
+}

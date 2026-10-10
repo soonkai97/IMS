@@ -1,0 +1,15 @@
+@if ($request(); as request) {
+  <app-confirm-dialog
+    [open]="$isOpen()"
+    [heading]="request.heading"
+    [body]="request.body ?? ''"
+    [confirmLabel]="request.confirmLabel"
+    [cancelLabel]="request.cancelLabel"
+    [destructive]="request.destructive ?? false"
+    [reasonLabel]="request.reasonLabel"
+    [reasonRequired]="request.reasonRequired ?? false"
+    [minReasonLength]="request.minReasonLength ?? 0"
+    (confirmed)="onConfirmed($event)"
+    (cancelled)="onCancelled()"
+  />
+}

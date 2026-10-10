@@ -1,0 +1,55 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.product-edit-page-form {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  max-width: width('form-max');
+}
+
+.product-edit-page-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.product-edit-page-chip {
+  display: inline-flex;
+  gap: space(0);
+  align-items: center;
+  padding: 0 0 0 space(2);
+  background: color('surface-3');
+  border-radius: border-radius('pill');
+}
+
+.product-edit-page-chip-remove {
+  @include reset-button;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: height('touch-min');
+  height: height('touch-min');
+  border-radius: border-radius('circle');
+}
+
+.product-edit-page-row {
+  display: flex;
+  gap: space(1);
+  align-items: flex-end;
+}
+
+.product-edit-page-grow {
+  flex: 1;
+}
+
+.product-edit-page-muted {
+  color: color('text-muted');
+}

@@ -1,0 +1,11 @@
+<label class="ui-checkbox-row">
+  <input
+    class="ui-checkbox-control"
+    type="checkbox"
+    [checked]="$checked()"
+    [disabled]="$disabled()"
+    (change)="onToggle($event)"
+    (blur)="onBlur()"
+  />
+  <span class="ui-checkbox-label"><ng-content /></span>
+</label>

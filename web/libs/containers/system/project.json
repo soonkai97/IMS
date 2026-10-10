@@ -1,0 +1,28 @@
+{
+  "name": "containers-system",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/containers/system/src",
+  "prefix": "app",
+  "tags": ["scope:containers"],
+  "implicitDependencies": ["shared-styles", "shared-assets"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/containers/system"],
+      "options": {
+        "jestConfig": "libs/containers/system/jest.config.ts",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "libs/containers/system/src/**/*.ts",
+          "libs/containers/system/src/**/*.html"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+  overflow-x: auto;
+}
+
+.ui-tabs-list {
+  display: flex;
+  gap: space(0);
+  border-bottom: border-width('thin') solid color('border');
+}
+
+.ui-tabs-tab {
+  @include reset-button;
+
+  display: inline-flex;
+  gap: space(1);
+  align-items: center;
+  min-height: height('touch');
+  padding: 0 space(2);
+  font-weight: font-weight('medium');
+  color: color('text-muted');
+  white-space: nowrap;
+  border-bottom: border-width('thick') solid transparent;
+
+  &:hover {
+    color: color('text');
+  }
+
+  &.--active {
+    color: color('primary');
+    border-bottom-color: color('primary');
+  }
+}
+
+.ui-tabs-badge {
+  min-width: 1.5rem;
+  padding: 0 space(0);
+  font-size: font-size(1);
+  color: color('on-primary-soft');
+  text-align: center;
+  background: color('primary-soft');
+  border-radius: border-radius('pill');
+}

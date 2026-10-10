@@ -1,0 +1,88 @@
+@if ($refreshing()) {
+  <div class="ui-table-progress" aria-hidden="true"></div>
+}
+
+@if ($showSkeleton()) {
+  <app-skeleton />
+} @else if ($showError()) {
+  <div class="ui-table-state" role="alert">
+    <p>{{ $errorMessage() || $text().errorTitle }}</p>
+    <app-button (clicked)="onRetry()">{{ $text().retry }}</app-button>
+  </div>
+} @else if ($showEmpty()) {
+  <div class="ui-table-state">
+    <ng-content select="[empty]" />
+  </div>
+} @else {
+  <table class="ui-table-grid" [attr.aria-busy]="$loading()">
+    <caption class="sr-only">
+      {{
+        $caption()
+      }}
+    </caption>
+    <thead class="ui-table-head">
+      <tr>
+        @for (column of $headers(); track column.key) {
+          <th
+            scope="col"
+            class="ui-table-header"
+            [class.--end]="column.alignEnd"
+            [class.--phone-hidden]="column.hideOnPhone"
+            [attr.aria-sort]="column.ariaSort"
+          >
+            @if (column.sortKey) {
+              <button type="button" class="ui-table-sort" (click)="onSort(column)">
+                {{ column.header }}
+                <app-icon
+                  [name]="column.ariaSort === 'descending' ? 'chevron-down' : 'chevron-up'"
+                />
+              </button>
+            } @else {
+              {{ column.header }}
+            }
+          </th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of $items(); track $index) {
+        <tr class="ui-table-row" [class.--linked]="item.link !== null">
+          @for (cell of item.cells; track cell.key) {
+            <td
+              class="ui-table-cell"
+              [attr.data-label]="cell.header"
+              [class.--primary]="cell.primary"
+              [class.--end]="cell.alignEnd"
+              [class.--phone-hidden]="cell.hideOnPhone"
+            >
+              @if (cell.primary && item.link) {
+                <a class="ui-table-link" [routerLink]="item.link">
+                  <ng-container
+                    [ngTemplateOutlet]="content"
+                    [ngTemplateOutletContext]="{ $implicit: item, cell: cell }"
+                  />
+                </a>
+              } @else {
+                <ng-container
+                  [ngTemplateOutlet]="content"
+                  [ngTemplateOutletContext]="{ $implicit: item, cell: cell }"
+                />
+              }
+            </td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+}
+
+<ng-template #content let-item let-cell="cell">
+  @if (cell.template) {
+    <ng-container
+      [ngTemplateOutlet]="cell.template"
+      [ngTemplateOutletContext]="{ $implicit: item.row }"
+    />
+  } @else {
+    {{ cell.text }}
+  }
+</ng-template>

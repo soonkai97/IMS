@@ -1,0 +1,54 @@
+<app-page-header
+  [heading]="'home.title' | t"
+  [subtitle]="'home.welcome' | t: { name: $displayName() }"
+/>
+
+@if ($hasNoWarehouse()) {
+  <app-empty-state icon="warehouse" [message]="'home.noWarehouse' | t" />
+} @else {
+  @if ($canCreate()) {
+    <div class="home-page-actions">
+      <a class="home-page-action" routerLink="/receipts/new">{{ 'home.receive' | t }}</a>
+      <a class="home-page-action" routerLink="/issues/new">{{ 'home.issue' | t }}</a>
+    </div>
+  }
+
+  @if ($canViewStock()) {
+    @if ($isLoading() && !$summary()) {
+      <app-skeleton [count]="2" />
+    } @else if ($failed()) {
+      <app-banner kind="danger">{{ 'error.generic' | t }}</app-banner>
+    } @else {
+      <section class="home-page-stats" [attr.aria-label]="'home.stats' | t">
+        @if ($summary(); as summary) {
+          <app-stat-card
+            icon="stock"
+            [label]="'home.stockValue' | t"
+            [value]="summary.totalValue | appMoney"
+          />
+          <app-stat-card
+            icon="tag"
+            [label]="'home.skuCount' | t"
+            [value]="summary.skuCount | appQty"
+          />
+          <app-stat-card
+            icon="low-stock"
+            [label]="'home.lowStock' | t"
+            [value]="summary.lowCount | appQty"
+            [link]="['/low-stock']"
+            [attention]="summary.lowCount > 0"
+          />
+        }
+        @if ($canApprove()) {
+          <app-stat-card
+            icon="check-double"
+            [label]="'home.waitingApproval' | t"
+            [value]="$waitingApprovals() | appQty"
+            [link]="['/approvals']"
+            [attention]="$waitingApprovals() > 0"
+          />
+        }
+      </section>
+    }
+  }
+}

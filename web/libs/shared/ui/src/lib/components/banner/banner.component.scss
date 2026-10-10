@@ -1,0 +1,52 @@
+@use 'libs' as *;
+
+:host {
+  --banner-bg: #{color('info-soft')};
+  --banner-fg: #{color('on-info-soft')};
+  --banner-border: #{color('primary')};
+
+  display: flex;
+  gap: space(1);
+  align-items: flex-start;
+  padding: space(1) space(2);
+  color: var(--banner-fg);
+  background: var(--banner-bg);
+  border-left: border-width('focus') solid var(--banner-border);
+  border-radius: border-radius('md');
+
+  &.--warning {
+    --banner-bg: #{color('warning-soft')};
+    --banner-fg: #{color('on-warning-soft')};
+    --banner-border: #{color('warning-border')};
+  }
+
+  &.--danger {
+    --banner-bg: #{color('danger-soft')};
+    --banner-fg: #{color('on-danger-soft')};
+    --banner-border: #{color('danger')};
+  }
+
+  &.--success {
+    --banner-bg: #{color('success-soft')};
+    --banner-fg: #{color('on-success-soft')};
+    --banner-border: #{color('on-success-soft')};
+  }
+}
+
+.ui-banner-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ui-banner-heading {
+  font-weight: font-weight('bold');
+}
+
+.ui-banner-actions {
+  display: flex;
+  gap: space(1);
+
+  &:empty {
+    display: none;
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "shared-ui",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/shared/ui/src",
+  "prefix": "app",
+  "tags": ["scope:shared"],
+  "implicitDependencies": ["shared-styles", "shared-assets"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/shared/ui"],
+      "options": {
+        "jestConfig": "libs/shared/ui/jest.config.ts",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["libs/shared/ui/src/**/*.ts", "libs/shared/ui/src/**/*.html"]
+      }
+    }
+  }
+}

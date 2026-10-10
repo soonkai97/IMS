@@ -1,0 +1,23 @@
+@use 'libs' as *;
+
+:host {
+  display: grid;
+  gap: space(1);
+}
+
+.ui-skeleton-row {
+  height: height('touch');
+  background: color('skeleton');
+  border-radius: border-radius('md');
+  animation: ui-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.sr-only {
+  @include visually-hidden;
+}
+
+@keyframes ui-skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}

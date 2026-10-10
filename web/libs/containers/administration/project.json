@@ -1,0 +1,28 @@
+{
+  "name": "containers-administration",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/containers/administration/src",
+  "prefix": "app",
+  "tags": ["scope:containers"],
+  "implicitDependencies": ["shared-styles", "shared-assets"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/containers/administration"],
+      "options": {
+        "jestConfig": "libs/containers/administration/jest.config.ts",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "libs/containers/administration/src/**/*.ts",
+          "libs/containers/administration/src/**/*.html"
+        ]
+      }
+    }
+  }
+}

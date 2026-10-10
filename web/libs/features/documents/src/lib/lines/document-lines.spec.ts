@@ -1,0 +1,138 @@
+import { FormControl } from '@angular/forms';
+import { DocumentType, ProductDto } from '@ims/api';
+import {
+  LineValue,
+  baseQuantity,
+  buildUomOptions,
+  computeTotals,
+  createLineGroup,
+  lineShortfall,
+  maxCoveredQuantity,
+  maxDecimals,
+  toLineInputs
+} from './document-lines';
+
+const PCS = { uomId: 1, code: 'PCS', factorToBase: 1 };
+const CARTON = { uomId: 2, code: 'CTN', factorToBase: 12 };
+
+function line(overrides: Partial<LineValue> = {}): LineValue {
+  return {
+    productId: 1,
+    sku: 'WIDGET-A',
+    productName: 'Widget A',
+    qty: 1,
+    uomId: 1,
+    unitCost: null,
+    remark: '',
+    available: null,
+    baseUomCode: 'PCS',
+    uomOptions: [PCS, CARTON],
+    ...overrides
+  };
+}
+
+describe('document line totals', () => {
+  it('sums quantities in the base unit (a carton counts as 12 pieces)', () => {
+    const lines = [line({ qty: 3 }), line({ productId: 2, qty: 2, uomId: 2 })];
+
+    expect(computeTotals(lines, DocumentType.Receipt).totalQty).toBe(27);
+    expect(baseQuantity(lines[1])).toBe(24);
+  });
+
+  it('computes the receipt amount from quantity and unit cost, ignoring blank costs', () => {
+    const lines = [
+      line({ qty: 10, unitCost: 2.5 }),
+      line({ productId: 2, qty: 4, unitCost: null }),
+      line({ productId: 3, qty: 2, unitCost: 0.1 })
+    ];
+
+    const totals = computeTotals(lines, DocumentType.Receipt);
+
+    expect(totals.lineCount).toBe(3);
+    expect(totals.totalAmount).toBe(25.2);
+    expect(computeTotals(lines, DocumentType.Issue).totalAmount).toBe(0);
+  });
+
+  it('removes float noise (0.1 + 0.2 shows as 0.3)', () => {
+    const totals = computeTotals(
+      [line({ qty: 0.1 }), line({ productId: 2, qty: 0.2 })],
+      DocumentType.Receipt
+    );
+
+    expect(totals.totalQty).toBe(0.3);
+  });
+
+  it('counts the issue lines the stock does not cover', () => {
+    const lines = [
+      line({ qty: 30, available: 12 }),
+      line({ productId: 2, qty: 100, available: 540 }),
+      line({ productId: 3, qty: 5, available: null })
+    ];
+
+    expect(computeTotals(lines, DocumentType.Issue).shortLineCount).toBe(1);
+    expect(computeTotals(lines, DocumentType.Receipt).shortLineCount).toBe(0);
+  });
+});
+
+describe('shortfall', () => {
+  it('is the part of the base quantity above what is on hand', () => {
+    expect(lineShortfall(line({ qty: 30, available: 12 }))).toBe(18);
+    expect(lineShortfall(line({ qty: 10, available: 12 }))).toBe(0);
+  });
+
+  it('converts the entered unit before comparing (2 cartons need 24 pieces)', () => {
+    expect(lineShortfall(line({ qty: 2, uomId: 2, available: 20 }))).toBe(4);
+  });
+
+  it('offers the quantity the stock covers, in the unit of the line', () => {
+    expect(maxCoveredQuantity(line({ qty: 5, uomId: 2, available: 30 }))).toBe(2.5);
+    expect(maxCoveredQuantity(line({ qty: 30, available: 12 }))).toBe(12);
+  });
+});
+
+describe('unit options', () => {
+  it('lists the base unit and every conversion that reaches it', () => {
+    const product = {
+      baseUomId: 1,
+      baseUomCode: 'PCS',
+      conversions: [{ fromUomId: 2, toUomId: 1, factor: 12 }]
+    } as ProductDto;
+
+    const options = buildUomOptions(product, new Map([[2, 'CTN']]));
+
+    expect(options).toEqual([PCS, CARTON]);
+  });
+});
+
+describe('request building and validation', () => {
+  it('sends unit cost only on receipts and trims empty remarks', () => {
+    const lines = [line({ qty: 4, unitCost: 2, remark: '  ' })];
+
+    expect(toLineInputs(lines, DocumentType.Receipt)[0]).toMatchObject({
+      qty: 4,
+      unitCost: 2,
+      remark: undefined
+    });
+    expect(toLineInputs(lines, DocumentType.Issue)[0].unitCost).toBeUndefined();
+  });
+
+  it('rejects more than 4 decimals and quantities out of range', () => {
+    const group = createLineGroup(line());
+    const qty = group.controls.qty;
+
+    qty.setValue(1.23456);
+    expect(qty.errors).toHaveProperty('decimals');
+    qty.setValue(1.2345);
+    expect(qty.valid).toBe(true);
+    qty.setValue(0);
+    expect(qty.errors).toHaveProperty('min');
+    qty.setValue(1_000_000_001);
+    expect(qty.errors).toHaveProperty('max');
+    qty.setValue(null);
+    expect(qty.errors).toHaveProperty('required');
+  });
+
+  it('maxDecimals ignores non-numbers', () => {
+    expect(maxDecimals(2)(new FormControl('abc'))).toBeNull();
+  });
+});

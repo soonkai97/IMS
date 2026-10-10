@@ -1,0 +1,45 @@
+<app-page-header [heading]="'lowStock.title' | t">
+  <div actions>
+    @if ($canExport()) {
+      <app-button [loading]="$isExporting()" (clicked)="onExport()">
+        <app-icon name="download" />
+        {{ 'common.exportExcel' | t }}
+      </app-button>
+    }
+  </div>
+</app-page-header>
+
+<app-table
+  [columns]="$columns()"
+  [rows]="$page()?.items ?? []"
+  [caption]="'lowStock.title' | t"
+  [loading]="$isLoading()"
+  [failed]="$failed()"
+  [rowLink]="rowLink"
+  (retried)="onRetry()"
+>
+  <ng-template appCell="onHand" let-row
+    ><strong>{{ row.qtyOnHand | appQty }}</strong></ng-template
+  >
+  <ng-template appCell="safety" let-row>{{ row.safetyStock | appQty }}</ng-template>
+  <ng-template appCell="short" let-row>
+    <span class="low-stock-page-short">{{ row.shortfall | appQty }}</span>
+  </ng-template>
+  <ng-template appCell="actions">
+    @if ($canCreate()) {
+      <a class="ui-link-button low-stock-page-create" routerLink="/receipts/new">{{
+        'receipts.new' | t
+      }}</a>
+    }
+  </ng-template>
+  <app-empty-state empty icon="check" [message]="'lowStock.empty' | t" />
+</app-table>
+
+@if ($page(); as page) {
+  <app-pager
+    [page]="page.page"
+    [pageSize]="page.pageSize"
+    [total]="page.total"
+    (pageChange)="onPageChange($event)"
+  />
+}

@@ -1,0 +1,46 @@
+@use 'libs' as *;
+
+:host {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: space(2);
+}
+
+.login-page-panel {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  width: 100%;
+  max-width: width('form-max');
+  padding: space(3);
+  background: color('surface');
+  border: border-width('thin') solid color('border');
+  border-radius: border-radius('lg');
+  box-shadow: shadow(1);
+
+  @include media-phone {
+    padding: space(2);
+    border: 0;
+    box-shadow: none;
+  }
+}
+
+.login-page-title {
+  font-size: font-size(6);
+}
+
+.login-page-subtitle {
+  color: color('text-muted');
+}
+
+.login-page-form {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.login-page-dev-hint {
+  font-size: font-size(1);
+  color: color('text-muted');
+}

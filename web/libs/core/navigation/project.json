@@ -1,0 +1,28 @@
+{
+  "name": "core-navigation",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/core/navigation/src",
+  "prefix": "app",
+  "tags": ["scope:core"],
+  "implicitDependencies": ["shared-styles", "shared-assets"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/core/navigation"],
+      "options": {
+        "jestConfig": "libs/core/navigation/jest.config.ts",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "libs/core/navigation/src/**/*.ts",
+          "libs/core/navigation/src/**/*.html"
+        ]
+      }
+    }
+  }
+}

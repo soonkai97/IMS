@@ -1,0 +1,17 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.document-list-page-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: space(1) space(2);
+  margin-bottom: space(2);
+
+  @include media-tablet {
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    align-items: end;
+  }
+}

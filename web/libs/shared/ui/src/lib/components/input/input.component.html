@@ -1,0 +1,32 @@
+<input
+  #control
+  [class]="$controlClass()"
+  [attr.id]="$id()"
+  [attr.type]="$nativeType()"
+  [attr.placeholder]="$placeholder() || null"
+  [attr.inputmode]="$inputMode()"
+  [attr.autocomplete]="$autocomplete()"
+  [attr.min]="$min()"
+  [attr.max]="$max()"
+  [attr.step]="$step()"
+  [attr.maxlength]="$maxLength()"
+  [attr.aria-label]="$ariaLabel()"
+  [attr.aria-describedby]="$describedBy()"
+  [attr.aria-invalid]="$invalid() || null"
+  [readOnly]="$readonly()"
+  [disabled]="$disabled()"
+  [value]="$value()"
+  (input)="onInput($event)"
+  (blur)="onBlur()"
+/>
+@if ($isPassword()) {
+  <button
+    type="button"
+    class="ui-input-toggle"
+    [attr.aria-label]="$toggleLabel()"
+    [attr.aria-pressed]="$revealed()"
+    (click)="onToggleReveal()"
+  >
+    <app-icon [name]="$revealed() ? 'eye-off' : 'eye'" />
+  </button>
+}

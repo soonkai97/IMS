@@ -1,0 +1,5 @@
+<h1 class="sr-only">{{ 'forbidden.title' | t }}</h1>
+<app-empty-state icon="alert" [message]="'forbidden.title' | t">
+  <p class="forbidden-page-body">{{ 'forbidden.body' | t: { role: $roleLabel() } }}</p>
+  <a class="btn-link" routerLink="/">{{ 'system.goHome' | t }}</a>
+</app-empty-state>

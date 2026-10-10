@@ -1,0 +1,5 @@
+<h1 class="sr-only">{{ 'notFound.title' | t }}</h1>
+<app-empty-state icon="search" [message]="'notFound.title' | t">
+  <p class="not-found-page-body">{{ 'notFound.body' | t }}</p>
+  <a class="btn-link" routerLink="/">{{ 'system.goHome' | t }}</a>
+</app-empty-state>

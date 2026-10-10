@@ -1,0 +1,23 @@
+<app-icon class="ui-search-input-icon" name="search" />
+<input
+  #control
+  class="ui-search-input-control"
+  type="search"
+  autocomplete="off"
+  enterkeyhint="search"
+  [attr.aria-label]="$label()"
+  [attr.placeholder]="$placeholder() || null"
+  [value]="$value()"
+  (input)="onInput($event)"
+  (keydown.enter)="onEnter()"
+/>
+@if ($value()) {
+  <button
+    type="button"
+    class="ui-search-input-clear"
+    [attr.aria-label]="$clearLabel()"
+    (click)="onClear()"
+  >
+    <app-icon name="x" />
+  </button>
+}

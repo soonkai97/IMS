@@ -1,0 +1,25 @@
+{
+  "name": "shared-utils",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/shared/utils/src",
+  "prefix": "app",
+  "tags": ["scope:shared"],
+  "implicitDependencies": ["shared-styles", "shared-assets"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/shared/utils"],
+      "options": {
+        "jestConfig": "libs/shared/utils/jest.config.ts",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["libs/shared/utils/src/**/*.ts", "libs/shared/utils/src/**/*.html"]
+      }
+    }
+  }
+}

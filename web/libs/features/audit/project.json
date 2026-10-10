@@ -1,0 +1,25 @@
+{
+  "name": "features-audit",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/features/audit/src",
+  "prefix": "app",
+  "tags": ["scope:features"],
+  "implicitDependencies": ["shared-styles", "shared-assets"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/features/audit"],
+      "options": {
+        "jestConfig": "libs/features/audit/jest.config.ts",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["libs/features/audit/src/**/*.ts", "libs/features/audit/src/**/*.html"]
+      }
+    }
+  }
+}

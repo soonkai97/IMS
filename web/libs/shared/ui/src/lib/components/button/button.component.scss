@@ -1,0 +1,66 @@
+@use 'libs' as *;
+
+:host {
+  --button-bg: #{color('surface')};
+  --button-bg-hover: #{color('surface-2')};
+  --button-fg: #{color('text')};
+  --button-border: #{color('border-strong')};
+
+  display: inline-flex;
+
+  &.--primary {
+    --button-bg: #{color('primary')};
+    --button-bg-hover: #{color('primary-hover')};
+    --button-fg: #{color('on-primary')};
+    --button-border: #{color('primary')};
+  }
+
+  &.--danger {
+    --button-bg: #{color('danger')};
+    --button-bg-hover: #{color('danger-hover')};
+    --button-fg: #{color('on-danger')};
+    --button-border: #{color('danger')};
+  }
+
+  &.--ghost {
+    --button-bg: transparent;
+    --button-bg-hover: #{color('surface-3')};
+    --button-border: transparent;
+  }
+
+  &.--block {
+    display: flex;
+    width: 100%;
+  }
+
+  &[data-inert] {
+    pointer-events: none;
+  }
+}
+
+.ui-button-control {
+  display: inline-flex;
+  flex: 1;
+  gap: space(1);
+  align-items: center;
+  justify-content: center;
+  min-width: height('touch-min');
+  min-height: height('touch');
+  padding: 0 space(2);
+  font-weight: font-weight('medium');
+  color: var(--button-fg);
+  white-space: nowrap;
+  background: var(--button-bg);
+  border: border-width('thin') solid var(--button-border);
+  border-radius: border-radius('md');
+  cursor: pointer;
+  transition: background-color duration('fast') easing('smooth');
+
+  &:hover:not(:disabled) {
+    background: var(--button-bg-hover);
+  }
+
+  &:disabled {
+    @include disabled;
+  }
+}

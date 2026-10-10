@@ -1,0 +1,37 @@
+@use 'libs' as *;
+
+:host {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.ui-search-input-icon {
+  position: absolute;
+  top: 50%;
+  left: space(1);
+  color: color('text-muted');
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.ui-search-input-control {
+  @include control-base;
+
+  padding-right: height('touch');
+  padding-left: space(5);
+}
+
+.ui-search-input-clear {
+  @include reset-button;
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: height('touch');
+  height: 100%;
+  color: color('text-muted');
+}

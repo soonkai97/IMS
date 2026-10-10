@@ -1,0 +1,13 @@
+<app-icon class="ui-toast-icon" [name]="$icon()" />
+<p class="ui-toast-message">{{ $message() }}</p>
+@if ($actionLabel(); as actionLabel) {
+  <button type="button" class="ui-toast-action" (click)="onAction()">{{ actionLabel }}</button>
+}
+<button
+  type="button"
+  class="ui-toast-close"
+  [attr.aria-label]="$dismissLabel()"
+  (click)="onDismiss()"
+>
+  <app-icon name="x" />
+</button>

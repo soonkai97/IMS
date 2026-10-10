@@ -1,0 +1,53 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+logs/
+*.log
+artifacts/
+
+# Node / Angular
+node_modules/
+web/dist/
+web/.angular/
+web/.env.local
+web/coverage/
+*.tsbuildinfo
+
+# Secrets and local overrides (never commit real secrets)
+*.local.json
+appsettings.Production.json
+.env
+.env.*
+!.env.example
+
+# Tool state
+.claude/settings.local.json
+.idea/
+*.swp
+
+# OS
+Thumbs.db
+.DS_Store
+
+# File storage, backups, keys, loose scripts
+/storage/
+/src/Ims.Api/storage/
+*.bak
+*.trn
+*.key
+*.pem
+*.pfx
+*.p12
+/bk_*.sql
+/*.sql
+
+# Nx cache
+.nx/
+web/.nx/
+
+# Source requirements document: kept locally, not published
+/docs/private/

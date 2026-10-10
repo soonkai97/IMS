@@ -1,0 +1,52 @@
+<app-page-header
+  [heading]="$product()?.name ?? ''"
+  [subtitle]="$product()?.sku"
+  [backLink]="['/stock']"
+  [backLabel]="'stock.title' | t"
+/>
+
+<app-card [heading]="'stock.byWarehouse' | t">
+  @if ($stockRows().length === 0) {
+    <p class="product-stock-page-muted">{{ 'stock.productEmpty' | t }}</p>
+  }
+  <ul class="product-stock-page-list">
+    @for (row of $stockRows(); track row.warehouseId) {
+      <li class="product-stock-page-item">
+        <span>{{ row.warehouseCode }}</span>
+        <strong>{{ row.qtyOnHand | appQty }} {{ row.uomCode }}</strong>
+        <span class="product-stock-page-muted"
+          >{{ 'product.safetyStock' | t }}: {{ row.safetyStock | appQty }}</span
+        >
+      </li>
+    }
+  </ul>
+</app-card>
+
+<h2 class="product-stock-page-subheading">{{ 'ledger.title' | t }}</h2>
+
+<app-table
+  [columns]="$columns()"
+  [rows]="$ledger()?.items ?? []"
+  [caption]="'ledger.title' | t"
+  [loading]="$isLoading()"
+  [failed]="$failed()"
+  [rowLink]="rowLink"
+  (retried)="onRetry()"
+>
+  <ng-template appCell="date" let-row>{{ row.occurredAt | appDate }}</ng-template>
+  <ng-template appCell="qty" let-row>
+    <strong [class.product-stock-page-negative]="row.qtyDelta < 0">
+      {{ row.qtyDelta > 0 ? '+' : '' }}{{ row.qtyDelta | appQty }}
+    </strong>
+  </ng-template>
+  <app-empty-state empty icon="list" [message]="'ledger.empty' | t" />
+</app-table>
+
+@if ($ledger(); as ledger) {
+  <app-pager
+    [page]="ledger.page"
+    [pageSize]="ledger.pageSize"
+    [total]="ledger.total"
+    (pageChange)="onPageChange($event)"
+  />
+}

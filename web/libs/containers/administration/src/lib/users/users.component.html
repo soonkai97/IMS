@@ -1,0 +1,110 @@
+<app-page-header [heading]="'users.title' | t">
+  <div actions>
+    <app-button variant="primary" (clicked)="onAdd()">
+      <app-icon name="plus" />
+      {{ 'user.new' | t }}
+    </app-button>
+  </div>
+</app-page-header>
+
+<div class="users-page-filters">
+  <app-search-input
+    [(value)]="$searchInput"
+    [label]="'users.searchLabel' | t"
+    [placeholder]="'users.searchPlaceholder' | t"
+  />
+  <app-form-field [label]="'user.role' | t">
+    <app-select
+      [formControl]="roleFilter"
+      [options]="$roleOptions()"
+      [placeholder]="'filter.all' | t"
+    />
+  </app-form-field>
+</div>
+
+<app-table
+  [columns]="$columns()"
+  [rows]="$page()?.items ?? []"
+  [caption]="'users.title' | t"
+  [loading]="$isLoading()"
+  [failed]="$failed()"
+  (retried)="onRetry()"
+>
+  <ng-template appCell="status" let-row>
+    <app-status-chip
+      [label]="(row.isActive ? 'product.active' : 'product.inactive') | t"
+      [status]="row.isActive ? 'posted' : 'cancelled'"
+    />
+  </ng-template>
+  <ng-template appCell="actions" let-row>
+    <app-button variant="ghost" (clicked)="onEdit(row)">
+      <app-icon name="pencil" />
+      {{ 'common.edit' | t }}
+    </app-button>
+  </ng-template>
+  <app-empty-state empty icon="users" [message]="'users.empty' | t" />
+</app-table>
+
+@if ($page(); as page) {
+  <app-pager
+    [page]="page.page"
+    [pageSize]="page.pageSize"
+    [total]="page.total"
+    (pageChange)="onPageChange($event)"
+  />
+}
+
+<app-dialog [(open)]="$dialogOpen" [heading]="$dialogHeading()">
+  <form class="users-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
+    @for (message of $serverErrors(); track message) {
+      <app-banner kind="danger">{{ message }}</app-banner>
+    }
+    <app-form-field
+      [label]="'user.username' | t"
+      [required]="true"
+      [control]="form.controls.username"
+    >
+      <app-input formControlName="username" autocomplete="off" [maxLength]="maxUsernameLength" />
+    </app-form-field>
+    <app-form-field
+      [label]="'user.displayName' | t"
+      [required]="true"
+      [control]="form.controls.displayName"
+    >
+      <app-input formControlName="displayName" [maxLength]="256" />
+    </app-form-field>
+    <app-form-field [label]="'user.email' | t" [required]="true" [control]="form.controls.email">
+      <app-input type="email" formControlName="email" autocomplete="off" [maxLength]="256" />
+    </app-form-field>
+    <app-form-field [label]="'user.role' | t" [required]="true" [control]="form.controls.role">
+      <app-select formControlName="role" [options]="$roleOptions()" [placeholder]="''" />
+    </app-form-field>
+    <app-form-field
+      [label]="($isEditing() ? 'user.newPassword' : 'user.password') | t"
+      [required]="!$isEditing()"
+      [hint]="($isEditing() ? 'user.passwordKeepHint' : 'user.passwordHint') | t"
+      [control]="form.controls.password"
+    >
+      <app-input
+        type="password"
+        formControlName="password"
+        autocomplete="new-password"
+        [maxLength]="maxPasswordLength"
+      />
+    </app-form-field>
+    <fieldset class="users-page-warehouses">
+      <legend>{{ 'user.warehouses' | t }}</legend>
+      @for (choice of $warehouseChoices(); track choice.id) {
+        <app-checkbox [formControl]="choice.control">{{ choice.label }}</app-checkbox>
+      }
+      <p class="users-page-hint">{{ 'user.warehousesHint' | t }}</p>
+    </fieldset>
+    <app-checkbox formControlName="isActive">{{ 'product.active' | t }}</app-checkbox>
+  </form>
+  <div dialogActions>
+    <app-button (clicked)="$dialogOpen.set(false)">{{ 'common.cancel' | t }}</app-button>
+    <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
+      'common.save' | t
+    }}</app-button>
+  </div>
+</app-dialog>

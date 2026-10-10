@@ -1,0 +1,96 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.line-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Phone: stacked card. Desktop: one grid row per line.
+.line-editor-row {
+  display: grid;
+  gap: space(1) space(2);
+  padding: space(2);
+  background: color('surface');
+  border: border-width('thin') solid color('border');
+  border-left: border-width('focus') solid transparent;
+  border-radius: border-radius('md');
+
+  &.--blocked {
+    border-left-color: color('danger');
+  }
+
+  &.--override {
+    border-left-color: color('warning-border');
+  }
+
+  @include media-desktop {
+    grid-template-columns: minmax(12rem, 2fr) minmax(16rem, 2fr) minmax(8rem, 1fr) auto;
+    align-items: start;
+  }
+}
+
+.line-editor-product {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.line-editor-name {
+  overflow-wrap: anywhere;
+}
+
+.line-editor-available {
+  font-size: font-size(2);
+  color: color('text-muted');
+}
+
+.line-editor-qty {
+  display: flex;
+  gap: space(0);
+  align-items: flex-end;
+}
+
+.line-editor-qty-field {
+  flex: 1;
+  min-width: 5rem;
+}
+
+.line-editor-unit {
+  min-width: 5rem;
+}
+
+.line-editor-unit-code {
+  align-self: center;
+  min-width: 2.5rem;
+  color: color('text-muted');
+}
+
+.line-editor-message {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  align-items: center;
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: font-size(2);
+
+  &.--blocked {
+    color: color('danger');
+  }
+
+  &.--override {
+    color: color('on-warning-soft');
+  }
+}
+
+.line-editor-remove {
+  justify-self: end;
+}

@@ -1,0 +1,39 @@
+namespace Ims.Domain;
+
+/// <summary>BR-06: when a document of a type needs approval, and who may give it.</summary>
+public class ApprovalRule : Entity
+{
+    private ApprovalRule() { }
+
+    public DocumentType DocType { get; private set; }
+    /// <summary>Document total value at or above this triggers approval. Null = ignore.</summary>
+    public decimal? AmountThreshold { get; private set; }
+    /// <summary>Document total base quantity at or above this triggers approval. Null = ignore.</summary>
+    public decimal? QtyThreshold { get; private set; }
+    public string RoleRequired { get; private set; } = Roles.Supervisor;
+    public bool IsActive { get; private set; } = true;
+
+    public static ApprovalRule Create(DocumentType docType, decimal? amountThreshold, decimal? qtyThreshold, string roleRequired, bool isActive = true)
+    {
+        var r = new ApprovalRule();
+        r.Update(docType, amountThreshold, qtyThreshold, roleRequired, isActive);
+        return r;
+    }
+
+    public void Update(DocumentType docType, decimal? amountThreshold, decimal? qtyThreshold, string roleRequired, bool isActive)
+    {
+        if (amountThreshold is null && qtyThreshold is null) throw new DomainException(Messages.ThresholdRequired);
+        if (amountThreshold < 0 || qtyThreshold < 0) throw new DomainException(Messages.ThresholdNegative);
+        if (!Roles.All.Contains(roleRequired)) throw new DomainException(Messages.UnknownRole);
+
+        DocType = docType;
+        AmountThreshold = amountThreshold;
+        QtyThreshold = qtyThreshold;
+        RoleRequired = roleRequired;
+        IsActive = isActive;
+    }
+
+    public bool Matches(DocumentType type, decimal totalQty, decimal totalAmount) =>
+        IsActive && DocType == type &&
+        ((AmountThreshold is { } a && totalAmount >= a) || (QtyThreshold is { } q && totalQty >= q));
+}

@@ -1,0 +1,28 @@
+@use 'libs' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: space(0);
+  min-width: 0;
+}
+
+.ui-form-field-label {
+  font-size: font-size(2);
+  font-weight: font-weight('medium');
+}
+
+.ui-form-field-required {
+  font-weight: font-weight('regular');
+  color: color('text-muted');
+}
+
+.ui-form-field-hint {
+  font-size: font-size(1);
+  color: color('text-muted');
+}
+
+.ui-form-field-error {
+  font-size: font-size(2);
+  color: color('danger');
+}

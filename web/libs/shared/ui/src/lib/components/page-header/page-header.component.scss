@@ -1,0 +1,56 @@
+@use 'libs' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: space(0);
+  margin-bottom: space(2);
+}
+
+.ui-page-header-back {
+  display: inline-flex;
+  gap: space(0);
+  align-items: center;
+  align-self: flex-start;
+  min-height: height('touch-min');
+  color: color('text-muted');
+  text-decoration: none;
+
+  &:hover {
+    color: color('text');
+  }
+}
+
+.ui-page-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1) space(2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ui-page-header-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  align-items: center;
+  min-width: 0;
+}
+
+.ui-page-header-heading {
+  overflow-wrap: anywhere;
+}
+
+.ui-page-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+
+  &:empty {
+    display: none;
+  }
+}
+
+.ui-page-header-subtitle {
+  color: color('text-muted');
+}

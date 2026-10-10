@@ -1,0 +1,15 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.low-stock-page-short {
+  font-weight: font-weight('bold');
+  color: color('danger');
+}
+
+.low-stock-page-create {
+  position: relative;
+  z-index: z-index('sticky');
+}

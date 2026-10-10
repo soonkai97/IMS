@@ -1,0 +1,39 @@
+name: PR guard
+
+# Enforces the git workflow on pull requests: conventional PR title and commits, branch naming, no forbidden files or secrets,
+# bounded PR size. Rules live in scripts/guard/lib.mjs (the same file the local hooks use). See docs/team/GIT-WORKFLOW.md.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-guard-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    name: Git workflow guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          # The guard only reads git data and never executes code from the pull request's own dependencies.
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+      - name: Run guard
+        # Untrusted values (title, branch name) reach the script only through environment variables.
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BRANCH: ${{ github.head_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: node scripts/guard/pr-guard.mjs

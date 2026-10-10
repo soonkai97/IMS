@@ -1,0 +1,25 @@
+{
+  "name": "core-http",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/core/http/src",
+  "prefix": "app",
+  "tags": ["scope:core"],
+  "implicitDependencies": ["shared-styles", "shared-assets"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/core/http"],
+      "options": {
+        "jestConfig": "libs/core/http/jest.config.ts",
+        "passWithNoTests": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["libs/core/http/src/**/*.ts", "libs/core/http/src/**/*.html"]
+      }
+    }
+  }
+}

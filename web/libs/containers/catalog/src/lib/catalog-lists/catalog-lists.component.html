@@ -1,0 +1,54 @@
+<app-page-header [heading]="'catalog.title' | t">
+  <div actions>
+    @if ($canManage()) {
+      <app-button variant="primary" (clicked)="onAdd()">
+        <app-icon name="plus" />
+        {{ ($isUnits() ? 'catalog.newUnit' : 'catalog.newCategory') | t }}
+      </app-button>
+    }
+  </div>
+</app-page-header>
+
+<app-tabs
+  [label]="'catalog.title' | t"
+  [tabs]="$tabs()"
+  [active]="$tab()"
+  (activeChange)="onTabChange($event)"
+/>
+
+<app-table
+  [columns]="$columns()"
+  [rows]="$rows()"
+  [caption]="'catalog.title' | t"
+  [loading]="$isLoading()"
+>
+  <ng-template appCell="actions" let-row>
+    <app-button variant="ghost" (clicked)="onEdit(row)">
+      <app-icon name="pencil" />
+      {{ 'common.edit' | t }}
+    </app-button>
+  </ng-template>
+  <app-empty-state empty icon="list" [message]="'catalog.empty' | t" />
+</app-table>
+
+<app-dialog [(open)]="$dialogOpen" [heading]="$dialogHeading()">
+  <form class="catalog-lists-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
+    @for (message of $serverErrors(); track message) {
+      <app-banner kind="danger">{{ message }}</app-banner>
+    }
+    @if ($isUnits()) {
+      <app-form-field [label]="'catalog.code' | t" [required]="true" [control]="form.controls.code">
+        <app-input formControlName="code" [maxLength]="16" />
+      </app-form-field>
+    }
+    <app-form-field [label]="'catalog.name' | t" [required]="true" [control]="form.controls.name">
+      <app-input formControlName="name" [maxLength]="128" />
+    </app-form-field>
+  </form>
+  <div dialogActions>
+    <app-button (clicked)="$dialogOpen.set(false)">{{ 'common.cancel' | t }}</app-button>
+    <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
+      'common.save' | t
+    }}</app-button>
+  </div>
+</app-dialog>

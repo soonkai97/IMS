@@ -1,0 +1,7 @@
+using Ims.Domain;
+namespace Ims.Application.Features.Stock;
+
+/// <param name="AfterId">Seek paging: return rows older than this ledger id. Use it instead of <c>Page</c> for deep pages (constant cost at any depth).</param>
+/// <param name="IncludeTotal">False skips the row count, which is the expensive part of a very large ledger.</param>
+public record LedgerFilter(int? WarehouseId, int? ProductId, DateOnly? From, DateOnly? To, int? SourceDocId,
+    int Page = 1, int PageSize = Limits.DefaultListPageSize, long? AfterId = null, bool IncludeTotal = true);

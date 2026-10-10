@@ -1,0 +1,178 @@
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
+import { map, startWith, tap } from 'rxjs';
+import { DocumentDto, DocumentSaveRequest, DocumentType, IssuePurpose, ProductDto } from '@ims/api';
+import { CatalogStore } from '@ims/features/catalog';
+import {
+  LineGroup,
+  LineValue,
+  LinesArray,
+  StockAvailabilityService,
+  computeTotals,
+  createLineGroup,
+  lineFromDocument,
+  lineFromProduct,
+  maxCoveredQuantity,
+  toLineInputs
+} from '@ims/features/documents';
+import { MAX_DOCUMENT_LINES } from '@ims/models';
+import { Observable } from 'rxjs';
+
+const MAX_REMARK_LENGTH = 1000;
+const QUANTITY_STEP = 1;
+const MIN_STEPPED_QUANTITY = 0.001;
+
+/**
+ * Form model of the document editor (header + lines) and the numbers derived from it. One instance per editor page.
+ * Keeping it out of the component makes the line logic testable without a DOM.
+ */
+@Injectable()
+export class DocumentEditorViewService {
+  private readonly availability = inject(StockAvailabilityService);
+  private readonly catalog = inject(CatalogStore);
+
+  readonly header = new FormGroup({
+    warehouseId: new FormControl<number | null>(null, [Validators.required]),
+    partnerId: new FormControl<number | null>(null),
+    purpose: new FormControl<IssuePurpose | null>(null),
+    remark: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(MAX_REMARK_LENGTH)]
+    })
+  });
+  readonly lines: LinesArray = new FormArray<LineGroup>([]);
+
+  readonly $type = signal<DocumentType>(DocumentType.Receipt);
+  readonly $values = toSignal(
+    this.lines.valueChanges.pipe(
+      startWith(null),
+      map(() => this.lines.getRawValue())
+    ),
+    { initialValue: [] as LineValue[] }
+  );
+  readonly $totals = computed(() => computeTotals(this.$values(), this.$type()));
+  readonly $canAddLine = computed(() => this.$values().length < MAX_DOCUMENT_LINES);
+
+  /** Sets the document type: issues need a purpose, receipts do not. */
+  configure(type: DocumentType): void {
+    this.$type.set(type);
+    this.header.controls.purpose.setValidators(
+      type === DocumentType.Issue ? [Validators.required] : []
+    );
+    this.header.controls.purpose.updateValueAndValidity({ emitEvent: false });
+  }
+
+  /** Empty form for a new document; a single warehouse is pre-selected. */
+  startNew(defaultWarehouseId: number | null): void {
+    this.header.reset({
+      warehouseId: defaultWarehouseId,
+      partnerId: null,
+      purpose: null,
+      remark: ''
+    });
+    this.lines.clear();
+    this.header.markAsPristine();
+    this.header.enable();
+  }
+
+  populate(document: DocumentDto, editable: boolean): void {
+    this.header.reset({
+      warehouseId: document.warehouseId,
+      partnerId: document.partnerId ?? null,
+      purpose: document.purpose ?? null,
+      remark: document.remark ?? ''
+    });
+    this.lines.clear();
+    for (const line of document.lines) {
+      this.lines.push(createLineGroup(lineFromDocument(line)));
+    }
+    if (editable) {
+      this.header.enable();
+      this.lines.enable();
+    } else {
+      this.header.disable();
+      this.lines.disable();
+    }
+    this.header.markAsPristine();
+    this.lines.markAsPristine();
+  }
+
+  /** Adds the product, or raises the quantity of the line it is already on (repeated scans accumulate). */
+  addProduct(product: ProductDto, available: number | null): void {
+    const existing = this.lines.controls.find(
+      group => group.controls.productId.value === product.id
+    );
+    if (existing) {
+      this.step(existing, QUANTITY_STEP);
+      existing.controls.available.setValue(available ?? existing.controls.available.value);
+      return;
+    }
+    if (!this.$canAddLine()) {
+      return;
+    }
+    this.lines.push(
+      createLineGroup(lineFromProduct(product, this.catalog.$unitCodes(), available))
+    );
+    this.lines.markAsDirty();
+  }
+
+  step(group: LineGroup, delta: number): void {
+    const next = Math.max(MIN_STEPPED_QUANTITY, (group.controls.qty.value ?? 0) + delta);
+    group.controls.qty.setValue(next);
+    group.controls.qty.markAsDirty();
+  }
+
+  remove(index: number): void {
+    this.lines.removeAt(index);
+    this.lines.markAsDirty();
+  }
+
+  /** E1 one-tap fix: lower the line to what the warehouse can cover. */
+  setToAvailable(group: LineGroup): void {
+    group.controls.qty.setValue(maxCoveredQuantity(group.getRawValue()));
+    group.controls.qty.markAsDirty();
+  }
+
+  /** Re-reads on-hand quantities of an issue's lines (after opening, or after changing the warehouse). */
+  refreshAvailability(warehouseId: number): Observable<ReadonlyMap<number, number>> {
+    return this.availability.bySearch(warehouseId, '').pipe(
+      tap(stock => {
+        for (const group of this.lines.controls) {
+          group.controls.available.setValue(stock.get(group.controls.productId.value) ?? 0);
+        }
+      })
+    );
+  }
+
+  clearAvailability(): void {
+    for (const group of this.lines.controls) {
+      group.controls.available.setValue(null);
+    }
+  }
+
+  hasUnsavedChanges(): boolean {
+    return this.header.dirty || this.lines.dirty;
+  }
+
+  isValid(): boolean {
+    return this.header.valid && this.lines.valid && this.lines.length > 0;
+  }
+
+  markAllTouched(): void {
+    this.header.markAllAsTouched();
+    this.lines.markAllAsTouched();
+  }
+
+  toRequest(): DocumentSaveRequest {
+    const header = this.header.getRawValue();
+    const type = this.$type();
+    return {
+      warehouseId: header.warehouseId ?? 0,
+      partnerId: header.partnerId ?? undefined,
+      purpose: type === DocumentType.Issue ? (header.purpose ?? undefined) : undefined,
+      remark: header.remark.trim().length > 0 ? header.remark.trim() : undefined,
+      lines: toLineInputs(this.lines.getRawValue(), type)
+    };
+  }
+}

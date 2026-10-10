@@ -1,0 +1,8 @@
+/dist
+/coverage
+/.nx
+/node_modules
+/openapi
+libs/shared/api/src/lib/api-client.ts
+libs/shared/assets/src/assets/i18n-generated
+package-lock.json

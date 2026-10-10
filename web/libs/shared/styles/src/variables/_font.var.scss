@@ -1,0 +1,45 @@
+@use 'sass:map';
+
+$font-weights: (
+  'regular': 400,
+  'medium': 500,
+  'bold': 650
+);
+
+$font-families: (
+  'sans': (
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Noto Sans',
+    'Noto Sans SC',
+    'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif
+  ),
+  'mono': (
+    ui-monospace,
+    'Cascadia Mono',
+    Consolas,
+    monospace
+  )
+);
+
+$line-height: 1.45;
+
+@function font-weight($name) {
+  @if not map.has-key($font-weights, $name) {
+    @error 'Unknown font weight "#{$name}".';
+  }
+
+  @return map.get($font-weights, $name);
+}
+
+@function font-family($name) {
+  @if not map.has-key($font-families, $name) {
+    @error 'Unknown font family "#{$name}".';
+  }
+
+  @return map.get($font-families, $name);
+}

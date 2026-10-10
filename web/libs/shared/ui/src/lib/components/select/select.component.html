@@ -1,0 +1,20 @@
+<select
+  [class]="$controlClass()"
+  [attr.id]="$id()"
+  [attr.aria-label]="$ariaLabel()"
+  [attr.aria-describedby]="$describedBy()"
+  [attr.aria-invalid]="$invalid() || null"
+  [disabled]="$disabled()"
+  (change)="onChangeEvent($event)"
+  (blur)="onBlur()"
+>
+  @if ($placeholderText(); as placeholderText) {
+    <option value="" [selected]="$placeholderSelected()">{{ placeholderText }}</option>
+  }
+  @for (item of $items(); track item.index) {
+    <option [value]="item.index" [selected]="item.selected" [disabled]="item.disabled">
+      {{ item.label }}
+    </option>
+  }
+</select>
+<app-icon class="ui-select-arrow" name="chevron-down" />

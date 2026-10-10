@@ -1,0 +1,83 @@
+{
+  "name": "ims-web",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@10.8.2",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "nx": "nx",
+    "dev": "nx serve main --port=4200",
+    "build": "nx build main --configuration=development",
+    "build:prod": "nx build main --configuration=production",
+    "serve:prod": "node scripts/serve-dist.mjs",
+    "test": "nx run-many -t test --passWithNoTests",
+    "coverage": "nx run-many -t test --coverage --passWithNoTests",
+    "lint": "nx run-many -t lint && npm run lint:styles",
+    "lint:styles": "stylelint \"{apps,libs}/**/*.scss\"",
+    "format": "prettier --write \"{apps,libs,tools,scripts,docs}/**/*.{ts,html,scss,json,mjs,md}\"",
+    "format:check": "prettier --check \"{apps,libs,tools,scripts,docs}/**/*.{ts,html,scss,json,mjs,md}\"",
+    "api:generate": "node scripts/fetch-openapi.mjs && nswag run nswag.json",
+    "contrast": "node scripts/check-contrast.mjs",
+    "dep-graph": "nx graph"
+  },
+  "dependencies": {
+    "@angular/animations": "^21.2.0",
+    "@angular/common": "^21.2.0",
+    "@angular/compiler": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@angular/forms": "^21.2.0",
+    "@angular/platform-browser": "^21.2.0",
+    "@angular/platform-browser-dynamic": "^21.2.0",
+    "@angular/router": "^21.2.0",
+    "@angular/service-worker": "^21.2.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/core": "^21.2.0",
+    "@angular-devkit/schematics": "^21.2.0",
+    "@angular/build": "^21.2.0",
+    "@angular/cli": "^21.2.0",
+    "@angular/compiler-cli": "^21.2.0",
+    "@eslint/js": "^9.39.0",
+    "@ngneat/spectator": "^21.0.1",
+    "@nx/angular": "22.7.12",
+    "@nx/eslint": "22.7.12",
+    "@nx/eslint-plugin": "22.7.12",
+    "@nx/jest": "22.7.12",
+    "@nx/js": "22.7.12",
+    "@nx/workspace": "22.7.12",
+    "@schematics/angular": "^21.2.0",
+    "@swc-node/register": "^1.10.0",
+    "@swc/core": "^1.13.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.19.0",
+    "angular-eslint": "^21.4.0",
+    "eslint": "^9.39.0",
+    "eslint-config-prettier": "^10.1.0",
+    "husky": "^9.1.7",
+    "jest": "^30.0.0",
+    "jest-environment-jsdom": "^30.0.0",
+    "jest-preset-angular": "^16.2.0",
+    "jsonc-eslint-parser": "^2.4.0",
+    "lint-staged": "^15.5.0",
+    "nswag": "^14.7.1",
+    "nx": "22.7.12",
+    "prettier": "~3.6.2",
+    "stylelint": "^16.23.0",
+    "stylelint-config-standard-scss": "^15.0.0",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.40.0"
+  },
+  "lint-staged": {
+    "*.{ts,html,json,mjs,md}": "prettier --write",
+    "*.scss": [
+      "stylelint --fix",
+      "prettier --write"
+    ]
+  }
+}

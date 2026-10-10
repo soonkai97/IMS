@@ -1,0 +1,35 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.users-page-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: space(1) space(2);
+  margin-bottom: space(2);
+
+  @include media-tablet {
+    grid-template-columns: 2fr 1fr;
+    align-items: end;
+  }
+}
+
+.users-page-form {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.users-page-warehouses {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.users-page-hint {
+  font-size: font-size(1);
+  color: color('text-muted');
+}

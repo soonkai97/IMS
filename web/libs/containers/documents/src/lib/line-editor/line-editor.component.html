@@ -1,0 +1,102 @@
+<ul class="line-editor-list">
+  @for (row of $rows(); track row.group) {
+    <li
+      class="line-editor-row"
+      [formGroup]="row.group"
+      [class.--blocked]="row.blocked"
+      [class.--override]="row.needsOverride"
+    >
+      <div class="line-editor-product">
+        <strong class="line-editor-sku">{{ row.value.sku }}</strong>
+        <span class="line-editor-name">{{ row.value.productName }}</span>
+        @if ($isIssue() && row.value.available !== null) {
+          <span class="line-editor-available">
+            {{
+              'line.available'
+                | t: { qty: (row.value.available | appQty), uom: row.value.baseUomCode }
+            }}
+          </span>
+        }
+      </div>
+
+      <div class="line-editor-qty">
+        @if (!$readonly()) {
+          <app-button
+            variant="ghost"
+            [ariaLabel]="'line.decrease' | t"
+            (clicked)="onStep(row.group, -1)"
+          >
+            <app-icon name="minus" />
+          </app-button>
+        }
+        <app-form-field
+          class="line-editor-qty-field"
+          [label]="'doc.qty' | t"
+          [control]="row.group.controls.qty"
+        >
+          <app-input type="number" formControlName="qty" inputMode="decimal" min="0" />
+        </app-form-field>
+        @if (!$readonly()) {
+          <app-button
+            variant="ghost"
+            [ariaLabel]="'line.increase' | t"
+            (clicked)="onStep(row.group, 1)"
+          >
+            <app-icon name="plus" />
+          </app-button>
+        }
+        @if (row.hasUnitChoice) {
+          <app-form-field class="line-editor-unit" [label]="'doc.unit' | t">
+            <app-select formControlName="uomId" [options]="row.unitOptions" />
+          </app-form-field>
+        } @else {
+          <span class="line-editor-unit-code">{{ row.unitCode }}</span>
+        }
+      </div>
+
+      @if ($isReceipt()) {
+        <app-form-field
+          class="line-editor-cost"
+          [label]="'doc.unitCost' | t"
+          [control]="row.group.controls.unitCost"
+        >
+          <app-input type="number" formControlName="unitCost" inputMode="decimal" min="0" />
+        </app-form-field>
+      }
+
+      @if (row.blocked) {
+        <p class="line-editor-message --blocked" role="alert">
+          {{
+            'line.short.blocked'
+              | t
+                : {
+                    available: (row.value.available ?? 0 | appQty),
+                    uom: row.value.baseUomCode,
+                    warehouse: $warehouseName()
+                  }
+          }}
+          @if (!$readonly()) {
+            <app-button (clicked)="onSetToAvailable(row.group)">
+              {{ 'line.setToAvailable' | t: { qty: (row.maxCovered | appQty) } }}
+            </app-button>
+          }
+        </p>
+      }
+      @if (row.needsOverride) {
+        <p class="line-editor-message --override" role="status">
+          {{
+            'line.short.override'
+              | t: { short: (row.shortfall | appQty), uom: row.value.baseUomCode }
+          }}
+        </p>
+      }
+
+      @if (!$readonly()) {
+        <app-button class="line-editor-remove" variant="ghost" (clicked)="onRemove(row.index)">
+          <app-icon name="trash" />
+          {{ 'common.remove' | t }}
+        </app-button>
+      }
+    </li>
+  }
+</ul>
