@@ -23,6 +23,7 @@ import {
   UiRadioGroupComponent
 } from '@ims/ui';
 import { NavigationService } from '../services/navigation.service';
+import { PageTitleService } from '../services/page-title.service';
 
 /**
  * App chrome. Phones (< 600px): top bar + bottom tab bar with a "More" sheet. Tablets: icon rail. Desktop (>= 1024px):
@@ -52,6 +53,7 @@ export class ShellComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly loading = inject(LoadingService);
   private readonly navigation = inject(NavigationService);
+  private readonly pageTitle = inject(PageTitleService);
   private readonly permissions = inject(PermissionService);
   private readonly theme = inject(ThemeService);
 
@@ -61,6 +63,7 @@ export class ShellComponent implements OnInit {
   $phoneTabs = this.navigation.$phoneTabs;
   $moreEntries = this.navigation.$moreEntries;
   $isLoading = this.loading.$isLoading;
+  $announcement = this.pageTitle.$announcement;
   $displayName = this.permissions.$displayName;
   $role = this.permissions.$role;
 

@@ -7,8 +7,9 @@
   display: grid;
   grid-template-areas:
     'bar'
-    'main';
-  grid-template-rows: auto 1fr;
+    'main'
+    'tabbar';
+  grid-template-rows: auto 1fr auto;
   min-height: 100dvh;
 
   @include media-tablet {
@@ -43,6 +44,10 @@
   }
 }
 
+.shell-announcer {
+  @include visually-hidden;
+}
+
 .shell-progress {
   position: fixed;
   top: 0;
@@ -67,6 +72,10 @@
   padding: 0 space(2);
   background: color('surface');
   border-bottom: border-width('thin') solid color('border');
+
+  @include media-short {
+    position: static;
+  }
 }
 
 .shell-brand {
@@ -191,6 +200,11 @@
   &:focus {
     outline: none;
   }
+
+  // The tab bar is part of the page flow here (see .shell-tabbar), so there is no bar to clear.
+  @include media-short {
+    padding-bottom: space(3);
+  }
 }
 
 .shell-tabbar {
@@ -206,6 +220,12 @@
 
   @include media-tablet {
     display: none;
+  }
+
+  // 400% zoom leaves 256px: header + action bar + tab bar would be more than that. Flow with the page instead.
+  @include media-short {
+    position: static;
+    grid-area: tabbar;
   }
 }
 
@@ -247,6 +267,12 @@
   min-height: height('touch');
   color: color('text');
   text-decoration: none;
+
+  // The badge belongs to its row, not to the corner of the sheet (NV-24).
+  & .shell-badge {
+    position: static;
+    margin-left: auto;
+  }
 }
 
 .shell-account-name {

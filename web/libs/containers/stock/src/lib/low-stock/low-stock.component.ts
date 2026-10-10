@@ -67,15 +67,30 @@ export class LowStockPageComponent implements OnInit {
   $canCreate = computed(() => this.permissions.has(PERMISSION.DocumentCreate));
   $columns = computed<readonly TableColumn<LowStockAlert>[]>(() => [
     { key: 'sku', header: this.i18n.t('product.sku'), value: row => row.sku, primary: true },
-    { key: 'name', header: this.i18n.t('product.name'), value: row => row.productName },
-    { key: 'warehouse', header: this.i18n.t('stock.warehouse'), value: row => row.warehouseName },
+    {
+      key: 'name',
+      header: this.i18n.t('product.name'),
+      value: row => row.productName,
+      phoneInline: true
+    },
+    {
+      key: 'warehouse',
+      header: this.i18n.t('stock.warehouse'),
+      value: row => row.warehouseName,
+      phoneInline: true
+    },
     { key: 'onHand', header: this.i18n.t('stock.onHand'), align: 'end' },
     { key: 'safety', header: this.i18n.t('product.safetyStock'), align: 'end', hideOnPhone: true },
-    { key: 'short', header: this.i18n.t('lowStock.shortBy'), align: 'end' },
-    { key: 'actions', header: this.i18n.t('common.actions'), align: 'end', hideOnPhone: true }
+    { key: 'short', header: this.i18n.t('lowStock.shortBy'), align: 'end', phoneEnd: true },
+    { key: 'actions', header: this.i18n.t('common.actions'), align: 'end', phoneInline: true }
   ]);
 
   readonly rowLink = (row: LowStockAlert): readonly unknown[] => ['/stock', row.productId];
+  /** "Create receipt" opens the form with this product and warehouse already chosen (design 3.8, NV-13). */
+  readonly receiptParams = (row: LowStockAlert): Record<string, string | number> => ({
+    sku: row.sku,
+    warehouseId: row.warehouseId
+  });
 
   constructor() {
     loadOnChange(this.$query, query => this.store.lowStock.load(query));

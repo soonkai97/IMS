@@ -75,3 +75,56 @@ describe('ProductPickerComponent exact-code lookup (scanner, Enter)', () => {
     expect(picked).toEqual([]);
   });
 });
+
+describe('ProductPickerComponent keyboard and scanner path (NV-03, NV-04, NV-15)', () => {
+  let spectator: Spectator<ProductPickerComponent>;
+  const createComponent = createComponentFactory({
+    component: ProductPickerComponent,
+    providers: [mockProvider(ProductsStore), mockProvider(StockAvailabilityService)]
+  });
+
+  beforeEach(() => {
+    spectator = createComponent();
+  });
+
+  it('marks the search box for focus-on-open, so the sheet that holds it focuses it when it opens', () => {
+    expect(spectator.query('input[type=search]')?.hasAttribute('data-autofocus')).toBe(true);
+  });
+
+  it('says what to type until there are two characters, and tells the user about a pick instead', () => {
+    expect(spectator.query('.product-picker-hint')?.textContent).toContain(
+      'Type 2 or more letters'
+    );
+
+    spectator.setInput({ notice: 'W-1: now 2.' } as never);
+    spectator.detectChanges();
+
+    expect(spectator.query('.product-picker-notice')?.textContent).toContain('W-1: now 2.');
+    expect(spectator.query('.product-picker-hint')).toBeNull();
+  });
+
+  it('the notice sits in a live region that exists before the message, so it is read out', () => {
+    expect(spectator.query('[aria-live=polite]')).toBeTruthy();
+  });
+
+  it('tells the page when the user types something else, but not when the box is cleared after a pick', () => {
+    const terms: string[] = [];
+    spectator.component.$termChanged.subscribe(term => terms.push(term));
+
+    spectator.component.$term.set('bo');
+    spectator.detectChanges();
+    spectator.component.$term.set('');
+    spectator.detectChanges();
+
+    expect(terms).toEqual(['bo']);
+  });
+
+  it('tapping a result keeps the cursor in the search box for the next scan', () => {
+    const input = spectator.query('input[type=search]') as HTMLInputElement;
+    expect(document.activeElement).not.toBe(input);
+
+    spectator.component.onPick({ product: WIDGET, available: null });
+
+    expect(document.activeElement).toBe(input);
+  });
+});

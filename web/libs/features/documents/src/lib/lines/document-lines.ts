@@ -51,7 +51,8 @@ export type LineGroup = FormGroup<{
 export type LinesArray = FormArray<LineGroup>;
 
 export const MIN_LINE_QTY = 0.001;
-const DEFAULT_QTY = 1;
+/** A line starts at one; a worker who never changed it has nothing to lose by removing it. */
+export const DEFAULT_QTY = 1;
 const BASE_FACTOR = 1;
 
 /** The API stores at most 4 decimals; reject more instead of letting the server do it. */
@@ -192,7 +193,8 @@ export function computeTotals(lines: readonly LineValue[], type: DocumentType): 
   const isReceipt = type === DocumentType.Receipt;
   return {
     lineCount: lines.length,
-    totalQty: roundQuantity(lines.reduce((sum, line) => sum + baseQuantity(line), 0)),
+    // A line being typed (empty, 0 or negative) adds nothing: the footer must never say "-4 units".
+    totalQty: roundQuantity(lines.reduce((sum, line) => sum + Math.max(0, baseQuantity(line)), 0)),
     totalAmount: isReceipt
       ? roundQuantity(
           lines.reduce((sum, line) => sum + toNumber(line.qty) * toNumber(line.unitCost), 0),

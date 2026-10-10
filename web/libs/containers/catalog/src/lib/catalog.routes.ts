@@ -12,17 +12,24 @@ const canManage = requirePermission(PERMISSION.MasterDataManage);
 
 /** /products/** (the "Categories & units" page has its own entry below). */
 export const PRODUCT_ROUTES: Routes = [
-  { path: '', component: ProductsPageComponent, canActivate: [canRead] },
+  { path: '', component: ProductsPageComponent, title: 'products.title', canActivate: [canRead] },
   {
     path: 'new',
     component: ProductEditPageComponent,
+    title: 'products.new',
     canActivate: [canManage],
     canDeactivate: [unsavedChangesGuard]
   },
-  { path: 'import', component: ProductImportPageComponent, canActivate: [canManage] },
+  {
+    path: 'import',
+    component: ProductImportPageComponent,
+    title: 'import.title',
+    canActivate: [canManage]
+  },
   {
     path: ':id',
     component: ProductEditPageComponent,
+    title: 'products.title',
     canActivate: [canRead],
     canDeactivate: [unsavedChangesGuard]
   }
@@ -30,5 +37,5 @@ export const PRODUCT_ROUTES: Routes = [
 
 /** /catalog */
 export const CATALOG_ROUTES: Routes = [
-  { path: '', component: CatalogListsPageComponent, canActivate: [canRead] }
+  { path: '', component: CatalogListsPageComponent, title: 'catalog.title', canActivate: [canRead] }
 ];

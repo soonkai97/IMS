@@ -10,6 +10,13 @@ export interface TableColumn<Row> {
   readonly primary?: boolean;
   /** Hidden when the table collapses to cards. */
   readonly hideOnPhone?: boolean;
+  /**
+   * Compact card: the cell sits at the end of the title line (a status chip). Any column with this flag or
+   * `phoneInline` turns the cards of this table into two lines: title + end cell, then the other cells side by side.
+   */
+  readonly phoneEnd?: boolean;
+  /** Compact card: the value is shown without its label (a date, a name: self-explanatory). */
+  readonly phoneInline?: boolean;
   /** Server sort key; makes the header a sort button. */
   readonly sortKey?: string;
 }
@@ -27,6 +34,10 @@ export interface TableCell {
   readonly primary: boolean;
   readonly alignEnd: boolean;
   readonly hideOnPhone: boolean;
+  readonly phoneEnd: boolean;
+  readonly phoneInline: boolean;
+  /** Nothing to show: dropped from the card instead of leaving a blank row. */
+  readonly empty: boolean;
 }
 
 export interface TableHeader {

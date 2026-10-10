@@ -1,6 +1,6 @@
 import { HttpContext } from '@angular/common/http';
 import { createServiceFactory, mockProvider, SpectatorService } from '@ngneat/spectator/jest';
-import { firstValueFrom, of } from 'rxjs';
+import { firstValueFrom, of, throwError } from 'rxjs';
 import {
   DocumentDto,
   DocumentType,
@@ -130,5 +130,30 @@ describe('DocumentsStore', () => {
 
     spectator.service.resetCommands();
     expect(spectator.service.submit.$operation().error).toBeUndefined();
+  });
+
+  it('a command that changes the document clears what the others failed with (a stale "Stock changed" banner)', async () => {
+    const stockConflict = new Error('Stock changed');
+    client().post.mockReturnValue(throwError(() => stockConflict));
+    await firstValueFrom(spectator.service.post.run(toDocumentRef(DOCUMENT)), {
+      defaultValue: undefined
+    });
+    expect(spectator.service.post.$isFailed()).toBe(true);
+
+    await firstValueFrom(spectator.service.cancel.run({ ...toDocumentRef(DOCUMENT), reason: '' }));
+
+    expect(spectator.service.post.$isFailed()).toBe(false);
+    expect(spectator.service.cancel.$isFailed()).toBe(false);
+  });
+
+  it('a failed command leaves the others alone', async () => {
+    client().post.mockReturnValue(throwError(() => new Error('Stock changed')));
+    await firstValueFrom(spectator.service.submit.run(toDocumentRef(DOCUMENT)));
+    await firstValueFrom(spectator.service.post.run(toDocumentRef(DOCUMENT)), {
+      defaultValue: undefined
+    });
+
+    expect(spectator.service.post.$isFailed()).toBe(true);
+    expect(spectator.service.submit.$isFailed()).toBe(false);
   });
 });

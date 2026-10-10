@@ -26,7 +26,9 @@ describe('DocumentActionsComponent (buttons come from the server allowedActions)
   }
 
   const labels = (): string[] =>
-    spectator.queryAll('button').map(button => (button.textContent ?? '').trim());
+    spectator
+      .queryAll('button')
+      .map(button => button.getAttribute('aria-label') ?? (button.textContent ?? '').trim());
 
   it('renders nothing when the server allows nothing (read-only document)', () => {
     render([]);
@@ -37,7 +39,41 @@ describe('DocumentActionsComponent (buttons come from the server allowedActions)
   it('draft: Save draft, Cancel document and Submit, but never Approve or Post', () => {
     render([DOCUMENT_ACTION.Edit, DOCUMENT_ACTION.Submit, DOCUMENT_ACTION.Cancel]);
 
-    expect(labels()).toEqual(['Cancel document', 'Save draft', 'Submit']);
+    expect(labels()).toEqual(['Cancel document', 'More actions', 'Save draft', 'Submit']);
+  });
+
+  it('NV-10: on a phone Cancel moves into the more sheet when there is something else to do', () => {
+    render([DOCUMENT_ACTION.Edit, DOCUMENT_ACTION.Submit, DOCUMENT_ACTION.Cancel]);
+    const emitted: DocumentAction[] = [];
+    spectator.output('$triggered').subscribe(action => emitted.push(action as DocumentAction));
+
+    expect(spectator.query('.document-actions-cancel')?.classList).toContain('--overflow');
+    spectator.click(spectator.query('.document-actions-more button') as HTMLElement);
+    spectator.detectChanges();
+    const sheetButton = spectator.query(
+      'dialog button.ui-button-control.--danger, dialog .--danger button'
+    );
+    expect(sheetButton?.textContent).toContain('Cancel document');
+    spectator.click(sheetButton as HTMLElement);
+
+    expect(emitted).toEqual([DOCUMENT_ACTION.Cancel]);
+  });
+
+  it('NV-10: Cancel stays where it is when it is the only action (the submitter recalling)', () => {
+    render([DOCUMENT_ACTION.Cancel]);
+
+    expect(labels()).toEqual(['Cancel document']);
+    expect(spectator.query('.document-actions-cancel')?.classList).not.toContain('--overflow');
+  });
+
+  it('PS-08: a stale copy locks every button until it is reloaded', () => {
+    render([DOCUMENT_ACTION.Approve, DOCUMENT_ACTION.Reject]);
+    spectator.setInput({ locked: true } as never);
+    spectator.detectChanges();
+
+    const disabled = spectator.queryAll('button').map(button => button.hasAttribute('disabled'));
+    expect(disabled.length).toBeGreaterThan(0);
+    expect(disabled.every(Boolean)).toBe(true);
   });
 
   it('labels the single submit button "Submit & post" for roles that may post (D4)', () => {
@@ -72,8 +108,38 @@ describe('DocumentActionsComponent (buttons come from the server allowedActions)
     const approve = spectator
       .queryAll('button')
       .find(button => button.textContent?.includes('Approve'));
-    expect(approve?.hasAttribute('disabled')).toBe(true);
-    expect(spectator.element.textContent).toContain("can't approve it");
+    // Focusable (not natively disabled) and tied to the reason, so a keyboard user learns why (EA-22).
+    expect(approve?.hasAttribute('disabled')).toBe(false);
+    expect(approve?.getAttribute('aria-disabled')).toBe('true');
+    const reasonId = approve?.getAttribute('aria-describedby') ?? '';
+    expect(spectator.query(`#${reasonId}`)?.textContent).toContain("can't approve it");
+  });
+
+  it('a blocked Approve does nothing when pressed', () => {
+    render([DOCUMENT_ACTION.Cancel], { selfApprovalBlocked: true });
+    const emitted: DocumentAction[] = [];
+    spectator.output('$triggered').subscribe(action => emitted.push(action as DocumentAction));
+
+    spectator.click(
+      spectator
+        .queryAll('button')
+        .find(button => button.textContent?.includes('Approve')) as HTMLElement
+    );
+
+    expect(emitted).toEqual([]);
+  });
+
+  it('NV-21: only the tapped button shows the spinner', () => {
+    render([DOCUMENT_ACTION.Edit, DOCUMENT_ACTION.Submit]);
+    spectator.setInput({ busy: true, busyAction: DOCUMENT_ACTION.Edit } as never);
+    spectator.detectChanges();
+
+    const spinning = spectator
+      .queryAll('button')
+      .filter(button => button.getAttribute('aria-busy') === 'true')
+      .map(button => button.textContent ?? '');
+    expect(spinning).toHaveLength(1);
+    expect(spinning[0]).toContain('Save draft');
   });
 
   it('disables Submit while lines are short on stock', () => {

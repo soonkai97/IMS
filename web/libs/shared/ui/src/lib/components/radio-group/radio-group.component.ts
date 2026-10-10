@@ -1,12 +1,15 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  booleanAttribute,
   computed,
   forwardRef,
+  inject,
   input,
   signal
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { UI_TEXT } from '../../tokens/ui-text.token';
 
 export interface RadioOption {
   readonly value: string | number;
@@ -29,8 +32,17 @@ let nextGroupId = 0;
   ]
 })
 export class UiRadioGroupComponent implements ControlValueAccessor {
+  private readonly uiText = inject(UI_TEXT);
+
   $options = input.required<readonly RadioOption[]>({ alias: 'options' });
   $legend = input.required<string>({ alias: 'legend' });
+  /** Says "(required)" in the legend, like a form field does. */
+  $required = input(false, { alias: 'required', transform: booleanAttribute });
+  /** The group has an error: the fieldset is invalid and described by the element with `errorId`. */
+  $invalid = input(false, { alias: 'invalid', transform: booleanAttribute });
+  $errorId = input<string | undefined>(undefined, { alias: 'errorId' });
+
+  $requiredText = computed(() => this.uiText().required);
 
   readonly groupName = `app-radio-${nextGroupId++}`;
 
