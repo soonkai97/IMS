@@ -29,6 +29,6 @@ public sealed class StockRowsSpec : Specification<StockBalance, StockRow>
         }
         Query.Select(b => new StockRow(b.ProductId, b.Product.Sku, b.Product.Name, b.Product.Category != null ? b.Product.Category.Name : null,
             b.Product.BaseUom.Code, b.WarehouseId, b.Warehouse.Code, b.Warehouse.Name, b.QtyOnHand, b.QtyInTransit, b.AvgCost, b.QtyOnHand * b.AvgCost,
-            b.Product.SafetyStock, b.Product.SafetyStock > 0 && b.QtyOnHand < b.Product.SafetyStock));
+            b.Product.SafetyStock, b.QtyOnHand < 0 || (b.Product.SafetyStock > 0 && b.QtyOnHand < b.Product.SafetyStock), b.QtyOnHand < 0));
     }
 }

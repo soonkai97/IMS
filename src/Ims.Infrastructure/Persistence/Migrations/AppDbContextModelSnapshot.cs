@@ -248,7 +248,13 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("At");
 
+                    b.HasIndex("Action", "Id")
+                        .IsDescending(false, true);
+
                     b.HasIndex("Actor", "Id")
+                        .IsDescending(false, true);
+
+                    b.HasIndex("EntityId", "Id")
                         .IsDescending(false, true);
 
                     b.HasIndex("EntityType", "EntityId");

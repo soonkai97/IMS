@@ -6,7 +6,12 @@ namespace Ims.Application.Features.Audit;
 /// <summary>Stages an audit row in the current unit of work; it is saved together with the business change.</summary>
 public class AuditTrail(IRepository<AuditLog> logs, ICurrentUser current, IClock clock, ILogger<AuditTrail> log) : IAuditTrail
 {
-    private static readonly JsonSerializerOptions Json = new() { ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles };
+    // Enums are written as names ("Status": "Submitted"), so the Details view of the audit log reads in plain words.
+    private static readonly JsonSerializerOptions Json = new()
+    {
+        ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+    };
 
     public void Record(string action, string entityType, string entityId, object? before = null, object? after = null, string? actor = null)
     {
