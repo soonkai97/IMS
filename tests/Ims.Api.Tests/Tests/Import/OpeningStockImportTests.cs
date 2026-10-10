@@ -33,13 +33,28 @@ public class OpeningStockImportTests(ApiFixture fixture)
         var result = (await s.Admin.Import.OpeningStockAsync(file, commit: false)).Data<ImportResult>();
 
         Assert.False(result.Committed);
-        Assert.Equal((5, 1, 4, 0), (result.Total, result.Valid, result.Invalid, result.Created));
+        Assert.Equal((5, 1, 4, 1), (result.Total, result.Valid, result.Invalid, result.Created));
         Assert.Null(result.DocumentId);
         Assert.Contains("Unknown or inactive SKU", Assert.Single(result.Rows[1].Errors));
         Assert.Contains("Unknown or inactive warehouse", Assert.Single(result.Rows[2].Errors));
         Assert.Contains("greater than zero", Assert.Single(result.Rows[3].Errors));
         Assert.Contains("cost", Assert.Single(result.Rows[4].Errors), StringComparison.OrdinalIgnoreCase);
         Assert.Equal(documentsBefore, (await s.Admin.Documents.ListAsync(DocumentType.Receipt, pageSize: 1)).Data<PagedResult<DocumentListItem>>().Total);
+    }
+
+    [Fact]
+    public async Task Every_valid_row_is_New_and_a_bad_row_is_Error_in_the_preview()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var file = Xlsx.Create("Opening stock", Headers,
+            [product.Sku, DefaultWarehouse, 10, 2.5],
+            ["NO-SUCH-SKU", DefaultWarehouse, 1, 1]);
+
+        var result = (await s.Admin.Import.OpeningStockAsync(file, commit: false)).Data<ImportResult>();
+
+        Assert.Equal([ImportRowStatus.New, ImportRowStatus.Error], result.Rows.Select(r => r.Status));
+        Assert.Equal((1, 0), (result.Created, result.Updated));
     }
 
     [Fact]

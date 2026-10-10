@@ -11,7 +11,7 @@ public sealed class LowStockPageSpec : Specification<StockBalance, LowStockAlert
         var (page, size) = Paging.Normalize(f.Page, f.PageSize, Limits.MaxStockPageSize);
         Query.OrderByDescending(b => b.Product.SafetyStock - b.QtyOnHand).ThenBy(b => b.Product.Sku)
             .Skip((page - 1) * size).Take(size)
-            .Select(b => new LowStockAlert(b.ProductId, b.Product.Sku, b.Product.Name, b.WarehouseId, b.Warehouse.Code,
+            .Select(b => new LowStockAlert(b.ProductId, b.Product.Sku, b.Product.Name, b.WarehouseId, b.Warehouse.Code, b.Warehouse.Name,
                 b.QtyOnHand, b.Product.SafetyStock, b.Product.SafetyStock - b.QtyOnHand));
     }
 }

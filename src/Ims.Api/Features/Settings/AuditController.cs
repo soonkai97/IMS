@@ -10,5 +10,5 @@ public class AuditController(IDispatcher dispatcher) : ApiControllerBase(dispatc
 {
     [HttpGet, Authorize(Policy = Permissions.AuditRead)]
     [ProducesResponseType<PagedResult<AuditLogDto>>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Query([FromQuery] AuditQueryFilter filter) => SendOk(new QueryAuditLogQuery(filter));
+    public Task<IActionResult> List([FromQuery] AuditQueryFilter filter) => SendOk(new QueryAuditLogQuery(filter));
 }

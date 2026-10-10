@@ -15,6 +15,10 @@ public static class ApprovalPolicy
     public static bool RequiresApproval(IEnumerable<ApprovalRule> rules, DocumentType type, decimal totalQty, decimal totalAmount) =>
         rules.Any(r => r.Matches(type, totalQty, totalAmount));
 
+    /// <summary>A "large" document fired a rule that a supervisor may not satisfy (the Owner or the Admin must approve it).</summary>
+    public static bool IsLarge(IEnumerable<ApprovalRule> rules, DocumentType type, decimal totalQty, decimal totalAmount) =>
+        rules.Any(r => r.Matches(type, totalQty, totalAmount) && RankOf(r.RoleRequired) > RankOf(Roles.Supervisor));
+
     /// <summary>The approver must outrank every rule that fired; with no rule fired, a supervisor suffices.</summary>
     public static bool CanApprove(string approverRole, IEnumerable<ApprovalRule> rules, DocumentType type, decimal totalQty, decimal totalAmount)
     {

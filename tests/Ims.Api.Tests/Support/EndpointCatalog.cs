@@ -30,6 +30,7 @@ public static class EndpointCatalog
         new("GET settings", Get, Permissions.MasterDataRead, _ => "/api/settings"),
         new("GET approval-rules", Get, Permissions.MasterDataRead, _ => "/api/approval-rules"),
         new("GET documents", Get, Permissions.StockRead, _ => "/api/documents"),
+        new("GET documents counts", Get, Permissions.StockRead, _ => "/api/documents/counts"),
         new("GET stock", Get, Permissions.StockRead, _ => "/api/stock"),
         new("GET stock ledger", Get, Permissions.StockRead, _ => "/api/stock/ledger"),
         new("GET stock low-stock", Get, Permissions.StockRead, _ => "/api/stock/low-stock"),

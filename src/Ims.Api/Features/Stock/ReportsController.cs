@@ -15,18 +15,22 @@ public class ReportsController(IDispatcher dispatcher) : ApiControllerBase(dispa
     public Task<IActionResult> Movements([FromQuery] MovementFilter filter) => SendOk(new ListMovementsQuery(filter));
 
     [RequestTimeout(RequestTimeoutPolicies.Long)]
+    [ProducesFile(ContentTypes.Xlsx)]
     [HttpGet(RouteSegments.StockSummaryExport), Authorize(Policy = Permissions.ReportsRead)]
     public async Task<IActionResult> ExportStockSummary([FromQuery] StockFilter filter) => AsFile(await Send(new ExportStockSummaryQuery(filter)));
 
     [RequestTimeout(RequestTimeoutPolicies.Long)]
+    [ProducesFile(ContentTypes.Xlsx)]
     [HttpGet(RouteSegments.MovementsExport), Authorize(Policy = Permissions.ReportsRead)]
     public async Task<IActionResult> ExportMovements([FromQuery] MovementFilter filter) => AsFile(await Send(new ExportMovementsQuery(filter)));
 
     [RequestTimeout(RequestTimeoutPolicies.Long)]
+    [ProducesFile(ContentTypes.Xlsx)]
     [HttpGet(RouteSegments.LedgerExport), Authorize(Policy = Permissions.ReportsRead)]
     public async Task<IActionResult> ExportLedger([FromQuery] LedgerFilter filter) => AsFile(await Send(new ExportLedgerQuery(filter)));
 
     [RequestTimeout(RequestTimeoutPolicies.Long)]
+    [ProducesFile(ContentTypes.Xlsx)]
     [HttpGet(RouteSegments.LowStockExport), Authorize(Policy = Permissions.ReportsRead)]
     public async Task<IActionResult> ExportLowStock() => AsFile(await Send(new ExportLowStockQuery()));
 

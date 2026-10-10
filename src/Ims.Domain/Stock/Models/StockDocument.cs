@@ -28,7 +28,21 @@ public class StockDocument : Entity
 
     /// <summary>Set at submit time from the approval rules; false means a submitted document may be posted directly.</summary>
     public bool RequiresApproval { get; private set; }
+
+    /// <summary>Set at submit time: an approval rule that only a role above Supervisor (for example the Owner) may satisfy fired.</summary>
+    public bool IsLarge { get; private set; }
+
+    /// <summary>Set at submit time: an issue was submitted although stock is short (negative stock is allowed), so a supervisor must override when posting.</summary>
+    public bool RequiresOverride { get; private set; }
+
     public string? RejectionReason { get; private set; }
+
+    /// <summary>Who returned the document to Draft and when. Cleared when it is submitted again.</summary>
+    public int? RejectedBy { get; private set; }
+    public DateTime? RejectedAt { get; private set; }
+
+    /// <summary>A Draft that a reviewer sent back: the creator sees it as "Returned" until it is submitted again.</summary>
+    public bool IsReturned => Status == DocumentStatus.Draft && RejectionReason is not null;
     public string? CancelReason { get; private set; }
     public string? ReversalReason { get; private set; }
     public int? ReversesDocumentId { get; private set; }
@@ -46,6 +60,7 @@ public class StockDocument : Entity
     public User? SubmittedByUser { get; private set; }
     public User? ApprovedByUser { get; private set; }
     public User? PostedByUser { get; private set; }
+    public User? RejectedByUser { get; private set; }
 
     public decimal TotalQty => Lines.Sum(l => l.BaseQty);
     public decimal TotalAmount => Lines.Sum(l => l.BaseQty * l.UnitCost);
@@ -106,7 +121,7 @@ public class StockDocument : Entity
             throw new DomainException(Messages.NotEditable(No, Status));
     }
 
-    public void Submit(int userId, bool requiresApproval, DateTime utcNow)
+    public void Submit(int userId, bool requiresApproval, DateTime utcNow, bool isLarge = false, bool requiresOverride = false)
     {
         if (Status != DocumentStatus.Draft)
             throw new DomainException(Messages.OnlyDraftCanSubmit(Status));
@@ -116,7 +131,11 @@ public class StockDocument : Entity
         SubmittedBy = userId;
         SubmittedAt = utcNow;
         RequiresApproval = requiresApproval;
+        IsLarge = requiresApproval && isLarge;
+        RequiresOverride = requiresOverride;
         RejectionReason = null;
+        RejectedBy = null;
+        RejectedAt = null;
     }
 
     public void Approve(int userId, bool allowSelfApproval, DateTime utcNow)
@@ -132,8 +151,8 @@ public class StockDocument : Entity
         ApprovedAt = utcNow;
     }
 
-    /// <summary>Rejection returns the document to Draft and keeps the reason.</summary>
-    public void Reject(string reason)
+    /// <summary>Rejection returns the document to Draft and keeps the reason and who returned it. The submit-time flags no longer describe a Draft.</summary>
+    public void Reject(string reason, int userId, DateTime utcNow)
     {
         if (Status != DocumentStatus.Submitted)
             throw new DomainException(Messages.OnlySubmittedCanReject(Status));
@@ -141,8 +160,13 @@ public class StockDocument : Entity
 
         Status = DocumentStatus.Draft;
         RejectionReason = reason;
+        RejectedBy = userId;
+        RejectedAt = utcNow;
         SubmittedBy = null;
         SubmittedAt = null;
+        RequiresApproval = false;
+        IsLarge = false;
+        RequiresOverride = false;
     }
 
     public void Cancel(string? reason)

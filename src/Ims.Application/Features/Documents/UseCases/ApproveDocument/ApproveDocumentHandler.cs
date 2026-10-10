@@ -9,6 +9,7 @@ public class ApproveDocumentHandler(IRepository<StockDocument> documents, IAppro
     {
         var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
         access.EnsureWarehouse(doc.WarehouseId);
+        DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
 
         if (!(await approvals.AssessAsync(doc, ct)).CallerMayApprove)
             throw new ForbiddenException(Messages.AboveApprovalLimit);

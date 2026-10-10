@@ -16,14 +16,13 @@ public class ProductsController(IDispatcher dispatcher) : ApiControllerBase(disp
     [ProducesResponseType<ProductDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Get(int id) => SendOk(new GetProductQuery(id));
 
-    /// <summary>Barcode or SKU lookup for the line picker and scanning. 404 when nothing matches.</summary>
+    /// <summary>
+    /// Barcode or SKU lookup for the line picker and scanning. Always 200: <c>found</c> says whether a product owns the code
+    /// (<c>product</c> is null when it does not), because a scan that matches nothing is a normal outcome, not a failed request.
+    /// </summary>
     [HttpGet(RouteSegments.Lookup), Authorize(Policy = Permissions.MasterDataRead)]
-    [ProducesResponseType<ProductDto>(StatusCodes.Status200OK)]
-    public async Task<IActionResult> Lookup([FromQuery] string code)
-    {
-        var product = await Send(new FindProductByCodeQuery(code));
-        return product is null ? NotFound() : Ok(product);
-    }
+    [ProducesResponseType<ProductLookupResult>(StatusCodes.Status200OK)]
+    public Task<IActionResult> Lookup([FromQuery] string code) => SendOk(new FindProductByCodeQuery(code));
 
     [HttpPost, Authorize(Policy = Permissions.MasterDataManage)]
     [ProducesResponseType<ProductDto>(StatusCodes.Status200OK)]

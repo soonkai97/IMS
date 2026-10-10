@@ -16,6 +16,14 @@ public sealed class ProductsClient(ApiClient api)
 
     public Task<ApiResponse> GetAsync(int id) => api.GetAsync($"/api/products/{id}");
     public Task<ApiResponse> LookupAsync(string code) => api.GetAsync($"/api/products/lookup?code={Uri.EscapeDataString(code)}");
+
+    /// <summary>Looks a code up and returns the product; fails the test when no product owns it.</summary>
+    public async Task<ProductDto> FindAsync(string code)
+    {
+        var result = (await LookupAsync(code)).Data<ProductLookupResult>();
+        Assert.True(result.Found, $"No product owns the code '{code}'.");
+        return result.Product!;
+    }
     public Task<ApiResponse> CreateAsync(ProductSaveRequest request) => api.PostAsync("/api/products", request);
     public Task<ApiResponse> UpdateAsync(int id, ProductSaveRequest request) => api.PutAsync($"/api/products/{id}", request);
 }

@@ -25,9 +25,8 @@ public static class PresentationServices
                 .AddRequestTimeoutPolicies()
                 .AddForwardedHeaderSupport(cfg);
 
-        services.AddControllers().AddJsonOptions(o =>
-            o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()))
-            .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = ProblemResponses.FromModelState);
+        services.AddWireJson();
+        services.AddControllers().ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = ProblemResponses.FromModelState);
         services.AddOpenApiDocument();
         services.AddProblemDetails();
         services.AddExceptionHandler<ApiExceptionHandler>();
@@ -70,7 +69,7 @@ public static class PresentationServices
             throw new InvalidOperationException($"{ApiConfigKeys.CorsOrigins} must list explicit origins; wildcards are not allowed.");
         services.AddSingleton(new AllowedOrigins(origins));
         services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials()
-            .WithExposedHeaders(HeaderNames.CorrelationId, HeaderNames.ContentDisposition)));
+            .WithExposedHeaders(HeaderNames.CorrelationId, HeaderNames.ContentDisposition, HeaderNames.ETag)));
         return services;
     }
 

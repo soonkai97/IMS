@@ -51,7 +51,7 @@ public class ProductImportTests(ApiFixture fixture)
         var result = (await admin.Import.ProductsAsync(file.Bytes, commit: false)).Data<ImportResult>();
 
         Assert.False(result.Committed);
-        Assert.Equal((6, 1, 5, 0, 0), (result.Total, result.Valid, result.Invalid, result.Created, result.Updated));
+        Assert.Equal((6, 1, 5, 1, 0), (result.Total, result.Valid, result.Invalid, result.Created, result.Updated)); // a preview reports what a commit would create
         Assert.Equal([2, 3, 4, 5, 6, 7], result.Rows.Select(r => r.Row));
         Assert.True(result.Rows[0].Ok);
         Assert.Contains("name", Assert.Single(result.Rows[1].Errors), StringComparison.OrdinalIgnoreCase);
@@ -92,7 +92,7 @@ public class ProductImportTests(ApiFixture fixture)
         Assert.False(await ExistsAsync(admin, file.GoodSku), "The one valid row must not be written when others are invalid.");
         Assert.False(await ExistsAsync(admin, file.MissingNameSku));
         Assert.DoesNotContain((await admin.Categories.ListAsync()).Data<List<CategoryDto>>(), c => c.Name == file.GoodCategory);
-        Assert.Equal(file.OwnerSku, (await admin.Products.LookupAsync(file.TakenBarcode)).Data<ProductDto>().Sku);
+        Assert.Equal(file.OwnerSku, (await admin.Products.FindAsync(file.TakenBarcode)).Sku);
     }
 
     [Fact]
@@ -111,11 +111,11 @@ public class ProductImportTests(ApiFixture fixture)
 
         Assert.True(result.Committed);
         Assert.Equal((2, 2, 0, 2, 0), (result.Total, result.Valid, result.Invalid, result.Created, result.Updated));
-        var one = (await admin.Products.LookupAsync(first)).Data<ProductDto>();
+        var one = (await admin.Products.FindAsync(first));
         Assert.Equal(("First product", category, "PCS", 5m), (one.Name, one.CategoryName, one.BaseUomCode, one.SafetyStock));
         Assert.Equal(2, one.Barcodes.Count);
         Assert.Contains(barcode, one.Barcodes);
-        var two = (await admin.Products.LookupAsync(second)).Data<ProductDto>();
+        var two = (await admin.Products.FindAsync(second));
         Assert.Equal(("BOX", one.CategoryId), (two.BaseUomCode, two.CategoryId)); // the category is created once and shared
     }
 
@@ -135,6 +135,52 @@ public class ProductImportTests(ApiFixture fixture)
         Assert.Equal(("Updated by import", 9m), (updated.Name, updated.SafetyStock));
         Assert.Equal(new[] { existingBarcode, newBarcode }.Order(), updated.Barcodes.Order());
         Assert.True(updated.IsActive);
+    }
+
+    [Fact]
+    public async Task Preview_marks_each_row_New_Update_or_Error_and_counts_what_a_commit_would_do()
+    {
+        var admin = await fixture.AsAsync("Admin");
+        var existing = await new ProductBuilder(fixture.Reference).CreateAsync(admin);
+        var created = Unique.Sku("IMP");
+        var file = Xlsx.Create("Products", Headers,
+            [created, "Brand new", "General", "PCS", 1, null],                 // row 2: new
+            [existing.Sku.ToLowerInvariant(), "Renamed", "General", "PCS", 2, null], // row 3: existing SKU in another case: update
+            [Unique.Sku("IMP"), "", "General", "PCS", 1, null]);                // row 4: error
+
+        var preview = (await admin.Import.ProductsAsync(file, commit: false)).Data<ImportResult>();
+
+        Assert.Equal([ImportRowStatus.New, ImportRowStatus.Update, ImportRowStatus.Error], preview.Rows.Select(r => r.Status));
+        Assert.Equal((3, 2, 1, 1, 1), (preview.Total, preview.Valid, preview.Invalid, preview.Created, preview.Updated));
+        Assert.False(await ExistsAsync(admin, created));
+    }
+
+    [Fact]
+    public async Task The_preview_statuses_and_counts_are_what_the_commit_then_reports()
+    {
+        var admin = await fixture.AsAsync("Admin");
+        var existing = await new ProductBuilder(fixture.Reference).CreateAsync(admin);
+        var file = Xlsx.Create("Products", Headers,
+            [Unique.Sku("IMP"), "Brand new", "General", "PCS", 1, null],
+            [existing.Sku, "Renamed", "General", "PCS", 2, null]);
+
+        var preview = (await admin.Import.ProductsAsync(file, commit: false)).Data<ImportResult>();
+        var commit = (await admin.Import.ProductsAsync(file, commit: true)).Data<ImportResult>();
+
+        Assert.Equal((preview.Created, preview.Updated), (commit.Created, commit.Updated));
+        Assert.Equal(preview.Rows.Select(r => r.Status), commit.Rows.Select(r => r.Status));
+    }
+
+    [Fact]
+    public async Task Row_status_is_published_as_a_string_on_the_wire()
+    {
+        var admin = await fixture.AsAsync("Admin");
+        var file = Xlsx.Create("Products", Headers, [Unique.Sku("IMP"), "Brand new", "General", "PCS", 1, null]);
+
+        var response = await admin.Import.ProductsAsync(file, commit: false);
+
+        using var json = response.Json();
+        Assert.Equal("New", json.RootElement.GetProperty("rows")[0].GetProperty("status").GetString());
     }
 
     [Fact]
@@ -165,8 +211,8 @@ public class ProductImportTests(ApiFixture fixture)
 
         (await admin.Import.ProductsAsync(file, commit: true)).ShouldBeOk();
 
-        Assert.Equal(unit.ToUpperInvariant(), (await admin.Products.LookupAsync(withUnit)).Data<ProductDto>().BaseUomCode);
-        Assert.Equal("PCS", (await admin.Products.LookupAsync(withoutUnit)).Data<ProductDto>().BaseUomCode);
+        Assert.Equal(unit.ToUpperInvariant(), (await admin.Products.FindAsync(withUnit)).BaseUomCode);
+        Assert.Equal("PCS", (await admin.Products.FindAsync(withoutUnit)).BaseUomCode);
     }
 
     [Fact]
@@ -179,7 +225,7 @@ public class ProductImportTests(ApiFixture fixture)
         var result = (await admin.Import.ProductsAsync(file, commit: true)).Data<ImportResult>();
 
         Assert.Equal(1, result.Created);
-        Assert.Equal(4m, (await admin.Products.LookupAsync(sku)).Data<ProductDto>().SafetyStock);
+        Assert.Equal(4m, (await admin.Products.FindAsync(sku)).SafetyStock);
     }
 
     [Fact]

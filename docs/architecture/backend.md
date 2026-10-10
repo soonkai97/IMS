@@ -71,6 +71,19 @@ Each layer registers itself: `AddApplication()`, `AddInfrastructure(cfg)`, `AddP
 and validators are found by convention. The container runs with `ValidateScopes` and `ValidateOnBuild`, so a mis-wired service fails
 at start-up. Options (`JwtOptions`) are validated at start-up.
 
+## API contract (what a generated client can rely on)
+
+The OpenAPI document at `/openapi/v1.json` describes the wire format as it is, so a client generator needs no workaround:
+
+- **Wire format** is defined once in `Ims.Api/Composition/WireJson.cs`: enums are strings, numbers are numbers, every instant is UTC with a trailing `Z`
+  (`UtcDateTimeConverter` on the wire; `UtcKindConverter` in EF so a value is `Kind = Utc` everywhere in between).
+- **Enums** are string schemas that list their values (`EnumSchemaTransformer` keeps `null` out of the shared list; nullability belongs to the property).
+- **Operation ids** are `Tag_action` (controller name, action in camelCase), for example `Documents_createReceipt` (`OperationIdTransformer`). Renaming a C# action renames the client method; a test pins the ones the client uses.
+- **Uploads** (`IFormFile`) are inline `string/binary` parts of a multipart body and required (`MultipartRequiredTransformer`).
+- **Downloads** carry `[ProducesFile(contentType)]`; the document then declares a binary 200 body and the `Content-Disposition` header (`FileResponseTransformer`).
+- **Documents** carry a concurrency token (`concurrencyToken`, also the `ETag` header). A write may send it back as `If-Match`; a stale token is refused with 409 before anything is changed (`DocumentVersion.EnsureCurrent`). Changing only the lines also moves the token (`AppDbContext.TouchDocumentsWithChangedLines`).
+- A barcode lookup miss is `200 { found: false, product: null }`, not a 404 (a scan that matches nothing is a normal outcome).
+
 ## Data, concurrency and performance rules
 
 Standard audit columns on every table, soft delete, parameterised data access only, split queries, O(1)-minded design, ordered locks, timeouts and
