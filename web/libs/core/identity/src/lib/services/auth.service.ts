@@ -125,7 +125,9 @@ export class AuthService {
 
   private acceptTokens(result: AuthResult): void {
     this.accessToken = result.accessToken;
-    this.storage.writeRefreshToken(result.refreshToken);
+    if (result.refreshToken) {
+      this.storage.writeRefreshToken(result.refreshToken);
+    }
     this.$currentUser.set(result.user);
   }
 }

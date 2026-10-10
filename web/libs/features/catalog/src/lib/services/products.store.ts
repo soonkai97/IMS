@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import {
   PagedResultOfProductDto,
   ProductDto,
@@ -54,7 +54,7 @@ export class ProductsStore {
   }
 
   /** Exact SKU or barcode (scanner input). */
-  lookup(code: string): Observable<ProductDto> {
-    return this.client.lookup(code);
+  lookup(code: string): Observable<ProductDto | undefined> {
+    return this.client.lookup(code).pipe(map(result => result.product));
   }
 }

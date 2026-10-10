@@ -10,7 +10,7 @@
 import { mergeMap as _observableMergeMap, catchError as _observableCatch } from 'rxjs/operators';
 import { Observable, throwError as _observableThrow, of as _observableOf } from 'rxjs';
 import { Injectable, Inject, Optional, InjectionToken } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpResponse, HttpResponseBase } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpResponse, HttpResponseBase, HttpContext } from '@angular/common/http';
 
 export const API_BASE_URL = new InjectionToken<string>('API_BASE_URL');
 
@@ -24,7 +24,7 @@ export class PartnersClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -35,7 +35,7 @@ export class PartnersClient {
      * @param pageSize (optional) 
      * @return OK
      */
-    list(type?: PartnerType | undefined, includeInactive?: boolean | undefined, search?: string | undefined, page?: number | undefined, pageSize?: number | undefined): Observable<PagedResultOfPartnerDto> {
+    list(type?: PartnerType | undefined, includeInactive?: boolean | undefined, search?: string | undefined, page?: number | undefined, pageSize?: number | undefined, httpContext?: HttpContext): Observable<PagedResultOfPartnerDto> {
         let url_ = this.baseUrl + "/api/partners?";
         if (type === null)
             throw new globalThis.Error("The parameter 'type' cannot be null.");
@@ -62,6 +62,7 @@ export class PartnersClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -105,7 +106,7 @@ export class PartnersClient {
     /**
      * @return OK
      */
-    create(body: PartnerSaveRequest): Observable<PartnerDto> {
+    create(body: PartnerSaveRequest, httpContext?: HttpContext): Observable<PartnerDto> {
         let url_ = this.baseUrl + "/api/partners";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -115,6 +116,7 @@ export class PartnersClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -159,7 +161,7 @@ export class PartnersClient {
     /**
      * @return OK
      */
-    update(id: number, body: PartnerSaveRequest): Observable<PartnerDto> {
+    update(id: number, body: PartnerSaveRequest, httpContext?: HttpContext): Observable<PartnerDto> {
         let url_ = this.baseUrl + "/api/partners/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -172,6 +174,7 @@ export class PartnersClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -224,14 +227,14 @@ export class WarehousesClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
      * @param includeInactive (optional) 
      * @return OK
      */
-    list(includeInactive?: boolean | undefined): Observable<WarehouseDto[]> {
+    list(includeInactive?: boolean | undefined, httpContext?: HttpContext): Observable<WarehouseDto[]> {
         let url_ = this.baseUrl + "/api/warehouses?";
         if (includeInactive === null)
             throw new globalThis.Error("The parameter 'includeInactive' cannot be null.");
@@ -242,6 +245,7 @@ export class WarehousesClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -285,7 +289,7 @@ export class WarehousesClient {
     /**
      * @return OK
      */
-    create(body: WarehouseSaveRequest): Observable<WarehouseDto> {
+    create(body: WarehouseSaveRequest, httpContext?: HttpContext): Observable<WarehouseDto> {
         let url_ = this.baseUrl + "/api/warehouses";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -295,6 +299,7 @@ export class WarehousesClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -339,7 +344,7 @@ export class WarehousesClient {
     /**
      * @return OK
      */
-    update(id: number, body: WarehouseSaveRequest): Observable<WarehouseDto> {
+    update(id: number, body: WarehouseSaveRequest, httpContext?: HttpContext): Observable<WarehouseDto> {
         let url_ = this.baseUrl + "/api/warehouses/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -352,6 +357,7 @@ export class WarehousesClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -404,7 +410,7 @@ export class UsersClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -415,7 +421,7 @@ export class UsersClient {
      * @param pageSize (optional) 
      * @return OK
      */
-    list(search?: string | undefined, role?: string | undefined, active?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined): Observable<PagedResultOfUserDto> {
+    list(search?: string | undefined, role?: string | undefined, active?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, httpContext?: HttpContext): Observable<PagedResultOfUserDto> {
         let url_ = this.baseUrl + "/api/users?";
         if (search === null)
             throw new globalThis.Error("The parameter 'search' cannot be null.");
@@ -442,6 +448,7 @@ export class UsersClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -485,7 +492,7 @@ export class UsersClient {
     /**
      * @return OK
      */
-    create(body: UserSaveRequest): Observable<UserDto> {
+    create(body: UserSaveRequest, httpContext?: HttpContext): Observable<UserDto> {
         let url_ = this.baseUrl + "/api/users";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -495,6 +502,7 @@ export class UsersClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -539,7 +547,7 @@ export class UsersClient {
     /**
      * @return OK
      */
-    update(id: number, body: UserSaveRequest): Observable<UserDto> {
+    update(id: number, body: UserSaveRequest, httpContext?: HttpContext): Observable<UserDto> {
         let url_ = this.baseUrl + "/api/users/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -552,6 +560,7 @@ export class UsersClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -604,13 +613,13 @@ export class ImportClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
-     * @return OK
+     * @return The file.
      */
-    template(kind: string): Observable<FileResponse> {
+    template(kind: string, httpContext?: HttpContext): Observable<FileResponse> {
         let url_ = this.baseUrl + "/api/import/templates/{kind}";
         if (kind === undefined || kind === null)
             throw new globalThis.Error("The parameter 'kind' must be defined.");
@@ -620,8 +629,9 @@ export class ImportClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
-                "Accept": "application/octet-stream"
+                "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             })
         };
 
@@ -666,12 +676,12 @@ export class ImportClient {
     }
 
     /**
-     * Preview with `commit=false` (default); write with `commit=true`. Only valid rows are written.
+     * Preview with `commit=false` (default); write with `commit=true`. Import is all-or-nothing: a commit with any invalid row writes nothing.
      * @param commit (optional) 
      * @param file (optional) 
      * @return OK
      */
-    products(commit?: boolean | undefined, file?: FileParameter | undefined): Observable<ImportResult> {
+    importProducts(commit?: boolean | undefined, file?: FileParameter | undefined, httpContext?: HttpContext): Observable<ImportResult> {
         let url_ = this.baseUrl + "/api/import/products?";
         if (commit === null)
             throw new globalThis.Error("The parameter 'commit' cannot be null.");
@@ -689,17 +699,18 @@ export class ImportClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
         };
 
         return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
-            return this.processProducts(response_);
+            return this.processImportProducts(response_);
         })).pipe(_observableCatch((response_: any) => {
             if (response_ instanceof HttpResponseBase) {
                 try {
-                    return this.processProducts(response_ as any);
+                    return this.processImportProducts(response_ as any);
                 } catch (e) {
                     return _observableThrow(e) as any as Observable<ImportResult>;
                 }
@@ -708,7 +719,7 @@ export class ImportClient {
         }));
     }
 
-    protected processProducts(response: HttpResponseBase): Observable<ImportResult> {
+    protected processImportProducts(response: HttpResponseBase): Observable<ImportResult> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -734,7 +745,7 @@ export class ImportClient {
      * @param file (optional) 
      * @return OK
      */
-    openingStock(commit?: boolean | undefined, file?: FileParameter | undefined): Observable<ImportResult> {
+    importOpeningStock(commit?: boolean | undefined, file?: FileParameter | undefined, httpContext?: HttpContext): Observable<ImportResult> {
         let url_ = this.baseUrl + "/api/import/opening-stock?";
         if (commit === null)
             throw new globalThis.Error("The parameter 'commit' cannot be null.");
@@ -752,17 +763,18 @@ export class ImportClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
         };
 
         return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
-            return this.processOpeningStock(response_);
+            return this.processImportOpeningStock(response_);
         })).pipe(_observableCatch((response_: any) => {
             if (response_ instanceof HttpResponseBase) {
                 try {
-                    return this.processOpeningStock(response_ as any);
+                    return this.processImportOpeningStock(response_ as any);
                 } catch (e) {
                     return _observableThrow(e) as any as Observable<ImportResult>;
                 }
@@ -771,7 +783,7 @@ export class ImportClient {
         }));
     }
 
-    protected processOpeningStock(response: HttpResponseBase): Observable<ImportResult> {
+    protected processImportOpeningStock(response: HttpResponseBase): Observable<ImportResult> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -803,7 +815,7 @@ export class ReportsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -816,7 +828,7 @@ export class ReportsClient {
      * @param pageSize (optional) 
      * @return OK
      */
-    movements(type?: DocumentType | undefined, warehouseId?: number | undefined, productId?: number | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined): Observable<PagedResultOfMovementRow> {
+    movements(type?: DocumentType | undefined, warehouseId?: number | undefined, productId?: number | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined, httpContext?: HttpContext): Observable<PagedResultOfMovementRow> {
         let url_ = this.baseUrl + "/api/reports/movements?";
         if (type === null)
             throw new globalThis.Error("The parameter 'type' cannot be null.");
@@ -851,6 +863,7 @@ export class ReportsClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -901,9 +914,9 @@ export class ReportsClient {
      * @param pageSize (optional) 
      * @param sortBy (optional) 
      * @param desc (optional) 
-     * @return OK
+     * @return The file.
      */
-    stockSummaryExport(warehouseId?: number | undefined, productId?: number | undefined, categoryId?: number | undefined, search?: string | undefined, lowOnly?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, sortBy?: StockSort | undefined, desc?: boolean | undefined): Observable<FileResponse> {
+    exportStockSummary(warehouseId?: number | undefined, productId?: number | undefined, categoryId?: number | undefined, search?: string | undefined, lowOnly?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, sortBy?: StockSort | undefined, desc?: boolean | undefined, httpContext?: HttpContext): Observable<FileResponse> {
         let url_ = this.baseUrl + "/api/reports/stock-summary/export?";
         if (warehouseId === null)
             throw new globalThis.Error("The parameter 'warehouseId' cannot be null.");
@@ -946,17 +959,18 @@ export class ReportsClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
-                "Accept": "application/octet-stream"
+                "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             })
         };
 
         return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
-            return this.processStockSummaryExport(response_);
+            return this.processExportStockSummary(response_);
         })).pipe(_observableCatch((response_: any) => {
             if (response_ instanceof HttpResponseBase) {
                 try {
-                    return this.processStockSummaryExport(response_ as any);
+                    return this.processExportStockSummary(response_ as any);
                 } catch (e) {
                     return _observableThrow(e) as any as Observable<FileResponse>;
                 }
@@ -965,7 +979,7 @@ export class ReportsClient {
         }));
     }
 
-    protected processStockSummaryExport(response: HttpResponseBase): Observable<FileResponse> {
+    protected processExportStockSummary(response: HttpResponseBase): Observable<FileResponse> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -999,9 +1013,9 @@ export class ReportsClient {
      * @param to (optional) 
      * @param page (optional) 
      * @param pageSize (optional) 
-     * @return OK
+     * @return The file.
      */
-    movementsExport(type?: DocumentType | undefined, warehouseId?: number | undefined, productId?: number | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined): Observable<FileResponse> {
+    exportMovements(type?: DocumentType | undefined, warehouseId?: number | undefined, productId?: number | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined, httpContext?: HttpContext): Observable<FileResponse> {
         let url_ = this.baseUrl + "/api/reports/movements/export?";
         if (type === null)
             throw new globalThis.Error("The parameter 'type' cannot be null.");
@@ -1036,17 +1050,18 @@ export class ReportsClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
-                "Accept": "application/octet-stream"
+                "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             })
         };
 
         return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
-            return this.processMovementsExport(response_);
+            return this.processExportMovements(response_);
         })).pipe(_observableCatch((response_: any) => {
             if (response_ instanceof HttpResponseBase) {
                 try {
-                    return this.processMovementsExport(response_ as any);
+                    return this.processExportMovements(response_ as any);
                 } catch (e) {
                     return _observableThrow(e) as any as Observable<FileResponse>;
                 }
@@ -1055,7 +1070,7 @@ export class ReportsClient {
         }));
     }
 
-    protected processMovementsExport(response: HttpResponseBase): Observable<FileResponse> {
+    protected processExportMovements(response: HttpResponseBase): Observable<FileResponse> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -1091,9 +1106,9 @@ export class ReportsClient {
      * @param pageSize (optional) 
      * @param afterId (optional) Seek paging: return rows older than this ledger id. Use it instead of `Page` for deep pages (constant cost at any depth).
      * @param includeTotal (optional) False skips the row count, which is the expensive part of a very large ledger.
-     * @return OK
+     * @return The file.
      */
-    ledgerExport(warehouseId?: number | undefined, productId?: number | undefined, from?: string | undefined, to?: string | undefined, sourceDocId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined): Observable<FileResponse> {
+    exportLedger(warehouseId?: number | undefined, productId?: number | undefined, from?: string | undefined, to?: string | undefined, sourceDocId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined, httpContext?: HttpContext): Observable<FileResponse> {
         let url_ = this.baseUrl + "/api/reports/ledger/export?";
         if (warehouseId === null)
             throw new globalThis.Error("The parameter 'warehouseId' cannot be null.");
@@ -1136,17 +1151,18 @@ export class ReportsClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
-                "Accept": "application/octet-stream"
+                "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             })
         };
 
         return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
-            return this.processLedgerExport(response_);
+            return this.processExportLedger(response_);
         })).pipe(_observableCatch((response_: any) => {
             if (response_ instanceof HttpResponseBase) {
                 try {
-                    return this.processLedgerExport(response_ as any);
+                    return this.processExportLedger(response_ as any);
                 } catch (e) {
                     return _observableThrow(e) as any as Observable<FileResponse>;
                 }
@@ -1155,7 +1171,7 @@ export class ReportsClient {
         }));
     }
 
-    protected processLedgerExport(response: HttpResponseBase): Observable<FileResponse> {
+    protected processExportLedger(response: HttpResponseBase): Observable<FileResponse> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -1182,26 +1198,27 @@ export class ReportsClient {
     }
 
     /**
-     * @return OK
+     * @return The file.
      */
-    lowStockExport(): Observable<FileResponse> {
+    exportLowStock(httpContext?: HttpContext): Observable<FileResponse> {
         let url_ = this.baseUrl + "/api/reports/low-stock/export";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
-                "Accept": "application/octet-stream"
+                "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             })
         };
 
         return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
-            return this.processLowStockExport(response_);
+            return this.processExportLowStock(response_);
         })).pipe(_observableCatch((response_: any) => {
             if (response_ instanceof HttpResponseBase) {
                 try {
-                    return this.processLowStockExport(response_ as any);
+                    return this.processExportLowStock(response_ as any);
                 } catch (e) {
                     return _observableThrow(e) as any as Observable<FileResponse>;
                 }
@@ -1210,7 +1227,7 @@ export class ReportsClient {
         }));
     }
 
-    protected processLowStockExport(response: HttpResponseBase): Observable<FileResponse> {
+    protected processExportLowStock(response: HttpResponseBase): Observable<FileResponse> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -1247,7 +1264,7 @@ export class StockClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -1262,7 +1279,7 @@ export class StockClient {
      * @param desc (optional) 
      * @return OK
      */
-    list(warehouseId?: number | undefined, productId?: number | undefined, categoryId?: number | undefined, search?: string | undefined, lowOnly?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, sortBy?: StockSort | undefined, desc?: boolean | undefined): Observable<PagedResultOfStockRow> {
+    list(warehouseId?: number | undefined, productId?: number | undefined, categoryId?: number | undefined, search?: string | undefined, lowOnly?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, sortBy?: StockSort | undefined, desc?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfStockRow> {
         let url_ = this.baseUrl + "/api/stock?";
         if (warehouseId === null)
             throw new globalThis.Error("The parameter 'warehouseId' cannot be null.");
@@ -1305,6 +1322,7 @@ export class StockClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -1357,7 +1375,7 @@ export class StockClient {
      * @param includeTotal (optional) False skips the row count, which is the expensive part of a very large ledger.
      * @return OK
      */
-    ledger(warehouseId?: number | undefined, productId?: number | undefined, from?: string | undefined, to?: string | undefined, sourceDocId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined): Observable<PagedResultOfLedgerRow> {
+    ledger(warehouseId?: number | undefined, productId?: number | undefined, from?: string | undefined, to?: string | undefined, sourceDocId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfLedgerRow> {
         let url_ = this.baseUrl + "/api/stock/ledger?";
         if (warehouseId === null)
             throw new globalThis.Error("The parameter 'warehouseId' cannot be null.");
@@ -1400,6 +1418,7 @@ export class StockClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -1446,7 +1465,7 @@ export class StockClient {
      * @param pageSize (optional) 
      * @return OK
      */
-    lowStock(warehouseId?: number | undefined, page?: number | undefined, pageSize?: number | undefined): Observable<PagedResultOfLowStockAlert> {
+    lowStock(warehouseId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, httpContext?: HttpContext): Observable<PagedResultOfLowStockAlert> {
         let url_ = this.baseUrl + "/api/stock/low-stock?";
         if (warehouseId === null)
             throw new globalThis.Error("The parameter 'warehouseId' cannot be null.");
@@ -1465,6 +1484,7 @@ export class StockClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -1508,13 +1528,14 @@ export class StockClient {
     /**
      * @return OK
      */
-    summary(): Observable<StockSummary> {
+    summary(httpContext?: HttpContext): Observable<StockSummary> {
         let url_ = this.baseUrl + "/api/stock/summary";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -1566,19 +1587,20 @@ export class ApprovalRulesClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
      * @return OK
      */
-    list(): Observable<ApprovalRuleDto[]> {
+    list(httpContext?: HttpContext): Observable<ApprovalRuleDto[]> {
         let url_ = this.baseUrl + "/api/approval-rules";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -1622,7 +1644,7 @@ export class ApprovalRulesClient {
     /**
      * @return OK
      */
-    create(body: ApprovalRuleSaveRequest): Observable<ApprovalRuleDto> {
+    create(body: ApprovalRuleSaveRequest, httpContext?: HttpContext): Observable<ApprovalRuleDto> {
         let url_ = this.baseUrl + "/api/approval-rules";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -1632,6 +1654,7 @@ export class ApprovalRulesClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -1676,7 +1699,7 @@ export class ApprovalRulesClient {
     /**
      * @return OK
      */
-    update(id: number, body: ApprovalRuleSaveRequest): Observable<ApprovalRuleDto> {
+    update(id: number, body: ApprovalRuleSaveRequest, httpContext?: HttpContext): Observable<ApprovalRuleDto> {
         let url_ = this.baseUrl + "/api/approval-rules/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -1689,6 +1712,7 @@ export class ApprovalRulesClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -1741,7 +1765,7 @@ export class AuditClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -1755,7 +1779,7 @@ export class AuditClient {
      * @param includeTotal (optional) False skips the row count.
      * @return OK
      */
-    list(entityType?: string | undefined, actor?: string | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined): Observable<PagedResultOfAuditLogDto> {
+    list(entityType?: string | undefined, actor?: string | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfAuditLogDto> {
         let url_ = this.baseUrl + "/api/audit?";
         if (entityType === null)
             throw new globalThis.Error("The parameter 'entityType' cannot be null.");
@@ -1794,6 +1818,7 @@ export class AuditClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -1845,19 +1870,20 @@ export class SettingsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
      * @return OK
      */
-    get(): Observable<SettingsDto> {
+    get(httpContext?: HttpContext): Observable<SettingsDto> {
         let url_ = this.baseUrl + "/api/settings";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -1901,7 +1927,7 @@ export class SettingsClient {
     /**
      * @return OK
      */
-    update(body: SettingsDto): Observable<SettingsDto> {
+    update(body: SettingsDto, httpContext?: HttpContext): Observable<SettingsDto> {
         let url_ = this.baseUrl + "/api/settings";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -1911,6 +1937,7 @@ export class SettingsClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -1963,7 +1990,7 @@ export class DocumentsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -1977,9 +2004,11 @@ export class DocumentsClient {
      * @param pageSize (optional) 
      * @param afterId (optional) Seek paging: return documents older than this id (constant cost at any depth).
      * @param includeTotal (optional) False skips the row count.
+     * @param mine (optional) True returns only documents the caller created.
+     * @param requiresApproval (optional) True returns only documents an approval rule held back; false only those it did not. Combine with `status=Submitted` for the approvals inbox.
      * @return OK
      */
-    list(type?: DocumentType | undefined, status?: DocumentStatus | undefined, warehouseId?: number | undefined, from?: string | undefined, to?: string | undefined, search?: string | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined): Observable<PagedResultOfDocumentListItem> {
+    list(type?: DocumentType | undefined, status?: DocumentStatus | undefined, warehouseId?: number | undefined, from?: string | undefined, to?: string | undefined, search?: string | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined, mine?: boolean | undefined, requiresApproval?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfDocumentListItem> {
         let url_ = this.baseUrl + "/api/documents?";
         if (type === null)
             throw new globalThis.Error("The parameter 'type' cannot be null.");
@@ -2021,11 +2050,20 @@ export class DocumentsClient {
             throw new globalThis.Error("The parameter 'includeTotal' cannot be null.");
         else if (includeTotal !== undefined)
             url_ += "IncludeTotal=" + encodeURIComponent("" + includeTotal) + "&";
+        if (mine === null)
+            throw new globalThis.Error("The parameter 'mine' cannot be null.");
+        else if (mine !== undefined)
+            url_ += "Mine=" + encodeURIComponent("" + mine) + "&";
+        if (requiresApproval === null)
+            throw new globalThis.Error("The parameter 'requiresApproval' cannot be null.");
+        else if (requiresApproval !== undefined)
+            url_ += "RequiresApproval=" + encodeURIComponent("" + requiresApproval) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -2067,9 +2105,61 @@ export class DocumentsClient {
     }
 
     /**
+     * The Home tiles and menu badges (returned to me, my drafts, posted today, approvals waiting) in one cheap call.
      * @return OK
      */
-    get(id: number): Observable<DocumentDto> {
+    counts(httpContext?: HttpContext): Observable<DocumentCounts> {
+        let url_ = this.baseUrl + "/api/documents/counts";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processCounts(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processCounts(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<DocumentCounts>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<DocumentCounts>;
+        }));
+    }
+
+    protected processCounts(response: HttpResponseBase): Observable<DocumentCounts> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as DocumentCounts;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    get(id: number, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2079,6 +2169,7 @@ export class DocumentsClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -2122,7 +2213,7 @@ export class DocumentsClient {
     /**
      * @return OK
      */
-    update(id: number, body: DocumentSaveRequest): Observable<DocumentDto> {
+    update(id: number, body: DocumentSaveRequest, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2135,6 +2226,7 @@ export class DocumentsClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -2179,7 +2271,7 @@ export class DocumentsClient {
     /**
      * @return OK
      */
-    createReceipt(body: DocumentSaveRequest): Observable<DocumentDto> {
+    createReceipt(body: DocumentSaveRequest, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/receipts";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -2189,6 +2281,7 @@ export class DocumentsClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -2233,7 +2326,7 @@ export class DocumentsClient {
     /**
      * @return OK
      */
-    createIssue(body: DocumentSaveRequest): Observable<DocumentDto> {
+    createIssue(body: DocumentSaveRequest, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/issues";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -2243,6 +2336,7 @@ export class DocumentsClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -2287,7 +2381,7 @@ export class DocumentsClient {
     /**
      * @return OK
      */
-    submit(id: number): Observable<DocumentDto> {
+    submit(id: number, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}/submit";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2297,6 +2391,7 @@ export class DocumentsClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -2338,19 +2433,26 @@ export class DocumentsClient {
     }
 
     /**
+     * Approves a Submitted document. The body is optional, except that a document with `requiresOverride` needs `negativeStockOverrideReason` here: the approver gives the reason, not the person who posts.
+     * @param body (optional) 
      * @return OK
      */
-    approve(id: number): Observable<DocumentDto> {
+    approve(id: number, body?: ApproveRequest | null | undefined, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}/approve";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(body);
+
         let options_ : any = {
+            body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
+                "Content-Type": "application/json",
                 "Accept": "application/json"
             })
         };
@@ -2393,7 +2495,7 @@ export class DocumentsClient {
     /**
      * @return OK
      */
-    reject(id: number, body: RejectRequest): Observable<DocumentDto> {
+    reject(id: number, body: RejectRequest, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}/reject";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2406,6 +2508,7 @@ export class DocumentsClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -2450,7 +2553,7 @@ export class DocumentsClient {
     /**
      * @return OK
      */
-    cancel(id: number, body: CancelRequest): Observable<DocumentDto> {
+    cancel(id: number, body: CancelRequest, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}/cancel";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2463,6 +2566,7 @@ export class DocumentsClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -2505,23 +2609,21 @@ export class DocumentsClient {
     }
 
     /**
+     * Posts an Approved (or approval-free Submitted) document. There is no request body: the override reason was recorded at approval.
      * @return OK
      */
-    post(id: number, body: PostRequest): Observable<DocumentDto> {
+    post(id: number, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}/post";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(body);
-
         let options_ : any = {
-            body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
-                "Content-Type": "application/json",
                 "Accept": "application/json"
             })
         };
@@ -2564,7 +2666,7 @@ export class DocumentsClient {
     /**
      * @return OK
      */
-    reverse(id: number, body: ReverseRequest): Observable<DocumentDto> {
+    reverse(id: number, body: ReverseRequest, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}/reverse";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2577,6 +2679,7 @@ export class DocumentsClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -2629,19 +2732,20 @@ export class CategoriesClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
      * @return OK
      */
-    list(): Observable<CategoryDto[]> {
+    list(httpContext?: HttpContext): Observable<CategoryDto[]> {
         let url_ = this.baseUrl + "/api/categories";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -2685,7 +2789,7 @@ export class CategoriesClient {
     /**
      * @return OK
      */
-    create(body: CategorySaveRequest): Observable<CategoryDto> {
+    create(body: CategorySaveRequest, httpContext?: HttpContext): Observable<CategoryDto> {
         let url_ = this.baseUrl + "/api/categories";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -2695,6 +2799,7 @@ export class CategoriesClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -2739,7 +2844,7 @@ export class CategoriesClient {
     /**
      * @return OK
      */
-    update(id: number, body: CategorySaveRequest): Observable<CategoryDto> {
+    update(id: number, body: CategorySaveRequest, httpContext?: HttpContext): Observable<CategoryDto> {
         let url_ = this.baseUrl + "/api/categories/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2752,6 +2857,7 @@ export class CategoriesClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -2804,7 +2910,7 @@ export class ProductsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -2817,7 +2923,7 @@ export class ProductsClient {
      * @param desc (optional) 
      * @return OK
      */
-    list(search?: string | undefined, categoryId?: number | undefined, active?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, sortBy?: ProductSort | undefined, desc?: boolean | undefined): Observable<PagedResultOfProductDto> {
+    list(search?: string | undefined, categoryId?: number | undefined, active?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, sortBy?: ProductSort | undefined, desc?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfProductDto> {
         let url_ = this.baseUrl + "/api/products?";
         if (search === null)
             throw new globalThis.Error("The parameter 'search' cannot be null.");
@@ -2852,6 +2958,7 @@ export class ProductsClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -2895,7 +3002,7 @@ export class ProductsClient {
     /**
      * @return OK
      */
-    create(body: ProductSaveRequest): Observable<ProductDto> {
+    create(body: ProductSaveRequest, httpContext?: HttpContext): Observable<ProductDto> {
         let url_ = this.baseUrl + "/api/products";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -2905,6 +3012,7 @@ export class ProductsClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -2949,7 +3057,7 @@ export class ProductsClient {
     /**
      * @return OK
      */
-    get(id: number): Observable<ProductDto> {
+    get(id: number, httpContext?: HttpContext): Observable<ProductDto> {
         let url_ = this.baseUrl + "/api/products/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2959,6 +3067,7 @@ export class ProductsClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -3002,7 +3111,7 @@ export class ProductsClient {
     /**
      * @return OK
      */
-    update(id: number, body: ProductSaveRequest): Observable<ProductDto> {
+    update(id: number, body: ProductSaveRequest, httpContext?: HttpContext): Observable<ProductDto> {
         let url_ = this.baseUrl + "/api/products/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -3015,6 +3124,7 @@ export class ProductsClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -3057,11 +3167,12 @@ export class ProductsClient {
     }
 
     /**
-     * Barcode or SKU lookup for the line picker and scanning. 404 when nothing matches.
+     * Barcode or SKU lookup for the line picker and scanning. Always 200: `found` says whether a product owns the code
+    (`product` is null when it does not), because a scan that matches nothing is a normal outcome, not a failed request.
      * @param code (optional) 
      * @return OK
      */
-    lookup(code?: string | undefined): Observable<ProductDto> {
+    lookup(code?: string | undefined, httpContext?: HttpContext): Observable<ProductLookupResult> {
         let url_ = this.baseUrl + "/api/products/lookup?";
         if (code === null)
             throw new globalThis.Error("The parameter 'code' cannot be null.");
@@ -3072,6 +3183,7 @@ export class ProductsClient {
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -3084,14 +3196,14 @@ export class ProductsClient {
                 try {
                     return this.processLookup(response_ as any);
                 } catch (e) {
-                    return _observableThrow(e) as any as Observable<ProductDto>;
+                    return _observableThrow(e) as any as Observable<ProductLookupResult>;
                 }
             } else
-                return _observableThrow(response_) as any as Observable<ProductDto>;
+                return _observableThrow(response_) as any as Observable<ProductLookupResult>;
         }));
     }
 
-    protected processLookup(response: HttpResponseBase): Observable<ProductDto> {
+    protected processLookup(response: HttpResponseBase): Observable<ProductLookupResult> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -3101,7 +3213,7 @@ export class ProductsClient {
         if (status === 200) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
             let result200: any = null;
-            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProductDto;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProductLookupResult;
             return _observableOf(result200);
             }));
         } else if (status !== 200 && status !== 204) {
@@ -3123,19 +3235,20 @@ export class UnitsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
      * @return OK
      */
-    list(): Observable<UomDto[]> {
+    list(httpContext?: HttpContext): Observable<UomDto[]> {
         let url_ = this.baseUrl + "/api/units";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -3179,7 +3292,7 @@ export class UnitsClient {
     /**
      * @return OK
      */
-    create(body: UomSaveRequest): Observable<UomDto> {
+    create(body: UomSaveRequest, httpContext?: HttpContext): Observable<UomDto> {
         let url_ = this.baseUrl + "/api/units";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -3189,6 +3302,7 @@ export class UnitsClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -3233,7 +3347,7 @@ export class UnitsClient {
     /**
      * @return OK
      */
-    update(id: number, body: UomSaveRequest): Observable<UomDto> {
+    update(id: number, body: UomSaveRequest, httpContext?: HttpContext): Observable<UomDto> {
         let url_ = this.baseUrl + "/api/units/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -3246,6 +3360,7 @@ export class UnitsClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -3298,13 +3413,13 @@ export class AuthClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
      * @return OK
      */
-    login(body: LoginRequest): Observable<AuthResult> {
+    login(body: LoginRequest, httpContext?: HttpContext): Observable<AuthResult> {
         let url_ = this.baseUrl + "/api/auth/login";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -3314,6 +3429,7 @@ export class AuthClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -3356,9 +3472,10 @@ export class AuthClient {
     }
 
     /**
+     * @param body (optional) 
      * @return OK
      */
-    refresh(body: RefreshRequest): Observable<AuthResult> {
+    refresh(body?: RefreshRequest | null | undefined, httpContext?: HttpContext): Observable<AuthResult> {
         let url_ = this.baseUrl + "/api/auth/refresh";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -3368,6 +3485,7 @@ export class AuthClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -3410,9 +3528,10 @@ export class AuthClient {
     }
 
     /**
-     * @return OK
+     * @param body (optional) 
+     * @return No Content
      */
-    logout(body: RefreshRequest): Observable<void> {
+    logout(body?: RefreshRequest | null | undefined, httpContext?: HttpContext): Observable<void> {
         let url_ = this.baseUrl + "/api/auth/logout";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -3422,6 +3541,7 @@ export class AuthClient {
             body: content_,
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
             })
@@ -3448,6 +3568,59 @@ export class AuthClient {
             (response as any).error instanceof Blob ? (response as any).error : undefined;
 
         let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return _observableOf(null as any);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * Changes the signed-in user's own password and ends all of their sessions.
+     * @return OK
+     */
+    changePassword(body: ChangePasswordRequest, httpContext?: HttpContext): Observable<void> {
+        let url_ = this.baseUrl + "/api/auth/change-password";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processChangePassword(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processChangePassword(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<void>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<void>;
+        }));
+    }
+
+    protected processChangePassword(response: HttpResponseBase): Observable<void> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
         if (status === 200) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
             return _observableOf(null as any);
@@ -3463,13 +3636,14 @@ export class AuthClient {
     /**
      * @return OK
      */
-    me(): Observable<UserInfo> {
+    me(httpContext?: HttpContext): Observable<UserInfo> {
         let url_ = this.baseUrl + "/api/auth/me";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_ : any = {
             observe: "response",
             responseType: "blob",
+            context: httpContext,
             headers: new HttpHeaders({
                 "Accept": "application/json"
             })
@@ -3511,6 +3685,266 @@ export class AuthClient {
     }
 }
 
+@Injectable({
+    providedIn: 'root'
+})
+export class AttachmentsClient {
+    private http: HttpClient;
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
+        this.http = http;
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+    }
+
+    /**
+     * @param ownerType (optional) 
+     * @param ownerId (optional) 
+     * @return OK
+     */
+    list(ownerType?: AttachmentOwnerType | undefined, ownerId?: number | undefined, httpContext?: HttpContext): Observable<AttachmentDto[]> {
+        let url_ = this.baseUrl + "/api/attachments?";
+        if (ownerType === null)
+            throw new globalThis.Error("The parameter 'ownerType' cannot be null.");
+        else if (ownerType !== undefined)
+            url_ += "ownerType=" + encodeURIComponent("" + ownerType) + "&";
+        if (ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' cannot be null.");
+        else if (ownerId !== undefined)
+            url_ += "ownerId=" + encodeURIComponent("" + ownerId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processList(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processList(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<AttachmentDto[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<AttachmentDto[]>;
+        }));
+    }
+
+    protected processList(response: HttpResponseBase): Observable<AttachmentDto[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as AttachmentDto[];
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * @param ownerType (optional) 
+     * @param ownerId (optional) 
+     * @param file (optional) 
+     * @return OK
+     */
+    upload(ownerType?: AttachmentOwnerType | undefined, ownerId?: number | undefined, file?: FileParameter | undefined, httpContext?: HttpContext): Observable<AttachmentDto> {
+        let url_ = this.baseUrl + "/api/attachments";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (ownerType === null || ownerType === undefined)
+            throw new globalThis.Error("The parameter 'ownerType' cannot be null.");
+        else
+            content_.append("ownerType", ownerType.toString());
+        if (ownerId === null || ownerId === undefined)
+            throw new globalThis.Error("The parameter 'ownerId' cannot be null.");
+        else
+            content_.append("ownerId", ownerId.toString());
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
+        else
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processUpload(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processUpload(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<AttachmentDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<AttachmentDto>;
+        }));
+    }
+
+    protected processUpload(response: HttpResponseBase): Observable<AttachmentDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as AttachmentDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * Downloads the file. Images can be shown inline with `inline=true`; everything else is a download.
+     * @param inline (optional) 
+     * @return The file.
+     */
+    download(id: number, inline?: boolean | undefined, httpContext?: HttpContext): Observable<FileResponse> {
+        let url_ = this.baseUrl + "/api/attachments/{id}?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (inline === null)
+            throw new globalThis.Error("The parameter 'inline' cannot be null.");
+        else if (inline !== undefined)
+            url_ += "inline=" + encodeURIComponent("" + inline) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/octet-stream"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processDownload(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processDownload(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<FileResponse>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<FileResponse>;
+        }));
+    }
+
+    protected processDownload(response: HttpResponseBase): Observable<FileResponse> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return _observableOf({ fileName: fileName, data: responseBlob as any, status: status, headers: _headers });
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    delete(id: number, httpContext?: HttpContext): Observable<void> {
+        let url_ = this.baseUrl + "/api/attachments/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+            })
+        };
+
+        return this.http.request("delete", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processDelete(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processDelete(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<void>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<void>;
+        }));
+    }
+
+    protected processDelete(response: HttpResponseBase): Observable<void> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return _observableOf(null as any);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+}
+
 export interface ApprovalRuleDto {
     id: number;
     docType: DocumentType;
@@ -3528,6 +3962,28 @@ export interface ApprovalRuleSaveRequest {
     isActive: boolean;
 }
 
+export interface ApproveRequest {
+    /** Required when the document `requiresOverride`: why the approver lets stock go below zero. Ignored for any other document. */
+    negativeStockOverrideReason: string | undefined;
+}
+
+export interface AttachmentDto {
+    id: number;
+    ownerType: AttachmentOwnerType;
+    ownerId: number;
+    fileName: string;
+    contentType: string;
+    sizeBytes: number;
+    uploadedBy: string;
+    uploadedAt: string;
+}
+
+/** What a file is attached to. Adding an owner type means adding one owner policy in the application layer. */
+export enum AttachmentOwnerType {
+    Document = "Document",
+    Product = "Product",
+}
+
 export interface AuditLogDto {
     id: number;
     actor: string;
@@ -3539,10 +3995,12 @@ export interface AuditLogDto {
     at: string;
 }
 
+/** The result of a login or refresh. RefreshToken is null when the API is configured to deliver the refresh token only in its HttpOnly cookie (Auth:ReturnRefreshTokenInBody=false). */
 export interface AuthResult {
     accessToken: string;
     expiresAt: string;
-    refreshToken: string;
+    /** DEPRECATED. The refresh token now travels in an HttpOnly cookie; this property is only filled while Auth:ReturnRefreshTokenInBody is true. */
+    refreshToken: string | undefined;
     user: UserInfo;
 }
 
@@ -3559,6 +4017,23 @@ export interface CategorySaveRequest {
     name: string;
 }
 
+export interface ChangePasswordRequest {
+    currentPassword: string;
+    newPassword: string;
+}
+
+/** The numbers behind the Home tiles and menu badges, for the signed-in user, within the warehouses they may see. */
+export interface DocumentCounts {
+    /** Drafts I created that a reviewer sent back. */
+    returnedToMe: number;
+    /** All my Drafts (returned ones included). */
+    myDrafts: number;
+    /** Documents posted since local midnight (Asia/Kuala_Lumpur, BR-10), whoever posted them. */
+    postedToday: number;
+    /** Submitted documents held for approval that I could act on: not mine to approve when self-approval is off, only large ones for the Owner, none large for a Supervisor, zero for roles that cannot approve. */
+    approvalsWaiting: number;
+}
+
 export interface DocumentDto {
     id: number;
     type: DocumentType;
@@ -3570,25 +4045,44 @@ export interface DocumentDto {
     partnerName: string | undefined;
     purpose: IssuePurpose | undefined;
     remark: string | undefined;
+    /** An approval rule fired when the document was submitted (false for a Draft). */
     requiresApproval: boolean;
+    /** An issue was submitted although stock is short (negative stock is allowed): the approver must give a reason when approving, which forces approval whatever the value thresholds say. A fact about the moment of submission: it stays true after approval and posting; the stored reason is in `NegativeStockOverrideReason`. */
+    requiresOverride: boolean;
+    /** The approval rule that fired needs a role above Supervisor (for example the Owner). */
+    isLarge: boolean;
+    /** A Draft that a reviewer sent back (`RejectionReason` holds why, `ReturnedBy*` who). */
+    isReturned: boolean;
     rejectionReason: string | undefined;
     cancelReason: string | undefined;
     reversalReason: string | undefined;
+    /** Why the approver let stock go below zero; set when a document that `requiresOverride` is approved, otherwise null. */
     negativeStockOverrideReason: string | undefined;
+    createdById: number;
     createdBy: string;
+    createdByName: string;
     createdAt: string;
     submittedById: number | undefined;
     submittedBy: string | undefined;
+    submittedByName: string | undefined;
     submittedAt: string | undefined;
     approvedBy: string | undefined;
+    approvedByName: string | undefined;
     approvedAt: string | undefined;
     postedBy: string | undefined;
+    postedByName: string | undefined;
     postedAt: string | undefined;
+    returnedById: number | undefined;
+    returnedBy: string | undefined;
+    returnedByName: string | undefined;
+    returnedAt: string | undefined;
     totalQty: number;
     totalAmount: number;
     lines: DocumentLineDto[];
     /** What the caller may do right now (edit, submit, approve, reject, cancel, post, reverse). The UI shows buttons from this list only. */
     allowedActions: string[];
+    /** Changes whenever the document (header, status or lines) changes. Also sent as the ETag header; send it back as If-Match to refuse a stale save. */
+    concurrencyToken: string;
 }
 
 export interface DocumentLineDto {
@@ -3602,6 +4096,8 @@ export interface DocumentLineDto {
     baseQty: number;
     unitCost: number;
     remark: string | undefined;
+    /** On hand in the document's warehouse right now, in base units (compare with `BaseQty`; lines of one product add up). Null once the document is Posted, Reversed or Cancelled, when the figure no longer says anything about this document. */
+    available?: number | undefined;
 }
 
 export interface DocumentLineInput {
@@ -3624,6 +4120,20 @@ export interface DocumentListItem {
     totalQty: number;
     totalAmount: number;
     createdBy: string;
+    createdById: number;
+    createdByName: string;
+    submittedById: number | undefined;
+    submittedBy: string | undefined;
+    submittedByName: string | undefined;
+    submittedAt: string | undefined;
+    /** An approval rule fired when the document was submitted. With `status=Submitted` this is the approvals inbox. */
+    requiresApproval: boolean;
+    requiresOverride: boolean;
+    isLarge: boolean;
+    /** A Draft that a reviewer sent back. */
+    isReturned: boolean;
+    /** Same value as `concurrencyToken` on the full document: compare it to know whether an open document has gone stale. */
+    concurrencyToken: string;
 }
 
 export interface DocumentSaveRequest {
@@ -3634,6 +4144,7 @@ export interface DocumentSaveRequest {
     lines: DocumentLineInput[];
 }
 
+/** Figure 5 state machine. Rejection returns to Draft (reason kept on the document). */
 export enum DocumentStatus {
     Draft = "Draft",
     Submitted = "Submitted",
@@ -3655,7 +4166,9 @@ export interface ImportResult {
     total: number;
     valid: number;
     invalid: number;
+    /** Rows that create (a preview reports what a commit would create). */
     created: number;
+    /** Rows that update an existing record (a preview reports what a commit would update). */
     updated: number;
     documentId: number | undefined;
     rows: ImportRowResult[];
@@ -3664,8 +4177,18 @@ export interface ImportResult {
 export interface ImportRowResult {
     row: number;
     key: string;
+    /** False when the row has errors and blocks the import. */
     ok: boolean;
+    /** New or Update for a valid row (what a commit would do with it; the same in a preview and after a commit), Error otherwise. A valid row can still carry a note in `Errors` (for example "unit not changed"). */
+    status: ImportRowStatus;
     errors: string[];
+}
+
+/** What an import row does (or would do on commit): create something new, update something that exists, or nothing because it has errors. */
+export enum ImportRowStatus {
+    New = "New",
+    Update = "Update",
+    Error = "Error",
 }
 
 export enum IssuePurpose {
@@ -3690,6 +4213,7 @@ export interface LedgerRow {
     sku: string;
     productName: string;
     warehouseCode: string;
+    warehouseName: string;
     qtyDelta: number;
     unitCost: number;
     reason: LedgerReason;
@@ -3709,6 +4233,7 @@ export interface LowStockAlert {
     productName: string;
     warehouseId: number;
     warehouseCode: string;
+    warehouseName: string;
     qtyOnHand: number;
     safetyStock: number;
     shortfall: number;
@@ -3849,10 +4374,6 @@ export enum PartnerType {
     Customer = "Customer",
 }
 
-export interface PostRequest {
-    negativeStockOverrideReason: string | undefined;
-}
-
 export interface ProductDto {
     id: number;
     sku: string;
@@ -3867,6 +4388,12 @@ export interface ProductDto {
     conversions: UomConversionDto[];
 }
 
+/** Answer to a barcode or SKU lookup. A code nobody owns is a normal outcome of scanning, not an error: `Found` is false and `Product` is null (HTTP 200), so a scan miss does not look like a failed request. */
+export interface ProductLookupResult {
+    found: boolean;
+    product: ProductDto | undefined;
+}
+
 export interface ProductSaveRequest {
     sku: string;
     name: string;
@@ -3878,13 +4405,16 @@ export interface ProductSaveRequest {
     conversions: UomConversionDto[] | undefined;
 }
 
+/** Sort keys the products list accepts. Only these are allowed, so a client cannot sort on an unindexed column. */
 export enum ProductSort {
     Sku = "Sku",
     Name = "Name",
 }
 
+/** The refresh token to redeem or revoke. Optional on the wire: when absent, the API reads it from the HttpOnly cookie. */
 export interface RefreshRequest {
-    refreshToken: string;
+    /** DEPRECATED. The refresh token now travels in an HttpOnly cookie; this property is only filled while Auth:ReturnRefreshTokenInBody is true. */
+    refreshToken: string | undefined;
 }
 
 export interface RejectRequest {
@@ -3909,6 +4439,7 @@ export interface StockRow {
     uomCode: string;
     warehouseId: number;
     warehouseCode: string;
+    warehouseName: string;
     qtyOnHand: number;
     qtyInTransit: number;
     avgCost: number;

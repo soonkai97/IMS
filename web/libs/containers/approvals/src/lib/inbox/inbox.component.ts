@@ -10,7 +10,6 @@ import { DocumentDto } from '@ims/api';
 import { AppQtyPipe, DOCUMENT_TYPE_LABELS, I18nService, TranslatePipe } from '@ims/core/i18n';
 import { ApprovalsStore } from '@ims/features/approvals';
 import { DOCUMENT_ROUTE } from '@ims/features/documents';
-import { parseServerDate } from '@ims/utils';
 import {
   TabItem,
   TableColumn,
@@ -131,7 +130,7 @@ export class ApprovalsInboxPageComponent implements OnInit {
     }
     const minutes = Math.max(
       0,
-      Math.floor((Date.now() - parseServerDate(submittedAt).getTime()) / MINUTE_MS)
+      Math.floor((Date.now() - new Date(submittedAt).getTime()) / MINUTE_MS)
     );
     const hours = Math.floor(minutes / HOUR_MINUTES);
     if (hours >= DAY_HOURS) {

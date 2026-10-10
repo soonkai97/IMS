@@ -50,7 +50,7 @@ export class ReportsStore {
 
   readonly exportMovements = new ApiCommand<MovementFilter, FileResponse>(query =>
     this.download(
-      this.client.movementsExport(
+      this.client.exportMovements(
         query.type,
         query.warehouseId,
         query.productId,
@@ -61,7 +61,7 @@ export class ReportsStore {
   );
   readonly exportStockSummary = new ApiCommand<StockExportQuery, FileResponse>(query =>
     this.download(
-      this.client.stockSummaryExport(
+      this.client.exportStockSummary(
         query.warehouseId,
         query.productId,
         query.categoryId,
@@ -72,11 +72,11 @@ export class ReportsStore {
   );
   readonly exportLedger = new ApiCommand<LedgerExportQuery, FileResponse>(query =>
     this.download(
-      this.client.ledgerExport(query.warehouseId, query.productId, query.from, query.to)
+      this.client.exportLedger(query.warehouseId, query.productId, query.from, query.to)
     )
   );
   readonly exportLowStock = new ApiCommand<void, FileResponse>(() =>
-    this.download(this.client.lowStockExport())
+    this.download(this.client.exportLowStock())
   );
 
   private download(source$: Observable<FileResponse>): Observable<FileResponse> {

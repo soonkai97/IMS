@@ -76,11 +76,7 @@ export class DocumentsStore {
     this.accept(this.client.cancel(args.id, { reason: args.reason || undefined }))
   );
   readonly post = new ApiCommand<PostArgs, DocumentDto>(args =>
-    this.accept(
-      this.client.post(args.id, {
-        negativeStockOverrideReason: args.negativeStockOverrideReason || undefined
-      })
-    )
+    this.accept(this.client.post(args.id))
   );
   readonly reverse = new ApiCommand<ReasonArgs, DocumentDto>(args =>
     this.accept(this.client.reverse(args.id, { reason: args.reason }))
