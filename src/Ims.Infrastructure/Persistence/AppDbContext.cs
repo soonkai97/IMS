@@ -80,7 +80,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.Code).HasMaxLength(Limits.CodeMaxLength);
             e.Property(x => x.Name).HasMaxLength(Limits.ShortNameMaxLength);
         });
-        b.Entity<Partner>(e => { e.Property(x => x.Name).HasMaxLength(Limits.NameMaxLength); e.HasIndex(x => new { x.Type, x.Name }); });
+        b.Entity<Partner>(e =>
+        {
+            e.Property(x => x.Name).HasMaxLength(Limits.NameMaxLength);
+            // One live supplier or customer per name (case-insensitive under the database collation); also serves the name prefix search.
+            e.HasIndex(x => new { x.Type, x.Name }).IsUnique();
+        });
         b.Entity<ApprovalRule>(e =>
         {
             e.Property(x => x.AmountThreshold).HasColumnType(SqlTypes.Money);

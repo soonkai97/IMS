@@ -415,7 +415,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Type", "Name");
+                    b.HasIndex("Type", "Name")
+                        .IsUnique()
+                        .HasFilter("[REC_DELETED] = 0");
 
                     b.ToTable("Partner");
                 });
