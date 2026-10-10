@@ -262,6 +262,14 @@ Row error messages (exact):
 3. Roles that can create receipts see [Create receipt] on the row: opens S11 new with product and warehouse prefilled and quantity focused. Others see no button.
 4. A product leaves the list when a posted receipt brings it above safety stock; the list needs no manual "mark handled" in MVP (alert frequency, email and push are Phase 2).
 
+### 3.9 Receipt-issue detail (S40 tab, `GET /api/reports/movements` and its Excel export)
+
+One row per line of a posted document, newest movement first (the order is part of the contract, see `docs/architecture/data-and-performance-rules.md` section 8). Columns: posted (MYT), document, type, status, warehouse, partner, SKU, product, qty, unit, base qty, **stock effect**, unit cost, amount.
+
+- `qty` and `baseQty` are unsigned, as entered and in base units. **`stockEffect`** (Excel "Stock effect") is signed and always in base units: positive when the movement adds stock, negative when it removes it. A receipt adds, an issue removes. Adding the effects of a product over a period gives the change in its stock balance, so a user can filter the export and sum the column.
+- A reversed document appears twice per line: the posting (status Reversed, effect as at posting) and a **reversal row** (`isReversal = true`, the opposite sign: a reversed receipt shows negative, a reversed issue positive). The reversal row is dated by the time of the reversal (`postedAt` carries that time), and the date range filters it by that time, so a period always adds up to its own change.
+- A transfer will show as two movements (out negative, in positive) once it exists as a document type; today a transfer is an issue plus a receipt.
+
 ## 4. Wireframes
 
 Conventions: `[Button]`, `( )` radio, `[x]` checked, `<v>` dropdown, `*` required, `(!)` error, `~~~` skeleton, `[CHIP]` status chip. Phone frames are 360px (about 38 columns). Desktop frames are 1280px (about 100 columns). Numbers in `(1)` refer to the notes below each frame.

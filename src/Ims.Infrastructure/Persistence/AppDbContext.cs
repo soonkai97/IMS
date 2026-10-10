@@ -127,6 +127,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.HasIndex(x => x.CreatedAt).HasFilter(LiveRows);
             // "Posted today" on the Home counts: a seek on the day's postings instead of a scan of every posted document.
             e.HasIndex(x => x.PostedAt).IncludeProperties(x => new { x.Status, x.WarehouseId }).HasFilter($"{LiveRows} AND [PostedAt] IS NOT NULL");
+            // The reversal rows of the movements report, newest reversal first: a seek on the (few) reversed documents. Written only when a document is reversed.
+            e.HasIndex(x => x.ReversedAt).IncludeProperties(x => new { x.Status, x.Type, x.WarehouseId, x.PartnerId, x.No })
+                .HasFilter($"{LiveRows} AND [ReversedAt] IS NOT NULL");
             e.Property(x => x.No).HasMaxLength(Limits.DocumentNoMaxLength);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
             e.Property(x => x.RowVersion).IsRowVersion();

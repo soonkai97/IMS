@@ -45,6 +45,9 @@ public class StockDocument : Entity
     public bool IsReturned => Status == DocumentStatus.Draft && RejectionReason is not null;
     public string? CancelReason { get; private set; }
     public string? ReversalReason { get; private set; }
+
+    /// <summary>When the document was reversed (UTC). The movements report dates the reversal row with it.</summary>
+    public DateTime? ReversedAt { get; private set; }
     public int? ReversesDocumentId { get; private set; }
 
     /// <summary>Why the approver allowed stock to go below zero. Entered when approving (BR-03), required when <see cref="RequiresOverride"/> is set, and read by the posting run.</summary>
@@ -239,7 +242,7 @@ public class StockDocument : Entity
         PostedAt = utcNow;
     }
 
-    public void MarkReversed(string reason)
+    public void MarkReversed(string reason, DateTime utcNow)
     {
         if (Status != DocumentStatus.Posted)
             throw new DomainException(Messages.OnlyPostedCanReverse);
@@ -248,5 +251,6 @@ public class StockDocument : Entity
 
         Status = DocumentStatus.Reversed;
         ReversalReason = reason.Trim();
+        ReversedAt = utcNow;
     }
 }
