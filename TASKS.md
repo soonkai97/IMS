@@ -43,8 +43,11 @@ Legend: [x] done and verified · [~] in progress · [ ] not started
 - [x] Q11 Security review fixes (lockout concurrency, change password, import zip-bomb check, PDF active content, release gated on CI, demo seeding local only)
 - [x] Q12 Git workflow guards: `.githooks` (pre-commit, commit-msg, pre-push) + `scripts/guard/*`, `pr-guard.yml`, `.github/rulesets/main.json`, `docs/team/GIT-WORKFLOW.md`. Setup per clone: `node scripts/setup-git-hooks.mjs`
 
+- [x] Q13 Security hardening, API side (`docs/security/`): SEC-34 refresh token in an HttpOnly cookie + CSRF defence (backward compatible, `Auth:ReturnRefreshTokenInBody`), security response headers on every response (SEC-24), image metadata removal and `IUploadScanner` hook (SEC-18), `web-headers.md` (Caddy/nginx/CSP), weekly ZAP API scan `dast.yml`
+- [ ] Q14 Web app moves to the refresh cookie (steps: `docs/security/refresh-cookie.md` section 5), then set `Auth__ReturnRefreshTokenInBody=false`; apply the header set of `docs/security/web-headers.md` on the static host; plug a real AV engine into `IUploadScanner`; triage the first DAST run
+
 ## Delivery
-- [~] T21 CI/CD written (+ `pr-guard.yml`, `codeql.yml`, npm audit, web job on Nx scripts): `ci.yml` (build, unit, architecture, integration on SQL container, smoke, web, audit), `release.yml` (image to GHCR), `deploy.yml` (gated skeleton; hosting target undecided, PRD 14.3)
+- [~] T21 CI/CD written (+ `pr-guard.yml`, `codeql.yml`, npm audit, web job on Nx scripts): `ci.yml` (build, unit, architecture, integration on SQL container, smoke, web, audit), `dast.yml` (weekly ZAP API scan), `release.yml` (image to GHCR), `deploy.yml` (gated skeleton; hosting target undecided, PRD 14.3)
 - [ ] T22 Push to https://github.com/soonkai97/IMS (private). Waiting for the test agents to finish so the first CI run is green; then first push needs the user's browser sign-in for Git Credential Manager
 - [~] T23 Reusable base: rename script + `docs/TEMPLATE.md` done; framework extraction (Framework.* packages, npm lib) after a second project exists
 
