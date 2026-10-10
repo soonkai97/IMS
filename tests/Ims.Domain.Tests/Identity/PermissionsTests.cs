@@ -13,6 +13,7 @@ public class PermissionsTests
     [Theory]
     [InlineData(Permissions.SettingsManage)]
     [InlineData(Permissions.UsersManage)]
+    [InlineData(Permissions.UsersRead)] // the users list shows e-mail, role and warehouses: Admin only (EA-12)
     public void OnlyAdmin_CanManageSettingsAndUsers(string permission)
     {
         foreach (var role in Roles.All)

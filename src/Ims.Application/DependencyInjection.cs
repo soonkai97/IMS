@@ -1,6 +1,7 @@
 using System.Reflection;
 using FluentValidation;
 using Ims.Application.Features.Audit;
+using Ims.Application.Features.Documents;
 using Ims.Application.Features.Settings;
 using Ims.Domain;
 using Microsoft.Extensions.DependencyInjection;
@@ -71,6 +72,9 @@ public static class DependencyInjection
         services.AddScoped<IDispatcher, Dispatcher>();
         services.AddScoped<IPipelineBehavior, LoggingBehavior>();
         services.AddScoped<IPipelineBehavior, ValidationBehavior>();
+        // Innermost: they turn an exception from the handler into one a person can read, after the failed work has been rolled back.
+        services.AddScoped<IPipelineBehavior, StaleDocumentBehavior>();
+        services.AddScoped<IPipelineBehavior, ShortageNamingBehavior>();
         return services;
     }
 

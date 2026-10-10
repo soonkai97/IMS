@@ -13,12 +13,13 @@ public class LoginHandler(IRepository<User> users, IPasswordHasher hasher, IAuth
     // Verified against when the account does not exist, so response time does not reveal which usernames are real.
     private static string? _dummyHash;
 
-    private sealed record Attempt(User? User, string? Error);
+    private sealed record Attempt(User? User, string? Error, int? LockedForMinutes = null);
 
     public async Task<AuthResult> HandleAsync(LoginCommand cmd, CancellationToken ct)
     {
         var key = cmd.Body.Username.Trim().ToLowerInvariant();
         var attempt = await uow.ExecuteAsync(() => TryAsync(key, cmd.Body.Password, ct), ct);
+        if (attempt.LockedForMinutes is { } minutes) throw new AccountLockedException(minutes);
         if (attempt.Error is not null) throw new UnauthorizedException(attempt.Error);
         return await issuer.IssueAsync(attempt.User!, ct);
     }
@@ -43,7 +44,9 @@ public class LoginHandler(IRepository<User> users, IPasswordHasher hasher, IAuth
             audit.Record(AuditActions.LoginLocked, AuditEntities.User, user.Id.ToString(), actor: user.Username);
             await uow.SaveChangesAsync(ct);
             // The lock is only disclosed to someone who knows the password; anyone else sees the generic message.
-            return new Attempt(null, passwordOk ? Messages.AccountLocked : Messages.InvalidCredentials);
+            return passwordOk
+                ? new Attempt(null, Messages.AccountLocked, LockedForMinutes: (int)Math.Max(1, Math.Ceiling((user.LockoutUntil!.Value - now).TotalMinutes)))
+                : new Attempt(null, Messages.InvalidCredentials);
         }
 
         if (!passwordOk)

@@ -152,7 +152,7 @@ Draft and Submitted can be cancelled. Approved cannot (Q3). Posted can only be r
 6. Repeat 3-5 per item. Lines list shows product, quantity, remove.
 7. [Submit & post]. {Server checks rules.}
 8. Confirm dialog "Post RCV-...?" -> [Post]. {Toast "Posted. Stock updated." Document opens read-only with chip Posted.}
-   - If approval is required: step 7 submits only; toast "Sent for approval: quantity is over {threshold}." Chip Submitted, sub-label "Awaiting approval". No confirm dialog.
+   - If approval is required: step 7 submits only; toast "Sent for approval: quantity reaches {threshold}." Chip Submitted, sub-label "Awaiting approval". No confirm dialog.
    - Clerk (no Post right): button is [Submit]; toast "Submitted for approval."
    - Leave early: [Save draft] anytime; unsaved-changes guard on back.
    - Error paths: deactivated or unknown product (E-table, section 6.4); network failure keeps the form and shows a retry toast.
@@ -658,7 +658,7 @@ Also needed (shorter, same tone):
 | Network | "Can't reach the server. Check your connection and try again." |
 | Export failed | "Couldn't create the file. Try again." |
 
-Success toasts: "Draft saved." / "Submitted for approval." / "Sent for approval: quantity is over {threshold}." / "Posted. Stock updated." / "Approved." / "Returned to {name} for changes." / "Reversed. Stock adjusted." / "Document cancelled." / "{count} products added, {updated} updated."
+Success toasts: "Draft saved." / "Submitted for approval." / "Sent for approval: quantity reaches {threshold}." / "Posted. Stock updated." / "Approved." / "Returned to {name} for changes." / "Reversed. Stock adjusted." / "Document cancelled." / "{count} products added, {updated} updated."
 
 Dialog copy:
 

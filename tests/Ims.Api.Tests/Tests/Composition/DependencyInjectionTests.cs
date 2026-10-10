@@ -50,7 +50,7 @@ public class DependencyInjectionTests(ApiFixture fixture)
         using var scope = fixture.Host.Services.CreateScope();
 
         Assert.NotNull(scope.ServiceProvider.GetRequiredService<IDispatcher>());
-        Assert.Equal(2, scope.ServiceProvider.GetServices<IPipelineBehavior>().Count()); // logging and validation
+        Assert.Equal(4, scope.ServiceProvider.GetServices<IPipelineBehavior>().Count()); // logging, validation, then the two steps that put names into stale and stock conflicts
     }
 
     [Fact]

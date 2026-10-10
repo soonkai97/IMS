@@ -19,12 +19,12 @@ public static class RoleMatrix
         ],
         [Roles.Owner] =
         [
-            Permissions.UsersRead, Permissions.MasterDataRead, Permissions.DocumentApprove,
+            Permissions.MasterDataRead, Permissions.DocumentApprove,
             Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead
         ],
         [Roles.Supervisor] =
         [
-            Permissions.UsersRead, Permissions.MasterDataManage, Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate,
+            Permissions.MasterDataManage, Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate,
             Permissions.DocumentApprove, Permissions.DocumentPost, Permissions.DocumentReverse, Permissions.StockRead, Permissions.ReportsRead
         ],
         [Roles.WarehouseStaff] = [Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.StockRead],

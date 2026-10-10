@@ -27,10 +27,10 @@ public static class Permissions
     private static readonly Dictionary<string, string[]> ByRole = new()
     {
         [Roles.Admin] = All,
-        [Roles.Owner] = [UsersRead, MasterDataRead, DocumentApprove, StockRead, ReportsRead, AuditRead],
+        [Roles.Owner] = [MasterDataRead, DocumentApprove, StockRead, ReportsRead, AuditRead],
         [Roles.Supervisor] =
         [
-            UsersRead, MasterDataManage, MasterDataRead, PartnersCreate, DocumentCreate, DocumentApprove, DocumentPost,
+            MasterDataManage, MasterDataRead, PartnersCreate, DocumentCreate, DocumentApprove, DocumentPost,
             DocumentReverse, StockRead, ReportsRead
         ],
         [Roles.WarehouseStaff] = [MasterDataRead, DocumentCreate, DocumentPost, StockRead],
