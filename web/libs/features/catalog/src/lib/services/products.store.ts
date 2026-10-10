@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map, tap } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import {
   PagedResultOfProductDto,
   ProductDto,
+  ProductLookupResult,
   ProductSaveRequest,
   ProductSort,
   ProductsClient
@@ -53,8 +54,8 @@ export class ProductsStore {
     return this.client.list(term, undefined, true, 1, PICKER_RESULT_COUNT);
   }
 
-  /** Exact SKU or barcode (scanner input). */
-  lookup(code: string): Observable<ProductDto | undefined> {
-    return this.client.lookup(code).pipe(map(result => result.product));
+  /** Exact SKU or barcode (scanner input). An unknown code is `{ found: false }`, not an error. */
+  lookup(code: string): Observable<ProductLookupResult> {
+    return this.client.lookup(code);
   }
 }

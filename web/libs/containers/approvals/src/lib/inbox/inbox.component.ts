@@ -6,16 +6,18 @@ import {
   inject,
   signal
 } from '@angular/core';
-import { DocumentDto } from '@ims/api';
+import { DocumentListItem } from '@ims/api';
 import { AppQtyPipe, DOCUMENT_TYPE_LABELS, I18nService, TranslatePipe } from '@ims/core/i18n';
 import { ApprovalsStore } from '@ims/features/approvals';
 import { DOCUMENT_ROUTE } from '@ims/features/documents';
+
 import {
   TabItem,
   TableColumn,
   UiCellDirective,
   UiEmptyStateComponent,
   UiPageHeaderComponent,
+  UiStatusChipComponent,
   UiTableComponent,
   UiTabsComponent
 } from '@ims/ui';
@@ -27,7 +29,7 @@ const HOUR_MINUTES = 60;
 const DAY_HOURS = 24;
 
 interface InboxRow {
-  readonly document: DocumentDto;
+  readonly document: DocumentListItem;
   readonly waiting: string;
 }
 
@@ -40,6 +42,7 @@ interface InboxRow {
     UiCellDirective,
     UiEmptyStateComponent,
     UiPageHeaderComponent,
+    UiStatusChipComponent,
     UiTableComponent,
     UiTabsComponent
   ],
@@ -87,7 +90,7 @@ export class ApprovalsInboxPageComponent implements OnInit {
     {
       key: 'by',
       header: this.i18n.t('approvals.submittedBy'),
-      value: row => row.document.submittedBy ?? ''
+      value: row => row.document.submittedByName ?? row.document.submittedBy ?? ''
     },
     {
       key: 'warehouse',
@@ -95,13 +98,7 @@ export class ApprovalsInboxPageComponent implements OnInit {
       value: row => row.document.warehouseName,
       hideOnPhone: true
     },
-    {
-      key: 'lines',
-      header: this.i18n.t('doc.lines'),
-      value: row => String(row.document.lines.length),
-      align: 'end',
-      hideOnPhone: true
-    },
+    { key: 'flags', header: this.i18n.t('approvals.flags') },
     { key: 'qty', header: this.i18n.t('doc.totalQty'), align: 'end' },
     { key: 'waiting', header: this.i18n.t('approvals.waiting'), value: row => row.waiting }
   ]);

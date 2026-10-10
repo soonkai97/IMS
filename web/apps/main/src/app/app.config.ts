@@ -15,6 +15,7 @@ import {
   credentialsInterceptor,
   csrfHeaderInterceptor,
   errorInterceptor,
+  ifMatchInterceptor,
   loadingInterceptor,
   provideApi,
   timeoutInterceptor
@@ -55,6 +56,7 @@ export const appConfig: ApplicationConfig = {
         correlationInterceptor,
         credentialsInterceptor,
         csrfHeaderInterceptor,
+        ifMatchInterceptor,
         loadingInterceptor,
         timeoutInterceptor,
         authInterceptor

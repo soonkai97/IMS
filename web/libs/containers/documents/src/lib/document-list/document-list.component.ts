@@ -25,6 +25,8 @@ import {
   DOCUMENT_ROUTE,
   DocumentQuery,
   DocumentsStore,
+  LIST_SCOPE,
+  ListScopePreference,
   STATUS_TONE
 } from '@ims/features/documents';
 import { WarehousesStore } from '@ims/features/warehousing';
@@ -32,6 +34,7 @@ import { DEFAULT_PAGE_SIZE, PERMISSION } from '@ims/models';
 import {
   SelectOption,
   StatusTone,
+  TabItem,
   TableColumn,
   UiButtonComponent,
   UiCellDirective,
@@ -43,7 +46,8 @@ import {
   UiSearchInputComponent,
   UiSelectComponent,
   UiStatusChipComponent,
-  UiTableComponent
+  UiTableComponent,
+  UiTabsComponent
 } from '@ims/ui';
 import { controlSignal, createPageState, debouncedSignal, loadOnChange } from '@ims/utils';
 
@@ -68,7 +72,8 @@ import { controlSignal, createPageState, debouncedSignal, loadOnChange } from '@
     UiSearchInputComponent,
     UiSelectComponent,
     UiStatusChipComponent,
-    UiTableComponent
+    UiTableComponent,
+    UiTabsComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './document-list.component.html',
@@ -77,6 +82,7 @@ import { controlSignal, createPageState, debouncedSignal, loadOnChange } from '@
 export class DocumentListPageComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly permissions = inject(PermissionService);
+  private readonly scopePreference = inject(ListScopePreference);
   private readonly store = inject(DocumentsStore);
   private readonly warehouses = inject(WarehousesStore);
 
@@ -89,6 +95,8 @@ export class DocumentListPageComponent implements OnInit {
   readonly toControl = new FormControl('', { nonNullable: true });
 
   $searchInput = signal('');
+  /** Mine = documents I created (`mine=true`); the choice is remembered per user. */
+  $scope = signal<string>(this.scopePreference.initial());
 
   private readonly $search = debouncedSignal(this.$searchInput);
   private readonly $status = controlSignal(this.statusControl);
@@ -98,6 +106,7 @@ export class DocumentListPageComponent implements OnInit {
   private readonly $filterKey = computed(() =>
     JSON.stringify([
       this.$type(),
+      this.$scope(),
       this.$search(),
       this.$status(),
       this.$warehouseId(),
@@ -109,6 +118,7 @@ export class DocumentListPageComponent implements OnInit {
 
   readonly $query = computed<DocumentQuery>(() => ({
     type: this.$type(),
+    mine: this.$scope() === LIST_SCOPE.Mine ? true : undefined,
     status: this.$status() ?? undefined,
     warehouseId: this.$warehouseId() ?? undefined,
     from: this.$from() || undefined,
@@ -124,8 +134,17 @@ export class DocumentListPageComponent implements OnInit {
   $isIssue = computed(() => this.$type() === DocumentType.Issue);
   $canCreate = computed(() => this.permissions.has(PERMISSION.DocumentCreate));
   $hasFilters = computed(
-    () => this.$filterKey() !== JSON.stringify([this.$type(), '', null, null, '', ''])
+    () =>
+      this.$search() !== '' ||
+      this.$status() !== null ||
+      this.$warehouseId() !== null ||
+      this.$from() !== '' ||
+      this.$to() !== ''
   );
+  $scopeTabs = computed<readonly TabItem[]>(() => [
+    { id: LIST_SCOPE.Mine, label: this.i18n.t('docs.scope.mine') },
+    { id: LIST_SCOPE.All, label: this.i18n.t('docs.scope.all') }
+  ]);
   $statusOptions = computed<readonly SelectOption[]>(() =>
     Object.values(DocumentStatus).map(status => ({
       value: status,
@@ -182,6 +201,11 @@ export class DocumentListPageComponent implements OnInit {
 
   onPageChange(page: number): void {
     this.pageState.set(page);
+  }
+
+  onScopeChange(scope: string): void {
+    this.$scope.set(scope);
+    this.scopePreference.remember(scope === LIST_SCOPE.Mine ? LIST_SCOPE.Mine : LIST_SCOPE.All);
   }
 
   onClearFilters(): void {

@@ -2,11 +2,17 @@
   <div chips class="document-editor-chips">
     @if ($document()) {
       <app-status-chip [status]="$statusTone()" [label]="$statusLabel()" />
-      @if ($returnedReason()) {
+      @if ($returned()) {
         <app-status-chip flag="warning" [label]="'doc.returned' | t" />
       }
       @if ($awaitingApproval()) {
         <app-status-chip flag="info" [label]="'doc.awaitingApproval' | t" />
+      }
+      @if ($document()?.requiresOverride) {
+        <app-status-chip flag="danger" [label]="'doc.flag.override' | t" />
+      }
+      @if ($document()?.isLarge) {
+        <app-status-chip flag="info" [label]="'doc.flag.large' | t" />
       }
     }
   </div>
@@ -20,8 +26,19 @@
     <app-button bannerActions (clicked)="onRetryLoad()">{{ 'ui.retry' | t }}</app-button>
   </app-banner>
 } @else {
-  @if ($returnedReason(); as reason) {
-    <app-banner kind="warning" [heading]="'doc.returnedBanner' | t">{{ reason }}</app-banner>
+  @if ($isStale()) {
+    <app-banner kind="danger" [heading]="'doc.stale' | t: { docNo: $document()?.no ?? '' }">
+      {{ 'doc.staleBody' | t }}
+      <app-button bannerActions (clicked)="onReload()">{{ 'doc.reload' | t }}</app-button>
+    </app-banner>
+  }
+  @if ($returned(); as returned) {
+    <app-banner kind="warning" [heading]="'doc.returnedBanner' | t: { name: $returnedBy() }">
+      {{ returned.rejectionReason }}
+      @if (returned.returnedAt) {
+        <span class="document-editor-muted">· {{ returned.returnedAt | appDate }}</span>
+      }
+    </app-banner>
   }
   @if ($document()?.cancelReason; as reason) {
     <app-banner kind="info" [heading]="'doc.cancelledBanner' | t">{{ reason }}</app-banner>
@@ -105,7 +122,7 @@
       </div>
       <div>
         <dt>{{ 'doc.createdBy' | t }}</dt>
-        <dd>{{ document.createdBy }} · {{ document.createdAt | appDate }}</dd>
+        <dd>{{ document.createdByName }} · {{ document.createdAt | appDate }}</dd>
       </div>
     </dl>
   }
@@ -155,6 +172,23 @@
               {{ line.qty | appQty }} {{ line.uomCode }}
               @if (!$isIssue() && line.unitCost > 0) {
                 · {{ line.unitCost | appMoney }}
+              }
+              @if ($isIssue() && line.available !== undefined && line.available !== null) {
+                ·
+                @if (line.baseQty > line.available) {
+                  <strong class="document-editor-error">{{
+                    'doc.line.short'
+                      | t
+                        : {
+                            short: (line.baseQty - line.available | appQty),
+                            onHand: (line.available | appQty)
+                          }
+                  }}</strong>
+                } @else {
+                  <span class="document-editor-muted">{{
+                    'doc.line.onHand' | t: { onHand: (line.available | appQty) }
+                  }}</span>
+                }
               }
             </span>
           </li>

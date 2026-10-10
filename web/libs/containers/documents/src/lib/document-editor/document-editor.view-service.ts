@@ -43,6 +43,9 @@ export class DocumentEditorViewService {
   });
   readonly lines: LinesArray = new FormArray<LineGroup>([]);
 
+  /** Warehouse the `available` figures of the lines belong to; null = not known. */
+  private availabilityWarehouseId: number | null = null;
+
   readonly $type = signal<DocumentType>(DocumentType.Receipt);
   readonly $values = toSignal(
     this.lines.valueChanges.pipe(
@@ -77,6 +80,7 @@ export class DocumentEditorViewService {
   }
 
   populate(document: DocumentDto, editable: boolean): void {
+    this.availabilityWarehouseId = document.warehouseId;
     this.header.reset({
       warehouseId: document.warehouseId,
       partnerId: document.partnerId ?? null,
@@ -134,13 +138,22 @@ export class DocumentEditorViewService {
     group.controls.qty.markAsDirty();
   }
 
-  /** Re-reads on-hand quantities of an issue's lines (after opening, or after changing the warehouse). */
+  /**
+   * True when the `available` figures of the lines do not belong to this warehouse. A loaded document brings its own
+   * figures (they are those of its warehouse), so only a changed warehouse with lines on the form needs a stock query.
+   */
+  needsAvailability(warehouseId: number): boolean {
+    return this.lines.length > 0 && warehouseId !== this.availabilityWarehouseId;
+  }
+
+  /** Re-reads on-hand quantities of an issue's lines after the warehouse changed. */
   refreshAvailability(warehouseId: number): Observable<ReadonlyMap<number, number>> {
     return this.availability.bySearch(warehouseId, '').pipe(
       tap(stock => {
         for (const group of this.lines.controls) {
           group.controls.available.setValue(stock.get(group.controls.productId.value) ?? 0);
         }
+        this.availabilityWarehouseId = warehouseId;
       })
     );
   }

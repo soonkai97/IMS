@@ -75,7 +75,7 @@ export class ProductStockPageComponent implements OnInit {
       header: this.i18n.t('ledger.reason'),
       value: row => this.i18n.enumLabel(LEDGER_REASON_LABELS, row.reason)
     },
-    { key: 'warehouse', header: this.i18n.t('stock.warehouse'), value: row => row.warehouseCode },
+    { key: 'warehouse', header: this.i18n.t('stock.warehouse'), value: row => row.warehouseName },
     { key: 'qty', header: this.i18n.t('ledger.qtyChange'), align: 'end' },
     { key: 'user', header: this.i18n.t('ledger.user'), value: row => row.user, hideOnPhone: true }
   ]);

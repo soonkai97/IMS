@@ -1,6 +1,6 @@
 <app-page-header [heading]="'partners.title' | t">
   <div actions>
-    @if ($canManage()) {
+    @if ($canCreate()) {
       <app-button variant="primary" (clicked)="onAdd()">
         <app-icon name="plus" />
         {{ 'partner.new' | t }}
@@ -71,7 +71,9 @@
     <app-form-field [label]="'partner.contact' | t" [control]="form.controls.contact">
       <app-input formControlName="contact" [maxLength]="256" />
     </app-form-field>
-    <app-checkbox formControlName="isActive">{{ 'product.active' | t }}</app-checkbox>
+    @if ($editingId() !== undefined) {
+      <app-checkbox formControlName="isActive">{{ 'product.active' | t }}</app-checkbox>
+    }
   </form>
   <div dialogActions>
     <app-button (clicked)="$dialogOpen.set(false)">{{ 'common.cancel' | t }}</app-button>

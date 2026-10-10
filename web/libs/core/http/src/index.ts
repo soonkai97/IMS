@@ -1,3 +1,4 @@
+export * from './lib/concurrency/if-match';
 export * from './lib/config/api-request';
 export * from './lib/config/app-config';
 export * from './lib/config/provide-api';

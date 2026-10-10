@@ -11,7 +11,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { tap } from 'rxjs';
-import { ImportRowResult } from '@ims/api';
+import { ImportRowResult, ImportRowStatus } from '@ims/api';
 import { I18nService, TranslatePipe } from '@ims/core/i18n';
 import { ToastService } from '@ims/core/notification';
 import {
@@ -78,6 +78,7 @@ export class ProductImportPageComponent implements OnDestroy {
   private readonly toast = inject(ToastService);
 
   readonly accept = IMPORT_EXTENSION;
+  readonly rowStatus = ImportRowStatus;
   readonly pageSize = DEFAULT_PAGE_SIZE;
 
   $kind = signal<string>(IMPORT_KIND.Products);

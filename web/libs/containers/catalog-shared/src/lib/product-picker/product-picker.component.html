@@ -26,6 +26,8 @@
       </li>
     }
   </ul>
+} @else if ($lookupMessage(); as message) {
+  <p class="product-picker-empty" role="status">{{ message }}</p>
 } @else if ($hasSearched()) {
   <p class="product-picker-empty" role="status">{{ 'picker.noMatch' | t: { query: $term() } }}</p>
 }

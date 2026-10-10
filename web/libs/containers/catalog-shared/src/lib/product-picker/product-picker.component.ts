@@ -9,9 +9,19 @@ import {
   signal
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { catchError, debounceTime, distinctUntilChanged, filter, of, switchMap, tap } from 'rxjs';
-import { ProductDto } from '@ims/api';
-import { AppQtyPipe, TranslatePipe } from '@ims/core/i18n';
+import {
+  EMPTY,
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  filter,
+  map,
+  of,
+  switchMap,
+  tap
+} from 'rxjs';
+import { ProductDto, ProductLookupResult } from '@ims/api';
+import { AppQtyPipe, I18nService, TranslatePipe } from '@ims/core/i18n';
 import { ProductsStore } from '@ims/features/catalog';
 import { StockAvailabilityService } from '@ims/features/documents';
 import { MIN_SEARCH_LENGTH, SEARCH_DEBOUNCE_MS } from '@ims/models';
@@ -42,6 +52,7 @@ interface ResultItem {
 export class ProductPickerComponent {
   private readonly availability = inject(StockAvailabilityService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly i18n = inject(I18nService);
   private readonly products = inject(ProductsStore);
 
   /** When set, results show how much of each product is on hand there (issues). */
@@ -50,6 +61,8 @@ export class ProductPickerComponent {
   $picked = output<PickedProduct>({ alias: 'picked' });
 
   $term = signal('');
+  /** Result of the last exact-code lookup when it picked nothing ("no product has the code ..."). */
+  $lookupMessage = signal<string | undefined>(undefined);
   $results = signal<readonly ResultItem[]>([]);
   $isSearching = signal(false);
   $showAvailable = computed(() => this.$warehouseId() !== null);
@@ -60,6 +73,7 @@ export class ProductPickerComponent {
   constructor() {
     toObservable(this.$term)
       .pipe(
+        tap(() => this.$lookupMessage.set(undefined)),
         debounceTime(SEARCH_DEBOUNCE_MS),
         distinctUntilChanged(),
         tap(term => this.$isSearching.set(term.trim().length >= MIN_SEARCH_LENGTH)),
@@ -73,12 +87,15 @@ export class ProductPickerComponent {
       .subscribe();
   }
 
+  /** Enter / scanner: an exact SKU or barcode. A miss is an answer, not an error: say so quietly, no toast. */
   onSubmitted(code: string): void {
+    this.$lookupMessage.set(undefined);
     this.products
       .lookup(code)
       .pipe(
-        catchError(() => of(undefined)),
-        filter((product): product is ProductDto => product !== undefined && product.isActive),
+        catchError(() => EMPTY),
+        map(result => this.usableProduct(code, result)),
+        filter((product): product is ProductDto => product !== undefined),
         switchMap(product => this.withAvailability(product)),
         tap(item => {
           this.$picked.emit(item);
@@ -114,6 +131,20 @@ export class ProductPickerComponent {
       ),
       catchError(() => of<readonly ResultItem[]>([]))
     );
+  }
+
+  /** `{ found: false }` and deactivated products give the user a sentence instead of a pick. */
+  private usableProduct(code: string, result: ProductLookupResult): ProductDto | undefined {
+    const product = result.found ? result.product : undefined;
+    if (!product) {
+      this.$lookupMessage.set(this.i18n.t('picker.notFound', { code }));
+      return undefined;
+    }
+    if (!product.isActive) {
+      this.$lookupMessage.set(this.i18n.t('picker.inactive', { sku: product.sku }));
+      return undefined;
+    }
+    return product;
   }
 
   private withAvailability(product: ProductDto) {

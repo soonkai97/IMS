@@ -1,11 +1,12 @@
 import { FormControl } from '@angular/forms';
-import { DocumentType, ProductDto } from '@ims/api';
+import { DocumentLineDto, DocumentType, ProductDto } from '@ims/api';
 import {
   LineValue,
   baseQuantity,
   buildUomOptions,
   computeTotals,
   createLineGroup,
+  lineFromDocument,
   lineShortfall,
   maxCoveredQuantity,
   maxDecimals,
@@ -87,6 +88,36 @@ describe('shortfall', () => {
   it('offers the quantity the stock covers, in the unit of the line', () => {
     expect(maxCoveredQuantity(line({ qty: 5, uomId: 2, available: 30 }))).toBe(2.5);
     expect(maxCoveredQuantity(line({ qty: 30, available: 12 }))).toBe(12);
+  });
+});
+
+describe('lines of a saved document', () => {
+  const dto: DocumentLineDto = {
+    id: 9,
+    productId: 1,
+    sku: 'WIDGET-A',
+    productName: 'Widget A',
+    qty: 2,
+    uomId: 2,
+    uomCode: 'CTN',
+    baseQty: 24,
+    unitCost: 0,
+    remark: undefined,
+    available: 18
+  };
+
+  it('takes the stock on hand from the line, so no extra stock query is needed', () => {
+    const value = lineFromDocument(dto);
+
+    expect(value.available).toBe(18);
+    expect(lineShortfall(value)).toBe(6);
+  });
+
+  it('has no availability once the server stops reporting it (posted, reversed, cancelled)', () => {
+    const value = lineFromDocument({ ...dto, available: undefined });
+
+    expect(value.available).toBeNull();
+    expect(lineShortfall(value)).toBe(0);
   });
 });
 

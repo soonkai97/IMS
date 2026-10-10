@@ -61,6 +61,7 @@ const NOT_KEYS = new Set([
   'document.post',
   'document.reverse',
   'stock.read',
+  'partners.create',
   'users.manage',
   'users.read',
   'reports.read',

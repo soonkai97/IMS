@@ -4,6 +4,8 @@ export const PERMISSION = {
   UsersRead: 'users.read',
   MasterDataManage: 'masterdata.manage',
   MasterDataRead: 'masterdata.read',
+  /** Create a partner (Clerk, Supervisor, Admin). Editing and deactivating need MasterDataManage. */
+  PartnersCreate: 'partners.create',
   DocumentCreate: 'document.create',
   DocumentApprove: 'document.approve',
   DocumentPost: 'document.post',

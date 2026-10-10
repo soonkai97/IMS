@@ -148,7 +148,7 @@ export class StockListPageComponent implements OnInit {
     {
       key: 'warehouse',
       header: this.i18n.t('stock.warehouse'),
-      value: row => row.warehouseCode,
+      value: row => row.warehouseName,
       sortKey: StockSort.Warehouse
     },
     {

@@ -16,6 +16,14 @@
   [rowLink]="rowLink"
   (retried)="onRetry()"
 >
+  <ng-template appCell="flags" let-row>
+    @if (row.document.requiresOverride) {
+      <app-status-chip flag="danger" [label]="'doc.flag.override' | t" />
+    }
+    @if (row.document.isLarge) {
+      <app-status-chip flag="info" [label]="'doc.flag.large' | t" />
+    }
+  </ng-template>
   <ng-template appCell="qty" let-row>{{ row.document.totalQty | appQty }}</ng-template>
   <app-empty-state
     empty

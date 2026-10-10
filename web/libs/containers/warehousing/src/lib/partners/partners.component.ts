@@ -15,7 +15,7 @@ import { I18nService, PARTNER_TYPE_LABELS, TranslatePipe } from '@ims/core/i18n'
 import { PermissionService } from '@ims/core/identity';
 import { ToastService } from '@ims/core/notification';
 import { PartnerQuery, PartnersStore } from '@ims/features/warehousing';
-import { DEFAULT_PAGE_SIZE, PERMISSION } from '@ims/models';
+import { API_ERROR_KIND, DEFAULT_PAGE_SIZE, PERMISSION } from '@ims/models';
 import {
   SelectOption,
   TableColumn,
@@ -36,6 +36,7 @@ import {
   UiTableComponent
 } from '@ims/ui';
 import {
+  SERVER_ERROR_KEY,
   applyFieldErrors,
   controlSignal,
   createPageState,
@@ -118,6 +119,8 @@ export class PartnersPageComponent {
   $isLoading = this.store.list.$isLoading;
   $failed = this.store.list.$isFailed;
   $isSaving = this.store.save.$isRunning;
+  /** New: `partners.create` (a Clerk has it). Edit and deactivate: `masterdata.manage` only. */
+  $canCreate = computed(() => this.permissions.has(PERMISSION.PartnersCreate));
   $canManage = computed(() => this.permissions.has(PERMISSION.MasterDataManage));
   $typeOptions = computed<readonly SelectOption[]>(() => [
     { value: PartnerType.Supplier, label: this.i18n.t('partnerType.Supplier') },
@@ -161,6 +164,11 @@ export class PartnersPageComponent {
     const error = this.store.save.$operation().error;
     if (error) {
       applyFieldErrors(this.form, error);
+      if (error.kind === API_ERROR_KIND.Conflict && error.detail) {
+        // 409: a partner of this type already has this name. The server's sentence says which one.
+        this.form.controls.name.setErrors({ [SERVER_ERROR_KEY]: error.detail });
+        this.form.controls.name.markAsTouched();
+      }
     }
   });
 

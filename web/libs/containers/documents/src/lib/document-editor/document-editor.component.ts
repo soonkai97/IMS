@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -36,9 +37,16 @@ import { PermissionService } from '@ims/core/identity';
 import { HasUnsavedChanges } from '@ims/core/navigation';
 import { ConfirmService, ToastService } from '@ims/core/notification';
 import { SystemSettingsStore } from '@ims/core/settings';
-import { ApprovalsStore } from '@ims/features/approvals';
 import { CatalogStore } from '@ims/features/catalog';
-import { DOCUMENT_ROUTE, DocumentsStore, LineGroup, STATUS_TONE } from '@ims/features/documents';
+import {
+  DOCUMENT_ROUTE,
+  DocumentsStore,
+  LineGroup,
+  STATUS_TONE,
+  isStaleDocumentError,
+  isStockConflictError,
+  toDocumentRef
+} from '@ims/features/documents';
 import { StockStore } from '@ims/features/stock';
 import { PartnersStore, WarehousesStore } from '@ims/features/warehousing';
 import {
@@ -119,17 +127,18 @@ interface HistoryEvent {
     UiTextareaComponent
   ],
   providers: [DocumentEditorViewService],
+  host: { '(document:visibilitychange)': 'onVisibilityChange()' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './document-editor.component.html',
   styleUrl: './document-editor.component.scss'
 })
 export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
-  private readonly approvals = inject(ApprovalsStore);
   private readonly catalog = inject(CatalogStore);
   private readonly confirm = inject(ConfirmService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly documents = inject(DocumentsStore);
   private readonly i18n = inject(I18nService);
+  private readonly page = inject(DOCUMENT);
   private readonly partners = inject(PartnersStore);
   private readonly permissions = inject(PermissionService);
   private readonly router = inject(Router);
@@ -252,9 +261,14 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     this.$isIssue() ? 'doc.customer' : 'doc.supplier'
   );
 
-  readonly $returnedReason = computed(() => {
+  /** A Draft that a reviewer sent back: the banner says who and why. */
+  readonly $returned = computed(() => {
     const document = this.$document();
-    return document?.status === DocumentStatus.Draft ? document.rejectionReason : undefined;
+    return document?.isReturned ? document : undefined;
+  });
+  readonly $returnedBy = computed(() => {
+    const document = this.$returned();
+    return document ? (document.returnedByName ?? document.returnedBy ?? '') : '';
   });
   readonly $purposeText = computed(() =>
     this.i18n.enumLabel(ISSUE_PURPOSE_LABELS, this.$document()?.purpose)
@@ -279,21 +293,38 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       return [];
     }
     const events: (HistoryEvent | undefined)[] = [
-      { labelKey: 'doc.history.created', by: document.createdBy, at: document.createdAt },
+      { labelKey: 'doc.history.created', by: document.createdByName, at: document.createdAt },
       document.submittedAt
-        ? { labelKey: 'doc.history.submitted', by: document.submittedBy, at: document.submittedAt }
+        ? {
+            labelKey: 'doc.history.submitted',
+            by: document.submittedByName ?? document.submittedBy,
+            at: document.submittedAt
+          }
         : undefined,
       document.rejectionReason
-        ? { labelKey: 'doc.history.returned', reason: document.rejectionReason }
+        ? {
+            labelKey: 'doc.history.returned',
+            by: document.returnedByName ?? document.returnedBy,
+            at: document.returnedAt,
+            reason: document.rejectionReason
+          }
         : undefined,
       document.approvedAt
-        ? { labelKey: 'doc.history.approved', by: document.approvedBy, at: document.approvedAt }
+        ? {
+            labelKey: 'doc.history.approved',
+            by: document.approvedByName ?? document.approvedBy,
+            at: document.approvedAt
+          }
         : undefined,
       document.negativeStockOverrideReason
         ? { labelKey: 'doc.history.override', reason: document.negativeStockOverrideReason }
         : undefined,
       document.postedAt
-        ? { labelKey: 'doc.history.posted', by: document.postedBy, at: document.postedAt }
+        ? {
+            labelKey: 'doc.history.posted',
+            by: document.postedByName ?? document.postedBy,
+            at: document.postedAt
+          }
         : undefined,
       document.reversalReason
         ? { labelKey: 'doc.history.reversed', reason: document.reversalReason }
@@ -313,20 +344,35 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     {
       key: 'warehouse',
       header: this.i18n.t('stock.warehouse'),
-      value: row => row.warehouseCode,
+      value: row => row.warehouseName,
       hideOnPhone: true
     }
   ]);
+  /** The last error of each document command, newest state only: a command that succeeded later clears its own. */
+  private readonly $commandErrors = computed(() => [
+    this.documents.save.$operation().error,
+    this.documents.submit.$operation().error,
+    this.documents.approve.$operation().error,
+    this.documents.reject.$operation().error,
+    this.documents.cancel.$operation().error,
+    this.documents.post.$operation().error,
+    this.documents.reverse.$operation().error
+  ]);
+  /** Token the server holds now, seen when the user came back to this tab; undefined = not checked. */
+  private readonly $serverToken = signal<string | undefined>(undefined);
+  /**
+   * Someone changed the document since it was opened: E4, with a Reload button. Seen either BEFORE saving (the token
+   * on the server differs from the one of the opened copy) or when a command is refused with 409 on its If-Match.
+   */
+  readonly $isStale = computed(() => {
+    const serverToken = this.$serverToken();
+    const outdated =
+      serverToken !== undefined && serverToken !== this.$document()?.concurrencyToken;
+    return outdated || this.$commandErrors().some(isStaleDocumentError);
+  });
   /** A rejected submit / post because stock moved (409 with product, available, requested): E5. */
   readonly $stockConflict = computed(() => {
-    const errors = [
-      this.documents.submit.$operation().error,
-      this.documents.post.$operation().error,
-      this.documents.approve.$operation().error
-    ];
-    const extensions = errors.find(
-      error => error?.extensions['productId'] !== undefined
-    )?.extensions;
+    const extensions = this.$commandErrors().find(isStockConflictError)?.extensions;
     if (!extensions) {
       return undefined;
     }
@@ -355,15 +401,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     if (!document) {
       return;
     }
-    untracked(() => {
-      this.view.populate(document, editable);
-      if (editable && document.type === DocumentType.Issue) {
-        this.view
-          .refreshAvailability(document.warehouseId)
-          .pipe(takeUntilDestroyed(this.destroyRef))
-          .subscribe();
-      }
-    });
+    // The lines already carry `available` (stock on hand now), so opening a document needs no stock query.
+    untracked(() => this.view.populate(document, editable));
   });
 
   private readonly preselectWarehouse = effect(() => {
@@ -418,6 +457,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       .pipe(
         filter(isDefined),
         filter(() => this.$isIssue() && this.$editable()),
+        // Loading the saved document sets its own warehouse: only a different warehouse needs fresh stock figures.
+        filter(warehouseId => this.view.needsAvailability(warehouseId)),
         switchMap(warehouseId => this.view.refreshAvailability(warehouseId)),
         takeUntilDestroyed(this.destroyRef)
       )
@@ -426,6 +467,18 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
 
   hasUnsavedChanges(): boolean {
     return this.$editable() && this.view.hasUnsavedChanges();
+  }
+
+  /** Back on this tab after a while: has someone changed the document meanwhile? (one cheap list call) */
+  onVisibilityChange(): void {
+    const opened = this.$document();
+    if (this.page.visibilityState !== 'visible' || !opened || this.$isBusy()) {
+      return;
+    }
+    this.documents
+      .currentToken(opened)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(token => this.$serverToken.set(token));
   }
 
   onTabChange(tab: string): void {
@@ -455,6 +508,12 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   }
 
   onRetryLoad(): void {
+    this.documents.detail.reload();
+  }
+
+  /** E4: drop the outdated copy (and the edits on it) and read the document again. */
+  onReload(): void {
+    this.documents.resetCommands();
     this.documents.detail.reload();
   }
 
@@ -503,7 +562,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     }
     this.save()
       .pipe(
-        switchMap(document => this.documents.submit.run(document.id)),
+        switchMap(document => this.documents.submit.run(toDocumentRef(document))),
         switchMap(document => this.afterSubmit(document)),
         finalize(() => this.openSavedDocument()),
         takeUntilDestroyed(this.destroyRef)
@@ -516,15 +575,29 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     if (!document) {
       return;
     }
+    // A stock override is approved WITH its reason (the API refuses an empty one); posting takes no reason.
+    const override = document.requiresOverride;
     this.confirm
       .ask({
-        heading: this.i18n.t('dialog.approve.title', { docNo: document.no }),
-        body: this.i18n.t('dialog.approve.body'),
+        heading: this.i18n.t(override ? 'dialog.approveOverride.title' : 'dialog.approve.title', {
+          docNo: document.no
+        }),
+        body: this.i18n.t(override ? 'dialog.approveOverride.body' : 'dialog.approve.body'),
         confirmLabel: this.i18n.t('doc.action.approve'),
-        cancelLabel: this.i18n.t('common.back')
+        cancelLabel: this.i18n.t('common.back'),
+        ...(override && {
+          reasonLabel: this.i18n.t('dialog.approveOverride.reason'),
+          reasonRequired: true,
+          minReasonLength: MIN_REASON_LENGTH
+        })
       })
       .pipe(
-        switchMap(() => this.documents.approve.run(document.id)),
+        switchMap(reason =>
+          this.documents.approve.run({
+            ...toDocumentRef(document),
+            negativeStockOverrideReason: override ? reason : undefined
+          })
+        ),
         tap(() => this.toast.success(this.i18n.t('doc.toast.approved'))),
         tap(() => this.afterChange(false)),
         takeUntilDestroyed(this.destroyRef)
@@ -549,7 +622,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         minReasonLength: MIN_REASON_LENGTH
       })
       .pipe(
-        switchMap(reason => this.documents.reject.run({ id: document.id, reason })),
+        switchMap(reason => this.documents.reject.run({ ...toDocumentRef(document), reason })),
         tap(() =>
           this.toast.success(this.i18n.t('doc.toast.returned', { name: document.createdBy }))
         ),
@@ -575,7 +648,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         reasonLabel: this.i18n.t('dialog.reasonOptional')
       })
       .pipe(
-        switchMap(reason => this.documents.cancel.run({ id: document.id, reason })),
+        switchMap(reason => this.documents.cancel.run({ ...toDocumentRef(document), reason })),
         tap(() => this.toast.success(this.i18n.t('doc.toast.cancelled'))),
         tap(() => this.afterChange(false)),
         takeUntilDestroyed(this.destroyRef)
@@ -600,7 +673,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         minReasonLength: MIN_REASON_LENGTH
       })
       .pipe(
-        switchMap(reason => this.documents.reverse.run({ id: document.id, reason })),
+        switchMap(reason => this.documents.reverse.run({ ...toDocumentRef(document), reason })),
         tap(() => this.toast.success(this.i18n.t('doc.toast.reversed'))),
         tap(() => this.afterChange(true)),
         takeUntilDestroyed(this.destroyRef)
@@ -608,7 +681,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       .subscribe();
   }
 
-  /** Confirm, then post. The optional reason is the negative-stock override reason of an issue. */
+  /** Confirm, then post. Posting takes no reason: a stock override was explained when the document was approved. */
   private runPost(document: DocumentDto | undefined): Observable<DocumentDto> {
     if (!document) {
       return of();
@@ -624,16 +697,10 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
           }
         ),
         confirmLabel: this.i18n.t('doc.action.post'),
-        cancelLabel: this.i18n.t('common.back'),
-        reasonLabel:
-          document.type === DocumentType.Issue && this.$allowNegativeStock()
-            ? this.i18n.t('dialog.post.overrideReason')
-            : undefined
+        cancelLabel: this.i18n.t('common.back')
       })
       .pipe(
-        switchMap(reason =>
-          this.documents.post.run({ id: document.id, negativeStockOverrideReason: reason })
-        ),
+        switchMap(() => this.documents.post.run(toDocumentRef(document))),
         tap(() => this.toast.success(this.i18n.t('doc.toast.posted'))),
         tap(() => this.afterChange(true))
       );
@@ -654,8 +721,13 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   }
 
   private save(): Observable<DocumentDto> {
+    const opened = this.$document();
     return this.documents.save
-      .run({ type: this.$type(), id: this.$documentId(), body: this.view.toRequest() })
+      .run({
+        type: this.$type(),
+        ref: opened ? toDocumentRef(opened) : undefined,
+        body: this.view.toRequest()
+      })
       .pipe(tap(document => (this.savedDocumentId = document.id)));
   }
 
@@ -677,8 +749,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
 
   /** Keeps menu badges and the dashboard honest after a state change. */
   private afterChange(stockChanged: boolean): void {
-    if (this.permissions.has(PERMISSION.DocumentApprove)) {
-      this.approvals.refresh();
+    if (this.permissions.has(PERMISSION.StockRead)) {
+      this.documents.counts.load();
     }
     if (stockChanged) {
       this.stock.summary.load();
