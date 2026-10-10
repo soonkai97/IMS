@@ -36,4 +36,12 @@ public class ApprovalRule : Entity
     public bool Matches(DocumentType type, decimal totalQty, decimal totalAmount) =>
         IsActive && DocType == type &&
         ((AmountThreshold is { } a && totalAmount >= a) || (QtyThreshold is { } q && totalQty >= q));
+
+    /// <summary>The thresholds this document reaches (none when the rule does not match): the plain-words "why" behind an approval.</summary>
+    public IEnumerable<ApprovalTrigger> Triggers(DocumentType type, decimal totalQty, decimal totalAmount)
+    {
+        if (!Matches(type, totalQty, totalAmount)) yield break;
+        if (AmountThreshold is { } a && totalAmount >= a) yield return new ApprovalTrigger(ApprovalMetric.Amount, a, totalAmount, RoleRequired);
+        if (QtyThreshold is { } q && totalQty >= q) yield return new ApprovalTrigger(ApprovalMetric.Quantity, q, totalQty, RoleRequired);
+    }
 }

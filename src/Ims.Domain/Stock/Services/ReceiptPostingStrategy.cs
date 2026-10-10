@@ -11,6 +11,8 @@ public sealed class ReceiptPostingStrategy : IPostingStrategy
     }
 
     /// <summary>Undo a receipt: take the same quantity out again at the cost it came in.</summary>
+    public decimal StockChangeOnReverse(StockDocumentLine line) => -line.BaseQty;
+
     public void Reverse(StockDocumentLine line, StockBalance balance, PostingContext ctx)
     {
         balance.Issue(line.BaseQty, ctx.Settings.AllowNegativeStock);

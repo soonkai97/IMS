@@ -9,4 +9,7 @@ public interface IPostingStrategy
     DocumentType Type { get; }
     void Post(StockDocumentLine line, StockBalance balance, PostingContext ctx);
     void Reverse(StockDocumentLine line, StockBalance balance, PostingContext ctx);
+
+    /// <summary>The change to the balance if this line were reversed: negative when stock would leave (reversing a receipt), positive when it would come back.</summary>
+    decimal StockChangeOnReverse(StockDocumentLine line);
 }

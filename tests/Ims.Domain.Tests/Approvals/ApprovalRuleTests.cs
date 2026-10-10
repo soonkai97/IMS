@@ -138,4 +138,37 @@ public class ApprovalRuleTests
     {
         Assert.False(QtyRule(1000m).Matches(DocumentType.Receipt, 10m, 1_000_000m));
     }
+
+    // ----- Triggers: the plain-words "why" behind an approval -----
+    [Fact]
+    public void Triggers_ReportsEachThresholdTheDocumentReaches()
+    {
+        var rule = ApprovalRule.Create(DocumentType.Receipt, 5000m, 100m, Roles.Owner);
+
+        var triggers = rule.Triggers(DocumentType.Receipt, totalQty: 150m, totalAmount: 6000m).ToList();
+
+        Assert.Equal(
+            [new ApprovalTrigger(ApprovalMetric.Amount, 5000m, 6000m, Roles.Owner), new ApprovalTrigger(ApprovalMetric.Quantity, 100m, 150m, Roles.Owner)],
+            triggers);
+    }
+
+    [Fact]
+    public void Triggers_ReportsOnlyTheThresholdThatIsReached()
+    {
+        var rule = ApprovalRule.Create(DocumentType.Issue, 5000m, 100m, Roles.Supervisor);
+
+        var trigger = Assert.Single(rule.Triggers(DocumentType.Issue, totalQty: 10m, totalAmount: 5000m));
+
+        Assert.Equal(ApprovalMetric.Amount, trigger.Metric);
+    }
+
+    [Fact]
+    public void Triggers_IsEmptyWhenTheRuleDoesNotMatch()
+    {
+        var rule = AmountRule(1000m);
+
+        Assert.Empty(rule.Triggers(DocumentType.Receipt, 1m, 999m));
+        Assert.Empty(rule.Triggers(DocumentType.Issue, 1m, 5000m));
+        Assert.Empty(AmountRule(1000m, active: false).Triggers(DocumentType.Receipt, 1m, 5000m));
+    }
 }

@@ -15,6 +15,21 @@ public sealed class PostingEngine(IEnumerable<IPostingStrategy> strategies) : IP
         document.MarkPosted(ctx.UserId, ctx.Now);
     }
 
+    public IReadOnlyDictionary<int, decimal> FindReversalDeficits(StockDocument document, IReadOnlyDictionary<int, StockBalance> balances, SystemSettings settings)
+    {
+        var deficits = new SortedDictionary<int, decimal>();
+        if (settings.AllowNegativeStock) return deficits;
+
+        var strategy = StrategyFor(document.Type);
+        foreach (var product in document.Lines.GroupBy(l => l.ProductId).OrderBy(g => g.Key))
+        {
+            var change = product.Sum(strategy.StockChangeOnReverse);
+            var after = balances[product.Key].QtyOnHand + change;
+            if (change < 0 && after < 0) deficits[product.Key] = after;
+        }
+        return deficits;
+    }
+
     public void Reverse(StockDocument document, IReadOnlyDictionary<int, StockBalance> balances, PostingContext ctx)
     {
         var strategy = StrategyFor(document.Type);

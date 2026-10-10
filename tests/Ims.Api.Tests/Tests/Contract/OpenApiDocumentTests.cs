@@ -235,14 +235,22 @@ public partial class OpenApiDocumentTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task The_list_item_says_whether_the_caller_can_act_and_it_is_never_null()
+    public async Task The_qa_fix_fields_are_published_and_never_null()
     {
         using var doc = await DocumentAsync();
         var schemas = doc.RootElement.GetProperty("components").GetProperty("schemas");
 
-        var listItem = schemas.GetProperty("DocumentListItem");
-        Assert.Equal("boolean", listItem.GetProperty("properties").GetProperty("canAct").GetProperty("type").GetString());
-        Assert.Contains("canAct", listItem.GetProperty("required").EnumerateArray().Select(r => r.GetString()));
+        Assert.True(schemas.GetProperty("DocumentDto").GetProperty("properties").TryGetProperty("approvalTriggers", out _));
+        foreach (var (schema, field) in new[] { ("DocumentDto", "amountIsEstimate"), ("DocumentListItem", "amountIsEstimate"), ("DocumentListItem", "canAct") })
+        {
+            var property = schemas.GetProperty(schema).GetProperty("properties").GetProperty(field);
+            Assert.Equal("boolean", property.GetProperty("type").GetString());
+            Assert.Contains(field, schemas.GetProperty(schema).GetProperty("required").EnumerateArray().Select(r => r.GetString()));
+        }
+
+        var metric = schemas.GetProperty("ApprovalMetric");
+        Assert.Equal("string", metric.GetProperty("type").GetString());
+        Assert.Equal(["Amount", "Quantity"], metric.GetProperty("enum").EnumerateArray().Select(v => v.GetString()));
     }
 
     [Fact]

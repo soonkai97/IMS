@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class SubmitDocumentHandler(IRepository<StockDocument> documents, IApprovalEvaluator approvals,
+public class SubmitDocumentHandler(IRepository<StockDocument> documents, IApprovalEvaluator approvals, IIssueValuation valuation,
     IStockAvailability availability, ISystemSettings settings, IDocumentAccess access, IDocumentReader reader,
     ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<SubmitDocumentCommand, DocumentDto>
 {
@@ -21,12 +21,14 @@ public class SubmitDocumentHandler(IRepository<StockDocument> documents, IApprov
             else await availability.EnsureAvailableAsync(doc, ct);
         }
 
+        // An issue is valued at the average cost of this moment; that value is what the rules are tested against and what the approver sees.
+        await valuation.EstimateAsync(doc, ct);
         var assessment = await approvals.AssessAsync(doc, ct);
         var before = doc.Status;
         // An override always goes to an approver: the approver is the one who gives the reason, whatever the value thresholds say.
         doc.Submit(current.UserId, assessment.Required || requiresOverride, clock.UtcNow, assessment.IsLarge, requiresOverride);
         audit.Record(AuditActions.DocumentSubmitted, AuditEntities.StockDocument, doc.No, new { Status = before },
-            new { doc.Status, doc.RequiresApproval, doc.IsLarge, doc.RequiresOverride });
+            new { doc.Status, doc.RequiresApproval, doc.IsLarge, doc.RequiresOverride, Amount = assessment.Amount });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);
     }
