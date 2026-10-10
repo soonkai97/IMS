@@ -23,8 +23,8 @@ export class ImportStore {
     const file = { data: args.file, fileName: args.file.name };
     const call$ =
       args.kind === IMPORT_KIND.Products
-        ? this.client.products(args.commit, file)
-        : this.client.openingStock(args.commit, file);
+        ? this.client.importProducts(args.commit, file)
+        : this.client.importOpeningStock(args.commit, file);
     return call$.pipe(tap(result => this.$result.set(result)));
   });
 

@@ -1,6 +1,8 @@
 # Refresh token in an HttpOnly cookie (SEC-34)
 
-Status: API side done, backward compatible. The web app still uses the body copy until it is migrated (section 5).
+Status: API side done, backward compatible. The web app is migrated (section 5, steps 1 to 5 done in `web/`): it stores no refresh token,
+sends credentials and the CSRF header, and restores the session with one refresh call. Remaining: once that web release is deployed
+everywhere, set `Auth__ReturnRefreshTokenInBody=false` on the API (step 6).
 
 ## 1. What changed and why
 

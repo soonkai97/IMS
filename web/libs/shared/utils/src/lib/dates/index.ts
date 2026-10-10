@@ -1,1 +1,1 @@
-export * from './server-date';
+export * from './date-only';

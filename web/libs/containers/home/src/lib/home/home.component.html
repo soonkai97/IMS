@@ -17,10 +17,51 @@
     @if ($isLoading() && !$summary()) {
       <app-skeleton [count]="2" />
     } @else if ($failed()) {
-      <app-banner kind="danger">{{ 'error.generic' | t }}</app-banner>
+      <app-banner kind="danger">
+        {{ 'error.generic' | t }}
+        <app-button bannerActions (clicked)="onRetry()">{{ 'ui.retry' | t }}</app-button>
+      </app-banner>
     } @else {
       <section class="home-page-stats" [attr.aria-label]="'home.stats' | t">
+        @if ($counts(); as counts) {
+          @if ($canCreate()) {
+            <app-stat-card
+              icon="undo"
+              [label]="'home.returnedToMe' | t"
+              [value]="counts.returnedToMe | appQty"
+              [attention]="counts.returnedToMe > 0"
+            />
+            <app-stat-card
+              icon="pencil"
+              [label]="'home.myDrafts' | t"
+              [value]="counts.myDrafts | appQty"
+            />
+          }
+          @if ($canApprove()) {
+            <app-stat-card
+              icon="check-double"
+              [label]="'home.waitingApproval' | t"
+              [value]="counts.approvalsWaiting | appQty"
+              [link]="['/approvals']"
+              [attention]="counts.approvalsWaiting > 0"
+            />
+          }
+          @if ($canSeePostedToday()) {
+            <app-stat-card
+              icon="check"
+              [label]="'home.postedToday' | t"
+              [value]="counts.postedToday | appQty"
+            />
+          }
+        }
         @if ($summary(); as summary) {
+          <app-stat-card
+            icon="low-stock"
+            [label]="'home.lowStock' | t"
+            [value]="summary.lowCount | appQty"
+            [link]="['/low-stock']"
+            [attention]="summary.lowCount > 0"
+          />
           <app-stat-card
             icon="stock"
             [label]="'home.stockValue' | t"
@@ -30,22 +71,6 @@
             icon="tag"
             [label]="'home.skuCount' | t"
             [value]="summary.skuCount | appQty"
-          />
-          <app-stat-card
-            icon="low-stock"
-            [label]="'home.lowStock' | t"
-            [value]="summary.lowCount | appQty"
-            [link]="['/low-stock']"
-            [attention]="summary.lowCount > 0"
-          />
-        }
-        @if ($canApprove()) {
-          <app-stat-card
-            icon="check-double"
-            [label]="'home.waitingApproval' | t"
-            [value]="$waitingApprovals() | appQty"
-            [link]="['/approvals']"
-            [attention]="$waitingApprovals() > 0"
           />
         }
       </section>

@@ -7,7 +7,8 @@ Architecture and decisions: [`../docs/architecture/frontend.md`](../docs/archite
 
 ## Run it
 
-Needs Node 22.22.3+ (or 24.15+) and the API on http://localhost:5109 (CORS allows http://localhost:4200).
+Needs Node 22.22.3+ (or 24.15+) and the API on http://localhost:5109. Its `Cors:Origins` must list http://localhost:4200: the
+refresh cookie only travels to listed origins.
 
 ```bash
 npm install
@@ -62,9 +63,23 @@ Dependencies point downward only; `npm run lint` fails on a violation. Details: 
 ## API client
 
 `nswag.json` + `scripts/fetch-openapi.mjs`. The script downloads the OpenAPI document, saves it as
-`openapi/openapi.raw.json`, applies the workarounds listed in the script header (OpenAPI 3.1 to 3.0 types, enum values,
-operation ids, file downloads) into `openapi/openapi.normalized.json`, and NSwag writes
-`libs/shared/api/src/lib/api-client.ts`. The generated client is committed and never edited. Wrap it in a feature store.
+`openapi/openapi.raw.json`, converts the OpenAPI 3.1 nullability to the 3.0 flavour NSwag 14 reads (nothing else: string enums,
+`Tag_action` operation ids, binary downloads, inline multipart files and UTC `Z` timestamps come right from the server) into
+`openapi/openapi.normalized.json`, and NSwag writes `libs/shared/api/src/lib/api-client.ts`. The generated client is committed and
+never edited. Wrap it in a feature store. With the API running: `OPENAPI_URL=http://localhost:5109/openapi/v1.json npm run api:generate`
+(the default URL is `http://localhost:5109/openapi/v1.json`).
+
+`includeHttpContext` is on, so every generated call takes a trailing `HttpContext`. `withIfMatch(document.concurrencyToken)` from
+`@ims/core/http` puts the token there and an interceptor sends it as `If-Match` (a stale document answers 409, UX error E4).
+
+## Session (refresh cookie, SEC-34)
+
+The access token lives in memory only. The refresh token is an HttpOnly cookie the page cannot read: the app never stores or sends
+it. `credentialsInterceptor` sends cookies to the API, `csrfHeaderInterceptor` adds `X-Requested-With: XMLHttpRequest` to refresh
+and logout, and start-up makes exactly one `POST /api/auth/refresh` (401 = signed out, no notice). A refresh token that an older
+release left in localStorage is deleted once. Production serves the web app and `/api` from one host (`apiBaseUrl: ''`); the strict
+CSP in [`../docs/security/web-headers.md`](../docs/security/web-headers.md) works because the production build sets
+`inlineCritical: false` (no inline style or `onload` handler in `index.html`).
 
 ## Internationalisation
 

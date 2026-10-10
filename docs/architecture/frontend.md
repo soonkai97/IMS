@@ -53,9 +53,9 @@ Page (container)  ->  feature store (signals)  ->  NSwag client (@ims/api)  ->  
 
 | Concern | Where | Notes |
 |---|---|---|
-| Auth | `core-identity` | access token in memory, refresh token in localStorage, **single-flight refresh** with rotation, `restoreSession()` at start-up, 401 -> refresh -> replay once -> else sign out with return URL |
+| Auth | `core-identity` | access token in memory only; the refresh token is an **HttpOnly cookie** (SEC-34, `docs/security/refresh-cookie.md`) the app never reads, stores or sends; **single-flight refresh** with rotation; `restoreSession()` = one `POST /api/auth/refresh` at start-up (401 = signed out, silently); 401 -> refresh -> replay once -> else sign out with return URL. A leftover localStorage refresh token of an older release is deleted once |
 | Permissions | `core-identity` `PermissionService` | built from `GET /api/auth/me`; route guards `requirePermission(...)`, menus filter by permission; unknown permission -> `/forbidden`, unknown URL -> not-found page |
-| HTTP | `core-http` | interceptor order: error mapping (ProblemDetails -> `ApiError`, toast of `detail`), correlation id, loading bar, timeout (35 s, 125 s for export/import), auth. Field errors (`errors`) go to the form, never a toast |
+| HTTP | `core-http` | interceptor order: error mapping (ProblemDetails -> `ApiError`, toast of `detail`), correlation id, credentials (`withCredentials` on API calls), CSRF header (`X-Requested-With` on refresh and logout), If-Match (from the call's `HttpContext`), loading bar, timeout (35 s, 125 s for export/import), auth. Field errors (`errors`) go to the form, never a toast; a 409 on a call that sent If-Match is explained by the screen (banner), not by a toast |
 | Config | `core-http` `AppConfig` | `assets/config.json` overrides the build default at start-up; AuthService is created only after it loads |
 | i18n | `core-i18n` | runtime language switch (en bundled, zh/ms lazy), typed keys (`MessageKey`), ICU-lite plural, impure `t` pipe, `enumLabel`, date/qty/money pipes (Asia/Kuala_Lumpur, <= 4 decimals) |
 | UI text for the kit | `UI_TEXT` token | shared/ui cannot depend on core, so i18n provides the kit's words |
@@ -66,9 +66,28 @@ Page (container)  ->  feature store (signals)  ->  NSwag client (@ims/api)  ->  
 ## 4. API contract
 
 `nswag.json` + `scripts/fetch-openapi.mjs` generate `libs/shared/api/src/lib/api-client.ts` (Angular `HttpClient`, `API_BASE_URL`
-injection token, interfaces, string enums, `FileResponse` for downloads with the `Content-Disposition` name). The server's OpenAPI
-document needs workarounds (script header; reported to be-framework): OpenAPI 3.1 type arrays, enums published as bare integers,
-no operation ids, empty file schemas, downloads without a body. The generated file is committed and never edited.
+injection token, interfaces, string enums, `FileResponse` for downloads with the `Content-Disposition` name, a trailing `HttpContext`
+parameter on every call). The server's OpenAPI document is correct at the source since the API-contract change (string enums,
+`Tag_action` operation ids, binary download responses, inline multipart files, UTC `Z` timestamps); the only rewrite left in the
+script is OpenAPI 3.1 nullability to the 3.0 flavour NSwag 14 reads (plus `additionalProperties: false` so generated interfaces have
+no index signature). The generated file is committed and never edited.
+
+Contract features the screens rely on:
+
+* **Concurrency (E4)**: every document response carries `concurrencyToken` (= the `ETag`). Commands (`save` of an existing draft,
+  submit, approve, reject, cancel, post, reverse) send it back with `withIfMatch(token)`; a stale copy answers 409 and the editor shows
+  the "changed since you opened it" banner with Reload. Coming back to the tab compares the token of the list item with the opened
+  copy, so the banner can appear before any save.
+* **Counts and flags**: Home and the approvals badge read `GET /api/documents/counts`; the approvals inbox is one list call
+  (`status=Submitted&requiresApproval=true`) built from the list item flags (`isLarge`, `requiresOverride`, `isReturned`,
+  `submittedById`); Receipts and Issues use `mine=true` for "Mine" (default Mine for warehouse staff and clerks, remembered per user).
+* **Override reason at Approve**: `requiresOverride` documents ask for the reason in the Approve dialog; Post has no body.
+* **Lines carry `available`** (stock on hand now), so opening a document needs no stock query; stock rows, low-stock alerts and ledger
+  rows carry `warehouseName`.
+* **Product lookup** answers `{ found, product }` (a miss is a quiet message, not an error); import rows carry `New` / `Update` /
+  `Error` and the preview fills the counts.
+* **Partners**: `partners.create` shows New (Clerk, Supervisor, Admin); `masterdata.manage` (Supervisor, Admin) shows edit and
+  deactivate; a 409 duplicate shows the server's sentence on the name field.
 
 ## 5. Decisions (others must respect)
 
@@ -77,14 +96,19 @@ no operation ids, empty file schemas, downloads without a body. The generated fi
 3. Menus per role come from permissions (`MENU_ITEMS`), phone tab bar has four role-specific tabs + More (docs/design/mvp-ux.md 1.2; supervisor "Docs" tab = Receipts).
 4. "Submit & post" is one button for roles with `document.post`; if the server says approval is required it only submits (D4).
 5. Import is all-or-nothing: Confirm is disabled until the preview has 0 error rows (D6).
-6. Dates from the API without a zone designator are treated as UTC and shown in Asia/Kuala_Lumpur.
+6. Every timestamp from the API is UTC with a trailing `Z` and is shown in Asia/Kuala_Lumpur (`new Date(value)` is enough; no
+   "assume UTC" patching). Date-only filters (`from`, `to`) are Kuala Lumpur calendar days.
 7. The document editor reserves a tab list so an Attachments panel (photos, PDFs stored as server files, never base64) can be added without restructuring.
+8. No token is ever written to web storage. A new call that needs the concurrency check passes `withIfMatch(...)`; it never builds the header by hand.
 
 ## 6. Testing
 
-Jest + `jest-preset-angular` (zoneless) + Spectator per project. Covered: auth refresh logic, permission service, auth / error /
-correlation interceptors, document action visibility from `allowedActions`, status chip, line totals and shortfall maths,
-navigation per role, `QueryLoader` / `ApiCommand`, message format and catalog completeness. E2E (Playwright) belongs to
+Jest + `jest-preset-angular` (zoneless) + Spectator per project. Covered: auth refresh and cookie session logic, permission service,
+auth / error / correlation / credentials / CSRF / If-Match interceptors, document action visibility from `allowedActions`, the
+document store commands (If-Match, no body on post), stale-document detection, approvals inbox and its visibility rule, Home tiles per
+role, Mine / All lists, editor flows (override reason at approve, E4/E5 banners, returned banner), product lookup miss, import preview
+statuses, partner permissions and the 409 duplicate, status chip, line totals and shortfall maths, navigation per role,
+`QueryLoader` / `ApiCommand`, message format and catalog completeness. E2E (Playwright) belongs to
 behavior-test-engineer (`apps/main-e2e`, not created yet).
 
 ## 7. Known gaps / follow-ups

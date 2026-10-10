@@ -147,7 +147,7 @@ export function lineFromDocument(line: DocumentLineDto): LineValue {
     uomId: line.uomId,
     unitCost: line.unitCost > 0 ? line.unitCost : null,
     remark: line.remark ?? '',
-    available: null,
+    available: line.available ?? null,
     baseUomCode: line.uomCode,
     uomOptions: [{ uomId: line.uomId, code: line.uomCode, factorToBase: factor }]
   };

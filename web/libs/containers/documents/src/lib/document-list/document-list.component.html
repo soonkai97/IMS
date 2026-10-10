@@ -8,6 +8,14 @@
   </div>
 </app-page-header>
 
+<app-tabs
+  class="document-list-page-tabs"
+  [label]="'docs.scope.label' | t"
+  [tabs]="$scopeTabs()"
+  [active]="$scope()"
+  (activeChange)="onScopeChange($event)"
+/>
+
 <div class="document-list-page-filters">
   <app-search-input
     [(value)]="$searchInput"
@@ -49,7 +57,18 @@
   <ng-template appCell="qty" let-row>{{ row.totalQty | appQty }}</ng-template>
   <ng-template appCell="amount" let-row>{{ row.totalAmount | appMoney }}</ng-template>
   <ng-template appCell="status" let-row>
-    <app-status-chip [status]="tone[row.status]" [label]="row.status | enumLabel: statusLabels" />
+    <span class="document-list-page-chips">
+      <app-status-chip [status]="tone[row.status]" [label]="row.status | enumLabel: statusLabels" />
+      @if (row.isReturned) {
+        <app-status-chip flag="warning" [label]="'doc.returned' | t" />
+      }
+      @if (row.requiresOverride) {
+        <app-status-chip flag="danger" [label]="'doc.flag.override' | t" />
+      }
+      @if (row.isLarge) {
+        <app-status-chip flag="info" [label]="'doc.flag.large' | t" />
+      }
+    </span>
   </ng-template>
   <app-empty-state empty [icon]="$isIssue() ? 'issue' : 'receipt'" [message]="$emptyKey() | t">
     @if ($hasFilters()) {

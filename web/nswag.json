@@ -57,7 +57,7 @@
       "queryNullValue": "",
       "inlineNamedDictionaries": false,
       "inlineNamedAny": false,
-      "includeHttpContext": false,
+      "includeHttpContext": true,
       "templateDirectory": null,
       "serviceHost": null,
       "serviceSchemes": null,

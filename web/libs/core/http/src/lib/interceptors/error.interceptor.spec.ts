@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { ToastService } from '@ims/core/notification';
 import { API_ERROR_KIND, ApiError } from '@ims/models';
+import { withIfMatch } from '../concurrency/if-match';
 import { errorInterceptor } from './error.interceptor';
 
 const URL = 'http://api.test/api/documents/1/post';
@@ -77,6 +78,24 @@ describe('errorInterceptor', () => {
 
     expect(error.kind).toBe(API_ERROR_KIND.Unauthorized);
     expect(toast.$toasts()).toHaveLength(0);
+  });
+
+  it('leaves a 409 on a call that sent If-Match to the screen (no raw toast), but not other 409s', async () => {
+    const stale = new Promise<ApiError>(resolve => {
+      http
+        .post(URL, null, { responseType: 'blob', context: withIfMatch('AAAA') })
+        .subscribe({ error: (error: ApiError) => resolve(error) });
+    });
+    backend.expectOne(URL).flush(problem(409, { detail: 'X was changed by someone else.' }), {
+      status: 409,
+      statusText: 'x'
+    });
+
+    expect((await stale).kind).toBe(API_ERROR_KIND.Conflict);
+    expect(toast.$toasts()).toHaveLength(0);
+
+    await failWith(409, problem(409, { detail: 'A supplier named X already exists.' }));
+    expect(toast.$toasts()[0].message).toBe('A supplier named X already exists.');
   });
 
   it('shows a network message when the server cannot be reached', async () => {

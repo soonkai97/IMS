@@ -58,7 +58,13 @@
         <p class="product-import-page-summary" role="status">
           {{
             'import.summary'
-              | t: { total: result.total, valid: result.valid, invalid: result.invalid }
+              | t
+                : {
+                    total: result.total,
+                    created: result.created,
+                    updated: result.updated,
+                    invalid: result.invalid
+                  }
           }}
         </p>
         @if ($hasErrors()) {
@@ -74,11 +80,21 @@
 
       <app-table [columns]="$columns()" [rows]="$pageRows()" [caption]="'import.step3' | t">
         <ng-template appCell="status" let-row>
-          <app-status-chip
-            [label]="(row.ok ? 'import.status.ok' : 'import.status.error') | t"
-            [status]="row.ok ? 'posted' : 'cancelled'"
-            [flag]="row.ok ? undefined : 'danger'"
-          />
+          @switch (row.status) {
+            @case (rowStatus.New) {
+              <app-status-chip status="posted" [label]="'import.status.new' | t" />
+            }
+            @case (rowStatus.Update) {
+              <app-status-chip flag="info" [label]="'import.status.update' | t" />
+            }
+            @default {
+              <app-status-chip
+                status="cancelled"
+                flag="danger"
+                [label]="'import.status.error' | t"
+              />
+            }
+          }
         </ng-template>
         <app-empty-state empty icon="check" [message]="'import.noErrors' | t" />
       </app-table>

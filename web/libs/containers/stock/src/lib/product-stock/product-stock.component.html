@@ -12,7 +12,7 @@
   <ul class="product-stock-page-list">
     @for (row of $stockRows(); track row.warehouseId) {
       <li class="product-stock-page-item">
-        <span>{{ row.warehouseCode }}</span>
+        <span>{{ row.warehouseName }}</span>
         <strong>{{ row.qtyOnHand | appQty }} {{ row.uomCode }}</strong>
         <span class="product-stock-page-muted"
           >{{ 'product.safetyStock' | t }}: {{ row.safetyStock | appQty }}</span

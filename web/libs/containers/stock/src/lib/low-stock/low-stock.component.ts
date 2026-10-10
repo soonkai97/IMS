@@ -68,7 +68,7 @@ export class LowStockPageComponent implements OnInit {
   $columns = computed<readonly TableColumn<LowStockAlert>[]>(() => [
     { key: 'sku', header: this.i18n.t('product.sku'), value: row => row.sku, primary: true },
     { key: 'name', header: this.i18n.t('product.name'), value: row => row.productName },
-    { key: 'warehouse', header: this.i18n.t('stock.warehouse'), value: row => row.warehouseCode },
+    { key: 'warehouse', header: this.i18n.t('stock.warehouse'), value: row => row.warehouseName },
     { key: 'onHand', header: this.i18n.t('stock.onHand'), align: 'end' },
     { key: 'safety', header: this.i18n.t('product.safetyStock'), align: 'end', hideOnPhone: true },
     { key: 'short', header: this.i18n.t('lowStock.shortBy'), align: 'end' },

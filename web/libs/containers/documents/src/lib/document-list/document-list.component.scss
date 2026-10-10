@@ -4,6 +4,17 @@
   display: block;
 }
 
+.document-list-page-tabs {
+  display: block;
+  margin-bottom: space(2);
+}
+
+.document-list-page-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: space(0);
+}
+
 .document-list-page-filters {
   display: grid;
   grid-template-columns: 1fr;

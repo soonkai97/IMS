@@ -12,7 +12,10 @@ import { firstValueFrom } from 'rxjs';
 import {
   AppConfig,
   correlationInterceptor,
+  credentialsInterceptor,
+  csrfHeaderInterceptor,
   errorInterceptor,
+  ifMatchInterceptor,
   loadingInterceptor,
   provideApi,
   timeoutInterceptor
@@ -26,8 +29,8 @@ import { StockStore } from '@ims/features/stock';
 import { APP_ROUTES } from './app.routes';
 
 /**
- * Startup order matters: runtime config (API URL) first, then the language, then try to restore the session from a
- * stored refresh token. The first screen renders only after all three finished.
+ * Startup order matters: runtime config (API URL) first, then the language, then try to restore the session with one
+ * refresh call (the HttpOnly refresh cookie; 401 = signed out). The first screen renders only after all three finished.
  */
 function startUp(): Promise<void> {
   // inject() only works before the first await, so grab the injector now. AuthService (and so the HTTP clients) must
@@ -51,6 +54,9 @@ export const appConfig: ApplicationConfig = {
       withInterceptors([
         errorInterceptor,
         correlationInterceptor,
+        credentialsInterceptor,
+        csrfHeaderInterceptor,
+        ifMatchInterceptor,
         loadingInterceptor,
         timeoutInterceptor,
         authInterceptor

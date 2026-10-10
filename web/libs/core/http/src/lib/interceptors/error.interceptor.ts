@@ -1,15 +1,23 @@
-import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, from, map, switchMap, tap, throwError } from 'rxjs';
 import { I18nService } from '@ims/core/i18n';
 import { ToastService } from '@ims/core/notification';
 import { API_ERROR_KIND, ApiError } from '@ims/models';
+import { IF_MATCH } from '../concurrency/if-match';
 import { problemToApiError, readErrorBody } from '../errors/problem-details';
 import { TIMEOUT_STATUS_TEXT } from './timeout.interceptor';
 
-/** 401 is handled by the auth interceptor (refresh or redirect); field validation is shown next to the fields. */
-function shouldToast(error: ApiError): boolean {
+/**
+ * 401 is handled by the auth interceptor (refresh or redirect); field validation is shown next to the fields; a 409
+ * on a call that sent If-Match (a stale copy, or a rule such as insufficient stock) is explained by the screen that
+ * made the call, in a banner with the way out.
+ */
+function shouldToast(error: ApiError, request: HttpRequest<unknown>): boolean {
   if (error.kind === API_ERROR_KIND.Unauthorized) {
+    return false;
+  }
+  if (error.kind === API_ERROR_KIND.Conflict && request.context.get(IF_MATCH) !== undefined) {
     return false;
   }
   return !(error.kind === API_ERROR_KIND.Validation && Object.keys(error.fieldErrors).length > 0);
@@ -45,7 +53,7 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
       return from(readErrorBody(error)).pipe(
         map(body => problemToApiError(error.status, body)),
         tap(apiError => {
-          if (shouldToast(apiError)) {
+          if (shouldToast(apiError, request)) {
             toast.error(messageOf(apiError, error));
           }
         }),

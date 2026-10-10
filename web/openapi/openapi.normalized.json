@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:5109/"
+      "url": "http://localhost:5277/"
     }
   ],
   "paths": {
@@ -15,6 +15,7 @@
         "tags": [
           "Partners"
         ],
+        "operationId": "Partners_list",
         "parameters": [
           {
             "name": "Type",
@@ -75,13 +76,13 @@
               }
             }
           }
-        },
-        "operationId": "Partners_list"
+        }
       },
       "post": {
         "tags": [
           "Partners"
         ],
+        "operationId": "Partners_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -123,8 +124,7 @@
               }
             }
           }
-        },
-        "operationId": "Partners_create"
+        }
       }
     },
     "/api/partners/{id}": {
@@ -132,13 +132,13 @@
         "tags": [
           "Partners"
         ],
+        "operationId": "Partners_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -185,8 +185,7 @@
               }
             }
           }
-        },
-        "operationId": "Partners_update"
+        }
       }
     },
     "/api/warehouses": {
@@ -194,6 +193,7 @@
         "tags": [
           "Warehouses"
         ],
+        "operationId": "Warehouses_list",
         "parameters": [
           {
             "name": "includeInactive",
@@ -234,13 +234,13 @@
               }
             }
           }
-        },
-        "operationId": "Warehouses_list"
+        }
       },
       "post": {
         "tags": [
           "Warehouses"
         ],
+        "operationId": "Warehouses_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -282,8 +282,7 @@
               }
             }
           }
-        },
-        "operationId": "Warehouses_create"
+        }
       }
     },
     "/api/warehouses/{id}": {
@@ -291,13 +290,13 @@
         "tags": [
           "Warehouses"
         ],
+        "operationId": "Warehouses_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -344,8 +343,7 @@
               }
             }
           }
-        },
-        "operationId": "Warehouses_update"
+        }
       }
     },
     "/api/users": {
@@ -353,6 +351,7 @@
         "tags": [
           "Users"
         ],
+        "operationId": "Users_list",
         "parameters": [
           {
             "name": "Search",
@@ -413,13 +412,13 @@
               }
             }
           }
-        },
-        "operationId": "Users_list"
+        }
       },
       "post": {
         "tags": [
           "Users"
         ],
+        "operationId": "Users_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -461,8 +460,7 @@
               }
             }
           }
-        },
-        "operationId": "Users_create"
+        }
       }
     },
     "/api/users/{id}": {
@@ -470,13 +468,13 @@
         "tags": [
           "Users"
         ],
+        "operationId": "Users_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -523,8 +521,7 @@
               }
             }
           }
-        },
-        "operationId": "Users_update"
+        }
       }
     },
     "/api/import/templates/{kind}": {
@@ -532,6 +529,7 @@
         "tags": [
           "Import"
         ],
+        "operationId": "Import_template",
         "parameters": [
           {
             "name": "kind",
@@ -544,9 +542,17 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "The file.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=... (the name of the file).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
-              "application/octet-stream": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
@@ -554,8 +560,7 @@
               }
             }
           }
-        },
-        "operationId": "Import_template"
+        }
       }
     },
     "/api/import/products": {
@@ -563,7 +568,8 @@
         "tags": [
           "Import"
         ],
-        "summary": "Preview with `commit=false` (default); write with `commit=true`. Only valid rows are written.",
+        "summary": "Preview with `commit=false` (default); write with `commit=true`. Import is all-or-nothing: a commit with any invalid row writes nothing.",
+        "operationId": "Import_importProducts",
         "parameters": [
           {
             "name": "commit",
@@ -578,6 +584,9 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "required": [
+                  "file"
+                ],
                 "type": "object",
                 "properties": {
                   "file": {
@@ -611,8 +620,7 @@
               }
             }
           }
-        },
-        "operationId": "Import_products"
+        }
       }
     },
     "/api/import/opening-stock": {
@@ -620,6 +628,7 @@
         "tags": [
           "Import"
         ],
+        "operationId": "Import_importOpeningStock",
         "parameters": [
           {
             "name": "commit",
@@ -634,6 +643,9 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "required": [
+                  "file"
+                ],
                 "type": "object",
                 "properties": {
                   "file": {
@@ -667,8 +679,7 @@
               }
             }
           }
-        },
-        "operationId": "Import_openingStock"
+        }
       }
     },
     "/api/reports/movements": {
@@ -676,6 +687,7 @@
         "tags": [
           "Reports"
         ],
+        "operationId": "Reports_movements",
         "parameters": [
           {
             "name": "Type",
@@ -754,8 +766,7 @@
               }
             }
           }
-        },
-        "operationId": "Reports_movements"
+        }
       }
     },
     "/api/reports/stock-summary/export": {
@@ -763,6 +774,7 @@
         "tags": [
           "Reports"
         ],
+        "operationId": "Reports_exportStockSummary",
         "parameters": [
           {
             "name": "WarehouseId",
@@ -835,9 +847,17 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "The file.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=... (the name of the file).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
-              "application/octet-stream": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
@@ -845,8 +865,7 @@
               }
             }
           }
-        },
-        "operationId": "Reports_stockSummaryExport"
+        }
       }
     },
     "/api/reports/movements/export": {
@@ -854,6 +873,7 @@
         "tags": [
           "Reports"
         ],
+        "operationId": "Reports_exportMovements",
         "parameters": [
           {
             "name": "Type",
@@ -913,9 +933,17 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "The file.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=... (the name of the file).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
-              "application/octet-stream": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
@@ -923,8 +951,7 @@
               }
             }
           }
-        },
-        "operationId": "Reports_movementsExport"
+        }
       }
     },
     "/api/reports/ledger/export": {
@@ -932,6 +959,7 @@
         "tags": [
           "Reports"
         ],
+        "operationId": "Reports_exportLedger",
         "parameters": [
           {
             "name": "WarehouseId",
@@ -1009,9 +1037,17 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "The file.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=... (the name of the file).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
-              "application/octet-stream": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
@@ -1019,8 +1055,7 @@
               }
             }
           }
-        },
-        "operationId": "Reports_ledgerExport"
+        }
       }
     },
     "/api/reports/low-stock/export": {
@@ -1028,11 +1063,20 @@
         "tags": [
           "Reports"
         ],
+        "operationId": "Reports_exportLowStock",
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "The file.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=... (the name of the file).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
-              "application/octet-stream": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
@@ -1040,8 +1084,7 @@
               }
             }
           }
-        },
-        "operationId": "Reports_lowStockExport"
+        }
       }
     },
     "/api/stock": {
@@ -1049,6 +1092,7 @@
         "tags": [
           "Stock"
         ],
+        "operationId": "Stock_list",
         "parameters": [
           {
             "name": "WarehouseId",
@@ -1140,8 +1184,7 @@
               }
             }
           }
-        },
-        "operationId": "Stock_list"
+        }
       }
     },
     "/api/stock/ledger": {
@@ -1149,6 +1192,7 @@
         "tags": [
           "Stock"
         ],
+        "operationId": "Stock_ledger",
         "parameters": [
           {
             "name": "WarehouseId",
@@ -1245,8 +1289,7 @@
               }
             }
           }
-        },
-        "operationId": "Stock_ledger"
+        }
       }
     },
     "/api/stock/low-stock": {
@@ -1254,6 +1297,7 @@
         "tags": [
           "Stock"
         ],
+        "operationId": "Stock_lowStock",
         "parameters": [
           {
             "name": "WarehouseId",
@@ -1301,8 +1345,7 @@
               }
             }
           }
-        },
-        "operationId": "Stock_lowStock"
+        }
       }
     },
     "/api/stock/summary": {
@@ -1310,6 +1353,7 @@
         "tags": [
           "Stock"
         ],
+        "operationId": "Stock_summary",
         "responses": {
           "200": {
             "description": "OK",
@@ -1331,8 +1375,7 @@
               }
             }
           }
-        },
-        "operationId": "Stock_summary"
+        }
       }
     },
     "/api/approval-rules": {
@@ -1340,6 +1383,7 @@
         "tags": [
           "ApprovalRules"
         ],
+        "operationId": "ApprovalRules_list",
         "responses": {
           "200": {
             "description": "OK",
@@ -1370,13 +1414,13 @@
               }
             }
           }
-        },
-        "operationId": "ApprovalRules_list"
+        }
       },
       "post": {
         "tags": [
           "ApprovalRules"
         ],
+        "operationId": "ApprovalRules_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1418,8 +1462,7 @@
               }
             }
           }
-        },
-        "operationId": "ApprovalRules_create"
+        }
       }
     },
     "/api/approval-rules/{id}": {
@@ -1427,13 +1470,13 @@
         "tags": [
           "ApprovalRules"
         ],
+        "operationId": "ApprovalRules_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -1480,8 +1523,7 @@
               }
             }
           }
-        },
-        "operationId": "ApprovalRules_update"
+        }
       }
     },
     "/api/audit": {
@@ -1489,6 +1531,7 @@
         "tags": [
           "Audit"
         ],
+        "operationId": "Audit_list",
         "parameters": [
           {
             "name": "EntityType",
@@ -1575,8 +1618,7 @@
               }
             }
           }
-        },
-        "operationId": "Audit_list"
+        }
       }
     },
     "/api/settings": {
@@ -1584,6 +1626,7 @@
         "tags": [
           "Settings"
         ],
+        "operationId": "Settings_get",
         "responses": {
           "200": {
             "description": "OK",
@@ -1605,13 +1648,13 @@
               }
             }
           }
-        },
-        "operationId": "Settings_get"
+        }
       },
       "put": {
         "tags": [
           "Settings"
         ],
+        "operationId": "Settings_update",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1653,8 +1696,7 @@
               }
             }
           }
-        },
-        "operationId": "Settings_update"
+        }
       }
     },
     "/api/documents": {
@@ -1662,6 +1704,7 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_list",
         "parameters": [
           {
             "name": "Type",
@@ -1740,6 +1783,22 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "Mine",
+            "in": "query",
+            "description": "True returns only documents the caller created.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "RequiresApproval",
+            "in": "query",
+            "description": "True returns only documents an approval rule held back; false only those it did not. Combine with `status=Submitted` for the approvals inbox.",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -1763,8 +1822,38 @@
               }
             }
           }
-        },
-        "operationId": "Documents_list"
+        }
+      }
+    },
+    "/api/documents/counts": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "The Home tiles and menu badges (returned to me, my drafts, posted today, approvals waiting) in one cheap call.",
+        "operationId": "Documents_counts",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentCounts"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentCounts"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentCounts"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/documents/{id}": {
@@ -1772,13 +1861,13 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_get",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -1805,20 +1894,19 @@
               }
             }
           }
-        },
-        "operationId": "Documents_get"
+        }
       },
       "put": {
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -1865,8 +1953,7 @@
               }
             }
           }
-        },
-        "operationId": "Documents_update"
+        }
       }
     },
     "/api/documents/receipts": {
@@ -1874,6 +1961,7 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_createReceipt",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1915,8 +2003,7 @@
               }
             }
           }
-        },
-        "operationId": "Documents_createReceipt"
+        }
       }
     },
     "/api/documents/issues": {
@@ -1924,6 +2011,7 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_createIssue",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1965,8 +2053,7 @@
               }
             }
           }
-        },
-        "operationId": "Documents_createIssue"
+        }
       }
     },
     "/api/documents/{id}/submit": {
@@ -1974,13 +2061,13 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_submit",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2007,8 +2094,7 @@
               }
             }
           }
-        },
-        "operationId": "Documents_submit"
+        }
       }
     },
     "/api/documents/{id}/approve": {
@@ -2016,18 +2102,53 @@
         "tags": [
           "Documents"
         ],
+        "summary": "Approves a Submitted document. The body is optional, except that a document with `requiresOverride` needs `negativeStockOverrideReason` here: the approver gives the reason, not the person who posts.",
+        "operationId": "Documents_approve",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ApproveRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ApproveRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ApproveRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -2049,8 +2170,7 @@
               }
             }
           }
-        },
-        "operationId": "Documents_approve"
+        }
       }
     },
     "/api/documents/{id}/reject": {
@@ -2058,13 +2178,13 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_reject",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2111,8 +2231,7 @@
               }
             }
           }
-        },
-        "operationId": "Documents_reject"
+        }
       }
     },
     "/api/documents/{id}/cancel": {
@@ -2120,13 +2239,13 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_cancel",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2173,8 +2292,7 @@
               }
             }
           }
-        },
-        "operationId": "Documents_cancel"
+        }
       }
     },
     "/api/documents/{id}/post": {
@@ -2182,38 +2300,19 @@
         "tags": [
           "Documents"
         ],
+        "summary": "Posts an Approved (or approval-free Submitted) document. There is no request body: the override reason was recorded at approval.",
+        "operationId": "Documents_post",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PostRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PostRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/PostRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": "OK",
@@ -2235,8 +2334,7 @@
               }
             }
           }
-        },
-        "operationId": "Documents_post"
+        }
       }
     },
     "/api/documents/{id}/reverse": {
@@ -2244,13 +2342,13 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_reverse",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2297,8 +2395,7 @@
               }
             }
           }
-        },
-        "operationId": "Documents_reverse"
+        }
       }
     },
     "/api/categories": {
@@ -2306,6 +2403,7 @@
         "tags": [
           "Categories"
         ],
+        "operationId": "Categories_list",
         "responses": {
           "200": {
             "description": "OK",
@@ -2336,13 +2434,13 @@
               }
             }
           }
-        },
-        "operationId": "Categories_list"
+        }
       },
       "post": {
         "tags": [
           "Categories"
         ],
+        "operationId": "Categories_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2384,8 +2482,7 @@
               }
             }
           }
-        },
-        "operationId": "Categories_create"
+        }
       }
     },
     "/api/categories/{id}": {
@@ -2393,13 +2490,13 @@
         "tags": [
           "Categories"
         ],
+        "operationId": "Categories_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2446,8 +2543,7 @@
               }
             }
           }
-        },
-        "operationId": "Categories_update"
+        }
       }
     },
     "/api/products": {
@@ -2455,6 +2551,7 @@
         "tags": [
           "Products"
         ],
+        "operationId": "Products_list",
         "parameters": [
           {
             "name": "Search",
@@ -2530,13 +2627,13 @@
               }
             }
           }
-        },
-        "operationId": "Products_list"
+        }
       },
       "post": {
         "tags": [
           "Products"
         ],
+        "operationId": "Products_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2578,8 +2675,7 @@
               }
             }
           }
-        },
-        "operationId": "Products_create"
+        }
       }
     },
     "/api/products/{id}": {
@@ -2587,13 +2683,13 @@
         "tags": [
           "Products"
         ],
+        "operationId": "Products_get",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2620,20 +2716,19 @@
               }
             }
           }
-        },
-        "operationId": "Products_get"
+        }
       },
       "put": {
         "tags": [
           "Products"
         ],
+        "operationId": "Products_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2680,8 +2775,7 @@
               }
             }
           }
-        },
-        "operationId": "Products_update"
+        }
       }
     },
     "/api/products/lookup": {
@@ -2689,7 +2783,8 @@
         "tags": [
           "Products"
         ],
-        "summary": "Barcode or SKU lookup for the line picker and scanning. 404 when nothing matches.",
+        "summary": "Barcode or SKU lookup for the line picker and scanning. Always 200: `found` says whether a product owns the code\r\n(`product` is null when it does not), because a scan that matches nothing is a normal outcome, not a failed request.",
+        "operationId": "Products_lookup",
         "parameters": [
           {
             "name": "code",
@@ -2705,23 +2800,22 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductDto"
+                  "$ref": "#/components/schemas/ProductLookupResult"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductDto"
+                  "$ref": "#/components/schemas/ProductLookupResult"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductDto"
+                  "$ref": "#/components/schemas/ProductLookupResult"
                 }
               }
             }
           }
-        },
-        "operationId": "Products_lookup"
+        }
       }
     },
     "/api/units": {
@@ -2729,6 +2823,7 @@
         "tags": [
           "Units"
         ],
+        "operationId": "Units_list",
         "responses": {
           "200": {
             "description": "OK",
@@ -2759,13 +2854,13 @@
               }
             }
           }
-        },
-        "operationId": "Units_list"
+        }
       },
       "post": {
         "tags": [
           "Units"
         ],
+        "operationId": "Units_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2807,8 +2902,7 @@
               }
             }
           }
-        },
-        "operationId": "Units_create"
+        }
       }
     },
     "/api/units/{id}": {
@@ -2816,13 +2910,13 @@
         "tags": [
           "Units"
         ],
+        "operationId": "Units_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2869,8 +2963,7 @@
               }
             }
           }
-        },
-        "operationId": "Units_update"
+        }
       }
     },
     "/api/auth/login": {
@@ -2878,6 +2971,8 @@
         "tags": [
           "Auth"
         ],
+        "description": "Signs in and returns the access token. The refresh token is set as an HttpOnly, Secure, SameSite=Strict cookie scoped to /api/auth. DEPRECATED: while Auth:ReturnRefreshTokenInBody is true the refresh token is also returned in the JSON body; clients must stop reading it.",
+        "operationId": "Auth_login",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2919,8 +3014,7 @@
               }
             }
           }
-        },
-        "operationId": "Auth_login"
+        }
       }
     },
     "/api/auth/refresh": {
@@ -2928,25 +3022,41 @@
         "tags": [
           "Auth"
         ],
+        "description": "Rotates the refresh token and returns a new access token. The refresh token is read from the HttpOnly cookie; the browser must send credentials, the header X-Requested-With: XMLHttpRequest, and an Origin that is in Cors:Origins (otherwise 403). DEPRECATED: a refreshToken in the request body is still accepted and takes precedence; so is the refresh token in the response body while Auth:ReturnRefreshTokenInBody is true.",
+        "operationId": "Auth_refresh",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshRequest"
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RefreshRequest"
+                  }
+                ]
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshRequest"
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RefreshRequest"
+                  }
+                ]
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshRequest"
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RefreshRequest"
+                  }
+                ]
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -2969,8 +3079,7 @@
               }
             }
           }
-        },
-        "operationId": "Auth_refresh"
+        }
       }
     },
     "/api/auth/logout": {
@@ -2978,21 +3087,71 @@
         "tags": [
           "Auth"
         ],
+        "description": "Revokes the refresh token (from the cookie, or DEPRECATED from the request body) and clears the cookie. Always 204 for an unknown or already revoked token. A cookie-authenticated call needs the same X-Requested-With header and allowed Origin as refresh.",
+        "operationId": "Auth_logout",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshRequest"
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RefreshRequest"
+                  }
+                ]
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshRequest"
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RefreshRequest"
+                  }
+                ]
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshRequest"
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RefreshRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/auth/change-password": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Changes the signed-in user's own password and ends all of their sessions.",
+        "operationId": "Auth_changePassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
               }
             }
           },
@@ -3002,8 +3161,7 @@
           "200": {
             "description": "OK"
           }
-        },
-        "operationId": "Auth_logout"
+        }
       }
     },
     "/api/auth/me": {
@@ -3011,6 +3169,7 @@
         "tags": [
           "Auth"
         ],
+        "operationId": "Auth_me",
         "responses": {
           "200": {
             "description": "OK",
@@ -3032,8 +3191,188 @@
               }
             }
           }
+        }
+      }
+    },
+    "/api/attachments": {
+      "get": {
+        "tags": [
+          "Attachments"
+        ],
+        "operationId": "Attachments_list",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AttachmentOwnerType"
+            }
+          },
+          {
+            "name": "ownerId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AttachmentDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AttachmentDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AttachmentDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Attachments"
+        ],
+        "operationId": "Attachments_upload",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "ownerType": {
+                    "$ref": "#/components/schemas/AttachmentOwnerType"
+                  },
+                  "ownerId": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
         },
-        "operationId": "Auth_me"
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attachments/{id}": {
+      "get": {
+        "tags": [
+          "Attachments"
+        ],
+        "summary": "Downloads the file. Images can be shown inline with `inline=true`; everything else is a download.",
+        "operationId": "Attachments_download",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "inline",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=... (the name of the file).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Attachments"
+        ],
+        "operationId": "Attachments_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     }
   },
@@ -3108,6 +3447,72 @@
         },
         "additionalProperties": false
       },
+      "ApproveRequest": {
+        "required": [
+          "negativeStockOverrideReason"
+        ],
+        "type": "object",
+        "properties": {
+          "negativeStockOverrideReason": {
+            "type": "string",
+            "description": "Required when the document `requiresOverride`: why the approver lets stock go below zero. Ignored for any other document.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AttachmentDto": {
+        "required": [
+          "id",
+          "ownerType",
+          "ownerId",
+          "fileName",
+          "contentType",
+          "sizeBytes",
+          "uploadedBy",
+          "uploadedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ownerType": {
+            "$ref": "#/components/schemas/AttachmentOwnerType"
+          },
+          "ownerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "uploadedBy": {
+            "type": "string"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AttachmentOwnerType": {
+        "enum": [
+          "Document",
+          "Product"
+        ],
+        "type": "string",
+        "description": "What a file is attached to. Adding an owner type means adding one owner policy in the application layer."
+      },
       "AuditLogDto": {
         "required": [
           "id",
@@ -3169,12 +3574,16 @@
             "format": "date-time"
           },
           "refreshToken": {
-            "type": "string"
+            "type": "string",
+            "description": "DEPRECATED. The refresh token now travels in an HttpOnly cookie; this property is only filled while Auth:ReturnRefreshTokenInBody is true.",
+            "deprecated": true,
+            "nullable": true
           },
           "user": {
             "$ref": "#/components/schemas/UserInfo"
           }
         },
+        "description": "The result of a login or refresh. RefreshToken is null when the API is configured to deliver the refresh token\r\nonly in its HttpOnly cookie (Auth:ReturnRefreshTokenInBody=false).",
         "additionalProperties": false
       },
       "CancelRequest": {
@@ -3219,6 +3628,55 @@
         },
         "additionalProperties": false
       },
+      "ChangePasswordRequest": {
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DocumentCounts": {
+        "required": [
+          "returnedToMe",
+          "myDrafts",
+          "postedToday",
+          "approvalsWaiting"
+        ],
+        "type": "object",
+        "properties": {
+          "returnedToMe": {
+            "type": "integer",
+            "description": "Drafts I created that a reviewer sent back.",
+            "format": "int32"
+          },
+          "myDrafts": {
+            "type": "integer",
+            "description": "All my Drafts (returned ones included).",
+            "format": "int32"
+          },
+          "postedToday": {
+            "type": "integer",
+            "description": "Documents posted since local midnight (Asia/Kuala_Lumpur, BR-10), whoever posted them.",
+            "format": "int32"
+          },
+          "approvalsWaiting": {
+            "type": "integer",
+            "description": "Submitted documents held for approval that I could act on: not mine to approve when self-approval is off, only large ones for the Owner, none large for a Supervisor, zero for roles that cannot approve.",
+            "format": "int32"
+          }
+        },
+        "description": "The numbers behind the Home tiles and menu badges, for the signed-in user, within the warehouses they may see.",
+        "additionalProperties": false
+      },
       "DocumentDto": {
         "required": [
           "id",
@@ -3232,23 +3690,36 @@
           "purpose",
           "remark",
           "requiresApproval",
+          "requiresOverride",
+          "isLarge",
+          "isReturned",
           "rejectionReason",
           "cancelReason",
           "reversalReason",
           "negativeStockOverrideReason",
+          "createdById",
           "createdBy",
+          "createdByName",
           "createdAt",
           "submittedById",
           "submittedBy",
+          "submittedByName",
           "submittedAt",
           "approvedBy",
+          "approvedByName",
           "approvedAt",
           "postedBy",
+          "postedByName",
           "postedAt",
+          "returnedById",
+          "returnedBy",
+          "returnedByName",
+          "returnedAt",
           "totalQty",
           "totalAmount",
           "lines",
-          "allowedActions"
+          "allowedActions",
+          "concurrencyToken"
         ],
         "type": "object",
         "properties": {
@@ -3294,7 +3765,20 @@
             "nullable": true
           },
           "requiresApproval": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "An approval rule fired when the document was submitted (false for a Draft)."
+          },
+          "requiresOverride": {
+            "type": "boolean",
+            "description": "An issue was submitted although stock is short (negative stock is allowed): the approver must give a reason when approving, which forces approval whatever the value thresholds say. A fact about the moment of submission: it stays true after approval and posting; the stored reason is in `NegativeStockOverrideReason`."
+          },
+          "isLarge": {
+            "type": "boolean",
+            "description": "The approval rule that fired needs a role above Supervisor (for example the Owner)."
+          },
+          "isReturned": {
+            "type": "boolean",
+            "description": "A Draft that a reviewer sent back (`RejectionReason` holds why, `ReturnedBy*` who)."
           },
           "rejectionReason": {
             "type": "string",
@@ -3310,9 +3794,17 @@
           },
           "negativeStockOverrideReason": {
             "type": "string",
+            "description": "Why the approver let stock go below zero; set when a document that `requiresOverride` is approved, otherwise null.",
             "nullable": true
           },
+          "createdById": {
+            "type": "integer",
+            "format": "int32"
+          },
           "createdBy": {
+            "type": "string"
+          },
+          "createdByName": {
             "type": "string"
           },
           "createdAt": {
@@ -3328,12 +3820,20 @@
             "type": "string",
             "nullable": true
           },
+          "submittedByName": {
+            "type": "string",
+            "nullable": true
+          },
           "submittedAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true
           },
           "approvedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvedByName": {
             "type": "string",
             "nullable": true
           },
@@ -3346,7 +3846,29 @@
             "type": "string",
             "nullable": true
           },
+          "postedByName": {
+            "type": "string",
+            "nullable": true
+          },
           "postedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "returnedById": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "returnedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "returnedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "returnedAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true
@@ -3371,6 +3893,10 @@
               "type": "string"
             },
             "description": "What the caller may do right now (edit, submit, approve, reject, cancel, post, reverse). The UI shows buttons from this list only."
+          },
+          "concurrencyToken": {
+            "type": "string",
+            "description": "Changes whenever the document (header, status or lines) changes. Also sent as the ETag header; send it back as If-Match to refuse a stale save."
           }
         },
         "additionalProperties": false
@@ -3426,6 +3952,12 @@
           "remark": {
             "type": "string",
             "nullable": true
+          },
+          "available": {
+            "type": "number",
+            "description": "On hand in the document's warehouse right now, in base units (compare with `BaseQty`; lines of one product add up). Null once the document is Posted, Reversed or Cancelled, when the figure no longer says anything about this document.",
+            "format": "double",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -3477,7 +4009,18 @@
           "postedAt",
           "totalQty",
           "totalAmount",
-          "createdBy"
+          "createdBy",
+          "createdById",
+          "createdByName",
+          "submittedById",
+          "submittedBy",
+          "submittedByName",
+          "submittedAt",
+          "requiresApproval",
+          "requiresOverride",
+          "isLarge",
+          "isReturned",
+          "concurrencyToken"
         ],
         "type": "object",
         "properties": {
@@ -3520,6 +4063,49 @@
           },
           "createdBy": {
             "type": "string"
+          },
+          "createdById": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdByName": {
+            "type": "string"
+          },
+          "submittedById": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "submittedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "requiresApproval": {
+            "type": "boolean",
+            "description": "An approval rule fired when the document was submitted. With `status=Submitted` this is the approvals inbox."
+          },
+          "requiresOverride": {
+            "type": "boolean"
+          },
+          "isLarge": {
+            "type": "boolean"
+          },
+          "isReturned": {
+            "type": "boolean",
+            "description": "A Draft that a reviewer sent back."
+          },
+          "concurrencyToken": {
+            "type": "string",
+            "description": "Same value as `concurrencyToken` on the full document: compare it to know whether an open document has gone stale."
           }
         },
         "additionalProperties": false
@@ -3565,7 +4151,6 @@
         "additionalProperties": false
       },
       "DocumentStatus": {
-        "type": "string",
         "enum": [
           "Draft",
           "Submitted",
@@ -3573,16 +4158,18 @@
           "Posted",
           "Reversed",
           "Cancelled"
-        ]
+        ],
+        "type": "string",
+        "description": "Figure 5 state machine. Rejection returns to Draft (reason kept on the document)."
       },
       "DocumentType": {
-        "type": "string",
         "enum": [
           "Receipt",
           "Issue",
           "Transfer",
           "Adjust"
-        ]
+        ],
+        "type": "string"
       },
       "ImportResult": {
         "required": [
@@ -3614,10 +4201,12 @@
           },
           "created": {
             "type": "integer",
+            "description": "Rows that create (a preview reports what a commit would create).",
             "format": "int32"
           },
           "updated": {
             "type": "integer",
+            "description": "Rows that update an existing record (a preview reports what a commit would update).",
             "format": "int32"
           },
           "documentId": {
@@ -3639,6 +4228,7 @@
           "row",
           "key",
           "ok",
+          "status",
           "errors"
         ],
         "type": "object",
@@ -3651,7 +4241,12 @@
             "type": "string"
           },
           "ok": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "False when the row has errors and blocks the import."
+          },
+          "status": {
+            "description": "New or Update for a valid row (what a commit would do with it; the same in a preview and after a commit), Error otherwise. A valid row can still carry a note in `Errors` (for example \"unit not changed\").",
+            "$ref": "#/components/schemas/ImportRowStatus"
           },
           "errors": {
             "type": "array",
@@ -3662,16 +4257,24 @@
         },
         "additionalProperties": false
       },
-      "IssuePurpose": {
+      "ImportRowStatus": {
+        "enum": [
+          "New",
+          "Update",
+          "Error"
+        ],
         "type": "string",
+        "description": "What an import row does (or would do on commit): create something new, update something that exists, or nothing because it has errors."
+      },
+      "IssuePurpose": {
         "enum": [
           "Sale",
           "Use",
           "Scrap"
-        ]
+        ],
+        "type": "string"
       },
       "LedgerReason": {
-        "type": "string",
         "enum": [
           "Receipt",
           "Issue",
@@ -3680,7 +4283,8 @@
           "Adjustment",
           "Reversal",
           "Opening"
-        ]
+        ],
+        "type": "string"
       },
       "LedgerRow": {
         "required": [
@@ -3689,6 +4293,7 @@
           "sku",
           "productName",
           "warehouseCode",
+          "warehouseName",
           "qtyDelta",
           "unitCost",
           "reason",
@@ -3713,6 +4318,9 @@
             "type": "string"
           },
           "warehouseCode": {
+            "type": "string"
+          },
+          "warehouseName": {
             "type": "string"
           },
           "qtyDelta": {
@@ -3762,6 +4370,7 @@
           "productName",
           "warehouseId",
           "warehouseCode",
+          "warehouseName",
           "qtyOnHand",
           "safetyStock",
           "shortfall"
@@ -3783,6 +4392,9 @@
             "format": "int32"
           },
           "warehouseCode": {
+            "type": "string"
+          },
+          "warehouseName": {
             "type": "string"
           },
           "qtyOnHand": {
@@ -4264,24 +4876,11 @@
         "additionalProperties": false
       },
       "PartnerType": {
-        "type": "string",
         "enum": [
           "Supplier",
           "Customer"
-        ]
-      },
-      "PostRequest": {
-        "required": [
-          "negativeStockOverrideReason"
         ],
-        "type": "object",
-        "properties": {
-          "negativeStockOverrideReason": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
+        "type": "string"
       },
       "ProductDto": {
         "required": [
@@ -4347,6 +4946,28 @@
         },
         "additionalProperties": false
       },
+      "ProductLookupResult": {
+        "required": [
+          "found",
+          "product"
+        ],
+        "type": "object",
+        "properties": {
+          "found": {
+            "type": "boolean"
+          },
+          "product": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProductDto"
+              }
+            ]
+          }
+        },
+        "description": "Answer to a barcode or SKU lookup. A code nobody owns is a normal outcome of scanning, not an error:\r\n`Found` is false and `Product` is null (HTTP 200), so a scan miss does not look like a failed request.",
+        "additionalProperties": false
+      },
       "ProductSaveRequest": {
         "required": [
           "sku",
@@ -4400,11 +5021,12 @@
         "additionalProperties": false
       },
       "ProductSort": {
-        "type": "string",
         "enum": [
           "Sku",
           "Name"
-        ]
+        ],
+        "type": "string",
+        "description": "Sort keys the products list accepts. Only these are allowed, so a client cannot sort on an unindexed column."
       },
       "RefreshRequest": {
         "required": [
@@ -4413,9 +5035,13 @@
         "type": "object",
         "properties": {
           "refreshToken": {
-            "type": "string"
+            "type": "string",
+            "description": "DEPRECATED. The refresh token now travels in an HttpOnly cookie; this property is only filled while Auth:ReturnRefreshTokenInBody is true.",
+            "deprecated": true,
+            "nullable": true
           }
         },
+        "description": "The refresh token to redeem or revoke. Optional on the wire: when absent, the API reads it from the HttpOnly cookie.",
         "additionalProperties": false
       },
       "RejectRequest": {
@@ -4472,6 +5098,7 @@
           "uomCode",
           "warehouseId",
           "warehouseCode",
+          "warehouseName",
           "qtyOnHand",
           "qtyInTransit",
           "avgCost",
@@ -4505,6 +5132,9 @@
           "warehouseCode": {
             "type": "string"
           },
+          "warehouseName": {
+            "type": "string"
+          },
           "qtyOnHand": {
             "type": "number",
             "format": "double"
@@ -4532,13 +5162,13 @@
         "additionalProperties": false
       },
       "StockSort": {
-        "type": "string",
         "enum": [
           "Sku",
           "QtyOnHand",
           "Value",
           "Warehouse"
-        ]
+        ],
+        "type": "string"
       },
       "StockSummary": {
         "required": [
@@ -4868,6 +5498,9 @@
     },
     {
       "name": "Auth"
+    },
+    {
+      "name": "Attachments"
     }
   ]
 }

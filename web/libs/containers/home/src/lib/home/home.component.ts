@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { ApprovalsStore } from '@ims/features/approvals';
 import { AppMoneyPipe, AppQtyPipe, TranslatePipe } from '@ims/core/i18n';
 import { PermissionService } from '@ims/core/identity';
+import { DocumentsStore } from '@ims/features/documents';
 import { StockStore } from '@ims/features/stock';
 import { PERMISSION } from '@ims/models';
 import {
   UiBannerComponent,
+  UiButtonComponent,
   UiEmptyStateComponent,
   UiPageHeaderComponent,
   UiSkeletonComponent,
@@ -22,6 +23,7 @@ import {
     RouterLink,
     TranslatePipe,
     UiBannerComponent,
+    UiButtonComponent,
     UiEmptyStateComponent,
     UiPageHeaderComponent,
     UiSkeletonComponent,
@@ -32,19 +34,23 @@ import {
   styleUrl: './home.component.scss'
 })
 export class HomePageComponent implements OnInit {
-  private readonly approvals = inject(ApprovalsStore);
+  private readonly documents = inject(DocumentsStore);
   private readonly permissions = inject(PermissionService);
   private readonly stock = inject(StockStore);
 
   $summary = this.stock.summary.$data;
+  $counts = this.documents.counts.$data;
   $isLoading = this.stock.summary.$isLoading;
   $failed = this.stock.summary.$isFailed;
-  $waitingApprovals = this.approvals.$waitingCount;
   $displayName = this.permissions.$displayName;
 
   $canViewStock = computed(() => this.permissions.has(PERMISSION.StockRead));
   $canCreate = computed(() => this.permissions.has(PERMISSION.DocumentCreate));
   $canApprove = computed(() => this.permissions.has(PERMISSION.DocumentApprove));
+  /** "Posted today" is for the roles that approve AND post (Supervisor, Admin); the Owner only reviews. */
+  $canSeePostedToday = computed(
+    () => this.$canApprove() && this.permissions.has(PERMISSION.DocumentPost)
+  );
   /** A warehouse user without a warehouse can do nothing yet: say so instead of showing empty numbers. */
   $hasNoWarehouse = computed(
     () => !this.permissions.$seesAllWarehouses() && this.permissions.$warehouseIds().length === 0
@@ -53,13 +59,12 @@ export class HomePageComponent implements OnInit {
   ngOnInit(): void {
     if (this.$canViewStock()) {
       this.stock.summary.load();
-    }
-    if (this.$canApprove()) {
-      this.approvals.refresh();
+      this.documents.counts.load();
     }
   }
 
   onRetry(): void {
     this.stock.summary.reload();
+    this.documents.counts.reload();
   }
 }

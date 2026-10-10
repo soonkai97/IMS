@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:5109/"
+      "url": "http://localhost:5277/"
     }
   ],
   "paths": {
@@ -15,6 +15,7 @@
         "tags": [
           "Partners"
         ],
+        "operationId": "Partners_list",
         "parameters": [
           {
             "name": "Type",
@@ -41,11 +42,7 @@
             "name": "Page",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -53,11 +50,7 @@
             "name": "PageSize",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
@@ -89,6 +82,7 @@
         "tags": [
           "Partners"
         ],
+        "operationId": "Partners_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -138,13 +132,13 @@
         "tags": [
           "Partners"
         ],
+        "operationId": "Partners_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -199,6 +193,7 @@
         "tags": [
           "Warehouses"
         ],
+        "operationId": "Warehouses_list",
         "parameters": [
           {
             "name": "includeInactive",
@@ -245,6 +240,7 @@
         "tags": [
           "Warehouses"
         ],
+        "operationId": "Warehouses_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -294,13 +290,13 @@
         "tags": [
           "Warehouses"
         ],
+        "operationId": "Warehouses_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -355,6 +351,7 @@
         "tags": [
           "Users"
         ],
+        "operationId": "Users_list",
         "parameters": [
           {
             "name": "Search",
@@ -381,11 +378,7 @@
             "name": "Page",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -393,11 +386,7 @@
             "name": "PageSize",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
@@ -429,6 +418,7 @@
         "tags": [
           "Users"
         ],
+        "operationId": "Users_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -478,13 +468,13 @@
         "tags": [
           "Users"
         ],
+        "operationId": "Users_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -539,6 +529,7 @@
         "tags": [
           "Import"
         ],
+        "operationId": "Import_template",
         "parameters": [
           {
             "name": "kind",
@@ -551,7 +542,23 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "The file.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=... (the name of the file).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           }
         }
       }
@@ -561,7 +568,8 @@
         "tags": [
           "Import"
         ],
-        "summary": "Preview with `commit=false` (default); write with `commit=true`. Only valid rows are written.",
+        "summary": "Preview with `commit=false` (default); write with `commit=true`. Import is all-or-nothing: a commit with any invalid row writes nothing.",
+        "operationId": "Import_importProducts",
         "parameters": [
           {
             "name": "commit",
@@ -576,10 +584,14 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "required": [
+                  "file"
+                ],
                 "type": "object",
                 "properties": {
                   "file": {
-                    "$ref": "#/components/schemas/IFormFile"
+                    "type": "string",
+                    "format": "binary"
                   }
                 }
               }
@@ -616,6 +628,7 @@
         "tags": [
           "Import"
         ],
+        "operationId": "Import_importOpeningStock",
         "parameters": [
           {
             "name": "commit",
@@ -630,10 +643,14 @@
           "content": {
             "multipart/form-data": {
               "schema": {
+                "required": [
+                  "file"
+                ],
                 "type": "object",
                 "properties": {
                   "file": {
-                    "$ref": "#/components/schemas/IFormFile"
+                    "type": "string",
+                    "format": "binary"
                   }
                 }
               }
@@ -670,6 +687,7 @@
         "tags": [
           "Reports"
         ],
+        "operationId": "Reports_movements",
         "parameters": [
           {
             "name": "Type",
@@ -682,11 +700,7 @@
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -694,11 +708,7 @@
             "name": "ProductId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -722,11 +732,7 @@
             "name": "Page",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -734,11 +740,7 @@
             "name": "PageSize",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
@@ -772,16 +774,13 @@
         "tags": [
           "Reports"
         ],
+        "operationId": "Reports_exportStockSummary",
         "parameters": [
           {
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -789,11 +788,7 @@
             "name": "ProductId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -801,11 +796,7 @@
             "name": "CategoryId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -827,11 +818,7 @@
             "name": "Page",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -839,11 +826,7 @@
             "name": "PageSize",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -864,7 +847,23 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "The file.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=... (the name of the file).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           }
         }
       }
@@ -874,6 +873,7 @@
         "tags": [
           "Reports"
         ],
+        "operationId": "Reports_exportMovements",
         "parameters": [
           {
             "name": "Type",
@@ -886,11 +886,7 @@
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -898,11 +894,7 @@
             "name": "ProductId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -926,11 +918,7 @@
             "name": "Page",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -938,18 +926,30 @@
             "name": "PageSize",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "The file.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=... (the name of the file).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           }
         }
       }
@@ -959,16 +959,13 @@
         "tags": [
           "Reports"
         ],
+        "operationId": "Reports_exportLedger",
         "parameters": [
           {
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -976,11 +973,7 @@
             "name": "ProductId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1004,11 +997,7 @@
             "name": "SourceDocId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1016,11 +1005,7 @@
             "name": "Page",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1028,11 +1013,7 @@
             "name": "PageSize",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1041,11 +1022,7 @@
             "in": "query",
             "description": "Seek paging: return rows older than this ledger id. Use it instead of `Page` for deep pages (constant cost at any depth).",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int64"
             }
           },
@@ -1060,7 +1037,23 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "The file.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=... (the name of the file).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           }
         }
       }
@@ -1070,9 +1063,26 @@
         "tags": [
           "Reports"
         ],
+        "operationId": "Reports_exportLowStock",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "The file.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=... (the name of the file).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           }
         }
       }
@@ -1082,16 +1092,13 @@
         "tags": [
           "Stock"
         ],
+        "operationId": "Stock_list",
         "parameters": [
           {
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1099,11 +1106,7 @@
             "name": "ProductId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1111,11 +1114,7 @@
             "name": "CategoryId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1137,11 +1136,7 @@
             "name": "Page",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1149,11 +1144,7 @@
             "name": "PageSize",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1201,16 +1192,13 @@
         "tags": [
           "Stock"
         ],
+        "operationId": "Stock_ledger",
         "parameters": [
           {
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1218,11 +1206,7 @@
             "name": "ProductId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1246,11 +1230,7 @@
             "name": "SourceDocId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1258,11 +1238,7 @@
             "name": "Page",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1270,11 +1246,7 @@
             "name": "PageSize",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1283,11 +1255,7 @@
             "in": "query",
             "description": "Seek paging: return rows older than this ledger id. Use it instead of `Page` for deep pages (constant cost at any depth).",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int64"
             }
           },
@@ -1329,16 +1297,13 @@
         "tags": [
           "Stock"
         ],
+        "operationId": "Stock_lowStock",
         "parameters": [
           {
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1346,11 +1311,7 @@
             "name": "Page",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1358,11 +1319,7 @@
             "name": "PageSize",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
@@ -1396,6 +1353,7 @@
         "tags": [
           "Stock"
         ],
+        "operationId": "Stock_summary",
         "responses": {
           "200": {
             "description": "OK",
@@ -1425,6 +1383,7 @@
         "tags": [
           "ApprovalRules"
         ],
+        "operationId": "ApprovalRules_list",
         "responses": {
           "200": {
             "description": "OK",
@@ -1461,6 +1420,7 @@
         "tags": [
           "ApprovalRules"
         ],
+        "operationId": "ApprovalRules_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1510,13 +1470,13 @@
         "tags": [
           "ApprovalRules"
         ],
+        "operationId": "ApprovalRules_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -1571,6 +1531,7 @@
         "tags": [
           "Audit"
         ],
+        "operationId": "Audit_list",
         "parameters": [
           {
             "name": "EntityType",
@@ -1606,11 +1567,7 @@
             "name": "Page",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1618,11 +1575,7 @@
             "name": "PageSize",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1631,11 +1584,7 @@
             "in": "query",
             "description": "Seek paging: return entries older than this id.",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int64"
             }
           },
@@ -1677,6 +1626,7 @@
         "tags": [
           "Settings"
         ],
+        "operationId": "Settings_get",
         "responses": {
           "200": {
             "description": "OK",
@@ -1704,6 +1654,7 @@
         "tags": [
           "Settings"
         ],
+        "operationId": "Settings_update",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1753,6 +1704,7 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_list",
         "parameters": [
           {
             "name": "Type",
@@ -1772,11 +1724,7 @@
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1807,11 +1755,7 @@
             "name": "Page",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1819,11 +1763,7 @@
             "name": "PageSize",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1832,11 +1772,7 @@
             "in": "query",
             "description": "Seek paging: return documents older than this id (constant cost at any depth).",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -1844,6 +1780,22 @@
             "name": "IncludeTotal",
             "in": "query",
             "description": "False skips the row count.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "Mine",
+            "in": "query",
+            "description": "True returns only documents the caller created.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "RequiresApproval",
+            "in": "query",
+            "description": "True returns only documents an approval rule held back; false only those it did not. Combine with `status=Submitted` for the approvals inbox.",
             "schema": {
               "type": "boolean"
             }
@@ -1873,18 +1825,49 @@
         }
       }
     },
+    "/api/documents/counts": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "The Home tiles and menu badges (returned to me, my drafts, posted today, approvals waiting) in one cheap call.",
+        "operationId": "Documents_counts",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentCounts"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentCounts"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentCounts"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/documents/{id}": {
       "get": {
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_get",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -1917,13 +1900,13 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -1978,6 +1961,7 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_createReceipt",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2027,6 +2011,7 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_createIssue",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2076,13 +2061,13 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_submit",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2117,18 +2102,59 @@
         "tags": [
           "Documents"
         ],
+        "summary": "Approves a Submitted document. The body is optional, except that a document with `requiresOverride` needs `negativeStockOverrideReason` here: the approver gives the reason, not the person who posts.",
+        "operationId": "Documents_approve",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ApproveRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ApproveRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ApproveRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -2158,13 +2184,13 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_reject",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2219,13 +2245,13 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_cancel",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2280,38 +2306,19 @@
         "tags": [
           "Documents"
         ],
+        "summary": "Posts an Approved (or approval-free Submitted) document. There is no request body: the override reason was recorded at approval.",
+        "operationId": "Documents_post",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PostRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PostRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/PostRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": "OK",
@@ -2341,13 +2348,13 @@
         "tags": [
           "Documents"
         ],
+        "operationId": "Documents_reverse",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2402,6 +2409,7 @@
         "tags": [
           "Categories"
         ],
+        "operationId": "Categories_list",
         "responses": {
           "200": {
             "description": "OK",
@@ -2438,6 +2446,7 @@
         "tags": [
           "Categories"
         ],
+        "operationId": "Categories_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2487,13 +2496,13 @@
         "tags": [
           "Categories"
         ],
+        "operationId": "Categories_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2548,6 +2557,7 @@
         "tags": [
           "Products"
         ],
+        "operationId": "Products_list",
         "parameters": [
           {
             "name": "Search",
@@ -2560,11 +2570,7 @@
             "name": "CategoryId",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -2579,11 +2585,7 @@
             "name": "Page",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -2591,11 +2593,7 @@
             "name": "PageSize",
             "in": "query",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           },
@@ -2641,6 +2639,7 @@
         "tags": [
           "Products"
         ],
+        "operationId": "Products_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2690,13 +2689,13 @@
         "tags": [
           "Products"
         ],
+        "operationId": "Products_get",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2729,13 +2728,13 @@
         "tags": [
           "Products"
         ],
+        "operationId": "Products_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2790,7 +2789,8 @@
         "tags": [
           "Products"
         ],
-        "summary": "Barcode or SKU lookup for the line picker and scanning. 404 when nothing matches.",
+        "summary": "Barcode or SKU lookup for the line picker and scanning. Always 200: `found` says whether a product owns the code\r\n(`product` is null when it does not), because a scan that matches nothing is a normal outcome, not a failed request.",
+        "operationId": "Products_lookup",
         "parameters": [
           {
             "name": "code",
@@ -2806,17 +2806,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductDto"
+                  "$ref": "#/components/schemas/ProductLookupResult"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductDto"
+                  "$ref": "#/components/schemas/ProductLookupResult"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductDto"
+                  "$ref": "#/components/schemas/ProductLookupResult"
                 }
               }
             }
@@ -2829,6 +2829,7 @@
         "tags": [
           "Units"
         ],
+        "operationId": "Units_list",
         "responses": {
           "200": {
             "description": "OK",
@@ -2865,6 +2866,7 @@
         "tags": [
           "Units"
         ],
+        "operationId": "Units_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2914,13 +2916,13 @@
         "tags": [
           "Units"
         ],
+        "operationId": "Units_update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -2975,6 +2977,8 @@
         "tags": [
           "Auth"
         ],
+        "description": "Signs in and returns the access token. The refresh token is set as an HttpOnly, Secure, SameSite=Strict cookie scoped to /api/auth. DEPRECATED: while Auth:ReturnRefreshTokenInBody is true the refresh token is also returned in the JSON body; clients must stop reading it.",
+        "operationId": "Auth_login",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3024,25 +3028,47 @@
         "tags": [
           "Auth"
         ],
+        "description": "Rotates the refresh token and returns a new access token. The refresh token is read from the HttpOnly cookie; the browser must send credentials, the header X-Requested-With: XMLHttpRequest, and an Origin that is in Cors:Origins (otherwise 403). DEPRECATED: a refreshToken in the request body is still accepted and takes precedence; so is the refresh token in the response body while Auth:ReturnRefreshTokenInBody is true.",
+        "operationId": "Auth_refresh",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshRequest"
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RefreshRequest"
+                  }
+                ]
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshRequest"
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RefreshRequest"
+                  }
+                ]
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshRequest"
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RefreshRequest"
+                  }
+                ]
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -3073,21 +3099,77 @@
         "tags": [
           "Auth"
         ],
+        "description": "Revokes the refresh token (from the cookie, or DEPRECATED from the request body) and clears the cookie. Always 204 for an unknown or already revoked token. A cookie-authenticated call needs the same X-Requested-With header and allowed Origin as refresh.",
+        "operationId": "Auth_logout",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshRequest"
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RefreshRequest"
+                  }
+                ]
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshRequest"
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RefreshRequest"
+                  }
+                ]
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshRequest"
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RefreshRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/auth/change-password": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Changes the signed-in user's own password and ends all of their sessions.",
+        "operationId": "Auth_changePassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
               }
             }
           },
@@ -3105,6 +3187,7 @@
         "tags": [
           "Auth"
         ],
+        "operationId": "Auth_me",
         "responses": {
           "200": {
             "description": "OK",
@@ -3128,6 +3211,187 @@
           }
         }
       }
+    },
+    "/api/attachments": {
+      "get": {
+        "tags": [
+          "Attachments"
+        ],
+        "operationId": "Attachments_list",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AttachmentOwnerType"
+            }
+          },
+          {
+            "name": "ownerId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AttachmentDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AttachmentDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AttachmentDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Attachments"
+        ],
+        "operationId": "Attachments_upload",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "ownerType": {
+                    "$ref": "#/components/schemas/AttachmentOwnerType"
+                  },
+                  "ownerId": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attachments/{id}": {
+      "get": {
+        "tags": [
+          "Attachments"
+        ],
+        "summary": "Downloads the file. Images can be shown inline with `inline=true`; everything else is a download.",
+        "operationId": "Attachments_download",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "inline",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=... (the name of the file).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Attachments"
+        ],
+        "operationId": "Attachments_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3144,31 +3408,23 @@
         "type": "object",
         "properties": {
           "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "docType": {
             "$ref": "#/components/schemas/DocumentType"
           },
           "amountThreshold": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
             "type": [
               "null",
-              "number",
-              "string"
+              "number"
             ],
             "format": "double"
           },
           "qtyThreshold": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
             "type": [
               "null",
-              "number",
-              "string"
+              "number"
             ],
             "format": "double"
           },
@@ -3194,20 +3450,16 @@
             "$ref": "#/components/schemas/DocumentType"
           },
           "amountThreshold": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
             "type": [
               "null",
-              "number",
-              "string"
+              "number"
             ],
             "format": "double"
           },
           "qtyThreshold": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
             "type": [
               "null",
-              "number",
-              "string"
+              "number"
             ],
             "format": "double"
           },
@@ -3218,6 +3470,72 @@
             "type": "boolean"
           }
         }
+      },
+      "ApproveRequest": {
+        "required": [
+          "negativeStockOverrideReason"
+        ],
+        "type": "object",
+        "properties": {
+          "negativeStockOverrideReason": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Required when the document `requiresOverride`: why the approver lets stock go below zero. Ignored for any other document."
+          }
+        }
+      },
+      "AttachmentDto": {
+        "required": [
+          "id",
+          "ownerType",
+          "ownerId",
+          "fileName",
+          "contentType",
+          "sizeBytes",
+          "uploadedBy",
+          "uploadedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ownerType": {
+            "$ref": "#/components/schemas/AttachmentOwnerType"
+          },
+          "ownerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "uploadedBy": {
+            "type": "string"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AttachmentOwnerType": {
+        "enum": [
+          "Document",
+          "Product"
+        ],
+        "type": "string",
+        "description": "What a file is attached to. Adding an owner type means adding one owner policy in the application layer."
       },
       "AuditLogDto": {
         "required": [
@@ -3233,11 +3551,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int64"
           },
           "actor": {
@@ -3287,12 +3601,18 @@
             "format": "date-time"
           },
           "refreshToken": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "DEPRECATED. The refresh token now travels in an HttpOnly cookie; this property is only filled while Auth:ReturnRefreshTokenInBody is true.",
+            "deprecated": true
           },
           "user": {
             "$ref": "#/components/schemas/UserInfo"
           }
-        }
+        },
+        "description": "The result of a login or refresh. RefreshToken is null when the API is configured to deliver the refresh token\r\nonly in its HttpOnly cookie (Auth:ReturnRefreshTokenInBody=false)."
       },
       "CancelRequest": {
         "required": [
@@ -3316,11 +3636,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "name": {
@@ -3339,6 +3655,53 @@
           }
         }
       },
+      "ChangePasswordRequest": {
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "DocumentCounts": {
+        "required": [
+          "returnedToMe",
+          "myDrafts",
+          "postedToday",
+          "approvalsWaiting"
+        ],
+        "type": "object",
+        "properties": {
+          "returnedToMe": {
+            "type": "integer",
+            "description": "Drafts I created that a reviewer sent back.",
+            "format": "int32"
+          },
+          "myDrafts": {
+            "type": "integer",
+            "description": "All my Drafts (returned ones included).",
+            "format": "int32"
+          },
+          "postedToday": {
+            "type": "integer",
+            "description": "Documents posted since local midnight (Asia/Kuala_Lumpur, BR-10), whoever posted them.",
+            "format": "int32"
+          },
+          "approvalsWaiting": {
+            "type": "integer",
+            "description": "Submitted documents held for approval that I could act on: not mine to approve when self-approval is off, only large ones for the Owner, none large for a Supervisor, zero for roles that cannot approve.",
+            "format": "int32"
+          }
+        },
+        "description": "The numbers behind the Home tiles and menu badges, for the signed-in user, within the warehouses they may see."
+      },
       "DocumentDto": {
         "required": [
           "id",
@@ -3352,32 +3715,41 @@
           "purpose",
           "remark",
           "requiresApproval",
+          "requiresOverride",
+          "isLarge",
+          "isReturned",
           "rejectionReason",
           "cancelReason",
           "reversalReason",
           "negativeStockOverrideReason",
+          "createdById",
           "createdBy",
+          "createdByName",
           "createdAt",
           "submittedById",
           "submittedBy",
+          "submittedByName",
           "submittedAt",
           "approvedBy",
+          "approvedByName",
           "approvedAt",
           "postedBy",
+          "postedByName",
           "postedAt",
+          "returnedById",
+          "returnedBy",
+          "returnedByName",
+          "returnedAt",
           "totalQty",
           "totalAmount",
           "lines",
-          "allowedActions"
+          "allowedActions",
+          "concurrencyToken"
         ],
         "type": "object",
         "properties": {
           "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "type": {
@@ -3390,22 +3762,16 @@
             "$ref": "#/components/schemas/DocumentStatus"
           },
           "warehouseId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "warehouseName": {
             "type": "string"
           },
           "partnerId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "format": "int32"
           },
@@ -3432,7 +3798,20 @@
             ]
           },
           "requiresApproval": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "An approval rule fired when the document was submitted (false for a Draft)."
+          },
+          "requiresOverride": {
+            "type": "boolean",
+            "description": "An issue was submitted although stock is short (negative stock is allowed): the approver must give a reason when approving, which forces approval whatever the value thresholds say. A fact about the moment of submission: it stays true after approval and posting; the stored reason is in `NegativeStockOverrideReason`."
+          },
+          "isLarge": {
+            "type": "boolean",
+            "description": "The approval rule that fired needs a role above Supervisor (for example the Owner)."
+          },
+          "isReturned": {
+            "type": "boolean",
+            "description": "A Draft that a reviewer sent back (`RejectionReason` holds why, `ReturnedBy*` who)."
           },
           "rejectionReason": {
             "type": [
@@ -3456,9 +3835,17 @@
             "type": [
               "null",
               "string"
-            ]
+            ],
+            "description": "Why the approver let stock go below zero; set when a document that `requiresOverride` is approved, otherwise null."
+          },
+          "createdById": {
+            "type": "integer",
+            "format": "int32"
           },
           "createdBy": {
+            "type": "string"
+          },
+          "createdByName": {
             "type": "string"
           },
           "createdAt": {
@@ -3466,15 +3853,19 @@
             "format": "date-time"
           },
           "submittedById": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "format": "int32"
           },
           "submittedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "submittedByName": {
             "type": [
               "null",
               "string"
@@ -3493,6 +3884,12 @@
               "string"
             ]
           },
+          "approvedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "approvedAt": {
             "type": [
               "null",
@@ -3506,6 +3903,12 @@
               "string"
             ]
           },
+          "postedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "postedAt": {
             "type": [
               "null",
@@ -3513,20 +3916,38 @@
             ],
             "format": "date-time"
           },
-          "totalQty": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+          "returnedById": {
             "type": [
-              "number",
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "returnedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "returnedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "returnedAt": {
+            "type": [
+              "null",
               "string"
             ],
+            "format": "date-time"
+          },
+          "totalQty": {
+            "type": "number",
             "format": "double"
           },
           "totalAmount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "lines": {
@@ -3541,6 +3962,10 @@
               "type": "string"
             },
             "description": "What the caller may do right now (edit, submit, approve, reject, cancel, post, reverse). The UI shows buttons from this list only."
+          },
+          "concurrencyToken": {
+            "type": "string",
+            "description": "Changes whenever the document (header, status or lines) changes. Also sent as the ETag header; send it back as If-Match to refuse a stale save."
           }
         }
       },
@@ -3560,19 +3985,11 @@
         "type": "object",
         "properties": {
           "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "productId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "sku": {
@@ -3582,38 +3999,22 @@
             "type": "string"
           },
           "qty": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "uomId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "uomCode": {
             "type": "string"
           },
           "baseQty": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "unitCost": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "remark": {
@@ -3621,6 +4022,14 @@
               "null",
               "string"
             ]
+          },
+          "available": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "On hand in the document's warehouse right now, in base units (compare with `BaseQty`; lines of one product add up). Null once the document is Posted, Reversed or Cancelled, when the figure no longer says anything about this document.",
+            "format": "double"
           }
         }
       },
@@ -3635,36 +4044,24 @@
         "type": "object",
         "properties": {
           "productId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "qty": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "uomId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "format": "int32"
           },
           "unitCost": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
             "type": [
               "null",
-              "number",
-              "string"
+              "number"
             ],
             "format": "double"
           },
@@ -3688,16 +4085,23 @@
           "postedAt",
           "totalQty",
           "totalAmount",
-          "createdBy"
+          "createdBy",
+          "createdById",
+          "createdByName",
+          "submittedById",
+          "submittedBy",
+          "submittedByName",
+          "submittedAt",
+          "requiresApproval",
+          "requiresOverride",
+          "isLarge",
+          "isReturned",
+          "concurrencyToken"
         ],
         "type": "object",
         "properties": {
           "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "type": {
@@ -3730,23 +4134,66 @@
             "format": "date-time"
           },
           "totalQty": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "totalAmount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "createdBy": {
             "type": "string"
+          },
+          "createdById": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdByName": {
+            "type": "string"
+          },
+          "submittedById": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "submittedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "submittedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "submittedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "requiresApproval": {
+            "type": "boolean",
+            "description": "An approval rule fired when the document was submitted. With `status=Submitted` this is the approvals inbox."
+          },
+          "requiresOverride": {
+            "type": "boolean"
+          },
+          "isLarge": {
+            "type": "boolean"
+          },
+          "isReturned": {
+            "type": "boolean",
+            "description": "A Draft that a reviewer sent back."
+          },
+          "concurrencyToken": {
+            "type": "string",
+            "description": "Same value as `concurrencyToken` on the full document: compare it to know whether an open document has gone stale."
           }
         }
       },
@@ -3761,19 +4208,13 @@
         "type": "object",
         "properties": {
           "warehouseId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "partnerId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "format": "int32"
           },
@@ -3802,15 +4243,25 @@
         }
       },
       "DocumentStatus": {
-        "type": "integer",
+        "enum": [
+          "Draft",
+          "Submitted",
+          "Approved",
+          "Posted",
+          "Reversed",
+          "Cancelled"
+        ],
+        "type": "string",
         "description": "Figure 5 state machine. Rejection returns to Draft (reason kept on the document)."
       },
       "DocumentType": {
-        "type": "integer"
-      },
-      "IFormFile": {
-        "type": "string",
-        "format": "binary"
+        "enum": [
+          "Receipt",
+          "Issue",
+          "Transfer",
+          "Adjust"
+        ],
+        "type": "string"
       },
       "ImportResult": {
         "required": [
@@ -3829,51 +4280,31 @@
             "type": "boolean"
           },
           "total": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "valid": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "invalid": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "created": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
+            "description": "Rows that create (a preview reports what a commit would create).",
             "format": "int32"
           },
           "updated": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
+            "description": "Rows that update an existing record (a preview reports what a commit would update).",
             "format": "int32"
           },
           "documentId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "format": "int32"
           },
@@ -3890,23 +4321,25 @@
           "row",
           "key",
           "ok",
+          "status",
           "errors"
         ],
         "type": "object",
         "properties": {
           "row": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "key": {
             "type": "string"
           },
           "ok": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "False when the row has errors and blocks the import."
+          },
+          "status": {
+            "description": "New or Update for a valid row (what a commit would do with it; the same in a preview and after a commit), Error otherwise. A valid row can still carry a note in `Errors` (for example \"unit not changed\").",
+            "$ref": "#/components/schemas/ImportRowStatus"
           },
           "errors": {
             "type": "array",
@@ -3916,11 +4349,34 @@
           }
         }
       },
+      "ImportRowStatus": {
+        "enum": [
+          "New",
+          "Update",
+          "Error"
+        ],
+        "type": "string",
+        "description": "What an import row does (or would do on commit): create something new, update something that exists, or nothing because it has errors."
+      },
       "IssuePurpose": {
-        "type": "integer"
+        "enum": [
+          "Sale",
+          "Use",
+          "Scrap"
+        ],
+        "type": "string"
       },
       "LedgerReason": {
-        "type": "integer"
+        "enum": [
+          "Receipt",
+          "Issue",
+          "TransferOut",
+          "TransferIn",
+          "Adjustment",
+          "Reversal",
+          "Opening"
+        ],
+        "type": "string"
       },
       "LedgerRow": {
         "required": [
@@ -3929,6 +4385,7 @@
           "sku",
           "productName",
           "warehouseCode",
+          "warehouseName",
           "qtyDelta",
           "unitCost",
           "reason",
@@ -3939,11 +4396,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int64"
           },
           "occurredAt": {
@@ -3959,31 +4412,22 @@
           "warehouseCode": {
             "type": "string"
           },
+          "warehouseName": {
+            "type": "string"
+          },
           "qtyDelta": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "unitCost": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "reason": {
             "$ref": "#/components/schemas/LedgerReason"
           },
           "sourceDocId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "sourceDocNo": {
@@ -4016,6 +4460,7 @@
           "productName",
           "warehouseId",
           "warehouseCode",
+          "warehouseName",
           "qtyOnHand",
           "safetyStock",
           "shortfall"
@@ -4023,11 +4468,7 @@
         "type": "object",
         "properties": {
           "productId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "sku": {
@@ -4037,38 +4478,25 @@
             "type": "string"
           },
           "warehouseId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "warehouseCode": {
             "type": "string"
           },
+          "warehouseName": {
+            "type": "string"
+          },
           "qtyOnHand": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "safetyStock": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "shortfall": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           }
         }
@@ -4120,38 +4548,22 @@
             "type": "string"
           },
           "qty": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "uomCode": {
             "type": "string"
           },
           "baseQty": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "unitCost": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "amount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           }
         }
@@ -4172,36 +4584,22 @@
             }
           },
           "total": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count.",
             "format": "int32"
           },
           "page": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "pageSize": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "nextCursor": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
             "format": "int64"
@@ -4225,36 +4623,22 @@
             }
           },
           "total": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count.",
             "format": "int32"
           },
           "page": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "pageSize": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "nextCursor": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
             "format": "int64"
@@ -4278,36 +4662,22 @@
             }
           },
           "total": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count.",
             "format": "int32"
           },
           "page": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "pageSize": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "nextCursor": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
             "format": "int64"
@@ -4331,36 +4701,22 @@
             }
           },
           "total": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count.",
             "format": "int32"
           },
           "page": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "pageSize": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "nextCursor": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
             "format": "int64"
@@ -4384,36 +4740,22 @@
             }
           },
           "total": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count.",
             "format": "int32"
           },
           "page": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "pageSize": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "nextCursor": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
             "format": "int64"
@@ -4437,36 +4779,22 @@
             }
           },
           "total": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count.",
             "format": "int32"
           },
           "page": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "pageSize": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "nextCursor": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
             "format": "int64"
@@ -4490,36 +4818,22 @@
             }
           },
           "total": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count.",
             "format": "int32"
           },
           "page": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "pageSize": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "nextCursor": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
             "format": "int64"
@@ -4543,36 +4857,22 @@
             }
           },
           "total": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count.",
             "format": "int32"
           },
           "page": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "pageSize": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "nextCursor": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
             "format": "int64"
@@ -4596,36 +4896,22 @@
             }
           },
           "total": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count.",
             "format": "int32"
           },
           "page": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "pageSize": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "nextCursor": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
             "format": "int64"
@@ -4644,11 +4930,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "type": {
@@ -4695,21 +4977,11 @@
         }
       },
       "PartnerType": {
-        "type": "integer"
-      },
-      "PostRequest": {
-        "required": [
-          "negativeStockOverrideReason"
+        "enum": [
+          "Supplier",
+          "Customer"
         ],
-        "type": "object",
-        "properties": {
-          "negativeStockOverrideReason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
+        "type": "string"
       },
       "ProductDto": {
         "required": [
@@ -4728,11 +5000,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "sku": {
@@ -4742,11 +5010,9 @@
             "type": "string"
           },
           "categoryId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "format": "int32"
           },
@@ -4757,22 +5023,14 @@
             ]
           },
           "baseUomId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "baseUomCode": {
             "type": "string"
           },
           "safetyStock": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "isActive": {
@@ -4791,6 +5049,29 @@
             }
           }
         }
+      },
+      "ProductLookupResult": {
+        "required": [
+          "found",
+          "product"
+        ],
+        "type": "object",
+        "properties": {
+          "found": {
+            "type": "boolean"
+          },
+          "product": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProductDto"
+              }
+            ]
+          }
+        },
+        "description": "Answer to a barcode or SKU lookup. A code nobody owns is a normal outcome of scanning, not an error:\r\n`Found` is false and `Product` is null (HTTP 200), so a scan miss does not look like a failed request."
       },
       "ProductSaveRequest": {
         "required": [
@@ -4812,28 +5093,18 @@
             "type": "string"
           },
           "categoryId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "format": "int32"
           },
           "baseUomId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "safetyStock": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "isActive": {
@@ -4860,7 +5131,11 @@
         }
       },
       "ProductSort": {
-        "type": "integer",
+        "enum": [
+          "Sku",
+          "Name"
+        ],
+        "type": "string",
         "description": "Sort keys the products list accepts. Only these are allowed, so a client cannot sort on an unindexed column."
       },
       "RefreshRequest": {
@@ -4870,9 +5145,15 @@
         "type": "object",
         "properties": {
           "refreshToken": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "DEPRECATED. The refresh token now travels in an HttpOnly cookie; this property is only filled while Auth:ReturnRefreshTokenInBody is true.",
+            "deprecated": true
           }
-        }
+        },
+        "description": "The refresh token to redeem or revoke. Optional on the wire: when absent, the API reads it from the HttpOnly cookie."
       },
       "RejectRequest": {
         "required": [
@@ -4911,11 +5192,7 @@
             "type": "boolean"
           },
           "lowStockAlertCooldownHours": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           }
         }
@@ -4929,6 +5206,7 @@
           "uomCode",
           "warehouseId",
           "warehouseCode",
+          "warehouseName",
           "qtyOnHand",
           "qtyInTransit",
           "avgCost",
@@ -4939,11 +5217,7 @@
         "type": "object",
         "properties": {
           "productId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "sku": {
@@ -4962,54 +5236,33 @@
             "type": "string"
           },
           "warehouseId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "warehouseCode": {
             "type": "string"
           },
+          "warehouseName": {
+            "type": "string"
+          },
           "qtyOnHand": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "qtyInTransit": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "avgCost": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "value": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "safetyStock": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "isLow": {
@@ -5018,7 +5271,13 @@
         }
       },
       "StockSort": {
-        "type": "integer"
+        "enum": [
+          "Sku",
+          "QtyOnHand",
+          "Value",
+          "Warehouse"
+        ],
+        "type": "string"
       },
       "StockSummary": {
         "required": [
@@ -5029,27 +5288,15 @@
         "type": "object",
         "properties": {
           "totalValue": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "skuCount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "lowCount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           }
         }
@@ -5063,27 +5310,15 @@
         "type": "object",
         "properties": {
           "fromUomId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "toUomId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "factor": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           }
         }
@@ -5097,11 +5332,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "code": {
@@ -5140,11 +5371,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "username": {
@@ -5165,11 +5392,7 @@
           "warehouseIds": {
             "type": "array",
             "items": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
@@ -5187,11 +5410,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "username": {
@@ -5212,11 +5431,7 @@
           "warehouseIds": {
             "type": "array",
             "items": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
@@ -5261,11 +5476,7 @@
               "array"
             ],
             "items": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
@@ -5283,11 +5494,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "code": {
@@ -5403,6 +5610,9 @@
     },
     {
       "name": "Auth"
+    },
+    {
+      "name": "Attachments"
     }
   ]
 }

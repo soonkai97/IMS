@@ -1,5 +1,5 @@
 import { Pipe, PipeTransform, inject } from '@angular/core';
-import { BUSINESS_TIME_ZONE, MAX_QTY_DECIMALS, MONEY_DECIMALS, parseServerDate } from '@ims/utils';
+import { BUSINESS_TIME_ZONE, MAX_QTY_DECIMALS, MONEY_DECIMALS } from '@ims/utils';
 import { I18nService } from '../services/i18n.service';
 
 const EMPTY_VALUE = '-';
@@ -20,7 +20,7 @@ export class AppDatePipe implements PipeTransform {
       timeZone: BUSINESS_TIME_ZONE,
       ...(withTime ? { hour: '2-digit', minute: '2-digit', hour12: false } : {})
     };
-    return new Intl.DateTimeFormat(this.i18n.$locale(), options).format(parseServerDate(value));
+    return new Intl.DateTimeFormat(this.i18n.$locale(), options).format(new Date(value));
   }
 }
 
