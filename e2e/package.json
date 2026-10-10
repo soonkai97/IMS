@@ -9,7 +9,6 @@
   "scripts": {
     "test": "playwright test",
     "test:local": "node scripts/run-local.mjs",
-    "test:phone": "playwright test --project=phone",
     "typecheck": "tsc --noEmit",
     "report": "playwright show-report",
     "install:browsers": "playwright install chromium"
