@@ -136,7 +136,7 @@ const base = JSON.parse(readFileSync(basePath, 'utf8'));
 base.compilerOptions.paths = Object.fromEntries(
   [...LIBS]
     .sort((a, b) => a.alias.localeCompare(b.alias))
-    .map(l => [l.alias, [`${l.root}/src/index.ts`]])
+    .map(l => [l.alias, [`./${l.root}/src/index.ts`]])
 );
 writeFileSync(basePath, json(base));
 console.log(`Scaffolded ${LIBS.length} libraries.`);
