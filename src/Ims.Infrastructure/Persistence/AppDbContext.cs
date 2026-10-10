@@ -13,6 +13,10 @@ namespace Ims.Infrastructure.Persistence;
 /// </summary>
 public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, ICurrentUser? current = null) : DbContext(options)
 {
+    /// <summary>All instants are UTC: every DateTime (and DateTime?) property is read back with Kind = Utc.</summary>
+    protected override void ConfigureConventions(ModelConfigurationBuilder configuration) =>
+        configuration.Properties<DateTime>().HaveConversion<UtcKindConverter>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<User>(e =>
@@ -113,16 +117,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             // List filters are Status and/or Type, newest first (Id DESC); filtered on live rows so EF's REC_DELETED predicate is answered by the index itself.
             e.HasIndex(x => new { x.Status, x.Type, x.Id }).IsDescending(false, false, true).IncludeProperties(x => x.WarehouseId).HasFilter(LiveRows);
             e.HasIndex(x => x.CreatedAt).HasFilter(LiveRows);
+            // "Posted today" on the Home counts: a seek on the day's postings instead of a scan of every posted document.
+            e.HasIndex(x => x.PostedAt).IncludeProperties(x => new { x.Status, x.WarehouseId }).HasFilter($"{LiveRows} AND [PostedAt] IS NOT NULL");
             e.Property(x => x.No).HasMaxLength(Limits.DocumentNoMaxLength);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
             e.Property(x => x.RowVersion).IsRowVersion();
-            e.Ignore(x => x.TotalQty).Ignore(x => x.TotalAmount).Ignore(x => x.CanPost);
+            e.Ignore(x => x.TotalQty).Ignore(x => x.TotalAmount).Ignore(x => x.CanPost).Ignore(x => x.IsReturned);
             e.HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Partner).WithMany().HasForeignKey(x => x.PartnerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedBy).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.SubmittedByUser).WithMany().HasForeignKey(x => x.SubmittedBy).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedBy).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.PostedByUser).WithMany().HasForeignKey(x => x.PostedBy).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.RejectedByUser).WithMany().HasForeignKey(x => x.RejectedBy).OnDelete(DeleteBehavior.Restrict);
             e.HasMany(x => x.Lines).WithOne(x => x.Document).HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
@@ -262,6 +269,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         int? userId = current is { IsAuthenticated: true } ? current.UserId : null;
         var now = clock.UtcNow;
         var softDeleted = new HashSet<EntityEntry>();
+        TouchDocumentsWithChangedLines();
 
         foreach (var e in ChangeTracker.Entries<AuditableEntity>().ToList())
         {
@@ -285,6 +293,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             }
         }
         return softDeleted;
+    }
+
+    /// <summary>
+    /// A document is its header plus its lines. When only lines are added, changed or removed the header row would stay untouched and keep
+    /// its ROW_VERSION, so the concurrency token the API hands out (ETag) would not notice an edit. Marking the header as revised moves it.
+    /// </summary>
+    private void TouchDocumentsWithChangedLines()
+    {
+        var documentIds = ChangeTracker.Entries<StockDocumentLine>()
+            .Where(l => l.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .Select(l => l.Property(x => x.DocumentId).CurrentValue)
+            .ToHashSet();
+        if (documentIds.Count == 0) return;
+
+        foreach (var document in ChangeTracker.Entries<StockDocument>().Where(d => d.State == EntityState.Unchanged && documentIds.Contains(d.Entity.Id)))
+            document.Property(nameof(AuditableEntity.RecRevDate)).IsModified = true;
     }
 
     private void EnforceAppendOnly()

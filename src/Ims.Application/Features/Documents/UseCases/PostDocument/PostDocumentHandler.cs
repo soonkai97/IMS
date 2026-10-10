@@ -12,6 +12,7 @@ public class PostDocumentHandler(IRepository<StockDocument> documents, IReposito
         {
             var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
             access.EnsureWarehouse(doc.WarehouseId);
+            DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
             if (doc.RequiresApproval && !PostingAuthority.MayPostApprovalRequiredDocument(current.Role))
                 throw new ForbiddenException(Messages.NeedsApprovalNotForStaff);
             doc.EnsureCanPost();

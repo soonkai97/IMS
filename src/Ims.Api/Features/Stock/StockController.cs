@@ -10,7 +10,7 @@ public class StockController(IDispatcher dispatcher) : ApiControllerBase(dispatc
 {
     [HttpGet, Authorize(Policy = Permissions.StockRead)]
     [ProducesResponseType<PagedResult<StockRow>>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Query([FromQuery] StockFilter filter) => SendOk(new QueryStockQuery(filter));
+    public Task<IActionResult> List([FromQuery] StockFilter filter) => SendOk(new QueryStockQuery(filter));
 
     [HttpGet(RouteSegments.Ledger), Authorize(Policy = Permissions.StockRead)]
     [ProducesResponseType<PagedResult<LedgerRow>>(StatusCodes.Status200OK)]

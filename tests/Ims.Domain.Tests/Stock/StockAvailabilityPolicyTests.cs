@@ -93,6 +93,39 @@ public class StockAvailabilityPolicyTests
     }
 
     [Fact]
+    public void IsShort_EnoughOnHand_IsFalse()
+    {
+        var doc = NewIssue(2, (P(1), 5m), (P(2), 3m));
+
+        Assert.False(StockAvailabilityPolicy.IsShort(doc, new Dictionary<int, decimal> { [1] = 5m, [2] = 3m }));
+    }
+
+    [Fact]
+    public void IsShort_OneProductShort_IsTrue()
+    {
+        var doc = NewIssue(2, (P(1), 5m), (P(2), 3m));
+
+        Assert.True(StockAvailabilityPolicy.IsShort(doc, new Dictionary<int, decimal> { [1] = 5m, [2] = 2.9m }));
+    }
+
+    [Fact]
+    public void IsShort_ProductWithoutBalanceRow_CountsAsZeroOnHand()
+    {
+        var doc = NewIssue(2, (P(1), 1m));
+
+        Assert.True(StockAvailabilityPolicy.IsShort(doc, new Dictionary<int, decimal>()));
+    }
+
+    [Fact]
+    public void IsShort_SumsLinesOfTheSameProduct()
+    {
+        var doc = NewIssue(2, (P(1), 3m), (P(1), 4m));
+
+        Assert.True(StockAvailabilityPolicy.IsShort(doc, new Dictionary<int, decimal> { [1] = 6m }));
+        Assert.False(StockAvailabilityPolicy.IsShort(doc, new Dictionary<int, decimal> { [1] = 7m }));
+    }
+
+    [Fact]
     public void EnsureAvailable_DocumentWithoutLines_DoesNotThrow()
     {
         var doc = StockDocument.Create(DocumentType.Issue, NewWarehouse(), null, null, null, Creator, Now);

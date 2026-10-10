@@ -126,4 +126,37 @@ public class ApprovalPolicyTests
 
         Assert.True(ApprovalPolicy.CanApprove(Roles.Supervisor, rules, DocumentType.Receipt, 1m, 10m));
     }
+
+    // ----- IsLarge: a rule fired that a supervisor may not satisfy -----
+    [Fact]
+    public void IsLarge_NoRules_IsFalse()
+    {
+        Assert.False(ApprovalPolicy.IsLarge([], DocumentType.Receipt, 1m, 1_000_000m));
+    }
+
+    [Fact]
+    public void IsLarge_OnlyASupervisorRuleFired_IsFalse()
+    {
+        var rules = new[] { Rule(Roles.Supervisor, amount: 100m), Rule(Roles.Owner, amount: 1000m) };
+
+        Assert.False(ApprovalPolicy.IsLarge(rules, DocumentType.Receipt, 1m, 500m));
+    }
+
+    [Theory]
+    [InlineData(Roles.Owner)]
+    [InlineData(Roles.Admin)]
+    public void IsLarge_ARuleAboveSupervisorFired_IsTrue(string role)
+    {
+        var rules = new[] { Rule(Roles.Supervisor, amount: 100m), Rule(role, amount: 1000m) };
+
+        Assert.True(ApprovalPolicy.IsLarge(rules, DocumentType.Receipt, 1m, 2000m));
+    }
+
+    [Fact]
+    public void IsLarge_InactiveOrOtherTypeRulesAreIgnored()
+    {
+        var rules = new[] { Rule(Roles.Owner, amount: 1m, active: false), Rule(Roles.Owner, amount: 1m, type: DocumentType.Issue) };
+
+        Assert.False(ApprovalPolicy.IsLarge(rules, DocumentType.Receipt, 1m, 10m));
+    }
 }

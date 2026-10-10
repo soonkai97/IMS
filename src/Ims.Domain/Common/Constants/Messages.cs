@@ -147,6 +147,7 @@ public static class Messages
     public const string RequestTimedOutTitle = "Request timed out";
     public const string ServiceUnavailableTitle = "Service unavailable";
     public const string ConcurrencyConflict = "The data changed while you were working on it. Reload and try again.";
+    public static string DocumentChangedByAnother(string no) => $"{no} was changed by someone else since you opened it. Reload to see the latest version. Your changes were not saved.";
     public static string ServerError(string reference) => $"Something went wrong. Quote reference {reference} to support.";
     public const string RequestRejectedTitle = "Request rejected";
     public const string UnauthorizedTitle = "Unauthorized";

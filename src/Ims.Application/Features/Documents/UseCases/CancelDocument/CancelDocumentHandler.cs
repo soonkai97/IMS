@@ -8,6 +8,7 @@ public class CancelDocumentHandler(IRepository<StockDocument> documents, IDocume
     {
         var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
         access.EnsureWarehouse(doc.WarehouseId);
+        DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
         var before = doc.Status;
         doc.Cancel(cmd.Data.Reason);
         audit.Record(AuditActions.DocumentCancelled, AuditEntities.StockDocument, doc.No, new { Status = before }, new { doc.Status, cmd.Data.Reason });

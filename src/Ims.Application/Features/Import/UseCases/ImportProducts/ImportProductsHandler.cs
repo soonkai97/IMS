@@ -18,7 +18,8 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
 
         var (results, parsed) = await ValidateAsync(sheet, ct);
         if (!cmd.Commit)
-            return new ImportResult(false, results.Count, results.Count(r => r.Ok), results.Count(r => !r.Ok), 0, 0, null, results);
+            return new ImportResult(false, results.Count, results.Count(r => r.Ok), results.Count(r => !r.Ok),
+                results.Count(r => r.Status == ImportRowStatus.New), results.Count(r => r.Status == ImportRowStatus.Update), null, results);
 
         ImportSheet.EnsureNoErrors(results);
         var (created, updated) = await uow.ExecuteAsync(() => CommitAsync(parsed, results, ct), ct);
@@ -34,6 +35,12 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
             ? new Dictionary<int, string>()
             : (await products.ListAsync(new ProductSkusByIdsSpec(owners.Select(o => o.ProductId).Distinct().ToList()), ct)).ToDictionary(p => p.Id, p => p.Sku);
         var codeOwner = owners.ToDictionary(o => o.Barcode, o => ownerSkus.GetValueOrDefault(o.ProductId, ""));
+
+        // One query for the SKUs in the file tells which rows update an existing product and which create a new one.
+        var fileSkus = sheet.Rows.Select(r => r.Get(ImportColumns.Sku)).Where(s => s.Length > 0).Distinct().ToList();
+        var existingSkus = fileSkus.Count == 0
+            ? new HashSet<string>()
+            : (await products.ListAsync(new ProductSkusBySkusSpec(fileSkus), ct)).Select(p => p.Sku).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var results = new List<ImportRowResult>();
         var parsed = new List<ProductRow>();
@@ -72,7 +79,8 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
                 else seenCodes[code] = sku;
             }
 
-            results.Add(new ImportRowResult(r.Number, sku, errors.Count == 0, errors));
+            var status = errors.Count > 0 ? ImportRowStatus.Error : existingSkus.Contains(sku) ? ImportRowStatus.Update : ImportRowStatus.New;
+            results.Add(new ImportRowResult(r.Number, sku, errors.Count == 0, status, errors));
             if (errors.Count == 0) parsed.Add(new ProductRow(r.Number, sku, name, category, unit, safety, codes));
         }
         return (results, parsed);
@@ -116,7 +124,7 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
                 if (p.BaseUomId != uom.Id)
                 {
                     if (withStock.Contains(p.Id))
-                        results[resultIndex[row.Row]] = new ImportRowResult(row.Row, row.Sku, true, [Messages.UnitNotChanged]);
+                        results[resultIndex[row.Row]] = new ImportRowResult(row.Row, row.Sku, true, ImportRowStatus.Update, [Messages.UnitNotChanged]);
                     else
                         p.ChangeBaseUnit(uom, hasStockMovements: false);
                 }
