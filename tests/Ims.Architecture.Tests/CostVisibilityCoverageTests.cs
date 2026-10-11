@@ -20,6 +20,8 @@ public partial class CostVisibilityCoverageTests
     {
         ["DocumentDto.AmountIsEstimate"] = "a flag that says the amount is an estimate; it carries no value",
         ["DocumentListItem.AmountIsEstimate"] = "a flag that says the amount is an estimate; it carries no value",
+        ["DocumentLineDto.CostFromAverage"] = "a yes/no flag (nobody typed the cost of this line); it carries no value",
+        ["StockDocumentLine.CostFromAverage"] = "a yes/no flag (nobody typed the cost of this line); it carries no value",
         ["ApprovalRuleDto.QtyThreshold"] = "a quantity",
         ["ApprovalRule.QtyThreshold"] = "a quantity",
         ["SystemSetting.Value"] = "the text of a setting (negative stock on or off, a number of hours), not money",

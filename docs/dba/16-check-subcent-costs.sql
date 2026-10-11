@@ -1,9 +1,10 @@
 /*
   16-check-subcent-costs.sql -- before the money-precision change (migration StoredLineAmount): which open documents carry a unit cost with a fraction of a cent?
 
-  From that change a unit cost typed on a receipt has at most 2 decimals. Lines saved earlier may hold more (12.345). The migration keeps their value (the amount is
-  computed from the exact cost) but the API then shows the cost per ENTERED unit rounded to 2 decimals, so opening and saving such a draft changes its price by up
-  to half a cent per unit. This read-only query lists the open (Draft, Submitted, Approved) receipt lines affected, so they can be corrected first.
+  From that change a unit cost typed on a receipt has at most 2 decimals. Lines saved earlier may hold more (12.345, or an average taken for a staff receipt).
+  The migration flags these open lines CostFromAverage and keeps their exact cost per base unit and their amount; the API shows no editable unitCost for them
+  (null), and saving the draft keeps the price. Without the flag a cost per base unit below a cent would backfill EnteredUnitCost as 0.00 and the price would be
+  lost on the next save. This read-only query lists the open (Draft, Submitted, Approved) receipt lines affected, so a person can retype a real cost if wanted.
   Posted and reversed documents are history and are not listed.
 
     sqlcmd -S "(localdb)\ImsDev" -E -d <database> -W -b -i docs/dba/16-check-subcent-costs.sql

@@ -66,7 +66,7 @@ public class ReceiptAndIssueFlowTests(ApiFixture fixture)
         var entry = Assert.Single(await s.LedgerAsync(sourceDocId: draft.Id));
         Assert.Equal((-30m, 5m, LedgerReason.Issue), (entry.QtyDelta, entry.UnitCost, entry.Reason));
         Assert.Null(Assert.Single(posted.Lines).UnitCost); // the Warehouse staff who posted it do not see cost
-        Assert.Equal(5m, Assert.Single((await s.GetAsync(draft.Id)).Lines).UnitCost);
+        Assert.Equal(5m, Assert.Single((await s.GetAsync(draft.Id)).Lines).BaseUnitCost);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class ReceiptAndIssueFlowTests(ApiFixture fixture)
         Assert.Equal(15m, (await s.BalanceAsync(product.Id, Warehouse))!.AvgCost);
 
         var issue = await s.IssueAsync(Warehouse, new Line(product.Id, 5));
-        Assert.Equal(15m, Assert.Single(issue.Lines).UnitCost);
+        Assert.Equal(15m, Assert.Single(issue.Lines).BaseUnitCost);
         var afterIssue = (await s.BalanceAsync(product.Id, Warehouse))!;
         Assert.Equal((15m, 15m), (afterIssue.QtyOnHand, afterIssue.AvgCost));
 

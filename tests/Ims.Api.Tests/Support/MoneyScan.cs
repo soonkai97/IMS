@@ -13,8 +13,8 @@ public static partial class MoneyScan
     [GeneratedRegex("cost|amount|price|worth|valu|threshold|actual", RegexOptions.IgnoreCase)]
     private static partial Regex Looks();
 
-    /// <summary>Names that match but are not money.</summary>
-    private static readonly HashSet<string> NotMoney = new(StringComparer.OrdinalIgnoreCase) { "amountIsEstimate", "qtyThreshold" };
+    /// <summary>Names that match but are not money (costFromAverage is a yes/no flag on a document line, visible to every role).</summary>
+    private static readonly HashSet<string> NotMoney = new(StringComparer.OrdinalIgnoreCase) { "amountIsEstimate", "qtyThreshold", "costFromAverage" };
 
     public static bool IsMoneyName(string name) => Looks().IsMatch(name) && !NotMoney.Contains(name);
 

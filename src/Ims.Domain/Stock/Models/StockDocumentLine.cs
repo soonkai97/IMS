@@ -101,7 +101,7 @@ public class StockDocumentLine : Entity
     {
         UnitCost = costPerBaseUnit;
         Amount = EnsureAmountFits(Money.Amount(BaseQty, costPerBaseUnit));
-        EnteredUnitCost = Qty > 0 ? Money.Round(costPerBaseUnit * BaseQty / Qty) : 0m;
+        EnteredUnitCost = Qty > 0 ? EnsureAmountFits(Money.Round(costPerBaseUnit * BaseQty / Qty)) : 0m;
     }
 
     /// <summary>A line amount is stored as <c>decimal(18,2)</c>: above <see cref="Limits.MaxLineAmount"/> the answer is a 400 with a sentence, never a database overflow.</summary>

@@ -52,7 +52,7 @@ public class CostVisibilityMatrixTests(ApiFixture fixture) : IAsyncLifetime
     [
         new("documents list", t => $"/api/documents?search={t._receipt.No}", Permissions.CostView, ["totalamount"]),
         new("document", t => $"/api/documents/{t._receipt.Id}", Permissions.CostView, ["totalamount", "unitcost", "baseunitcost", "amount"]),
-        new("document held for approval", t => $"/api/documents/{t._held.Id}", Permissions.CostView, ["totalamount", "unitcost", "baseunitcost", "amount", "threshold", "actual"]),
+        new("document held for approval", t => $"/api/documents/{t._held.Id}", Permissions.CostView, ["totalamount", "baseunitcost", "amount", "threshold", "actual"]), // an issue: valued at the average, so no editable unitcost
         new("stock", t => $"/api/stock?productId={t._product.Id}", Permissions.ValuationView, ["avgcost", "value"]),
         new("stock ledger", t => $"/api/stock/ledger?productId={t._product.Id}", Permissions.ValuationView, ["unitcost"]),
         new("stock summary", _ => "/api/stock/summary", Permissions.ValuationView, ["totalvalue"]),
@@ -211,10 +211,10 @@ public class CostVisibilityMatrixTests(ApiFixture fixture) : IAsyncLifetime
         var reversed = await _s.Supervisor.Documents.ReverseAsync(toReverse.Id, "entered by mistake");
         var posted = await _s.Admin.Documents.PostAsync(_held.Id);
 
-        Assert.True(MoneyScan.InJson(approved.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "unitcost", "baseunitcost", "amount", "threshold", "actual")));
-        Assert.True(MoneyScan.InJson(rejected.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "unitcost", "baseunitcost", "amount")));
+        Assert.True(MoneyScan.InJson(approved.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "baseunitcost", "amount", "threshold", "actual")));
+        Assert.True(MoneyScan.InJson(rejected.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "baseunitcost", "amount")));
         Assert.True(MoneyScan.InJson(reversed.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "unitcost", "baseunitcost", "amount")));
-        Assert.True(MoneyScan.InJson(posted.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "unitcost", "baseunitcost", "amount")));
+        Assert.True(MoneyScan.InJson(posted.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "baseunitcost", "amount")));
     }
 
     // ----- approval flows without amounts -----

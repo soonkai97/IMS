@@ -459,6 +459,18 @@ public class MoneyPrecisionTests(ApiFixture fixture)
     }
 
     [Fact]
+    public async Task A_line_amount_too_large_for_the_database_is_a_400_with_a_sentence_not_a_500()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var request = new DocumentBuilder(Warehouse).WithPartner(s.Reference.SupplierId).WithLines(new Line(product.Id, 1_000_000_000m, 1_000_000_000m)).Build(); // 1e18 > decimal(18,2)
+
+        var created = (await s.Admin.Documents.CreateReceiptAsync(request)).ShouldBeProblem(HttpStatusCode.BadRequest);
+
+        Assert.Equal(Messages.LineAmountTooLarge, created.Detail);
+    }
+
+    [Fact]
     public async Task Every_line_with_a_sub_cent_cost_is_named_not_only_the_first()
     {
         var s = await StockScenario.CreateAsync(fixture);
