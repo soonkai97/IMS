@@ -174,15 +174,15 @@ public class ReceiptReversalCostingTests
     public void AStaffReceiptAtTheAverage_AfterTheReceipt_IsStillAStockInThatMovesTheMarker()
     {
         // Staff receipts take the average as their cost, so their snapshot is Before == After.
-        var balance = NewBalance(5, 50m, 5m);
-        var first = PostReceipt(balance, 100m, 10m, id: 1); // 150 @ 8.3333333333
-        PostReceipt(balance, 40m, balance.AvgCost, id: 2);  // 190 @ the same
+        var balance = NewBalance(5, 100m, 5m);
+        var first = PostReceipt(balance, 100m, 10m, id: 1); // 200 @ 7.5
+        PostReceipt(balance, 40m, balance.AvgCost, id: 2);  // 240 @ the same
 
         Reverse(first, balance);
 
-        Assert.Equal(90m, balance.QtyOnHand);
-        Assert.Equal(583.3333m, Math.Round(Value(balance), 4)); // (50 x 5 + 100 x 10 + 40 x 8.33) - 1000
-        Assert.NotEqual(5m, balance.AvgCost);                    // the old code gave 5: the 40 staff-received units were not worth 5
+        Assert.Equal(140m, balance.QtyOnHand);
+        Assert.InRange(Value(balance), 799.99999m, 800.00001m); // 100 x 5 + 40 x 7.5
+        Assert.NotEqual(5m, balance.AvgCost);                   // the first version gave 5: the 40 staff-received units were not worth 5
     }
 
     [Fact]
@@ -407,15 +407,16 @@ public class ReceiptReversalCostingTests
     [Fact]
     public void TheAverageAfterAReversalNeverExceedsWhatTheColumnCanHold()
     {
-        // 1,000,000,000 units at 1,000,000,000: a value of 1e18 shared by 0.0001 remaining units would be far beyond decimal(22,10).
-        var balance = NewBalance(5, 0.0002m, 1m);
-        var first = PostReceipt(balance, 0.0001m, 500_000_000m, id: 1);
-        PostReceipt(balance, 1_000_000_000m, 999_999_999m, id: 2);
-        PostIssue(balance, 1_000_000_000m);
+        // A huge stock at the largest cost, issued down to 0.0003 units, then a tiny receipt taken back: the value shared by the 0.0002 units that remain would be
+        // far beyond decimal(22,10) (1.5e12 here), so the average is capped.
+        var balance = NewBalance(5, 0.0003m, 1m);
+        balance.Receive(1_000_000_000m, Limits.MaxCostPerBaseUnit);
+        balance.Issue(1_000_000_000m, allowNegative: false);
 
-        Reverse(first, balance);
+        balance.Unreceive(0.0001m, 1m, lineId: 99, posted: null, allowNegative: false);
 
-        Assert.True(balance.AvgCost <= Limits.MaxCostPerBaseUnit);
+        Assert.Equal(0.0002m, balance.QtyOnHand);
+        Assert.Equal(Limits.MaxCostPerBaseUnit, balance.AvgCost);
     }
 
     [Fact]
