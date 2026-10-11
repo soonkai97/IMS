@@ -47,6 +47,9 @@ export const MS_MESSAGES: Messages = {
   'ui.selectPlaceholder': 'Pilih...',
   'ui.showPassword': 'Tunjuk kata laluan',
 
+  // TODO-review: machine draft (required marker legend).
+  'form.requiredLegend': '* bermaksud wajib',
+
   'validation.decimals': 'Gunakan paling banyak 4 tempat perpuluhan.',
   'validation.email': 'Masukkan alamat e-mel yang sah.',
   'validation.invalid': 'Nilai ini tidak sah.',

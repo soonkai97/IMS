@@ -411,7 +411,13 @@ describe('DocumentEditorPageComponent', () => {
       spectator.component.view.header.controls.purpose.markAsTouched();
       spectator.detectChanges();
 
-      expect(spectator.query('legend')?.textContent).toContain('(required)');
+      // D4: a red asterisk and the word "required" for screen readers, not the text "(required)".
+      expect(spectator.query('legend .ui-radio-group-asterisk')?.getAttribute('aria-hidden')).toBe(
+        'true'
+      );
+      expect(spectator.query('legend .ui-radio-group-sr')?.textContent).toBe('required');
+      expect(spectator.query('legend')?.textContent).not.toContain('(required)');
+      expect(spectator.queryAll('app-form-legend')).toHaveLength(1);
       expect(spectator.query('#document-purpose-error')?.textContent).toContain(
         'Choose a purpose.'
       );

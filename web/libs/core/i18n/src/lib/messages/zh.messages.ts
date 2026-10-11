@@ -47,6 +47,9 @@ export const ZH_MESSAGES: Messages = {
   'ui.selectPlaceholder': '请选择...',
   'ui.showPassword': '显示密码',
 
+  // TODO-review: machine draft (required marker legend).
+  'form.requiredLegend': '* 表示必填',
+
   'validation.decimals': '最多保留 4 位小数。',
   'validation.email': '请输入有效的电子邮件地址。',
   'validation.invalid': '此值无效。',

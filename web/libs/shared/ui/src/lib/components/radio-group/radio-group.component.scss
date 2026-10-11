@@ -18,9 +18,14 @@
   font-weight: font-weight('medium');
 }
 
-.ui-radio-group-required {
-  font-weight: font-weight('regular');
-  color: color('text-muted');
+// The star is a visual cue only (aria-hidden); the word beside it is what assistive technology reads (D4).
+.ui-radio-group-asterisk {
+  font-weight: font-weight('bold');
+  color: color('danger');
+}
+
+.ui-radio-group-sr {
+  @include visually-hidden;
 }
 
 .ui-radio-group-options {

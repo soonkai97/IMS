@@ -52,6 +52,9 @@ export const EN_MESSAGES = {
   'ui.selectPlaceholder': 'Select...',
   'ui.showPassword': 'Show password',
 
+  // Forms
+  'form.requiredLegend': '* means required',
+
   // Validation
   'validation.decimals': 'Use at most 4 decimals.',
   'validation.email': 'Enter a valid email address.',

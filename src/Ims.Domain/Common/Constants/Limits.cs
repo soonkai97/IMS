@@ -98,5 +98,22 @@ public static class Limits
     public const int MaxLowStockCooldownHours = 24 * 30;
 
     // Decimal precision
-    public const int RoundingDecimals = 6;
+    /// <summary>
+    /// Decimal places a cost per base unit and the moving average keep INSIDE the system (ledger, document lines, balances). Wider than the 2 places of
+    /// any amount a person sees, so a unit conversion (a carton price spread over 12 pieces) and repeated blending drift far less than at 6 places. These
+    /// are internal numbers, not money: an amount that reaches a person follows the money rule (2 places).
+    /// </summary>
+    public const int CostDecimals = 10;
+
+    /// <summary>How internal costs are rounded: half away from zero, the same mode as money.</summary>
+    public const MidpointRounding CostRounding = MidpointRounding.AwayFromZero;
+
+    /// <summary>The largest unit cost a person may enter (per entered unit). Above it the request is a 400, never a database overflow.</summary>
+    public const decimal MaxUnitCost = 1_000_000_000m;
+
+    /// <summary>
+    /// The largest cost per base unit or average the database column can hold (<c>decimal(22,10)</c> has 12 integer digits). A cost entered per carton and spread
+    /// over a fraction of a unit can exceed it even when the entered cost is below <see cref="MaxUnitCost"/>: that is a domain error too.
+    /// </summary>
+    public const decimal MaxCostPerBaseUnit = 999_999_999_999m;
 }

@@ -74,4 +74,36 @@ describe('UiConfirmDialogComponent reason box (EA-06)', () => {
   it('marks the reason box so the dialog focuses it when it opens', () => {
     expect(spectator.query('textarea')?.hasAttribute('data-autofocus')).toBe(true);
   });
+
+  it('D4: a required reason shows the red asterisk and the legend once, above the box', () => {
+    expect(spectator.queryAll('app-form-legend')).toHaveLength(1);
+    expect(spectator.query('.ui-form-field-asterisk')?.getAttribute('aria-hidden')).toBe('true');
+    expect(spectator.query('textarea')?.hasAttribute('required')).toBe(true);
+    expect(spectator.query('label')?.textContent).not.toContain('(required)');
+  });
+});
+
+describe('UiConfirmDialogComponent optional reason (D4)', () => {
+  const createComponent = createComponentFactory({
+    component: UiConfirmDialogComponent,
+    detectChanges: false
+  });
+
+  it('an optional reason box has no asterisk and the dialog has no legend', () => {
+    const spectator = createComponent({
+      props: {
+        open: true,
+        heading: 'Cancel RCV-1?',
+        confirmLabel: 'Cancel document',
+        cancelLabel: 'Back',
+        reasonLabel: 'Reason (optional)'
+      } as never
+    });
+    spectator.detectChanges();
+
+    expect(spectator.query('textarea')).not.toBeNull();
+    expect(spectator.query('app-form-legend')).toBeNull();
+    expect(spectator.query('.ui-form-field-asterisk')).toBeNull();
+    expect(spectator.query('textarea')?.hasAttribute('required')).toBe(false);
+  });
 });

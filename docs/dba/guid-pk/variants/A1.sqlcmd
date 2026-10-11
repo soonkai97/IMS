@@ -1,0 +1,7 @@
+:setvar Variant A1
+:setvar KT uniqueidentifier
+:setvar KL uniqueidentifier
+:setvar KTGEN "DEFAULT (NEWSEQUENTIALID())"
+:setvar KLGEN "DEFAULT (NEWSEQUENTIALID())"
+:setvar PUBCOL ""
+:setvar PUBIDX 0

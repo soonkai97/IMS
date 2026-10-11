@@ -5,7 +5,7 @@ public class CostingPolicyTests
     [Theory]
     [InlineData(10.0, 1.0, 1.0, 10.0)]     // base unit entered: unchanged
     [InlineData(120.0, 3.0, 36.0, 10.0)]   // 3 cartons @ 120 = 36 pcs @ 10
-    [InlineData(10.0, 1.0, 3.0, 3.333333)] // rounded to 6 decimals
+    [InlineData(10.0, 1.0, 3.0, 3.3333333333)] // rounded to 10 decimals (Limits.CostDecimals)
     [InlineData(5.0, 2.0, 1.0, 10.0)]      // entered unit smaller than base: cost per base unit goes up
     [InlineData(0.0, 4.0, 8.0, 0.0)]
     public void BaseUnitCost_Receipt_ConvertsEnteredCostToCostPerBaseUnit(double cost, double enteredQty, double baseQty, double expected)

@@ -16,6 +16,7 @@
   <app-skeleton [count]="4" />
 } @else {
   <form class="product-edit-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
+    <app-form-legend />
     @for (message of $generalErrors(); track message) {
       <app-banner kind="danger">{{ message }}</app-banner>
     }
@@ -96,6 +97,7 @@
           <app-form-field
             class="product-edit-page-grow"
             [label]="'product.conversionUnit' | t"
+            [required]="true"
             [control]="conversion.controls.fromUomId"
           >
             <app-select formControlName="fromUomId" [options]="$unitOptions()" [placeholder]="''" />
@@ -103,6 +105,7 @@
           <app-form-field
             class="product-edit-page-grow"
             [label]="'product.conversionFactor' | t"
+            [required]="true"
             [control]="conversion.controls.factor"
           >
             <app-input type="number" formControlName="factor" inputMode="decimal" />

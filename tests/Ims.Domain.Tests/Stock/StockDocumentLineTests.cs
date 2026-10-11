@@ -58,7 +58,7 @@ public class StockDocumentLineTests
 
         var line = StockDocumentLine.Create(product, DocumentType.Receipt, 1m, CartonId, 10m, null); // 10 / 3
 
-        Assert.Equal(3.333333m, line.UnitCost);
+        Assert.Equal(3.3333333333m, line.UnitCost);
     }
 
     [Fact]

@@ -1,0 +1,6 @@
+"variant","tier","idx","build_ms","used_mb","rows"
+"C","1000000","IX_StockLedgerEntry_ProductId_At_Id","689","33.75","1337787"
+"C","3000000","IX_StockLedgerEntry_ProductId_At_Id","3344","84.24","3340531"
+"A1","1000000","IX_StockLedgerEntry_ProductId_At_Id","1276","59.77","1337787"
+"A1","3000000","IX_StockLedgerEntry_ProductId_At_Id","3715","149.21","3340531"
+"A3","1000000","IX_StockLedgerEntry_ProductId_At_Id","1494","59.77","1337787"

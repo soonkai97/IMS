@@ -641,7 +641,10 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("AvgCost")
-                        .HasColumnType("decimal(18,6)");
+                        .HasColumnType("decimal(22,10)");
+
+                    b.Property<int?>("LastReceiptLineId")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("QtyInTransit")
                         .HasColumnType("decimal(18,4)");
@@ -860,6 +863,12 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal?>("AvgCostAfter")
+                        .HasColumnType("decimal(22,10)");
+
+                    b.Property<decimal?>("AvgCostBefore")
+                        .HasColumnType("decimal(22,10)");
+
                     b.Property<decimal>("BaseQty")
                         .HasColumnType("decimal(18,4)");
 
@@ -871,6 +880,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.Property<decimal>("EnteredUnitCost")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("PreviousLineId")
+                        .HasColumnType("int");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
@@ -914,7 +926,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnName("ROW_VERSION");
 
                     b.Property<decimal>("UnitCost")
-                        .HasColumnType("decimal(18,6)");
+                        .HasColumnType("decimal(22,10)");
 
                     b.Property<int>("UomId")
                         .HasColumnType("int");
@@ -991,7 +1003,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("UnitCost")
-                        .HasColumnType("decimal(18,6)");
+                        .HasColumnType("decimal(22,10)");
 
                     b.Property<int>("WarehouseId")
                         .HasColumnType("int");

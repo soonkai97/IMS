@@ -1,0 +1,7 @@
+:setvar Variant C
+:setvar KT int
+:setvar KL bigint
+:setvar KTGEN "IDENTITY(1,1)"
+:setvar KLGEN "IDENTITY(1,1)"
+:setvar PUBCOL ""
+:setvar PUBIDX 0

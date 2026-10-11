@@ -13,6 +13,7 @@ export function provideUiText(): EnvironmentProviders {
           close: i18n.t('ui.close'),
           loading: i18n.t('ui.loading'),
           required: i18n.t('ui.required'),
+          requiredLegend: i18n.t('form.requiredLegend'),
           showPassword: i18n.t('ui.showPassword'),
           hidePassword: i18n.t('ui.hidePassword'),
           previousPage: i18n.t('ui.previousPage'),

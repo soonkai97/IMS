@@ -92,6 +92,8 @@ public static class Messages
     public const string AddLine = "Add at least one line.";
     public const string ChooseProduct = "Choose a product on every line.";
     public const string QtyPositive = "Quantity must be greater than zero.";
+    public const string CostTooLarge = "Unit cost cannot be more than 1,000,000,000.";
+    public const string CostTooLargeForUnit = "Unit cost is too large for this unit of measure.";
     public const string CostNegative = "Unit cost cannot be negative.";
     public const string CostTooPrecise = "Unit cost can have at most 2 decimal places.";
     public static string RestrictedSortKey(string key) => $"Sorting by {key.ToLowerInvariant()} is not available to your role.";
