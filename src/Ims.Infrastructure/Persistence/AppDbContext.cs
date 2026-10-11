@@ -170,6 +170,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         b.Entity<StockLedgerEntry>(e =>
         {
             e.Property(x => x.QtyDelta).HasColumnType(SqlTypes.Quantity);
+            e.Property(x => x.BalanceAfter).HasColumnType(SqlTypes.Quantity);
             e.Property(x => x.UnitCost).HasColumnType(SqlTypes.Cost);
             e.HasIndex(x => new { x.ProductId, x.WarehouseId, x.OccurredAt });
             e.HasIndex(x => x.SourceDocId);

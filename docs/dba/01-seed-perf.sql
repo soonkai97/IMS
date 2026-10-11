@@ -13,7 +13,8 @@
   DocumentSequence equals the numbers used; AuditLogs gets 1 row per status change (created + posted).
 
   Append-only trigger TR_StockLedgerEntry_AppendOnly is INSTEAD OF UPDATE, DELETE: plain INSERTs do not fire it, so it is NOT
-  disabled for this load, and the ledger is never updated (corrections are applied to the staging table before the INSERT).
+  disabled for the load (corrections are applied to the staging table before the INSERT). The one UPDATE is the final fill of StockLedgerEntry.BalanceAfter (a NOT NULL column
+  without a default, inserted as 0 first), done with the trigger switched off, exactly like the migration AddLedgerBalanceAfter.
   Recovery model is SIMPLE during the load (Ims_Perf only) so the log does not grow with it.
 */
 SET NOCOUNT ON;
@@ -177,8 +178,8 @@ BEGIN
     SELECT m.docid, l.pid, l.qty, l.uom, l.qty, l.unitcost, NULL
     FROM #L l JOIN #M m ON m.docn = l.docn WHERE l.docn >= @lo AND l.docn < @lo + @batch ORDER BY l.docn, l.ln;
 
-    INSERT StockLedgerEntry (ProductId, WarehouseId, QtyDelta, UnitCost, SourceDocId, Reason, OccurredAt, CreatedBy)
-    SELECT l.pid, l.wh, CASE WHEN l.typ = 1 THEN l.qty ELSE -l.qty END, l.unitcost, m.docid, CASE WHEN l.typ = 1 THEN 1 ELSE 2 END,
+    INSERT StockLedgerEntry (ProductId, WarehouseId, QtyDelta, BalanceAfter, UnitCost, SourceDocId, Reason, OccurredAt, CreatedBy)
+    SELECT l.pid, l.wh, CASE WHEN l.typ = 1 THEN l.qty ELSE -l.qty END, 0, l.unitcost, m.docid, CASE WHEN l.typ = 1 THEN 1 ELSE 2 END,
            DATEADD(HOUR, 1, d.ca), 3
     FROM #L l JOIN #M m ON m.docn = l.docn JOIN #D d ON d.n = l.docn
     WHERE d.st = 3 AND l.docn >= @lo AND l.docn < @lo + @batch ORDER BY d.ca, l.docn, l.ln;
@@ -186,6 +187,14 @@ BEGIN
     SET @lo += @batch;
     PRINT CONCAT('lines+ledger batch done, next doc ', @lo, ' at ', DATEDIFF(SECOND, @t0, SYSDATETIME()), 's');
 END
+
+-- BalanceAfter (NOT NULL, no default) was inserted as 0: fill in the running sum per (product, warehouse) in ledger order, like the migration AddLedgerBalanceAfter.
+-- The only UPDATE of the append-only ledger: the trigger is switched off for it.
+ALTER TABLE StockLedgerEntry DISABLE TRIGGER TR_StockLedgerEntry_AppendOnly;
+WITH running AS (SELECT Id, SUM(QtyDelta) OVER (PARTITION BY ProductId, WarehouseId ORDER BY Id ROWS UNBOUNDED PRECEDING) AS Balance FROM StockLedgerEntry)
+UPDATE l SET l.BalanceAfter = r.Balance FROM StockLedgerEntry l JOIN running r ON r.Id = l.Id;
+ALTER TABLE StockLedgerEntry ENABLE TRIGGER TR_StockLedgerEntry_AppendOnly;
+PRINT CONCAT('ledger BalanceAfter filled ', DATEDIFF(SECOND, @t0, SYSDATETIME()), 's');
 
 INSERT StockBalance (ProductId, WarehouseId, QtyOnHand, QtyInTransit, AvgCost)
 SELECT ProductId, WarehouseId, SUM(QtyDelta), 0,
