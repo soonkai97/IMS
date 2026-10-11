@@ -167,7 +167,7 @@ test.describe('EA-23 Cost and value visibility', () => {
     await expect(page.getByRole('columnheader', { name: 'Stock effect' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Amount' })).toBeVisible();
     // PR-06: Product, Unit and Unit cost are on the screen for a role with cost.view.
-    for (const name of ['Product', 'Unit', 'Unit cost']) {
+    for (const name of ['Product', 'Unit', 'Unit cost (per base unit)']) {
       await expect(page.getByRole('columnheader', { name, exact: true })).toBeVisible();
     }
     const rows = page.getByRole('row').filter({ hasText: no });

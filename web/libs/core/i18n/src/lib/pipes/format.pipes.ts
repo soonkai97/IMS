@@ -74,7 +74,8 @@ export class AppMoneyPipe implements PipeTransform {
     }
     return new Intl.NumberFormat(this.i18n.$locale(), {
       minimumFractionDigits: MONEY_DECIMALS,
-      maximumFractionDigits: MONEY_DECIMALS
+      maximumFractionDigits: MONEY_DECIMALS,
+      signDisplay: 'negative'
     }).format(value);
   }
 }
@@ -90,7 +91,8 @@ export class AppUnitPricePipe implements PipeTransform {
     }
     return new Intl.NumberFormat(this.i18n.$locale(), {
       minimumFractionDigits: MONEY_DECIMALS,
-      maximumFractionDigits: UNIT_PRICE_DECIMALS
+      maximumFractionDigits: UNIT_PRICE_DECIMALS,
+      signDisplay: 'negative'
     }).format(value);
   }
 }

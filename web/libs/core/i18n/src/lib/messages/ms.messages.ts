@@ -461,6 +461,7 @@ export const MS_MESSAGES: Messages = {
   'reports.tab.exports': 'Eksport Excel',
   'reports.tab.movements': 'Butiran penerimaan dan pengeluaran',
   'reports.title': 'Laporan',
+  'reports.unitCost': 'Kos seunit (setiap unit asas)',
 
   'users.empty': 'Tiada pengguna sepadan dengan tapisan ini.',
   'users.searchLabel': 'Cari pengguna',

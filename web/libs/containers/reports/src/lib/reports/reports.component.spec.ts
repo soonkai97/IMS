@@ -143,7 +143,7 @@ describe('ReportsPageComponent receipt and issue detail (3.9 signed stock effect
       'Quantity',
       'Unit',
       'Stock effect',
-      'Unit cost',
+      'Unit cost (per base unit)',
       'Amount'
     ]);
     const cells = spectator
@@ -179,7 +179,21 @@ describe('ReportsPageComponent receipt and issue detail (3.9 signed stock effect
     expect(spectator.queryAll('tbody tr')).toHaveLength(0);
     expect(spectator.query('app-pager')).toBeNull();
     expect(spectator.query('.ui-table-state button')).toBeNull();
-    expect(spectator.query('.reports-page-toolbar button')?.hasAttribute('disabled')).toBe(true);
+    expect(spectator.query('.reports-page-table')).toBeNull();
+    expect(spectator.element.textContent).not.toContain('No data for these filters.');
+
+    // The sentence is tied to the To input, which is marked invalid.
+    const toInput = spectator.query('.reports-page-filters app-form-field:last-child input');
+    const errorId = spectator.query('.ui-form-field-error')?.id ?? '';
+    expect(errorId).not.toBe('');
+    expect(toInput?.getAttribute('aria-describedby')).toContain(errorId);
+    expect(toInput?.getAttribute('aria-invalid')).toBe('true');
+
+    // The export stays focusable and says why it does nothing.
+    const exportButton = spectator.query('.reports-page-toolbar button');
+    expect(exportButton?.getAttribute('aria-disabled')).toBe('true');
+    const hintId = exportButton?.getAttribute('aria-describedby') ?? '';
+    expect(spectator.query(`#${hintId}`)?.textContent).toContain(RANGE_SENTENCE);
   });
 
   it('correcting the range removes the sentence and loads again', () => {
@@ -217,6 +231,7 @@ describe('ReportsPageComponent receipt and issue detail (3.9 signed stock effect
     expect(spectator.query('.ui-table-state button')).toBeNull();
     expect(spectator.query('app-pager')).toBeNull();
     expect(spectator.queryAll('tbody tr')).toHaveLength(0);
+    expect(spectator.element.textContent).not.toContain('No data for these filters.');
   });
 
   it('another failure keeps "Something went wrong" with Retry and hides the old footer', () => {
@@ -271,7 +286,7 @@ describe('ReportsPageComponent receipt and issue detail (3.9 signed stock effect
     render([movement({}, false)], PERMISSION.ReportsRead);
 
     expect(headers()).not.toContain('Amount');
-    expect(headers()).not.toContain('Unit cost');
+    expect(headers()).not.toContain('Unit cost (per base unit)');
     expect(headers()).toEqual(expect.arrayContaining(['Product', 'Unit', 'Stock effect']));
     expect(bodyRows()[0]).not.toMatch(/\d\.\d{2}/);
     expect(bodyRows()[0]).toContain('Demo widget');

@@ -122,6 +122,9 @@ export class ReportsPageComponent implements OnInit {
   $toError = computed(() =>
     this.$rangeInvalid() ? this.i18n.t('filter.rangeInvalid') : this.$serverToError()
   );
+  // The sentence under To explains the empty screen, so no table (and no "No data for these filters.") shows with it.
+  $blocked = computed(() => this.$rangeInvalid() || this.$serverToError() !== null);
+  readonly rangeHintId = 'reports-range-hint';
   // A bad range or a failed call shows no old rows and no old "1-6 of 6" footer.
   $page = computed(() =>
     this.$rangeInvalid() || this.store.movements.$isFailed()
@@ -189,7 +192,7 @@ export class ReportsPageComponent implements OnInit {
     // Cost columns need cost.view; the server sends null to the others (docs/design/mvp-ux.md 1.4).
     ...columnWhen<MovementRow>(this.$canViewCost(), {
       key: 'unitCost',
-      header: this.i18n.t('doc.unitCost'),
+      header: this.i18n.t('reports.unitCost'),
       align: 'end',
       hideOnPhone: true
     }),

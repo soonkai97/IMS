@@ -480,6 +480,7 @@ export const EN_MESSAGES = {
   'reports.tab.exports': 'Excel exports',
   'reports.tab.movements': 'Receipt and issue detail',
   'reports.title': 'Reports',
+  'reports.unitCost': 'Unit cost (per base unit)',
 
   // Administration
   'users.empty': 'No users match these filters.',

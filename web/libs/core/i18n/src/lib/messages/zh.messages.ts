@@ -448,6 +448,7 @@ export const ZH_MESSAGES: Messages = {
   'reports.tab.exports': 'Excel 导出',
   'reports.tab.movements': '入库与出库明细',
   'reports.title': '报表',
+  'reports.unitCost': '单价（每基本单位）',
 
   'users.empty': '没有符合筛选条件的用户。',
   'users.searchLabel': '搜索用户',

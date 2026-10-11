@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { AppDatePipe, AppSignedQtyPipe, AppUnitPricePipe } from './format.pipes';
+import { AppDatePipe, AppMoneyPipe, AppSignedQtyPipe, AppUnitPricePipe } from './format.pipes';
 
 describe('AppUnitPricePipe', () => {
   let pipe: AppUnitPricePipe;
@@ -16,9 +16,37 @@ describe('AppUnitPricePipe', () => {
     expect(pipe.transform(1.23456)).toBe('1.2346');
   });
 
+  it('rounds a midpoint up, keeps a large value whole and never prints -0.00', () => {
+    expect(pipe.transform(1.00005)).toBe('1.0001');
+    expect(pipe.transform(1234567.8912)).toBe('1,234,567.8912');
+    expect(pipe.transform(-1234.5)).toBe('-1,234.50');
+    expect(pipe.transform(-0.00001)).toBe('0.00');
+    expect(pipe.transform(-0)).toBe('0.00');
+  });
+
   it('shows a dash for nothing', () => {
     expect(pipe.transform(undefined)).toBe('-');
     expect(pipe.transform(null)).toBe('-');
+  });
+});
+
+describe('AppMoneyPipe', () => {
+  let pipe: AppMoneyPipe;
+
+  beforeEach(() => {
+    pipe = TestBed.runInInjectionContext(() => new AppMoneyPipe());
+  });
+
+  it('always shows 2 decimals, rounds a midpoint up and keeps a large value whole', () => {
+    expect(pipe.transform(2.675)).toBe('2.68');
+    expect(pipe.transform(12400)).toBe('12,400.00');
+    expect(pipe.transform(1000000)).toBe('1,000,000.00');
+  });
+
+  it('keeps the minus of a real negative and never prints -0.00', () => {
+    expect(pipe.transform(-12.5)).toBe('-12.50');
+    expect(pipe.transform(-0.004)).toBe('0.00');
+    expect(pipe.transform(-0)).toBe('0.00');
   });
 });
 
