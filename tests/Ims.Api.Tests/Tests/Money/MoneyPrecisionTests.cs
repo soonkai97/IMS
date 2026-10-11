@@ -237,14 +237,15 @@ public class MoneyPrecisionTests(ApiFixture fixture)
     public async Task No_response_carries_a_money_value_with_a_fraction_of_a_cent()
     {
         var (s, productId) = await OnePieceAtAHalfCentAsync();
-        var carton = await s.NewProductAsync(customize: p => p.WithConversion(fixture.Reference.CartonUnitId, 3m));
+        var carton = await s.NewProductAsync(safetyStock: 100, customize: p => p.WithConversion(fixture.Reference.CartonUnitId, 3m)); // low, so the "low only" list shows it too
         var receipt = await s.ReceiveAsync(Warehouse, new Line(carton.Id, 1, 10.00m, fixture.Reference.CartonUnitId)); // 10.00 per carton of 3: 3.333333 per piece
         var issue = await s.SubmitAsync(s.Admin, await s.DraftIssueAsync(s.Admin, Warehouse, new Line(productId, 1)));
 
         var responses = new[]
         {
             await s.Admin.Documents.GetAsync(receipt.Id), await s.Admin.Documents.GetAsync(issue.Id), await s.Admin.Documents.ListAsync(search: receipt.No),
-            await s.Admin.Stock.QueryAsync(carton.Id), await s.Admin.Stock.QueryAsync(productId), await s.Admin.Stock.LedgerAsync(carton.Id), await s.Admin.Stock.LedgerAsync(productId),
+            await s.Admin.Stock.QueryAsync(carton.Id), await s.Admin.Stock.QueryAsync(carton.Id, lowOnly: true), await s.Admin.Stock.QueryAsync(productId),
+            await s.Admin.Stock.LedgerAsync(carton.Id), await s.Admin.Stock.LedgerAsync(productId),
             await s.Admin.Stock.SummaryAsync(), await s.Admin.Reports.MovementsAsync(carton.Id), await s.Admin.Reports.MovementsAsync(productId),
             await s.Admin.Settings.ListRulesAsync()
         };
