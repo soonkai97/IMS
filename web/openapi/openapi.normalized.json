@@ -810,6 +810,7 @@
           {
             "name": "LowOnly",
             "in": "query",
+            "description": "Only low stock, by the one definition (LowStockRule) that the low-stock list, its export, the Home count and the menu badge also use, so this list has exactly the rows of `GET /api/stock/low-stock` (same warehouse filter). That includes active products with a safety level that have no stock in any warehouse the caller can see: they appear once, with no warehouse, a quantity of 0 and no average cost (null); a warehouse filter leaves them out. The other filters and the sort apply.",
             "schema": {
               "type": "boolean"
             }
@@ -833,6 +834,7 @@
           {
             "name": "SortBy",
             "in": "query",
+            "description": "Sku (default), QtyOnHand, Value (needs `valuation.view`), Warehouse or Name; every order ends in SKU and warehouse code, so paging never repeats a row.",
             "schema": {
               "$ref": "#/components/schemas/StockSort"
             }
@@ -1128,6 +1130,7 @@
           {
             "name": "LowOnly",
             "in": "query",
+            "description": "Only low stock, by the one definition (LowStockRule) that the low-stock list, its export, the Home count and the menu badge also use, so this list has exactly the rows of `GET /api/stock/low-stock` (same warehouse filter). That includes active products with a safety level that have no stock in any warehouse the caller can see: they appear once, with no warehouse, a quantity of 0 and no average cost (null); a warehouse filter leaves them out. The other filters and the sort apply.",
             "schema": {
               "type": "boolean"
             }
@@ -1151,6 +1154,7 @@
           {
             "name": "SortBy",
             "in": "query",
+            "description": "Sku (default), QtyOnHand, Value (needs `valuation.view`), Warehouse or Name; every order ends in SKU and warehouse code, so paging never repeats a row.",
             "schema": {
               "$ref": "#/components/schemas/StockSort"
             }
@@ -1622,6 +1626,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "HideSignIns",
+            "in": "query",
+            "description": "Leave out the sign-in events (login.success, login.failed, login.locked, login.lockout, logout), which are most of a busy log: \"everything except sign-ins\". Combines with the other filters.",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -1805,6 +1817,7 @@
           {
             "name": "Search",
             "in": "query",
+            "description": "Documents whose number or remark contains the text, or whose partner name contains it (case-insensitive; a partial number such as 0100 works).",
             "schema": {
               "type": "string"
             }
@@ -3832,6 +3845,9 @@
           "postedBy",
           "postedByName",
           "postedAt",
+          "reversedBy",
+          "reversedByName",
+          "reversedAt",
           "returnedById",
           "returnedBy",
           "returnedByName",
@@ -3978,6 +3994,20 @@
             "format": "date-time",
             "nullable": true
           },
+          "reversedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "reversedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "reversedAt": {
+            "type": "string",
+            "description": "When a Reversed document was reversed, with `ReversedBy` and `ReversedByName` the user who did it (\"Reversed by {name} on {date}\"); null otherwise. `ReversalReason` holds why.",
+            "format": "date-time",
+            "nullable": true
+          },
           "returnedById": {
             "type": "integer",
             "format": "int32",
@@ -4048,6 +4078,9 @@
           "uomCode",
           "baseQty",
           "unitCost",
+          "baseUnitCost",
+          "amount",
+          "costFromAverage",
           "remark"
         ],
         "type": "object",
@@ -4083,9 +4116,25 @@
           },
           "unitCost": {
             "type": "number",
-            "description": "Per base unit. Null for a caller without `cost.view` (the Warehouse staff).",
+            "description": "The cost per ENTERED unit (the unit in `UomCode`), in money (2 decimals), that a person TYPED: send it back unchanged to keep the line. For a line whose cost nobody typed (`CostFromAverage`) it is `null`: there is nothing to edit, the line is valued at the average (see `BaseUnitCost` and `Amount`). For a typed cost `qty x unitCost` is the line `amount`. Null for a caller without `cost.view` (the Warehouse staff).",
             "format": "double",
             "nullable": true
+          },
+          "baseUnitCost": {
+            "type": "number",
+            "description": "The cost per BASE unit, for stock valuation, shown as a UNIT PRICE with 4 decimals (not money): a carton price spread over the pieces in it (1 carton of 3 at 10.00 is 3.3333; a carton of 1,000 at 3.00 is 0.0030), or the average for a line at the average. Amounts computed from it are money (2 decimals). Never send it back as `unitCost`. Null for a caller without `cost.view`.",
+            "format": "double",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "description": "The value of the line, in money, stored when the line was saved: `round(qty x unitCost, 2)` for a typed cost, `round(baseQty x average, 2)` for a line at the average. It is the only figure to add up: a document total is the sum of the line `amount`s (never `qty x unitCost` of the lines: that is wrong for a line at the average). Null for a caller without `cost.view`.",
+            "format": "double",
+            "nullable": true
+          },
+          "costFromAverage": {
+            "type": "boolean",
+            "description": "Nobody typed this line's cost: it is valued at the average cost of the product (every issue line; a receipt line saved by someone who may not enter cost, such as the Warehouse staff). It has no editable cost (`unitCost` is null), and saving the draft without a cost for it keeps it at the average; typing a cost makes it a typed cost. Show its `amount` and `baseUnitCost` read-only. On a draft its amount is re-valued at the current average on every save and at post, so a draft read earlier can be stale."
           },
           "remark": {
             "type": "string",
@@ -4495,6 +4544,12 @@
           },
           "user": {
             "type": "string"
+          },
+          "balanceAfter": {
+            "type": "number",
+            "description": "What this product held in this warehouse right after the movement (the sum of its ledger up to and including this row, in base units). Only given when the ledger is read for one product (`productId`); null otherwise (a list of several products has no single running balance). Stored with the row when it is written (under the same lock that serialises the postings of the product in the warehouse), so reading any page, however deep, costs the same and the answer cannot be overtaken by a posting.",
+            "format": "double",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -4542,17 +4597,21 @@
           },
           "warehouseId": {
             "type": "integer",
-            "format": "int32"
+            "description": "Null (with the code and the name) only for a product stocked in no warehouse the caller can see. It appears ONCE, not once per warehouse.",
+            "format": "int32",
+            "nullable": true
           },
           "warehouseCode": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "warehouseName": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "qtyOnHand": {
             "type": "number",
-            "description": "Zero for a product that has never been stocked (it has no balance row). Negative when stock went below zero.",
+            "description": "Zero for a product that is stocked in no warehouse the caller can see (it has no balance row there: it is listed once, with no warehouse). Negative when stock went below zero.",
             "format": "double"
           },
           "safetyStock": {
@@ -5306,13 +5365,17 @@
           },
           "warehouseId": {
             "type": "integer",
-            "format": "int32"
+            "description": "Null (with the code and the name) only on the low-only row of a product that has no stock in any warehouse the caller can see: it is listed once, belongs to no warehouse and has quantity 0.",
+            "format": "int32",
+            "nullable": true
           },
           "warehouseCode": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "warehouseName": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "qtyOnHand": {
             "type": "number",
@@ -5324,13 +5387,13 @@
           },
           "avgCost": {
             "type": "number",
-            "description": "Average cost per base unit. Null for a caller without `valuation.view`.",
+            "description": "Average cost per base unit. Null for a caller without `valuation.view`, and for a product stocked in no warehouse the caller can see (a low-stock row with nothing on hand: there is no average, which is not an average of zero).",
             "format": "double",
             "nullable": true
           },
           "value": {
             "type": "number",
-            "description": "Quantity on hand times average cost. Null for a caller without `valuation.view`.",
+            "description": "Quantity on hand times average cost. Null for a caller without `valuation.view`, and for a product stocked in no warehouse the caller can see.",
             "format": "double",
             "nullable": true
           },
@@ -5340,7 +5403,7 @@
           },
           "isLow": {
             "type": "boolean",
-            "description": "Below the product's safety stock (when it has one) or below zero."
+            "description": "Low by the one definition (LowStockRule): the product is active and its quantity is below zero, or at or below its safety stock (when it has one; design 3.8, \"on-hand &lt;= safety stock\"). The low-stock list, its count, the Home tile and the badge use the same rule."
           },
           "isNegative": {
             "type": "boolean",
@@ -5354,7 +5417,8 @@
           "Sku",
           "QtyOnHand",
           "Value",
-          "Warehouse"
+          "Warehouse",
+          "Name"
         ],
         "type": "string",
         "description": "`Value` orders by quantity times average cost, which would reveal the value to a caller who may not see it: it needs `valuation.view` (otherwise 400)."
@@ -5380,7 +5444,7 @@
           },
           "lowCount": {
             "type": "integer",
-            "description": "Product x warehouse pairs on the low-stock list (see `GET /api/stock/low-stock`): below safety stock, never stocked with a safety level, or negative. Equals that list's total.",
+            "description": "Product x warehouse pairs on the low-stock list (see `GET /api/stock/low-stock`): at or below safety stock, stocked in no visible warehouse (counted once) with a safety level, or negative. Equals that list's total.",
             "format": "int32"
           }
         },

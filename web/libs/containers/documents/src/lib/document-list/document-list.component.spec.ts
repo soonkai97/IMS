@@ -10,7 +10,7 @@ import {
 import { PermissionService } from '@ims/core/identity';
 import { DocumentQuery, DocumentsStore } from '@ims/features/documents';
 import { WarehousesStore } from '@ims/features/warehousing';
-import { PERMISSION, ROLE } from '@ims/models';
+import { PERMISSION, ROLE, SEARCH_DEBOUNCE_MS } from '@ims/models';
 import { DocumentListPageComponent } from './document-list.component';
 
 const ITEM: DocumentListItem = {
@@ -128,6 +128,24 @@ describe('DocumentListPageComponent Mine / All', () => {
 
       expect(headers()).toContain('Amount');
     });
+  });
+
+  it('sends no search under the API minimum (the API answers 400), then sends it', async () => {
+    role.set(ROLE.Supervisor);
+    await render();
+    const typeAndWait = async (text: string): Promise<void> => {
+      spectator.component.$searchInput.set(text);
+      await new Promise(resolve => setTimeout(resolve, SEARCH_DEBOUNCE_MS + 50));
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+    };
+
+    await typeAndWait('ab');
+    expect(lastQuery().search).toBeUndefined();
+    expect(load.mock.calls.every(([query]) => query.search === undefined)).toBe(true);
+
+    await typeAndWait(' abc ');
+    expect(lastQuery().search).toBe('abc');
   });
 
   it('warehouse staff start on Mine: the list asks the server for mine=true', async () => {

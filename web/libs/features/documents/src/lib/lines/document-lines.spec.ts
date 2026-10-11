@@ -112,6 +112,9 @@ describe('lines of a saved document', () => {
     uomCode: 'CTN',
     baseQty: 24,
     unitCost: 0,
+    baseUnitCost: undefined,
+    amount: undefined,
+    costFromAverage: false,
     remark: undefined,
     available: 18
   };
