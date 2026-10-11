@@ -2,7 +2,9 @@ import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { DocumentListItem, DocumentStatus, DocumentType } from '@ims/api';
+import { PermissionService } from '@ims/core/identity';
 import { ApprovalsStore } from '@ims/features/approvals';
+import { PERMISSION } from '@ims/models';
 import { ApprovalsInboxPageComponent } from './inbox.component';
 
 function item(id: number, overrides: Partial<DocumentListItem> = {}): DocumentListItem {
@@ -40,10 +42,15 @@ describe('ApprovalsInboxPageComponent', () => {
   const refresh = jest.fn();
   const waiting = signal<DocumentListItem[]>([]);
   const mine = signal<DocumentListItem[]>([]);
+  const granted = new Set<string>();
   const createComponent = createComponentFactory({
     component: ApprovalsInboxPageComponent,
     providers: [
       provideRouter([]),
+      {
+        provide: PermissionService,
+        useValue: { has: (permission: string) => granted.has(permission) }
+      },
       {
         provide: ApprovalsStore,
         useValue: {
@@ -61,6 +68,8 @@ describe('ApprovalsInboxPageComponent', () => {
 
   beforeEach(() => {
     refresh.mockClear();
+    granted.clear();
+    granted.add(PERMISSION.CostView);
     waiting.set([
       item(1, { requiresOverride: true }),
       item(2, { isLarge: true, submittedByName: 'Other Staff' })
@@ -98,6 +107,25 @@ describe('ApprovalsInboxPageComponent', () => {
 
     expect(rows()[0]).toContain('800.00');
     expect(rows()[0]).not.toContain('est.');
+  });
+
+  it('without cost.view there is no Amount column and no number, but the flags still say why', () => {
+    granted.clear();
+    waiting.set([item(1, { totalAmount: undefined, isLarge: true, requiresOverride: true })]);
+    spectator = createComponent();
+
+    const headers = spectator.queryAll('th').map(header => (header.textContent ?? '').trim());
+    expect(headers).not.toContain('Amount');
+    expect(rows()[0]).toContain('Large');
+    expect(rows()[0]).toContain('Override');
+    expect(rows()[0]).not.toMatch(/\d\.\d{2}/);
+    expect(spectator.queryAll('tbody tr:first-child td')).toHaveLength(headers.length);
+  });
+
+  it('with cost.view the Amount column is there', () => {
+    const headers = spectator.queryAll('th').map(header => (header.textContent ?? '').trim());
+
+    expect(headers).toContain('Amount');
   });
 
   it('shows what I submitted on the other tab', () => {

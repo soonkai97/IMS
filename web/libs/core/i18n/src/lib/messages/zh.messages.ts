@@ -364,6 +364,8 @@ export const ZH_MESSAGES: Messages = {
   'doc.unit': '单位',
   'doc.unitCost': '单价',
   'doc.trigger.Amount': '金额 {actual} 已达到 {threshold} 的限额。审批人：{role}。',
+  // TODO-review: machine draft (cost visibility).
+  'doc.trigger.AmountHidden': '其金额已达到审批限额。审批人：{role}。',
   'doc.trigger.Quantity': '数量 {actual} 已达到 {threshold} 的限额。审批人：{role}。',
   'doc.whyApproval': '为什么需要审批',
   'doc.warehouse': '仓库',
@@ -434,6 +436,9 @@ export const ZH_MESSAGES: Messages = {
   'reports.export.stock': '库存汇总',
   'reports.export.stockHint': '各商品、各仓库的现有库存和价值。',
   'reports.postedAt': '过账时间',
+  // TODO-review: machine draft (signed stock effect).
+  'reports.reversal': '冲销',
+  'reports.stockEffect': '库存影响',
   'reports.tab.exports': 'Excel 导出',
   'reports.tab.movements': '入库与出库明细',
   'reports.title': '报表',

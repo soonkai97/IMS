@@ -55,3 +55,11 @@ export interface TableItem<Row> {
   readonly link: readonly unknown[] | null;
   readonly cells: readonly TableCell[];
 }
+
+/** Spread into a column list: the column exists only when `condition` holds (a cost or value the user may not see). */
+export function columnWhen<Row>(
+  condition: boolean,
+  column: TableColumn<Row>
+): readonly TableColumn<Row>[] {
+  return condition ? [column] : [];
+}

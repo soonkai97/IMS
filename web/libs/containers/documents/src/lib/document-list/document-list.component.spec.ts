@@ -43,6 +43,7 @@ const ITEM: DocumentListItem = {
 describe('DocumentListPageComponent Mine / All', () => {
   let spectator: Spectator<DocumentListPageComponent>;
   const role = signal<string | undefined>(ROLE.WarehouseStaff);
+  const granted = new Set<string>();
   const load = jest.fn<void, [DocumentQuery]>();
   const createComponent = createComponentFactory({
     component: DocumentListPageComponent,
@@ -52,7 +53,7 @@ describe('DocumentListPageComponent Mine / All', () => {
       {
         provide: PermissionService,
         useValue: {
-          has: (permission: string) => permission === PERMISSION.DocumentCreate,
+          has: (permission: string) => granted.has(permission),
           $role: role,
           $userId: signal(4)
         }
@@ -92,6 +93,41 @@ describe('DocumentListPageComponent Mine / All', () => {
   beforeEach(() => {
     localStorage.clear();
     load.mockClear();
+    granted.clear();
+    granted.add(PERMISSION.DocumentCreate);
+  });
+
+  describe('the Amount column (cost.view, docs/design/mvp-ux.md 1.4)', () => {
+    const headers = (): string[] =>
+      spectator.queryAll('th').map(header => (header.textContent ?? '').trim());
+    const firstRow = (): string =>
+      (spectator.query('tbody tr')?.textContent ?? '').replace(/\s+/g, ' ');
+
+    it('warehouse staff get no Amount column and no number: the API sends null', async () => {
+      role.set(ROLE.WarehouseStaff);
+      await render();
+
+      expect(headers()).not.toContain('Amount');
+      expect(headers()).toContain('Status');
+      expect(firstRow()).not.toMatch(/\d\.\d{2}/);
+      expect(spectator.queryAll('tbody tr:first-child td')).toHaveLength(headers().length);
+    });
+
+    it('a clerk (cost.view) sees the Amount column', async () => {
+      granted.add(PERMISSION.CostView);
+      role.set(ROLE.Clerk);
+      await render();
+
+      expect(headers()).toContain('Amount');
+    });
+
+    it('a supervisor sees the Amount column too', async () => {
+      granted.add(PERMISSION.CostView).add(PERMISSION.ValuationView);
+      role.set(ROLE.Supervisor);
+      await render();
+
+      expect(headers()).toContain('Amount');
+    });
   });
 
   it('warehouse staff start on Mine: the list asks the server for mine=true', async () => {

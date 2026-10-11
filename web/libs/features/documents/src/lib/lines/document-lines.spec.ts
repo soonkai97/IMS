@@ -129,6 +129,15 @@ describe('lines of a saved document', () => {
     expect(value.available).toBeNull();
     expect(lineShortfall(value)).toBe(0);
   });
+
+  it('has no cost to edit when the server hides it (a caller without cost.view)', () => {
+    const hidden = lineFromDocument({ ...dto, unitCost: undefined });
+    const known = lineFromDocument({ ...dto, unitCost: 2.5 });
+
+    expect(hidden.unitCost).toBeNull();
+    expect(known.unitCost).toBe(2.5);
+    expect(toLineInputs([hidden], DocumentType.Receipt)[0].unitCost).toBeUndefined();
+  });
 });
 
 describe('unit options', () => {

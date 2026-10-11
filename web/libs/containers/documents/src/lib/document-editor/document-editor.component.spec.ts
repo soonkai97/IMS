@@ -192,10 +192,10 @@ describe('DocumentEditorPageComponent', () => {
     ]
   });
 
-  async function open(doc: DocumentDto): Promise<void> {
+  async function open(doc: DocumentDto, type = DocumentType.Issue): Promise<void> {
     opened.set(doc);
     spectator = createComponent({
-      props: { type: DocumentType.Issue, id: String(doc.id) } as never
+      props: { type, id: String(doc.id) } as never
     });
     spectator.detectChanges();
     await spectator.fixture.whenStable();
@@ -850,6 +850,7 @@ describe('DocumentEditorPageComponent', () => {
     });
 
     it('PS-03: the approver sees why approval is needed and the estimated value', async () => {
+      granted.add(PERMISSION.CostView);
       await open(
         document({
           totalAmount: 5100,
@@ -893,6 +894,147 @@ describe('DocumentEditorPageComponent', () => {
       await open(document({ requiresApproval: false, allowedActions: [DOCUMENT_ACTION.Post] }));
 
       expect(text()).toContain('Ready to post');
+    });
+  });
+
+  describe('cost visibility (cost.view, docs/design/mvp-ux.md 1.4)', () => {
+    const STAFF: string[] = [PERMISSION.StockRead, PERMISSION.DocumentCreate];
+    const CLERK: string[] = [...STAFF, PERMISSION.CostView];
+    const SUPERVISOR: string[] = [...CLERK, PERMISSION.ValuationView, PERMISSION.DocumentApprove];
+
+    const costInput = (): Element | null =>
+      spectator.query('input[aria-label^="Unit cost of"]') ?? null;
+
+    async function openNewReceipt(...permissions: string[]): Promise<void> {
+      permissions.forEach(permission => granted.add(permission));
+      opened.set(undefined);
+      spectator = createComponent({ props: { type: DocumentType.Receipt, id: 'new' } as never });
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+      spectator.component.onProductPicked({ product: WIDGET, available: 0 });
+      spectator.detectChanges();
+    }
+
+    /** A posted receipt as the API answers it: the cost fields are null for a caller without cost.view. */
+    const postedReceipt = (withCost: boolean): DocumentDto =>
+      document({
+        type: DocumentType.Receipt,
+        no: 'RCP-WH01-2610-0001',
+        status: DocumentStatus.Posted,
+        allowedActions: [],
+        requiresApproval: false,
+        totalAmount: withCost ? 125.5 : (null as unknown as undefined),
+        lines: [
+          {
+            id: 9,
+            productId: 1,
+            sku: 'DEMO-001',
+            productName: 'Demo widget',
+            qty: 10,
+            uomId: 1,
+            uomCode: 'PCS',
+            baseQty: 10,
+            unitCost: withCost ? 12.55 : (null as unknown as undefined),
+            remark: undefined,
+            available: undefined
+          }
+        ]
+      });
+
+    it('Warehouse staff: a new receipt has quantity but no unit cost input and no amount', async () => {
+      await openNewReceipt(...STAFF);
+      const qty = spectator.component.view.lines.at(0).controls.qty;
+      qty.setValue(4);
+      spectator.detectChanges();
+
+      expect(spectator.queryAll('app-document-line-editor input')).toHaveLength(1);
+      expect(costInput()).toBeNull();
+      expect(text()).not.toContain('Unit cost');
+      expect(text()).not.toMatch(/\d\.\d{2}/);
+    });
+
+    it('Clerk: a new receipt has the unit cost input and the total grows with it', async () => {
+      await openNewReceipt(...CLERK);
+      const line = spectator.component.view.lines.at(0);
+      line.controls.qty.setValue(4);
+      line.controls.unitCost.setValue(2.5);
+      spectator.detectChanges();
+
+      expect(costInput()).not.toBeNull();
+      expect(text()).toContain('Unit cost');
+      expect(text()).toContain('10.00');
+    });
+
+    it('Warehouse staff: what is sent for a saved receipt line carries no unit cost', async () => {
+      await openNewReceipt(...STAFF);
+      spectator.component.view.lines.at(0).controls.qty.setValue(4);
+      spectator.component.view.header.markAsDirty();
+      spectator.detectChanges();
+
+      const request = spectator.component.view.toRequest();
+      expect(request.lines).toHaveLength(1);
+      expect(request.lines[0].qty).toBe(4);
+      expect(request.lines[0].unitCost).toBeUndefined();
+    });
+
+    it('Warehouse staff: a posted receipt shows no amount, no unit cost and no placeholder', async () => {
+      STAFF.forEach(permission => granted.add(permission));
+      await open(postedReceipt(false), DocumentType.Receipt);
+
+      expect(text()).toContain('DEMO-001');
+      expect(text()).not.toContain('Amount');
+      expect(text()).not.toMatch(/\d\.\d{2}/);
+      expect(text()).not.toContain('· -');
+    });
+
+    it('Clerk and Supervisor: a posted receipt shows the amount and the unit cost', async () => {
+      SUPERVISOR.forEach(permission => granted.add(permission));
+      await open(postedReceipt(true), DocumentType.Receipt);
+
+      expect(text()).toContain('Amount');
+      expect(text()).toContain('125.50');
+      expect(text()).toContain('12.55');
+    });
+
+    it('Warehouse staff: "why approval is needed" names the value rule and the approver, with no number', async () => {
+      STAFF.forEach(permission => granted.add(permission));
+      await open(
+        document({
+          totalAmount: null as unknown as undefined,
+          approvalTriggers: [
+            {
+              metric: ApprovalMetric.Amount,
+              threshold: null as unknown as undefined,
+              actual: null as unknown as undefined,
+              roleRequired: 'Supervisor'
+            }
+          ]
+        })
+      );
+
+      expect(text()).toContain('Why this needs approval');
+      expect(text()).toContain('Its value reaches an approval limit. Approver: Supervisor.');
+      expect(text()).not.toContain('undefined');
+      expect(text()).not.toMatch(/\d\.\d{2}/);
+    });
+
+    it('Warehouse staff still see the numbers of a quantity rule', async () => {
+      STAFF.forEach(permission => granted.add(permission));
+      await open(
+        document({
+          totalAmount: null as unknown as undefined,
+          approvalTriggers: [
+            {
+              metric: ApprovalMetric.Quantity,
+              threshold: 1000,
+              actual: 1200,
+              roleRequired: 'Owner'
+            }
+          ]
+        })
+      );
+
+      expect(text()).toContain('The quantity 1,200 reaches the 1,000 limit. Approver: Owner.');
     });
   });
 

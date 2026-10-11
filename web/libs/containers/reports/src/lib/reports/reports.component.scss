@@ -28,3 +28,30 @@
   gap: space(2);
   margin-top: space(2);
 }
+
+.reports-page-effect {
+  font-variant-numeric: tabular-nums;
+  font-weight: font-weight('medium');
+
+  &.--in {
+    color: color('on-success-soft');
+  }
+
+  &.--out {
+    color: color('danger');
+  }
+}
+
+// The badge sits under the number, so it never widens the (no-wrap) number column.
+.reports-page-docno {
+  display: inline-flex;
+  flex-direction: column;
+  gap: space(0);
+  align-items: flex-start;
+}
+
+// A wide table scrolls here, not the page (WCAG 1.4.10 allows two-dimensional data tables); the region is focusable.
+.reports-page-table {
+  max-width: 100%;
+  overflow-x: auto;
+}

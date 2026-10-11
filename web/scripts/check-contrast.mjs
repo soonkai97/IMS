@@ -43,6 +43,8 @@ const pairs = [
   ['on-danger-soft', 'danger-soft', 4.5],
   ['on-warning-soft', 'warning-soft', 4.5],
   ['on-success-soft', 'success-soft', 4.5],
+  // Signed stock effect text (+5) sits on the plain surface of a table row.
+  ['on-success-soft', 'surface', 4.5],
   ['on-info-soft', 'info-soft', 4.5],
   ['on-primary-soft', 'primary-soft', 4.5],
   ['border-strong', 'surface', 3],

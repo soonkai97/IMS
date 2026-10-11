@@ -81,9 +81,8 @@ test.describe('BR-02 Reverse a posted document (Supervisor), UX error E6', () =>
     api
   }) => {
     const product = await api().createProduct();
-    const receipt = await api('staff').post('receipts', [
-      { productId: product.id, qty: 2, unitCost: 1 }
-    ]);
+    // Staff send quantities only; the server would ignore a cost anyway.
+    const receipt = await api('staff').post('receipts', [{ productId: product.id, qty: 2 }]);
     await signIn('staff');
     const editor = new DocumentEditor(page);
 

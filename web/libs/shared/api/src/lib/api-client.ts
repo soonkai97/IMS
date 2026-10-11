@@ -4023,6 +4023,7 @@ export enum ApprovalMetric {
 export interface ApprovalRuleDto {
     id: number;
     docType: DocumentType;
+    /** Money. Null for a caller without `cost.view` (the Warehouse staff), and when the rule has no amount threshold. */
     amountThreshold: number | undefined;
     qtyThreshold: number | undefined;
     roleRequired: string;
@@ -4037,11 +4038,11 @@ export interface ApprovalRuleSaveRequest {
     isActive: boolean;
 }
 
-/** One reason a document needs approval: Actual reached Threshold of a rule that needs RoleRequired. */
-export interface ApprovalTrigger {
+/** One reason a document needs approval: Actual reached Threshold of a rule that needs RoleRequired. For an amount rule the two numbers are money, so a caller without `cost.view` (the Warehouse staff) gets them as null: they still see that the document needs approval and which kind of rule fired (Metric), not the amount. A quantity rule is not hidden. */
+export interface ApprovalTriggerDto {
     metric: ApprovalMetric;
-    threshold: number;
-    actual: number;
+    threshold: number | undefined;
+    actual: number | undefined;
     roleRequired: string;
 }
 
@@ -4079,7 +4080,9 @@ export interface AuditLogDto {
     action: string;
     entityType: string;
     entityId: string;
+    /** JSON. A key that names a cost or value is left out for a caller without the permission that unlocks it. */
     before: string | undefined;
+    /** JSON, with the same rule as Before. */
     after: string | undefined;
     at: string;
 }
@@ -4166,13 +4169,13 @@ export interface DocumentDto {
     returnedByName: string | undefined;
     returnedAt: string | undefined;
     totalQty: number;
-    /** Value of the document: receipts at their entered cost; an issue at its booked cost once posted, and before that at the average cost when it was last saved or submitted (see `AmountIsEstimate`). For a Submitted document this is the value the approval rules were tested against. */
-    totalAmount: number;
+    /** Value of the document: receipts at their entered cost; an issue at its booked cost once posted, and before that at the average cost when it was last saved or submitted (see `AmountIsEstimate`). For a Submitted document this is the value the approval rules were tested against. Null for a caller without `cost.view` (the Warehouse staff). */
+    totalAmount: number | undefined;
     lines: DocumentLineDto[];
     /** What the caller may do right now (edit, submit, approve, reject, cancel, post, reverse). The UI shows buttons from this list only. It already accounts for ownership (Warehouse staff and Clerk act only on their own documents), the approver the document is routed to (an Owner reviews only `isLarge` documents, a Supervisor the rest) and self-approval, so a listed action is one the API will accept. */
     allowedActions: string[];
     /** While the document is Submitted or Approved and an approval rule held it back: which thresholds it reaches (value or quantity), for the approver and the "sent for approval" message. Empty otherwise, and when only a negative-stock override (`requiresOverride`) sent it to approval. */
-    approvalTriggers: ApprovalTrigger[];
+    approvalTriggers: ApprovalTriggerDto[];
     /** True for an issue that has not posted yet: its lines carry the average cost seen when it was last saved or submitted, and posting books the real cost. Label the amount "estimated". */
     amountIsEstimate: boolean;
     /** Changes whenever the document (header, status or lines) changes. Also sent as the ETag header; send it back as If-Match to refuse a stale save. */
@@ -4188,7 +4191,8 @@ export interface DocumentLineDto {
     uomId: number;
     uomCode: string;
     baseQty: number;
-    unitCost: number;
+    /** Per base unit. Null for a caller without `cost.view` (the Warehouse staff). */
+    unitCost: number | undefined;
     remark: string | undefined;
     /** On hand in the document's warehouse right now, in base units (compare with `BaseQty`; lines of one product add up). Null once the document is Posted, Reversed or Cancelled, when the figure no longer says anything about this document. */
     available?: number | undefined;
@@ -4212,8 +4216,8 @@ export interface DocumentListItem {
     createdAt: string;
     postedAt: string | undefined;
     totalQty: number;
-    /** Same meaning as on the full document: an unposted issue is valued at the average cost seen when it was last saved or submitted (`AmountIsEstimate`). */
-    totalAmount: number;
+    /** Same meaning as on the full document: an unposted issue is valued at the average cost seen when it was last saved or submitted (`AmountIsEstimate`). Null for a caller without `cost.view` (the Warehouse staff). */
+    totalAmount: number | undefined;
     createdBy: string;
     createdById: number;
     createdByName: string;
@@ -4316,7 +4320,8 @@ export interface LedgerRow {
     warehouseCode: string;
     warehouseName: string;
     qtyDelta: number;
-    unitCost: number;
+    /** Cost per base unit of the movement. Null for a caller without `valuation.view`. */
+    unitCost: number | undefined;
     reason: LedgerReason;
     sourceDocId: number;
     sourceDocNo: string;
@@ -4344,7 +4349,9 @@ export interface LowStockAlert {
     isNegative: boolean;
 }
 
+/** One line of the receipt/issue detail. A document reversed since posting has two rows per line: the posting and the reversal. */
 export interface MovementRow {
+    /** When the movement happened: the posting time, or for a reversal row the time of the reversal. */
     postedAt: string;
     docNo: string;
     type: DocumentType;
@@ -4353,11 +4360,19 @@ export interface MovementRow {
     partner: string | undefined;
     sku: string;
     productName: string;
+    /** As entered, unsigned, in the line's own unit. Unchanged by decimal MovementRow.StockEffect. */
     qty: number;
     uomCode: string;
+    /** Unsigned, in the product's base unit. */
     baseQty: number;
-    unitCost: number;
-    amount: number;
+    /** Signed, in base units: positive when the movement adds stock, negative when it removes stock. A receipt adds, an issue removes, and the reversal row of a document does the opposite of its posting. Summed over a product and a period (a date range on `PostedAt`) it equals the change in the product's stock balance. */
+    stockEffect: number;
+    /** Per base unit. Null for a caller without `cost.view`. */
+    unitCost: number | undefined;
+    /** Base quantity times unit cost. Null for a caller without `cost.view`. */
+    amount: number | undefined;
+    /** The row is the reversal of the posting shown in the row for the same document and line. */
+    isReversal: boolean;
 }
 
 /** One page of a server-side paged list. */
@@ -4547,8 +4562,10 @@ export interface StockRow {
     warehouseName: string;
     qtyOnHand: number;
     qtyInTransit: number;
-    avgCost: number;
-    value: number;
+    /** Average cost per base unit. Null for a caller without `valuation.view`. */
+    avgCost: number | undefined;
+    /** Quantity on hand times average cost. Null for a caller without `valuation.view`. */
+    value: number | undefined;
     safetyStock: number;
     /** Below the product's safety stock (when it has one) or below zero. */
     isLow: boolean;
@@ -4556,6 +4573,7 @@ export interface StockRow {
     isNegative: boolean;
 }
 
+/** `Value` orders by quantity times average cost, which would reveal the value to a caller who may not see it: it needs `valuation.view` (otherwise 400). */
 export enum StockSort {
     Sku = "Sku",
     QtyOnHand = "QtyOnHand",
@@ -4564,8 +4582,8 @@ export enum StockSort {
 }
 
 export interface StockSummary {
-    /** Net value of the stock in the caller's warehouses (quantity x average cost). A negative balance lowers it, so it can be less than the sum of the positive lines. */
-    totalValue: number;
+    /** Net value of the stock in the caller's warehouses (quantity x average cost). A negative balance lowers it, so it can be less than the sum of the positive lines. Null for a caller without `valuation.view`. */
+    totalValue: number | undefined;
     /** Products with stock: distinct products that have a positive quantity in at least one of the caller's warehouses (zero and negative balances are not counted). */
     skuCount: number;
     /** Product x warehouse pairs on the low-stock list (see `GET /api/stock/low-stock`): below safety stock, never stocked with a safety level, or negative. Equals that list's total. */

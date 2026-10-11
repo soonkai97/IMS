@@ -3485,6 +3485,7 @@
               "null",
               "number"
             ],
+            "description": "Money. Null for a caller without `cost.view` (the Warehouse staff), and when the rule has no amount threshold.",
             "format": "double"
           },
           "qtyThreshold": {
@@ -3537,7 +3538,7 @@
           }
         }
       },
-      "ApprovalTrigger": {
+      "ApprovalTriggerDto": {
         "required": [
           "metric",
           "threshold",
@@ -3550,18 +3551,24 @@
             "$ref": "#/components/schemas/ApprovalMetric"
           },
           "threshold": {
-            "type": "number",
+            "type": [
+              "null",
+              "number"
+            ],
             "format": "double"
           },
           "actual": {
-            "type": "number",
+            "type": [
+              "null",
+              "number"
+            ],
             "format": "double"
           },
           "roleRequired": {
             "type": "string"
           }
         },
-        "description": "One reason a document needs approval: Actual reached Threshold of a rule that needs RoleRequired."
+        "description": "One reason a document needs approval: Actual reached Threshold of a rule that needs RoleRequired.\r\nFor an amount rule the two numbers are money, so a caller without `cost.view` (the Warehouse staff) gets them as null: they still see that\r\nthe document needs approval and which kind of rule fired (Metric), not the amount. A quantity rule is not hidden."
       },
       "ApproveRequest": {
         "required": [
@@ -3684,13 +3691,15 @@
             "type": [
               "null",
               "string"
-            ]
+            ],
+            "description": "JSON. A key that names a cost or value is left out for a caller without the permission that unlocks it."
           },
           "after": {
             "type": [
               "null",
               "string"
-            ]
+            ],
+            "description": "JSON, with the same rule as Before."
           },
           "at": {
             "type": "string",
@@ -4063,8 +4072,11 @@
             "format": "double"
           },
           "totalAmount": {
-            "type": "number",
-            "description": "Value of the document: receipts at their entered cost; an issue at its booked cost once posted, and before that at the average cost when it was last saved or submitted (see `AmountIsEstimate`). For a Submitted document this is the value the approval rules were tested against.",
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Value of the document: receipts at their entered cost; an issue at its booked cost once posted, and before that at the average cost when it was last saved or submitted (see `AmountIsEstimate`). For a Submitted document this is the value the approval rules were tested against. Null for a caller without `cost.view` (the Warehouse staff).",
             "format": "double"
           },
           "lines": {
@@ -4083,7 +4095,7 @@
           "approvalTriggers": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ApprovalTrigger"
+              "$ref": "#/components/schemas/ApprovalTriggerDto"
             },
             "description": "While the document is Submitted or Approved and an approval rule held it back: which thresholds it reaches (value or quantity), for the approver and the \"sent for approval\" message. Empty otherwise, and when only a negative-stock override (`requiresOverride`) sent it to approval."
           },
@@ -4142,7 +4154,11 @@
             "format": "double"
           },
           "unitCost": {
-            "type": "number",
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Per base unit. Null for a caller without `cost.view` (the Warehouse staff).",
             "format": "double"
           },
           "remark": {
@@ -4268,8 +4284,11 @@
             "format": "double"
           },
           "totalAmount": {
-            "type": "number",
-            "description": "Same meaning as on the full document: an unposted issue is valued at the average cost seen when it was last saved or submitted (`AmountIsEstimate`).",
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Same meaning as on the full document: an unposted issue is valued at the average cost seen when it was last saved or submitted (`AmountIsEstimate`). Null for a caller without `cost.view` (the Warehouse staff).",
             "format": "double"
           },
           "createdBy": {
@@ -4559,7 +4578,11 @@
             "format": "double"
           },
           "unitCost": {
-            "type": "number",
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Cost per base unit of the movement. Null for a caller without `valuation.view`.",
             "format": "double"
           },
           "reason": {
@@ -4660,13 +4683,16 @@
           "qty",
           "uomCode",
           "baseQty",
+          "stockEffect",
           "unitCost",
-          "amount"
+          "amount",
+          "isReversal"
         ],
         "type": "object",
         "properties": {
           "postedAt": {
             "type": "string",
+            "description": "When the movement happened: the posting time, or for a reversal row the time of the reversal.",
             "format": "date-time"
           },
           "docNo": {
@@ -4695,6 +4721,7 @@
           },
           "qty": {
             "type": "number",
+            "description": "As entered, unsigned, in the line's own unit. Unchanged by decimal MovementRow.StockEffect.",
             "format": "double"
           },
           "uomCode": {
@@ -4702,17 +4729,36 @@
           },
           "baseQty": {
             "type": "number",
+            "description": "Unsigned, in the product's base unit.",
+            "format": "double"
+          },
+          "stockEffect": {
+            "type": "number",
+            "description": "Signed, in base units: positive when the movement adds stock, negative when it removes stock. A receipt adds, an issue removes, and the reversal row of a document does the opposite of its posting. Summed over a product and a period (a date range on `PostedAt`) it equals the change in the product's stock balance.",
             "format": "double"
           },
           "unitCost": {
-            "type": "number",
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Per base unit. Null for a caller without `cost.view`.",
             "format": "double"
           },
           "amount": {
-            "type": "number",
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Base quantity times unit cost. Null for a caller without `cost.view`.",
             "format": "double"
+          },
+          "isReversal": {
+            "type": "boolean",
+            "description": "The row is the reversal of the posting shown in the row for the same document and line."
           }
-        }
+        },
+        "description": "One line of the receipt/issue detail. A document reversed since posting has two rows per line: the posting and the reversal."
       },
       "PagedResultOfAuditLogDto": {
         "required": [
@@ -5401,11 +5447,19 @@
             "format": "double"
           },
           "avgCost": {
-            "type": "number",
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Average cost per base unit. Null for a caller without `valuation.view`.",
             "format": "double"
           },
           "value": {
-            "type": "number",
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Quantity on hand times average cost. Null for a caller without `valuation.view`.",
             "format": "double"
           },
           "safetyStock": {
@@ -5429,7 +5483,8 @@
           "Value",
           "Warehouse"
         ],
-        "type": "string"
+        "type": "string",
+        "description": "`Value` orders by quantity times average cost, which would reveal the value to a caller who may not see it: it needs `valuation.view` (otherwise 400)."
       },
       "StockSummary": {
         "required": [
@@ -5440,8 +5495,11 @@
         "type": "object",
         "properties": {
           "totalValue": {
-            "type": "number",
-            "description": "Net value of the stock in the caller's warehouses (quantity x average cost). A negative balance lowers it, so it can be less than the sum of the positive lines.",
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Net value of the stock in the caller's warehouses (quantity x average cost). A negative balance lowers it, so it can be less than the sum of the positive lines. Null for a caller without `valuation.view`.",
             "format": "double"
           },
           "skuCount": {

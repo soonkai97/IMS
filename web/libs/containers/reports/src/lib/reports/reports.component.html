@@ -40,19 +40,44 @@
     </app-button>
   </div>
 
-  <app-table
-    [columns]="$columns()"
-    [rows]="$page()?.items ?? []"
-    [caption]="'reports.tab.movements' | t"
-    [loading]="$isLoading()"
-    [failed]="$failed()"
-    (retried)="onRetry()"
+  <!-- Ten columns are wider than a 1024px window: the table scrolls inside its own focusable region, not the page. -->
+  <div
+    class="reports-page-table"
+    role="region"
+    tabindex="0"
+    [attr.aria-label]="'reports.tab.movements' | t"
   >
-    <ng-template appCell="date" let-row>{{ row.postedAt | appDate }}</ng-template>
-    <ng-template appCell="qty" let-row>{{ row.qty | appQty }} {{ row.uomCode }}</ng-template>
-    <ng-template appCell="amount" let-row>{{ row.amount | appMoney }}</ng-template>
-    <app-empty-state empty icon="reports" [message]="'reports.empty' | t" />
-  </app-table>
+    <app-table
+      [columns]="$columns()"
+      [rows]="$page()?.items ?? []"
+      [caption]="'reports.tab.movements' | t"
+      [loading]="$isLoading()"
+      [failed]="$failed()"
+      (retried)="onRetry()"
+    >
+      <ng-template appCell="docNo" let-row>
+        <span class="reports-page-docno">
+          {{ row.docNo }}
+          @if (row.isReversal) {
+            <app-status-chip flag="warning" [label]="'reports.reversal' | t" />
+          }
+        </span>
+      </ng-template>
+      <ng-template appCell="date" let-row>{{ row.postedAt | appDate }}</ng-template>
+      <ng-template appCell="qty" let-row>{{ row.qty | appQty }} {{ row.uomCode }}</ng-template>
+      <!-- Signed, in base units: the sign is the text, the colour only reinforces it (mvp-ux 3.9). -->
+      <ng-template appCell="effect" let-row>
+        <span
+          class="reports-page-effect"
+          [class.--in]="row.stockEffect > 0"
+          [class.--out]="row.stockEffect < 0"
+          >{{ row.stockEffect | appSignedQty }}</span
+        >
+      </ng-template>
+      <ng-template appCell="amount" let-row>{{ row.amount | appMoney }}</ng-template>
+      <app-empty-state empty icon="reports" [message]="'reports.empty' | t" />
+    </app-table>
+  </div>
 
   @if ($page(); as page) {
     <app-pager

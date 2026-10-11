@@ -19,7 +19,8 @@ test.describe('IN-01 Receive stock (Warehouse staff)', () => {
     await editor.remark.fill(`E2E receipt ${unique()}`);
     await editor.addItem(product);
     await editor.setQty(product.sku, 12);
-    await editor.setUnitCost(product.sku, 3);
+    // Warehouse staff receive by quantity only: no unit cost input at all (cost.view, docs/design/mvp-ux.md 1.4).
+    await expect(editor.unitCost(product.sku)).toHaveCount(0);
     await editor.action('Save draft').click();
     await expect(shell.toast('Draft saved.')).toBeVisible();
     const id = await editor.savedId();

@@ -9,6 +9,7 @@ import {
 import { ReactiveFormsModule } from '@angular/forms';
 import { DocumentType } from '@ims/api';
 import { AppQtyPipe, TranslatePipe } from '@ims/core/i18n';
+import { CanDirective } from '@ims/core/identity';
 import {
   LineGroup,
   LineValue,
@@ -48,6 +49,7 @@ export interface LineRow {
   selector: 'app-document-line-editor',
   imports: [
     AppQtyPipe,
+    CanDirective,
     ReactiveFormsModule,
     TranslatePipe,
     UiButtonComponent,

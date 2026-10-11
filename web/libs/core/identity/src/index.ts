@@ -1,4 +1,5 @@
 export * from './lib/constants/identity.const';
+export * from './lib/directives/can.directive';
 export * from './lib/guards/identity.guards';
 export * from './lib/interceptors/auth.interceptor';
 export * from './lib/services/auth.service';

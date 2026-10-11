@@ -39,6 +39,25 @@ export class AppQtyPipe implements PipeTransform {
   }
 }
 
+/**
+ * A quantity with its sign written out: "+5" adds stock, "-5" removes it, "0" has no sign. The sign is the text a screen
+ * reader speaks, so the meaning never rests on colour (docs/design/mvp-ux.md 3.9).
+ */
+@Pipe({ name: 'appSignedQty', pure: false })
+export class AppSignedQtyPipe implements PipeTransform {
+  private readonly i18n = inject(I18nService);
+
+  transform(value: number | undefined | null): string {
+    if (value === undefined || value === null) {
+      return EMPTY_VALUE;
+    }
+    return new Intl.NumberFormat(this.i18n.$locale(), {
+      maximumFractionDigits: MAX_QTY_DECIMALS,
+      signDisplay: 'exceptZero'
+    }).format(value);
+  }
+}
+
 /** Amounts with two decimals (the currency is deployment specific, so no symbol). */
 @Pipe({ name: 'appMoney', pure: false })
 export class AppMoneyPipe implements PipeTransform {
