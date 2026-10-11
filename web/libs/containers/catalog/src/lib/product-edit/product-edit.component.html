@@ -16,6 +16,7 @@
   <app-skeleton [count]="4" />
 } @else {
   <form class="product-edit-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
+    <app-form-legend />
     @for (message of $generalErrors(); track message) {
       <app-banner kind="danger">{{ message }}</app-banner>
     }

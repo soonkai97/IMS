@@ -55,6 +55,7 @@ export class UiInputComponent implements ControlValueAccessor {
   $id = computed(() => this.field?.inputId ?? null);
   $describedBy = computed(() => this.field?.describedBy() ?? null);
   $invalid = computed(() => this.field?.invalid() ?? false);
+  $required = computed(() => this.field?.required() ?? false);
   $isPassword = computed(() => this.$type() === 'password');
   $nativeType = computed(() => (this.$isPassword() && this.$revealed() ? 'text' : this.$type()));
   $toggleLabel = computed(() =>

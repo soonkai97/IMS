@@ -1,0 +1,12 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+  font-size: font-size(2);
+  color: color('text-muted');
+}
+
+.ui-form-legend-mark {
+  font-weight: font-weight('bold');
+  color: color('danger');
+}

@@ -12,9 +12,14 @@
   font-weight: font-weight('medium');
 }
 
-.ui-form-field-required {
-  font-weight: font-weight('regular');
-  color: color('text-muted');
+// The star is a visual cue only (aria-hidden); the word below is what assistive technology reads (D4).
+.ui-form-field-asterisk {
+  font-weight: font-weight('bold');
+  color: color('danger');
+}
+
+.ui-form-field-sr {
+  @include visually-hidden;
 }
 
 .ui-form-field-hint {

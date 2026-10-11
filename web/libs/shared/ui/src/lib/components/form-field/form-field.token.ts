@@ -5,6 +5,8 @@ export interface FormFieldContext {
   readonly inputId: string;
   readonly describedBy: Signal<string | null>;
   readonly invalid: Signal<boolean>;
+  /** The field is marked required: the control states it itself (D4); the label only draws the asterisk. */
+  readonly required: Signal<boolean>;
 }
 
 export const FORM_FIELD = new InjectionToken<FormFieldContext>('FORM_FIELD');

@@ -1,7 +1,9 @@
 <label class="ui-form-field-label" [attr.for]="inputId">
-  {{ $label() }}
   @if ($required()) {
-    <span class="ui-form-field-required">({{ $text().required }})</span>
+    {{ $label() }}&nbsp;<span class="ui-form-field-asterisk" aria-hidden="true">*</span
+    ><span class="ui-form-field-sr">{{ $text().required }}</span>
+  } @else {
+    {{ $label() }}
   }
 </label>
 <ng-content />

@@ -25,6 +25,7 @@ import { UI_TEXT } from '../../tokens/ui-text.token';
 import { UiButtonComponent } from '../button/button.component';
 import { UiDialogComponent } from '../dialog/dialog.component';
 import { UiFormFieldComponent } from '../form-field/form-field.component';
+import { UiFormLegendComponent } from '../form-legend/form-legend.component';
 import { UiTextareaComponent } from '../textarea/textarea.component';
 
 /** The API trims a reason before it counts its characters, so five spaces and "abc" are not a reason (PS-09). */
@@ -44,6 +45,7 @@ function trimmedMinLength(length: number): ValidatorFn {
     UiButtonComponent,
     UiDialogComponent,
     UiFormFieldComponent,
+    UiFormLegendComponent,
     UiTextareaComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

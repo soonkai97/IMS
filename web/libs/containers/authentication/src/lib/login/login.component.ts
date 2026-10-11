@@ -4,6 +4,7 @@ import {
   DestroyRef,
   ElementRef,
   Injector,
+  OnInit,
   afterNextRender,
   computed,
   inject,
@@ -21,6 +22,7 @@ import {
   UiBannerComponent,
   UiButtonComponent,
   UiFormFieldComponent,
+  UiFormLegendComponent,
   UiInputComponent
 } from '@ims/ui';
 
@@ -43,13 +45,14 @@ function safeReturnUrl(url: string | undefined): string {
     UiBannerComponent,
     UiButtonComponent,
     UiFormFieldComponent,
+    UiFormLegendComponent,
     UiInputComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss'
 })
-export class LoginPageComponent {
+export class LoginPageComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -94,7 +97,26 @@ export class LoginPageComponent {
   });
   readonly isDev = isDevMode();
 
+  /**
+   * D3: a sign-in error lives only while the form is untouched. The failure sits in the singleton AuthService, so a
+   * new page starts clean, and any edit of either field removes it. Nothing about it is written to storage.
+   */
+  ngOnInit(): void {
+    this.auth.login.reset();
+    this.form.valueChanges
+      .pipe(
+        tap(() => this.auth.login.reset()),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe();
+  }
+
   onSubmit(): void {
+    if (this.$isRunning()) {
+      return;
+    }
+    // A new attempt removes the old banner first, so an invalid resubmit shows only the field messages (D3).
+    this.auth.login.reset();
     this.form.markAllAsTouched();
     if (this.form.invalid) {
       // The focus goes to the first field with an error, so a keyboard user does not have to look for it (EA-06).

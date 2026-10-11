@@ -1,6 +1,9 @@
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { UiRadioGroupComponent } from './radio-group.component';
 
+// A non-breaking space keeps the star on the line of the last word (RQ-06).
+const NBSP = String.fromCharCode(0xa0);
+
 describe('UiRadioGroupComponent accessibility (NV-09, EA-06)', () => {
   let spectator: Spectator<UiRadioGroupComponent>;
   const createComponent = createComponentFactory({
@@ -22,16 +25,32 @@ describe('UiRadioGroupComponent accessibility (NV-09, EA-06)', () => {
     spectator.detectChanges();
   }
 
-  it('says (required) in the legend, like a form field', () => {
+  it('a required group puts a red asterisk and the word "required" in the legend (D4)', () => {
     render({ required: true });
 
-    expect(spectator.query('legend')?.textContent).toContain('(required)');
+    const legend = spectator.query('legend');
+    const star = legend?.querySelector('.ui-radio-group-asterisk');
+    expect(star?.getAttribute('aria-hidden')).toBe('true');
+    expect(legend?.querySelector('.ui-radio-group-sr')?.textContent).toBe('required');
+    expect(legend?.textContent).not.toContain('(required)');
+    // The non-breaking space keeps the star on the line of the last word (RQ-06).
+    expect(legend?.textContent).toContain(`Purpose${NBSP}*`);
+  });
+
+  it('a required group marks its radios required', () => {
+    render({ required: true });
+
+    const radios = spectator.queryAll('input[type=radio]');
+    expect(radios).toHaveLength(2);
+    expect(radios.every(radio => radio.hasAttribute('required'))).toBe(true);
   });
 
   it('has no required mark unless asked', () => {
     render();
 
-    expect(spectator.query('legend')?.textContent).not.toContain('required');
+    expect(spectator.query('legend')?.textContent?.trim()).toBe('Purpose');
+    expect(spectator.query('.ui-radio-group-asterisk')).toBeNull();
+    expect(spectator.query('input[type=radio]')?.hasAttribute('required')).toBe(false);
   });
 
   it('an invalid group is marked and tied to its error text', () => {

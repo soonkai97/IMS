@@ -36,7 +36,7 @@ export class UiRadioGroupComponent implements ControlValueAccessor {
 
   $options = input.required<readonly RadioOption[]>({ alias: 'options' });
   $legend = input.required<string>({ alias: 'legend' });
-  /** Says "(required)" in the legend, like a form field does. */
+  /** Red asterisk plus the word "required" in the legend and `required` on the radios, like a form field (D4). */
   $required = input(false, { alias: 'required', transform: booleanAttribute });
   /** The group has an error: the fieldset is invalid and described by the element with `errorId`. */
   $invalid = input(false, { alias: 'invalid', transform: booleanAttribute });
