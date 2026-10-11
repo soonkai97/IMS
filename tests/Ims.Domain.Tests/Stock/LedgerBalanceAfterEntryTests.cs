@@ -17,7 +17,6 @@ public class LedgerBalanceAfterEntryTests
         var ctx = NewContext(doc);
         _engine.Post(doc, balances, ctx);
 
-
         Assert.Equal(13m, ctx.Entries.Single(e => e.ProductId == 1).BalanceAfter);
         Assert.Equal(5m, ctx.Entries.Single(e => e.ProductId == 2).BalanceAfter);
     }
@@ -30,12 +29,10 @@ public class LedgerBalanceAfterEntryTests
         var ctx = NewContext(doc);
         _engine.Post(doc, balances, ctx);
 
-
         Assert.Equal([4m, 6m], ctx.Entries.Select(e => e.QtyDelta));
         Assert.Equal([14m, 20m], ctx.Entries.Select(e => e.BalanceAfter));
         Assert.Equal(balances[1].QtyOnHand, ctx.Entries[^1].BalanceAfter); // the last entry ends at the balance
     }
-
 
     [Fact]
     public void AReversal_RecordsTheBalanceAfterItLikeAnyOtherMovement()
@@ -48,5 +45,19 @@ public class LedgerBalanceAfterEntryTests
         _engine.Reverse(doc, balances, reversal);
 
         Assert.Equal(10m, Assert.Single(reversal.Entries).BalanceAfter);
+    }
+
+    [Fact]
+    public void AnIssueThatTakesStockBelowZero_RecordsTheNegativeBalanceAfterIt()
+    {
+        var doc = NewIssue(2, (P(1), 8m));
+        doc.ApprovedWithOverride("customer waiting");
+        var balance = NewBalance(1, 3m, 2m);
+        var ctx = NewContext(doc, allowNegative: true, canOverride: true);
+
+        new IssuePostingStrategy().Post(doc.Lines[0], balance, ctx);
+
+        Assert.Equal(-5m, balance.QtyOnHand);
+        Assert.Equal(-5m, Assert.Single(ctx.Entries).BalanceAfter);
     }
 }
