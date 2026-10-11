@@ -85,7 +85,7 @@ Then append one entry to `docs/team/HANDOFFS.md` (see `PROTOCOL.md`).
 
 **fe-designer** - Uses design tokens, no hard-coded colours or spacing, contrast AA, 44px targets, dark mode, component variants as specified.
 
-**fe-architect** - Nx tiers and boundaries respected (shared, core, features, containers), signal-first components, OnPush, no logic in templates, state and API access in the right layer, i18n keys not literals, lazy routes, tests present.
+**fe-architect** - Nx tiers and boundaries respected (shared, core, features, containers), signal-first components, OnPush, no logic in templates, state and API access in the right layer, i18n keys not literals, lazy routes, tests present. Content containment (plan N15): reject a literal `white-space: nowrap` (use the truncate mixin with its ellipsis), any `overflow-x: hidden` or `clip` on `html` or `body`, and a new list, card, chip, dialog, toast, header or palette row without a long-value state in its gallery entry (500 characters: unbroken, with spaces, Chinese, emoji). Motion (plan N16 to N19): motion tokens only (no literal duration, curve or distance), only `opacity` and `transform` animated (the named `clip-path` and `grid-template-rows` exceptions aside), no `will-change` in a stylesheet, no `@angular/animations`, `data-motion` honoured so Reduced and Off look right. Ids are opaque strings (no `Number(id)`), and the generated client is touched only by the owner of a named batch (plan 2.4).
 
 **fe-framework** - Build, lint (including boundary rules) and unit tests pass; generated API client untouched; permission-driven menus and `allowedActions` used instead of role checks in components.
 
@@ -97,3 +97,20 @@ Then append one entry to `docs/team/HANDOFFS.md` (see `PROTOCOL.md`).
 
 `.github/pull_request_template.md` collects the same information from the author. `.github/CODEOWNERS` assigns the human owner;
 agent roles are not GitHub users, so their reviews are posted by the orchestrator on request (`gh pr review`), never automatically.
+
+## 8. Review gate before merge (decided by the product owner)
+
+Passing CI is necessary, not sufficient: agents author most changes and their own tests share their blind spots. Before the orchestrator merges
+any non-trivial pull request an independent reviewer reads it:
+
+- **Applies to:** every PR over about 200 changed lines, and every PR, whatever the size, that touches money (costing, rounding, totals), permissions
+  or cost visibility, authentication or security headers, a database migration, posting or reversal logic, or CI/CD and the PR guard.
+  Pure documentation, dependency bumps that pass CI and one-line fixes are exempt.
+- **Who:** an agent that did not write the change and has not seen the author's reasoning. It gets the diff and the repository, not a summary of intent.
+  Money, permissions, migrations and security changes also get the matching specialist role from section 6.
+- **What it checks:** logic errors and missed edge cases, money and rounding correctness, authorization and ownership checks, injection and logging of user input,
+  data loss on partial input (for example PUT with missing fields), concurrency and idempotency, migrations (Up, Down, existing data), behaviour that
+  differs between local and CI (Linux, incremental builds), and whether the tests would actually fail if the change were wrong.
+- **Output:** findings ranked Blocker / Major / Minor with file, line and a concrete failing scenario; no style nitpicks that the linters cover.
+- **Rule:** a Blocker or Major is fixed (or explicitly accepted by the product owner) before merge; Minor findings become TASKS.md items.
+  The orchestrator records the verdict in the PR as a comment.
