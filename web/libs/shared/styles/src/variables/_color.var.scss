@@ -3,12 +3,19 @@
 
 /// Theme-aware colour. Returns a CSS custom property reference so light/dark switch without recompiling.
 /// color('surface') -> var(--ims-color-surface)
+/// An old name resolves to its canonical token: color('primary') -> var(--ims-color-accent)
 @function color($name) {
-  @if not map.has-key(palette.$light, $name) {
+  $canonical: map.get(palette.$aliases, $name);
+
+  @if not $canonical {
+    $canonical: $name;
+  }
+
+  @if not map.has-key(palette.$light, $canonical) {
     @error 'Unknown colour token "#{$name}".';
   }
 
-  @return var(--ims-color-#{$name});
+  @return var(--ims-color-#{$canonical});
 }
 
 /// Mix a token with transparency (used for scrims). color-mix keeps the token theme-aware.

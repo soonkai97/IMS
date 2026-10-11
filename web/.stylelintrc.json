@@ -2,6 +2,7 @@
   "extends": ["stylelint-config-standard-scss"],
   "rules": {
     "declaration-no-important": true,
+    "color-no-hex": true,
     "selector-class-pattern": null,
     "scss/dollar-variable-pattern": null,
     "scss/at-mixin-pattern": null,
@@ -39,5 +40,13 @@
     "color-hex-length": null,
     "scss/dollar-variable-empty-line-before": null
   },
+  "overrides": [
+    {
+      "files": ["**/variables/_palette.var.scss"],
+      "rules": {
+        "color-no-hex": null
+      }
+    }
+  ],
   "ignoreFiles": ["dist/**", "node_modules/**", "coverage/**"]
 }
