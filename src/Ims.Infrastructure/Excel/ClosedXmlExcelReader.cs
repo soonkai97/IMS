@@ -30,10 +30,25 @@ public class ClosedXmlExcelReader : IExcelReader
             {
                 var cells = headers.ToDictionary(kv => kv.Value, kv => ws.Cell(i, kv.Key).GetFormattedString().Trim());
                 if (cells.Values.All(string.IsNullOrEmpty)) continue;
-                rows.Add(new ExcelRow(i, cells));
+                var numbers = new Dictionary<string, string>();
+                foreach (var (name, column) in headers.Select(kv => (kv.Value, kv.Key)))
+                    if (NumberOf(ws.Cell(i, column)) is { } number) numbers[name] = number;
+                rows.Add(new ExcelRow(i, cells, numbers));
             }
             return new ExcelSheet(headers.Values.ToList(), rows);
         }
+    }
+
+    /// <summary>The number a cell holds (typed or the result of a formula) as invariant text with no exponent, or null when the cell is not a number.</summary>
+    private static string? NumberOf(IXLCell cell)
+    {
+        if (cell.IsEmpty()) return null;
+        XLCellValue value;
+        try { value = cell.Value; }
+        catch (Exception) { return null; } // a formula the reader cannot evaluate: fall back to what the cell shows
+        if (!value.IsNumber) return null;
+        try { return ((decimal)value.GetNumber()).ToString(System.Globalization.CultureInfo.InvariantCulture); }
+        catch (OverflowException) { return null; }
     }
 
     /// <summary>

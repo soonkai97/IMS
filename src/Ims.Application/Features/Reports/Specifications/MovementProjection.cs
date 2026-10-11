@@ -15,7 +15,7 @@ internal static class MovementProjection
         Status = l.Document.Status, WarehouseCode = l.Document.Warehouse.Code,
         Partner = l.Document.Partner != null ? l.Document.Partner.Name : null, Sku = l.Product.Sku, ProductName = l.Product.Name, Qty = l.Qty,
         UomCode = l.Uom.Code, BaseQty = l.BaseQty, StockEffect = l.Document.Type == DocumentType.Receipt ? l.BaseQty : -l.BaseQty,
-        UnitCost = l.UnitCost, Amount = l.BaseQty * l.UnitCost, IsReversal = false
+        UnitCost = Math.Round(l.UnitCost, Money.UnitPriceDecimals), Amount = l.Amount, IsReversal = false
     };
 
     /// <summary>The reversal of a Reversed document, dated by its ReversedAt.</summary>
@@ -25,6 +25,6 @@ internal static class MovementProjection
         Status = l.Document.Status, WarehouseCode = l.Document.Warehouse.Code,
         Partner = l.Document.Partner != null ? l.Document.Partner.Name : null, Sku = l.Product.Sku, ProductName = l.Product.Name, Qty = l.Qty,
         UomCode = l.Uom.Code, BaseQty = l.BaseQty, StockEffect = l.Document.Type == DocumentType.Receipt ? -l.BaseQty : l.BaseQty,
-        UnitCost = l.UnitCost, Amount = l.BaseQty * l.UnitCost, IsReversal = true
+        UnitCost = Math.Round(l.UnitCost, Money.UnitPriceDecimals), Amount = l.Amount, IsReversal = true
     };
 }

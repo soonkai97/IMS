@@ -8,13 +8,18 @@ public class KnownReceiptCostTests
     private static Product P(int id) => NewProduct(id, $"SKU-{id}");
 
     [Fact]
-    public void EachLineTakesTheAverageCostOfItsProduct_OrZeroForAProductNeverStocked()
+    public void EachLineAtTheAverageTakesTheAverageCostOfItsProduct_OrZeroForAProductNeverStocked_AndATypedCostIsLeftAlone()
     {
-        var doc = NewReceipt(1, (P(1), 4m, 99m), (P(2), 10m, 7m));
+        var doc = StockDocument.Create(DocumentType.Receipt, NewWarehouse(), NewSupplier(), null, null, Creator, Now).WithId(1);
+        doc.AddLines([
+            StockDocumentLine.Create(P(1), DocumentType.Receipt, 4m, null, null, null, costFromAverage: true).WithId(1),
+            StockDocumentLine.Create(P(2), DocumentType.Receipt, 10m, null, null, null, costFromAverage: true).WithId(2),
+            StockDocumentLine.Create(P(3), DocumentType.Receipt, 2m, null, 7m, null).WithId(3)]);
 
-        doc.ApplyKnownReceiptCosts(new Dictionary<int, decimal> { [1] = 2.5m });
+        doc.ApplyKnownReceiptCosts(new Dictionary<int, decimal> { [1] = 2.5m, [3] = 99m });
 
-        Assert.Equal([2.5m, 0m], doc.Lines.Select(l => l.UnitCost));
+        Assert.Equal([2.5m, 0m, 7m], doc.Lines.Select(l => l.UnitCost));
+        Assert.Equal([10m, 0m, 14m], doc.Lines.Select(l => l.Amount));
     }
 
     [Fact]

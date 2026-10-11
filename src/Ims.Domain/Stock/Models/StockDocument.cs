@@ -69,7 +69,7 @@ public class StockDocument : Entity
 
     public decimal TotalQty => Lines.Sum(l => l.BaseQty);
     [VisibleWith(Permissions.CostView)]
-    public decimal TotalAmount => Lines.Sum(l => l.BaseQty * l.UnitCost);
+    public decimal TotalAmount => Lines.Sum(l => l.Amount);
 
     public bool CanPost => Status == DocumentStatus.Approved ||
                            (Status == DocumentStatus.Submitted && !RequiresApproval);
@@ -146,7 +146,7 @@ public class StockDocument : Entity
     {
         if (Type != DocumentType.Receipt) return;
         EnsureEditable();
-        foreach (var line in _lines) line.SetKnownCost(averageCostByProduct.GetValueOrDefault(line.ProductId));
+        foreach (var line in _lines.Where(l => l.CostFromAverage)) line.SetKnownCost(averageCostByProduct.GetValueOrDefault(line.ProductId));
     }
 
     public void EnsureEditable()

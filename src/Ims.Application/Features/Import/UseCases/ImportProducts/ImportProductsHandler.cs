@@ -82,7 +82,7 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
             else errors.Add(Messages.ImportUnitMissing(unit));
 
             decimal safety = 0;
-            if (r.Get(ImportColumns.SafetyStock) is { Length: > 0 } ss)
+            if (r.GetNumber(ImportColumns.SafetyStock) is { Length: > 0 } ss)
             {
                 if (!ImportSheet.TryParseDecimal(ss, out safety)) errors.Add(Messages.NotANumber(ImportColumns.SafetyStockLabel, ss));
                 else if (safety < 0) errors.Add(Messages.SafetyStockNegative);

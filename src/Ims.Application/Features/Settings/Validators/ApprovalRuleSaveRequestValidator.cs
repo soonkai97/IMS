@@ -9,6 +9,7 @@ public class ApprovalRuleSaveRequestValidator : AbstractValidator<ApprovalRuleSa
         RuleFor(x => x).Must(x => x.AmountThreshold is not null || x.QtyThreshold is not null)
             .WithMessage(Messages.ThresholdRequired);
         RuleFor(x => x.AmountThreshold).GreaterThanOrEqualTo(0).When(x => x.AmountThreshold is not null);
+        RuleFor(x => x.AmountThreshold).Must(a => Money.IsExact(a!.Value)).When(x => x.AmountThreshold is not null).WithMessage(Messages.AmountTooPrecise);
         RuleFor(x => x.QtyThreshold).GreaterThanOrEqualTo(0).When(x => x.QtyThreshold is not null);
         RuleFor(x => x.RoleRequired).Must(r => Roles.All.Contains(r)).WithMessage(Messages.UnknownRole);
         RuleFor(x => x.DocType).IsInEnum();
