@@ -98,12 +98,16 @@ Who may see cost and value is decided by two permissions, `cost.view` (Clerk, Su
 
 ## Costing and reversal
 
-`StockBalance` holds quantity and the moving weighted-average cost (10 decimal places, `Limits.CostDecimals`, SQL `decimal(18,10)`); a value is always `quantity x average`.
-Posting a receipt line records what it did to the average (`StockDocumentLine.AvgCostBefore` / `AvgCostAfter`, receipt lines only). Reversing a receipt calls `StockBalance.Unreceive`:
-the average goes back to `AvgCostBefore` while it still equals `AvgCostAfter` (only issues came after), otherwise the receipt's value (`qty x cost`) is taken out of the stock value and the rest is shared
-by the remaining units, and where that has no sound answer the average is kept. The lines of one product are reversed last-posted first, so each finds the average as the next one left it.
-`PostingEngine.FindReversalDeficits` still decides, by quantity, whether a reversal is allowed. The rule and its examples are in `docs/design/mvp-ux.md` 1.5; the tests are
-`ReceiptReversalCostingTests` (domain) and `ReceiptReversalCostTests` (API, the reported scenario).
+`StockBalance` holds quantity and the moving weighted-average cost (10 decimal places, `Limits.CostDecimals`, SQL `decimal(22,10)`, rounded half away from zero); a value is always `quantity x average`.
+The cost per base unit and the average are INTERNAL numbers, not money: every amount that reaches a person is money (2 decimals, `Ims.Domain.Money`), and nothing in the API or an export shows the internal precision once the money-precision change is in.
+
+- **Marker.** `StockBalance.LastReceiptLineId` is the document line that brought stock in last. EVERY stock-in sets it: a receipt line, a receipt at the average itself (a staff receipt takes the average as its cost) and the line of a reversed issue. An equal average is never taken as proof that nothing came in since.
+- **Snapshot.** Posting a receipt line records `StockDocumentLine.AvgCostBefore`, `AvgCostAfter` and `PreviousLineId` (the marker before it).
+- **Reversal** (`StockBalance.Unreceive`): while the line is still the marker, the average goes back to `AvgCostBefore` and the marker to `PreviousLineId`; otherwise the receipt's value (`qty x cost`) is taken out of the stock value and the rest is shared by the remaining units, and the marker is cleared (the recorded averages of the later receipts still contain this one); where that has no sound answer the average is kept; a first receipt whose units were issued under negative stock keeps the last known cost instead of 0. The result never exceeds `Limits.MaxCostPerBaseUnit`. The lines of one product are reversed last-posted first.
+- **Range.** A unit cost is at most `Limits.MaxUnitCost` (1,000,000,000) when entered, and its cost per base unit at most `Limits.MaxCostPerBaseUnit` (999,999,999,999, the 12 integer digits of the column): a 400 (`CostTooLarge`, `CostTooLargeForUnit`), never a database overflow. `DocumentSaveRequestValidator`, the opening-stock import and `CostingPolicy` enforce it.
+- **Maintenance window.** Migration `AverageCostMarkersAndCostScale` changes `StockLedgerEntry.UnitCost`, `StockDocumentLine.UnitCost` and `StockBalance.AvgCost` from `decimal(18,6)` to `decimal(22,10)` (the type's storage grows from 9 to 13 bytes) and adds four nullable columns. Measured on a throw-away LocalDB database with 999,266 ledger rows, 1,050,982 document lines and 173,807 balances (the 1M tier of `docs/dba/01-seed-perf.sql`): Up 20 s, Down 15 s, with the table locked (stop the API; rebuild the indexes of the three tables afterwards, `docs/dba/07-maintenance.sql`). A check at the start of Up stops the migration, before anything changes, if a cost of 1e12 or more exists; none can, because the integer part is 12 digits before and after. The migration test (`AverageCostMigrationTests`) runs Up, Down and Up again on a database that holds rows.
+- **Repair.** `docs/dba/15-repair-reversal-average.sql` recomputes, once, the average of the balances that the old reversal left contaminated (report first, then `-v Apply=1`).
+- `PostingEngine.FindReversalDeficits` still decides, by quantity, whether a reversal is allowed. The rule and its examples are in `docs/design/mvp-ux.md` 1.5; the tests are `ReceiptReversalCostingTests` (domain) and `ReceiptReversalCostTests` (API).
 
 ## Data, concurrency and performance rules
 

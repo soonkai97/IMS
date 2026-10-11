@@ -5,18 +5,25 @@
 namespace Ims.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AverageCostSnapshotAndCostScale : Migration
+    public partial class AverageCostMarkersAndCostScale : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Costs per base unit and the average keep 10 decimal places inside the system (Limits.CostDecimals) so a unit conversion or repeated
-            // blending does not drift by a cent over a large quantity. Same storage size (precision 18); the integer part shrinks from 12 to 8 digits,
-            // far above any unit cost. Nothing is rounded here: every existing value is kept as it is.
+            // MAINTENANCE WINDOW. A cost per base unit and the moving average keep 10 decimal places (Limits.CostDecimals) in decimal(22,10): the integer part stays
+            // 12 digits, as in the decimal(18,6) it replaces, so no value can overflow. Changing the scale rewrites the ledger, the document lines and the balances under a
+            // schema-modification lock (the ledger is the big one; measured duration: docs/architecture/backend.md, "Costing and reversal"). Stop the API first.
+            // The check below fails the migration with a readable message, before anything is changed, if a cost does not fit (none can, today).
+            migrationBuilder.Sql(@"
+IF EXISTS (SELECT 1 FROM [StockBalance] WHERE ABS([AvgCost]) >= 1000000000000)
+   OR EXISTS (SELECT 1 FROM [StockDocumentLine] WHERE ABS([UnitCost]) >= 1000000000000)
+   OR EXISTS (SELECT 1 FROM [StockLedgerEntry] WHERE ABS([UnitCost]) >= 1000000000000)
+    THROW 50000, N'A cost of 1,000,000,000,000 or more exists in the stock tables; it does not fit the new cost columns. Correct it before migrating.', 1;");
+
             migrationBuilder.AlterColumn<decimal>(
                 name: "UnitCost",
                 table: "StockLedgerEntry",
-                type: "decimal(18,10)",
+                type: "decimal(22,10)",
                 nullable: false,
                 oldClrType: typeof(decimal),
                 oldType: "decimal(18,6)");
@@ -24,7 +31,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
             migrationBuilder.AlterColumn<decimal>(
                 name: "UnitCost",
                 table: "StockDocumentLine",
-                type: "decimal(18,10)",
+                type: "decimal(22,10)",
                 nullable: false,
                 oldClrType: typeof(decimal),
                 oldType: "decimal(18,6)");
@@ -32,28 +39,40 @@ namespace Ims.Infrastructure.Persistence.Migrations
             migrationBuilder.AddColumn<decimal>(
                 name: "AvgCostAfter",
                 table: "StockDocumentLine",
-                type: "decimal(18,10)",
+                type: "decimal(22,10)",
                 nullable: true);
 
             migrationBuilder.AddColumn<decimal>(
                 name: "AvgCostBefore",
                 table: "StockDocumentLine",
-                type: "decimal(18,10)",
+                type: "decimal(22,10)",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "PreviousLineId",
+                table: "StockDocumentLine",
+                type: "int",
                 nullable: true);
 
             migrationBuilder.AlterColumn<decimal>(
                 name: "AvgCost",
                 table: "StockBalance",
-                type: "decimal(18,10)",
+                type: "decimal(22,10)",
                 nullable: false,
                 oldClrType: typeof(decimal),
                 oldType: "decimal(18,6)");
+
+            migrationBuilder.AddColumn<int>(
+                name: "LastReceiptLineId",
+                table: "StockBalance",
+                type: "int",
+                nullable: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // Back to 6 places: SQL Server rounds the values that have more.
+            // Back to decimal(18,6): the values keep 12 integer digits and SQL Server rounds the ones that have more than 6 decimals.
             migrationBuilder.DropColumn(
                 name: "AvgCostAfter",
                 table: "StockDocumentLine");
@@ -62,13 +81,21 @@ namespace Ims.Infrastructure.Persistence.Migrations
                 name: "AvgCostBefore",
                 table: "StockDocumentLine");
 
+            migrationBuilder.DropColumn(
+                name: "PreviousLineId",
+                table: "StockDocumentLine");
+
+            migrationBuilder.DropColumn(
+                name: "LastReceiptLineId",
+                table: "StockBalance");
+
             migrationBuilder.AlterColumn<decimal>(
                 name: "UnitCost",
                 table: "StockLedgerEntry",
                 type: "decimal(18,6)",
                 nullable: false,
                 oldClrType: typeof(decimal),
-                oldType: "decimal(18,10)");
+                oldType: "decimal(22,10)");
 
             migrationBuilder.AlterColumn<decimal>(
                 name: "UnitCost",
@@ -76,7 +103,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
                 type: "decimal(18,6)",
                 nullable: false,
                 oldClrType: typeof(decimal),
-                oldType: "decimal(18,10)");
+                oldType: "decimal(22,10)");
 
             migrationBuilder.AlterColumn<decimal>(
                 name: "AvgCost",
@@ -84,7 +111,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
                 type: "decimal(18,6)",
                 nullable: false,
                 oldClrType: typeof(decimal),
-                oldType: "decimal(18,10)");
+                oldType: "decimal(22,10)");
         }
     }
 }

@@ -10,6 +10,7 @@ public static class CostingPolicy
     public static decimal BaseUnitCost(DocumentType type, decimal? enteredCostPerUnit, decimal enteredQty, decimal baseQty)
     {
         if (type != DocumentType.Receipt || enteredCostPerUnit is not { } cost || baseQty <= 0) return 0m;
-        return Math.Round(cost * enteredQty / baseQty, Limits.CostDecimals);
+        var perBase = Math.Round(cost * enteredQty / baseQty, Limits.CostDecimals, Limits.CostRounding);
+        return perBase > Limits.MaxCostPerBaseUnit ? throw new DomainException(Messages.CostTooLargeForUnit) : perBase;
     }
 }

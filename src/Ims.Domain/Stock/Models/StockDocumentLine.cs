@@ -19,12 +19,15 @@ public class StockDocumentLine : Entity
     /// <summary>The average cost of the product just before this receipt line posted. Set at posting, only on receipt lines; null before that and for lines posted before it was recorded.</summary>
     [VisibleWith(Permissions.ValuationView)]
     public decimal? AvgCostBefore { get; private set; }
-    /// <summary>The average cost this receipt line produced. A reversal restores <see cref="AvgCostBefore"/> only while the average still equals this.</summary>
+    /// <summary>The average cost this receipt line produced (kept for the audit trail and the repair query; a reversal looks at <see cref="PreviousLineId"/> and the balance's marker, not at this value).</summary>
     [VisibleWith(Permissions.ValuationView)]
     public decimal? AvgCostAfter { get; private set; }
 
+    /// <summary>The line that was the balance's latest stock-in just before this one posted (see <see cref="StockBalance.LastReceiptLineId"/>); null if none or not recorded.</summary>
+    public int? PreviousLineId { get; private set; }
+
     /// <summary>What this line did to the moving average when it posted, if that was recorded.</summary>
-    public AverageCostChange? PostedAverage => AvgCostBefore is { } before && AvgCostAfter is { } after ? new AverageCostChange(before, after) : null;
+    public AverageCostChange? PostedAverage => AvgCostBefore is { } before && AvgCostAfter is { } after ? new AverageCostChange(before, after, PreviousLineId) : null;
 
     public StockDocument Document { get; private set; } = null!;
     public Product Product { get; private set; } = null!;
@@ -38,6 +41,7 @@ public class StockDocumentLine : Entity
     {
         product.EnsureUsableOnDocuments();
         if (qty <= 0) throw new DomainException(Messages.QtyPositive);
+        if (unitCost > Limits.MaxUnitCost) throw new DomainException(Messages.CostTooLarge);
         if (unitCost < 0) throw new DomainException(Messages.CostNegative);
 
         var uom = uomId ?? product.BaseUomId;
@@ -60,9 +64,10 @@ public class StockDocumentLine : Entity
     internal void BookIssueCost(decimal averageCost) => UnitCost = averageCost;
 
     /// <summary>Remembers what posting this receipt line did to the moving average, so reversing it can put the average back.</summary>
-    internal void RecordAverageChange(decimal before, decimal after)
+    internal void RecordAverageChange(decimal before, decimal after, int? previousLineId)
     {
         AvgCostBefore = before;
         AvgCostAfter = after;
+        PreviousLineId = previousLineId;
     }
 }

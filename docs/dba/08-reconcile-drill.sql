@@ -18,7 +18,7 @@ PRINT CONCAT('1. verify SUM(ledger) vs balance: ', @n, ' mismatches, ', DATEDIFF
 
 SET @t0 = SYSDATETIME();
 SELECT ProductId, WarehouseId, SUM(QtyDelta) AS QtyOnHand,
-       CAST(ISNULL(SUM(CASE WHEN QtyDelta > 0 THEN QtyDelta * UnitCost END) / NULLIF(SUM(CASE WHEN QtyDelta > 0 THEN QtyDelta END), 0), 0) AS decimal(18, 6)) AS AvgCost
+       CAST(ISNULL(SUM(CASE WHEN QtyDelta > 0 THEN QtyDelta * UnitCost END) / NULLIF(SUM(CASE WHEN QtyDelta > 0 THEN QtyDelta END), 0), 0) AS decimal(22, 10)) AS AvgCost
 INTO #rebuilt FROM dbo.StockLedgerEntry GROUP BY ProductId, WarehouseId;
 SELECT @n = COUNT(*) FROM #rebuilt;
 PRINT CONCAT('2. rebuild into temp table: ', @n, ' balance rows, ', DATEDIFF(MILLISECOND, @t0, SYSDATETIME()), ' ms');

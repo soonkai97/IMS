@@ -189,7 +189,7 @@ END
 
 INSERT StockBalance (ProductId, WarehouseId, QtyOnHand, QtyInTransit, AvgCost)
 SELECT ProductId, WarehouseId, SUM(QtyDelta), 0,
-       CAST(ISNULL(SUM(CASE WHEN QtyDelta > 0 THEN QtyDelta * UnitCost END) / NULLIF(SUM(CASE WHEN QtyDelta > 0 THEN QtyDelta END), 0), 0) AS decimal(18, 6))
+       CAST(ISNULL(SUM(CASE WHEN QtyDelta > 0 THEN QtyDelta * UnitCost END) / NULLIF(SUM(CASE WHEN QtyDelta > 0 THEN QtyDelta END), 0), 0) AS decimal(22, 10))
 FROM StockLedgerEntry GROUP BY ProductId, WarehouseId;
 
 INSERT DocumentSequence (Prefix, YearMonth, WarehouseId, LastNumber)
