@@ -202,9 +202,9 @@ describe('DocumentEditorPageComponent', () => {
     spectator.detectChanges();
   }
 
-  async function openNew(): Promise<void> {
+  async function openNew(type = DocumentType.Issue): Promise<void> {
     opened.set(undefined);
-    spectator = createComponent({ props: { type: DocumentType.Issue, id: 'new' } as never });
+    spectator = createComponent({ props: { type, id: 'new' } as never });
     spectator.detectChanges();
     await spectator.fixture.whenStable();
     spectator.detectChanges();
@@ -468,6 +468,31 @@ describe('DocumentEditorPageComponent', () => {
       spectator.component.onRemoveLine(0);
       confirm().confirm('');
       expect(spectator.component.view.lines.length).toBe(0);
+    });
+
+    it('NR-09: the remove dialog says "cost" only on a receipt and only with cost.view', async () => {
+      const removeBody = (): string => {
+        spectator.component.onRemoveLine(0);
+        const body = confirm().$pending()?.request.body ?? '';
+        confirm().cancel();
+        return body;
+      };
+      await openNew(DocumentType.Receipt);
+      spectator.component.onProductPicked({ product: WIDGET, available: 10 });
+      spectator.component.view.lines.at(0).controls.qty.setValue(7);
+
+      const staff = removeBody();
+      granted.add(PERMISSION.CostView);
+      const clerk = removeBody();
+
+      await openNew();
+      spectator.component.onProductPicked({ product: WIDGET, available: 10 });
+      spectator.component.view.lines.at(0).controls.qty.setValue(7);
+      const issue = removeBody();
+
+      expect(staff).toBe('Its quantity will be lost.');
+      expect(clerk).toBe('Its quantity and cost will be lost.');
+      expect(issue).toBe('Its quantity will be lost.');
     });
 
     it('NV-18: a line nobody changed goes at once', async () => {

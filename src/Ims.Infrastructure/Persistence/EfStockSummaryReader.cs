@@ -15,7 +15,7 @@ public sealed class EfStockSummaryReader(AppDbContext db) : IStockSummaryReader
         // positive quantity somewhere in the caller's warehouses.
         var row = await balances.GroupBy(_ => 1).Select(g => new
         {
-            Value = g.Sum(b => b.QtyOnHand * b.AvgCost),
+            Value = g.Sum(b => Math.Round(b.QtyOnHand * b.AvgCost, Money.Decimals)),
             Skus = g.Where(b => b.QtyOnHand > 0).Select(b => b.ProductId).Distinct().Count()
         }).FirstOrDefaultAsync(ct);
 

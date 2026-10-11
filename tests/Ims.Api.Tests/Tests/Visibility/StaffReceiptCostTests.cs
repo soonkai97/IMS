@@ -25,7 +25,7 @@ public class StaffReceiptCostTests(ApiFixture fixture)
         await s.CompleteAsync(await s.SubmitAsync(s.Staff, draft));
 
         var line = Assert.Single((await s.GetAsync(draft.Id)).Lines);
-        Assert.Equal(4m, line.UnitCost);                               // the cost in the request is ignored
+        Assert.Equal((null, 4m, true), (line.UnitCost, line.BaseUnitCost, line.CostFromAverage)); // the cost in the request is ignored; the line is at the average
         Assert.Equal(15m, await s.OnHandAsync(product.Id, Warehouse));
         Assert.Equal(4m, (await s.BalanceAsync(product.Id, Warehouse))!.AvgCost);
         Assert.Null(Assert.Single(draft.Lines).UnitCost);              // and the staff never see it
@@ -40,7 +40,7 @@ public class StaffReceiptCostTests(ApiFixture fixture)
         var draft = await s.DraftReceiptAsync(s.Staff, Warehouse, new Line(product.Id, 5));
 
         var line = Assert.Single((await s.GetAsync(draft.Id)).Lines);
-        Assert.Equal(0m, line.UnitCost);
+        Assert.Equal((null, 0m), (line.UnitCost, line.BaseUnitCost));
         Assert.Equal(0m, (await s.GetAsync(draft.Id)).TotalAmount);
     }
 
@@ -56,7 +56,7 @@ public class StaffReceiptCostTests(ApiFixture fixture)
         (await s.Staff.Documents.UpdateAsync(draft.Id, request)).ShouldBeOk();
 
         var edited = await s.GetAsync(draft.Id);
-        Assert.Equal(4m, Assert.Single(edited.Lines).UnitCost);
+        Assert.Equal(4m, Assert.Single(edited.Lines).BaseUnitCost);
         Assert.Equal(24m, edited.TotalAmount);
     }
 }

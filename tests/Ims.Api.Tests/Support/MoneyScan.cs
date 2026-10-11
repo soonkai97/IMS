@@ -13,8 +13,8 @@ public static partial class MoneyScan
     [GeneratedRegex("cost|amount|price|worth|valu|threshold|actual", RegexOptions.IgnoreCase)]
     private static partial Regex Looks();
 
-    /// <summary>Names that match but are not money.</summary>
-    private static readonly HashSet<string> NotMoney = new(StringComparer.OrdinalIgnoreCase) { "amountIsEstimate", "qtyThreshold" };
+    /// <summary>Names that match but are not money (costFromAverage is a yes/no flag on a document line, visible to every role).</summary>
+    private static readonly HashSet<string> NotMoney = new(StringComparer.OrdinalIgnoreCase) { "amountIsEstimate", "qtyThreshold", "costFromAverage" };
 
     public static bool IsMoneyName(string name) => Looks().IsMatch(name) && !NotMoney.Contains(name);
 
@@ -28,6 +28,45 @@ public static partial class MoneyScan
     }
 
     public static SortedSet<string> InJson(Harness.ApiResponse response) => InJson(response.Body);
+
+    /// <summary>
+    /// Every money field of the JSON whose number has a fraction of a cent ("unitCost=10.005"). Trailing zeros are not a fraction (10.0100 is fine), and the audit
+    /// log's before/after text is looked into. A quantity or a count is not money and is never listed.
+    /// </summary>
+    public static List<string> SubCentValues(string json)
+    {
+        var found = new List<string>();
+        using var document = JsonDocument.Parse(json);
+        FindSubCent(document.RootElement, found);
+        return found;
+    }
+
+    /// <summary>The fields that are unit prices (a derived cost per base unit): 4 decimals. The JSON name <c>unitCost</c> is shared with the entered cost of a document line (2 decimals), which other tests pin.</summary>
+    private static readonly HashSet<string> UnitPriceNames = new(StringComparer.OrdinalIgnoreCase) { "avgCost", "unitCost", "baseUnitCost" };
+
+    private static void FindSubCent(JsonElement element, List<string> found)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                // The numbers of a quantity rule (threshold, actual) are quantities, not money.
+                var isQuantityTrigger = element.TryGetProperty("metric", out var metric) && metric.ValueKind == JsonValueKind.String && metric.GetString() == "Quantity";
+                foreach (var property in element.EnumerateObject())
+                {
+                    if (isQuantityTrigger && property.Name is "threshold" or "actual") continue;
+                    var places = UnitPriceNames.Contains(property.Name) ? 4 : 2;
+                    var isPayload = property.Name is "before" or "after" && property.Value.ValueKind == JsonValueKind.String;
+                    if (isPayload && TryParse(property.Value.GetString()) is { } embedded) FindSubCent(embedded, found);
+                    else if (property.Value.ValueKind == JsonValueKind.Number && IsMoneyName(property.Name) && property.Value.TryGetDecimal(out var number) && Math.Round(number, places) != number)
+                        found.Add($"{property.Name}={property.Value.GetRawText()}");
+                    else FindSubCent(property.Value, found);
+                }
+                break;
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray()) FindSubCent(item, found);
+                break;
+        }
+    }
 
     /// <summary>The header cells of a workbook that name money.</summary>
     public static SortedSet<string> InWorkbook(byte[] bytes) =>

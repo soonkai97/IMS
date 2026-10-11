@@ -25,6 +25,7 @@ public class ApprovalRule : Entity
     {
         if (amountThreshold is null && qtyThreshold is null) throw new DomainException(Messages.ThresholdRequired);
         if (amountThreshold < 0 || qtyThreshold < 0) throw new DomainException(Messages.ThresholdNegative);
+        if (amountThreshold is { } amount && !Money.IsExact(amount)) throw new DomainException(Messages.AmountTooPrecise);
         if (!Roles.All.Contains(roleRequired)) throw new DomainException(Messages.UnknownRole);
 
         DocType = docType;

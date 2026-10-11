@@ -15,7 +15,7 @@ public class UpdateDocumentHandler(IRepository<StockDocument> documents, IReadRe
 
         var partner = await CreateDocumentHandler.LoadPartnerAsync(partners, cmd.Data.PartnerId, ct);
         doc.UpdateHeader(partner, cmd.Data.Purpose, cmd.Data.Remark);
-        doc.ReplaceLines(await lineBuilder.BuildAsync(doc.Type, cmd.Data.Lines, ct));
+        doc.ReplaceLines(await lineBuilder.BuildAsync(doc.Type, cmd.Data.Lines, ct, existing: doc.Lines.ToList()));
         await valuation.EstimateAsync(doc, ct);
         await receiptCosts.ApplyAsync(doc, ct);
 

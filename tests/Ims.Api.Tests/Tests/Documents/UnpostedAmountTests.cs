@@ -30,7 +30,7 @@ public class UnpostedAmountTests(ApiFixture fixture)
 
         Assert.Equal(2500m, draft.TotalAmount);
         Assert.True(draft.AmountIsEstimate);
-        Assert.All(draft.Lines, l => Assert.Equal(2.5m, l.UnitCost));
+        Assert.All(draft.Lines, l => Assert.Equal((null, 2.5m, true), (l.UnitCost, l.BaseUnitCost, l.CostFromAverage))); // at the average: no editable cost
         var listed = (await s.Clerk.Documents.ListAsync(search: draft.No)).Data<PagedResult<DocumentListItem>>().Items.Single();
         Assert.Equal(2500m, listed.TotalAmount);
         Assert.True(listed.AmountIsEstimate);

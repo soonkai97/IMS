@@ -11,5 +11,5 @@ namespace Ims.Application.Features.Reports;
 /// <param name="Amount">Base quantity times unit cost. Null for a caller without <c>cost.view</c>.</param>
 public record MovementRow(DateTime PostedAt, string DocNo, DocumentType Type, DocumentStatus Status, string WarehouseCode, string? Partner,
     string Sku, string ProductName, decimal Qty, string UomCode, decimal BaseQty, decimal StockEffect,
-    [property: VisibleWith(Permissions.CostView)] decimal? UnitCost, [property: VisibleWith(Permissions.CostView)] decimal? Amount,
+    [property: VisibleWith(Permissions.CostView, UnitPrice = true)] decimal? UnitCost, [property: VisibleWith(Permissions.CostView)] decimal? Amount,
     bool IsReversal);
