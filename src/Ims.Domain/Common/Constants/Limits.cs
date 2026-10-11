@@ -85,6 +85,8 @@ public static class Limits
     public const int MaxOffsetRows = 10_000;
     public const int MaxDocumentLines = 500;
     public const decimal MaxQuantity = 1_000_000_000m;
+    /// <summary>The largest amount of one document line (it is stored as <c>decimal(18,2)</c>): just under 1e15. Above it the request is a 400, never a database overflow.</summary>
+    public const decimal MaxLineAmount = 999_999_999_999_999m;
     public const int QuantityScale = 4;
     public const int QuantityPrecision = 18;
     public const int SearchMaxLength = 100;

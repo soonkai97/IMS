@@ -23,11 +23,34 @@ public class MoneyTests
         Assert.Equal(decimal.Parse(expected, System.Globalization.CultureInfo.InvariantCulture), rounded);
     }
 
-    [Fact]
-    public void TheRoundingMode_IsAwayFromZero_AndOnlyHere()
+    [Theory]
+    [InlineData("0.003", "0.0030")]        // a carton of 1,000 at 3.00: three tenths of a cent a piece, not 0.00
+    [InlineData("0.00304", "0.0030")]
+    [InlineData("0.00305", "0.0031")]      // the boundary at 4 places goes away from zero
+    [InlineData("-0.00305", "-0.0031")]
+    [InlineData("3.33333333", "3.3333")]
+    [InlineData("12", "12.0000")]
+    public void AUnitPrice_IsShownWithFourDecimals_HalfAwayFromZero(string value, string expected)
     {
-        Assert.Equal(MidpointRounding.AwayFromZero, Money.Rounding);
-        Assert.Equal(2, Money.Decimals);
+        var rounded = Money.RoundUnitPrice(decimal.Parse(value, System.Globalization.CultureInfo.InvariantCulture));
+
+        Assert.Equal(decimal.Parse(expected, System.Globalization.CultureInfo.InvariantCulture), rounded);
+    }
+
+    [Fact]
+    public void TheAmountOfAThousandPiecesAtTheShownUnitPrice_IsStillTheRightAmount()
+    {
+        Assert.Equal(3.00m, Money.Amount(1000m, Money.RoundUnitPrice(0.003m)));
+    }
+
+    [Theory]
+    [InlineData("-10.005", "-10.01")]  // negative stock at an average of 10.005: -1 piece is worth -10.01, as +1 is worth 10.01
+    [InlineData("-0.004", "0.00")]
+    public void ANegativeValue_IsRoundedAwayFromZeroToo(string value, string expected)
+    {
+        var rounded = Money.Round(decimal.Parse(value, System.Globalization.CultureInfo.InvariantCulture));
+
+        Assert.Equal(decimal.Parse(expected, System.Globalization.CultureInfo.InvariantCulture), rounded);
     }
 
     [Theory]

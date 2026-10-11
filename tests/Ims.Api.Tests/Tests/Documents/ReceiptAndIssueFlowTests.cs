@@ -99,7 +99,7 @@ public class ReceiptAndIssueFlowTests(ApiFixture fixture)
         var receipt = await s.ReceiveAsync(Warehouse, new Line(product.Id, 2, UnitCost: 120m, UomId: fixture.Reference.CartonUnitId));
 
         var line = Assert.Single(receipt.Lines);
-        Assert.Equal((2m, fixture.Reference.CartonUnitId, 24m, 10m), (line.Qty, line.UomId, line.BaseQty, line.UnitCost));
+        Assert.Equal((2m, fixture.Reference.CartonUnitId, 24m, 120m, 10m, 240m), (line.Qty, line.UomId, line.BaseQty, line.UnitCost, line.BaseUnitCost, line.Amount)); // per carton, per piece, the line
         Assert.Equal(24, await s.OnHandAsync(product.Id, Warehouse));
 
         await s.IssueAsync(Warehouse, new Line(product.Id, 1, UomId: fixture.Reference.CartonUnitId));

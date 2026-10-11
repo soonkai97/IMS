@@ -8,13 +8,13 @@ public class ReportWriterTests
     private sealed class Recorder : IExcelWriter
     {
         public string[] Headers { get; private set; } = [];
-        public IReadOnlyList<bool> MoneyColumns { get; private set; } = [];
+        public IReadOnlyList<int?> DecimalPlaces { get; private set; } = [];
         public List<object?[]> Rows { get; } = [];
 
-        public byte[] Write(string sheetName, string[] headers, IReadOnlyList<bool> moneyColumns, IEnumerable<object?[]> rows)
+        public byte[] Write(string sheetName, string[] headers, IReadOnlyList<int?> decimalPlaces, IEnumerable<object?[]> rows)
         {
             Headers = headers;
-            MoneyColumns = moneyColumns;
+            DecimalPlaces = decimalPlaces;
             Rows.AddRange(rows);
             return [];
         }
@@ -44,11 +44,11 @@ public class ReportWriterTests
     }
 
     [Fact]
-    public void TheMoneyFlagFollowsTheColumnsThatAreKept()
+    public void TheDecimalPlacesFollowTheColumnsThatAreKept_MoneyTwoAndAUnitPriceFour()
     {
-        Assert.Equal([false, false], Write().MoneyColumns);
-        Assert.Equal([false, false, true], Write(Permissions.CostView).MoneyColumns);
-        Assert.Equal([false, false, true, true], Write(Permissions.CostView, Permissions.ValuationView).MoneyColumns);
+        Assert.Equal(new int?[] { null, null }, Write().DecimalPlaces);
+        Assert.Equal(new int?[] { null, null, 4 }, Write(Permissions.CostView).DecimalPlaces);   // "Unit cost" is a unit price
+        Assert.Equal(new int?[] { null, null, 4, 2 }, Write(Permissions.CostView, Permissions.ValuationView).DecimalPlaces); // "Value" is money
     }
 
     [Fact]

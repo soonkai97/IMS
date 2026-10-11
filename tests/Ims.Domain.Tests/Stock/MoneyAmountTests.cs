@@ -110,6 +110,83 @@ public class MoneyAmountTests
         Assert.False(rule.Matches(DocumentType.Issue, doc.TotalQty, doc.TotalAmount));
     }
 
+    // ----- the amount is stored, computed once from the entered quantity and cost, with no division through the base unit -----
+    [Theory]
+    [InlineData("100000", "10.00", 7, "1000000.00")]       // per base 1.428571: rebuilt from it the line was 999,999.70
+    [InlineData("50000", "12.34", 144, "617000.00")]       // rebuilt: 616,996.80
+    [InlineData("1000000000", "1.00", 3, "1000000000.00")] // at the quantity limit, even 10 decimals drift (999,999,999.90)
+    [InlineData("1000", "3.00", 1000, "3000.00")]
+    public void ALineInACarton_HasTheAmountOfItsEnteredQuantityTimesTheEnteredCost(string cartons, string cost, int factor, string expected)
+    {
+        var product = NewProduct(cartonFactor: factor);
+
+        var line = StockDocumentLine.Create(product, DocumentType.Receipt, D(cartons), CartonId, D(cost), null);
+
+        Assert.Equal(D(expected), line.Amount);
+        Assert.Equal(D(cost), line.EnteredUnitCost);          // read back as typed: saving the draft again does not re-price it
+        Assert.Equal(D(cartons) * factor, line.BaseQty);
+    }
+
+    [Theory]
+    [InlineData("0.0001", "49.99", "0.00")]   // 0.004999
+    [InlineData("0.5555", "0.01", "0.01")]    // 0.005555
+    [InlineData("33.3333", "0.03", "1.00")]   // 0.999999
+    [InlineData("0.5", "0.01", "0.01")]       // 0.005, the boundary
+    [InlineData("0.4999", "0.01", "0.00")]
+    public void AFourDecimalQuantityTimesACost_IsRoundedOnceToACent(string qty, string cost, string expected)
+    {
+        var line = StockDocumentLine.Create(P(1), DocumentType.Receipt, D(qty), null, D(cost), null);
+
+        Assert.Equal(D(expected), line.Amount);
+    }
+
+    [Fact]
+    public void ACartonOfAThousandPieces_AtThree_CostsThreeTenthsOfACentAPiece_AndTheAmountsStayCorrect()
+    {
+        var product = NewProduct(cartonFactor: 1000);
+
+        var line = StockDocumentLine.Create(product, DocumentType.Receipt, 1m, CartonId, 3.00m, null);
+
+        Assert.Equal(0.003m, line.UnitCost);                    // per base unit: a unit price, shown with 4 decimals as 0.0030
+        Assert.Equal(0.0030m, Money.RoundUnitPrice(line.UnitCost));
+        Assert.Equal(3.00m, line.Amount);
+        Assert.Equal(3.00m, Money.Amount(line.BaseQty, line.UnitCost)); // the stock value of 1,000 pieces at 0.0030
+    }
+
+    [Fact]
+    public void ALineValuedAtTheAverage_TakesItsAmountFromTheBaseQuantity_AndShowsTheCostPerEnteredUnit()
+    {
+        var product = NewProduct(cartonFactor: 12);
+        var line = StockDocumentLine.Create(product, DocumentType.Issue, 2m, CartonId, null, null); // 2 cartons = 24 pieces
+        var doc = NewIssue(2, (product, 1m));
+        doc.ReplaceLines([line]);
+
+        doc.EstimateIssueCosts(new Dictionary<int, decimal> { [product.Id] = 1.255m });
+
+        Assert.Equal(30.12m, line.Amount);          // 24 x 1.255 = 30.12
+        Assert.Equal(15.06m, line.EnteredUnitCost); // 1.255 x 12 per carton
+        Assert.Equal(1.255m, line.UnitCost);
+    }
+
+    [Fact]
+    public void ALineAboveTheLargestAmount_IsADomainError_NotADatabaseOverflow()
+    {
+        var ex = Assert.Throws<DomainException>(() => StockDocumentLine.Create(P(1), DocumentType.Receipt, 1_000_000_000m, null, 1_000_000m, null)); // 1e15
+
+        Assert.Equal(Messages.LineAmountTooLarge, ex.Message);
+    }
+
+    [Fact]
+    public void ASubCentCostOnAnIssue_IsNotJudged_BecauseItIsNotUsed()
+    {
+        var line = StockDocumentLine.Create(P(1), DocumentType.Issue, 1m, null, 1.234m, null);
+
+        Assert.Equal(0m, line.UnitCost);
+        Assert.Equal(0m, line.EnteredUnitCost);
+    }
+
+    private static decimal D(string text) => decimal.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
+
     // ----- approval thresholds -----
     [Theory]
     [InlineData("100.005")]

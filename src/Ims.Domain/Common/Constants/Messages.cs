@@ -83,6 +83,7 @@ public static class Messages
     public static string NumberAlreadyAssigned(string no) => $"Document number {no} is already assigned and cannot change.";
     public const string ThresholdNegative = "Thresholds cannot be negative.";
     public const string AmountTooPrecise = "An amount can have at most 2 decimal places.";
+    public const string LineAmountTooLarge = "The amount of a line cannot be more than 999,999,999,999,999.";
     public const string ThresholdRequired = "Set an amount threshold, a quantity threshold, or both.";
 
     // ----- Documents -----

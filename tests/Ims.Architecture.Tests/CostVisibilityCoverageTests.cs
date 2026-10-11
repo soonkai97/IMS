@@ -61,6 +61,17 @@ public partial class CostVisibilityCoverageTests
             Assert.Contains(expected, tagged);
     }
 
+    [Fact]
+    public void TheUnitPrices_AreTheDerivedCostPerBaseUnit_AndEverythingElseTaggedIsMoney()
+    {
+        var unitPrices = ResponseProperties()
+            .Where(p => p.GetCustomAttribute<VisibleWithAttribute>() is { UnitPrice: true })
+            .Select(p => $"{p.DeclaringType!.Name}.{p.Name}").Order().ToList();
+
+        // Not the entered cost (DocumentLineDto.UnitCost is money, per entered unit), not an amount, a value or a threshold.
+        Assert.Equal(["DocumentLineDto.BaseUnitCost", "LedgerRow.UnitCost", "MovementRow.UnitCost", "StockRow.AvgCost"], unitPrices);
+    }
+
     // ----- audit log -----
     [Fact]
     public void TheAuditLogPayloads_AreScrubbed()
@@ -120,6 +131,33 @@ public partial class CostVisibilityCoverageTests
             .Select(x => $"{x.Name}: \"{x.Column.Header}\"");
 
         Verify.NoOffenders(offenders, "An export or template column that looks like cost or value must name a permission (ReportColumn.VisibleWith):");
+    }
+
+    [Fact]
+    public void AMoneyColumn_IsTheSameSetOfColumnsAsTheOnesGatedByAPermission()
+    {
+        // The writer rounds and formats the money columns; the cost rule hides the gated ones. They must be the same columns, or a cost would be formatted as a
+        // plain number (or a quantity as money).
+        var offenders = ColumnSets()
+            .SelectMany(set => set.Columns.Select(c => (set.Name, Column: c)))
+            .Where(x => x.Column.IsMoney != (x.Column.VisibleWith is not null))
+            .Select(x => $"{x.Name}: \"{x.Column.Header}\" (money: {x.Column.IsMoney}, gated: {x.Column.VisibleWith is not null})");
+
+        Verify.NoOffenders(offenders, "A column that holds money must be gated by cost.view or valuation.view, and every gated column holds money (ReportColumn.MoneyColumn):");
+    }
+
+    [Fact]
+    public void EveryUnitPriceHeader_IsAGatedColumnOfSomeExport_AndEveryOtherCostColumnIsMoney()
+    {
+        var columns = ColumnSets().SelectMany(set => set.Columns).ToList();
+
+        foreach (var header in ReportColumn.UnitPriceHeaders)
+        {
+            var named = columns.Where(c => c.Header == header).ToList();
+            Assert.NotEmpty(named);                                           // a renamed column must not silently fall back to 2 decimals
+            Assert.All(named, c => { Assert.NotNull(c.VisibleWith); Assert.Equal(4, c.DecimalPlaces); });
+        }
+        Assert.All(columns.Where(c => c.IsMoney && !ReportColumn.UnitPriceHeaders.Contains(c.Header)), c => Assert.Equal(2, c.DecimalPlaces));
     }
 
     [Fact]

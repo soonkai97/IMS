@@ -140,6 +140,31 @@ public class ResponseShaperTests
         Assert.Equal((26.13m, -0.01m), (doc.Total, doc.Worth));
     }
 
+    private record Price([property: VisibleWith(Permissions.CostView, UnitPrice = true)] decimal? PerBase, [property: VisibleWith(Permissions.CostView)] decimal? Amount);
+
+    [Fact]
+    public void AUnitPrice_IsRoundedToFourDecimals_WhileAnAmountNextToItStaysAtTwo()
+    {
+        var price = new Price(0.0030004m, 3.004m);
+        var big = new Price(3.33333333m, 1000.005m);
+
+        ResponseShaper.Shape(new[] { price, big }, Everything);
+
+        Assert.Equal((0.0030m, 3.00m), (price.PerBase, price.Amount));
+        Assert.Equal((3.3333m, 1000.01m), (big.PerBase, big.Amount));
+    }
+
+    [Fact]
+    public void AUnitPrice_IsStillWithheldWithoutThePermission()
+    {
+        var price = new Price(0.003m, 3m);
+
+        ResponseShaper.Shape(price, Nothing);
+
+        Assert.Null(price.PerBase);
+        Assert.Null(price.Amount);
+    }
+
     [Fact]
     public void ANumberThatIsNotMoney_IsLeftAlone()
     {

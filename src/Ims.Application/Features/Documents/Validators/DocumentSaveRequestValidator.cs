@@ -18,7 +18,6 @@ public class DocumentSaveRequestValidator : AbstractValidator<DocumentSaveReques
                 .LessThanOrEqualTo(Limits.MaxQuantity).WithMessage(Messages.QtyTooLarge)
                 .PrecisionScale(Limits.QuantityPrecision, Limits.QuantityScale, ignoreTrailingZeros: true).WithMessage(Messages.QtyTooLarge);
             line.RuleFor(l => l.UnitCost).GreaterThanOrEqualTo(0).When(l => l.UnitCost is not null).WithMessage(Messages.CostNegative);
-            line.RuleFor(l => l.UnitCost).Must(c => Money.IsExact(c!.Value)).When(l => l.UnitCost is not null).WithMessage(Messages.CostTooPrecise);
             line.RuleFor(l => l.Remark).MaximumLength(Limits.RemarkMaxLength);
         });
     }

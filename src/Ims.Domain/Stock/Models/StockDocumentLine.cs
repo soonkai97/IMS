@@ -11,7 +11,10 @@ public class StockDocumentLine : Entity
     public int UomId { get; private set; }
     /// <summary>Quantity converted to the product's base unit (BR-04). The ledger always uses this.</summary>
     public decimal BaseQty { get; private set; }
-    /// <summary>Per base unit. Receipts: purchase cost. Issues: filled with the average cost at posting.</summary>
+    /// <summary>
+    /// Per BASE unit, with more places than money (an internal number: a carton price spread over 12 pieces). Receipts: purchase cost. Issues: filled with the average
+    /// cost at posting. It values stock; it does not make the line amount (see <see cref="Amount"/>).
+    /// </summary>
     [VisibleWith(Permissions.CostView)]
     public decimal UnitCost { get; private set; }
     public string? Remark { get; private set; }
@@ -20,37 +23,64 @@ public class StockDocumentLine : Entity
     public Product Product { get; private set; } = null!;
     public Uom Uom { get; private set; } = null!;
 
-    /// <summary>Value of the line: base quantity x cost per base unit, rounded to a cent (<see cref="Money.Rounding"/>). A document total is the sum of these, not a rounded sum.</summary>
+    /// <summary>
+    /// The cost per ENTERED unit, in money (2 decimals): what the person typed for a receipt (1 carton at 10.00 is 10.00, whatever the carton holds), and for a line
+    /// that took the average (an issue, a staff receipt) the average expressed per entered unit. Reading a draft and saving it again sends this value back, so a
+    /// line in a non-base unit is never re-priced.
+    /// </summary>
     [VisibleWith(Permissions.CostView)]
-    public decimal Amount => Money.Amount(BaseQty, UnitCost);
+    public decimal EnteredUnitCost { get; private set; }
 
     /// <summary>
-    /// Builds a line: the product must be usable, quantities convert to the base unit, and the entered cost
-    /// (per entered unit) becomes a cost per base unit.
+    /// The value of the line in money, STORED: for a receipt <c>round(entered quantity x entered unit cost, 2)</c> with no division in between (100,000 cartons at 10.00
+    /// are 1,000,000.00 whatever the carton holds); for a line valued at the average <c>round(base quantity x average, 2)</c>. Rounded half away from zero
+    /// (<see cref="Money.Rounding"/>). A document total is the sum of these.
+    /// </summary>
+    [VisibleWith(Permissions.CostView)]
+    public decimal Amount { get; private set; }
+
+    /// <summary>
+    /// Builds a line: the product must be usable, quantities convert to the base unit, the entered cost (per entered unit, at most 2 decimals on a receipt) becomes a
+    /// cost per base unit for stock valuation, and the line amount is computed once from the entered quantity and cost.
     /// </summary>
     public static StockDocumentLine Create(Product product, DocumentType documentType, decimal qty, int? uomId, decimal? unitCost, string? remark)
     {
         product.EnsureUsableOnDocuments();
         if (qty <= 0) throw new DomainException(Messages.QtyPositive);
         if (unitCost < 0) throw new DomainException(Messages.CostNegative);
-        if (unitCost is { } entered && !Money.IsExact(entered)) throw new DomainException(Messages.CostTooPrecise);
+        var isReceipt = documentType == DocumentType.Receipt;
+        if (isReceipt && unitCost is { } entered && !Money.IsExact(entered)) throw new DomainException(Messages.CostTooPrecise);
 
         var uom = uomId ?? product.BaseUomId;
         var baseQty = product.ToBaseQuantity(qty, uom);
+        var enteredCost = isReceipt ? unitCost ?? 0m : 0m;
         return new StockDocumentLine
         {
             // Only the key is stored: the product may be a detached read copy, and assigning it as a navigation would make EF insert it again.
             ProductId = product.Id, Qty = qty, UomId = uom, BaseQty = baseQty,
-            UnitCost = CostingPolicy.BaseUnitCost(documentType, unitCost, qty, baseQty), Remark = remark
+            UnitCost = CostingPolicy.BaseUnitCost(documentType, unitCost, qty, baseQty), Remark = remark,
+            EnteredUnitCost = enteredCost, Amount = EnsureAmountFits(Money.Amount(qty, enteredCost))
         };
     }
 
     /// <summary>The current average cost, kept on an unposted issue so its value can be shown and tested against approval rules. Posting replaces it.</summary>
-    internal void EstimateIssueCost(decimal averageCost) => UnitCost = averageCost;
+    internal void EstimateIssueCost(decimal averageCost) => ValueAtAverage(averageCost);
 
     /// <summary>The cost a receipt line takes when whoever saved it may not enter a cost: the last known (average) cost per base unit.</summary>
-    internal void SetKnownCost(decimal costPerBaseUnit) => UnitCost = costPerBaseUnit;
+    internal void SetKnownCost(decimal costPerBaseUnit) => ValueAtAverage(costPerBaseUnit);
 
     /// <summary>Issues are booked at the average cost in force when they post (BR-05).</summary>
-    internal void BookIssueCost(decimal averageCost) => UnitCost = averageCost;
+    internal void BookIssueCost(decimal averageCost) => ValueAtAverage(averageCost);
+
+    /// <summary>The line takes a cost per base unit (the average): the amount is the base quantity times it, and the entered-unit cost is the same cost per entered unit.</summary>
+    private void ValueAtAverage(decimal costPerBaseUnit)
+    {
+        UnitCost = costPerBaseUnit;
+        Amount = EnsureAmountFits(Money.Amount(BaseQty, costPerBaseUnit));
+        EnteredUnitCost = Qty > 0 ? Money.Round(costPerBaseUnit * BaseQty / Qty) : 0m;
+    }
+
+    /// <summary>A line amount is stored as <c>decimal(18,2)</c>: above <see cref="Limits.MaxLineAmount"/> the answer is a 400 with a sentence, never a database overflow.</summary>
+    private static decimal EnsureAmountFits(decimal amount) =>
+        amount > Limits.MaxLineAmount ? throw new DomainException(Messages.LineAmountTooLarge) : amount;
 }

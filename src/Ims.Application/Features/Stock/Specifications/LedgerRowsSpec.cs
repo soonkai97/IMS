@@ -16,7 +16,7 @@ public sealed class LedgerRowsSpec : Specification<StockLedgerEntry, LedgerRow>
             if (f.AfterId is { } after) Query.Where(l => l.Id < after).Take(size);
             else Query.Skip((page - 1) * size).Take(size);
         }
-        Query.Select(l => new LedgerRow(l.Id, l.OccurredAt, l.Product.Sku, l.Product.Name, l.Warehouse.Code, l.Warehouse.Name, l.QtyDelta, Math.Round(l.UnitCost, Money.Decimals),
+        Query.Select(l => new LedgerRow(l.Id, l.OccurredAt, l.Product.Sku, l.Product.Name, l.Warehouse.Code, l.Warehouse.Name, l.QtyDelta, Math.Round(l.UnitCost, Money.UnitPriceDecimals),
             l.Reason, l.SourceDocId, l.SourceDocument.No, l.Creator.Username));
     }
 }

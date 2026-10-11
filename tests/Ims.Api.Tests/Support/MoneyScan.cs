@@ -41,16 +41,23 @@ public static partial class MoneyScan
         return found;
     }
 
+    /// <summary>The fields that are unit prices (a derived cost per base unit): 4 decimals. The JSON name <c>unitCost</c> is shared with the entered cost of a document line (2 decimals), which other tests pin.</summary>
+    private static readonly HashSet<string> UnitPriceNames = new(StringComparer.OrdinalIgnoreCase) { "avgCost", "unitCost", "baseUnitCost" };
+
     private static void FindSubCent(JsonElement element, List<string> found)
     {
         switch (element.ValueKind)
         {
             case JsonValueKind.Object:
+                // The numbers of a quantity rule (threshold, actual) are quantities, not money.
+                var isQuantityTrigger = element.TryGetProperty("metric", out var metric) && metric.ValueKind == JsonValueKind.String && metric.GetString() == "Quantity";
                 foreach (var property in element.EnumerateObject())
                 {
+                    if (isQuantityTrigger && property.Name is "threshold" or "actual") continue;
+                    var places = UnitPriceNames.Contains(property.Name) ? 4 : 2;
                     var isPayload = property.Name is "before" or "after" && property.Value.ValueKind == JsonValueKind.String;
                     if (isPayload && TryParse(property.Value.GetString()) is { } embedded) FindSubCent(embedded, found);
-                    else if (property.Value.ValueKind == JsonValueKind.Number && IsMoneyName(property.Name) && property.Value.TryGetDecimal(out var number) && Math.Round(number, 2) != number)
+                    else if (property.Value.ValueKind == JsonValueKind.Number && IsMoneyName(property.Name) && property.Value.TryGetDecimal(out var number) && Math.Round(number, places) != number)
                         found.Add($"{property.Name}={property.Value.GetRawText()}");
                     else FindSubCent(property.Value, found);
                 }

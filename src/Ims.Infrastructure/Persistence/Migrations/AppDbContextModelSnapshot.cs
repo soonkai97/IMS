@@ -854,11 +854,17 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("BaseQty")
                         .HasColumnType("decimal(18,4)");
 
                     b.Property<int>("DocumentId")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("EnteredUnitCost")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");

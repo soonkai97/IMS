@@ -39,7 +39,6 @@ public class MoneyPrecisionTests(ApiFixture fixture)
         var created = await s.Admin.Documents.CreateReceiptAsync(request);
 
         Assert.Equal(Messages.CostTooPrecise, CostField(created.ShouldBeProblem(HttpStatusCode.BadRequest)));
-        Assert.Equal("Unit cost can have at most 2 decimal places.", Messages.CostTooPrecise);
     }
 
     [Theory]
@@ -136,7 +135,7 @@ public class MoneyPrecisionTests(ApiFixture fixture)
         var amount = sheet.Cell(2, headers.IndexOf("Amount") + 1);
         Assert.Equal(0.02, amount.GetDouble());
         Assert.Equal("#,##0.00", amount.Style.NumberFormat.Format);
-        Assert.Equal("#,##0.00", sheet.Cell(2, headers.IndexOf("Unit cost") + 1).Style.NumberFormat.Format);
+        Assert.Equal("#,##0.0000", sheet.Cell(2, headers.IndexOf("Unit cost") + 1).Style.NumberFormat.Format); // a unit price: 4 decimals
         Assert.NotEqual("#,##0.00", sheet.Cell(2, headers.IndexOf("Qty") + 1).Style.NumberFormat.Format); // a quantity is not money
     }
 
@@ -166,7 +165,7 @@ public class MoneyPrecisionTests(ApiFixture fixture)
         var after = (await s.Admin.Stock.SummaryAsync()).Data<StockSummary>().TotalValue;
 
         Assert.Equal(1m, row.QtyOnHand);
-        Assert.Equal(10.01m, row.AvgCost);   // 10.005 inside, 10.01 shown
+        Assert.Equal(10.005m, row.AvgCost);  // a unit price is shown with 4 decimals
         Assert.Equal(10.01m, row.Value);     // 1 x 10.005 rounded half away from zero (to-even would say 10.00)
         Assert.Equal(10.01m, after - before);
     }
@@ -179,9 +178,9 @@ public class MoneyPrecisionTests(ApiFixture fixture)
         var ledger = await s.LedgerAsync(productId, Warehouse);
         var movements = (await s.Admin.Reports.MovementsAsync(productId)).Data<PagedResult<MovementRow>>().Items;
 
-        Assert.All(ledger.Where(l => l.Reason == LedgerReason.Issue), l => Assert.Equal(10.01m, l.UnitCost));
+        Assert.All(ledger.Where(l => l.Reason == LedgerReason.Issue), l => Assert.Equal(10.005m, l.UnitCost));
         var issue = movements.Single(m => m.Type == DocumentType.Issue);
-        Assert.Equal((10.01m, 10.01m), (issue.UnitCost, issue.Amount));
+        Assert.Equal((10.005m, 10.01m), (issue.UnitCost, issue.Amount)); // the unit price shows 4 decimals, the amount is money
     }
 
     [Theory]
@@ -212,12 +211,231 @@ public class MoneyPrecisionTests(ApiFixture fixture)
         using var workbook = new XLWorkbook(new MemoryStream(export.Bytes));
         var sheet = workbook.Worksheets.First();
         var headers = Enumerable.Range(1, sheet.LastColumnUsed()!.ColumnNumber()).Select(i => sheet.Cell(1, i).GetString()).ToList();
-        foreach (var column in new[] { "Avg cost", "Value" })
+        var average = sheet.Cell(2, headers.IndexOf("Avg cost") + 1);
+        var value = sheet.Cell(2, headers.IndexOf("Value") + 1);
+        Assert.Equal((10.005, "#,##0.0000"), (average.GetDouble(), average.Style.NumberFormat.Format)); // a unit price: 4 decimals
+        Assert.Equal((10.01, "#,##0.00"), (value.GetDouble(), value.Style.NumberFormat.Format));        // money: 2
+    }
+
+    [Fact]
+    public async Task A_negative_stock_value_at_the_half_cent_rounds_away_from_zero_in_sql_and_in_the_summary()
+    {
+        // 2 issued of 1 on hand at an average of 10.005: -1 piece, worth -10.01 as +1 is worth +10.01.
+        var (s, productId) = await OnePieceAtAHalfCentAsync();
+        var before = (await s.Admin.Stock.SummaryAsync()).Data<StockSummary>().TotalValue;
+        await GoBelowZeroAsync(s, new Line(productId, 2));
+
+        var row = (await s.BalanceAsync(productId, Warehouse))!;
+        var after = (await s.Admin.Stock.SummaryAsync()).Data<StockSummary>().TotalValue;
+
+        Assert.Equal((-1m, 10.005m, -10.01m), (row.QtyOnHand, row.AvgCost, row.Value));
+        Assert.Equal(-20.02m, after - before); // from +10.01 to -10.01
+    }
+
+    private async Task GoBelowZeroAsync(StockScenario s, Line line)
+    {
+        await using var _ = await SettingsOverride.ApplyAsync(s.Admin, allowNegativeStock: true, allowSelfApproval: true);
+        var submitted = await s.SubmitAsync(s.Admin, await s.DraftIssueAsync(s.Admin, Warehouse, line));
+        (await s.Admin.Documents.ApproveWithReasonAsync(submitted.Id, "Counted by hand, delivery is late")).ShouldBeOk();
+        (await s.Admin.Documents.PostAsync(submitted.Id)).ShouldBeOk();
+    }
+
+    // ----- a derived cost per base unit is a unit price: 4 decimals, while the amounts stay money -----
+    [Fact]
+    public async Task A_carton_of_a_thousand_at_three_shows_point_zero_zero_three_zero_a_piece_and_the_amounts_stay_right()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync(customize: b => b.WithConversion(fixture.Reference.CartonUnitId, 1000));
+
+        var receipt = await s.ReceiveAsync(Warehouse, new Line(product.Id, 1, 3.00m, fixture.Reference.CartonUnitId));
+
+        var line = Assert.Single(receipt.Lines);
+        Assert.Equal((3.00m, 0.0030m, 3.00m), (line.UnitCost, line.BaseUnitCost, line.Amount)); // per carton, per piece, the line
+        Assert.Equal(3.00m, receipt.TotalAmount);
+        var row = (await s.BalanceAsync(product.Id, Warehouse))!;
+        Assert.Equal((1000m, 0.0030m, 3.00m), (row.QtyOnHand, row.AvgCost, row.Value));
+        var ledger = Assert.Single(await s.LedgerAsync(product.Id, Warehouse));
+        Assert.Equal(0.0030m, ledger.UnitCost);
+        var movement = Assert.Single((await s.Admin.Reports.MovementsAsync(product.Id)).Data<PagedResult<MovementRow>>().Items);
+        Assert.Equal((0.0030m, 3.00m), (movement.UnitCost, movement.Amount));
+
+        var summary = ReadSheet((await s.Owner.Reports.StockSummaryExportAsync(product.Id)).Bytes);
+        Assert.Equal((0.003, "#,##0.0000"), (summary.Cell("Avg cost").GetDouble(), summary.Cell("Avg cost").Style.NumberFormat.Format));
+        Assert.Equal((3.0, "#,##0.00"), (summary.Cell("Value").GetDouble(), summary.Cell("Value").Style.NumberFormat.Format));
+        var movements = ReadSheet((await s.Admin.Reports.MovementsExportAsync(product.Id)).Bytes);
+        Assert.Equal("#,##0.0000", movements.Cell("Unit cost").Style.NumberFormat.Format);
+        Assert.Equal("#,##0.00", movements.Cell("Amount").Style.NumberFormat.Format);
+    }
+
+    /// <summary>The first data row of the first sheet, by header.</summary>
+    private sealed class Sheet(IXLWorksheet sheet, List<string> headers)
+    {
+        public IXLCell Cell(string header) => sheet.Cell(2, headers.IndexOf(header) + 1);
+    }
+
+    private static Sheet ReadSheet(byte[] bytes)
+    {
+        var workbook = new XLWorkbook(new MemoryStream(bytes));
+        var sheet = workbook.Worksheets.First();
+        return new Sheet(sheet, Enumerable.Range(1, sheet.LastColumnUsed()!.ColumnNumber()).Select(i => sheet.Cell(1, i).GetString()).ToList());
+    }
+
+    // ----- review M1: the line amount is stored, computed once, with no division through the base unit -----
+    [Theory]
+    [InlineData(100_000, 10.00, 7, 1_000_000.00)]     // per piece 1.428571: rebuilt from it the line was 999,999.70
+    [InlineData(50_000, 12.34, 144, 617_000.00)]      // rebuilt: 616,996.80
+    [InlineData(1_000_000_000, 1.00, 3, 1_000_000_000.00)]
+    public async Task A_line_in_cartons_is_priced_by_cartons_times_the_carton_price(int cartons, double price, int factor, double expected)
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync(customize: b => b.WithConversion(fixture.Reference.CartonUnitId, factor));
+
+        var draft = await s.DraftReceiptAsync(s.Admin, Warehouse, new Line(product.Id, cartons, (decimal)price, fixture.Reference.CartonUnitId));
+
+        Assert.Equal((decimal)expected, draft.TotalAmount);
+        Assert.Equal((decimal)expected, Assert.Single(draft.Lines).Amount);
+        Assert.Equal((decimal)price, Assert.Single(draft.Lines).UnitCost);
+        var listed = (await s.Admin.Documents.ListAsync(search: draft.No)).Data<PagedResult<DocumentListItem>>().Items.Single();
+        Assert.Equal((decimal)expected, listed.TotalAmount);
+    }
+
+    [Fact]
+    public async Task A_posted_carton_receipt_keeps_its_amount_in_the_movements_report_and_the_export()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync(customize: b => b.WithConversion(fixture.Reference.CartonUnitId, 7));
+        await s.ReceiveAsync(Warehouse, new Line(product.Id, 100_000, 10.00m, fixture.Reference.CartonUnitId));
+
+        var row = Assert.Single((await s.Admin.Reports.MovementsAsync(product.Id)).Data<PagedResult<MovementRow>>().Items);
+        var export = ReadSheet((await s.Admin.Reports.MovementsExportAsync(product.Id)).Bytes);
+
+        Assert.Equal(1_000_000.00m, row.Amount);
+        Assert.Equal(1_000_000.00, export.Cell("Amount").GetDouble());
+        Assert.Equal(1.4286m, row.UnitCost); // per piece, a unit price with 4 decimals
+    }
+
+    // ----- review M3: reading a draft and saving it again does not re-price a line in a carton -----
+    [Fact]
+    public async Task Reading_a_draft_and_saving_it_back_keeps_a_carton_line_as_it_was()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync(customize: b => b.WithConversion(fixture.Reference.CartonUnitId, 3));
+        var draft = await s.DraftReceiptAsync(s.Admin, Warehouse, new Line(product.Id, 1, 10.00m, fixture.Reference.CartonUnitId));
+        var line = Assert.Single(draft.Lines);
+        Assert.Equal((10.00m, 3.3333m, 10.00m), (line.UnitCost, line.BaseUnitCost, line.Amount));
+
+        // What an editor does: take the line as it was read and send it back.
+        var request = new DocumentBuilder(Warehouse).WithPartner(s.Reference.SupplierId).WithLines(new Line(product.Id, line.Qty, line.UnitCost, line.UomId)).Build();
+        var saved = (await s.Admin.Documents.UpdateAsync(draft.Id, request, draft.ConcurrencyToken)).Data<DocumentDto>();
+        var again = (await s.Admin.Documents.GetAsync(draft.Id)).Data<DocumentDto>();
+
+        foreach (var document in new[] { saved, again })
         {
-            var cell = sheet.Cell(2, headers.IndexOf(column) + 1);
-            Assert.Equal(10.01, cell.GetDouble());
-            Assert.Equal("#,##0.00", cell.Style.NumberFormat.Format);
+            var kept = Assert.Single(document.Lines);
+            Assert.Equal((10.00m, 3.3333m, 10.00m), (kept.UnitCost, kept.BaseUnitCost, kept.Amount));
+            Assert.Equal(10.00m, document.TotalAmount);
         }
+    }
+
+    [Fact]
+    public async Task An_issue_line_in_cartons_shows_the_average_per_carton_and_per_piece()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync(customize: b => b.WithConversion(fixture.Reference.CartonUnitId, 12));
+        await s.ReceiveAsync(Warehouse, new Line(product.Id, 120, 2.5m));
+
+        var draft = await s.DraftIssueAsync(s.Admin, Warehouse, new Line(product.Id, 2, null, fixture.Reference.CartonUnitId));
+
+        var line = Assert.Single(draft.Lines);
+        Assert.Equal((30.00m, 2.5m, 60.00m), (line.UnitCost, line.BaseUnitCost, line.Amount)); // 2 cartons of 12 pieces at 2.50
+        Assert.Equal(60.00m, draft.TotalAmount);
+    }
+
+    // ----- review m1..m3: where a cost is judged, how an import cell is read -----
+    [Fact]
+    public async Task A_sub_cent_cost_is_judged_only_where_it_is_used()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        await s.ReceiveAsync(Warehouse, new Line(product.Id, 10, 4m));
+
+        var issue = await s.Admin.Documents.CreateIssueAsync(new DocumentBuilder(Warehouse).WithPartner(s.Reference.CustomerId)
+            .WithLines(new Line(product.Id, 1, 1.234m)).Build());                                       // an issue takes the average: the cost is not used
+        var staff = await s.Staff.Documents.CreateReceiptAsync(new DocumentBuilder(Warehouse).WithPartner(s.Reference.SupplierId)
+            .WithLines(new Line(product.Id, 1, 1.234m)).Build());                                       // the Warehouse staff do not enter cost: ignored
+        var clerk = await s.Clerk.Documents.CreateReceiptAsync(new DocumentBuilder(Warehouse).WithPartner(s.Reference.SupplierId)
+            .WithLines(new Line(product.Id, 1, 1.234m)).Build());                                       // the Clerk's cost is used
+
+        issue.ShouldBeOk();
+        staff.ShouldBeOk();
+        Assert.Equal(Messages.CostTooPrecise, CostField(clerk.ShouldBeProblem(HttpStatusCode.BadRequest)));
+    }
+
+    [Fact]
+    public async Task Every_line_with_a_sub_cent_cost_is_named_not_only_the_first()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var request = new DocumentBuilder(Warehouse).WithPartner(s.Reference.SupplierId)
+            .WithLines(new Line(product.Id, 1, 1.234m), new Line(product.Id, 1, 2.00m), new Line(product.Id, 1, 3.456m)).Build();
+
+        var created = (await s.Admin.Documents.CreateReceiptAsync(request)).ShouldBeProblem(HttpStatusCode.BadRequest);
+
+        Assert.Equal(["Data.Lines[0].UnitCost", "Data.Lines[2].UnitCost"], created.Errors!.Keys.Order());
+    }
+
+    [Fact]
+    public async Task A_negative_sub_cent_cost_gives_one_error_not_two()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var request = new DocumentBuilder(Warehouse).WithPartner(s.Reference.SupplierId).WithLines(new Line(product.Id, 1, -1.234m)).Build();
+
+        var created = (await s.Admin.Documents.CreateReceiptAsync(request)).ShouldBeProblem(HttpStatusCode.BadRequest);
+
+        Assert.Equal([Messages.CostNegative], created.ErrorsFor("UnitCost"));
+    }
+
+    private static byte[] OpeningStockFile(string sku, string warehouse, Action<IXLCell> costCell)
+    {
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.Worksheets.Add("Opening stock");
+        string[] headers = ["SKU", "Warehouse", "Qty", "UnitCost"];
+        for (var c = 0; c < headers.Length; c++) sheet.Cell(1, c + 1).Value = headers[c];
+        sheet.Cell(2, 1).Value = sku;
+        sheet.Cell(2, 2).Value = warehouse;
+        sheet.Cell(2, 3).Value = 5;
+        costCell(sheet.Cell(2, 4));
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        return stream.ToArray();
+    }
+
+    [Fact]
+    public async Task The_import_reads_the_number_in_a_cell_not_the_text_the_cell_shows()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var code = fixture.Reference.DefaultWarehouseCode;
+
+        // 2.505 shown as 2.5: the text would let a fraction of a cent through.
+        var hidden = OpeningStockFile(product.Sku, code, c => { c.Value = 2.505; c.Style.NumberFormat.Format = "0.0"; });
+        // 1234.5 shown as 1,234.50: the text, with its comma, would be rejected as "not a number".
+        var comma = OpeningStockFile(product.Sku, code, c => { c.Value = 1234.5; c.Style.NumberFormat.Format = "#,##0.00"; });
+        // A formula: the number it gives, 5.00.
+        var formula = OpeningStockFile(product.Sku, code, c => c.FormulaA1 = "2.5*2");
+        // A formula with a fraction of a cent: 0.1 + 2.405.
+        var formulaSubCent = OpeningStockFile(product.Sku, code, c => c.FormulaA1 = "0.1+2.405");
+
+        var hiddenResult = (await s.Admin.Import.OpeningStockAsync(hidden, commit: false)).Data<ImportResult>();
+        var commaResult = (await s.Admin.Import.OpeningStockAsync(comma, commit: false)).Data<ImportResult>();
+        var formulaResult = (await s.Admin.Import.OpeningStockAsync(formula, commit: false)).Data<ImportResult>();
+        var subCentResult = (await s.Admin.Import.OpeningStockAsync(formulaSubCent, commit: false)).Data<ImportResult>();
+
+        Assert.Equal(Messages.CostTooPrecise, Assert.Single(hiddenResult.Rows[0].Errors));
+        Assert.True(commaResult.Rows[0].Ok, string.Join("; ", commaResult.Rows[0].Errors));
+        Assert.True(formulaResult.Rows[0].Ok, string.Join("; ", formulaResult.Rows[0].Errors));
+        Assert.Equal(Messages.CostTooPrecise, Assert.Single(subCentResult.Rows[0].Errors));
     }
 
     [Fact]
