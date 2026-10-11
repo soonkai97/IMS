@@ -47,6 +47,9 @@ export const ZH_MESSAGES: Messages = {
   'ui.selectPlaceholder': '请选择...',
   'ui.showPassword': '显示密码',
 
+  // TODO-review: machine draft (required marker legend).
+  'form.requiredLegend': '* 表示必填',
+
   'validation.decimals': '最多保留 4 位小数。',
   'validation.email': '请输入有效的电子邮件地址。',
   'validation.invalid': '此值无效。',
@@ -406,7 +409,8 @@ export const ZH_MESSAGES: Messages = {
   'dialog.post.summary': '包含 {items}。',
   'dialog.post.summaryMore': '包含 {items} 等另外 {count} 项。',
   'dialog.post.title': '过账 {docNo}？',
-  'dialog.removeLine.body': '它的数量和单价将丢失。',
+  'dialog.removeLine.body': '它的数量将丢失。',
+  'dialog.removeLine.bodyWithCost': '它的数量和单价将丢失。',
   'dialog.removeLine.keep': '保留商品',
   'dialog.removeLine.title': '删除 {sku}？',
   'dialog.reason': '原因（至少 5 个字符）',

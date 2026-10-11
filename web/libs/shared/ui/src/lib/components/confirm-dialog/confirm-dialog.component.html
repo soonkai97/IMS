@@ -3,6 +3,9 @@
     <p class="ui-confirm-dialog-body">{{ $body() }}</p>
   }
   @if ($hasReason()) {
+    @if ($reasonRequired()) {
+      <app-form-legend />
+    }
     <app-form-field
       [label]="$reasonLabel() ?? ''"
       [required]="$reasonRequired()"

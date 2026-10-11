@@ -168,6 +168,65 @@ public class AuditSearchTests(ApiFixture fixture)
         (await who.Audit.FiltersAsync()).ShouldBe(System.Net.HttpStatusCode.Forbidden);
     }
 
+    // ----- PS-12: everything except sign-ins; one event per settings save -----
+    [Fact]
+    public async Task Sign_ins_can_be_hidden_without_picking_another_action()
+    {
+        var accounts = new AccountFactory(fixture);
+        var account = await accounts.CreateAsync(Roles.WarehouseStaff);
+        await accounts.SignInAsync(account);                                      // login.success
+        (await fixture.CreateClient().Auth.LoginAsync(account.Username, "wrong-Passw0rd-9!")).ShouldBe(System.Net.HttpStatusCode.Unauthorized); // login.failed
+        var receipt = await PostedReceiptAsync();
+        var admin = await fixture.AsAsync(Roles.Admin);
+
+        var shown = (await admin.GetAsync($"/api/audit?actor={account.Username}&pageSize=200")).Data<AuditPage>().Items;
+        var hidden = (await admin.GetAsync($"/api/audit?actor={account.Username}&hideSignIns=true&pageSize=200")).Data<AuditPage>();
+        var withoutSignIns = (await admin.GetAsync("/api/audit?hideSignIns=true&pageSize=200")).Data<AuditPage>().Items;
+
+        Assert.Contains(shown, e => e.Action == AuditActions.LoginSuccess);
+        Assert.Contains(shown, e => e.Action == AuditActions.LoginFailed);
+        Assert.Empty(hidden.Items);
+        Assert.Equal(0, hidden.Total);
+        Assert.DoesNotContain(withoutSignIns, e => AuditActions.SignIns.Contains(e.Action));
+        Assert.Contains(withoutSignIns, e => e.EntityId == receipt.No); // everything else is still there
+    }
+
+    [Fact]
+    public async Task Hiding_sign_ins_combines_with_the_other_filters()
+    {
+        var receipt = await PostedReceiptAsync();
+        var admin = await fixture.AsAsync(Roles.Admin);
+
+        var documents = (await admin.GetAsync($"/api/audit?hideSignIns=true&entityId={receipt.No}&pageSize=200")).Data<AuditPage>();
+
+        Assert.NotEmpty(documents.Items);
+        Assert.All(documents.Items, e => Assert.Equal(receipt.No, e.EntityId));
+    }
+
+    [Fact]
+    public async Task A_settings_save_writes_one_event_with_the_old_and_the_new_values_and_no_row_per_key()
+    {
+        var admin = await fixture.AsAsync(Roles.Admin);
+        var original = (await admin.Settings.GetAsync()).Data<Ims.Application.Features.Settings.SettingsDto>();
+        var before = (await admin.GetAsync("/api/audit?entityType=SystemSetting&pageSize=200")).Data<AuditPage>().Total;
+        try
+        {
+            (await admin.Settings.UpdateAsync(original with { AllowNegativeStock = !original.AllowNegativeStock, AllowSelfApproval = !original.AllowSelfApproval })).ShouldBeOk();
+
+            var entries = (await admin.GetAsync("/api/audit?entityType=SystemSetting&pageSize=200")).Data<AuditPage>();
+
+            Assert.Equal(before + 1, entries.Total); // two keys changed, one row written
+            var newest = entries.Items.OrderByDescending(e => e.Id).First();
+            Assert.Equal(AuditActions.SettingsUpdated, newest.Action);
+            Assert.Contains("AllowNegativeStock", newest.Before);
+            Assert.Contains("AllowSelfApproval", newest.After);
+        }
+        finally
+        {
+            (await admin.Settings.UpdateAsync(original)).ShouldBeOk();
+        }
+    }
+
     [Fact]
     public async Task Details_show_enums_by_name()
     {

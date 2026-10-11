@@ -52,6 +52,9 @@ export const EN_MESSAGES = {
   'ui.selectPlaceholder': 'Select...',
   'ui.showPassword': 'Show password',
 
+  // Forms
+  'form.requiredLegend': '* means required',
+
   // Validation
   'validation.decimals': 'Use at most 4 decimals.',
   'validation.email': 'Enter a valid email address.',
@@ -438,7 +441,8 @@ export const EN_MESSAGES = {
   'dialog.post.summaryMore': 'Includes {items} and {count} more.',
   'dialog.post.title': 'Post {docNo}?',
   'dialog.reason': 'Reason (at least 5 characters)',
-  'dialog.removeLine.body': 'Its quantity and cost will be lost.',
+  'dialog.removeLine.body': 'Its quantity will be lost.',
+  'dialog.removeLine.bodyWithCost': 'Its quantity and cost will be lost.',
   'dialog.removeLine.keep': 'Keep item',
   'dialog.removeLine.title': 'Remove {sku}?',
   'dialog.reasonOptional': 'Reason (optional)',

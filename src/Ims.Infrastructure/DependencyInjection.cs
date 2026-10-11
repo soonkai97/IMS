@@ -1,5 +1,6 @@
 using Ims.Application;
 using Ims.Application.Features.Attachments;
+using Ims.Application.Features.Documents;
 using Ims.Application.Features.Reports;
 using Ims.Application.Features.Stock;
 using Ims.Domain;
@@ -54,7 +55,9 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IStockSummaryReader, EfStockSummaryReader>();
         services.AddScoped<ILowStockReader, EfLowStockReader>();
+        services.AddScoped<ILowOnlyStockReader, EfLowOnlyStockReader>();
         services.AddScoped<IMovementReader, EfMovementReader>();
+        services.AddScoped<IDocumentTextMatcher, EfDocumentTextMatcher>();
         services.AddScoped<ITransactionLocker, SqlTransactionLocker>();
         services.AddSingleton<IExceptionMapper, SqlExceptionMapper>();
         services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();

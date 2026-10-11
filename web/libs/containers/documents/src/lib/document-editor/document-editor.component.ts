@@ -79,6 +79,7 @@ import {
   UiDialogComponent,
   UiEmptyStateComponent,
   UiFormFieldComponent,
+  UiFormLegendComponent,
   UiIconComponent,
   UiPageHeaderComponent,
   UiRadioGroupComponent,
@@ -144,6 +145,7 @@ interface HistoryEvent {
     UiDialogComponent,
     UiEmptyStateComponent,
     UiFormFieldComponent,
+    UiFormLegendComponent,
     UiIconComponent,
     UiPageHeaderComponent,
     UiRadioGroupComponent,
@@ -698,7 +700,12 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     this.confirm
       .ask({
         heading: this.i18n.t('dialog.removeLine.title', { sku: line.sku }),
-        body: this.i18n.t('dialog.removeLine.body'),
+        // Only a receipt line has a cost, and warehouse staff may not see it: the word stays out otherwise (NR-09).
+        body: this.i18n.t(
+          this.$type() === DocumentType.Receipt && this.permissions.has(PERMISSION.CostView)
+            ? 'dialog.removeLine.bodyWithCost'
+            : 'dialog.removeLine.body'
+        ),
         confirmLabel: this.i18n.t('common.remove'),
         cancelLabel: this.i18n.t('dialog.removeLine.keep'),
         destructive: true

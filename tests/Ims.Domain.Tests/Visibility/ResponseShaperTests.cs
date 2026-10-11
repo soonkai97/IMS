@@ -128,6 +128,55 @@ public class ResponseShaperTests
         Assert.Null(row.Before);
     }
 
+    // ----- money precision: what a caller may see is also rounded to 2 decimals -----
+    [Fact]
+    public void AVisibleMoneyValue_IsRoundedToACent_HalfAwayFromZero()
+    {
+        var doc = new Doc("D1", [new Line(2, 0.005m), new Line(5, 10.0049999m)], 26.125m, -0.005m);
+
+        ResponseShaper.Shape(doc, Everything);
+
+        Assert.Equal([0.01m, 10.00m], doc.Lines.Select(l => l.Cost));
+        Assert.Equal((26.13m, -0.01m), (doc.Total, doc.Worth));
+    }
+
+    private record Price([property: VisibleWith(Permissions.CostView, UnitPrice = true)] decimal? PerBase, [property: VisibleWith(Permissions.CostView)] decimal? Amount);
+
+    [Fact]
+    public void AUnitPrice_IsRoundedToFourDecimals_WhileAnAmountNextToItStaysAtTwo()
+    {
+        var price = new Price(0.0030004m, 3.004m);
+        var big = new Price(3.33333333m, 1000.005m);
+
+        ResponseShaper.Shape(new[] { price, big }, Everything);
+
+        Assert.Equal((0.0030m, 3.00m), (price.PerBase, price.Amount));
+        Assert.Equal((3.3333m, 1000.01m), (big.PerBase, big.Amount));
+    }
+
+    [Fact]
+    public void AUnitPrice_IsStillWithheldWithoutThePermission()
+    {
+        var price = new Price(0.003m, 3m);
+
+        ResponseShaper.Shape(price, Nothing);
+
+        Assert.Null(price.PerBase);
+        Assert.Null(price.Amount);
+    }
+
+    [Fact]
+    public void ANumberThatIsNotMoney_IsLeftAlone()
+    {
+        var quantity = new ApprovalTriggerDto(ApprovalMetric.Quantity, 50.12345m, 80.54321m, Roles.Supervisor);
+        var amount = new ApprovalTriggerDto(ApprovalMetric.Amount, 1000m, 1500.005m, Roles.Owner);
+
+        ResponseShaper.Shape(new[] { quantity, amount }, Everything);
+
+        Assert.Equal((50.12345m, 80.54321m), (quantity.Threshold, quantity.Actual));
+        Assert.Equal((1000m, 1500.01m), (amount.Threshold, amount.Actual));
+    }
+
     private record NotNullable([property: VisibleWith(Permissions.CostView)] decimal Cost);
 
     [Fact]

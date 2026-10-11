@@ -128,19 +128,19 @@ public class ReportExportTests(ApiFixture fixture)
         var low = await s.NewProductAsync(safetyStock: 10);
         var fine = await s.NewProductAsync(safetyStock: 10);
         var noSafety = await s.NewProductAsync(safetyStock: 0);
-        await s.ReceiveAsync(warehouse.Id, new Line(low.Id, 3, 1m), new Line(fine.Id, 10, 1m), new Line(noSafety.Id, 1, 1m));
+        await s.ReceiveAsync(warehouse.Id, new Line(low.Id, 3, 1m), new Line(fine.Id, 11, 1m), new Line(noSafety.Id, 1, 1m)); // 11 is above the level of 10; 10 itself would be low
 
         var list = (await s.Admin.Stock.LowStockAsync(warehouse.Id)).Data<PagedResult<LowStockAlert>>().Items;
         var export = Xlsx.Read((await s.Admin.Reports.LowStockExportAsync()).Bytes);
 
-        var alert = Assert.Single(list, a => a.ProductId == low.Id); // products never stocked anywhere are low too, whatever other tests left
+        var alert = Assert.Single(list, a => a.ProductId == low.Id); // products stocked nowhere are listed too, once each and with no warehouse, whatever other tests left
         Assert.DoesNotContain(list, a => a.ProductId == fine.Id || a.ProductId == noSafety.Id);
         Assert.Equal((low.Id, 3m, 10m, 7m), (alert.ProductId, alert.QtyOnHand, alert.SafetyStock, alert.Shortfall));
         Assert.Equal(ReportHeaders.LowStock, export.Headers);
-        var row = export.FindRow("SKU", low.Sku)!;
+        var row = export.Rows.Single(r => export.Cell(r, "SKU") == low.Sku && export.Cell(r, "Warehouse") == warehouse.Code); // one row per warehouse; the others never held it
         Assert.Equal((3m, 10m, 7m), (Number(export.Cell(row, "On hand")), Number(export.Cell(row, "Safety stock")), Number(export.Cell(row, "Shortfall"))));
-        Assert.Null(export.FindRow("SKU", fine.Sku));
-        Assert.Null(export.FindRow("SKU", noSafety.Sku));
+        Assert.DoesNotContain(export.Rows, r => export.Cell(r, "SKU") == fine.Sku && export.Cell(r, "Warehouse") == warehouse.Code);
+        Assert.Null(export.FindRow("SKU", noSafety.Sku)); // no safety level: never listed anywhere
     }
 
     [Fact]

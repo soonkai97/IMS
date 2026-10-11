@@ -85,9 +85,21 @@ public static class Limits
     public const int MaxOffsetRows = 10_000;
     public const int MaxDocumentLines = 500;
     public const decimal MaxQuantity = 1_000_000_000m;
+    /// <summary>The largest quantity in the base unit of a line (<c>decimal(18,4)</c> has 14 integer digits): a quantity in a big unit times its factor can pass it. Above it the request is a 400, never a database overflow.</summary>
+    public const decimal MaxBaseQuantity = 99_999_999_999_999m;
+    /// <summary>The largest amount of one document line (it is stored as <c>decimal(18,2)</c>): just under 1e15. A TYPED cost that reaches it is a 400, never a database overflow; a line valued at the average is capped at it (see <c>StockDocumentLine</c>).</summary>
+    public const decimal MaxLineAmount = 999_999_999_999_999m;
     public const int QuantityScale = 4;
     public const int QuantityPrecision = 18;
     public const int SearchMaxLength = 100;
+    /// <summary>Shortest text the document search box accepts (400 below it): a contains-match reads every row, and one or two letters match too much to be of use.</summary>
+    public const int SearchMinTextLength = 3;
+    /// <summary>
+    /// Up to this many partners whose name contains the search text are tested as an id list (<c>PartnerId IN (..)</c>), the cheapest form while the list is short (it
+    /// costs more with every id: measured on 1M documents, 1.4x at 5 ids and 2.7x at 50). With more, the search is NOT cut off: the partner name is tested through a
+    /// join instead, which costs the same however many partners match. Both forms find exactly the same documents.
+    /// </summary>
+    public const int SearchPartnerListMax = 50;
     public const int TokenHashMaxLength = 128;
     public const int SettingValueMaxLength = 500;
 
@@ -96,5 +108,22 @@ public static class Limits
     public const int MaxLowStockCooldownHours = 24 * 30;
 
     // Decimal precision
-    public const int RoundingDecimals = 6;
+    /// <summary>
+    /// Decimal places a cost per base unit and the moving average keep INSIDE the system (ledger, document lines, balances). Wider than the 2 places of
+    /// any amount a person sees, so a unit conversion (a carton price spread over 12 pieces) and repeated blending drift far less than at 6 places. These
+    /// are internal numbers, not money: an amount that reaches a person follows the money rule (2 places).
+    /// </summary>
+    public const int CostDecimals = 10;
+
+    /// <summary>How internal costs are rounded: half away from zero, the same mode as money.</summary>
+    public const MidpointRounding CostRounding = MidpointRounding.AwayFromZero;
+
+    /// <summary>The largest unit cost a person may enter (per entered unit). Above it the request is a 400, never a database overflow.</summary>
+    public const decimal MaxUnitCost = 1_000_000_000m;
+
+    /// <summary>
+    /// The largest cost per base unit or average the database column can hold (<c>decimal(22,10)</c> has 12 integer digits). A cost entered per carton and spread
+    /// over a fraction of a unit can exceed it even when the entered cost is below <see cref="MaxUnitCost"/>: that is a domain error too.
+    /// </summary>
+    public const decimal MaxCostPerBaseUnit = 999_999_999_999m;
 }

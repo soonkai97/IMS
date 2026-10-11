@@ -6,6 +6,7 @@
     @if ($sessionExpired()) {
       <app-banner kind="warning">{{ 'login.sessionExpired' | t }}</app-banner>
     }
+    <app-form-legend />
     <app-form-field
       [label]="'login.username' | t"
       [required]="true"
@@ -14,6 +15,7 @@
       <app-input
         formControlName="username"
         autocomplete="username"
+        [readonly]="$isRunning()"
         [maxLength]="maxUsernameLength"
       />
     </app-form-field>
@@ -26,6 +28,7 @@
         type="password"
         formControlName="password"
         autocomplete="current-password"
+        [readonly]="$isRunning()"
         [maxLength]="maxPasswordLength"
       />
     </app-form-field>

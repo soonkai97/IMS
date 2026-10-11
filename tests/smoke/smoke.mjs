@@ -77,7 +77,7 @@ await api('POST', `/api/documents/${iss.id}/submit`, { token: staff });
 r = await api('POST', `/api/documents/${iss.id}/post`, { token: staff, body: {} });
 check('issue posts, stock 950', r.body.status === 'Posted' && (await stockOf(p1.id)).qty === 950);
 check('the staff who posted the issue see no cost', r.body.lines[0].unitCost == null && r.body.totalAmount == null);
-check('issue booked at average cost 10', Number((await api('GET', `/api/documents/${iss.id}`, { token: admin })).body.lines[0].unitCost) === 10);
+check('issue booked at average cost 10', Number((await api('GET', `/api/documents/${iss.id}`, { token: admin })).body.lines[0].baseUnitCost) === 10);
 
 console.log('Edit a draft (lines replaced, header updated)');
 r = await api('POST', '/api/documents/receipts', { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 5, unitCost: 1 }, { productId: p2.id, qty: 6, unitCost: 1 }]) });

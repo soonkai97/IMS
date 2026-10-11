@@ -6,19 +6,20 @@ through the real login form, and create their data through the public API with u
 
 | File | Scenario | Protects |
 |---|---|---|
-| `01-receive` | staff saves a draft (exactly one, no discard dialog), submits, posts; stock rises. Back in the Post dialog creates no second document. List search by remark | IN-01, NV-01, NV-02 |
+| `01-receive` | staff saves a draft (exactly one, no discard dialog), submits, posts; stock rises. Back in the Post dialog creates no second document. List search by remark. Typing over the default quantity gives 12, a decimal erases with Backspace, a double click on Save draft sends one save | IN-01, NV-01, NV-02, NR-01, NR-07, NR-08 |
 | `02-issue-shortfall` | issue above available stock: shortfall sentence, "Set to N", submit blocked until fixed | OUT-01, BR-03, E1 |
 | `03-approval-override` | override issue: inbox, approve with a reason of 5+ characters, post, stock and ledger; self-approval blocked | OUT-02, BR-07, E3, PS-09 |
 | `04-reversal` | reversal blocked (message lists the products), unblocked by reversing the later issue; plain reversal; staff has no Reverse | BR-02, E6, PS-01 |
 | `05-stale-document` | two sessions edit one draft: stale banner, locked buttons, Reload | BR-12, E4, PS-08 |
 | `06-roles` | menu per role, polite forbidden page, deep link, Clerk creates but cannot edit a partner (409 duplicate sentence) | AUTH-02, E8 |
 | `07-scan` | barcode / SKU + Enter hit, repeat, miss, deactivated; search box focused on open | D8, NV-03, PS-05 |
-| `08-session` | wrong password (E7), reload restores the session from the cookie, no token in web storage, return URL | AUTH-01, SEC-34 |
+| `08-session` | wrong password (E7), the banner goes away on any edit and never sits with empty-field messages or survives a reload, reload restores the session from the cookie, no token in web storage, return URL | AUTH-01, SEC-34, D3, NR-06 |
 | `09-language` | en / zh / ms switch keeps the half-filled form; choice survives a reload | PRD 9 |
 | `10-phone` | scenario 1 at 360x740, no horizontal scroll on the main screens | D1, EA-04 |
 | `11-accessibility` | axe (WCAG 2.2 AA) finds no serious or critical violation on the main screens; exceptions need a finding id (`KNOWN` in the file, empty today) | EA-03, EA-21 |
 | `12-low-stock` | never-stocked product is listed, "New receipt" shortcut is prefilled, product leaves the list after posting | T16, PS-04, NV-13 |
 | `13-cost-visibility` | Warehouse staff see no cost or value on the receipt, issue, stock, home and report screens (no money-formatted number anywhere, no Amount or Value column, no Reports); Clerk has the unit cost input, the total and the Amount column but no value; Supervisor sees stock value, sorts by it, and the movements report shows the signed stock effect, the amount and the Reversal row | EA-23, mvp-ux 1.4, 3.9 |
+| `14-required-marker` | red asterisk is aria-hidden, the control carries the `required` state and its name has no "required" in it (the radio legend carries the word), one "* means required" legend on login, receipt, issue and a dialog, none on a list, no "(required)" text, the star stays with the last word at 320px | FR-06, RQ-01..RQ-06, D4 |
 
 A scenario that finds a product bug is marked `test.fixme` with the finding id in the title and the bug is written up in
 `docs/team/HANDOFFS.md`. None are open today.

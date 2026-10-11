@@ -47,6 +47,9 @@ export const MS_MESSAGES: Messages = {
   'ui.selectPlaceholder': 'Pilih...',
   'ui.showPassword': 'Tunjuk kata laluan',
 
+  // TODO-review: machine draft (required marker legend).
+  'form.requiredLegend': '* bermaksud wajib',
+
   'validation.decimals': 'Gunakan paling banyak 4 tempat perpuluhan.',
   'validation.email': 'Masukkan alamat e-mel yang sah.',
   'validation.invalid': 'Nilai ini tidak sah.',
@@ -418,7 +421,8 @@ export const MS_MESSAGES: Messages = {
   'dialog.post.summary': 'Termasuk {items}.',
   'dialog.post.summaryMore': 'Termasuk {items} dan {count} lagi.',
   'dialog.post.title': 'Poskan {docNo}?',
-  'dialog.removeLine.body': 'Kuantiti dan kosnya akan hilang.',
+  'dialog.removeLine.body': 'Kuantitinya akan hilang.',
+  'dialog.removeLine.bodyWithCost': 'Kuantiti dan kosnya akan hilang.',
   'dialog.removeLine.keep': 'Simpan item',
   'dialog.removeLine.title': 'Buang {sku}?',
   'dialog.reason': 'Sebab (sekurang-kurangnya 5 aksara)',

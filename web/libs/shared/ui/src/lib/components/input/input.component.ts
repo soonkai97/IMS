@@ -46,7 +46,7 @@ export class UiInputComponent implements ControlValueAccessor {
   $readonly = input(false, { alias: 'readonly', transform: booleanAttribute });
   $ariaLabel = input<string | undefined>(undefined, { alias: 'ariaLabel' });
 
-  $control = viewChild.required<ElementRef<HTMLInputElement>>('control');
+  $control = viewChild<ElementRef<HTMLInputElement>>('control');
 
   $value = signal('');
   $disabled = signal(false);
@@ -55,6 +55,9 @@ export class UiInputComponent implements ControlValueAccessor {
   $id = computed(() => this.field?.inputId ?? null);
   $describedBy = computed(() => this.field?.describedBy() ?? null);
   $invalid = computed(() => this.field?.invalid() ?? false);
+  $required = computed(() => this.field?.required() ?? false);
+  /** A number is replaced when the field is entered: typing 12 over the default 1 gives 12, not 112 (NR-01). */
+  $selectsOnFocus = computed(() => this.$type() === 'number');
   $isPassword = computed(() => this.$type() === 'password');
   $nativeType = computed(() => (this.$isPassword() && this.$revealed() ? 'text' : this.$type()));
   $toggleLabel = computed(() =>
@@ -64,13 +67,25 @@ export class UiInputComponent implements ControlValueAccessor {
 
   private onChange: (value: string | number | null) => void = () => undefined;
   private onTouched: () => void = () => undefined;
+  /** True for a tap that moves the focus into the field: its mouseup would drop the selection again. */
+  private tapFocuses = false;
+  /** True once the user typed since the field was entered: a late select must not swallow what was typed. */
+  private edited = false;
 
   focus(): void {
-    this.$control().nativeElement.focus();
+    this.$control()?.nativeElement.focus();
   }
 
   writeValue(value: unknown): void {
-    this.$value.set(value === null || value === undefined ? '' : String(value));
+    const text = value === null || value === undefined ? '' : String(value);
+    this.$value.set(text);
+    // While a number is typed ("1.") the browser's text is not the model: write only a real change (NR-08).
+    const element = this.$control()?.nativeElement;
+    // An empty model also clears text the browser holds back as invalid ("-", "e"), e.g. after form.reset().
+    const staleText = text === '' && element?.validity.badInput === true;
+    if (element && (staleText || this.toModelValue(element.value) !== this.toModelValue(text))) {
+      element.value = text;
+    }
   }
 
   registerOnChange(fn: (value: string | number | null) => void): void {
@@ -89,17 +104,62 @@ export class UiInputComponent implements ControlValueAccessor {
     if (!(event.target instanceof HTMLInputElement)) {
       return;
     }
+    this.edited = true;
     const raw = event.target.value;
-    this.$value.set(raw);
+    // A number keeps what was typed ("1.", "-"): writing it back would eat the character and move the caret (NR-08).
+    if (this.$type() !== 'number') {
+      this.$value.set(raw);
+    }
     this.onChange(this.toModelValue(raw));
   }
 
-  onBlur(): void {
+  onMouseDown(): void {
+    this.tapFocuses =
+      this.$selectsOnFocus() && document.activeElement !== this.$control()?.nativeElement;
+  }
+
+  onFocus(event: FocusEvent): void {
+    this.edited = false;
+    if (this.$selectsOnFocus() && event.target instanceof HTMLInputElement) {
+      this.selectAll(event.target);
+    }
+  }
+
+  onMouseUp(event: MouseEvent): void {
+    if (this.tapFocuses) {
+      event.preventDefault();
+      this.tapFocuses = false;
+      // Touch browsers place the caret after the synthetic mouse events: select again once they are done.
+      this.selectAll(event.target);
+    }
+  }
+
+  onBlur(event: FocusEvent): void {
+    this.tapFocuses = false;
+    if (this.$type() === 'number' && event.target instanceof HTMLInputElement) {
+      // Normalise on leaving: "1." becomes 1 and a lone "-" is cleared; text the browser accepts (1.50) stays as typed.
+      const accepted = event.target.value;
+      event.target.value = accepted;
+      this.$value.set(accepted);
+    }
     this.onTouched();
   }
 
   onToggleReveal(): void {
     this.$revealed.update(revealed => !revealed);
+  }
+
+  /** Selects now and once more after the browser's own focus and caret handling (iOS, Android), unless the user typed. */
+  private selectAll(target: EventTarget | null): void {
+    if (!(target instanceof HTMLInputElement)) {
+      return;
+    }
+    target.select();
+    setTimeout(() => {
+      if (!this.edited && document.activeElement === target) {
+        target.select();
+      }
+    }, 0);
   }
 
   private toModelValue(raw: string): string | number | null {

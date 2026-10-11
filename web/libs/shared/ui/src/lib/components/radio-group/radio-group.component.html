@@ -5,9 +5,11 @@
   [attr.aria-describedby]="$invalid() ? $errorId() : null"
 >
   <legend class="ui-radio-group-legend">
-    {{ $legend() }}
     @if ($required()) {
-      <span class="ui-radio-group-required">({{ $requiredText() }})</span>
+      {{ $legend() }}&nbsp;<span class="ui-radio-group-asterisk" aria-hidden="true">*</span
+      ><span class="ui-radio-group-sr">{{ $requiredText() }}</span>
+    } @else {
+      {{ $legend() }}
     }
   </legend>
   <div class="ui-radio-group-options">

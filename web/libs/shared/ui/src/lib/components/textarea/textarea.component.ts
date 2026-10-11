@@ -37,6 +37,7 @@ export class UiTextareaComponent implements ControlValueAccessor {
   $id = computed(() => this.field?.inputId ?? null);
   $describedBy = computed(() => this.field?.describedBy() ?? null);
   $invalid = computed(() => this.field?.invalid() ?? false);
+  $required = computed(() => this.field?.required() ?? false);
   $controlClass = computed(() =>
     toClassStr(['ui-textarea-control', this.$invalid() && '--invalid'])
   );
