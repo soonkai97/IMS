@@ -17,6 +17,7 @@ public class DocumentSaveRequestValidator : AbstractValidator<DocumentSaveReques
             line.RuleFor(l => l.Qty).GreaterThan(0).WithMessage(Messages.QtyPositive)
                 .LessThanOrEqualTo(Limits.MaxQuantity).WithMessage(Messages.QtyTooLarge)
                 .PrecisionScale(Limits.QuantityPrecision, Limits.QuantityScale, ignoreTrailingZeros: true).WithMessage(Messages.QtyTooLarge);
+            line.RuleFor(l => l.UnitCost).LessThanOrEqualTo(Limits.MaxUnitCost).When(l => l.UnitCost is not null).WithMessage(Messages.CostTooLarge);
             line.RuleFor(l => l.UnitCost).GreaterThanOrEqualTo(0).When(l => l.UnitCost is not null).WithMessage(Messages.CostNegative);
             line.RuleFor(l => l.Remark).MaximumLength(Limits.RemarkMaxLength);
         });

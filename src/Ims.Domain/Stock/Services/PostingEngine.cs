@@ -33,7 +33,9 @@ public sealed class PostingEngine(IEnumerable<IPostingStrategy> strategies) : IP
     public void Reverse(StockDocument document, IReadOnlyDictionary<int, StockBalance> balances, PostingContext ctx)
     {
         var strategy = StrategyFor(document.Type);
-        foreach (var line in OrderedLines(document)) strategy.Reverse(line, balances[line.ProductId], ctx);
+        // Products stay in ascending order (the lock order); the lines of one product are undone last-posted first, so each one finds the average
+        // exactly as the line after it left it (a receipt with two lines of the same product restores the average it started from).
+        foreach (var line in document.Lines.OrderBy(l => l.ProductId).ThenByDescending(l => l.Id)) strategy.Reverse(line, balances[line.ProductId], ctx);
     }
 
     private static IEnumerable<StockDocumentLine> OrderedLines(StockDocument document) =>

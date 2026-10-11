@@ -52,6 +52,7 @@ export class UiSelectComponent implements ControlValueAccessor {
   $id = computed(() => this.field?.inputId ?? null);
   $describedBy = computed(() => this.field?.describedBy() ?? null);
   $invalid = computed(() => this.field?.invalid() ?? false);
+  $required = computed(() => this.field?.required() ?? false);
   $controlClass = computed(() => toClassStr(['ui-select-control', this.$invalid() && '--invalid']));
   $placeholderText = computed(() => {
     const placeholder = this.$placeholder();

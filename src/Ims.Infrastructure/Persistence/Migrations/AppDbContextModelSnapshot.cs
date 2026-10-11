@@ -638,7 +638,10 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("AvgCost")
-                        .HasColumnType("decimal(18,6)");
+                        .HasColumnType("decimal(22,10)");
+
+                    b.Property<int?>("LastReceiptLineId")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("QtyInTransit")
                         .HasColumnType("decimal(18,4)");
@@ -859,10 +862,19 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal?>("AvgCostAfter")
+                        .HasColumnType("decimal(22,10)");
+
+                    b.Property<decimal?>("AvgCostBefore")
+                        .HasColumnType("decimal(22,10)");
+
                     b.Property<decimal>("BaseQty")
                         .HasColumnType("decimal(18,4)");
 
                     b.Property<int>("DocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PreviousLineId")
                         .HasColumnType("int");
 
                     b.Property<int>("ProductId")
@@ -907,7 +919,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnName("ROW_VERSION");
 
                     b.Property<decimal>("UnitCost")
-                        .HasColumnType("decimal(18,6)");
+                        .HasColumnType("decimal(22,10)");
 
                     b.Property<int>("UomId")
                         .HasColumnType("int");
@@ -984,7 +996,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("UnitCost")
-                        .HasColumnType("decimal(18,6)");
+                        .HasColumnType("decimal(22,10)");
 
                     b.Property<int>("WarehouseId")
                         .HasColumnType("int");

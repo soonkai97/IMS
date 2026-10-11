@@ -85,6 +85,8 @@
 
   @if ($editable()) {
     <form class="document-editor-form" [formGroup]="view.header" novalidate>
+      <!-- Warehouse (and Purpose on an issue) are required: one legend for the header, none in the line editor. -->
+      <app-form-legend />
       <div class="document-editor-header-fields">
         <app-form-field
           [label]="'doc.warehouse' | t"

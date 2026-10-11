@@ -2,6 +2,9 @@
   "extends": ["stylelint-config-standard-scss"],
   "rules": {
     "declaration-no-important": true,
+    "color-no-hex": true,
+    "color-named": "never",
+    "function-disallowed-list": ["rgb", "rgba", "hsl", "hsla"],
     "selector-class-pattern": null,
     "scss/dollar-variable-pattern": null,
     "scss/at-mixin-pattern": null,
@@ -39,5 +42,19 @@
     "color-hex-length": null,
     "scss/dollar-variable-empty-line-before": null
   },
+  "overrides": [
+    {
+      "files": ["**/variables/_palette.var.scss"],
+      "rules": {
+        "color-no-hex": null
+      }
+    },
+    {
+      "files": ["**/variables/_shape.var.scss"],
+      "rules": {
+        "function-disallowed-list": null
+      }
+    }
+  ],
   "ignoreFiles": ["dist/**", "node_modules/**", "coverage/**"]
 }

@@ -19,7 +19,7 @@
     "format": "prettier --write \"{apps,libs,tools,scripts,docs}/**/*.{ts,html,scss,json,mjs,md}\"",
     "format:check": "prettier --check \"{apps,libs,tools,scripts,docs}/**/*.{ts,html,scss,json,mjs,md}\"",
     "api:generate": "node scripts/fetch-openapi.mjs && nswag run nswag.json",
-    "contrast": "node scripts/check-contrast.mjs",
+    "contrast": "node scripts/check-contrast.mjs && node --test scripts/check-contrast.test.mjs",
     "dep-graph": "nx graph"
   },
   "dependencies": {

@@ -9,12 +9,20 @@ export class LoginPage {
   readonly submit: Locator;
   /** The red banner above the button (E7). */
   readonly error: Locator;
+  /** The sentences under an empty field. They are not alerts, so they never count as the banner (D3). */
+  readonly fieldMessages: Locator;
+  /** "* means required" (D4). It is hidden from assistive technology, so it is found by its text. */
+  readonly legend: Locator;
 
   constructor(private readonly page: Page) {
+    // "required" is part of the accessible name (D4): the patterns stop at the label, so they hold with or without it.
     this.username = page.getByRole('textbox', { name: /^Email or username/ });
     this.passwordBox = page.getByRole('textbox', { name: /^Password/ });
     this.submit = page.getByRole('button', { name: 'Sign in' });
     this.error = page.getByRole('alert');
+    // The error paragraph of a form field has no role of its own; its class is the stable hook.
+    this.fieldMessages = page.locator('.ui-form-field-error');
+    this.legend = page.getByText('* means required');
   }
 
   async open(): Promise<void> {

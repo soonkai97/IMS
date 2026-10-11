@@ -27,7 +27,7 @@ public sealed class IssuePostingStrategy : IPostingStrategy
 
     public void Reverse(StockDocumentLine line, StockBalance balance, PostingContext ctx)
     {
-        balance.Receive(line.BaseQty, line.UnitCost);
+        balance.Receive(line.BaseQty, line.UnitCost, line.Id); // stock in: no earlier receipt is the latest one any more
         ctx.AddEntry(line, +line.BaseQty, line.UnitCost, LedgerReason.Reversal);
     }
 }

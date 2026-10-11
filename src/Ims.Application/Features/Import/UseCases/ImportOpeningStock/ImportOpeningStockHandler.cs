@@ -38,6 +38,7 @@ public class ImportOpeningStockHandler(IExcelReader excel, IReadRepository<Produ
             if (r.Get(ImportColumns.UnitCost) is { Length: > 0 } uc)
             {
                 if (!ImportSheet.TryParseDecimal(uc, out cost)) errors.Add(Messages.NotANumber(ImportColumns.UnitCostLabel, uc));
+                else if (cost > Limits.MaxUnitCost) errors.Add(Messages.CostTooLarge);
                 else if (cost < 0) errors.Add(Messages.CostNegative);
             }
 
