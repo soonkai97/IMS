@@ -18,7 +18,10 @@
   [disabled]="$disabled()"
   [value]="$value()"
   (input)="onInput($event)"
-  (blur)="onBlur()"
+  (mousedown)="onMouseDown()"
+  (focus)="onFocus($event)"
+  (mouseup)="onMouseUp($event)"
+  (blur)="onBlur($event)"
 />
 @if ($isPassword()) {
   <button

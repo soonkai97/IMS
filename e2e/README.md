@@ -6,7 +6,7 @@ through the real login form, and create their data through the public API with u
 
 | File | Scenario | Protects |
 |---|---|---|
-| `01-receive` | staff saves a draft (exactly one, no discard dialog), submits, posts; stock rises. Back in the Post dialog creates no second document. List search by remark | IN-01, NV-01, NV-02 |
+| `01-receive` | staff saves a draft (exactly one, no discard dialog), submits, posts; stock rises. Back in the Post dialog creates no second document. List search by remark. Typing over the default quantity gives 12, a decimal erases with Backspace, a double click on Save draft sends one save | IN-01, NV-01, NV-02, NR-01, NR-07, NR-08 |
 | `02-issue-shortfall` | issue above available stock: shortfall sentence, "Set to N", submit blocked until fixed | OUT-01, BR-03, E1 |
 | `03-approval-override` | override issue: inbox, approve with a reason of 5+ characters, post, stock and ledger; self-approval blocked | OUT-02, BR-07, E3, PS-09 |
 | `04-reversal` | reversal blocked (message lists the products), unblocked by reversing the later issue; plain reversal; staff has no Reverse | BR-02, E6, PS-01 |
