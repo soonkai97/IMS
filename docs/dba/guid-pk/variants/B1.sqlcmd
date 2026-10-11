@@ -1,0 +1,7 @@
+:setvar Variant B1
+:setvar KT int
+:setvar KL bigint
+:setvar KTGEN "IDENTITY(1,1)"
+:setvar KLGEN "IDENTITY(1,1)"
+:setvar PUBCOL ", PublicId uniqueidentifier NOT NULL DEFAULT (NEWSEQUENTIALID())"
+:setvar PUBIDX 1

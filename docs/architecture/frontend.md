@@ -105,6 +105,8 @@ Contract features the screens rely on:
 11. Routes carry `title: '<message key>'`; `PageTitleStrategy` translates it, `PageTitleService` adds a detail (the document number) and feeds the live region of the shell that announces route changes.
 12. A dialog focuses the native control marked `data-autofocus` once its content exists (`app-search-input focusOnOpen`); the real `autofocus` attribute is banned by lint. A busy `app-button` keeps the focus (it is `aria-disabled`, not natively disabled).
 13. Sticky and fixed bars become part of the page flow on windows shorter than 500px (`media-short`), and `html` has `scroll-padding` for the top bar and the bottom bars (WCAG 1.4.10, 2.4.11).
+14. No UI component library, no bake-off (product owner, 2026-10-11). Angular CDK may be used for behaviour only (overlay, listbox, scrolling, drag-drop, a11y, clipboard), only inside `libs/shared/ui`, never exposed through our public API, never with its styles. Rules and slices: `docs/design/2026-refresh-plan.md` (N1, N2, programme A).
+15. Components adapt to their container, not the window; viewport media queries are for the shell, the page frame and user-environment features (N5, programme L). Ids are opaque strings in new code (N13). Every slice passes an independent review before merge (`docs/team/PR-REVIEW.md` section 8).
 
 ## 6. Testing
 

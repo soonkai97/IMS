@@ -85,7 +85,7 @@ Then append one entry to `docs/team/HANDOFFS.md` (see `PROTOCOL.md`).
 
 **fe-designer** - Uses design tokens, no hard-coded colours or spacing, contrast AA, 44px targets, dark mode, component variants as specified.
 
-**fe-architect** - Nx tiers and boundaries respected (shared, core, features, containers), signal-first components, OnPush, no logic in templates, state and API access in the right layer, i18n keys not literals, lazy routes, tests present.
+**fe-architect** - Nx tiers and boundaries respected (shared, core, features, containers), signal-first components, OnPush, no logic in templates, state and API access in the right layer, i18n keys not literals, lazy routes, tests present. Content containment (plan N15): reject a literal `white-space: nowrap` (use the truncate mixin with its ellipsis), any `overflow-x: hidden` or `clip` on `html` or `body`, and a new list, card, chip, dialog, toast, header or palette row without a long-value state in its gallery entry (500 characters: unbroken, with spaces, Chinese, emoji). Motion (plan N16 to N19): motion tokens only (no literal duration, curve or distance), only `opacity` and `transform` animated (the named `clip-path` and `grid-template-rows` exceptions aside), no `will-change` in a stylesheet, no `@angular/animations`, `data-motion` honoured so Reduced and Off look right. Ids are opaque strings (no `Number(id)`), and the generated client is touched only by the owner of a named batch (plan 2.4).
 
 **fe-framework** - Build, lint (including boundary rules) and unit tests pass; generated API client untouched; permission-driven menus and `allowedActions` used instead of role checks in components.
 
