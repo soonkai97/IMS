@@ -10,8 +10,8 @@ public static class ReportHeaders
     ];
     public static readonly ReportColumn[] MovementColumns =
     [
-        new("Posted (MYT)"), new("Document"), new("Type"), new("Status"), new("Reversal"), new("Warehouse"), new("Partner"), new("SKU"), new("Product"), new("Qty"),
-        new("Unit"), new("Base qty"), new("Stock effect"), new("Unit cost", Permissions.CostView), new("Amount", Permissions.CostView)
+        new("Posted (MYT)"), new("Document"), new("Type"), new("Status"), new("Warehouse"), new("Partner"), new("SKU"), new("Product"), new("Qty"),
+        new("Unit"), new("Base qty"), new("Stock effect"), new("Unit cost", Permissions.CostView), new("Amount", Permissions.CostView), new("Reversal")
     ];
     public static readonly ReportColumn[] LedgerColumns =
     [

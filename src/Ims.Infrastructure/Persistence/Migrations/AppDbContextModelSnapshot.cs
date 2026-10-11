@@ -848,11 +848,6 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Status", "Type", "Id"), new[] { "WarehouseId" });
 
-                    b.HasIndex(new[] { "No" }, "IX_StockDocument_Search")
-                        .HasFilter("[REC_DELETED] = 0");
-
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex(new[] { "No" }, "IX_StockDocument_Search"), new[] { "PartnerId", "Remark" });
-
                     b.ToTable("StockDocument");
                 });
 
@@ -938,6 +933,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("BalanceAfter")
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<int>("CreatedBy")
                         .HasColumnType("int");

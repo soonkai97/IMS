@@ -1,10 +1,8 @@
-using Ims.Domain;
-
 namespace Ims.Infrastructure.Persistence;
 
 /// <summary>
-/// The low-stock query, shared by the list, its total, the Home count and the export (see <c>ILowStockReader</c> for the definition).
-/// Two branches that never overlap: balances that are low, and products that have no balance row in any warehouse. All parameters; no raw SQL.
+/// The low-stock query, shared by the list, its total, the Home count and the export (see <c>ILowStockReader</c> for the definition). The two sets come from
+/// <see cref="LowStockSets"/>, the same ones the stock list's "low only" filter uses; this class only shapes them into rows. All parameters; no raw SQL.
 /// </summary>
 internal static class LowStockQuery
 {
@@ -23,34 +21,18 @@ internal static class LowStockQuery
 
     public static IQueryable<Row> Build(AppDbContext db, IReadOnlyCollection<int>? scope, int? warehouseId)
     {
-        var balances = db.Set<StockBalance>().AsQueryable();
-        var warehouses = db.Set<Warehouse>().Where(w => w.IsActive);
-        if (scope is not null)
-        {
-            balances = balances.Where(b => scope.Contains(b.WarehouseId));
-            warehouses = warehouses.Where(w => scope.Contains(w.Id));
-        }
-        if (warehouseId is { } only)
-        {
-            balances = balances.Where(b => b.WarehouseId == only);
-            warehouses = warehouses.Where(w => w.Id == only);
-        }
-
-        var stocked = balances
-            .Where(LowStockRule.IsLowBalance)
+        var stocked = LowStockSets.LowBalances(db, scope, warehouseId)
             .Select(b => new Row
             {
                 ProductId = b.ProductId, Sku = b.Product.Sku, ProductName = b.Product.Name, WarehouseId = b.WarehouseId,
                 WarehouseCode = b.Warehouse.Code, WarehouseName = b.Warehouse.Name, QtyOnHand = b.QtyOnHand, SafetyStock = b.Product.SafetyStock
             });
 
-        var neverStocked = db.Set<Product>()
-            .Where(LowStockRule.CanBeNeverStockedLow)
-            .Where(p => !db.Set<StockBalance>().Any(b => b.ProductId == p.Id))
-            .SelectMany(_ => warehouses, (p, w) => new Row
+        var neverStocked = LowStockSets.NeverStocked(db, scope, warehouseId)
+            .Select(pair => new Row
             {
-                ProductId = p.Id, Sku = p.Sku, ProductName = p.Name, WarehouseId = w.Id, WarehouseCode = w.Code, WarehouseName = w.Name,
-                QtyOnHand = 0m, SafetyStock = p.SafetyStock
+                ProductId = pair.Product.Id, Sku = pair.Product.Sku, ProductName = pair.Product.Name, WarehouseId = pair.Warehouse.Id,
+                WarehouseCode = pair.Warehouse.Code, WarehouseName = pair.Warehouse.Name, QtyOnHand = 0m, SafetyStock = pair.Product.SafetyStock
             });
 
         return stocked.Concat(neverStocked);

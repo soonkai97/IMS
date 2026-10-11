@@ -2,12 +2,13 @@ using Ims.Api.Tests.Builders;
 using Ims.Api.Tests.Clients;
 using Ims.Api.Tests.Harness;
 using Ims.Application;
+using Ims.Application.Features.Documents;
 using Ims.Application.Features.Stock;
 using Ims.Domain;
 
 namespace Ims.Api.Tests.Tests.StockList;
 
-/// <summary>PS-14: the product ledger says what the product held right after each movement, derived from the balance so the ledger itself stays append-only.</summary>
+/// <summary>PS-14: the product ledger says what the product held right after each movement. The number is stored on the row when it is written (so a deep page costs the same as the first), and the ledger stays append-only.</summary>
 [Collection(ApiCollection.Name)]
 public class LedgerBalanceAfterTests(ApiFixture fixture)
 {
@@ -136,6 +137,59 @@ public class LedgerBalanceAfterTests(ApiFixture fixture)
 
         var row = Assert.Single(theirs);
         Assert.Equal((10m, 10m), (row.QtyDelta, row.BalanceAfter!.Value));
+    }
+
+    /// <summary>Rows whose stored balance is not the running sum of their (product, warehouse) up to and including them, in ledger order.</summary>
+    private const string MismatchSql = @"
+SELECT COUNT(*) FROM (
+    SELECT l.BalanceAfter, SUM(l.QtyDelta) OVER (PARTITION BY l.ProductId, l.WarehouseId ORDER BY l.Id ROWS UNBOUNDED PRECEDING) AS Running
+    FROM StockLedgerEntry l {0}) x
+WHERE x.BalanceAfter <> x.Running";
+
+    [Fact]
+    public async Task The_stored_balance_is_the_running_sum_for_receipts_issues_reversals_and_two_lines_of_one_product()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        await s.ReceiveAsync(Warehouse, new Line(product.Id, 10, 2m), new Line(product.Id, 4, 3m)); // two lines of the same product in one document
+        var issue = await s.IssueAsync(Warehouse, new Line(product.Id, 6));
+        (await s.Supervisor.Documents.ReverseAsync(issue.Id, "Wrong customer")).ShouldBeOk();
+
+        var rows = await RowsAsync(s.Admin, $"productId={product.Id}");
+
+        Assert.Equal([14m, 8m, 14m, 10m], rows.Select(r => r.BalanceAfter!.Value)); // newest first: the reversal 14, the issue 8, the second receipt line 14, the first 10
+        Assert.Equal(0, await fixture.Database.ScalarAsync<int>(string.Format(MismatchSql, "WHERE l.ProductId = @p"), ("@p", product.Id)));
+        Assert.Equal(await s.OnHandAsync(product.Id, Warehouse), rows[0].BalanceAfter);
+    }
+
+    [Fact]
+    public async Task Postings_made_at_the_same_instant_never_leave_a_balance_that_another_posting_overtook()
+    {
+        // The stored number is written under the (warehouse, product) lock with the balance it follows, so a posting cannot slip in between a read and a write
+        // (the old derived value ran three statements and could be one posting off).
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        await s.ReceiveAsync(Warehouse, new Line(product.Id, 1000, 2m));
+        var drafts = new List<DocumentDto>();
+        for (var i = 0; i < 24; i++)
+            drafts.Add(await s.SubmitAsync(s.Admin, i % 3 == 0
+                ? await s.DraftReceiptAsync(s.Admin, Warehouse, new Line(product.Id, 5, 2m))
+                : await s.DraftIssueAsync(s.Admin, Warehouse, new Line(product.Id, 3))));
+
+        var responses = await Support.Concurrently.RunAsync(drafts.Select(d => (Func<Task<ApiResponse>>)(() => s.Admin.Documents.PostAsync(d.Id))));
+
+        Assert.All(responses, r => Assert.True(r.IsSuccess, $"{(int)r.Status} {r.Body}"));
+        Assert.Equal(0, await fixture.Database.ScalarAsync<int>(string.Format(MismatchSql, "WHERE l.ProductId = @p"), ("@p", product.Id)));
+        var newest = (await RowsAsync(s.Admin, $"productId={product.Id}")).First();
+        Assert.Equal(await s.OnHandAsync(product.Id, Warehouse), newest.BalanceAfter);
+    }
+
+    [Fact]
+    public async Task Every_ledger_row_of_the_database_carries_the_running_balance()
+    {
+        await MovementsAsync(); // make sure there is something, then look at everything every other test wrote too
+
+        Assert.Equal(0, await fixture.Database.ScalarAsync<int>(string.Format(MismatchSql, "")));
     }
 
     [Fact]

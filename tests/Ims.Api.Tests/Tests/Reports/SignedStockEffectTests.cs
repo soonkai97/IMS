@@ -99,6 +99,8 @@ public class SignedStockEffectTests(ApiFixture fixture)
         var export = Xlsx.Read((await s.Admin.Reports.MovementsExportAsync(product.Id)).Bytes);
         Assert.Contains("Stock effect", export.Headers);
         Assert.Equal(ReportHeaders.Movements, export.Headers);
+        // The columns of the export before the Reversal column existed keep their positions: the new one is appended at the END.
+        Assert.Equal(["Posted (MYT)", "Document", "Type", "Status", "Warehouse", "Partner", "SKU", "Product", "Qty", "Unit", "Base qty", "Stock effect", "Unit cost", "Amount", "Reversal"], export.Headers);
         Assert.Equal(rows.Count, export.Rows.Count);
         Assert.Equal(onHandFrom + onHandTo, export.Rows.Sum(r => Number(export.Cell(r, "Stock effect"))));
         Assert.Equal(rows.Sum(r => r.BaseQty), export.Rows.Sum(r => Number(export.Cell(r, "Base qty")))); // the unsigned columns are untouched

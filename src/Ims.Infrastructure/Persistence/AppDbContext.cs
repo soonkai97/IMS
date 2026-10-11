@@ -130,9 +130,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             // The reversal rows of the movements report, newest reversal first: a seek on the (few) reversed documents. Written only when a document is reversed.
             e.HasIndex(x => x.ReversedAt).IncludeProperties(x => new { x.Status, x.Type, x.WarehouseId, x.PartnerId, x.No })
                 .HasFilter($"{LiveRows} AND [ReversedAt] IS NOT NULL");
-            // The document search box (number, remark, partner): a contains-match cannot seek, but it can scan this narrow index (three small columns of the live rows)
-            // instead of the whole table. Written with every document, so it carries only what the predicate reads.
-            e.HasIndex(x => x.No, "IX_StockDocument_Search").IncludeProperties(x => new { x.PartnerId, x.Remark }).HasFilter(LiveRows);
+            // No index for the document search box on purpose: its contains-match must read every row, so its cost is the CPU of the comparison (see EfDocumentTextMatcher),
+            // and a narrow covering index (number, partner, remark, warehouse) only cut the logical reads 2.4 times for 86 MB and a wider write on 1M documents
+            // (docs/architecture/data-and-performance-rules.md section 9).
             e.Property(x => x.No).HasMaxLength(Limits.DocumentNoMaxLength);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
             e.Property(x => x.RowVersion).IsRowVersion();
@@ -164,6 +164,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         b.Entity<StockLedgerEntry>(e =>
         {
             e.Property(x => x.QtyDelta).HasColumnType(SqlTypes.Quantity);
+            e.Property(x => x.BalanceAfter).HasColumnType(SqlTypes.Quantity);
             e.Property(x => x.UnitCost).HasColumnType(SqlTypes.Cost);
             e.HasIndex(x => new { x.ProductId, x.WarehouseId, x.OccurredAt });
             e.HasIndex(x => x.SourceDocId);

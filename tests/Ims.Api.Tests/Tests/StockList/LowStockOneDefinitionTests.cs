@@ -87,7 +87,8 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         Assert.Contains((k.Low, k.Warehouse.Id), Keys(stockLow));
         Assert.Contains((k.Never, k.Warehouse.Id), Keys(stockLow));
         Assert.Contains((k.Negative, k.Warehouse.Id), Keys(stockLow));
-        foreach (var notLow in new[] { k.AtLevel, k.Inactive, k.NoSafety, k.Fine })
+        Assert.Contains((k.AtLevel, k.Warehouse.Id), Keys(stockLow)); // exactly at the safety level is low (design 3.8: on-hand <= safety stock)
+        foreach (var notLow in new[] { k.Inactive, k.NoSafety, k.Fine })
             Assert.DoesNotContain((notLow, k.Warehouse.Id), Keys(stockLow));
     }
 
@@ -116,7 +117,9 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
 
         var row = (await StockRowsAsync(s.Admin, $"lowOnly=true&warehouseId={k.Warehouse.Id}&productId={k.Never}")).Single();
 
-        Assert.Equal((0m, 0m, 0m, 0m, 10m), (row.QtyOnHand, row.QtyInTransit, row.AvgCost, row.Value, row.SafetyStock));
+        Assert.Equal((0m, 0m, 10m), (row.QtyOnHand, row.QtyInTransit, row.SafetyStock));
+        Assert.Null(row.AvgCost); // nothing was ever bought here: there is no average, which is not an average of zero
+        Assert.Null(row.Value);
         Assert.True(row.IsLow);
         Assert.False(row.IsNegative);
         Assert.Equal((k.Warehouse.Id, k.Warehouse.Code, k.Warehouse.Name), (row.WarehouseId, row.WarehouseCode, row.WarehouseName));
@@ -142,7 +145,8 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         Assert.Contains((k.Never, k.Warehouse.Id), Keys(byCategory));
         Assert.All(byCategory, r => Assert.Equal(categoryName, r.CategoryName));
         Assert.Equal(Keys(all).Where(key => all.Single(r => (r.ProductId, r.WarehouseId) == key).CategoryName == categoryName).ToHashSet(), Keys(byCategory));
-        Assert.Empty(otherWarehouse);
+        var neverThere = Assert.Single(otherWarehouse); // the product was never stocked in the default warehouse either: low there, with nothing on hand
+        Assert.Equal((k.Low, 0m), (neverThere.ProductId, neverThere.QtyOnHand));
 
         foreach (var (sort, desc) in new[] { ("Sku", false), ("Sku", true), ("Name", false), ("Name", true), ("QtyOnHand", false), ("QtyOnHand", true), ("Value", false), ("Warehouse", false) })
         {
@@ -150,8 +154,11 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
             Assert.Equal(Keys(all), Keys(sorted));
             Assert.Equal(sorted.Count, sorted.Select(r => (r.ProductId, r.WarehouseId)).Distinct().Count());
         }
+        // The sort is the database's, whatever its collation: do not predict it in .NET. Ascending and descending must be exact mirrors of each other (the
+        // product names are all different), and the SKU tie-break makes the order total.
         var byName = await StockRowsAsync(s.Admin, $"lowOnly=true&warehouseId={k.Warehouse.Id}&sortBy=Name");
-        Assert.Equal(byName.Select(r => r.ProductName).Order(StringComparer.OrdinalIgnoreCase), byName.Select(r => r.ProductName));
+        var byNameDesc = await StockRowsAsync(s.Admin, $"lowOnly=true&warehouseId={k.Warehouse.Id}&sortBy=Name&desc=true");
+        Assert.Equal(byName.Select(r => (r.ProductId, r.WarehouseId)).Reverse(), byNameDesc.Select(r => (r.ProductId, r.WarehouseId)));
         var byQty = await StockRowsAsync(s.Admin, $"lowOnly=true&warehouseId={k.Warehouse.Id}&sortBy=QtyOnHand");
         Assert.Equal(byQty.Select(r => r.QtyOnHand).Order(), byQty.Select(r => r.QtyOnHand)); // the negative row first, the never-stocked rows (0) among the rest
     }
@@ -184,7 +191,7 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         Assert.All(rows, r => Assert.Equal(alerts.Contains((r.ProductId, r.WarehouseId)), r.IsLow));
         Assert.True(rows.Single(r => r.ProductId == k.Low).IsLow);
         Assert.True(rows.Single(r => r.ProductId == k.Negative).IsLow);
-        Assert.False(rows.Single(r => r.ProductId == k.AtLevel).IsLow);  // equal to the safety level is not below it
+        Assert.True(rows.Single(r => r.ProductId == k.AtLevel).IsLow);   // at the safety level is low: a receipt must bring it ABOVE it
         Assert.False(rows.Single(r => r.ProductId == k.Inactive).IsLow); // an inactive product is never on the low-stock list
         Assert.False(rows.Single(r => r.ProductId == k.NoSafety).IsLow);
         Assert.False(rows.Single(r => r.ProductId == k.Fine).IsLow);

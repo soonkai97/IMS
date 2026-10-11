@@ -246,7 +246,7 @@ public class StockDocument : Entity
         PostedAt = utcNow;
     }
 
-    public void MarkReversed(string reason, DateTime utcNow, int? reversedBy = null)
+    public void MarkReversed(string reason, DateTime utcNow, int reversedBy)
     {
         if (Status != DocumentStatus.Posted)
             throw new DomainException(Messages.OnlyPostedCanReverse);

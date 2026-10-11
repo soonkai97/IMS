@@ -59,6 +59,56 @@ public class DocumentSearchTests(ApiFixture fixture)
         Assert.DoesNotContain(byName, d => d.Id == other.Id);
     }
 
+    [Theory]
+    [InlineData(50)]  // the longest list of partner ids
+    [InlineData(51)]  // one more: the partner name is tested through a join instead
+    [InlineData(350)] // the review case: with a cap of 200 the documents of partner 300 were silently missing
+    public async Task Documents_of_every_matching_partner_are_found_however_many_partners_match(int partners)
+    {
+        Assert.Equal(Limits.SearchPartnerListMax, 50); // the two forms are exercised on both sides of this number
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var marker = Unique.Name("Bulkpartner");
+        await fixture.Database.ExecuteAsync(
+            "INSERT Partner (Type, Name, Contact, IsActive) SELECT TOP (@n) 1, CONCAT(@m, N' ', ROW_NUMBER() OVER (ORDER BY (SELECT NULL)), N' Sdn Bhd'), NULL, 1 FROM sys.all_objects a CROSS JOIN sys.all_objects b",
+            ("@m", marker), ("@n", partners - 1));
+        var firstId = await fixture.Database.ScalarAsync<int>("SELECT MIN(Id) FROM Partner WHERE Name LIKE @m + N'%'", ("@m", marker));
+        var last = (await s.Admin.Partners.CreateAsync(new PartnerSaveRequest(PartnerType.Supplier, $"{marker} {partners} Sdn Bhd", null, true))).Data<PartnerDto>();
+        var ofFirst = await DraftWithRemarkAsync(s, s.Admin, product.Id, "from the first partner", firstId);
+        var ofLast = await DraftWithRemarkAsync(s, s.Admin, product.Id, "from the last partner", last.Id);
+
+        var found = (await s.Admin.GetAsync($"/api/documents?search={Uri.EscapeDataString(marker)}")).Data<PagedResult<DocumentListItem>>();
+
+        Assert.Equal(partners, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM Partner WHERE Name LIKE @m + N'%'", ("@m", marker)));
+        Assert.Equal(2, found.Total);
+        Assert.Equal([ofFirst.Id, ofLast.Id], found.Items.Select(d => d.Id).Order());
+    }
+
+    [Fact]
+    public async Task A_text_shorter_than_three_characters_only_matches_the_start_of_the_number()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var draft = await DraftWithRemarkAsync(s, s.Admin, product.Id, "xqzmark inside the remark");
+
+        Assert.Contains(await FoundAsync(s.Admin, draft.No[..2]), d => d.Id == draft.Id);   // "RC" starts the number
+        Assert.Empty(await FoundAsync(s.Admin, "qz"));                                       // two characters never look inside a remark
+        Assert.Contains(await FoundAsync(s.Admin, "xqz"), d => d.Id == draft.Id);            // three do
+        Assert.DoesNotContain(await FoundAsync(s.Admin, draft.No[^2..]), d => d.Id == draft.Id); // and the end of a number needs three
+    }
+
+    [Fact]
+    public async Task Accented_and_upper_case_letters_are_matched_whatever_their_case()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var marker = Unique.Name("accent").ToLowerInvariant();
+        var draft = await DraftWithRemarkAsync(s, s.Admin, product.Id, $"{marker} Café Ünïcode");
+
+        Assert.Equal(draft.Id, Assert.Single(await FoundAsync(s.Admin, $"{marker} CAFÉ")).Id);
+        Assert.Contains(await FoundAsync(s.Admin, "ÜNÏCODE"), d => d.Id == draft.Id);
+    }
+
     [Fact]
     public async Task The_number_still_works_whole_or_in_part()
     {

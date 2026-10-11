@@ -79,15 +79,15 @@ public class LowStockTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task A_product_stocked_somewhere_is_not_reported_for_the_warehouses_it_was_never_received_in()
+    public async Task A_product_stocked_somewhere_is_still_low_in_the_warehouses_it_was_never_received_in()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var other = await s.NewWarehouseAsync();
         var product = await s.NewProductAsync(safetyStock: 5);
-        await s.ReceiveAsync(Warehouse, new Line(product.Id, 50, 1m)); // plenty here, nothing in the other warehouse
+        await s.ReceiveAsync(Warehouse, new Line(product.Id, 50, 1m)); // plenty here, nothing in the other warehouse (never stocked is decided per warehouse)
 
-        Assert.DoesNotContain(await AlertsAsync(s.Admin), a => a.ProductId == product.Id);
-        Assert.DoesNotContain(await AlertsAsync(s.Admin, other.Id), a => a.ProductId == product.Id);
+        Assert.DoesNotContain(await AlertsAsync(s.Admin, Warehouse), a => a.ProductId == product.Id);
+        Assert.Contains(await AlertsAsync(s.Admin, other.Id), a => a.ProductId == product.Id && a.QtyOnHand == 0m);
     }
 
     [Fact]

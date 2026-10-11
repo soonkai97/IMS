@@ -16,12 +16,6 @@ internal static class DocumentFilters
         if (f.RequiresApproval is { } ra) query.Where(d => d.RequiresApproval == ra);
         if (f.From is { } from) { var start = Paging.StartOfDayUtc(from); query.Where(d => d.CreatedAt >= start); }
         if (f.To is { } to) { var end = Paging.EndOfDayUtc(to); query.Where(d => d.CreatedAt < end); }
-        if (search is { } found)
-        {
-            // Number, remark or partner (PR-05). One predicate over three columns of this table; the partners were resolved up front (see DocumentSearch).
-            var text = found.Text;
-            var partnerIds = found.PartnerIds;
-            query.Where(d => d.No.Contains(text) || (d.Remark != null && d.Remark.Contains(text)) || (d.PartnerId != null && partnerIds.Contains(d.PartnerId.Value)));
-        }
+        if (search is { } found) query.Where(found.Matches); // number, remark or partner (PR-05), see DocumentSearch
     }
 }

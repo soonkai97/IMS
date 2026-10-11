@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Ims.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261011021255_DocumentSearchIndexAndReversedBy")]
-    partial class DocumentSearchIndexAndReversedBy
+    [Migration("20261011054633_AddDocumentReversedBy")]
+    partial class AddDocumentReversedBy
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -850,11 +850,6 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasFilter("[REC_DELETED] = 0");
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Status", "Type", "Id"), new[] { "WarehouseId" });
-
-                    b.HasIndex(new[] { "No" }, "IX_StockDocument_Search")
-                        .HasFilter("[REC_DELETED] = 0");
-
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex(new[] { "No" }, "IX_StockDocument_Search"), new[] { "PartnerId", "Remark" });
 
                     b.ToTable("StockDocument");
                 });

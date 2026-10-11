@@ -6,9 +6,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Ims.Infrastructure.Persistence;
 
 /// <summary>
-/// The stock list with "low only" on: the balances that are low (<see cref="LowStockRule.IsLowBalance"/>) and the active products with a safety level that
-/// have never been stocked (one row per active warehouse in scope, quantity zero, no cost), under the same filters and the same sorts. Two branches that
-/// never overlap, concatenated and ordered by the database; all parameters, no raw SQL.
+/// The stock list with "low only" on: the balances that are low and the active products with a safety level that have never been stocked in a warehouse
+/// (one row per such product and active warehouse in scope, quantity zero, no average cost), under the same filters and the same sorts. The two sets are the
+/// ones of <see cref="LowStockSets"/> (the rule is <see cref="LowStockRule"/>); they never overlap, are concatenated and ordered by the database; all parameters, no raw SQL.
 /// </summary>
 public sealed class EfLowOnlyStockReader(AppDbContext db) : ILowOnlyStockReader
 {
@@ -25,7 +25,8 @@ public sealed class EfLowOnlyStockReader(AppDbContext db) : ILowOnlyStockReader
         public string WarehouseName { get; init; } = "";
         public decimal QtyOnHand { get; init; }
         public decimal QtyInTransit { get; init; }
-        public decimal AvgCost { get; init; }
+        /// <summary>Null for a product never stocked in the warehouse: there is no average to show, which is not the same as an average of zero.</summary>
+        public decimal? AvgCost { get; init; }
         public decimal SafetyStock { get; init; }
     }
 
@@ -53,10 +54,8 @@ public sealed class EfLowOnlyStockReader(AppDbContext db) : ILowOnlyStockReader
 
     private IQueryable<Row> Build(StockFilter f, IReadOnlyCollection<int>? scope, ProductSearch? search)
     {
-        // Rows that have a balance and are low.
-        var balances = db.Set<StockBalance>().Where(LowStockRule.IsLowBalance);
-        if (scope is not null) balances = balances.Where(b => scope.Contains(b.WarehouseId));
-        if (f.WarehouseId is { } w) balances = balances.Where(b => b.WarehouseId == w);
+        // Rows that have a balance and are low (the sets are the ones the low-stock list uses, see LowStockSets).
+        var balances = LowStockSets.LowBalances(db, scope, f.WarehouseId);
         if (f.ProductId is { } p) balances = balances.Where(b => b.ProductId == p);
         if (f.CategoryId is { } c) balances = balances.Where(b => b.Product.CategoryId == c);
         if (search is { } s)
@@ -70,21 +69,19 @@ public sealed class EfLowOnlyStockReader(AppDbContext db) : ILowOnlyStockReader
             QtyOnHand = b.QtyOnHand, QtyInTransit = b.QtyInTransit, AvgCost = b.AvgCost, SafetyStock = b.Product.SafetyStock
         });
 
-        // Products that have never been stocked anywhere (no balance row at all): low in every active warehouse in scope.
-        var warehouses = db.Set<Warehouse>().Where(x => x.IsActive);
-        if (scope is not null) warehouses = warehouses.Where(x => scope.Contains(x.Id));
-        if (f.WarehouseId is { } only) warehouses = warehouses.Where(x => x.Id == only);
-        var products = db.Set<Product>().Where(LowStockRule.CanBeNeverStockedLow).Where(x => !db.Set<StockBalance>().Any(b => b.ProductId == x.Id));
-        if (f.ProductId is { } id) products = products.Where(x => x.Id == id);
-        if (f.CategoryId is { } category) products = products.Where(x => x.CategoryId == category);
+        // Products never stocked in a warehouse (no balance row for that product and warehouse): low there, with nothing on hand and no average cost.
+        var pairs = LowStockSets.NeverStocked(db, scope, f.WarehouseId);
+        if (f.ProductId is { } id) pairs = pairs.Where(x => x.Product.Id == id);
+        if (f.CategoryId is { } category) pairs = pairs.Where(x => x.Product.CategoryId == category);
         if (search is { } text)
-            products = text.BarcodeProductId is { } byCode
-                ? products.Where(x => x.Sku.Contains(text.Text) || x.Name.Contains(text.Text) || x.Id == byCode)
-                : products.Where(x => x.Sku.Contains(text.Text) || x.Name.Contains(text.Text));
-        var neverStocked = products.SelectMany(_ => warehouses, (x, wh) => new Row
+            pairs = text.BarcodeProductId is { } byCode
+                ? pairs.Where(x => x.Product.Sku.Contains(text.Text) || x.Product.Name.Contains(text.Text) || x.Product.Id == byCode)
+                : pairs.Where(x => x.Product.Sku.Contains(text.Text) || x.Product.Name.Contains(text.Text));
+        var neverStocked = pairs.Select(x => new Row
         {
-            ProductId = x.Id, Sku = x.Sku, ProductName = x.Name, CategoryName = x.Category != null ? x.Category.Name : null, UomCode = x.BaseUom.Code,
-            WarehouseId = wh.Id, WarehouseCode = wh.Code, WarehouseName = wh.Name, QtyOnHand = 0m, QtyInTransit = 0m, AvgCost = 0m, SafetyStock = x.SafetyStock
+            ProductId = x.Product.Id, Sku = x.Product.Sku, ProductName = x.Product.Name, CategoryName = x.Product.Category != null ? x.Product.Category.Name : null,
+            UomCode = x.Product.BaseUom.Code, WarehouseId = x.Warehouse.Id, WarehouseCode = x.Warehouse.Code, WarehouseName = x.Warehouse.Name,
+            QtyOnHand = 0m, QtyInTransit = 0m, AvgCost = null, SafetyStock = x.Product.SafetyStock
         });
 
         return stocked.Concat(neverStocked);
