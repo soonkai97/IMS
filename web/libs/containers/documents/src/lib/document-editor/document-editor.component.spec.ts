@@ -470,6 +470,24 @@ describe('DocumentEditorPageComponent', () => {
       expect(spectator.component.view.lines.length).toBe(0);
     });
 
+    it('NR-09: the remove dialog of a user without cost.view never says "cost"; with cost.view it does', async () => {
+      await openNew();
+      fillNewIssue();
+      spectator.component.view.lines.at(0).controls.qty.setValue(7);
+
+      spectator.component.onRemoveLine(0);
+      const staffBody = confirm().$pending()?.request.body ?? '';
+      confirm().cancel();
+      granted.add(PERMISSION.CostView);
+      spectator.component.onRemoveLine(0);
+      const clerkBody = confirm().$pending()?.request.body ?? '';
+      confirm().cancel();
+
+      expect(staffBody).toBe('Its quantity will be lost.');
+      expect(staffBody.toLowerCase()).not.toContain('cost');
+      expect(clerkBody).toBe('Its quantity and cost will be lost.');
+    });
+
     it('NV-18: a line nobody changed goes at once', async () => {
       await openNew();
       fillNewIssue();

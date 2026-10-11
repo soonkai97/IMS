@@ -46,7 +46,7 @@ export class UiInputComponent implements ControlValueAccessor {
   $readonly = input(false, { alias: 'readonly', transform: booleanAttribute });
   $ariaLabel = input<string | undefined>(undefined, { alias: 'ariaLabel' });
 
-  $control = viewChild.required<ElementRef<HTMLInputElement>>('control');
+  $control = viewChild<ElementRef<HTMLInputElement>>('control');
 
   $value = signal('');
   $disabled = signal(false);
@@ -56,6 +56,8 @@ export class UiInputComponent implements ControlValueAccessor {
   $describedBy = computed(() => this.field?.describedBy() ?? null);
   $invalid = computed(() => this.field?.invalid() ?? false);
   $required = computed(() => this.field?.required() ?? false);
+  /** A number is replaced when the field is entered: typing 12 over the default 1 gives 12, not 112 (NR-01). */
+  $selectsOnFocus = computed(() => this.$type() === 'number' || this.$inputMode() === 'decimal');
   $isPassword = computed(() => this.$type() === 'password');
   $nativeType = computed(() => (this.$isPassword() && this.$revealed() ? 'text' : this.$type()));
   $toggleLabel = computed(() =>
@@ -65,13 +67,21 @@ export class UiInputComponent implements ControlValueAccessor {
 
   private onChange: (value: string | number | null) => void = () => undefined;
   private onTouched: () => void = () => undefined;
+  /** True for a tap that moves the focus into the field: its mouseup would drop the selection again. */
+  private tapFocuses = false;
 
   focus(): void {
-    this.$control().nativeElement.focus();
+    this.$control()?.nativeElement.focus();
   }
 
   writeValue(value: unknown): void {
-    this.$value.set(value === null || value === undefined ? '' : String(value));
+    const text = value === null || value === undefined ? '' : String(value);
+    this.$value.set(text);
+    // While a number is typed ("1.") the browser's text is not the model: write only a real change (NR-08).
+    const element = this.$control()?.nativeElement;
+    if (element && this.toModelValue(element.value) !== this.toModelValue(text)) {
+      element.value = text;
+    }
   }
 
   registerOnChange(fn: (value: string | number | null) => void): void {
@@ -91,11 +101,39 @@ export class UiInputComponent implements ControlValueAccessor {
       return;
     }
     const raw = event.target.value;
-    this.$value.set(raw);
+    // A number keeps what was typed ("1.", "-"): writing it back would eat the character and move the caret (NR-08).
+    if (this.$type() !== 'number') {
+      this.$value.set(raw);
+    }
     this.onChange(this.toModelValue(raw));
   }
 
-  onBlur(): void {
+  onMouseDown(): void {
+    this.tapFocuses =
+      this.$selectsOnFocus() && document.activeElement !== this.$control()?.nativeElement;
+  }
+
+  onFocus(event: FocusEvent): void {
+    if (this.$selectsOnFocus() && event.target instanceof HTMLInputElement) {
+      event.target.select();
+    }
+  }
+
+  onMouseUp(event: MouseEvent): void {
+    if (this.tapFocuses) {
+      event.preventDefault();
+      this.tapFocuses = false;
+    }
+  }
+
+  onBlur(event: FocusEvent): void {
+    this.tapFocuses = false;
+    if (this.$type() === 'number' && event.target instanceof HTMLInputElement) {
+      // Normalise on leaving: "1." becomes 1 and a lone "-" is cleared; text the browser accepts (1.50) stays as typed.
+      const accepted = event.target.value;
+      event.target.value = accepted;
+      this.$value.set(accepted);
+    }
     this.onTouched();
   }
 

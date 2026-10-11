@@ -23,7 +23,9 @@ test.describe('T16 Low stock (PS-04, NV-13)', () => {
     await expect(editor.line(product.sku)).toBeVisible();
     await expect(editor.qty(product.sku)).toBeFocused();
 
-    await editor.setQty(product.sku, 25);
+    // NR-01: the shortcut focuses the quantity with 1 in it; typing 25 replaces it (it used to make 125).
+    await page.keyboard.type('25');
+    await expect(editor.qty(product.sku)).toHaveValue('25');
     await editor.action('Submit & post').click();
     await editor.confirm(/^Post /, 'Post');
     await expect(shell.toast('Posted. Stock updated.')).toBeVisible();
