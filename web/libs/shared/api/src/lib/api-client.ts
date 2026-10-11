@@ -909,10 +909,10 @@ export class ReportsClient {
      * @param productId (optional) 
      * @param categoryId (optional) 
      * @param search (optional) 
-     * @param lowOnly (optional) 
+     * @param lowOnly (optional) Only low stock, by the one definition (LowStockRule) that the low-stock list, its export, the Home count and the menu badge also use, so this list has exactly the rows of `GET /api/stock/low-stock` (same warehouse filter). That includes active products with a safety level that have no stock in any warehouse the caller can see: they appear once, with no warehouse, a quantity of 0 and no average cost (null); a warehouse filter leaves them out. The other filters and the sort apply.
      * @param page (optional) 
      * @param pageSize (optional) 
-     * @param sortBy (optional) 
+     * @param sortBy (optional) Sku (default), QtyOnHand, Value (needs `valuation.view`), Warehouse or Name; every order ends in SKU and warehouse code, so paging never repeats a row.
      * @param desc (optional) 
      * @return The file.
      */
@@ -1272,10 +1272,10 @@ export class StockClient {
      * @param productId (optional) 
      * @param categoryId (optional) 
      * @param search (optional) 
-     * @param lowOnly (optional) 
+     * @param lowOnly (optional) Only low stock, by the one definition (LowStockRule) that the low-stock list, its export, the Home count and the menu badge also use, so this list has exactly the rows of `GET /api/stock/low-stock` (same warehouse filter). That includes active products with a safety level that have no stock in any warehouse the caller can see: they appear once, with no warehouse, a quantity of 0 and no average cost (null); a warehouse filter leaves them out. The other filters and the sort apply.
      * @param page (optional) 
      * @param pageSize (optional) 
-     * @param sortBy (optional) 
+     * @param sortBy (optional) Sku (default), QtyOnHand, Value (needs `valuation.view`), Warehouse or Name; every order ends in SKU and warehouse code, so paging never repeats a row.
      * @param desc (optional) 
      * @return OK
      */
@@ -1782,9 +1782,10 @@ export class AuditClient {
      * @param entityId (optional) Id of the entity starts with: a document number such as ISS-WH01-2610-0017, a user id, a SKU prefix of the bulk events.
      * @param action (optional) Action starts with: "document." for every document event, "login" for sign-ins, "document.posted" for one.
      * @param search (optional) One box for a person: matches an entity name fragment OR an entity id prefix, so a document number and "Document" both work.
+     * @param hideSignIns (optional) Leave out the sign-in events (login.success, login.failed, login.locked, login.lockout, logout), which are most of a busy log: "everything except sign-ins". Combines with the other filters.
      * @return OK
      */
-    list(entityType?: string | undefined, actor?: string | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined, entityId?: string | undefined, action?: string | undefined, search?: string | undefined, httpContext?: HttpContext): Observable<PagedResultOfAuditLogDto> {
+    list(entityType?: string | undefined, actor?: string | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined, entityId?: string | undefined, action?: string | undefined, search?: string | undefined, hideSignIns?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfAuditLogDto> {
         let url_ = this.baseUrl + "/api/audit?";
         if (entityType === null)
             throw new globalThis.Error("The parameter 'entityType' cannot be null.");
@@ -1830,6 +1831,10 @@ export class AuditClient {
             throw new globalThis.Error("The parameter 'search' cannot be null.");
         else if (search !== undefined)
             url_ += "Search=" + encodeURIComponent("" + search) + "&";
+        if (hideSignIns === null)
+            throw new globalThis.Error("The parameter 'hideSignIns' cannot be null.");
+        else if (hideSignIns !== undefined)
+            url_ += "HideSignIns=" + encodeURIComponent("" + hideSignIns) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_ : any = {
@@ -2068,7 +2073,7 @@ export class DocumentsClient {
      * @param warehouseId (optional) 
      * @param from (optional) 
      * @param to (optional) 
-     * @param search (optional) 
+     * @param search (optional) Documents whose number or remark contains the text, or whose partner name contains it (case-insensitive; a partial number such as 0100 works).
      * @param page (optional) 
      * @param pageSize (optional) 
      * @param afterId (optional) Seek paging: return documents older than this id (constant cost at any depth).
@@ -4164,6 +4169,10 @@ export interface DocumentDto {
     postedBy: string | undefined;
     postedByName: string | undefined;
     postedAt: string | undefined;
+    reversedBy: string | undefined;
+    reversedByName: string | undefined;
+    /** When a Reversed document was reversed, with `ReversedBy` and `ReversedByName` the user who did it ("Reversed by {name} on {date}"); null otherwise. `ReversalReason` holds why. */
+    reversedAt: string | undefined;
     returnedById: number | undefined;
     returnedBy: string | undefined;
     returnedByName: string | undefined;
@@ -4191,8 +4200,14 @@ export interface DocumentLineDto {
     uomId: number;
     uomCode: string;
     baseQty: number;
-    /** Per base unit. Null for a caller without `cost.view` (the Warehouse staff). */
+    /** The cost per ENTERED unit (the unit in `UomCode`), in money (2 decimals), that a person TYPED: send it back unchanged to keep the line. For a line whose cost nobody typed (`CostFromAverage`) it is `null`: there is nothing to edit, the line is valued at the average (see `BaseUnitCost` and `Amount`). For a typed cost `qty x unitCost` is the line `amount`. Null for a caller without `cost.view` (the Warehouse staff). */
     unitCost: number | undefined;
+    /** The cost per BASE unit, for stock valuation, shown as a UNIT PRICE with 4 decimals (not money): a carton price spread over the pieces in it (1 carton of 3 at 10.00 is 3.3333; a carton of 1,000 at 3.00 is 0.0030), or the average for a line at the average. Amounts computed from it are money (2 decimals). Never send it back as `unitCost`. Null for a caller without `cost.view`. */
+    baseUnitCost: number | undefined;
+    /** The value of the line, in money, stored when the line was saved: `round(qty x unitCost, 2)` for a typed cost, `round(baseQty x average, 2)` for a line at the average. It is the only figure to add up: a document total is the sum of the line `amount`s (never `qty x unitCost` of the lines: that is wrong for a line at the average). Null for a caller without `cost.view`. */
+    amount: number | undefined;
+    /** Nobody typed this line's cost: it is valued at the average cost of the product (every issue line; a receipt line saved by someone who may not enter cost, such as the Warehouse staff). It has no editable cost (`unitCost` is null), and saving the draft without a cost for it keeps it at the average; typing a cost makes it a typed cost. Show its `amount` and `baseUnitCost` read-only. On a draft its amount is re-valued at the current average on every save and at post, so a draft read earlier can be stale. */
+    costFromAverage: boolean;
     remark: string | undefined;
     /** On hand in the document's warehouse right now, in base units (compare with `BaseQty`; lines of one product add up). Null once the document is Posted, Reversed or Cancelled, when the figure no longer says anything about this document. */
     available?: number | undefined;
@@ -4326,6 +4341,8 @@ export interface LedgerRow {
     sourceDocId: number;
     sourceDocNo: string;
     user: string;
+    /** What this product held in this warehouse right after the movement (the sum of its ledger up to and including this row, in base units). Only given when the ledger is read for one product (`productId`); null otherwise (a list of several products has no single running balance). Stored with the row when it is written (under the same lock that serialises the postings of the product in the warehouse), so reading any page, however deep, costs the same and the answer cannot be overtaken by a posting. */
+    balanceAfter?: number | undefined;
 }
 
 export interface LoginRequest {
@@ -4337,10 +4354,11 @@ export interface LowStockAlert {
     productId: number;
     sku: string;
     productName: string;
-    warehouseId: number;
-    warehouseCode: string;
-    warehouseName: string;
-    /** Zero for a product that has never been stocked (it has no balance row). Negative when stock went below zero. */
+    /** Null (with the code and the name) only for a product stocked in no warehouse the caller can see. It appears ONCE, not once per warehouse. */
+    warehouseId: number | undefined;
+    warehouseCode: string | undefined;
+    warehouseName: string | undefined;
+    /** Zero for a product that is stocked in no warehouse the caller can see (it has no balance row there: it is listed once, with no warehouse). Negative when stock went below zero. */
     qtyOnHand: number;
     safetyStock: number;
     /** Safety stock minus on hand: how many units are missing (more than the safety level when the balance is negative). */
@@ -4557,17 +4575,18 @@ export interface StockRow {
     productName: string;
     categoryName: string | undefined;
     uomCode: string;
-    warehouseId: number;
-    warehouseCode: string;
-    warehouseName: string;
+    /** Null (with the code and the name) only on the low-only row of a product that has no stock in any warehouse the caller can see: it is listed once, belongs to no warehouse and has quantity 0. */
+    warehouseId: number | undefined;
+    warehouseCode: string | undefined;
+    warehouseName: string | undefined;
     qtyOnHand: number;
     qtyInTransit: number;
-    /** Average cost per base unit. Null for a caller without `valuation.view`. */
+    /** Average cost per base unit. Null for a caller without `valuation.view`, and for a product stocked in no warehouse the caller can see (a low-stock row with nothing on hand: there is no average, which is not an average of zero). */
     avgCost: number | undefined;
-    /** Quantity on hand times average cost. Null for a caller without `valuation.view`. */
+    /** Quantity on hand times average cost. Null for a caller without `valuation.view`, and for a product stocked in no warehouse the caller can see. */
     value: number | undefined;
     safetyStock: number;
-    /** Below the product's safety stock (when it has one) or below zero. */
+    /** Low by the one definition (LowStockRule): the product is active and its quantity is below zero, or at or below its safety stock (when it has one; design 3.8, "on-hand &lt;= safety stock"). The low-stock list, its count, the Home tile and the badge use the same rule. */
     isLow: boolean;
     /** On hand is below zero: show a warning, not just a "Low" chip (also true when the product has no safety stock). */
     isNegative: boolean;
@@ -4579,6 +4598,7 @@ export enum StockSort {
     QtyOnHand = "QtyOnHand",
     Value = "Value",
     Warehouse = "Warehouse",
+    Name = "Name",
 }
 
 export interface StockSummary {
@@ -4586,7 +4606,7 @@ export interface StockSummary {
     totalValue: number | undefined;
     /** Products with stock: distinct products that have a positive quantity in at least one of the caller's warehouses (zero and negative balances are not counted). */
     skuCount: number;
-    /** Product x warehouse pairs on the low-stock list (see `GET /api/stock/low-stock`): below safety stock, never stocked with a safety level, or negative. Equals that list's total. */
+    /** Product x warehouse pairs on the low-stock list (see `GET /api/stock/low-stock`): at or below safety stock, stocked in no visible warehouse (counted once) with a safety level, or negative. Equals that list's total. */
     lowCount: number;
 }
 

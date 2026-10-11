@@ -65,6 +65,9 @@ function document(overrides: Partial<DocumentDto> = {}): DocumentDto {
     postedBy: undefined,
     postedByName: undefined,
     postedAt: undefined,
+    reversedBy: undefined,
+    reversedByName: undefined,
+    reversedAt: undefined,
     returnedById: undefined,
     returnedBy: undefined,
     returnedByName: undefined,
@@ -82,6 +85,9 @@ function document(overrides: Partial<DocumentDto> = {}): DocumentDto {
         uomCode: 'PCS',
         baseQty: 15,
         unitCost: 0,
+        baseUnitCost: undefined,
+        amount: undefined,
+        costFromAverage: false,
         remark: undefined,
         available: 10
       }
@@ -966,6 +972,9 @@ describe('DocumentEditorPageComponent', () => {
             uomCode: 'PCS',
             baseQty: 10,
             unitCost: withCost ? 12.55 : (null as unknown as undefined),
+            baseUnitCost: undefined,
+            amount: undefined,
+            costFromAverage: false,
             remark: undefined,
             available: undefined
           }
