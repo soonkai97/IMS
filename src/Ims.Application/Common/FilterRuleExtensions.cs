@@ -9,6 +9,10 @@ public static class FilterRuleExtensions
     public static IRuleBuilderOptions<T, string?> MustBeAShortSearch<T>(this IRuleBuilder<T, string?> rule) =>
         rule.MaximumLength(Limits.SearchMaxLength).WithMessage(Messages.SearchTooLong);
 
+    /// <summary>A search that is given has at least <see cref="Limits.SearchMinTextLength"/> characters (after trimming): a one- or two-letter contains-match on a million documents is a scan nobody can use. Blank = no search.</summary>
+    public static IRuleBuilderOptions<T, string?> MustBeLongEnoughToSearch<T>(this IRuleBuilder<T, string?> rule) =>
+        rule.Must(text => string.IsNullOrWhiteSpace(text) || text.Trim().Length >= Limits.SearchMinTextLength).WithMessage(Messages.SearchTooShort);
+
     /// <summary>The "to" date is not earlier than the "from" date.</summary>
     public static IRuleBuilderOptions<T, DateOnly?> MustNotBeBefore<T>(this IRuleBuilder<T, DateOnly?> rule, Func<T, DateOnly?> from) =>
         rule.Must((filter, to) => to is null || from(filter) is not { } start || start <= to).WithMessage(Messages.DateRangeInvalid);

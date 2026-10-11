@@ -4,9 +4,9 @@ namespace Ims.Application.Features.Documents;
 
 public sealed class DocumentsPageSpec : Specification<StockDocument, DocumentListItem>
 {
-    public DocumentsPageSpec(DocumentFilter f, IReadOnlyCollection<int>? scope, int userId)
+    public DocumentsPageSpec(DocumentFilter f, IReadOnlyCollection<int>? scope, int userId, DocumentSearch? search)
     {
-        DocumentFilters.Apply(Query, f, scope, userId);
+        DocumentFilters.Apply(Query, f, scope, userId, search);
         var (page, size) = Paging.Normalize(f.Page, f.PageSize);
         Query.OrderByDescending(d => d.Id);
         if (f.AfterId is { } after) Query.Where(d => d.Id < after).Take(size);

@@ -782,6 +782,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("ReversedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("ReversedBy")
+                        .HasColumnType("int");
+
                     b.Property<int?>("ReversesDocumentId")
                         .HasColumnType("int");
 
@@ -835,6 +838,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasFilter("[REC_DELETED] = 0 AND [ReversedAt] IS NOT NULL");
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ReversedAt"), new[] { "Status", "Type", "WarehouseId", "PartnerId", "No" });
+
+                    b.HasIndex("ReversedBy")
+                        .HasFilter("[ReversedBy] IS NOT NULL");
 
                     b.HasIndex("SubmittedBy");
 
@@ -1489,6 +1495,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasForeignKey("RejectedBy")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Ims.Domain.User", "ReversedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReversedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Ims.Domain.User", "SubmittedByUser")
                         .WithMany()
                         .HasForeignKey("SubmittedBy")
@@ -1509,6 +1520,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Navigation("PostedByUser");
 
                     b.Navigation("RejectedByUser");
+
+                    b.Navigation("ReversedByUser");
 
                     b.Navigation("SubmittedByUser");
 

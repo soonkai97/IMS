@@ -14,6 +14,7 @@ public static class TestData
     public const int Creator = 10;
     public const int Submitter = 11;
     public const int Approver = 12;
+    public const int Reverser = 13;
 
     public const int PcsId = 1;
     public const int CartonId = 2;

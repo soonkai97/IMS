@@ -56,6 +56,26 @@ public class ReversalTests(ApiFixture fixture)
     }
 
     [Fact]
+    public async Task A_reversed_document_says_who_reversed_it_and_when()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var receipt = await s.ReceiveAsync(Warehouse, new Line(product.Id, 2, 1m));
+        Assert.All(new[] { receipt.ReversedBy, receipt.ReversedByName }, Assert.Null);
+        Assert.Null(receipt.ReversedAt);
+        var before = DateTime.UtcNow.AddSeconds(-5);
+
+        var reversed = (await s.Supervisor.Documents.ReverseAsync(receipt.Id, "Delivered to the wrong site")).Data<DocumentDto>();
+        var read = await s.GetAsync(receipt.Id);
+
+        Assert.Equal(TestUsers.UsernameOf(Roles.Supervisor), reversed.ReversedBy);
+        Assert.False(string.IsNullOrWhiteSpace(reversed.ReversedByName));
+        Assert.InRange(reversed.ReversedAt!.Value, before, DateTime.UtcNow.AddSeconds(5));
+        Assert.Equal((reversed.ReversedBy, reversed.ReversedByName, reversed.ReversedAt), (read.ReversedBy, read.ReversedByName, read.ReversedAt));
+        Assert.Equal("Delivered to the wrong site", read.ReversalReason);
+    }
+
+    [Fact]
     public async Task A_reversal_needs_a_reason()
     {
         var s = await StockScenario.CreateAsync(fixture);
