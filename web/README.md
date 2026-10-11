@@ -99,7 +99,9 @@ The e2e scenario `13-cost-visibility` checks Warehouse staff, Clerk and Supervis
 The palette (2026 refresh, `docs/design/2026-refresh-visual.md` 2.2) is two maps of role-named tokens, `$light` and `$dark`, in
 `libs/shared/styles/src/variables/_palette.var.scss`: `canvas`, `surface`, `surface-raised`, `surface-sunken`, `surface-strong`,
 `text`, `text-muted`, `accent`, and the roles `success`, `warning`, `danger`, `info` (each with `on-<role>`, `<role>-soft`,
-`on-<role>-soft`), `focus`, `chart-1..6`. It is the only file that may hold a hex value (stylelint `color-no-hex`).
+`on-<role>-soft`), `focus`, `chart-1..6`. It is the only file that may hold a hex value (stylelint `color-no-hex`); stylelint also
+rejects named colours and `rgb()` / `hsl()` calls (the three shadows in `variables/_shape.var.scss` are exempt until slice R05
+moves them into theme custom properties).
 
 The names used before the refresh (`bg`, `surface-2`, `surface-3`, `primary*`, `warning-border`, `status-*`) still work through the
 `$aliases` map (old name to canonical name; no value is copied, so an alias cannot drift). `color('primary')` compiles to
@@ -107,8 +109,11 @@ The names used before the refresh (`bg`, `surface-2`, `surface-3`, `primary*`, `
 
 `npm run contrast` (`scripts/check-contrast.mjs`) runs the 81 pairs of the visual spec in light and dark (162 checks: 4.5 text,
 3 UI components, borders, focus ring, chart series) plus a few call-site pairs, and exits 1 when a pair misses its ratio, when
-`$light` and `$dark` differ in keys, or when an alias target does not exist. A new token enters the palette together with the
-pairs that use it. `--all` prints every ratio. CI runs it before the production build.
+`$light` and `$dark` differ in keys, when a value is not a plain 6-digit hex, when an alias differs from the mapping of spec 6.2
+pinned in the script, or when a token is in no pair (only `border` and `overlay` are exempt, with their reason in the script). A
+new token enters the palette together with the pairs that use it. `--all` prints every ratio. `scripts/check-contrast.test.mjs`
+(node:test, run by the same command) damages copies of the palette and proves each of those failures exits 1. CI runs it before
+the production build.
 
 ## Internationalisation
 

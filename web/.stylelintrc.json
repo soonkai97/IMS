@@ -3,6 +3,8 @@
   "rules": {
     "declaration-no-important": true,
     "color-no-hex": true,
+    "color-named": "never",
+    "function-disallowed-list": ["rgb", "rgba", "hsl", "hsla"],
     "selector-class-pattern": null,
     "scss/dollar-variable-pattern": null,
     "scss/at-mixin-pattern": null,
@@ -45,6 +47,12 @@
       "files": ["**/variables/_palette.var.scss"],
       "rules": {
         "color-no-hex": null
+      }
+    },
+    {
+      "files": ["**/variables/_shape.var.scss"],
+      "rules": {
+        "function-disallowed-list": null
       }
     }
   ],

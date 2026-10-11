@@ -15,9 +15,21 @@ const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
 type Scheme = 'light' | 'dark';
 
+/**
+ * Waits until nothing on the page is loading. A table that refreshes is dimmed to 60% opacity and marked aria-busy (plus the
+ * thin progress bar); a first load shows skeletons (also aria-busy). axe measures a dimmed header at 2.7:1 (light), which is
+ * a transient state and not a palette defect, so the audit starts only when the screen is at rest.
+ */
+async function settled(page: Page): Promise<void> {
+  await page.waitForFunction(
+    () => document.querySelector('[aria-busy="true"], .ui-table-progress') === null
+  );
+}
+
 /** Serious and critical axe violations of the current screen that are not in KNOWN, as readable lines. */
 async function audit(page: Page, screen: string, scheme: Scheme): Promise<string[]> {
   await page.waitForLoadState('networkidle');
+  await settled(page);
   // The palette really switched: _themes.scss sets color-scheme with the colours, so a screen audited "in dark" was dark.
   const applied = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
   expect(applied, `${screen}: colour scheme in use`).toBe(scheme);

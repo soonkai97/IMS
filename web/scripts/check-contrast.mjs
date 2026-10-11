@@ -1,8 +1,9 @@
 // WCAG AA contrast gate for the colour palette: npm run contrast  (add --all to print every pair)
 // Parses the $light, $dark and $aliases maps in libs/shared/styles/src/variables/_palette.var.scss and exits 1 when
 //  - a pair of the pair list below falls under its WCAG ratio (4.5 text, 3 UI components) in light or dark,
-//  - $light and $dark do not have the same keys, a value is not a 6-digit hex colour,
-//  - an alias has no target in both themes, shares its name with a canonical token, or a pair names an unknown token.
+//  - $light and $dark do not have the same keys, a value is not a 6-digit hex colour (no alpha, no shorthand),
+//  - an alias differs from the spec 6.2 mapping, has no target in both themes or shares its name with a canonical token,
+//  - a pair names an unknown token, or a token is in no pair (and not in the NOT_PAIRED list with its reason).
 // The pair list is Appendix A of docs/design/2026-refresh-visual.md. A new token enters the palette only together with the
 // pairs that use it. IMS_PALETTE_FILE points the script at another palette file (used to prove that the gate fails).
 import { readFileSync } from 'node:fs';
@@ -47,10 +48,9 @@ function ratio(a, b) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-const themes = {
-  light: readMap('light', '#[0-9a-fA-F]{6}'),
-  dark: readMap('dark', '#[0-9a-fA-F]{6}')
-};
+// Exactly six hex digits: an 8-digit value (alpha) or a shorthand does not match and is reported below.
+const HEX = '#[0-9a-fA-F]{6}(?![0-9a-fA-F])';
+const themes = { light: readMap('light', HEX), dark: readMap('dark', HEX) };
 const aliases = readMap('aliases', "'[\\w-]+'");
 const problems = [];
 
@@ -83,7 +83,43 @@ for (const name of ['light', 'dark']) {
   }
 }
 
-// Aliases: old name -> canonical token. Never a copy of a value, always a target that exists in both themes.
+// Aliases: old name -> canonical token (visual spec 6.2). Never a copy of a value, always a target that exists in both
+// themes, and exactly the mapping below: a typo in a target that still exists (primary -> accent-soft) must fail too.
+// R24 deletes the aliases and this table with them.
+const EXPECTED_ALIASES = {
+  bg: 'canvas',
+  'surface-2': 'surface-sunken',
+  'surface-3': 'surface-strong',
+  skeleton: 'surface-strong',
+  primary: 'accent',
+  'primary-hover': 'accent-hover',
+  'on-primary': 'on-accent',
+  'primary-soft': 'accent-soft',
+  'on-primary-soft': 'on-accent-soft',
+  'warning-border': 'warning',
+  'status-draft': 'surface-strong',
+  'on-status-draft': 'text',
+  'status-submitted': 'accent-soft',
+  'on-status-submitted': 'on-accent-soft',
+  'status-approved': 'info-soft',
+  'on-status-approved': 'on-info-soft',
+  'status-posted': 'success-soft',
+  'on-status-posted': 'on-success-soft',
+  'status-reversed': 'warning-soft',
+  'on-status-reversed': 'on-warning-soft',
+  'status-cancelled': 'surface-strong',
+  'on-status-cancelled': 'text-muted'
+};
+for (const [alias, target] of Object.entries(EXPECTED_ALIASES)) {
+  if (aliases[alias] !== target) {
+    problems.push(
+      `alias "${alias}" must point to "${target}" (spec 6.2), found "${aliases[alias] ?? 'nothing'}"`
+    );
+  }
+}
+for (const alias of Object.keys(aliases).filter(a => !(a in EXPECTED_ALIASES))) {
+  problems.push(`alias "${alias}" is not in the spec 6.2 mapping of this script`);
+}
 for (const [alias, target] of Object.entries(aliases)) {
   if (lightKeys.includes(alias)) {
     problems.push(`alias "${alias}" has the same name as a canonical token`);
@@ -150,6 +186,24 @@ for (const [fg, bg] of [...pairs, ...callSitePairs]) {
       problems.push(`pair "${fg}" on "${bg}" names an unknown token "${token}"`);
     }
   }
+}
+// Every token is either in a pair or on this list. A token nobody checks is how a palette drifts (the pair list is not
+// derived from the palette), so a new token needs its pairs here, or a stated reason to be exempt.
+const NOT_PAIRED = {
+  border: 'decorative divider and card outline, never the only cue (spec 2.3)',
+  overlay: 'scrim colour, used at 35 to 60% over content'
+};
+const paired = new Set([...pairs, ...callSitePairs].flatMap(([fg, bg]) => [fg, bg]));
+for (const token of lightKeys) {
+  if (!paired.has(token) && !(token in NOT_PAIRED)) {
+    problems.push(`token "${token}" is in no contrast pair and not in NOT_PAIRED: add its pairs`);
+  }
+  if (paired.has(token) && token in NOT_PAIRED) {
+    problems.push(`token "${token}" is in NOT_PAIRED but has a pair: remove it from NOT_PAIRED`);
+  }
+}
+for (const token of Object.keys(NOT_PAIRED).filter(t => !lightKeys.includes(t))) {
+  problems.push(`NOT_PAIRED lists "${token}", which is not a token`);
 }
 if (problems.length > 0) {
   problems.forEach(p => console.log(`FAIL ${p}`));
