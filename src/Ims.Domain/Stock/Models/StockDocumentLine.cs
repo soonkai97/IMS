@@ -16,6 +16,16 @@ public class StockDocumentLine : Entity
     public decimal UnitCost { get; private set; }
     public string? Remark { get; private set; }
 
+    /// <summary>The average cost of the product just before this receipt line posted. Set at posting, only on receipt lines; null before that and for lines posted before it was recorded.</summary>
+    [VisibleWith(Permissions.ValuationView)]
+    public decimal? AvgCostBefore { get; private set; }
+    /// <summary>The average cost this receipt line produced. A reversal restores <see cref="AvgCostBefore"/> only while the average still equals this.</summary>
+    [VisibleWith(Permissions.ValuationView)]
+    public decimal? AvgCostAfter { get; private set; }
+
+    /// <summary>What this line did to the moving average when it posted, if that was recorded.</summary>
+    public AverageCostChange? PostedAverage => AvgCostBefore is { } before && AvgCostAfter is { } after ? new AverageCostChange(before, after) : null;
+
     public StockDocument Document { get; private set; } = null!;
     public Product Product { get; private set; } = null!;
     public Uom Uom { get; private set; } = null!;
@@ -48,4 +58,11 @@ public class StockDocumentLine : Entity
 
     /// <summary>Issues are booked at the average cost in force when they post (BR-05).</summary>
     internal void BookIssueCost(decimal averageCost) => UnitCost = averageCost;
+
+    /// <summary>Remembers what posting this receipt line did to the moving average, so reversing it can put the average back.</summary>
+    internal void RecordAverageChange(decimal before, decimal after)
+    {
+        AvgCostBefore = before;
+        AvgCostAfter = after;
+    }
 }

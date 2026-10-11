@@ -96,5 +96,9 @@ public static class Limits
     public const int MaxLowStockCooldownHours = 24 * 30;
 
     // Decimal precision
-    public const int RoundingDecimals = 6;
+    /// <summary>
+    /// Decimal places a cost per base unit and the moving average keep INSIDE the system (ledger, document lines, balances). Wider than the 2 places of
+    /// any amount a person sees, so a unit conversion (a carton price spread over 12 pieces) and repeated blending do not drift by a cent over a large quantity.
+    /// </summary>
+    public const int CostDecimals = 10;
 }

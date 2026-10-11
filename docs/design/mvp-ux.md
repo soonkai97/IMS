@@ -126,6 +126,21 @@ The one rule (backend): a cost or value is tagged `[VisibleWith(permission)]` wh
 - Reports and Excel exports are Supervisor, Owner and Admin only; each file leaves out the columns its reader may not see.
 - Counts (Home tiles, menu badges) are numbers of documents, not money; the only value tile is the stock total, which needs `valuation.view`.
 
+### 1.5 Costing and reversal (closes PR-01)
+
+Stock is valued at a **moving weighted-average cost** per product and warehouse (BR-05). The value of a row is always `quantity x average cost`; nothing else is stored, so the Home total, the Stock list and the ledger cannot disagree.
+
+- **Receive** at cost `c`: `average = (qty x average + received x c) / (qty + received)`. While stock is zero or negative the new cost simply replaces the average. A receipt at the average itself leaves it exactly as it is.
+- **Issue** is booked at the average in force when it posts; the average does not move. An issue that has not posted yet is estimated at the average when it was last saved.
+- **Reverse an issue** puts the stock back at the cost the issue left at (a receipt at that cost).
+- **Reverse a receipt** takes the quantity out at the cost it came in at **and takes its cost out of the average**. Every posted receipt line remembers the average just before it and the one it produced (`avgCostBefore`, `avgCostAfter` on the document line). On reversal:
+  1. **The average has not moved since the receipt** (nothing came in after it; only issues, which never change the average, or nothing at all): the average goes back to the value it had before the receipt, exactly, however many units were issued in between. The receipt is undone as if it had never happened. Example: 735 PCS at 4.76, a duplicate receipt of 600 at 200.00 (average 92.51), reversed: 735 PCS at 4.76 again, value 3,498.60, not 67,991.90. If 60 PCS were issued in between, the reversal leaves 675 PCS at 4.76.
+  2. **A later receipt blended into the average:** the stock loses `received x its cost` of value and the remaining units share what is left, `(qty x average - received x cost) / (qty - received)`. This is exact when nothing was issued since, so the stock value stays equal to the value of the movements (reversing the first of 100 at 10 and 100 at 20 leaves 100 at 20).
+  3. **No sound arithmetic** (nothing would be left, or later issues already used up more value than remains): the average stays as it is now. It is the last known cost, and the next receipt replaces it when stock is zero or negative.
+- A reversal that would take stock below zero is still refused when negative stock is off (E6). The quantity rule decides whether a reversal is allowed; the cost rule above decides what the average becomes. The issues booked after a receipt keep the cost they were booked at (the ledger is append-only); only the average of the stock that remains is corrected.
+- Receipts posted before this rule existed have no remembered average; they use rule 2 (exact when the receipt is the latest movement, to ten decimal places).
+- The average is kept with 10 decimal places inside the system (`Limits.CostDecimals`, SQL `decimal(18,10)`) so repeated blending and unit conversions do not drift by a cent over large quantities; an amount a person sees is money with 2 decimal places.
+
 ## 2. Reusable components (the whole set)
 
 Five core components plus three tiny helpers. Everything above is composed from these. fe-designer styles them; fe-architect wraps them as `app-*`.

@@ -96,6 +96,15 @@ Who may see cost and value is decided by two permissions, `cost.view` (Clerk, Su
 - **Receipts without cost.** `IReceiptCostDefaults`: a receipt saved by a caller without `cost.view` takes the last known (average) cost per product in the warehouse, or zero for a product never stocked there, whatever cost the request carried (`StockDocument.ApplyKnownReceiptCosts`).
 - **Tests.** `Ims.Architecture.Tests/CostVisibilityCoverageTests` fails when a response property, entity property, export column or sort key whose name looks like cost or value is not tagged, when a tagged property cannot be withheld, when anything but `ReportWriter` uses `IExcelWriter`, or when an audit payload names money without `AuditFields`. `Ims.Api.Tests/Tests/Visibility` asks every read, export and document command as every role and compares the money found (by name) with what the role may see.
 
+## Costing and reversal
+
+`StockBalance` holds quantity and the moving weighted-average cost (10 decimal places, `Limits.CostDecimals`, SQL `decimal(18,10)`); a value is always `quantity x average`.
+Posting a receipt line records what it did to the average (`StockDocumentLine.AvgCostBefore` / `AvgCostAfter`, receipt lines only). Reversing a receipt calls `StockBalance.Unreceive`:
+the average goes back to `AvgCostBefore` while it still equals `AvgCostAfter` (only issues came after), otherwise the receipt's value (`qty x cost`) is taken out of the stock value and the rest is shared
+by the remaining units, and where that has no sound answer the average is kept. The lines of one product are reversed last-posted first, so each finds the average as the next one left it.
+`PostingEngine.FindReversalDeficits` still decides, by quantity, whether a reversal is allowed. The rule and its examples are in `docs/design/mvp-ux.md` 1.5; the tests are
+`ReceiptReversalCostingTests` (domain) and `ReceiptReversalCostTests` (API, the reported scenario).
+
 ## Data, concurrency and performance rules
 
 Standard audit columns on every table, soft delete, parameterised data access only, split queries, O(1)-minded design, ordered locks, timeouts and

@@ -10,6 +10,6 @@ public static class CostingPolicy
     public static decimal BaseUnitCost(DocumentType type, decimal? enteredCostPerUnit, decimal enteredQty, decimal baseQty)
     {
         if (type != DocumentType.Receipt || enteredCostPerUnit is not { } cost || baseQty <= 0) return 0m;
-        return Math.Round(cost * enteredQty / baseQty, Limits.RoundingDecimals);
+        return Math.Round(cost * enteredQty / baseQty, Limits.CostDecimals);
     }
 }
