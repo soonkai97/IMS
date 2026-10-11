@@ -8,7 +8,7 @@ Delivered as three pull requests, **each based on `main` and independent of the 
 |---|---|---|
 | 1 | `feature/avg-cost-and-money-precision` | PR-01: reversing a receipt takes its cost out of the moving average; internal cost precision 10 decimals (migration `AverageCostSnapshotAndCostScale`) |
 | 2 | `feature/avg-cost-and-money-precision-2` | Product-owner decision: money has exactly 2 decimals, rounded half away from zero (no schema change) |
-| 3 | `feature/avg-cost-and-money-precision-3` | PR-04, PR-05, PR-08, PR-10, PR-11, PS-12, PS-14, this list (migrations `AddDocumentReversedBy`, `AddLedgerBalanceAfter`; the QA review of the first version is fixed in `feature/qa-backend-fixes-5`) |
+| 3 | `feature/avg-cost-and-money-precision-3` | PR-04, PR-05, PR-08, PR-10, PR-11, PS-12, PS-14, this list (migration `AddDocumentReversedBy`; the QA review of the first version is fixed in `feature/qa-backend-fixes-5`) |
 
 Legend: **fixed** = done and covered by a test; **not done** = no change made, reason given; **needs decision** = waits for a product answer; **UI** = the frontend owns it (the contract it relies on is in `docs/team/HANDOFFS.md`, "Contract changes for the frontend").
 
@@ -37,7 +37,7 @@ Legend: **fixed** = done and covered by a test; **not done** = no change made, r
 | PS-11 | needs decision | Same as PR-02. |
 | PS-12 | fixed (PR 3) | `GET /api/audit?hideSignIns=true` leaves out `login.success`, `login.failed`, `login.locked`, `login.lockout` and `logout` and combines with the other filters ("everything except sign-ins"). A settings save writes ONE `settings.updated` event with the old and the new values; the row per changed key is gone (`SystemSetting` is no longer row-audited). Tests in `AuditSearchTests`, `AuditTrailTests`. |
 | PS-13 | needs decision | Paging controls (the API offers `afterId` and `pageSize`). |
-| PS-14 | fixed (PR 3) | `LedgerRow.balanceAfter` on `GET /api/stock/ledger?productId=...`: what the product held in that warehouse right after the movement, stored on the ledger row when it is written, under the posting lock (column `StockLedgerEntry.BalanceAfter`, migration `AddLedgerBalanceAfter` backfills old rows); the row is never updated, so the ledger stays append-only. Null when the ledger is not read for one product. Not added to the Excel ledger export (up to 50,000 rows of several products; say if you want it for a one-product export). Tests: `LedgerBalanceAfterTests` (running sums, page sizes and cursor, reversals, two warehouses, one document, scope, parallel postings, the whole database) and `MigrationTests`. |
+| PS-14 | fixed (own PR) | `LedgerRow.balanceAfter` on `GET /api/stock/ledger?productId=...` is stored on the ledger row when it is written (migration `AddLedgerBalanceAfter`). It is in its own pull request, `feature/ledger-balance-after` (it needed a migration that rewrites the whole ledger, which is better reviewed and scheduled alone). |
 | PS-15 | UI / needs decision | Nothing is left on the backend: `from` after `to` is a `400` (above), signed quantity and the export are done. The date format is a decision; the empty state and the export message are UI. |
 | PS-20 | not reproducible | |
 | PS-22 | UI | Wrapping of SKU and date in the Reports table (CSS). |

@@ -16,9 +16,7 @@ public sealed class LedgerRowsSpec : Specification<StockLedgerEntry, LedgerRow>
             if (f.AfterId is { } after) Query.Where(l => l.Id < after).Take(size);
             else Query.Skip((page - 1) * size).Take(size);
         }
-        // The running balance is stored with the row; it is only offered when the ledger is read for one product (a mixed list has no single running balance).
-        var forOneProduct = f.ProductId is not null;
         Query.Select(l => new LedgerRow(l.Id, l.OccurredAt, l.Product.Sku, l.Product.Name, l.Warehouse.Code, l.Warehouse.Name, l.QtyDelta, l.UnitCost,
-            l.Reason, l.SourceDocId, l.SourceDocument.No, l.Creator.Username, forOneProduct ? l.BalanceAfter : (decimal?)null));
+            l.Reason, l.SourceDocId, l.SourceDocument.No, l.Creator.Username));
     }
 }

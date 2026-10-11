@@ -154,11 +154,12 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
             Assert.Equal(Keys(all), Keys(sorted));
             Assert.Equal(sorted.Count, sorted.Select(r => (r.ProductId, r.WarehouseId)).Distinct().Count());
         }
-        // The sort is the database's, whatever its collation: do not predict it in .NET. Ascending and descending must be exact mirrors of each other (the
-        // product names are all different), and the SKU tie-break makes the order total.
+        // The sort is the database's, whatever its collation: do not predict it in .NET. Ascending and descending must be mirrors of each other
+        // (product names may repeat), and the SKU tie-break makes the order total.
         var byName = await StockRowsAsync(s.Admin, $"lowOnly=true&warehouseId={k.Warehouse.Id}&sortBy=Name");
         var byNameDesc = await StockRowsAsync(s.Admin, $"lowOnly=true&warehouseId={k.Warehouse.Id}&sortBy=Name&desc=true");
-        Assert.Equal(byName.Select(r => (r.ProductId, r.WarehouseId)).Reverse(), byNameDesc.Select(r => (r.ProductId, r.WarehouseId)));
+        Assert.Equal(byName.Select(r => r.ProductName).Reverse(), byNameDesc.Select(r => r.ProductName)); // products may share a name; the SKU then breaks the tie the same way in both
+        Assert.Equal(Keys(byName), Keys(byNameDesc));
         var byQty = await StockRowsAsync(s.Admin, $"lowOnly=true&warehouseId={k.Warehouse.Id}&sortBy=QtyOnHand");
         Assert.Equal(byQty.Select(r => r.QtyOnHand).Order(), byQty.Select(r => r.QtyOnHand)); // the negative row first, the never-stocked rows (0) among the rest
     }

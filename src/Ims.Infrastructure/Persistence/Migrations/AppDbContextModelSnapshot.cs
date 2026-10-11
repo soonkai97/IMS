@@ -934,9 +934,6 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<decimal>("BalanceAfter")
-                        .HasColumnType("decimal(18,4)");
-
                     b.Property<int>("CreatedBy")
                         .HasColumnType("int");
 

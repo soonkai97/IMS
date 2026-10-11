@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Ims.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261011054633_AddDocumentReversedBy")]
+    [Migration("20261011064519_AddDocumentReversedBy")]
     partial class AddDocumentReversedBy
     {
         /// <inheritdoc />
