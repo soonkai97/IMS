@@ -25,7 +25,7 @@ public class ReportWriterTests
         public bool Has(string permission) => permissions.Contains(permission);
     }
 
-    private static readonly ReportColumn[] Columns = [new("SKU"), new("Qty"), new("Unit cost", Permissions.CostView, IsMoney: true), new("Value", Permissions.ValuationView, IsMoney: true)];
+    private static readonly ReportColumn[] Columns = [new("SKU"), new("Qty"), new("Unit cost", Permissions.CostView), new("Value", Permissions.ValuationView)];
 
     private static Recorder Write(params string[] permissions)
     {

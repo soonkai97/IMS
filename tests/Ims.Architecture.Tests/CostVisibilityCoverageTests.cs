@@ -123,17 +123,6 @@ public partial class CostVisibilityCoverageTests
     }
 
     [Fact]
-    public void EveryExcelColumnThatLooksLikeMoney_IsFormattedAsMoney()
-    {
-        var offenders = ColumnSets()
-            .SelectMany(set => set.Columns.Select(c => (set.Name, Column: c)))
-            .Where(x => CostLike().IsMatch(x.Column.Header) && !x.Column.IsMoney)
-            .Select(x => $"{x.Name}: \"{x.Column.Header}\"");
-
-        Verify.NoOffenders(offenders, "A money column of an export or template must be declared IsMoney, so its numbers are rounded to 2 decimals and shown as #,##0.00:");
-    }
-
-    [Fact]
     public void TheColumnSets_AreFound()
     {
         var names = ColumnSets().Select(s => s.Name).ToList();

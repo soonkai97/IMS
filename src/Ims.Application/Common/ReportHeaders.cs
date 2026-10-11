@@ -6,16 +6,16 @@ public static class ReportHeaders
     public static readonly ReportColumn[] StockSummaryColumns =
     [
         new("SKU"), new("Product"), new("Category"), new("Warehouse"), new("Unit"), new("On hand"), new("In transit"),
-        new("Avg cost", Permissions.ValuationView, IsMoney: true), new("Value", Permissions.ValuationView, IsMoney: true), new("Safety stock"), new("Low")
+        new("Avg cost", Permissions.ValuationView), new("Value", Permissions.ValuationView), new("Safety stock"), new("Low")
     ];
     public static readonly ReportColumn[] MovementColumns =
     [
         new("Posted (MYT)"), new("Document"), new("Type"), new("Status"), new("Warehouse"), new("Partner"), new("SKU"), new("Product"), new("Qty"),
-        new("Unit"), new("Base qty"), new("Stock effect"), new("Unit cost", Permissions.CostView, IsMoney: true), new("Amount", Permissions.CostView, IsMoney: true)
+        new("Unit"), new("Base qty"), new("Stock effect"), new("Unit cost", Permissions.CostView), new("Amount", Permissions.CostView)
     ];
     public static readonly ReportColumn[] LedgerColumns =
     [
-        new("Time (MYT)"), new("SKU"), new("Product"), new("Warehouse"), new("Qty change"), new("Unit cost", Permissions.ValuationView, IsMoney: true),
+        new("Time (MYT)"), new("SKU"), new("Product"), new("Warehouse"), new("Qty change"), new("Unit cost", Permissions.ValuationView),
         new("Reason"), new("Document"), new("User")
     ];
     public static readonly ReportColumn[] LowStockColumns =
