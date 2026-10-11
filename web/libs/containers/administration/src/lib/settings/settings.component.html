@@ -11,6 +11,7 @@
         (ngSubmit)="onSaveSettings()"
         novalidate
       >
+        <app-form-legend />
         <app-checkbox formControlName="allowNegativeStock">{{
           'settings.allowNegativeStock' | t
         }}</app-checkbox>
@@ -78,6 +79,7 @@
 
 <app-dialog [(open)]="$ruleDialogOpen" [heading]="$ruleHeading()">
   <form class="settings-page-form" [formGroup]="ruleForm" (ngSubmit)="onSaveRule()" novalidate>
+    <app-form-legend />
     @for (message of $ruleServerErrors(); track message) {
       <app-banner kind="danger">{{ message }}</app-banner>
     }

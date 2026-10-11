@@ -4,6 +4,7 @@
   [attr.aria-label]="$ariaLabel()"
   [attr.aria-describedby]="$describedBy()"
   [attr.aria-invalid]="$invalid() || null"
+  [attr.required]="$required() ? '' : null"
   [disabled]="$disabled()"
   (change)="onChangeEvent($event)"
   (blur)="onBlur()"
