@@ -18,6 +18,7 @@ FROM dbo.StockDocumentLine l
 JOIN dbo.StockDocument d ON d.Id = l.DocumentId AND d.REC_DELETED = 0
 JOIN dbo.Product p ON p.Id = l.ProductId
 WHERE l.REC_DELETED = 0 AND d.[Type] = 1 AND d.Status IN (0, 1, 2) AND l.Qty > 0
-  AND ABS(l.UnitCost * l.BaseQty / l.Qty - ROUND(l.UnitCost * l.BaseQty / l.Qty, 2)) > 0.0005   -- more than a rounding artefact of the unit conversion
+  AND (ABS(l.UnitCost * l.BaseQty / l.Qty - ROUND(l.UnitCost * l.BaseQty / l.Qty, 2)) > 0.00005   -- more than a rounding artefact of the unit conversion
+       OR (l.UnitCost <> 0 AND ROUND(l.UnitCost * l.BaseQty / l.Qty, 2) = 0))               -- a cost below half a cent rounds to a typed zero
 ORDER BY d.No, l.Id;
 SELECT @@ROWCOUNT AS LinesWithAFractionOfACent;

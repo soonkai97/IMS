@@ -471,6 +471,38 @@ public class MoneyPrecisionTests(ApiFixture fixture)
     }
 
     [Fact]
+    public async Task A_caller_without_cost_view_gets_the_same_answer_whatever_the_hidden_average_is()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var carton = fixture.Reference.CartonUnitId;
+        foreach (var average in new[] { 12m, 10m })   // 90,000,000 cartons of 1,000,000 pieces: the line is 1.08e15 at 12, 9e14 at 10 (the limit is just under 1e15)
+        {
+            var product = await s.NewProductAsync(customize: b => b.WithConversion(carton, 1_000_000));
+            await s.ReceiveAsync(Warehouse, new Line(product.Id, 10, average));
+            var request = new DocumentBuilder(Warehouse).WithPartner(s.Reference.SupplierId).WithLines(new Line(product.Id, 90_000_000m, UomId: carton)).Build();
+            var issue = new DocumentBuilder(Warehouse).WithPartner(s.Reference.CustomerId).WithLines(new Line(product.Id, 90_000_000m, UomId: carton)).Build();
+
+            var receipt = await s.Staff.Documents.CreateReceiptAsync(request);
+            var drafted = await s.Staff.Documents.CreateIssueAsync(issue);
+
+            Assert.Equal((HttpStatusCode.OK, HttpStatusCode.OK), (receipt.Status, drafted.Status)); // no 400 that depends on the average
+            Assert.Null(Assert.Single(receipt.Data<DocumentDto>().Lines).Amount);                              // and nothing of it is shown
+        }
+    }
+
+    [Fact]
+    public async Task A_quantity_that_passes_the_base_quantity_column_is_a_400_not_a_500()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync(customize: b => b.WithConversion(fixture.Reference.CartonUnitId, 1_000_000));
+        var request = new DocumentBuilder(Warehouse).WithPartner(s.Reference.SupplierId).WithLines(new Line(product.Id, 1_000_000_000m, 1m, fixture.Reference.CartonUnitId)).Build(); // 1e15 pieces
+
+        var created = (await s.Admin.Documents.CreateReceiptAsync(request)).ShouldBeProblem(HttpStatusCode.BadRequest);
+
+        Assert.Equal(Messages.QtyTooLarge, created.Detail);
+    }
+
+    [Fact]
     public async Task Every_line_with_a_sub_cent_cost_is_named_not_only_the_first()
     {
         var s = await StockScenario.CreateAsync(fixture);

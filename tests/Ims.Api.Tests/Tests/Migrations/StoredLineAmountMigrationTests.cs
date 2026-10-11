@@ -66,6 +66,8 @@ public class StoredLineAmountMigrationTests : IAsyncLifetime
         await LineAsync("T-1", "3", "3", "4.5");                         // a typed cost in the base unit
         await LineAsync("T-1", "100000", "700000", "1.428571");          // 100,000 cartons of 7 at 10.00: per piece 1.428571
         await LineAsync("T-1", "1000", "1001", "0.003");                 // a sub-cent cost per entered unit (base 1001 only to tell the line apart)
+        await LineAsync("T-1", "2000", "2000", "0.0004");                // 0.0004 a piece: below half a cent, must not become a typed zero
+        await LineAsync("T-1", "1000", "1000", "1.2301");                // 1.2301 a piece: not a 2-decimal cost
         await LineAsync("T-2", "2", "24", "1.255");                      // an issue of 2 cartons of 12, valued at the average
         await LineAsync("T-3", "100000", "700000", "1.428571");          // the same carton line, posted
 
@@ -77,6 +79,8 @@ public class StoredLineAmountMigrationTests : IAsyncLifetime
         Assert.True(subCent.AtAverage);                                                    // 0.003 per entered unit cannot be a typed 2-decimal cost: kept at its exact price
         Assert.Equal(0.00m, subCent.Entered);
         Assert.Equal(3.00m, subCent.Amount);                                               // round(1,001 x 0.003): the exact price, not 0 x 1,000
+        Assert.Equal((0.00m, 0.80m, true), await ReadAsync("T-1", "2000"));               // flagged: 2,000 x 0.0004 = 0.80 kept, not a typed zero
+        Assert.Equal((1.23m, 1230.10m, true), await ReadAsync("T-1", "1000"));            // flagged: 1,230.10 kept, not a typed 1.23 = 1,230.00
         Assert.Equal((15.06m, 30.12m, true), await ReadAsync("T-2", "24"));               // an issue: always at the average, round(24 x 1.255)
         Assert.Equal((10.00m, 999_999.70m, false), await ReadAsync("T-3", "700000"));     // posted: keeps what it showed, no posted total moves
     }

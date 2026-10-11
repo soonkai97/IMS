@@ -177,6 +177,26 @@ public class MoneyAmountTests
     }
 
     [Fact]
+    public void ALineAtTheAverage_IsCappedAtTheLargestAmount_NeverRefused_SoTheHiddenAverageIsNotRevealed()
+    {
+        var line = StockDocumentLine.Create(P(1), DocumentType.Issue, 1_000_000_000m, null, null, null);
+
+        line.EstimateIssueCost(12_000_000m);   // 1e9 x 12e6 = 1.2e16
+
+        Assert.Equal((Limits.MaxLineAmount, 12_000_000m), (line.Amount, line.EnteredUnitCost));
+    }
+
+    [Fact]
+    public void AQuantityWhoseBaseQuantityPassesTheColumn_IsADomainError()
+    {
+        var product = NewProduct(1, "SKU-1", cartonFactor: 1_000_000m);
+
+        var ex = Assert.Throws<DomainException>(() => StockDocumentLine.Create(product, DocumentType.Receipt, 1_000_000_000m, CartonId, 1m, null)); // 1e15 base units
+
+        Assert.Equal(Messages.QtyTooLarge, ex.Message);
+    }
+
+    [Fact]
     public void ASubCentCostOnAnIssue_IsNotJudged_BecauseItIsNotUsed()
     {
         var line = StockDocumentLine.Create(P(1), DocumentType.Issue, 1m, null, 1.234m, null);

@@ -77,6 +77,7 @@ public class StockDocumentLine : Entity
 
         var uom = uomId ?? product.BaseUomId;
         var baseQty = product.ToBaseQuantity(qty, uom);
+        if (baseQty > Limits.MaxBaseQuantity) throw new DomainException(Messages.QtyTooLarge);
         var enteredCost = typed ?? 0m;
         return new StockDocumentLine
         {
@@ -96,12 +97,16 @@ public class StockDocumentLine : Entity
     /// <summary>Issues are booked at the average cost in force when they post (BR-05).</summary>
     internal void BookIssueCost(decimal averageCost) => ValueAtAverage(averageCost);
 
-    /// <summary>The line takes a cost per base unit (the average): the amount is the base quantity times it, and the entered-unit cost is the same cost per entered unit.</summary>
+    /// <summary>
+    /// The line takes a cost per base unit (the average): the amount is the base quantity times it, and the entered-unit cost is the same cost per entered unit.
+    /// Both are CAPPED at <see cref="Limits.MaxLineAmount"/>, never refused: the average is hidden from some callers (Warehouse staff), and a 400 that depends on it
+    /// would tell them its size.
+    /// </summary>
     private void ValueAtAverage(decimal costPerBaseUnit)
     {
         UnitCost = costPerBaseUnit;
-        Amount = EnsureAmountFits(Money.Amount(BaseQty, costPerBaseUnit));
-        EnteredUnitCost = Qty > 0 ? EnsureAmountFits(Money.Round(costPerBaseUnit * BaseQty / Qty)) : 0m;
+        Amount = Math.Min(Money.Amount(BaseQty, costPerBaseUnit), Limits.MaxLineAmount);
+        EnteredUnitCost = Qty > 0 ? Math.Min(Money.Round(costPerBaseUnit * BaseQty / Qty), Limits.MaxLineAmount) : 0m;
     }
 
     /// <summary>A line amount is stored as <c>decimal(18,2)</c>: above <see cref="Limits.MaxLineAmount"/> the answer is a 400 with a sentence, never a database overflow.</summary>

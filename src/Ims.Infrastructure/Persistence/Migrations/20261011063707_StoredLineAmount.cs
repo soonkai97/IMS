@@ -53,7 +53,7 @@ CROSS APPLY (SELECT CASE WHEN l.[Qty] = 0 THEN CAST(0 AS decimal(38, 10)) ELSE C
 CROSS APPLY (SELECT
         CASE WHEN ABS(r.[Raw]) > 999999999999999 THEN CAST(999999999999999 AS decimal(38, 10)) ELSE ROUND(r.[Raw], 2) END AS [Entered],
         CASE WHEN d.[Type] = 2 THEN 1
-             WHEN d.[Type] = 1 AND d.[Status] IN (0, 1, 2) AND ABS(r.[Raw] - ROUND(r.[Raw], 2)) > 0.0005 THEN 1
+             WHEN d.[Type] = 1 AND d.[Status] IN (0, 1, 2) AND (ABS(r.[Raw] - ROUND(r.[Raw], 2)) > 0.00005 OR (r.[Raw] <> 0 AND ROUND(r.[Raw], 2) = 0)) THEN 1
              ELSE 0 END AS [AtAverage]) x;");
         }
 
