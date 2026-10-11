@@ -68,7 +68,13 @@ export class LowStockPageComponent implements OnInit {
   $canExport = computed(() => this.permissions.has(PERMISSION.ReportsRead));
   $canCreate = computed(() => this.permissions.has(PERMISSION.DocumentCreate));
   $columns = computed<readonly TableColumn<LowStockAlert>[]>(() => [
-    { key: 'sku', header: this.i18n.t('product.sku'), value: row => row.sku, primary: true },
+    {
+      key: 'sku',
+      type: 'code',
+      header: this.i18n.t('product.sku'),
+      value: row => row.sku,
+      primary: true
+    },
     {
       key: 'name',
       header: this.i18n.t('product.name'),
@@ -84,7 +90,13 @@ export class LowStockPageComponent implements OnInit {
     { key: 'onHand', header: this.i18n.t('stock.onHand'), align: 'end' },
     { key: 'safety', header: this.i18n.t('product.safetyStock'), align: 'end', hideOnPhone: true },
     { key: 'short', header: this.i18n.t('lowStock.shortBy'), align: 'end', phoneEnd: true },
-    { key: 'actions', header: this.i18n.t('common.actions'), align: 'end', phoneInline: true }
+    {
+      key: 'actions',
+      type: 'action',
+      header: this.i18n.t('common.actions'),
+      align: 'end',
+      phoneInline: true
+    }
   ]);
 
   readonly rowLink = (row: LowStockAlert): readonly unknown[] => ['/stock', row.productId];

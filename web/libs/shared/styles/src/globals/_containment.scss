@@ -1,0 +1,12 @@
+// Content containment (L00). Never hide the symptom: no `overflow-x: hidden` on html or body, the e2e test must see it.
+
+html {
+  // Any run of text may break anywhere, and (unlike `break-word`) this also lowers the min-content width, so a flex or
+  // grid child holding a long unbroken value shrinks instead of stretching its row and the page.
+  overflow-wrap: anywhere;
+}
+
+video,
+canvas {
+  max-width: 100%;
+}

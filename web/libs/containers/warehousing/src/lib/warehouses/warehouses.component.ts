@@ -100,7 +100,13 @@ export class WarehousesPageComponent implements OnInit {
   );
   $columns = computed<readonly TableColumn<WarehouseDto>[]>(() => {
     const columns: TableColumn<WarehouseDto>[] = [
-      { key: 'code', header: this.i18n.t('warehouse.code'), value: row => row.code, primary: true },
+      {
+        key: 'code',
+        type: 'code',
+        header: this.i18n.t('warehouse.code'),
+        value: row => row.code,
+        primary: true
+      },
       { key: 'name', header: this.i18n.t('warehouse.name'), value: row => row.name },
       {
         key: 'contact',
@@ -108,10 +114,15 @@ export class WarehousesPageComponent implements OnInit {
         value: row => row.contact ?? '',
         hideOnPhone: true
       },
-      { key: 'status', header: this.i18n.t('product.status') }
+      { key: 'status', type: 'status', header: this.i18n.t('product.status') }
     ];
     if (this.$canManage()) {
-      columns.push({ key: 'actions', header: this.i18n.t('common.actions'), align: 'end' });
+      columns.push({
+        key: 'actions',
+        type: 'action',
+        header: this.i18n.t('common.actions'),
+        align: 'end'
+      });
     }
     return columns;
   });

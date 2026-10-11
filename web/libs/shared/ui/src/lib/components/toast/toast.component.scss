@@ -31,10 +31,11 @@
   color: var(--toast-accent);
 }
 
+// Three lines at most (L00); the whole message stays in the live region and in the title.
 .ui-toast-message {
+  @include clamp-lines(3);
+
   flex: 1;
-  min-width: 0;
-  overflow-wrap: anywhere;
 }
 
 .ui-toast-action,

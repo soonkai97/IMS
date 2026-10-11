@@ -16,7 +16,14 @@ import { UiButtonComponent } from '../button/button.component';
 import { UiIconComponent } from '../icon/icon.component';
 import { UiSkeletonComponent } from '../skeleton/skeleton.component';
 import { UiCellDirective } from './cell.directive';
-import { TableCell, TableColumn, TableHeader, TableItem, TableSort } from './table.types';
+import {
+  TableCell,
+  TableColumn,
+  TableHeader,
+  TableItem,
+  TableSort,
+  columnTypeOf
+} from './table.types';
 
 /**
  * One data definition, two renderings: a table from 1024px up and a card list below (docs/design/mvp-ux.md 2).
@@ -57,6 +64,7 @@ export class UiTableComponent<Row extends object> {
     const sort = this.$sort();
     return this.$columns().map(column => ({
       key: column.key,
+      type: columnTypeOf(column),
       header: column.header,
       alignEnd: column.align === 'end',
       hideOnPhone: column.hideOnPhone === true,
@@ -78,6 +86,7 @@ export class UiTableComponent<Row extends object> {
         const template = templates.get(column.key) ?? null;
         return {
           key: column.key,
+          type: columnTypeOf(column),
           header: column.header,
           text,
           template,

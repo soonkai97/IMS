@@ -1,0 +1,22 @@
+// Content containment (L00): a long value never widens the page. `html` already breaks any word anywhere
+// (globals/_containment.scss); these two mixins are for text that must stay short instead.
+
+/// One line, cut with an ellipsis. Pair it with a `title` or a detail page that shows the full value.
+/// This is the only place a literal `white-space: nowrap` may appear (stylelint bans it elsewhere).
+@mixin truncate-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- the ellipsis above is the point */
+  white-space: nowrap;
+}
+
+/// At most `$lines` lines, then an ellipsis.
+@mixin clamp-lines($lines) {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-line-clamp: $lines;
+  line-clamp: $lines;
+  -webkit-box-orient: vertical;
+}

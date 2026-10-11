@@ -153,8 +153,8 @@ export class UsersPageComponent implements OnInit {
       header: this.i18n.t('user.role'),
       value: row => this.i18n.enumLabel(ROLE_LABELS, row.role)
     },
-    { key: 'status', header: this.i18n.t('product.status') },
-    { key: 'actions', header: this.i18n.t('common.actions'), align: 'end' }
+    { key: 'status', type: 'status', header: this.i18n.t('product.status') },
+    { key: 'actions', type: 'action', header: this.i18n.t('common.actions'), align: 'end' }
   ]);
   $serverErrors = computed(() => {
     const error = this.store.save.$operation().error;

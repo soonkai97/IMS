@@ -20,8 +20,8 @@
   min-height: height('touch');
   padding: 0 space(2);
   font-weight: font-weight('medium');
+  flex: none;
   color: color('text-muted');
-  white-space: nowrap;
   border-bottom: border-width('thick') solid transparent;
 
   &:hover {
@@ -42,4 +42,10 @@
   text-align: center;
   background: color('primary-soft');
   border-radius: border-radius('pill');
+}
+
+.ui-tabs-label {
+  @include truncate-line;
+
+  max-width: 24ch;
 }

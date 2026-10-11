@@ -55,10 +55,24 @@
 <app-dialog [(open)]="$detailOpen" [heading]="'audit.details' | t">
   <section>
     <h3>{{ 'audit.before' | t }}</h3>
-    <pre class="audit-log-page-json">{{ $before() || '-' }}</pre>
+    <pre
+      class="audit-log-page-json"
+      role="region"
+      tabindex="0"
+      data-scroll-region
+      [attr.aria-label]="'audit.before' | t"
+      >{{ $before() || '-' }}</pre
+    >
   </section>
   <section>
     <h3>{{ 'audit.after' | t }}</h3>
-    <pre class="audit-log-page-json">{{ $after() || '-' }}</pre>
+    <pre
+      class="audit-log-page-json"
+      role="region"
+      tabindex="0"
+      data-scroll-region
+      [attr.aria-label]="'audit.after' | t"
+      >{{ $after() || '-' }}</pre
+    >
   </section>
 </app-dialog>

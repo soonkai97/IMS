@@ -19,6 +19,7 @@ through the real login form, and create their data through the public API with u
 | `11-accessibility` | axe (WCAG 2.2 AA) finds no serious or critical violation on the main screens; exceptions need a finding id (`KNOWN` in the file, empty today) | EA-03, EA-21 |
 | `12-low-stock` | never-stocked product is listed, "New receipt" shortcut is prefilled, product leaves the list after posting | T16, PS-04, NV-13 |
 | `13-cost-visibility` | Warehouse staff see no cost or value on the receipt, issue, stock, home and report screens (no money-formatted number anywhere, no Amount or Value column, no Reports); Clerk has the unit cost input, the total and the Amount column but no value; Supervisor sees stock value, sorts by it, and the movements report shows the signed stock effect, the amount and the Reversal row | EA-23, mvp-ux 1.4, 3.9 |
+| `14-containment` | 300-character names and 500-character remarks (unbroken Latin, with spaces, Chinese, emoji) on the partner, product, user, receipt and stock lists, the receipt editor, the Add item sheet, a dialog and a 500-character error toast: no sideways page scroll at 320, 360, 768 and 1440 px; only named scroll regions scroll | L00, N15 |
 
 A scenario that finds a product bug is marked `test.fixme` with the finding id in the title and the bug is written up in
 `docs/team/HANDOFFS.md`. None are open today.

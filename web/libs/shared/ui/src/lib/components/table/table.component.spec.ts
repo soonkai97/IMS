@@ -57,3 +57,45 @@ describe('UiTableComponent card layout', () => {
     expect(firstPartner?.textContent?.trim()).toBe('Acme');
   });
 });
+
+describe('UiTableComponent long values (L00)', () => {
+  const long = 'W'.repeat(300);
+  const rows: Row[] = [{ no: 'RCV-1', partner: long, status: 'Draft' }];
+  const createComponent = createComponentFactory({
+    component: UiTableComponent<Row>,
+    providers: [provideRouter([])],
+    detectChanges: false
+  });
+
+  function render(columns: TableColumn<Row>[]): Spectator<UiTableComponent<Row>> {
+    const spectator = createComponent({ props: { columns, rows, caption: 'Receipts' } as never });
+    spectator.detectChanges();
+    return spectator;
+  }
+
+  it('gives every column a type class: declared, else number when aligned to the end, name when primary, text otherwise', () => {
+    const spectator = render([
+      { key: 'no', header: 'No.', value: row => row.no, primary: true, type: 'code' },
+      { key: 'partner', header: 'Partner', value: row => row.partner },
+      { key: 'qty', header: 'Qty', value: () => '3', align: 'end' },
+      { key: 'name', header: 'Name', value: row => row.no, primary: true }
+    ]);
+
+    const headers = spectator.queryAll('th').map(th => th.className);
+    expect(headers[0]).toContain('--code');
+    expect(headers[1]).toContain('--text');
+    expect(headers[2]).toContain('--number');
+    expect(headers[3]).toContain('--name');
+    expect(spectator.query('td.--code')).toBeTruthy();
+  });
+
+  it('shows plain text in a span that carries the full value as its title, so it can be cut with an ellipsis', () => {
+    const spectator = render([
+      { key: 'partner', header: 'Partner', value: row => row.partner, primary: true }
+    ]);
+
+    const text = spectator.query('td .ui-table-text');
+    expect(text?.textContent?.trim()).toBe(long);
+    expect(text?.getAttribute('title')).toBe(long);
+  });
+});

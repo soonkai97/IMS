@@ -35,6 +35,7 @@
 
 .ui-table-grid {
   width: 100%;
+  table-layout: fixed;
   background: color('surface');
   border: border-width('thin') solid color('border');
   border-radius: border-radius('md');
@@ -47,6 +48,7 @@
   color: color('text-muted');
   text-align: start;
   text-transform: uppercase;
+  overflow-wrap: break-word;
   background: color('surface-2');
 
   &.--end {
@@ -84,19 +86,54 @@
     text-align: end;
   }
 
-  // SKUs and document numbers are one token: never broken at the hyphen ("QA-" / "002").
   &.--primary {
     font-weight: font-weight('medium');
+  }
+}
 
-    @include media-desktop {
-      white-space: nowrap;
+// Long values (L00): plain-text cells are one line with an ellipsis and the full value in the title; the same text
+// is on the detail page, in the edit dialog or one tap away on the card. Chips, numbers, dates and buttons are not cut.
+.ui-table-text {
+  min-width: 0;
+}
+
+@include media-desktop {
+  .ui-table-header {
+    &.--code {
+      width: 12rem;
     }
+
+    &.--number {
+      width: 5.5rem;
+    }
+
+    &.--date {
+      width: 7.5rem;
+    }
+
+    &.--status,
+    &.--action {
+      width: 7.5rem;
+    }
+  }
+
+  .ui-table-cell.--name,
+  .ui-table-cell.--text,
+  .ui-table-cell.--code {
+    overflow: hidden;
+  }
+
+  .ui-table-text {
+    @include truncate-line;
+
+    display: block;
   }
 }
 
 .ui-table-link {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   min-height: 1.5rem;
   color: inherit;
   text-decoration: none;
@@ -129,6 +166,7 @@
 
   .ui-table-row {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: space(0);
     margin-bottom: space(1);
     padding: space(1) space(2);
@@ -140,6 +178,8 @@
   .ui-table-cell {
     display: flex;
     gap: space(2);
+    min-width: 0;
+    max-width: 100%;
     justify-content: space-between;
     padding: space(0) 0;
     text-align: start;
@@ -157,11 +197,22 @@
       &::before {
         display: none;
       }
+
+      // A card title may take two lines, every other fact one.
+      .ui-table-text {
+        @include clamp-lines(2);
+
+        white-space: normal;
+      }
     }
 
     &.--phone-hidden,
     &.--empty {
       display: none;
+    }
+
+    .ui-table-text {
+      @include truncate-line;
     }
 
     &.--end {

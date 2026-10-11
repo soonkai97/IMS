@@ -9,13 +9,13 @@
   display: inline-flex;
   gap: space(0);
   align-items: center;
+  min-width: 0;
   max-width: 100%;
   padding: 2px space(1);
   font-size: font-size(1);
   font-weight: font-weight('medium');
   line-height: 1.3;
   color: var(--chip-fg);
-  white-space: nowrap;
   background: var(--chip-bg);
   border: border-width('thin') solid var(--chip-border);
   border-radius: border-radius('pill');
@@ -76,5 +76,8 @@
 }
 
 .ui-status-chip-label {
+  @include truncate-line;
+
+  max-width: 24ch;
   text-decoration: var(--chip-decoration);
 }

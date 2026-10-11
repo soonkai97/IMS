@@ -11,7 +11,7 @@
       (click)="onSelect(tab.id)"
       (keydown)="onKeydown($event, index)"
     >
-      {{ tab.label }}
+      <span class="ui-tabs-label">{{ tab.label }}</span>
       @if (tab.badge !== undefined) {
         <span class="ui-tabs-badge">{{ tab.badge }}</span>
       }

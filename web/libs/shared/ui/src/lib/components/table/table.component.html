@@ -27,6 +27,7 @@
           <th
             scope="col"
             class="ui-table-header"
+            [class]="'--' + column.type"
             [class.--end]="column.alignEnd"
             [class.--phone-hidden]="column.hideOnPhone"
             [attr.aria-sort]="column.ariaSort"
@@ -55,6 +56,7 @@
           @for (cell of item.cells; track cell.key) {
             <td
               class="ui-table-cell"
+              [class]="'--' + cell.type"
               [attr.data-label]="cell.header"
               [class.--primary]="cell.primary"
               [class.--end]="cell.alignEnd"
@@ -91,6 +93,6 @@
       [ngTemplateOutletContext]="{ $implicit: item.row }"
     />
   } @else {
-    {{ cell.text }}
+    <span class="ui-table-text" [attr.title]="cell.text">{{ cell.text }}</span>
   }
 </ng-template>

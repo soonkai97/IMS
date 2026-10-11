@@ -94,7 +94,13 @@ export class ApprovalsInboxPageComponent implements OnInit {
   /** The value column needs cost.view: without it the server sends null and the flags still say why (mvp-ux 1.4). */
   private readonly $canViewCost = computed(() => this.permissions.has(PERMISSION.CostView));
   $columns = computed<readonly TableColumn<InboxRow>[]>(() => [
-    { key: 'no', header: this.i18n.t('doc.no'), value: row => row.document.no, primary: true },
+    {
+      key: 'no',
+      type: 'code',
+      header: this.i18n.t('doc.no'),
+      value: row => row.document.no,
+      primary: true
+    },
     {
       key: 'type',
       header: this.i18n.t('doc.type'),

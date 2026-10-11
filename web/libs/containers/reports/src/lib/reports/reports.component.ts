@@ -135,8 +135,8 @@ export class ReportsPageComponent implements OnInit {
   private readonly $canViewCost = computed(() => this.permissions.has(PERMISSION.CostView));
   $columns = computed<readonly TableColumn<MovementRow>[]>(() => [
     // The reversal badge sits next to the number so it also shows on the phone card, where Status is hidden.
-    { key: 'docNo', header: this.i18n.t('doc.no'), primary: true },
-    { key: 'date', header: this.i18n.t('reports.postedAt') },
+    { key: 'docNo', type: 'code', header: this.i18n.t('doc.no'), primary: true },
+    { key: 'date', type: 'date', header: this.i18n.t('reports.postedAt') },
     {
       key: 'type',
       header: this.i18n.t('doc.type'),
@@ -145,6 +145,7 @@ export class ReportsPageComponent implements OnInit {
     },
     {
       key: 'status',
+      type: 'status',
       header: this.i18n.t('product.status'),
       value: row => this.i18n.enumLabel(DOCUMENT_STATUS_LABELS, row.status),
       hideOnPhone: true
@@ -161,7 +162,7 @@ export class ReportsPageComponent implements OnInit {
       value: row => row.partner ?? '',
       hideOnPhone: true
     },
-    { key: 'sku', header: this.i18n.t('product.sku'), value: row => row.sku },
+    { key: 'sku', type: 'code', header: this.i18n.t('product.sku'), value: row => row.sku },
     { key: 'qty', header: this.i18n.t('doc.qty'), align: 'end' },
     { key: 'effect', header: this.i18n.t('reports.stockEffect'), align: 'end' },
     // Money columns need cost.view; the server sends null to the others (docs/design/mvp-ux.md 1.4).

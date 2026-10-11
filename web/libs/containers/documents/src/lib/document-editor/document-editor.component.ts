@@ -393,7 +393,13 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   readonly $ledgerRows = computed(() => this.stock.ledger.$data()?.items ?? []);
   readonly $ledgerLoading = this.stock.ledger.$isLoading;
   readonly $ledgerColumns = computed<readonly TableColumn<LedgerRow>[]>(() => [
-    { key: 'sku', header: this.i18n.t('product.sku'), value: row => row.sku, primary: true },
+    {
+      key: 'sku',
+      type: 'code',
+      header: this.i18n.t('product.sku'),
+      value: row => row.sku,
+      primary: true
+    },
     { key: 'name', header: this.i18n.t('product.name'), value: row => row.productName },
     { key: 'qty', header: this.i18n.t('ledger.qtyChange'), align: 'end' },
     {

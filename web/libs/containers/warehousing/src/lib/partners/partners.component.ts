@@ -143,10 +143,15 @@ export class PartnersPageComponent {
         value: row => row.contact ?? '',
         hideOnPhone: true
       },
-      { key: 'status', header: this.i18n.t('product.status') }
+      { key: 'status', type: 'status', header: this.i18n.t('product.status') }
     ];
     if (this.$canManage()) {
-      columns.push({ key: 'actions', header: this.i18n.t('common.actions'), align: 'end' });
+      columns.push({
+        key: 'actions',
+        type: 'action',
+        header: this.i18n.t('common.actions'),
+        align: 'end'
+      });
     }
     return columns;
   });

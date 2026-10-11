@@ -115,12 +115,13 @@ export class ProductImportPageComponent implements OnDestroy {
   $columns = computed<readonly TableColumn<ImportRowResult>[]>(() => [
     {
       key: 'row',
+      type: 'code',
       header: this.i18n.t('import.col.row'),
       value: row => String(row.row),
       primary: true
     },
     { key: 'key', header: this.i18n.t('import.col.key'), value: row => row.key },
-    { key: 'status', header: this.i18n.t('import.col.status') },
+    { key: 'status', type: 'status', header: this.i18n.t('import.col.status') },
     {
       key: 'problems',
       header: this.i18n.t('import.col.problems'),
