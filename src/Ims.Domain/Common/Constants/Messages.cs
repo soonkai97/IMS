@@ -82,6 +82,7 @@ public static class Messages
     public const string RuleNotFound = "Rule not found.";
     public static string NumberAlreadyAssigned(string no) => $"Document number {no} is already assigned and cannot change.";
     public const string ThresholdNegative = "Thresholds cannot be negative.";
+    public const string AmountTooPrecise = "An amount can have at most 2 decimal places.";
     public const string ThresholdRequired = "Set an amount threshold, a quantity threshold, or both.";
 
     // ----- Documents -----
@@ -91,6 +92,7 @@ public static class Messages
     public const string ChooseProduct = "Choose a product on every line.";
     public const string QtyPositive = "Quantity must be greater than zero.";
     public const string CostNegative = "Unit cost cannot be negative.";
+    public const string CostTooPrecise = "Unit cost can have at most 2 decimal places.";
     public static string RestrictedSortKey(string key) => $"Sorting by {key.ToLowerInvariant()} is not available to your role.";
     public const string OnlyReceiptAndIssue = "Only receipts and issues are available in this version.";
     public const string RejectReasonRequired = "A rejection reason is required.";

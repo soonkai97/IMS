@@ -8,11 +8,13 @@ public class ReportWriterTests
     private sealed class Recorder : IExcelWriter
     {
         public string[] Headers { get; private set; } = [];
+        public IReadOnlyList<bool> MoneyColumns { get; private set; } = [];
         public List<object?[]> Rows { get; } = [];
 
-        public byte[] Write(string sheetName, string[] headers, IEnumerable<object?[]> rows)
+        public byte[] Write(string sheetName, string[] headers, IReadOnlyList<bool> moneyColumns, IEnumerable<object?[]> rows)
         {
             Headers = headers;
+            MoneyColumns = moneyColumns;
             Rows.AddRange(rows);
             return [];
         }
@@ -23,7 +25,7 @@ public class ReportWriterTests
         public bool Has(string permission) => permissions.Contains(permission);
     }
 
-    private static readonly ReportColumn[] Columns = [new("SKU"), new("Qty"), new("Unit cost", Permissions.CostView), new("Value", Permissions.ValuationView)];
+    private static readonly ReportColumn[] Columns = [new("SKU"), new("Qty"), new("Unit cost", Permissions.CostView, IsMoney: true), new("Value", Permissions.ValuationView, IsMoney: true)];
 
     private static Recorder Write(params string[] permissions)
     {
@@ -39,6 +41,14 @@ public class ReportWriterTests
 
         Assert.Equal(["SKU", "Qty"], file.Headers);
         Assert.Equal([new object?[] { "A", 2m }, new object?[] { "B", 1m }], file.Rows);
+    }
+
+    [Fact]
+    public void TheMoneyFlagFollowsTheColumnsThatAreKept()
+    {
+        Assert.Equal([false, false], Write().MoneyColumns);
+        Assert.Equal([false, false, true], Write(Permissions.CostView).MoneyColumns);
+        Assert.Equal([false, false, true, true], Write(Permissions.CostView, Permissions.ValuationView).MoneyColumns);
     }
 
     [Fact]

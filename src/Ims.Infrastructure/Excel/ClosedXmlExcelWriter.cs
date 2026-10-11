@@ -1,13 +1,16 @@
 using ClosedXML.Excel;
 using Ims.Application;
+using Ims.Domain;
 namespace Ims.Infrastructure.Excel;
 
 public class ClosedXmlExcelWriter : IExcelWriter
 {
     private const string DateTimeFormat = "yyyy-mm-dd hh:mm";
+    /// <summary>Money: thousands separator and exactly 2 decimals, whatever the value (a whole 12 shows 12.00).</summary>
+    private const string MoneyFormat = "#,##0.00";
     private const int HeaderRow = 1;
 
-    public byte[] Write(string sheetName, string[] headers, IEnumerable<object?[]> rows)
+    public byte[] Write(string sheetName, string[] headers, IReadOnlyList<bool> moneyColumns, IEnumerable<object?[]> rows)
     {
         using var wb = new XLWorkbook();
         var ws = wb.Worksheets.Add(sheetName);
@@ -23,6 +26,8 @@ public class ClosedXmlExcelWriter : IExcelWriter
                 switch (row[c])
                 {
                     case null: break;
+                    // A money cell is rounded once more here, so no sub-cent number can reach a file whatever produced the row.
+                    case decimal d when moneyColumns[c]: cell.Value = Money.Round(d); cell.Style.NumberFormat.Format = MoneyFormat; break;
                     case decimal d: cell.Value = d; break;
                     case DateTime dt: cell.Value = dt; cell.Style.DateFormat.Format = DateTimeFormat; break;
                     case int i: cell.Value = i; break;

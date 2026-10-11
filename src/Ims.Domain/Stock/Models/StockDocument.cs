@@ -69,7 +69,7 @@ public class StockDocument : Entity
 
     public decimal TotalQty => Lines.Sum(l => l.BaseQty);
     [VisibleWith(Permissions.CostView)]
-    public decimal TotalAmount => Lines.Sum(l => l.BaseQty * l.UnitCost);
+    public decimal TotalAmount => Lines.Sum(l => l.Amount);
 
     public bool CanPost => Status == DocumentStatus.Approved ||
                            (Status == DocumentStatus.Submitted && !RequiresApproval);

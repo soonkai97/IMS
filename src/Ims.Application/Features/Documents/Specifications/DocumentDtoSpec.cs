@@ -17,8 +17,8 @@ public sealed class DocumentDtoSpec : Specification<StockDocument, DocumentDto>
             d.PostedByUser != null ? d.PostedByUser.Username : null, d.PostedByUser != null ? d.PostedByUser.DisplayName : null, d.PostedAt,
             d.RejectedBy, d.RejectedByUser != null ? d.RejectedByUser.Username : null,
             d.RejectedByUser != null ? d.RejectedByUser.DisplayName : null, d.RejectedAt,
-            d.Lines.Sum(l => l.BaseQty), d.Lines.Sum(l => l.BaseQty * l.UnitCost),
+            d.Lines.Sum(l => l.BaseQty), d.Lines.Sum(l => Math.Round(l.BaseQty * l.UnitCost, Money.Decimals)),
             d.Lines.OrderBy(l => l.Id).Select(l => new DocumentLineDto(l.Id, l.ProductId, l.Product.Sku, l.Product.Name, l.Qty, l.UomId,
-                l.Uom.Code, l.BaseQty, l.UnitCost, l.Remark, null)).ToList(),
+                l.Uom.Code, l.BaseQty, Math.Round(l.UnitCost, Money.Decimals), l.Remark, null)).ToList(),
             new List<string>(), new List<ApprovalTriggerDto>(), d.RowVersion));
 }

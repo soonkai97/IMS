@@ -39,6 +39,7 @@ public class ImportOpeningStockHandler(IExcelReader excel, IReadRepository<Produ
             {
                 if (!ImportSheet.TryParseDecimal(uc, out cost)) errors.Add(Messages.NotANumber(ImportColumns.UnitCostLabel, uc));
                 else if (cost < 0) errors.Add(Messages.CostNegative);
+                else if (!Money.IsExact(cost)) errors.Add(Messages.CostTooPrecise);
             }
 
             // Every valid row becomes a line on a new draft receipt, so it is always "New".

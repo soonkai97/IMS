@@ -12,8 +12,8 @@ public sealed class StockRowsSpec : Specification<StockBalance, StockRow>
         {
             case (StockSort.QtyOnHand, false): Query.OrderBy(b => b.QtyOnHand).ThenBy(b => b.Product.Sku); break;
             case (StockSort.QtyOnHand, true): Query.OrderByDescending(b => b.QtyOnHand).ThenBy(b => b.Product.Sku); break;
-            case (StockSort.Value, false): Query.OrderBy(b => b.QtyOnHand * b.AvgCost).ThenBy(b => b.Product.Sku); break;
-            case (StockSort.Value, true): Query.OrderByDescending(b => b.QtyOnHand * b.AvgCost).ThenBy(b => b.Product.Sku); break;
+            case (StockSort.Value, false): Query.OrderBy(b => Math.Round(b.QtyOnHand * b.AvgCost, Money.Decimals)).ThenBy(b => b.Product.Sku); break;
+            case (StockSort.Value, true): Query.OrderByDescending(b => Math.Round(b.QtyOnHand * b.AvgCost, Money.Decimals)).ThenBy(b => b.Product.Sku); break;
             case (StockSort.Warehouse, _): Query.OrderBy(b => b.Warehouse.Code).ThenBy(b => b.Product.Sku); break;
             case (_, true): Query.OrderByDescending(b => b.Product.Sku).ThenBy(b => b.Warehouse.Code); break;
             default: Query.OrderBy(b => b.Product.Sku).ThenBy(b => b.Warehouse.Code); break;
@@ -28,7 +28,7 @@ public sealed class StockRowsSpec : Specification<StockBalance, StockRow>
             Query.Take(Limits.MaxExportRows); // exports and summaries are capped: memory can never grow with the data
         }
         Query.Select(b => new StockRow(b.ProductId, b.Product.Sku, b.Product.Name, b.Product.Category != null ? b.Product.Category.Name : null,
-            b.Product.BaseUom.Code, b.WarehouseId, b.Warehouse.Code, b.Warehouse.Name, b.QtyOnHand, b.QtyInTransit, b.AvgCost, b.QtyOnHand * b.AvgCost,
+            b.Product.BaseUom.Code, b.WarehouseId, b.Warehouse.Code, b.Warehouse.Name, b.QtyOnHand, b.QtyInTransit, Math.Round(b.AvgCost, Money.Decimals), Math.Round(b.QtyOnHand * b.AvgCost, Money.Decimals),
             b.Product.SafetyStock, b.QtyOnHand < 0 || (b.Product.SafetyStock > 0 && b.QtyOnHand < b.Product.SafetyStock), b.QtyOnHand < 0));
     }
 }

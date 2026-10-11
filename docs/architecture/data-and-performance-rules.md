@@ -122,3 +122,19 @@ Measured results, rejected proposals and how to re-run them: `docs/dba/README.md
 - Every instant is stored and transmitted in UTC (BR-10). EF reads `datetime2` back with `Kind = Utc` (`UtcKindConverter`, applied to every `DateTime` property by convention) and the JSON
   converter writes `yyyy-MM-ddTHH:mm:ss[.fffffff]Z`; nothing on the wire is local or zone-less. Only exports and the document-number month convert to Asia/Kuala_Lumpur (+08:00).
 - "Today" for counts and date filters is the Kuala Lumpur calendar day, expressed as a UTC range (`Paging.StartOfDayUtc`).
+
+## 11. Money
+
+Product-owner decision: **money has exactly 2 decimal places and never a fraction of a cent.** Money is a unit cost, an average cost, a line amount, a document total, an estimated amount, a stock value and an approval threshold. Quantities are not money and keep the precision of their unit (4 decimals). The rule is written once, in `Ims.Domain.Money`.
+
+| Step | Rule |
+|---|---|
+| Input | A unit cost (documents, draft edits, the opening-stock import) and an approval amount threshold have at most 2 decimals; `12`, `12.5` and `12.50` are fine, `12.505` is `400` "Unit cost can have at most 2 decimal places." (`Messages.CostTooPrecise`; "An amount can have at most 2 decimal places." for a threshold). Enforced twice: FluentValidation on the request and a domain rule (`StockDocumentLine.Create`, `ApprovalRule.Update`). In an import file it is a row error. |
+| Line amount | `round(base quantity x unit cost per base unit, 2)` (`StockDocumentLine.Amount`, `Money.Amount`). |
+| Document total | The **sum of the rounded line amounts**, not the rounded sum: three lines of 0.015 are 0.02 + 0.02 + 0.02 = 0.06. Approval rules compare this total (a rule fires at `total >= threshold`), so an estimate of 4,999.9996 is 5,000.00 and reaches a 5,000.00 rule. |
+| Stock value | `round(quantity x average cost, 2)` per stock row; the stock total is the sum of the rounded rows, so the list and the Home tile always add up. |
+| Rounding mode | **Half away from zero** (`MidpointRounding.AwayFromZero`): 0.005 is 0.01, -0.005 is -0.01. One mode everywhere. In queries the rounding is `Math.Round(x, Money.Decimals)`, which EF translates to SQL `ROUND` (also half away from zero on a decimal); `MoneyPrecisionTests` (an average of 10.005 gives a value of 10.01) pins SQL and C# together at the half-cent boundary. |
+| Inside the system | A cost per base unit (document line, ledger) and the moving average keep more places than 2 (they are not amounts: a carton price spread over 12 pieces is 0.8333...). They are stored with more places than 2 (their precision is stated with the costing rule in `docs/architecture/backend.md`); the average is not rounded before it is used, so repeated receipts do not drift. |
+| Outside the system | Every API money value (`unitCost`, `avgCost`, `value`, `totalValue`, `totalAmount`, `amount`, `amountThreshold`, trigger `actual` and `threshold` of an amount rule) is rounded to 2 decimals in the query that produces it, and once more by `ResponseShaper` (the pipeline step that already withholds cost: a value tagged `[VisibleWith]` is money, so what stays visible is rounded to a cent whatever produced it). A displayed `avgCost` times a quantity can differ by a cent from `value`, because `value` uses the unrounded average. |
+| Excel | A column declared `IsMoney` (`ReportColumn`) is rounded again by the writer and given the number format `#,##0.00`; `CostVisibilityCoverageTests` fails when an export column that looks like money is not declared. |
+| Database | Money columns that hold amounts are `decimal(18,2)` (approval thresholds); nothing else stores an amount, so no migration was needed. |

@@ -8,6 +8,8 @@ namespace Ims.Application;
 /// The single rule for cost and value (see <see cref="VisibleWithAttribute"/>): a tagged value is <c>null</c> in the response of a caller who lacks the permission,
 /// wherever it sits (nested objects, lists, pages). Run by <see cref="CostVisibilityBehavior"/> on the result of every request. Handlers see the full
 /// values; only what leaves the Application layer is shaped, so a tagged property is nullable and settable (<c>init</c>).
+/// A tagged value is money, so the same step also rounds the ones that stay visible to <see cref="Money"/> precision (2 decimals): whatever query or
+/// reader produced the number, no fraction of a cent reaches the wire.
 /// Strings tagged <see cref="ScrubsRestrictedKeysAttribute"/> are JSON: the restricted keys are removed from them.
 /// </summary>
 public static class ResponseShaper
@@ -34,11 +36,11 @@ public static class ResponseShaper
         if (!type.Assembly.GetName().Name!.StartsWith(nameof(Ims), StringComparison.Ordinal)) return;
 
         var plan = Plans.GetOrAdd(type, Build);
-        foreach (var hidden in plan.Hidden)
+        foreach (var tagged in plan.Hidden)
         {
-            if (has(hidden.Permission)) continue;
-            if (hidden.OnlyWhen is not null && hidden.OnlyWhen.GetValue(value) is not true) continue;
-            hidden.Property.SetValue(value, null);
+            if (tagged.OnlyWhen is not null && tagged.OnlyWhen.GetValue(value) is not true) continue; // not money in this case (the numbers of a quantity rule)
+            if (!has(tagged.Permission)) tagged.Property.SetValue(value, null);
+            else if (tagged.Property.GetValue(value) is decimal amount) tagged.Property.SetValue(value, Money.Round(amount)); // a tagged value IS money: 2 decimals
         }
         foreach (var json in plan.Json)
             json.SetValue(value, AuditPayloadScrubber.Scrub((string?)json.GetValue(value), has));

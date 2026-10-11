@@ -13,7 +13,7 @@ public sealed class DocumentsPageSpec : Specification<StockDocument, DocumentLis
         else Query.Skip((page - 1) * size).Take(size);
         Query
             .Select(d => new DocumentListItem(d.Id, d.Type, d.No, d.Status, d.Warehouse.Name, d.Partner != null ? d.Partner.Name : null,
-                d.CreatedAt, d.PostedAt, d.Lines.Sum(l => l.BaseQty), d.Lines.Sum(l => l.BaseQty * l.UnitCost), d.CreatedByUser.Username,
+                d.CreatedAt, d.PostedAt, d.Lines.Sum(l => l.BaseQty), d.Lines.Sum(l => Math.Round(l.BaseQty * l.UnitCost, Money.Decimals)), d.CreatedByUser.Username,
                 d.CreatedBy, d.CreatedByUser.DisplayName, d.SubmittedBy, d.SubmittedByUser != null ? d.SubmittedByUser.Username : null,
                 d.SubmittedByUser != null ? d.SubmittedByUser.DisplayName : null, d.SubmittedAt,
                 d.RequiresApproval, d.RequiresOverride, d.IsLarge, d.Status == DocumentStatus.Draft && d.RejectionReason != null, d.RowVersion));

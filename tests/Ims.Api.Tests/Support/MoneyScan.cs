@@ -29,6 +29,38 @@ public static partial class MoneyScan
 
     public static SortedSet<string> InJson(Harness.ApiResponse response) => InJson(response.Body);
 
+    /// <summary>
+    /// Every money field of the JSON whose number has a fraction of a cent ("unitCost=10.005"). Trailing zeros are not a fraction (10.0100 is fine), and the audit
+    /// log's before/after text is looked into. A quantity or a count is not money and is never listed.
+    /// </summary>
+    public static List<string> SubCentValues(string json)
+    {
+        var found = new List<string>();
+        using var document = JsonDocument.Parse(json);
+        FindSubCent(document.RootElement, found);
+        return found;
+    }
+
+    private static void FindSubCent(JsonElement element, List<string> found)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var property in element.EnumerateObject())
+                {
+                    var isPayload = property.Name is "before" or "after" && property.Value.ValueKind == JsonValueKind.String;
+                    if (isPayload && TryParse(property.Value.GetString()) is { } embedded) FindSubCent(embedded, found);
+                    else if (property.Value.ValueKind == JsonValueKind.Number && IsMoneyName(property.Name) && property.Value.TryGetDecimal(out var number) && Math.Round(number, 2) != number)
+                        found.Add($"{property.Name}={property.Value.GetRawText()}");
+                    else FindSubCent(property.Value, found);
+                }
+                break;
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray()) FindSubCent(item, found);
+                break;
+        }
+    }
+
     /// <summary>The header cells of a workbook that name money.</summary>
     public static SortedSet<string> InWorkbook(byte[] bytes) =>
         new(Xlsx.Read(bytes).Headers.Where(IsMoneyName).Select(h => h.ToLowerInvariant()), StringComparer.Ordinal);
