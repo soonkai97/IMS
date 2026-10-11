@@ -41,19 +41,13 @@ public class MigrationTests
             INSERT Product (Sku, Name, BaseUomId, SafetyStock, IsActive) SELECT N'P1', N'Product one', Id, 0, 1 FROM Uom;
             """);
         await database.ExecuteAsync("""
-            DECLARE @u1 int = (SELECT Id FROM [User] WHERE Username = N'first'), @w1 int = (SELECT Id FROM Warehouse WHERE Code = N'W1');
+            DECLARE @u1 int = (SELECT Id FROM [User] WHERE Username = N'first'), @u2 int = (SELECT Id FROM [User] WHERE Username = N'second');
+            DECLARE @w1 int = (SELECT Id FROM Warehouse WHERE Code = N'W1'), @p1 int = (SELECT Id FROM Product WHERE Sku = N'P1');
             INSERT StockDocument (Type, No, Status, WarehouseId, CreatedBy, CreatedAt, RequiresApproval) VALUES
                 (1, N'RCV-W1-0001', 3, @w1, @u1, SYSUTCDATETIME(), 0),
                 (2, N'ISS-W1-0001', 4, @w1, @u1, SYSUTCDATETIME(), 0);   -- 4 = Reversed
-            """);
-        await database.ExecuteAsync("""
-            DECLARE @u1 int = (SELECT Id FROM [User] WHERE Username = N'first'), @u2 int = (SELECT Id FROM [User] WHERE Username = N'second');
-            DECLARE @w1 int = (SELECT Id FROM Warehouse WHERE Code = N'W1'), @p1 int = (SELECT Id FROM Product WHERE Sku = N'P1');
-            DECLARE @rcv int = (SELECT Id FROM StockDocument WHERE No = N'RCV-W1-0001'), @iss int = (SELECT Id FROM StockDocument WHERE No = N'ISS-W1-0001');
-            INSERT StockLedgerEntry (ProductId, WarehouseId, QtyDelta, UnitCost, SourceDocId, Reason, OccurredAt, CreatedBy) VALUES
-                (@p1, @w1, 10, 1, @rcv, 1, SYSUTCDATETIME(), @u1),
-                (@p1, @w1, -6, 1, @iss, 2, SYSUTCDATETIME(), @u1),
-                (@p1, @w1,  6, 1, @iss, 6, SYSUTCDATETIME(), @u2);   -- 6 = Reversal
+            INSERT StockLedgerEntry (ProductId, WarehouseId, QtyDelta, UnitCost, SourceDocId, Reason, OccurredAt, CreatedBy)
+                SELECT @p1, @w1, 6, 1, Id, 6, SYSUTCDATETIME(), @u2 FROM StockDocument WHERE No = N'ISS-W1-0001';   -- 6 = Reversal, by the second user
             """);
     }
 
@@ -79,7 +73,7 @@ public class MigrationTests
 
             await MigrateAsync(database, Before); // down: the column goes, the data stays
             Assert.Equal(0, await database.ScalarAsync<int>("SELECT COUNT(*) FROM sys.columns WHERE name = N'ReversedBy' AND object_id = OBJECT_ID(N'StockDocument')"));
-            Assert.Equal(3, await database.ScalarAsync<int>("SELECT COUNT(*) FROM StockLedgerEntry"));
+            Assert.Equal(1, await database.ScalarAsync<int>("SELECT COUNT(*) FROM StockLedgerEntry"));
 
             await MigrateAsync(database, Latest); // and up again: the backfill gives the same answer
             await AssertBackfilledAsync(database);

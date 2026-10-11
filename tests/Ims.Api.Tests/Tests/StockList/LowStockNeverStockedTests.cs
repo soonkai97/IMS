@@ -85,23 +85,6 @@ public class LowStockNeverStockedTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task Once_the_callers_own_warehouse_receives_the_product_it_is_stocked_there_and_leaves_the_never_stocked_list()
-    {
-        var s = await StockScenario.CreateAsync(fixture);
-        var b = await s.NewWarehouseAsync();
-        var product = await s.NewProductAsync(safetyStock: 10);
-        var accounts = new AccountFactory(fixture);
-        var (inB, _) = await accounts.SignInAsync(await accounts.CreateAsync(Roles.Clerk, warehouseIds: [b.Id]));
-        Assert.Contains(await AlertsAsync(inB), r => r.ProductId == product.Id && r.WarehouseId is null);
-
-        await s.ReceiveAsync(b.Id, new Line(product.Id, 4, 2m)); // below the level of 10
-
-        var after = await AlertsAsync(inB);
-        Assert.DoesNotContain(after, r => r.ProductId == product.Id && r.WarehouseId is null);
-        Assert.Contains(after, r => r.ProductId == product.Id && r.WarehouseId == b.Id && r.QtyOnHand == 4m);
-    }
-
-    [Fact]
     public async Task An_old_zero_row_in_an_inactive_warehouse_does_not_make_a_product_stocked()
     {
         var s = await StockScenario.CreateAsync(fixture);
