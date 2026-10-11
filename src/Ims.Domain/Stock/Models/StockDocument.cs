@@ -246,8 +246,10 @@ public class StockDocument : Entity
         PostedAt = utcNow;
     }
 
+    /// <param name="reversedBy">The user who reverses it; a real user id (above zero), never a placeholder: a reversed document must always say who reversed it.</param>
     public void MarkReversed(string reason, DateTime utcNow, int reversedBy)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(reversedBy, 0);
         if (Status != DocumentStatus.Posted)
             throw new DomainException(Messages.OnlyPostedCanReverse);
         BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReverseReasonRequired));

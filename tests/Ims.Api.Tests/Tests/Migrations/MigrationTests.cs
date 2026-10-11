@@ -16,7 +16,7 @@ namespace Ims.Api.Tests.Tests.Migrations;
 public class MigrationTests
 {
     private const string Before = "20261010145459_AddDocumentReversedAt";
-    private const string Latest = "20261011064519_AddDocumentReversedBy";
+    private const string Latest = "20261011072009_AddDocumentReversedBy";
 
     private sealed class FixedClock : IClock
     {

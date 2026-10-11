@@ -12,9 +12,10 @@ internal static class LowStockQuery
         public int ProductId { get; init; }
         public string Sku { get; init; } = "";
         public string ProductName { get; init; } = "";
-        public int WarehouseId { get; init; }
-        public string WarehouseCode { get; init; } = "";
-        public string WarehouseName { get; init; } = "";
+        /// <summary>Null on the row of a product that is stocked in no warehouse the caller can see.</summary>
+        public int? WarehouseId { get; init; }
+        public string? WarehouseCode { get; init; }
+        public string? WarehouseName { get; init; }
         public decimal QtyOnHand { get; init; }
         public decimal SafetyStock { get; init; }
     }
@@ -28,12 +29,10 @@ internal static class LowStockQuery
                 WarehouseCode = b.Warehouse.Code, WarehouseName = b.Warehouse.Name, QtyOnHand = b.QtyOnHand, SafetyStock = b.Product.SafetyStock
             });
 
-        var neverStocked = LowStockSets.NeverStocked(db, scope, warehouseId)
-            .Select(pair => new Row
-            {
-                ProductId = pair.Product.Id, Sku = pair.Product.Sku, ProductName = pair.Product.Name, WarehouseId = pair.Warehouse.Id,
-                WarehouseCode = pair.Warehouse.Code, WarehouseName = pair.Warehouse.Name, QtyOnHand = 0m, SafetyStock = pair.Product.SafetyStock
-            });
+        // Stocked in no warehouse the caller can see: one row per product, no warehouse. They belong to no warehouse, so a filter on one leaves them out.
+        if (warehouseId is not null) return stocked;
+        var neverStocked = LowStockSets.NeverStocked(db, scope)
+            .Select(p => new Row { ProductId = p.Id, Sku = p.Sku, ProductName = p.Name, WarehouseId = null, WarehouseCode = null, WarehouseName = null, QtyOnHand = 0m, SafetyStock = p.SafetyStock });
 
         return stocked.Concat(neverStocked);
     }

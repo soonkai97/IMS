@@ -6,9 +6,9 @@ namespace Ims.Application.Features.Stock;
 /// always agree.
 /// <para>
 /// A product is low in a warehouse when it is active and either its on-hand quantity is below zero, or it has a safety level above zero and the
-/// on-hand quantity is at or below it (design 3.8: "on-hand &lt;= safety stock"). An active product with a safety level that has never been stocked IN A
-/// WAREHOUSE (no balance row for that pair) is low in that warehouse, with an on-hand quantity of zero (it has no balance row, so a table of balances cannot
-/// show it), for every caller who can see the warehouse. Stock elsewhere does not matter, and a scoped caller never learns about other warehouses from it.
+/// on-hand quantity is at or below it (design 3.8: "on-hand &lt;= safety stock"). An active product with a safety level that has no balance row in ANY active
+/// warehouse the caller can see is never stocked: it is listed once, with no warehouse and an on-hand quantity of zero (it has no balance row, so a table of balances
+/// cannot show it). Only the caller's warehouses count, so a scoped caller learns nothing about stock elsewhere. A warehouse filter leaves those products out.
 /// </para>
 /// </summary>
 public interface ILowStockReader

@@ -839,7 +839,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ReversedAt"), new[] { "Status", "Type", "WarehouseId", "PartnerId", "No" });
 
-                    b.HasIndex("ReversedBy");
+                    b.HasIndex("ReversedBy")
+                        .HasFilter("[ReversedBy] IS NOT NULL");
 
                     b.HasIndex("SubmittedBy");
 

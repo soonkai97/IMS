@@ -57,7 +57,7 @@ public static class DependencyInjection
         services.AddScoped<ILowStockReader, EfLowStockReader>();
         services.AddScoped<ILowOnlyStockReader, EfLowOnlyStockReader>();
         services.AddScoped<IMovementReader, EfMovementReader>();
-        services.AddSingleton<IDocumentTextMatcher, EfDocumentTextMatcher>();
+        services.AddScoped<IDocumentTextMatcher, EfDocumentTextMatcher>();
         services.AddScoped<ITransactionLocker, SqlTransactionLocker>();
         services.AddSingleton<IExceptionMapper, SqlExceptionMapper>();
         services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();

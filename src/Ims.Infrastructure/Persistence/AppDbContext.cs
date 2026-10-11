@@ -144,6 +144,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedBy).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.PostedByUser).WithMany().HasForeignKey(x => x.PostedBy).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.RejectedByUser).WithMany().HasForeignKey(x => x.RejectedBy).OnDelete(DeleteBehavior.Restrict);
+            // Only reversed documents carry the column, so the index holds only those rows (the foreign key still finds them).
+            e.HasIndex(x => x.ReversedBy).HasFilter("[ReversedBy] IS NOT NULL");
             e.HasOne(x => x.ReversedByUser).WithMany().HasForeignKey(x => x.ReversedBy).OnDelete(DeleteBehavior.Restrict);
             e.HasMany(x => x.Lines).WithOne(x => x.Document).HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);

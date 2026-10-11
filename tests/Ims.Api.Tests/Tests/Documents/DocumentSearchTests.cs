@@ -1,3 +1,4 @@
+using System.Net;
 using Ims.Api.Tests.Builders;
 using Ims.Api.Tests.Clients;
 using Ims.Api.Tests.Harness;
@@ -84,17 +85,37 @@ public class DocumentSearchTests(ApiFixture fixture)
         Assert.Equal([ofFirst.Id, ofLast.Id], found.Items.Select(d => d.Id).Order());
     }
 
-    [Fact]
-    public async Task A_text_shorter_than_three_characters_only_matches_the_start_of_the_number()
+    [Theory]
+    [InlineData("a")]
+    [InlineData("rc")]
+    [InlineData("  rc  ")] // trimmed first
+    public async Task A_text_shorter_than_three_characters_is_refused_with_a_sentence_not_answered_with_an_empty_page(string search)
     {
         var s = await StockScenario.CreateAsync(fixture);
-        var product = await s.NewProductAsync();
-        var draft = await DraftWithRemarkAsync(s, s.Admin, product.Id, "xqzmark inside the remark");
 
-        Assert.Contains(await FoundAsync(s.Admin, draft.No[..2]), d => d.Id == draft.Id);   // "RC" starts the number
-        Assert.Empty(await FoundAsync(s.Admin, "qz"));                                       // two characters never look inside a remark
-        Assert.Contains(await FoundAsync(s.Admin, "xqz"), d => d.Id == draft.Id);            // three do
-        Assert.DoesNotContain(await FoundAsync(s.Admin, draft.No[^2..]), d => d.Id == draft.Id); // and the end of a number needs three
+        var response = await s.Admin.GetAsync($"/api/documents?search={Uri.EscapeDataString(search)}");
+
+        response.ShouldBe(HttpStatusCode.BadRequest);
+        Assert.Contains("Type at least 3 characters", response.Body);
+        (await s.Admin.GetAsync("/api/documents?search=%20%20")).ShouldBeOk(); // blank is no search at all
+        (await s.Admin.GetAsync("/api/documents?search=rcv")).ShouldBeOk();    // three characters is enough
+    }
+
+    [Fact]
+    public async Task A_partner_is_matched_the_same_way_whether_few_or_many_partners_match()
+    {
+        // The partner names are compared case-insensitively by the same test as the number and the remark, so the answer never depends on how many partners match.
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var marker = Unique.Name("Aesop").ToLowerInvariant();
+        var partner = (await s.Admin.Partners.CreateAsync(new PartnerSaveRequest(PartnerType.Supplier, $"{marker.ToUpperInvariant()} Traders", null, true))).Data<PartnerDto>();
+        var draft = await DraftWithRemarkAsync(s, s.Admin, product.Id, "plain remark", partner.Id);
+
+        Assert.Equal(draft.Id, Assert.Single(await FoundAsync(s.Admin, marker)).Id);                    // few partners match (the list form)
+        await fixture.Database.ExecuteAsync(
+            "INSERT Partner (Type, Name, Contact, IsActive) SELECT TOP (60) 2, CONCAT(@m, N' ', ROW_NUMBER() OVER (ORDER BY (SELECT NULL)), N' Traders'), NULL, 1 FROM sys.all_objects a CROSS JOIN sys.all_objects b",
+            ("@m", marker));
+        Assert.Equal(draft.Id, Assert.Single(await FoundAsync(s.Admin, marker.ToUpperInvariant())).Id); // 61 partners match now (the join form): the same document, whatever the case
     }
 
     [Fact]

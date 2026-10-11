@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Ims.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261011064519_AddDocumentReversedBy")]
+    [Migration("20261011072009_AddDocumentReversedBy")]
     partial class AddDocumentReversedBy
     {
         /// <inheritdoc />
@@ -641,7 +641,10 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("AvgCost")
-                        .HasColumnType("decimal(18,6)");
+                        .HasColumnType("decimal(22,10)");
+
+                    b.Property<int?>("LastReceiptLineId")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("QtyInTransit")
                         .HasColumnType("decimal(18,4)");
@@ -839,7 +842,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ReversedAt"), new[] { "Status", "Type", "WarehouseId", "PartnerId", "No" });
 
-                    b.HasIndex("ReversedBy");
+                    b.HasIndex("ReversedBy")
+                        .HasFilter("[ReversedBy] IS NOT NULL");
 
                     b.HasIndex("SubmittedBy");
 
@@ -862,10 +866,19 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal?>("AvgCostAfter")
+                        .HasColumnType("decimal(22,10)");
+
+                    b.Property<decimal?>("AvgCostBefore")
+                        .HasColumnType("decimal(22,10)");
+
                     b.Property<decimal>("BaseQty")
                         .HasColumnType("decimal(18,4)");
 
                     b.Property<int>("DocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PreviousLineId")
                         .HasColumnType("int");
 
                     b.Property<int>("ProductId")
@@ -910,7 +923,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnName("ROW_VERSION");
 
                     b.Property<decimal>("UnitCost")
-                        .HasColumnType("decimal(18,6)");
+                        .HasColumnType("decimal(22,10)");
 
                     b.Property<int>("UomId")
                         .HasColumnType("int");
@@ -987,7 +1000,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("UnitCost")
-                        .HasColumnType("decimal(18,6)");
+                        .HasColumnType("decimal(22,10)");
 
                     b.Property<int>("WarehouseId")
                         .HasColumnType("int");

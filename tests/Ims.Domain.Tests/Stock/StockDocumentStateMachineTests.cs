@@ -476,6 +476,19 @@ public class StockDocumentStateMachineTests
         Assert.Equal(Reverser, doc.ReversedBy);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void MarkReversed_WithoutARealUser_Throws_AndLeavesTheDocumentPosted(int reversedBy)
+    {
+        var doc = InStatus(DocumentStatus.Posted);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => doc.MarkReversed("wrong supplier", Later, reversedBy));
+
+        Assert.Equal(DocumentStatus.Posted, doc.Status);
+        Assert.Null(doc.ReversedBy);
+    }
+
     [Fact]
     public void MarkReversed_WithoutAReason_LeavesNoReversalTime()
     {

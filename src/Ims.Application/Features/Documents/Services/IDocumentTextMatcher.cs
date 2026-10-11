@@ -9,12 +9,10 @@ namespace Ims.Application.Features.Documents;
 public interface IDocumentTextMatcher
 {
     /// <summary>
-    /// True when the document's number or its remark contains <paramref name="text"/> (ignoring case), or its partner is one of the partners whose name contains it.
+    /// True when the document's number or its remark contains <paramref name="text"/>, or its partner's name does, all compared the same way (ignoring case). The
+    /// partners are looked up first: a short list (<see cref="Limits.SearchPartnerListMax"/>) is tested as an id list on the document, the cheapest form; with more
+    /// matching partners the name is tested through a join instead, which costs the same whatever the number of matches. Both forms find exactly the same documents;
+    /// nothing is cut off.
     /// </summary>
-    /// <param name="matchingPartnerIds">
-    /// The partners whose name contains the text, when there are few of them: tested as <c>PartnerId IN (..)</c>, the cheapest form for a short list. Null when
-    /// there are too many for a list (<see cref="Limits.SearchPartnerListMax"/>): the partner name is then tested through a join, which costs the same whatever
-    /// the number of matching partners. Either way every matching document is found; nothing is cut off.
-    /// </param>
-    Expression<Func<StockDocument, bool>> Contains(string text, IReadOnlyCollection<int>? matchingPartnerIds);
+    Task<Expression<Func<StockDocument, bool>>> ContainsAsync(string text, CancellationToken ct);
 }

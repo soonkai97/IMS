@@ -5,7 +5,6 @@ using Ims.Api.Tests.Support;
 using Ims.Application;
 using Ims.Application.Features.Reports;
 using Ims.Application.Features.Stock;
-using Ims.Application.Features.Warehouses;
 using Ims.Domain;
 
 namespace Ims.Api.Tests.Tests.Reports;
@@ -134,7 +133,7 @@ public class ReportExportTests(ApiFixture fixture)
         var list = (await s.Admin.Stock.LowStockAsync(warehouse.Id)).Data<PagedResult<LowStockAlert>>().Items;
         var export = Xlsx.Read((await s.Admin.Reports.LowStockExportAsync()).Bytes);
 
-        var alert = Assert.Single(list, a => a.ProductId == low.Id); // products never stocked in this warehouse are low too, whatever other tests left
+        var alert = Assert.Single(list, a => a.ProductId == low.Id); // products stocked nowhere are listed too, once each and with no warehouse, whatever other tests left
         Assert.DoesNotContain(list, a => a.ProductId == fine.Id || a.ProductId == noSafety.Id);
         Assert.Equal((low.Id, 3m, 10m, 7m), (alert.ProductId, alert.QtyOnHand, alert.SafetyStock, alert.Shortfall));
         Assert.Equal(ReportHeaders.LowStock, export.Headers);
@@ -193,8 +192,6 @@ public class ReportExportTests(ApiFixture fixture)
 
         Assert.Equal(before.TotalValue + 100m, after.TotalValue);
         Assert.Equal(before.SkuCount + 1, after.SkuCount);
-        // Low in the warehouse that received 4 of 100, and never stocked (so low too) in every other active warehouse: one new pair per active warehouse.
-        var activeWarehouses = (await s.Admin.Warehouses.ListAsync()).Data<List<WarehouseDto>>().Count(w => w.IsActive);
-        Assert.Equal(before.LowCount + activeWarehouses, after.LowCount);
+        Assert.Equal(before.LowCount + 1, after.LowCount);
     }
 }

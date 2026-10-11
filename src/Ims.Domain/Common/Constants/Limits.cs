@@ -88,7 +88,7 @@ public static class Limits
     public const int QuantityScale = 4;
     public const int QuantityPrecision = 18;
     public const int SearchMaxLength = 100;
-    /// <summary>Shortest search text that looks inside document remarks and partner names; a shorter text only matches the start of a document number.</summary>
+    /// <summary>Shortest text the document search box accepts (400 below it): a contains-match reads every row, and one or two letters match too much to be of use.</summary>
     public const int SearchMinTextLength = 3;
     /// <summary>
     /// Up to this many partners whose name contains the search text are tested as an id list (<c>PartnerId IN (..)</c>), the cheapest form while the list is short (it

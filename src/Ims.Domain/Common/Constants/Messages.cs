@@ -11,6 +11,7 @@ public static class Messages
         minutes == 1 ? "Too many failed attempts. Try again in 1 minute." : $"Too many failed attempts. Try again in {minutes} minutes.";
     public static string TooManyRequests(int seconds) =>
         seconds <= 1 ? "Too many requests. Try again in a moment." : $"Too many requests. Try again in {seconds} seconds.";
+    public static readonly string SearchTooShort = $"Type at least {Limits.SearchMinTextLength} characters.";
     public static readonly string SearchTooLong = $"Search text can be at most {Limits.SearchMaxLength} characters.";
     public const string DateRangeInvalid = "The 'from' date is after the 'to' date.";
     public const string IfMatchRequired = "Send the document's version in the If-Match header (the ETag you last received), so a change made by someone else is not overwritten.";

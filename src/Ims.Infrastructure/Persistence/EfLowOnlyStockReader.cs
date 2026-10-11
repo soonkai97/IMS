@@ -6,8 +6,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Ims.Infrastructure.Persistence;
 
 /// <summary>
-/// The stock list with "low only" on: the balances that are low and the active products with a safety level that have never been stocked in a warehouse
-/// (one row per such product and active warehouse in scope, quantity zero, no average cost), under the same filters and the same sorts. The two sets are the
+/// The stock list with "low only" on: the balances that are low and the active products with a safety level that have no stock in any
+/// warehouse the caller can see (ONE row per such product, no warehouse, quantity zero, no average cost), under the same filters and the same sorts. The two sets are the
 /// ones of <see cref="LowStockSets"/> (the rule is <see cref="LowStockRule"/>); they never overlap, are concatenated and ordered by the database; all parameters, no raw SQL.
 /// </summary>
 public sealed class EfLowOnlyStockReader(AppDbContext db) : ILowOnlyStockReader
@@ -20,9 +20,10 @@ public sealed class EfLowOnlyStockReader(AppDbContext db) : ILowOnlyStockReader
         public string ProductName { get; init; } = "";
         public string? CategoryName { get; init; }
         public string UomCode { get; init; } = "";
-        public int WarehouseId { get; init; }
-        public string WarehouseCode { get; init; } = "";
-        public string WarehouseName { get; init; } = "";
+        /// <summary>Null on the row of a product that is stocked in no warehouse the caller can see.</summary>
+        public int? WarehouseId { get; init; }
+        public string? WarehouseCode { get; init; }
+        public string? WarehouseName { get; init; }
         public decimal QtyOnHand { get; init; }
         public decimal QtyInTransit { get; init; }
         /// <summary>Null for a product never stocked in the warehouse: there is no average to show, which is not the same as an average of zero.</summary>
@@ -69,19 +70,21 @@ public sealed class EfLowOnlyStockReader(AppDbContext db) : ILowOnlyStockReader
             QtyOnHand = b.QtyOnHand, QtyInTransit = b.QtyInTransit, AvgCost = b.AvgCost, SafetyStock = b.Product.SafetyStock
         });
 
-        // Products never stocked in a warehouse (no balance row for that product and warehouse): low there, with nothing on hand and no average cost.
-        var pairs = LowStockSets.NeverStocked(db, scope, f.WarehouseId);
-        if (f.ProductId is { } id) pairs = pairs.Where(x => x.Product.Id == id);
-        if (f.CategoryId is { } category) pairs = pairs.Where(x => x.Product.CategoryId == category);
+        // Products with no balance row in any active warehouse the caller can see: low, once each, with nothing on hand and no average cost. They belong to no
+        // warehouse, so a filter on one warehouse leaves them out.
+        if (f.WarehouseId is not null) return stocked;
+        var products = LowStockSets.NeverStocked(db, scope);
+        if (f.ProductId is { } id) products = products.Where(x => x.Id == id);
+        if (f.CategoryId is { } category) products = products.Where(x => x.CategoryId == category);
         if (search is { } text)
-            pairs = text.BarcodeProductId is { } byCode
-                ? pairs.Where(x => x.Product.Sku.Contains(text.Text) || x.Product.Name.Contains(text.Text) || x.Product.Id == byCode)
-                : pairs.Where(x => x.Product.Sku.Contains(text.Text) || x.Product.Name.Contains(text.Text));
-        var neverStocked = pairs.Select(x => new Row
+            products = text.BarcodeProductId is { } byCode
+                ? products.Where(x => x.Sku.Contains(text.Text) || x.Name.Contains(text.Text) || x.Id == byCode)
+                : products.Where(x => x.Sku.Contains(text.Text) || x.Name.Contains(text.Text));
+        var neverStocked = products.Select(x => new Row
         {
-            ProductId = x.Product.Id, Sku = x.Product.Sku, ProductName = x.Product.Name, CategoryName = x.Product.Category != null ? x.Product.Category.Name : null,
-            UomCode = x.Product.BaseUom.Code, WarehouseId = x.Warehouse.Id, WarehouseCode = x.Warehouse.Code, WarehouseName = x.Warehouse.Name,
-            QtyOnHand = 0m, QtyInTransit = 0m, AvgCost = null, SafetyStock = x.Product.SafetyStock
+            ProductId = x.Id, Sku = x.Sku, ProductName = x.Name, CategoryName = x.Category != null ? x.Category.Name : null,
+            UomCode = x.BaseUom.Code, WarehouseId = null, WarehouseCode = null, WarehouseName = null,
+            QtyOnHand = 0m, QtyInTransit = 0m, AvgCost = null, SafetyStock = x.SafetyStock
         });
 
         return stocked.Concat(neverStocked);

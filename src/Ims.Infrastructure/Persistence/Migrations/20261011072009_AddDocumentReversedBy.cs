@@ -21,8 +21,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                 type: "int",
                 nullable: true);
 
-            // Documents reversed before this column existed: the user is the creator of their reversal ledger entries, which are immutable. A reversed document must
-            // never show "Reversed by" empty. The two numbers are the stored values of the enums (a migration must not follow later renumbering of the enums, so it
+            // Documents reversed before this column existed: the user is the creator of their reversal ledger entries, which are immutable. Two gaps stay empty on
+            // purpose and the document then shows "Reversed" without a name: a reversed document that has no reversal entry in the ledger (nothing to learn the user
+            // from), and a document reversed by the OLD code while a rolling deploy runs (it does not write the column). Neither is worth a guess. The two numbers are the stored values of the enums (a migration must not follow later renumbering of the enums, so it
             // states them; MigrationEnumValuesTests fails if the enums ever change under it).
             migrationBuilder.Sql($@"
 UPDATE d
@@ -33,7 +34,8 @@ WHERE d.[Status] = {ReversedStatus} AND d.[ReversedBy] IS NULL;");
             migrationBuilder.CreateIndex(
                 name: "IX_StockDocument_ReversedBy",
                 table: "StockDocument",
-                column: "ReversedBy");
+                column: "ReversedBy",
+                filter: "[ReversedBy] IS NOT NULL");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_StockDocument_User_ReversedBy",

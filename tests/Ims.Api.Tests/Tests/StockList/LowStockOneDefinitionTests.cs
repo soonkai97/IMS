@@ -38,8 +38,8 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         }
     }
 
-    private static HashSet<(int Product, int Warehouse)> Keys(IEnumerable<StockRow> rows) => rows.Select(r => (r.ProductId, r.WarehouseId)).ToHashSet();
-    private static HashSet<(int Product, int Warehouse)> Keys(IEnumerable<LowStockAlert> rows) => rows.Select(r => (r.ProductId, r.WarehouseId)).ToHashSet();
+    private static HashSet<(int Product, int? Warehouse)> Keys(IEnumerable<StockRow> rows) => rows.Select(r => (r.ProductId, r.WarehouseId)).ToHashSet();
+    private static HashSet<(int Product, int? Warehouse)> Keys(IEnumerable<LowStockAlert> rows) => rows.Select(r => (r.ProductId, r.WarehouseId)).ToHashSet();
 
     /// <summary>
     /// Issues more than is on hand: negative stock on, an Admin who may approve their own document (nobody else sees a brand-new warehouse), the override reason an
@@ -53,7 +53,7 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         (await s.Admin.Documents.PostAsync(submitted.Id)).ShouldBeOk();
     }
 
-    /// <summary>A fresh warehouse with one product of every kind: low, never stocked, exactly at the safety level, inactive, no safety level, fine, negative.</summary>
+    /// <summary>A fresh warehouse with one product of every kind: low, stocked nowhere (never stocked), exactly at the safety level, inactive, no safety level, fine, negative.</summary>
     private sealed record Kinds(WarehouseDto Warehouse, int Low, int Never, int AtLevel, int Inactive, int NoSafety, int Fine, int Negative);
 
     private async Task<(StockScenario S, Kinds K)> SetUpAsync()
@@ -85,11 +85,14 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         Assert.Equal(Keys(alerts), Keys(stockLow));
         Assert.Equal(alerts.Count, stockLow.Count);
         Assert.Contains((k.Low, k.Warehouse.Id), Keys(stockLow));
-        Assert.Contains((k.Never, k.Warehouse.Id), Keys(stockLow));
         Assert.Contains((k.Negative, k.Warehouse.Id), Keys(stockLow));
         Assert.Contains((k.AtLevel, k.Warehouse.Id), Keys(stockLow)); // exactly at the safety level is low (design 3.8: on-hand <= safety stock)
-        foreach (var notLow in new[] { k.Inactive, k.NoSafety, k.Fine })
-            Assert.DoesNotContain((notLow, k.Warehouse.Id), Keys(stockLow));
+        foreach (var notLow in new[] { k.Inactive, k.NoSafety, k.Fine, k.Never })
+            Assert.DoesNotContain((notLow, (int?)k.Warehouse.Id), Keys(stockLow)); // a product stocked nowhere belongs to no warehouse: a warehouse filter leaves it out
+
+        var everywhere = await StockRowsAsync(s.Admin, $"lowOnly=true&productId={k.Never}");
+        Assert.Equal((k.Never, (int?)null), Assert.Single(Keys(everywhere))); // listed ONCE, with no warehouse
+        Assert.Contains((k.Never, (int?)null), Keys(await AlertsAsync(s.Admin, null)));
     }
 
     [Fact]
@@ -115,14 +118,16 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
     {
         var (s, k) = await SetUpAsync();
 
-        var row = (await StockRowsAsync(s.Admin, $"lowOnly=true&warehouseId={k.Warehouse.Id}&productId={k.Never}")).Single();
+        var row = (await StockRowsAsync(s.Admin, $"lowOnly=true&productId={k.Never}")).Single();
 
         Assert.Equal((0m, 0m, 10m), (row.QtyOnHand, row.QtyInTransit, row.SafetyStock));
         Assert.Null(row.AvgCost); // nothing was ever bought here: there is no average, which is not an average of zero
         Assert.Null(row.Value);
         Assert.True(row.IsLow);
         Assert.False(row.IsNegative);
-        Assert.Equal((k.Warehouse.Id, k.Warehouse.Code, k.Warehouse.Name), (row.WarehouseId, row.WarehouseCode, row.WarehouseName));
+        Assert.Null(row.WarehouseId); // stocked nowhere: no warehouse, and one row, not one per warehouse
+        Assert.Null(row.WarehouseCode);
+        Assert.Null(row.WarehouseName);
         Assert.Equal("PCS", row.UomCode);
     }
 
@@ -132,7 +137,7 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         var (s, k) = await SetUpAsync();
         var never = (await s.Admin.Products.GetAsync(k.Never)).Data<Ims.Application.Features.Catalog.ProductDto>();
 
-        var bySearch = await StockRowsAsync(s.Admin, $"lowOnly=true&warehouseId={k.Warehouse.Id}&search={Uri.EscapeDataString(never.Sku)}");
+        var bySearch = await StockRowsAsync(s.Admin, $"lowOnly=true&search={Uri.EscapeDataString(never.Sku)}");
         var byProduct = await StockRowsAsync(s.Admin, $"lowOnly=true&warehouseId={k.Warehouse.Id}&productId={k.Low}");
         var byCategory = await StockRowsAsync(s.Admin, $"lowOnly=true&warehouseId={k.Warehouse.Id}&categoryId={fixture.Reference.DefaultCategoryId}");
         var otherWarehouse = await StockRowsAsync(s.Admin, $"lowOnly=true&warehouseId={fixture.Reference.DefaultWarehouseId}&productId={k.Low}");
@@ -141,12 +146,10 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         Assert.Equal(never.Id, Assert.Single(bySearch).ProductId);
         Assert.Equal(k.Low, Assert.Single(byProduct).ProductId);
         var categoryName = all.Single(r => r.ProductId == k.Low).CategoryName;
-        Assert.Contains((k.Low, k.Warehouse.Id), Keys(byCategory)); // a stocked row and a never-stocked row are both in the category of the filter
-        Assert.Contains((k.Never, k.Warehouse.Id), Keys(byCategory));
+        Assert.Contains((k.Low, (int?)k.Warehouse.Id), Keys(byCategory));
         Assert.All(byCategory, r => Assert.Equal(categoryName, r.CategoryName));
         Assert.Equal(Keys(all).Where(key => all.Single(r => (r.ProductId, r.WarehouseId) == key).CategoryName == categoryName).ToHashSet(), Keys(byCategory));
-        var neverThere = Assert.Single(otherWarehouse); // the product was never stocked in the default warehouse either: low there, with nothing on hand
-        Assert.Equal((k.Low, 0m), (neverThere.ProductId, neverThere.QtyOnHand));
+        Assert.Empty(otherWarehouse); // the product is stocked (low) in the new warehouse, so it is not "never stocked" anywhere and has no row in the default one
 
         foreach (var (sort, desc) in new[] { ("Sku", false), ("Sku", true), ("Name", false), ("Name", true), ("QtyOnHand", false), ("QtyOnHand", true), ("Value", false), ("Warehouse", false) })
         {
@@ -161,7 +164,7 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         Assert.Equal(byName.Select(r => r.ProductName).Reverse(), byNameDesc.Select(r => r.ProductName)); // products may share a name; the SKU then breaks the tie the same way in both
         Assert.Equal(Keys(byName), Keys(byNameDesc));
         var byQty = await StockRowsAsync(s.Admin, $"lowOnly=true&warehouseId={k.Warehouse.Id}&sortBy=QtyOnHand");
-        Assert.Equal(byQty.Select(r => r.QtyOnHand).Order(), byQty.Select(r => r.QtyOnHand)); // the negative row first, the never-stocked rows (0) among the rest
+        Assert.Equal(byQty.Select(r => r.QtyOnHand).Order(), byQty.Select(r => r.QtyOnHand)); // the negative row first, the rest at or below their level
     }
 
     [Fact]
@@ -224,7 +227,7 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         await s.ReceiveAsync(warehouse.Id, new Line(half.Id, 50, 1m), new Line(most.Id, 4, 1m), new Line(negative.Id, 2, 1m));
         await GoBelowZeroAsync(s, warehouse.Id, new Line(negative.Id, 5));
 
-        var order = (await AlertsAsync(s.Admin, warehouse.Id)).Select(a => a.ProductId).Where(id => new[] { half.Id, most.Id, never.Id, negative.Id }.Contains(id)).ToList();
+        var order = (await AlertsAsync(s.Admin, null)).Select(a => a.ProductId).Where(id => new[] { half.Id, most.Id, never.Id, negative.Id }.Contains(id)).ToList();
 
         Assert.Equal([negative.Id, never.Id, most.Id, half.Id], order);
     }

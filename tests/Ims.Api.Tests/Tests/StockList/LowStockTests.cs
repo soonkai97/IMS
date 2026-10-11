@@ -17,8 +17,17 @@ public class LowStockTests(ApiFixture fixture)
 {
     private int Warehouse => fixture.Reference.DefaultWarehouseId;
 
-    private static async Task<List<LowStockAlert>> AlertsAsync(ApiClient who, int? warehouseId = null) =>
-        (await who.Stock.LowStockAsync(warehouseId)).Data<PagedResult<LowStockAlert>>().Items.ToList();
+    /// <summary>Every row of the list (all pages, 500 at a time): the list is long, and a row on page 2 is still on the list.</summary>
+    private static async Task<List<LowStockAlert>> AlertsAsync(ApiClient who, int? warehouseId = null)
+    {
+        var rows = new List<LowStockAlert>();
+        for (var page = 1; ; page++)
+        {
+            var result = (await who.GetAsync($"/api/stock/low-stock?page={page}&pageSize=500" + (warehouseId is null ? "" : $"&warehouseId={warehouseId}"))).Data<PagedResult<LowStockAlert>>();
+            rows.AddRange(result.Items);
+            if (rows.Count >= result.Total || result.Items.Count == 0) return rows;
+        }
+    }
 
     [Fact]
     public async Task A_product_with_a_safety_level_and_no_stock_row_is_low_with_zero_on_hand()
@@ -26,44 +35,44 @@ public class LowStockTests(ApiFixture fixture)
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync(safetyStock: 5);
 
-        var alerts = await AlertsAsync(s.Admin, Warehouse);
+        var alerts = await AlertsAsync(s.Admin);
 
-        var alert = Assert.Single(alerts, a => a.ProductId == product.Id);
+        var alert = Assert.Single(alerts, a => a.ProductId == product.Id); // once, whatever the number of warehouses
         Assert.Equal((0m, 5m, 5m, false), (alert.QtyOnHand, alert.SafetyStock, alert.Shortfall, alert.IsNegative));
         Assert.Equal(product.Sku, alert.Sku);
+        Assert.Null(alert.WarehouseId); // stocked nowhere: it belongs to no warehouse
     }
 
     [Fact]
-    public async Task A_never_stocked_product_is_low_in_every_active_warehouse_of_the_callers_scope_and_a_filter_narrows_it()
+    public async Task A_never_stocked_product_is_listed_once_and_a_warehouse_filter_leaves_it_out()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var other = await s.NewWarehouseAsync();
-        var inactive = await s.NewWarehouseAsync(isActive: false);
         var product = await s.NewProductAsync(safetyStock: 5);
 
+        var everywhere = await AlertsAsync(s.Admin);
         var inDefault = await AlertsAsync(s.Admin, Warehouse);
         var inOther = await AlertsAsync(s.Admin, other.Id);
-        var inInactive = await AlertsAsync(s.Admin, inactive.Id);
 
-        Assert.Contains(inDefault, a => a.ProductId == product.Id);
-        Assert.Contains(inOther, a => a.ProductId == product.Id);
+        Assert.Single(everywhere, a => a.ProductId == product.Id);
+        Assert.DoesNotContain(inDefault, a => a.ProductId == product.Id); // it belongs to no warehouse
+        Assert.DoesNotContain(inOther, a => a.ProductId == product.Id);
         Assert.All(inOther, a => Assert.Equal(other.Id, a.WarehouseId));
-        Assert.DoesNotContain(inInactive, a => a.ProductId == product.Id); // an inactive warehouse is not somewhere to restock
     }
 
     [Fact]
-    public async Task A_user_sees_never_stocked_products_only_for_their_own_warehouses()
+    public async Task A_user_sees_a_never_stocked_product_once_and_nothing_of_other_warehouses()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var other = await s.NewWarehouseAsync();
         var product = await s.NewProductAsync(safetyStock: 5);
 
-        var inTheirWarehouse = await AlertsAsync(s.Staff, Warehouse);
+        var theirs = await AlertsAsync(s.Staff);
         var inTheOtherOne = await AlertsAsync(s.Staff, other.Id);
 
-        Assert.Contains(inTheirWarehouse, a => a.ProductId == product.Id && a.WarehouseId == Warehouse);
+        Assert.Single(theirs, a => a.ProductId == product.Id);
         Assert.Empty(inTheOtherOne);
-        Assert.All(await AlertsAsync(s.Staff), a => Assert.NotEqual(other.Id, a.WarehouseId));
+        Assert.All(theirs, a => Assert.NotEqual(other.Id, a.WarehouseId));
     }
 
     [Fact]
@@ -79,15 +88,15 @@ public class LowStockTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task A_product_stocked_somewhere_is_still_low_in_the_warehouses_it_was_never_received_in()
+    public async Task A_product_stocked_somewhere_is_not_reported_for_the_warehouses_it_was_never_received_in()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var other = await s.NewWarehouseAsync();
         var product = await s.NewProductAsync(safetyStock: 5);
-        await s.ReceiveAsync(Warehouse, new Line(product.Id, 50, 1m)); // plenty here, nothing in the other warehouse (never stocked is decided per warehouse)
+        await s.ReceiveAsync(Warehouse, new Line(product.Id, 50, 1m)); // plenty here, nothing in the other warehouse
 
-        Assert.DoesNotContain(await AlertsAsync(s.Admin, Warehouse), a => a.ProductId == product.Id);
-        Assert.Contains(await AlertsAsync(s.Admin, other.Id), a => a.ProductId == product.Id && a.QtyOnHand == 0m);
+        Assert.DoesNotContain(await AlertsAsync(s.Admin), a => a.ProductId == product.Id);
+        Assert.DoesNotContain(await AlertsAsync(s.Admin, other.Id), a => a.ProductId == product.Id);
     }
 
     [Fact]

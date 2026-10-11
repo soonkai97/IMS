@@ -8,9 +8,10 @@ namespace Ims.Domain;
 /// <para>
 /// A product is low in an ACTIVE warehouse (a closed warehouse raises no alerts) when it is ACTIVE and either its on-hand quantity is below zero, or it has a safety level above zero and the on-hand
 /// quantity is AT OR BELOW it (design: <c>docs/design/mvp-ux.md</c> 3.7 and 3.8, "on-hand &lt;= safety stock"; a receipt must bring the product ABOVE the level to take
-/// it off the list). An active product with a safety level that has no balance row in a warehouse has never been stocked THERE: it is low in that warehouse,
-/// with a quantity of zero, for every caller who can see that warehouse. The rule is per warehouse: stock in another warehouse (and an old row in an inactive
-/// one) says nothing about this one, and a caller never learns anything about warehouses outside their scope from it.
+/// it off the list). An active product with a safety level that has no balance row in ANY active warehouse the caller can see has never been stocked: it is listed
+/// ONCE (quantity 0, no warehouse), not once per warehouse. Only the caller's own warehouses count (and an old row in an inactive one does not), so a scoped
+/// caller learns nothing about stock elsewhere and the answer does not change when a warehouse they cannot see receives the product. A product that has a
+/// balance row in a visible warehouse follows the rule above, per warehouse.
 /// </para>
 /// </summary>
 public static class LowStockRule
@@ -19,7 +20,7 @@ public static class LowStockRule
     public static readonly Expression<Func<StockBalance, bool>> IsLowBalance =
         b => b.Warehouse.IsActive && b.Product.IsActive && (b.QtyOnHand < 0 || (b.Product.SafetyStock > 0 && b.QtyOnHand <= b.Product.SafetyStock));
 
-    /// <summary>A product that can be "never stocked in a warehouse and therefore low there": active and with a safety level. Whether the warehouse has no balance row for it is checked by the query.</summary>
+    /// <summary>A product that can be "never stocked and therefore low": active and with a safety level. Whether it has no balance row in a visible warehouse is checked by the query.</summary>
     public static readonly Expression<Func<Product, bool>> CanBeNeverStockedLow = p => p.IsActive && p.SafetyStock > 0;
 
     /// <summary>
