@@ -33,6 +33,7 @@
 
 <app-dialog [(open)]="$dialogOpen" [heading]="$dialogHeading()">
   <form class="catalog-lists-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
+    <app-form-legend />
     @for (message of $serverErrors(); track message) {
       <app-banner kind="danger">{{ message }}</app-banner>
     }

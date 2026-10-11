@@ -1,6 +1,10 @@
 namespace Ims.Domain;
 
-/// <summary>Read model rebuilt from the ledger. Carries the moving weighted-average cost (BR-05).</summary>
+/// <summary>
+/// Read model rebuilt from the ledger. Carries the moving weighted-average cost (BR-05). The stock value of a balance is always
+/// quantity x average cost: nothing else is stored, so a value can never disagree with the pieces it is made of.
+/// The average is an INTERNAL number (<see cref="Limits.CostDecimals"/> places, rounded half away from zero); an amount that reaches a person is money and follows the money rule.
+/// </summary>
 public class StockBalance : AuditableEntity
 {
     private StockBalance() { }
@@ -12,6 +16,13 @@ public class StockBalance : AuditableEntity
     [VisibleWith(Permissions.ValuationView)]
     public decimal AvgCost { get; private set; }
 
+    /// <summary>
+    /// The document line that brought stock in last (a receipt line, or the line of an issue that was reversed), set by EVERY stock-in, including one at the average
+    /// that leaves the average unchanged. A receipt can only be taken back by restoring a recorded average while it is still this line: equal averages prove nothing,
+    /// because a later receipt at the same cost leaves the average where it was. Null when unknown.
+    /// </summary>
+    public int? LastReceiptLineId { get; private set; }
+
     public Product Product { get; private set; } = null!;
     public Warehouse Warehouse { get; private set; } = null!;
 
@@ -19,15 +30,18 @@ public class StockBalance : AuditableEntity
     public static StockBalance OpenFor(int productId, int warehouseId) => new() { ProductId = productId, WarehouseId = warehouseId };
 
     /// <summary>Increase stock and update the moving weighted-average cost.</summary>
-    public void Receive(decimal qty, decimal unitCost)
+    /// <param name="sourceLineId">The document line the stock comes from; remembered as <see cref="LastReceiptLineId"/>.</param>
+    public void Receive(decimal qty, decimal unitCost, int? sourceLineId = null)
     {
         if (qty <= 0) throw new DomainException(Messages.ReceiveQtyPositive);
         var newQty = QtyOnHand + qty;
-        // While stock is zero or negative the old average is meaningless, so the new cost wins.
-        AvgCost = QtyOnHand <= 0 || newQty <= 0
-            ? unitCost
-            : Math.Round((QtyOnHand * AvgCost + qty * unitCost) / newQty, Limits.RoundingDecimals);
+        // While stock is zero or negative the old average is meaningless, so the new cost wins. Stock that comes in at the average itself
+        // (the return of an issue) leaves it exactly as it is, instead of deriving it again and drifting in the last place.
+        AvgCost = QtyOnHand <= 0 || newQty <= 0 ? unitCost
+            : unitCost == AvgCost ? AvgCost
+            : Math.Round((QtyOnHand * AvgCost + qty * unitCost) / newQty, Limits.CostDecimals, Limits.CostRounding);
         QtyOnHand = newQty;
+        LastReceiptLineId = sourceLineId is > 0 ? sourceLineId : null;
     }
 
     /// <summary>Decrease stock and return the unit cost to book (the current average).</summary>
@@ -38,5 +52,49 @@ public class StockBalance : AuditableEntity
             throw new InsufficientStockException(ProductId, WarehouseId, QtyOnHand, qty);
         QtyOnHand -= qty;
         return AvgCost;
+    }
+
+    /// <summary>
+    /// Take a posted receipt line back out: <paramref name="qty"/> units leave, and the average is corrected so that the cost of the receipt leaves with them.
+    /// <list type="number">
+    /// <item>The line is still the latest stock-in of this balance (<see cref="LastReceiptLineId"/>): nothing but issues, which never change the average, came after it.
+    /// The average goes back to the value it had BEFORE the receipt, exactly, however many units were issued in between, and the previous stock-in becomes the
+    /// latest again. If that value is 0 (the product was never costed) and the reversal takes the quantity below zero, the last known cost is kept instead.</item>
+    /// <item>Anything else came in after it, even at the same cost: the stock loses <c>qty x unitCost</c> of value and the remaining units share what is left.
+    /// That is exact when nothing was issued since, so the value stays equal to the value of the movements. After a reversal that is not the latest, the recorded
+    /// averages of the later receipts are stale, so no line is the latest any more and they are taken back the same way.</item>
+    /// <item>Where that arithmetic has no sound answer (no stock is left, or later issues already used up more value than remains) the average stays as it is
+    /// now: it is the last known cost, and the next receipt replaces it when stock is zero or negative. The result never exceeds <see cref="Limits.MaxCostPerBaseUnit"/>.</item>
+    /// </list>
+    /// Limit of rule 2 and 3: with issues in between, the average can end above every remaining receipt cost, because the issues were booked at the blended average.
+    /// Documented in <c>docs/design/mvp-ux.md</c> (costing and reversal).
+    /// </summary>
+    /// <param name="lineId">The receipt line being taken back.</param>
+    /// <param name="posted">What the receipt did to the average when it posted; null for a receipt posted before that was recorded.</param>
+    public void Unreceive(decimal qty, decimal unitCost, int lineId, AverageCostChange? posted, bool allowNegative)
+    {
+        if (qty <= 0) throw new DomainException(Messages.ReceiveQtyPositive);
+        if (!allowNegative && QtyOnHand < qty)
+            throw new InsufficientStockException(ProductId, WarehouseId, QtyOnHand, qty);
+
+        var remaining = QtyOnHand - qty;
+        if (lineId > 0 && LastReceiptLineId == lineId && posted is { } change)
+        {
+            AvgCost = change.Before == 0m && remaining < 0m ? AvgCost : change.Before;
+            LastReceiptLineId = change.PreviousLineId;
+        }
+        else
+        {
+            AvgCost = AverageAfterUnreceive(qty, unitCost, remaining);
+            LastReceiptLineId = null;
+        }
+        QtyOnHand = remaining;
+    }
+
+    private decimal AverageAfterUnreceive(decimal qty, decimal unitCost, decimal remaining)
+    {
+        if (remaining <= 0 || QtyOnHand <= 0) return AvgCost;
+        var valueLeft = QtyOnHand * AvgCost - qty * unitCost;
+        return valueLeft > 0 ? Math.Min(Math.Round(valueLeft / remaining, Limits.CostDecimals, Limits.CostRounding), Limits.MaxCostPerBaseUnit) : AvgCost;
     }
 }

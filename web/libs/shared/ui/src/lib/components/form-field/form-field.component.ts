@@ -16,8 +16,10 @@ import { FORM_FIELD, FormFieldContext } from './form-field.token';
 let nextFieldId = 0;
 
 /**
- * Label above the control, hint and error text below. The label stays visible, required fields say "(required)"
- * in words, and the error is tied to the control with aria-describedby (docs/design/mvp-ux.md section 2).
+ * Label above the control, hint and error text below. The label stays visible, a required field gets a red
+ * asterisk (aria-hidden) and the control itself carries `required`, so a screen reader says "<label>, required" from
+ * the state and not twice (D4, docs/design/2026-refresh-ux.md 3.3), and the error is tied to the control with
+ * aria-describedby.
  */
 @Component({
   selector: 'app-form-field',
@@ -71,4 +73,6 @@ export class UiFormFieldComponent implements FormFieldContext {
     return joined.length > 0 ? joined : null;
   });
   readonly invalid = computed(() => this.$errorText() !== null);
+  /** Read by the control inside this field, which then carries the `required` attribute itself. */
+  readonly required = computed(() => this.$required());
 }

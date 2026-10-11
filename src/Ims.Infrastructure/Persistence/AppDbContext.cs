@@ -70,7 +70,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         b.Entity<UomConversion>(e =>
         {
             e.HasIndex(x => new { x.ProductId, x.FromUomId, x.ToUomId }).IsUnique();
-            e.Property(x => x.Factor).HasColumnType(SqlTypes.Cost);
+            e.Property(x => x.Factor).HasColumnType(SqlTypes.Factor);
             e.HasOne<Uom>().WithMany().HasForeignKey(x => x.FromUomId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<Uom>().WithMany().HasForeignKey(x => x.ToUomId).OnDelete(DeleteBehavior.Restrict);
         });
@@ -149,6 +149,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.Qty).HasColumnType(SqlTypes.Quantity);
             e.Property(x => x.BaseQty).HasColumnType(SqlTypes.Quantity);
             e.Property(x => x.UnitCost).HasColumnType(SqlTypes.Cost);
+            e.Property(x => x.AvgCostBefore).HasColumnType(SqlTypes.Cost);
+            e.Property(x => x.AvgCostAfter).HasColumnType(SqlTypes.Cost);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
             // The movements report counts and pages lines through their document; the filtered index answers EF's REC_DELETED predicate without reading the table.
             // The unfiltered foreign-key index stays (declared here, or EF would drop it as redundant): a physical delete of a document must find its soft-deleted lines too.
