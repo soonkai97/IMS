@@ -8,11 +8,13 @@ public class ReportWriterTests
     private sealed class Recorder : IExcelWriter
     {
         public string[] Headers { get; private set; } = [];
+        public IReadOnlyList<int?> DecimalPlaces { get; private set; } = [];
         public List<object?[]> Rows { get; } = [];
 
-        public byte[] Write(string sheetName, string[] headers, IEnumerable<object?[]> rows)
+        public byte[] Write(string sheetName, string[] headers, IReadOnlyList<int?> decimalPlaces, IEnumerable<object?[]> rows)
         {
             Headers = headers;
+            DecimalPlaces = decimalPlaces;
             Rows.AddRange(rows);
             return [];
         }
@@ -23,7 +25,7 @@ public class ReportWriterTests
         public bool Has(string permission) => permissions.Contains(permission);
     }
 
-    private static readonly ReportColumn[] Columns = [new("SKU"), new("Qty"), new("Unit cost", Permissions.CostView), new("Value", Permissions.ValuationView)];
+    private static readonly ReportColumn[] Columns = [new("SKU"), new("Qty"), new("Unit cost", Permissions.CostView, UnitPrice: true), new("Value", Permissions.ValuationView)];
 
     private static Recorder Write(params string[] permissions)
     {
@@ -39,6 +41,14 @@ public class ReportWriterTests
 
         Assert.Equal(["SKU", "Qty"], file.Headers);
         Assert.Equal([new object?[] { "A", 2m }, new object?[] { "B", 1m }], file.Rows);
+    }
+
+    [Fact]
+    public void TheDecimalPlacesFollowTheColumnsThatAreKept_MoneyTwoAndAUnitPriceFour()
+    {
+        Assert.Equal(new int?[] { null, null }, Write().DecimalPlaces);
+        Assert.Equal(new int?[] { null, null, 4 }, Write(Permissions.CostView).DecimalPlaces);   // "Unit cost" is a unit price
+        Assert.Equal(new int?[] { null, null, 4, 2 }, Write(Permissions.CostView, Permissions.ValuationView).DecimalPlaces); // "Value" is money
     }
 
     [Fact]

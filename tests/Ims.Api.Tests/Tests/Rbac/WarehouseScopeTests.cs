@@ -1,5 +1,6 @@
 using System.Net;
 using Ims.Api.Tests.Builders;
+using Ims.Api.Tests.Clients;
 using Ims.Api.Tests.Harness;
 using Ims.Application;
 using Ims.Application.Features.Catalog;
@@ -16,6 +17,18 @@ namespace Ims.Api.Tests.Tests.Rbac;
 public class WarehouseScopeTests(ApiFixture fixture)
 {
     private sealed record Setup(StockScenario Scenario, WarehouseDto OtherWarehouse, ProductDto Product, DocumentDto DocumentInOther);
+
+    /// <summary>Every row of the low-stock list (all pages, 500 at a time).</summary>
+    private static async Task<List<LowStockAlert>> AllLowStockAsync(Clients.ApiClient who, int? warehouseId)
+    {
+        var rows = new List<LowStockAlert>();
+        for (var page = 1; ; page++)
+        {
+            var result = (await who.GetAsync($"/api/stock/low-stock?page={page}&pageSize=500" + (warehouseId is null ? "" : $"&warehouseId={warehouseId}"))).Data<PagedResult<LowStockAlert>>();
+            rows.AddRange(result.Items);
+            if (rows.Count >= result.Total || result.Items.Count == 0) return rows;
+        }
+    }
 
     /// <summary>A second warehouse holding a posted receipt of a low-stock product, plus a draft receipt, all outside the staff user's scope.</summary>
     private async Task<Setup> CreateOtherWarehouseAsync()
@@ -95,13 +108,15 @@ public class WarehouseScopeTests(ApiFixture fixture)
 
         Assert.Empty((await s.Staff.Stock.QueryAsync(productId: productId)).Data<PagedResult<StockRow>>().Items);
         Assert.Empty((await s.Staff.Stock.LedgerAsync(productId: productId)).Data<PagedResult<LedgerRow>>().Items);
-        Assert.DoesNotContain((await s.Staff.Stock.LowStockAsync()).Data<PagedResult<LowStockAlert>>().Items, a => a.ProductId == productId);
+        // Every page of the lists is read: a leak on page 2 is a leak (the first page alone proves nothing on a list this long).
+        Assert.DoesNotContain(await AllLowStockAsync(s.Staff, setup.OtherWarehouse.Id), a => a.ProductId == productId);
+        Assert.DoesNotContain(await AllLowStockAsync(s.Staff, null), a => a.WarehouseId == setup.OtherWarehouse.Id);
         Assert.Empty((await s.Supervisor.Reports.MovementsAsync(productId)).Data<PagedResult<MovementRow>>().Items);
 
         // The same questions asked by someone who sees every warehouse.
         Assert.Single((await s.Admin.Stock.QueryAsync(productId: productId)).Data<PagedResult<StockRow>>().Items);
         Assert.Single((await s.Admin.Stock.LedgerAsync(productId: productId)).Data<PagedResult<LedgerRow>>().Items);
-        Assert.Contains((await s.Admin.Stock.LowStockAsync()).Data<PagedResult<LowStockAlert>>().Items, a => a.ProductId == productId);
+        Assert.Contains(await AllLowStockAsync(s.Admin, setup.OtherWarehouse.Id), a => a.ProductId == productId);
         Assert.Single((await s.Owner.Reports.MovementsAsync(productId)).Data<PagedResult<MovementRow>>().Items);
     }
 

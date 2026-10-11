@@ -20,9 +20,7 @@ public class PostDocumentHandler(IRepository<StockDocument> documents, IReposito
 
             var ctx = new PostingContext(doc, await settings.GetAsync(ct), current.UserId,
                 canOverrideNegative: PostingAuthority.MayOverrideNegativeStock(current.Role), clock.UtcNow);
-            var documentBalances = await balances.LoadForUpdateAsync(doc, ct);
-            engine.Post(doc, documentBalances, ctx);
-            ctx.StampBalances(documentBalances); // what each product held after each entry, written with the entry (the ledger is append-only)
+            engine.Post(doc, await balances.LoadForUpdateAsync(doc, ct), ctx);
 
             ledger.AddRange(ctx.Entries);
             audit.Record(AuditActions.DocumentPosted, AuditEntities.StockDocument, doc.No, new { Status = statusBefore }, new { doc.Status, ctx.OverrideUsed });

@@ -51,8 +51,8 @@ public class CostVisibilityMatrixTests(ApiFixture fixture) : IAsyncLifetime
     private static readonly ReadCase[] ReadCases =
     [
         new("documents list", t => $"/api/documents?search={t._receipt.No}", Permissions.CostView, ["totalamount"]),
-        new("document", t => $"/api/documents/{t._receipt.Id}", Permissions.CostView, ["totalamount", "unitcost"]),
-        new("document held for approval", t => $"/api/documents/{t._held.Id}", Permissions.CostView, ["totalamount", "unitcost", "threshold", "actual"]),
+        new("document", t => $"/api/documents/{t._receipt.Id}", Permissions.CostView, ["totalamount", "unitcost", "baseunitcost", "amount"]),
+        new("document held for approval", t => $"/api/documents/{t._held.Id}", Permissions.CostView, ["totalamount", "baseunitcost", "amount", "threshold", "actual"]), // an issue: valued at the average, so no editable unitcost
         new("stock", t => $"/api/stock?productId={t._product.Id}", Permissions.ValuationView, ["avgcost", "value"]),
         new("stock ledger", t => $"/api/stock/ledger?productId={t._product.Id}", Permissions.ValuationView, ["unitcost"]),
         new("stock summary", _ => "/api/stock/summary", Permissions.ValuationView, ["totalvalue"]),
@@ -196,7 +196,7 @@ public class CostVisibilityMatrixTests(ApiFixture fixture) : IAsyncLifetime
         var cancelled = await clerk.Documents.CancelAsync(toCancel, "not needed");
 
         foreach (var (name, response) in new[] { ("create", created), ("update", updated), ("submit", submitted), ("cancel", cancelled) })
-            Assert.True(MoneyScan.InJson(response.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "unitcost")), $"{name}: {string.Join(", ", MoneyScan.InJson(response))}");
+            Assert.True(MoneyScan.InJson(response.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "unitcost", "baseunitcost", "amount")), $"{name}: {string.Join(", ", MoneyScan.InJson(response))}");
         Assert.Equal(27m, created.Read<DocumentDto>().TotalAmount);
     }
 
@@ -211,10 +211,10 @@ public class CostVisibilityMatrixTests(ApiFixture fixture) : IAsyncLifetime
         var reversed = await _s.Supervisor.Documents.ReverseAsync(toReverse.Id, "entered by mistake");
         var posted = await _s.Admin.Documents.PostAsync(_held.Id);
 
-        Assert.True(MoneyScan.InJson(approved.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "unitcost", "threshold", "actual")));
-        Assert.True(MoneyScan.InJson(rejected.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "unitcost")));
-        Assert.True(MoneyScan.InJson(reversed.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "unitcost")));
-        Assert.True(MoneyScan.InJson(posted.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "unitcost")));
+        Assert.True(MoneyScan.InJson(approved.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "baseunitcost", "amount", "threshold", "actual")));
+        Assert.True(MoneyScan.InJson(rejected.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "baseunitcost", "amount")));
+        Assert.True(MoneyScan.InJson(reversed.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "unitcost", "baseunitcost", "amount")));
+        Assert.True(MoneyScan.InJson(posted.ShouldBeOk()).SetEquals(MoneyScan.Names("totalamount", "baseunitcost", "amount")));
     }
 
     // ----- approval flows without amounts -----

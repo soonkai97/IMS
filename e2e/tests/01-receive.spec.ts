@@ -45,6 +45,68 @@ test.describe('IN-01 Receive stock (Warehouse staff)', () => {
     expect(await staff.countMine('receipts', 'Draft')).toBe(draftsBefore);
   });
 
+  test('given the default quantity 1, when staff taps the field and types 12, then the quantity is 12 not 112 (NR-01) and a decimal can be erased with Backspace (NR-08)', async ({
+    page,
+    signIn,
+    api
+  }) => {
+    const product = await api().createProduct();
+    await signIn('staff');
+    const editor = new DocumentEditor(page);
+    await editor.openNew('receipts');
+    await editor.addItem(product);
+    const qty = editor.qty(product.sku);
+    await expect(qty).toHaveValue('1');
+
+    await qty.click();
+    await page.keyboard.type('12');
+    await expect(qty).toHaveValue('12');
+
+    await page.keyboard.press('Tab');
+    await qty.click();
+    await page.keyboard.type('1.5');
+    await expect(qty).toHaveValue('1.5');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Backspace');
+    await expect(qty).toHaveValue('');
+
+    // The point is not eaten while typing: 1.5, Backspace, 7 gives 1.7 (the old field gave 17).
+    await page.keyboard.type('1.5');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('7');
+    await expect(qty).toHaveValue('1.7');
+  });
+
+  test('given a saved draft, when staff double clicks Save draft, then exactly one save is sent and no stale-document banner shows (NR-07)', async ({
+    page,
+    signIn,
+    shell,
+    api
+  }) => {
+    const product = await api().createProduct();
+    const draft = await api('staff').createDocument(
+      'receipts',
+      [{ productId: product.id, qty: 1 }],
+      { remark: `E2E double save ${unique()}` }
+    );
+    await signIn('staff');
+    const editor = new DocumentEditor(page);
+    await editor.open('receipts', draft.id);
+    await editor.setQty(product.sku, 4);
+    const saves: string[] = [];
+    page.on('request', request => {
+      if (request.method() === 'PUT' && request.url().includes('/api/documents/')) {
+        saves.push(request.url());
+      }
+    });
+
+    await editor.action('Save draft').dblclick();
+    await expect(shell.toast('Draft saved.')).toHaveCount(1);
+    await expect(page.getByText('Someone else changed this document')).toHaveCount(0);
+    expect(saves).toHaveLength(1);
+  });
+
   test('given a filled receipt, when staff backs out of the Post dialog and posts again, then only one document is created (NV-02)', async ({
     page,
     signIn,

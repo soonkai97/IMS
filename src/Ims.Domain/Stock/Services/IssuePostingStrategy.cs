@@ -19,7 +19,7 @@ public sealed class IssuePostingStrategy : IPostingStrategy
 
         var cost = balance.Issue(line.BaseQty, allowNegative: true);
         line.BookIssueCost(cost);
-        ctx.AddEntry(line, -line.BaseQty, cost, LedgerReason.Issue);
+        ctx.AddEntry(line, -line.BaseQty, balance.QtyOnHand, cost, LedgerReason.Issue);
     }
 
     /// <summary>Undo an issue: put the stock back at the cost it left at.</summary>
@@ -28,6 +28,6 @@ public sealed class IssuePostingStrategy : IPostingStrategy
     public void Reverse(StockDocumentLine line, StockBalance balance, PostingContext ctx)
     {
         balance.Receive(line.BaseQty, line.UnitCost, line.Id); // stock in: no earlier receipt is the latest one any more
-        ctx.AddEntry(line, +line.BaseQty, line.UnitCost, LedgerReason.Reversal);
+        ctx.AddEntry(line, +line.BaseQty, balance.QtyOnHand, line.UnitCost, LedgerReason.Reversal);
     }
 }

@@ -11,7 +11,7 @@ public sealed class ReceiptPostingStrategy : IPostingStrategy
         balance.Receive(line.BaseQty, line.UnitCost, line.Id);
         // Remember what this line did to the average and which stock-in came before it, so reversing the receipt can put the average back (StockBalance.Unreceive).
         line.RecordAverageChange(averageBefore, balance.AvgCost, previousLine);
-        ctx.AddEntry(line, +line.BaseQty, line.UnitCost, LedgerReason.Receipt);
+        ctx.AddEntry(line, +line.BaseQty, balance.QtyOnHand, line.UnitCost, LedgerReason.Receipt);
     }
 
     /// <summary>Undo a receipt: take the same quantity out again at the cost it came in.</summary>
@@ -21,6 +21,6 @@ public sealed class ReceiptPostingStrategy : IPostingStrategy
     public void Reverse(StockDocumentLine line, StockBalance balance, PostingContext ctx)
     {
         balance.Unreceive(line.BaseQty, line.UnitCost, line.Id, line.PostedAverage, ctx.Settings.AllowNegativeStock);
-        ctx.AddEntry(line, -line.BaseQty, line.UnitCost, LedgerReason.Reversal);
+        ctx.AddEntry(line, -line.BaseQty, balance.QtyOnHand, line.UnitCost, LedgerReason.Reversal);
     }
 }

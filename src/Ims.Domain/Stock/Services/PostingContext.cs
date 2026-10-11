@@ -15,25 +15,7 @@ public class PostingContext(StockDocument document, SystemSettings settings, int
     public List<StockLedgerEntry> Entries { get; } = [];
     public bool OverrideUsed { get; set; }
 
-    public void AddEntry(StockDocumentLine line, decimal qtyDelta, decimal unitCost, LedgerReason reason) =>
-        Entries.Add(StockLedgerEntry.Create(Document, line.ProductId, qtyDelta, unitCost, reason, UserId, Now));
-
-    /// <summary>
-    /// Writes onto every entry of the run what its product held right after it (<see cref="StockLedgerEntry.BalanceAfter"/>). Call it once the run is complete, with
-    /// the balances the run changed: the last entry of a product ends at the balance's quantity, and each earlier entry is the later balance minus the movements
-    /// after it. The balances are loaded under the (warehouse, product) lock and saved in the same transaction as the entries, so the number cannot be overtaken by
-    /// another posting.
-    /// </summary>
-    public void StampBalances(IReadOnlyDictionary<int, StockBalance> balances)
-    {
-        foreach (var product in Entries.GroupBy(e => e.ProductId))
-        {
-            var running = balances[product.Key].QtyOnHand;
-            foreach (var entry in product.Reverse())
-            {
-                entry.StampBalanceAfter(running);
-                running -= entry.QtyDelta;
-            }
-        }
-    }
+    /// <param name="balanceAfter">What the product holds in the warehouse right after this movement: the balance AFTER the strategy applied the line. It is loaded under the (warehouse, product) lock and saved in the same transaction as the entry, so no other posting can slip in between.</param>
+    public void AddEntry(StockDocumentLine line, decimal qtyDelta, decimal balanceAfter, decimal unitCost, LedgerReason reason) =>
+        Entries.Add(StockLedgerEntry.Create(Document, line.ProductId, qtyDelta, balanceAfter, unitCost, reason, UserId, Now));
 }

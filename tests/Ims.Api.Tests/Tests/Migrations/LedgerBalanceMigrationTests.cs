@@ -14,7 +14,7 @@ namespace Ims.Api.Tests.Tests.Migrations;
 public class LedgerBalanceMigrationTests
 {
     private const string Before = "20261010145459_AddDocumentReversedAt";
-    private const string Latest = "20261011065810_AddLedgerBalanceAfter";
+    private const string Latest = "20261011133108_AddLedgerBalanceAfter";
 
     private sealed class FixedClock : IClock
     {
@@ -72,6 +72,9 @@ public class LedgerBalanceMigrationTests
             while (await reader.ReadAsync()) balances.Add(reader.GetDecimal(0));
         }
         Assert.Equal([10m, 5m, 3m, 14m, 8m, 14m], balances); // each row: the running balance of ITS product and warehouse
+
+        // The column has no default: a writer that does not know it fails instead of recording a believable 0.
+        Assert.Equal(0, await database.ScalarAsync<int>("SELECT COUNT(*) FROM sys.default_constraints WHERE parent_object_id = OBJECT_ID(N'StockLedgerEntry') AND COL_NAME(parent_object_id, parent_column_id) = N'BalanceAfter'"));
 
         // The ledger is append-only again: the trigger the backfill switched off is on.
         Assert.Equal(0, await database.ScalarAsync<int>("SELECT is_disabled FROM sys.triggers WHERE name = N'TR_StockLedgerEntry_AppendOnly'"));

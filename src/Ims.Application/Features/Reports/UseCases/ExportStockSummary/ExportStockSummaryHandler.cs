@@ -3,13 +3,16 @@ using Ims.Application.Features.Stock;
 using Ims.Domain;
 namespace Ims.Application.Features.Reports;
 
-public class ExportStockSummaryHandler(IReadRepository<StockBalance> balances, IReadRepository<ProductBarcode> barcodes, IWarehouseScope scope, IReportWriter report)
+public class ExportStockSummaryHandler(IReadRepository<StockBalance> balances, IReadRepository<ProductBarcode> barcodes, ILowOnlyStockReader lowOnly, IWarehouseScope scope, IReportWriter report)
     : IQueryHandler<ExportStockSummaryQuery, ExportFile>
 {
     public async Task<ExportFile> HandleAsync(ExportStockSummaryQuery q, CancellationToken ct)
     {
         var search = await ProductSearch.ResolveAsync(barcodes, q.Filter.Search, ct);
-        var rows = await balances.ListAsync(new StockRowsSpec(q.Filter, scope.Ids(), search, paged: false), ct);
+        // "Low only" is the low-stock definition (never-stocked products included), the same set as the stock list shows with that filter.
+        IReadOnlyList<StockRow> rows = q.Filter.LowOnly
+            ? await lowOnly.ListAsync(q.Filter, scope.Ids(), search, paged: false, ct)
+            : await balances.ListAsync(new StockRowsSpec(q.Filter, scope.Ids(), search, paged: false), ct);
         var bytes = report.Write(ReportSheets.StockSummary, ReportHeaders.StockSummaryColumns, rows.Select(r => new object?[]
         {
             r.Sku, r.ProductName, r.CategoryName, r.WarehouseCode, r.UomCode, r.QtyOnHand, r.QtyInTransit, r.AvgCost, r.Value,

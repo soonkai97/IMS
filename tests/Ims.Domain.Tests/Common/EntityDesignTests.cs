@@ -9,7 +9,7 @@ public class EntityDesignTests
     {
         var doc = NewReceipt(9, (NewProduct(), 1m, 1m));
 
-        var entry = StockLedgerEntry.Create(doc, productId: 5, qtyDelta: -2m, unitCost: 3m, LedgerReason.Issue, createdBy: 77, Now);
+        var entry = StockLedgerEntry.Create(doc, productId: 5, qtyDelta: -2m, balanceAfter: 8m, unitCost: 3m, LedgerReason.Issue, createdBy: 77, Now);
 
         Assert.Equal(doc.WarehouseId, entry.WarehouseId);
         Assert.Equal(9, entry.SourceDocId);

@@ -9,6 +9,7 @@ namespace Ims.Application.Features.Documents;
 /// <param name="RequiresApproval">An approval rule fired when the document was submitted (false for a Draft).</param>
 /// <param name="RequiresOverride">An issue was submitted although stock is short (negative stock is allowed): the approver must give a reason when approving, which forces approval whatever the value thresholds say. A fact about the moment of submission: it stays true after approval and posting; the stored reason is in <c>NegativeStockOverrideReason</c>.</param>
 /// <param name="NegativeStockOverrideReason">Why the approver let stock go below zero; set when a document that <c>requiresOverride</c> is approved, otherwise null.</param>
+/// <param name="ReversedAt">When a Reversed document was reversed, with <c>ReversedBy</c> and <c>ReversedByName</c> the user who did it ("Reversed by {name} on {date}"); null otherwise. <c>ReversalReason</c> holds why.</param>
 /// <param name="IsLarge">The approval rule that fired needs a role above Supervisor (for example the Owner).</param>
 /// <param name="IsReturned">A Draft that a reviewer sent back (<c>RejectionReason</c> holds why, <c>ReturnedBy*</c> who).</param>
 /// <param name="TotalAmount">Value of the document: receipts at their entered cost; an issue at its booked cost once posted, and before that at the average cost when it was last saved or submitted (see <c>AmountIsEstimate</c>). For a Submitted document this is the value the approval rules were tested against. Null for a caller without <c>cost.view</c> (the Warehouse staff).</param>
@@ -23,6 +24,7 @@ public record DocumentDto(int Id, DocumentType Type, string No, DocumentStatus S
     int? SubmittedById, string? SubmittedBy, string? SubmittedByName, DateTime? SubmittedAt,
     string? ApprovedBy, string? ApprovedByName, DateTime? ApprovedAt,
     string? PostedBy, string? PostedByName, DateTime? PostedAt,
+    string? ReversedBy, string? ReversedByName, DateTime? ReversedAt,
     int? ReturnedById, string? ReturnedBy, string? ReturnedByName, DateTime? ReturnedAt,
     decimal TotalQty, [property: VisibleWith(Permissions.CostView)] decimal? TotalAmount, IReadOnlyList<DocumentLineDto> Lines, IReadOnlyList<string> AllowedActions,
     IReadOnlyList<ApprovalTriggerDto> ApprovalTriggers, [property: JsonIgnore] byte[] RowVersion)

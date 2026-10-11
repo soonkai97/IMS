@@ -32,6 +32,9 @@ public static class AuditActions
     public const string ImportProducts = "import.products";
     public const string ImportOpeningStock = "import.opening-stock";
 
+    /// <summary>The sign-in events: what the audit log leaves out when asked to hide sign-ins.</summary>
+    public static readonly IReadOnlyList<string> SignIns = [LoginSuccess, LoginFailed, LoginLocked, LoginLockout, Logout];
+
     /// <summary>Every action name above, for the audit log filter dropdown.</summary>
     public static readonly IReadOnlyList<string> Known =
     [

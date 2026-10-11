@@ -14,7 +14,7 @@ public class ReverseDocumentHandler(IRepository<StockDocument> documents, IRepos
             access.EnsureDocumentInScope(doc.WarehouseId);
             DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
             var now = clock.UtcNow;
-            doc.MarkReversed(cmd.Data.Reason, now);
+            doc.MarkReversed(cmd.Data.Reason, now, current.UserId);
 
             var systemSettings = await settings.GetAsync(ct);
             var ctx = new PostingContext(doc, systemSettings, current.UserId, canOverrideNegative: false, now);
@@ -25,7 +25,6 @@ public class ReverseDocumentHandler(IRepository<StockDocument> documents, IRepos
             if (deficits.Count > 0) throw await BlockedAsync(doc, deficits, ct);
 
             engine.Reverse(doc, documentBalances, ctx);
-            ctx.StampBalances(documentBalances); // the reversal entries carry the balance after them like any other movement
 
             ledger.AddRange(ctx.Entries);
             audit.Record(AuditActions.DocumentReversed, AuditEntities.StockDocument, doc.No, new { Status = DocumentStatus.Posted }, new { doc.Status, Reason = doc.ReversalReason });

@@ -19,6 +19,8 @@ internal static class AuditLogFilters
             var names = AuditEntities.Matching(text);
             query.Where(a => names.Contains(a.EntityType) || a.EntityId.StartsWith(text));
         }
+        // "Everything except sign-ins": NOT IN a short fixed list. The newest page still streams from the end of the Id index, so it is not a scan.
+        if (q.HideSignIns) query.Where(a => !AuditActions.SignIns.Contains(a.Action));
         if (q.From is { } f) { var from = Paging.StartOfDayUtc(f); query.Where(a => a.At >= from); }
         if (q.To is { } t) { var to = Paging.EndOfDayUtc(t); query.Where(a => a.At < to); }
     }
