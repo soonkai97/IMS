@@ -16,7 +16,7 @@ public interface ILowStockReader
     /// <param name="warehouseId">Optional single warehouse (still inside the scope).</param>
     Task<int> CountAsync(IReadOnlyCollection<int>? warehouseScope, int? warehouseId, CancellationToken ct);
 
-    /// <summary>One page, the biggest shortfall first, then SKU and warehouse code.</summary>
+    /// <summary>One page, worst first (largest shortfall as a share of the safety level, then in units), then SKU and warehouse code.</summary>
     Task<IReadOnlyList<LowStockAlert>> PageAsync(IReadOnlyCollection<int>? warehouseScope, int? warehouseId, int page, int pageSize, CancellationToken ct);
 
     /// <summary>The same order without paging, capped at <paramref name="limit"/> rows (exports).</summary>

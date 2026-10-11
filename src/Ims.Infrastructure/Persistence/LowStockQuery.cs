@@ -37,7 +37,7 @@ internal static class LowStockQuery
         }
 
         var stocked = balances
-            .Where(b => b.Product.IsActive && (b.QtyOnHand < 0 || (b.Product.SafetyStock > 0 && b.QtyOnHand < b.Product.SafetyStock)))
+            .Where(LowStockRule.IsLowBalance)
             .Select(b => new Row
             {
                 ProductId = b.ProductId, Sku = b.Product.Sku, ProductName = b.Product.Name, WarehouseId = b.WarehouseId,
@@ -45,7 +45,8 @@ internal static class LowStockQuery
             });
 
         var neverStocked = db.Set<Product>()
-            .Where(p => p.IsActive && p.SafetyStock > 0 && !db.Set<StockBalance>().Any(b => b.ProductId == p.Id))
+            .Where(LowStockRule.CanBeNeverStockedLow)
+            .Where(p => !db.Set<StockBalance>().Any(b => b.ProductId == p.Id))
             .SelectMany(_ => warehouses, (p, w) => new Row
             {
                 ProductId = p.Id, Sku = p.Sku, ProductName = p.Name, WarehouseId = w.Id, WarehouseCode = w.Code, WarehouseName = w.Name,
@@ -55,7 +56,14 @@ internal static class LowStockQuery
         return stocked.Concat(neverStocked);
     }
 
-    /// <summary>Worst first (largest shortfall), then SKU and warehouse code, so the order is total and a walk through the pages never repeats a row.</summary>
+    /// <summary>
+    /// Worst first = the largest shortfall as a share of the safety level (design: S22), then the largest shortfall in units, then SKU and warehouse code, so the order is
+    /// total and a walk through the pages never repeats a row. A row without a safety level (low only because it is negative) has no share and counts as the worst.
+    /// </summary>
     public static IOrderedQueryable<Row> Ordered(IQueryable<Row> rows) =>
-        rows.OrderByDescending(r => r.SafetyStock - r.QtyOnHand).ThenBy(r => r.Sku).ThenBy(r => r.WarehouseCode);
+        rows.OrderByDescending(r => r.SafetyStock > 0 ? (r.SafetyStock - r.QtyOnHand) / r.SafetyStock : NoSafetyLevelShare)
+            .ThenByDescending(r => r.SafetyStock - r.QtyOnHand).ThenBy(r => r.Sku).ThenBy(r => r.WarehouseCode);
+
+    /// <summary>The share a negative row without a safety level sorts by: far above any real shortfall share, so it comes first.</summary>
+    private const decimal NoSafetyLevelShare = 1_000_000m;
 }

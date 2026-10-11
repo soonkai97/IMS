@@ -48,6 +48,9 @@ public class StockDocument : Entity
 
     /// <summary>When the document was reversed (UTC). The movements report dates the reversal row with it.</summary>
     public DateTime? ReversedAt { get; private set; }
+
+    /// <summary>Who reversed the document; null until it is reversed. (Documents reversed before this was recorded were filled in from their reversal ledger entries.)</summary>
+    public int? ReversedBy { get; private set; }
     public int? ReversesDocumentId { get; private set; }
 
     /// <summary>Why the approver allowed stock to go below zero. Entered when approving (BR-03), required when <see cref="RequiresOverride"/> is set, and read by the posting run.</summary>
@@ -66,6 +69,7 @@ public class StockDocument : Entity
     public User? ApprovedByUser { get; private set; }
     public User? PostedByUser { get; private set; }
     public User? RejectedByUser { get; private set; }
+    public User? ReversedByUser { get; private set; }
 
     public decimal TotalQty => Lines.Sum(l => l.BaseQty);
     [VisibleWith(Permissions.CostView)]
@@ -242,7 +246,7 @@ public class StockDocument : Entity
         PostedAt = utcNow;
     }
 
-    public void MarkReversed(string reason, DateTime utcNow)
+    public void MarkReversed(string reason, DateTime utcNow, int? reversedBy = null)
     {
         if (Status != DocumentStatus.Posted)
             throw new DomainException(Messages.OnlyPostedCanReverse);
@@ -252,5 +256,6 @@ public class StockDocument : Entity
         Status = DocumentStatus.Reversed;
         ReversalReason = reason.Trim();
         ReversedAt = utcNow;
+        ReversedBy = reversedBy;
     }
 }

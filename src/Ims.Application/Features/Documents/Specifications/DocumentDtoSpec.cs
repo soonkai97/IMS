@@ -15,6 +15,7 @@ public sealed class DocumentDtoSpec : Specification<StockDocument, DocumentDto>
             d.SubmittedByUser != null ? d.SubmittedByUser.DisplayName : null, d.SubmittedAt,
             d.ApprovedByUser != null ? d.ApprovedByUser.Username : null, d.ApprovedByUser != null ? d.ApprovedByUser.DisplayName : null, d.ApprovedAt,
             d.PostedByUser != null ? d.PostedByUser.Username : null, d.PostedByUser != null ? d.PostedByUser.DisplayName : null, d.PostedAt,
+            d.ReversedByUser != null ? d.ReversedByUser.Username : null, d.ReversedByUser != null ? d.ReversedByUser.DisplayName : null, d.ReversedAt,
             d.RejectedBy, d.RejectedByUser != null ? d.RejectedByUser.Username : null,
             d.RejectedByUser != null ? d.RejectedByUser.DisplayName : null, d.RejectedAt,
             d.Lines.Sum(l => l.BaseQty), d.Lines.Sum(l => l.BaseQty * l.UnitCost),

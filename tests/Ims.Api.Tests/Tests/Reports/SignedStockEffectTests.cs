@@ -103,6 +103,9 @@ public class SignedStockEffectTests(ApiFixture fixture)
         Assert.Equal(onHandFrom + onHandTo, export.Rows.Sum(r => Number(export.Cell(r, "Stock effect"))));
         Assert.Equal(rows.Sum(r => r.BaseQty), export.Rows.Sum(r => Number(export.Cell(r, "Base qty")))); // the unsigned columns are untouched
         Assert.Equal(rows.Select(r => r.StockEffect), export.Rows.Select(r => Number(export.Cell(r, "Stock effect")))); // same rows, same order
+        // PR-08: a reversal row is told from its posting row by a flag, not only by the sign of its effect.
+        Assert.Equal(rows.Select(r => r.IsReversal ? ReportHeaders.ReversalFlag : ""), export.Rows.Select(r => export.Cell(r, "Reversal")));
+        Assert.Equal(2, export.Rows.Count(r => export.Cell(r, "Reversal") == ReportHeaders.ReversalFlag));
     }
 
     [Fact]

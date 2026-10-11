@@ -130,6 +130,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             // The reversal rows of the movements report, newest reversal first: a seek on the (few) reversed documents. Written only when a document is reversed.
             e.HasIndex(x => x.ReversedAt).IncludeProperties(x => new { x.Status, x.Type, x.WarehouseId, x.PartnerId, x.No })
                 .HasFilter($"{LiveRows} AND [ReversedAt] IS NOT NULL");
+            // The document search box (number, remark, partner): a contains-match cannot seek, but it can scan this narrow index (three small columns of the live rows)
+            // instead of the whole table. Written with every document, so it carries only what the predicate reads.
+            e.HasIndex(x => x.No, "IX_StockDocument_Search").IncludeProperties(x => new { x.PartnerId, x.Remark }).HasFilter(LiveRows);
             e.Property(x => x.No).HasMaxLength(Limits.DocumentNoMaxLength);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
             e.Property(x => x.RowVersion).IsRowVersion();
@@ -141,6 +144,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedBy).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.PostedByUser).WithMany().HasForeignKey(x => x.PostedBy).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.RejectedByUser).WithMany().HasForeignKey(x => x.RejectedBy).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ReversedByUser).WithMany().HasForeignKey(x => x.ReversedBy).OnDelete(DeleteBehavior.Restrict);
             e.HasMany(x => x.Lines).WithOne(x => x.Document).HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
@@ -234,11 +238,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } // enum names, not numbers, in the audit details
     };
 
-    /// <summary>Row-level audit applies to master data and security data; documents and stock are audited by explicit business events.</summary>
+    /// <summary>
+    /// Row-level audit applies to master data and security data; documents and stock are audited by explicit business events. Settings too: a save writes ONE
+    /// <c>settings.updated</c> event with the old and the new values of all of them, not one row per changed key (PS-12).
+    /// </summary>
     private static readonly HashSet<Type> Audited =
     [
         typeof(Product), typeof(ProductBarcode), typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom),
-        typeof(ApprovalRule), typeof(SystemSetting), typeof(User), typeof(UomConversion)
+        typeof(ApprovalRule), typeof(User), typeof(UomConversion)
     ];
 
     /// <summary>Secrets and login-attempt counters stay out of the audit payload (logins have their own events).</summary>

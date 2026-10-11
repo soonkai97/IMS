@@ -95,13 +95,14 @@ public class WarehouseScopeTests(ApiFixture fixture)
 
         Assert.Empty((await s.Staff.Stock.QueryAsync(productId: productId)).Data<PagedResult<StockRow>>().Items);
         Assert.Empty((await s.Staff.Stock.LedgerAsync(productId: productId)).Data<PagedResult<LedgerRow>>().Items);
-        Assert.DoesNotContain((await s.Staff.Stock.LowStockAsync()).Data<PagedResult<LowStockAlert>>().Items, a => a.ProductId == productId);
+        Assert.DoesNotContain((await s.Staff.Stock.LowStockAsync(setup.OtherWarehouse.Id)).Data<PagedResult<LowStockAlert>>().Items, a => a.ProductId == productId);
+        Assert.DoesNotContain((await s.Staff.Stock.LowStockAsync()).Data<PagedResult<LowStockAlert>>().Items, a => a.WarehouseId == setup.OtherWarehouse.Id);
         Assert.Empty((await s.Supervisor.Reports.MovementsAsync(productId)).Data<PagedResult<MovementRow>>().Items);
 
         // The same questions asked by someone who sees every warehouse.
         Assert.Single((await s.Admin.Stock.QueryAsync(productId: productId)).Data<PagedResult<StockRow>>().Items);
         Assert.Single((await s.Admin.Stock.LedgerAsync(productId: productId)).Data<PagedResult<LedgerRow>>().Items);
-        Assert.Contains((await s.Admin.Stock.LowStockAsync()).Data<PagedResult<LowStockAlert>>().Items, a => a.ProductId == productId);
+        Assert.Contains((await s.Admin.Stock.LowStockAsync(setup.OtherWarehouse.Id)).Data<PagedResult<LowStockAlert>>().Items, a => a.ProductId == productId); // asked for the warehouse: the global list is long and ordered worst first
         Assert.Single((await s.Owner.Reports.MovementsAsync(productId)).Data<PagedResult<MovementRow>>().Items);
     }
 

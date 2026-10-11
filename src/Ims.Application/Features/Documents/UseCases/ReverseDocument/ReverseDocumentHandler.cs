@@ -14,7 +14,7 @@ public class ReverseDocumentHandler(IRepository<StockDocument> documents, IRepos
             access.EnsureDocumentInScope(doc.WarehouseId);
             DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
             var now = clock.UtcNow;
-            doc.MarkReversed(cmd.Data.Reason, now);
+            doc.MarkReversed(cmd.Data.Reason, now, current.UserId);
 
             var systemSettings = await settings.GetAsync(ct);
             var ctx = new PostingContext(doc, systemSettings, current.UserId, canOverrideNegative: false, now);

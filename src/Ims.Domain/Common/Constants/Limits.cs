@@ -88,6 +88,8 @@ public static class Limits
     public const int QuantityScale = 4;
     public const int QuantityPrecision = 18;
     public const int SearchMaxLength = 100;
+    /// <summary>The document search box matches at most this many partners by name (a text that fits more partners than this is too short to be useful).</summary>
+    public const int SearchPartnerMatches = 200;
     public const int TokenHashMaxLength = 128;
     public const int SettingValueMaxLength = 500;
 

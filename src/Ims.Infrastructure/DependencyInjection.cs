@@ -54,6 +54,8 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IStockSummaryReader, EfStockSummaryReader>();
         services.AddScoped<ILowStockReader, EfLowStockReader>();
+        services.AddScoped<ILowOnlyStockReader, EfLowOnlyStockReader>();
+        services.AddScoped<ILedgerBalanceReader, EfLedgerBalanceReader>();
         services.AddScoped<IMovementReader, EfMovementReader>();
         services.AddScoped<ITransactionLocker, SqlTransactionLocker>();
         services.AddSingleton<IExceptionMapper, SqlExceptionMapper>();
