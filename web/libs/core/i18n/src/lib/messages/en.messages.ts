@@ -29,6 +29,7 @@ export const EN_MESSAGES = {
   'filter.clear': 'Clear filters',
   'filter.from': 'From',
   'filter.none': 'None',
+  'filter.rangeInvalid': 'From must be on or before To.',
   'filter.show': 'Filters',
   'filter.showActive': 'Filters ({count})',
   'filter.showInactive': 'Show inactive',
@@ -473,11 +474,13 @@ export const EN_MESSAGES = {
   'reports.export.stock': 'Stock summary',
   'reports.export.stockHint': 'On hand and value per product and warehouse.',
   'reports.postedAt': 'Posted',
+  'reports.product': 'Product',
   'reports.reversal': 'Reversal',
   'reports.stockEffect': 'Stock effect',
   'reports.tab.exports': 'Excel exports',
   'reports.tab.movements': 'Receipt and issue detail',
   'reports.title': 'Reports',
+  'reports.unitCost': 'Unit cost (per base unit)',
 
   // Administration
   'users.empty': 'No users match these filters.',

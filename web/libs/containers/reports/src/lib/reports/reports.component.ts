@@ -15,6 +15,7 @@ import {
   AppMoneyPipe,
   AppQtyPipe,
   AppSignedQtyPipe,
+  AppUnitPricePipe,
   DOCUMENT_STATUS_LABELS,
   DOCUMENT_TYPE_LABELS,
   I18nService,
@@ -56,6 +57,7 @@ const TAB_EXPORTS = 'exports';
     AppMoneyPipe,
     AppQtyPipe,
     AppSignedQtyPipe,
+    AppUnitPricePipe,
     ReactiveFormsModule,
     TranslatePipe,
     UiButtonComponent,
@@ -111,9 +113,30 @@ export class ReportsPageComponent implements OnInit {
     pageSize: DEFAULT_PAGE_SIZE
   }));
 
-  $page = this.store.movements.$data;
-  $isLoading = this.store.movements.$isLoading;
-  $failed = this.store.movements.$isFailed;
+  // Both dates are yyyy-MM-dd, so comparing the strings compares the days.
+  $rangeInvalid = computed(() => !!this.$from() && !!this.$to() && this.$from() > this.$to());
+  // The sentence under To: ours before a request is sent, the server's (errors.to) if it still answers 400.
+  private readonly $serverToError = computed(
+    () => this.store.movements.$operation().error?.fieldErrors['to']?.[0] ?? null
+  );
+  $toError = computed(() =>
+    this.$rangeInvalid() ? this.i18n.t('filter.rangeInvalid') : this.$serverToError()
+  );
+  // The sentence under To explains the empty screen, so no table (and no "No data for these filters.") shows with it.
+  $blocked = computed(() => this.$rangeInvalid() || this.$serverToError() !== null);
+  readonly rangeHintId = 'reports-range-hint';
+  // A bad range or a failed call shows no old rows and no old "1-6 of 6" footer.
+  $page = computed(() =>
+    this.$rangeInvalid() || this.store.movements.$isFailed()
+      ? undefined
+      : this.store.movements.$data()
+  );
+  $isLoading = computed(() => !this.$rangeInvalid() && this.store.movements.$isLoading());
+  // A field error is shown at the field, not as "Something went wrong" with a Retry that cannot work.
+  $failed = computed(
+    () =>
+      !this.$rangeInvalid() && this.store.movements.$isFailed() && this.$serverToError() === null
+  );
   $isMovementsTab = computed(() => this.$tab() === TAB_MOVEMENTS);
   $exportingMovements = this.store.exportMovements.$isRunning;
   $exportingStock = this.store.exportStockSummary.$isRunning;
@@ -162,9 +185,17 @@ export class ReportsPageComponent implements OnInit {
       hideOnPhone: true
     },
     { key: 'sku', header: this.i18n.t('product.sku'), value: row => row.sku },
+    { key: 'product', header: this.i18n.t('reports.product'), value: row => row.productName },
     { key: 'qty', header: this.i18n.t('doc.qty'), align: 'end' },
+    { key: 'unit', header: this.i18n.t('doc.unit'), value: row => row.uomCode },
     { key: 'effect', header: this.i18n.t('reports.stockEffect'), align: 'end' },
-    // Money columns need cost.view; the server sends null to the others (docs/design/mvp-ux.md 1.4).
+    // Cost columns need cost.view; the server sends null to the others (docs/design/mvp-ux.md 1.4).
+    ...columnWhen<MovementRow>(this.$canViewCost(), {
+      key: 'unitCost',
+      header: this.i18n.t('reports.unitCost'),
+      align: 'end',
+      hideOnPhone: true
+    }),
     ...columnWhen<MovementRow>(this.$canViewCost(), {
       key: 'amount',
       header: this.i18n.t('doc.amount'),
@@ -174,7 +205,12 @@ export class ReportsPageComponent implements OnInit {
   ]);
 
   constructor() {
-    loadOnChange(this.$query, query => this.store.movements.load(query));
+    // A bad range sends no request (the API would answer 400 anyway).
+    loadOnChange(this.$query, query => {
+      if (!this.$rangeInvalid()) {
+        this.store.movements.load(query);
+      }
+    });
   }
 
   ngOnInit(): void {
