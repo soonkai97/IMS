@@ -32,7 +32,7 @@ describe('UiFormLegendComponent in another language', () => {
   it('shows the translated sentence and still draws the asterisk in its own span', () => {
     const spectator = createComponent();
 
-    expect(spectator.element.textContent?.trim()).toBe('* 表示必填');
+    expect(spectator.element.textContent?.replace(/\s+/g, ' ').trim()).toBe('* 表示必填');
     expect(spectator.query('.ui-form-legend-mark')?.textContent).toBe('*');
   });
 });
@@ -43,7 +43,7 @@ describe('UiFormLegendComponent with a sentence that has no leading asterisk', (
   it('shows the sentence whole', () => {
     const spectator = createComponent();
 
-    expect(spectator.element.textContent?.trim()).toBe('Required');
+    expect(spectator.element.textContent?.replace(/\s+/g, ' ').trim()).toBe('Required');
     expect(spectator.query('.ui-form-legend-mark')).toBeNull();
   });
 });

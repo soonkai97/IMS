@@ -18,8 +18,12 @@ test.describe('FR-06 Required fields show an asterisk, say "required" once and n
     await login.open();
 
     // Exact names: the star is aria-hidden, so a screen reader hears the label and "required" and never "star".
-    await expect(page.getByRole('textbox', { name: 'Email or username required', exact: true })).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Password required', exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('textbox', { name: 'Email or username required', exact: true })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('textbox', { name: 'Password required', exact: true })
+    ).toBeVisible();
     await expect(login.username).toHaveAttribute('required', '');
     await expect(login.passwordBox).toHaveAttribute('required', '');
 
@@ -53,7 +57,11 @@ test.describe('FR-06 Required fields show an asterisk, say "required" once and n
       range.selectNodeContents(text);
       const lines = new Set(Array.from(range.getClientRects()).map(rect => Math.round(rect.top)));
       const lastLine = Math.max(...lines);
-      return { lines: lines.size, lastLine, starLine: Math.round(star.getBoundingClientRect().top) };
+      return {
+        lines: lines.size,
+        lastLine,
+        starLine: Math.round(star.getBoundingClientRect().top)
+      };
     });
 
     expect(placement).not.toBeNull();
@@ -69,9 +77,17 @@ test.describe('FR-06 Required fields show an asterisk, say "required" once and n
     const editor = new DocumentEditor(page);
     await editor.openNew('receipts');
 
-    await expect(page.getByRole('combobox', { name: 'Warehouse required', exact: true })).toHaveAttribute('required', '');
-    await expect(page.getByRole('combobox', { name: 'Supplier', exact: true })).not.toHaveAttribute('required', '');
-    await expect(page.getByRole('textbox', { name: 'Remark', exact: true })).not.toHaveAttribute('required', '');
+    await expect(
+      page.getByRole('combobox', { name: 'Warehouse required', exact: true })
+    ).toHaveAttribute('required', '');
+    await expect(page.getByRole('combobox', { name: 'Supplier', exact: true })).not.toHaveAttribute(
+      'required',
+      ''
+    );
+    await expect(page.getByRole('textbox', { name: 'Remark', exact: true })).not.toHaveAttribute(
+      'required',
+      ''
+    );
     await expect(page.getByText(LEGEND)).toHaveCount(1);
     await expect(page.getByText('(required)')).toHaveCount(0);
   });
@@ -84,7 +100,9 @@ test.describe('FR-06 Required fields show an asterisk, say "required" once and n
     const editor = new DocumentEditor(page);
     await editor.openNew('issues');
 
-    await expect(page.getByRole('combobox', { name: 'Warehouse required', exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('combobox', { name: 'Warehouse required', exact: true })
+    ).toBeVisible();
     await expect(page.getByRole('group', { name: 'Purpose required', exact: true })).toBeVisible();
     await expect(page.getByRole('radio', { name: 'Sale' })).toHaveAttribute('required', '');
     await expect(page.getByText(LEGEND)).toHaveCount(1);
@@ -102,9 +120,14 @@ test.describe('FR-06 Required fields show an asterisk, say "required" once and n
 
     const dialog = page.getByRole('dialog', { name: 'New partner' });
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole('combobox', { name: 'Type required', exact: true })).toBeVisible();
+    await expect(
+      dialog.getByRole('combobox', { name: 'Type required', exact: true })
+    ).toBeVisible();
     await expect(dialog.getByRole('textbox', { name: 'Name required', exact: true })).toBeVisible();
-    await expect(dialog.getByRole('textbox', { name: 'Contact', exact: true })).not.toHaveAttribute('required', '');
+    await expect(dialog.getByRole('textbox', { name: 'Contact', exact: true })).not.toHaveAttribute(
+      'required',
+      ''
+    );
     await expect(dialog.getByText(LEGEND)).toHaveCount(1);
 
     // The asterisk is a picture, not content: filling the form with the star in the label works as before.
@@ -114,10 +137,7 @@ test.describe('FR-06 Required fields show an asterisk, say "required" once and n
     await expect(partners.row(name)).toBeVisible();
   });
 
-  test('given a list page, then no legend and no asterisk are shown', async ({
-    page,
-    signIn
-  }) => {
+  test('given a list page, then no legend and no asterisk are shown', async ({ page, signIn }) => {
     await signIn('staff');
     // A list page has filters and a search box only: those are never marked (UX 3.3 item 5).
     await page.getByRole('link', { name: 'Receipts' }).first().click();

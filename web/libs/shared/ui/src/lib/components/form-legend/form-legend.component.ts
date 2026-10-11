@@ -22,7 +22,7 @@ export class UiFormLegendComponent {
   $parts = computed(() => {
     const text = this.uiText().requiredLegend;
     return text.startsWith(ASTERISK)
-      ? { mark: ASTERISK, rest: text.slice(ASTERISK.length) }
+      ? { mark: ASTERISK, rest: text.slice(ASTERISK.length).trim() }
       : { mark: '', rest: text };
   });
 }
