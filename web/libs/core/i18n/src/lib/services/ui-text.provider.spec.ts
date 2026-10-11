@@ -17,6 +17,11 @@ describe('UI text for the kit', () => {
     expect(text().reasonTooShort(5)).toBe('Enter a reason of at least 5 characters.');
   });
 
+  it('D4: the required word and the legend come from the catalog', () => {
+    expect(text().required).toBe('required');
+    expect(text().requiredLegend).toBe('* means required');
+  });
+
   it('keeps the other validation sentences', () => {
     expect(text().validationMessage('required', true)).toBe('This field is required.');
     expect(text().validationMessage('maxlength', { requiredLength: 100 })).toBe(

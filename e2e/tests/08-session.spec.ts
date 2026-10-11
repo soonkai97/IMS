@@ -1,5 +1,6 @@
 import { expect, test } from '../src/fixtures';
 import { loadPage } from '../src/pages/shell';
+import { spendLoginBudget } from '../src/rate-limit';
 
 test.describe('AUTH-01 Sign in, sign out and session restore (UX error E7, SEC-34)', () => {
   test('given a wrong password, when a user signs in, then one generic sentence shows and the form stays', async ({
@@ -15,6 +16,56 @@ test.describe('AUTH-01 Sign in, sign out and session restore (UX error E7, SEC-3
 
     await login.fill('nobody-here', 'whatever-123');
     await expect(login.error).toContainText('Email, username or password is wrong.');
+  });
+
+  test('given a failed sign-in, when either field is edited, then the banner goes away, and an empty resubmit shows only the two field messages (D3, NR-06)', async ({
+    login,
+    page
+  }) => {
+    // Page boot (1) and four sign-in attempts share the API's limit of 20 a minute.
+    await spendLoginBudget(5);
+    let attempts = 0;
+    page.on('request', request => {
+      if (request.method() === 'POST' && request.url().endsWith('/api/auth/login')) {
+        attempts++;
+      }
+    });
+    await login.open();
+
+    // A failed attempt with both fields filled shows the banner and nothing else.
+    await login.fill('nobody-here', 'whatever-123');
+    await expect(login.error).toHaveCount(1);
+    await expect(login.fieldMessages).toHaveCount(0);
+
+    // One character in the username removes it.
+    await login.username.pressSequentially('x');
+    await expect(login.error).toHaveCount(0);
+
+    // Same for the password.
+    await login.submit.click();
+    await expect(login.error).toHaveCount(1);
+    await login.passwordBox.pressSequentially('y');
+    await expect(login.error).toHaveCount(0);
+
+    // Emptying both fields and submitting: two field messages, no banner, and nothing is sent.
+    await login.submit.click();
+    await expect(login.error).toHaveCount(1);
+    await login.username.fill('');
+    await login.passwordBox.fill('');
+    await expect(login.error).toHaveCount(0);
+    const sent = attempts;
+    await login.submit.click();
+    await expect(login.fieldMessages).toHaveCount(2);
+    await expect(login.error).toHaveCount(0);
+    expect(attempts).toBe(sent);
+
+    // A reload shows neither the banner nor the field messages.
+    await login.fill('nobody-here', 'whatever-123');
+    await expect(login.error).toHaveCount(1);
+    await loadPage(page, '/login');
+    await expect(login.username).toBeVisible();
+    await expect(login.error).toHaveCount(0);
+    await expect(login.fieldMessages).toHaveCount(0);
   });
 
   test('given a signed-in user, when the page is reloaded, then the session is restored from the cookie and no token is kept in web storage', async ({

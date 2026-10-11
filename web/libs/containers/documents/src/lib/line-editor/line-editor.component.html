@@ -32,6 +32,7 @@
         <app-form-field
           class="line-editor-qty-field"
           [label]="'doc.qty' | t"
+          [required]="true"
           [control]="row.group.controls.qty"
           [messages]="{ min: 'line.qtyMin' | t }"
         >
