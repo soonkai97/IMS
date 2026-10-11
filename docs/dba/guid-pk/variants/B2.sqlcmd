@@ -1,0 +1,7 @@
+:setvar Variant B2
+:setvar KT int
+:setvar KL bigint
+:setvar KTGEN "IDENTITY(1,1)"
+:setvar KLGEN "IDENTITY(1,1)"
+:setvar PUBCOL ", PublicId uniqueidentifier NOT NULL DEFAULT (CAST(CONVERT(binary(6), DATEDIFF_BIG(MILLISECOND, '19700101', SYSUTCDATETIME())) + CRYPT_GEN_RANDOM(10) AS uniqueidentifier))"
+:setvar PUBIDX 1

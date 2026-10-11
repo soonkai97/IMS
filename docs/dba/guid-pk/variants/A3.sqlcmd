@@ -1,0 +1,7 @@
+:setvar Variant A3
+:setvar KT uniqueidentifier
+:setvar KL uniqueidentifier
+:setvar KTGEN "DEFAULT (NEWID())"
+:setvar KLGEN "DEFAULT (NEWID())"
+:setvar PUBCOL ""
+:setvar PUBIDX 0

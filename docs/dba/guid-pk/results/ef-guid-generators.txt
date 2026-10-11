@@ -1,0 +1,11 @@
+Output of ef-guid-check (EF Core 10.0.12, .NET 10), 200,000 values per generator.
+"Ascending" = share of adjacent pairs where the next value sorts higher in SQL Server's uniqueidentifier order (System.Data.SqlTypes.SqlGuid.CompareTo).
+100 % = every insert lands at the end of a clustered index; 50 % = random.
+
+EF SqlServer assembly: Microsoft.EntityFrameworkCore.SqlServer 10.0.12.0
+EF Guid key ValueGenerated: OnAdd
+Selected generator: Microsoft.EntityFrameworkCore.ValueGeneration.SequentialGuidValueGenerator
+adjacent pairs ascending in SQL Server order: EF-selected 100.00%  Guid.CreateVersion7 49.95%  Guid.NewGuid 50.02%
+adjacent pairs ascending in text (RFC) order: EF-selected 50.05%  CreateVersion7 50.04%  NewGuid 50.03%
+EF sample: 8e23c67d-8b76-4955-0390-08df274032d0 50b59f99-88e4-4c6e-0391-08df274032d0 e9e112aa-2240-4074-0392-08df274032d0
+V7 sample: 01a128cf-f3ce-7803-baf4-fe8e3a8ce21e 01a128cf-f3ce-7658-884e-19bb2cff7814 01a128cf-f3ce-797b-a383-5b46d23fbc67

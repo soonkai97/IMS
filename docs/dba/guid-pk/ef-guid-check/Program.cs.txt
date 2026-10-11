@@ -1,0 +1,39 @@
+using System.Data.SqlTypes;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.ValueGeneration;
+
+var asm = typeof(SqlServerDbContextOptionsExtensions).Assembly;
+Console.WriteLine("EF SqlServer assembly: " + asm.GetName());
+foreach (var t in asm.GetTypes().Where(t => t.Name.Contains("SequentialGuid"))) Console.WriteLine("type: " + t.FullName);
+
+double Asc(IReadOnlyList<Guid> g)
+{
+    int up = 0;
+    for (int i = 1; i < g.Count; i++) if (new SqlGuid(g[i]).CompareTo(new SqlGuid(g[i - 1])) > 0) up++;
+    return 100.0 * up / (g.Count - 1);
+}
+double AscStr(IReadOnlyList<Guid> g){int up=0;for(int i=1;i<g.Count;i++) if(string.CompareOrdinal(g[i].ToString(),g[i-1].ToString())>0) up++; return 100.0*up/(g.Count-1);}
+
+using var ctx = new Ctx();
+var key = ctx.Model.FindEntityType(typeof(Row))!.FindProperty("Id")!;
+Console.WriteLine("EF Guid key ValueGenerated: " + key.ValueGenerated);
+var sel = ((IInfrastructure<IServiceProvider>)ctx).Instance.GetService(typeof(IValueGeneratorSelector)) as IValueGeneratorSelector;
+sel!.TrySelect(key, key.DeclaringType, out var g1);
+Console.WriteLine("Selected generator: " + g1!.GetType().FullName);
+
+const int N = 200_000;
+var ef = new List<Guid>(N); for (int i = 0; i < N; i++) ef.Add((Guid)g1.Next(null!)!);
+var v7 = new List<Guid>(N); for (int i = 0; i < N; i++) v7.Add(Guid.CreateVersion7());
+var v4 = new List<Guid>(N); for (int i = 0; i < N; i++) v4.Add(Guid.NewGuid());
+Console.WriteLine($"adjacent pairs ascending in SQL Server order: EF-selected {Asc(ef):F2}%  Guid.CreateVersion7 {Asc(v7):F2}%  Guid.NewGuid {Asc(v4):F2}%");
+Console.WriteLine($"adjacent pairs ascending in text (RFC) order: EF-selected {AscStr(ef):F2}%  CreateVersion7 {AscStr(v7):F2}%  NewGuid {AscStr(v4):F2}%");
+Console.WriteLine("EF sample: " + string.Join(" ", ef.Take(3)));
+Console.WriteLine("V7 sample: " + string.Join(" ", v7.Take(3)));
+
+class Row { public Guid Id { get; set; } }
+class Ctx : DbContext
+{
+    protected override void OnConfiguring(DbContextOptionsBuilder o) => o.UseSqlServer("Server=.;Database=x;Trusted_Connection=True");
+    protected override void OnModelCreating(ModelBuilder b) => b.Entity<Row>().HasKey(x => x.Id);
+}
