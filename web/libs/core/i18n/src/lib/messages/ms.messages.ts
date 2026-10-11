@@ -25,6 +25,7 @@ export const MS_MESSAGES: Messages = {
   'filter.clear': 'Kosongkan tapisan',
   'filter.from': 'Dari',
   'filter.none': 'Tiada',
+  'filter.rangeInvalid': 'Tarikh Dari mesti pada atau sebelum tarikh Hingga.',
   'filter.show': 'Tapisan',
   'filter.showActive': 'Tapisan ({count})',
   'filter.showInactive': 'Tunjuk yang tidak aktif',
@@ -453,12 +454,14 @@ export const MS_MESSAGES: Messages = {
   'reports.export.stock': 'Ringkasan stok',
   'reports.export.stockHint': 'Stok di tangan dan nilai bagi setiap produk dan gudang.',
   'reports.postedAt': 'Diposkan',
+  'reports.product': 'Produk',
   // TODO-review: machine draft (signed stock effect).
   'reports.reversal': 'Pembalikan',
   'reports.stockEffect': 'Kesan stok',
   'reports.tab.exports': 'Eksport Excel',
   'reports.tab.movements': 'Butiran penerimaan dan pengeluaran',
   'reports.title': 'Laporan',
+  'reports.unitCost': 'Kos seunit (setiap unit asas)',
 
   'users.empty': 'Tiada pengguna sepadan dengan tapisan ini.',
   'users.searchLabel': 'Cari pengguna',

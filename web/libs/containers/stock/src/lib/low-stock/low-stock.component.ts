@@ -78,7 +78,7 @@ export class LowStockPageComponent implements OnInit {
     {
       key: 'warehouse',
       header: this.i18n.t('stock.warehouse'),
-      value: row => row.warehouseName,
+      value: row => row.warehouseName ?? '',
       phoneInline: true
     },
     { key: 'onHand', header: this.i18n.t('stock.onHand'), align: 'end' },
@@ -89,7 +89,7 @@ export class LowStockPageComponent implements OnInit {
 
   readonly rowLink = (row: LowStockAlert): readonly unknown[] => ['/stock', row.productId];
   /** "Create receipt" opens the form with this product and warehouse already chosen (design 3.8, NV-13). */
-  readonly receiptParams = (row: LowStockAlert): Record<string, string | number> => ({
+  readonly receiptParams = (row: LowStockAlert): Record<string, string | number | undefined> => ({
     sku: row.sku,
     warehouseId: row.warehouseId
   });

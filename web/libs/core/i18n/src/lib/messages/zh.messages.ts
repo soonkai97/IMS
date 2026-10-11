@@ -25,6 +25,7 @@ export const ZH_MESSAGES: Messages = {
   'filter.clear': '清除筛选',
   'filter.from': '从',
   'filter.none': '无',
+  'filter.rangeInvalid': '开始日期不能晚于结束日期。',
   'filter.show': '筛选',
   'filter.showActive': '筛选（{count}）',
   'filter.showInactive': '显示已停用',
@@ -440,12 +441,14 @@ export const ZH_MESSAGES: Messages = {
   'reports.export.stock': '库存汇总',
   'reports.export.stockHint': '各商品、各仓库的现有库存和价值。',
   'reports.postedAt': '过账时间',
+  'reports.product': '商品',
   // TODO-review: machine draft (signed stock effect).
   'reports.reversal': '冲销',
   'reports.stockEffect': '库存影响',
   'reports.tab.exports': 'Excel 导出',
   'reports.tab.movements': '入库与出库明细',
   'reports.title': '报表',
+  'reports.unitCost': '单价（每基本单位）',
 
   'users.empty': '没有符合筛选条件的用户。',
   'users.searchLabel': '搜索用户',

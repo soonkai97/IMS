@@ -30,7 +30,7 @@ import {
   STATUS_TONE
 } from '@ims/features/documents';
 import { WarehousesStore } from '@ims/features/warehousing';
-import { DEFAULT_PAGE_SIZE, PERMISSION } from '@ims/models';
+import { API_MIN_SEARCH_LENGTH, DEFAULT_PAGE_SIZE, PERMISSION } from '@ims/models';
 import {
   SelectOption,
   StatusTone,
@@ -103,7 +103,12 @@ export class DocumentListPageComponent implements OnInit {
   /** Mine = documents I created (`mine=true`); the choice is remembered per user. */
   $scope = signal<string>(this.scopePreference.initial());
 
-  private readonly $search = debouncedSignal(this.$searchInput);
+  private readonly $typed = debouncedSignal(this.$searchInput);
+  /** What is sent: a search under the API minimum is no search, so 1 or 2 letters leave the list as it is. */
+  private readonly $search = computed(() => {
+    const text = this.$typed().trim();
+    return text.length >= API_MIN_SEARCH_LENGTH ? text : '';
+  });
   private readonly $status = controlSignal(this.statusControl);
   private readonly $warehouseId = controlSignal(this.warehouseControl);
   private readonly $from = controlSignal(this.fromControl);
