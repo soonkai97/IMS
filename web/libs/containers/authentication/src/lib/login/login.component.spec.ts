@@ -200,7 +200,7 @@ describe('LoginPageComponent failure messages', () => {
       expect(spectator.query(USERNAME)?.hasAttribute('required')).toBe(true);
       expect(spectator.query(PASSWORD)?.hasAttribute('required')).toBe(true);
       // The name is the label alone: a screen reader says "required" from the state, not twice (review of R02).
-      const names = spectator.queryAll('app-form-field label').map(label => {
+      const names = spectator.queryAll('form app-form-field label').map(label => {
         const copy = label.cloneNode(true) as Element;
         copy.querySelectorAll('[aria-hidden="true"]').forEach(hidden => hidden.remove());
         return (copy.textContent ?? '').replace(/\s+/g, ' ').trim();
