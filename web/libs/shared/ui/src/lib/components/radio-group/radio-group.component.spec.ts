@@ -37,12 +37,12 @@ describe('UiRadioGroupComponent accessibility (NV-09, EA-06)', () => {
     expect(legend?.textContent).toContain(`Purpose${NBSP}*`);
   });
 
-  it('a required group marks its radios required', () => {
+  it('the radios do not carry required themselves: the legend says it once, not once per option', () => {
     render({ required: true });
 
     const radios = spectator.queryAll('input[type=radio]');
     expect(radios).toHaveLength(2);
-    expect(radios.every(radio => radio.hasAttribute('required'))).toBe(true);
+    expect(radios.some(radio => radio.hasAttribute('required'))).toBe(false);
   });
 
   it('has no required mark unless asked', () => {
@@ -50,7 +50,7 @@ describe('UiRadioGroupComponent accessibility (NV-09, EA-06)', () => {
 
     expect(spectator.query('legend')?.textContent?.trim()).toBe('Purpose');
     expect(spectator.query('.ui-radio-group-asterisk')).toBeNull();
-    expect(spectator.query('input[type=radio]')?.hasAttribute('required')).toBe(false);
+    expect(spectator.query('.ui-radio-group-sr')).toBeNull();
   });
 
   it('an invalid group is marked and tied to its error text', () => {

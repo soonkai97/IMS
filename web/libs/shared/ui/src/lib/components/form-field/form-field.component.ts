@@ -17,8 +17,9 @@ let nextFieldId = 0;
 
 /**
  * Label above the control, hint and error text below. The label stays visible, a required field gets a red
- * asterisk (aria-hidden) and the word "required" for screen readers, the control itself carries `required` (D4,
- * docs/design/2026-refresh-ux.md 3.3), and the error is tied to the control with aria-describedby.
+ * asterisk (aria-hidden) and the control itself carries `required`, so a screen reader says "<label>, required" from
+ * the state and not twice (D4, docs/design/2026-refresh-ux.md 3.3), and the error is tied to the control with
+ * aria-describedby.
  */
 @Component({
   selector: 'app-form-field',

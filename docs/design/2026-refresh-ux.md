@@ -31,7 +31,7 @@ Every slice in section 12 must keep these true. They are the global acceptance c
 | FR-03 | Nothing breaks at 320px width or 400% zoom: no horizontal page scroll, no clipped or overlapped controls, focused control never hidden by a sticky bar | Open every touched screen at 320x568 and at 1280 wide with browser zoom 400%; scroll width equals client width (a wide data table may scroll inside its own labelled region, existing exception) |
 | FR-04 | Nothing is slower to scan than today | Section 0.4 budget table: tap/keystroke counts and "first useful content" are equal or better |
 | FR-05 | Money shows exactly 2 decimals everywhere (Home tiles, widgets, tables, dialogs, exports), thousands separator, never abbreviated ("12.4k" is forbidden); a quantity shows up to 3 decimals, trailing zeros trimmed (D10) | Search the touched screens for any amount without 2 decimals; Home value tile reads `119,371.90` not `119k` |
-| FR-06 | Required field: red asterisk visible, hidden from screen readers (`aria-hidden`), plus screen-reader-only text "required", plus a visible legend "* means required" on every form that has a required field; the control also carries `required` / `aria-required` | Section 3.3 acceptance list; screen reader reads "Email or username, required, edit text", never "star" |
+| FR-06 | Required field: red asterisk visible, hidden from screen readers (`aria-hidden`); the control carries `required` / `aria-required`, so the state says "required" (the label has no sr-only word: ruling of the R02 review); plus a visible legend "* means required" on every form that has a required field | Section 3.3 acceptance list; screen reader reads "Email or username, required, edit text", never "star" |
 | FR-07 | Warehouse staff never see cost or value; Clerk sees cost (`cost.view`) but never valuation (`valuation.view`); decided by permission, never by role name (`mvp-ux.md` 1.4) | Section 0.5 table: sign in as Staff and Clerk, walk every new surface (Home widgets, palette, skeletons, tooltips, aria-labels, exports) and find no cost or value |
 | FR-08 | Colour is never the only carrier of meaning (status chips, errors, required, low stock keep icon + text) | Grayscale screenshot test of Home, a list and a document |
 | FR-09 | Honour `prefers-reduced-motion`, `prefers-color-scheme`, `forced-colors` | Section 7.7 and 4 acceptance lists |
@@ -40,7 +40,7 @@ Every slice in section 12 must keep these true. They are the global acceptance c
 
 | Where | Was | Now |
 |---|---|---|
-| 2 `app-form`: required marker | "(required)" in the label | Red asterisk (aria-hidden) + sr-only "required" + legend (3.3) |
+| 2 `app-form`: required marker | "(required)" in the label | Red asterisk (aria-hidden) + `required` state on the control + legend (3.3) |
 | 1.2 last bullet: Home | One paragraph per role | Widget lists per role (2.3) |
 | 2 `app-toast`, 6.3 "Business rule violation ... plus an error toast with the same text" | Inline message AND toast | Inline message only (an alert); no duplicate toast (7.4). QA EA-15 and EA-26 found double announcements |
 | 6.1 skeleton | 5 grey rows after 300ms | Shapes per screen type, shown after 300ms, stay at least 400ms (7.1) |
@@ -278,9 +278,9 @@ The visual designer writes the token and palette spec. This section lists what t
 
 Applies to every field in `app-form-field`, radio groups and select controls, in pages and dialogs.
 
-1. Label text, then a single space, then a red asterisk `*` rendered by CSS content or a span with `aria-hidden="true"`. Then a visually hidden span with the word "required" (translated: "required", "wajib", the zh equivalent from the i18n catalog). Result in the accessibility tree: "Quantity required".
-2. The control itself has `required` (native) or `aria-required="true"` (custom). Do not rely on the label text alone.
-3. Group controls (radio group "Purpose"): the `<legend>` carries the same asterisk + sr-only text.
+1. Label text, then a single space, then a red asterisk `*` rendered by CSS content or a span with `aria-hidden="true"`. No visually hidden word is added to the label: the name is the label alone ("Quantity") and the `required` state of item 2 supplies the word, in the language of the browser or screen reader (a second, translated word in the label would be announced twice, as "required required"). Result: "Quantity, required, edit text".
+2. The control itself has `required` (native) or `aria-required="true"` (custom). This is the only carrier of the word "required" for a single control.
+3. Group controls (radio group "Purpose"): the `<legend>` carries the asterisk plus the sr-only word "required" (translated from `ui.required`), because a group has no single control to carry the state; the individual radios do not carry `required` (it would be announced once per option).
 4. The legend line "* means required" is shown once per form, directly under the page header or dialog heading and above the first field, in muted text at 14px or larger and 4.5:1. Its asterisk is the same red as the field asterisks. The legend element is `aria-hidden="true"`: it explains a visual symbol that assistive technology never encounters, and the same information is delivered per field by the sr-only word.
 5. A form with no required fields shows no legend. Search and filter boxes are never marked.
 6. Optional fields are not labelled "(optional)" except where a missing value surprises users (Receipt "Supplier": hint text "Optional" in the hint line, not in the label).
@@ -306,7 +306,7 @@ Acceptance:
 | ID | Criterion |
 |---|---|
 | RQ-01 | Every required control on Login, Receipt, Issue, Product, Warehouse, Partner, User, Settings forms and every dialog with a required reason has the visible red `*` and `required`/`aria-required` |
-| RQ-02 | `*` is `aria-hidden`; the accessibility tree name of a required field ends with "required" exactly once; NVDA/VoiceOver never reads "star" or "asterisk" for a field |
+| RQ-02 | `*` is `aria-hidden`; the accessible name of a single required control is the label alone (no "required" in it) and the control exposes the required state (`required` / `aria-required`), so "required" is announced once; a required radio group is named "Purpose required" once; NVDA/VoiceOver never reads "star" or "asterisk" for a field |
 | RQ-03 | The legend "* means required" appears once above the first field of each such form and in dialogs with a required field; it does not appear on forms without one |
 | RQ-04 | Contrast of the asterisk is >= 4.5:1 on `surface` and `surface-2` in light and dark |
 | RQ-05 | The text "(required)" no longer appears in any label |
@@ -858,7 +858,7 @@ Each slice is independently shippable, green on its own (lint, format, tests, co
 
 | Slice | Content | Item | Pri | Est. lines | Depends on |
 |---|---|---|---|---|---|
-| S1 | Required marker + legend: `app-form-field` and radio group rendering (asterisk aria-hidden, sr-only "required", `required` attributes), legend component placed in all forms and dialogs, catalog keys, tests; remove "(required)" | 3.3 (FR-06) | Must | 300 | none |
+| S1 | Required marker + legend: `app-form-field` and radio group rendering (asterisk aria-hidden, `required` on the control, sr-only "required" only in a radio legend), legend component placed in all forms and dialogs, catalog keys, tests; remove "(required)" | 3.3 (FR-06) | Must | 300 | none |
 | S2 | Preferences foundation + dark mode behaviour: per-user preference store (theme now, density and recents later), `ThemeService` per user, device-level copy for first paint, synchronous theme-init script file, `color-scheme` and `theme-color` meta, cross-tab sync, "Appearance" control with "Now: Dark" | 4 | Must | 450 | none (CSP check by security-engineer) |
 | S3 | Motion and loading foundation: motion tokens, reduce-motion fallbacks (spinner "Working", static skeleton and progress), skeleton delay 300ms + 400ms minimum, skeleton shape variants (table, card, stat, document, form), progress line delay | 7.1, 7.6 | Must | 700 | none |
 | S4 | Feedback states: button Saved state + single confirmation channel, banner placement rules and removal of duplicate toasts (EA-15/26), toast pause/dedupe/max-2, dialog failures keep the reason (PS-01), row highlight (NV-04), live regions | 7.2 to 7.5 | Must (banners/toasts), Should (rest) | 900 | S3 |

@@ -105,7 +105,12 @@ export class LoginPageComponent implements OnInit {
     this.auth.login.reset();
     this.form.valueChanges
       .pipe(
-        tap(() => this.auth.login.reset()),
+        // Not while a request runs: a late autofill must not unlock the running sign-in or hide its answer.
+        tap(() => {
+          if (!this.$isRunning()) {
+            this.auth.login.reset();
+          }
+        }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();

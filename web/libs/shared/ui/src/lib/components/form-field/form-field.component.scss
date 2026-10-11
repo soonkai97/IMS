@@ -12,14 +12,11 @@
   font-weight: font-weight('medium');
 }
 
-// The star is a visual cue only (aria-hidden); the word below is what assistive technology reads (D4).
+// The star is a visual cue only (aria-hidden); the `required` state of the control is what assistive technology
+// announces, so the label stays the plain name (D4, docs/design/2026-refresh-ux.md 3.3).
 .ui-form-field-asterisk {
   font-weight: font-weight('bold');
   color: color('danger');
-}
-
-.ui-form-field-sr {
-  @include visually-hidden;
 }
 
 .ui-form-field-hint {

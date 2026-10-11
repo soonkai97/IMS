@@ -21,7 +21,6 @@
           [name]="groupName"
           [value]="item.value"
           [checked]="item.checked"
-          [attr.required]="$required() ? '' : null"
           (change)="onSelect(item.value)"
         />
         <span>{{ item.label }}</span>

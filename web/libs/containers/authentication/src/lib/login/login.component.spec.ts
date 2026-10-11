@@ -185,6 +185,7 @@ describe('LoginPageComponent failure messages', () => {
   describe('D4: required marker and legend', () => {
     beforeEach(() => {
       operation.set(IDLE_OPERATION);
+      running.set(false);
       spectator = createComponent();
       spectator.detectChanges();
     });
@@ -194,14 +195,46 @@ describe('LoginPageComponent failure messages', () => {
       expect(spectator.element.textContent).not.toContain('(required)');
     });
 
-    it('both fields carry a hidden-star asterisk, the word "required" and the attribute', () => {
+    it('both fields carry a hidden-star asterisk and the required state, and the name has no "required" in it', () => {
       expect(spectator.queryAll('.ui-form-field-asterisk')).toHaveLength(2);
-      expect(spectator.queryAll('.ui-form-field-sr').map(word => word.textContent)).toEqual([
-        'required',
-        'required'
-      ]);
       expect(spectator.query(USERNAME)?.hasAttribute('required')).toBe(true);
       expect(spectator.query(PASSWORD)?.hasAttribute('required')).toBe(true);
+      // The name is the label alone: a screen reader says "required" from the state, not twice (review of R02).
+      const names = spectator.queryAll('app-form-field label').map(label => {
+        const copy = label.cloneNode(true) as Element;
+        copy.querySelectorAll('[aria-hidden="true"]').forEach(hidden => hidden.remove());
+        return (copy.textContent ?? '').replace(/\s+/g, ' ').trim();
+      });
+      expect(names).toEqual(['Email or username', 'Password']);
+    });
+  });
+
+  describe('while the request runs', () => {
+    beforeEach(() => {
+      operation.set(IDLE_OPERATION);
+      running.set(false);
+      spectator = createComponent();
+      spectator.detectChanges();
+    });
+
+    it('both fields are read-only (not disabled) so nothing can be edited mid-request', () => {
+      running.set(true);
+      spectator.detectChanges();
+
+      for (const selector of [USERNAME, PASSWORD]) {
+        const input = spectator.query<HTMLInputElement>(selector);
+        expect(input?.readOnly).toBe(true);
+        expect(input?.disabled).toBe(false);
+      }
+    });
+
+    it('an edit that still arrives (late autofill) does not reset the running sign-in', () => {
+      running.set(true);
+      login.reset.mockClear();
+
+      spectator.typeInElement('late', USERNAME);
+
+      expect(login.reset).not.toHaveBeenCalled();
     });
   });
 });

@@ -72,13 +72,15 @@ describe('UiFormFieldComponent required marker (D4, RQ-01 to RQ-06)', () => {
     expect(asterisk()?.getAttribute('aria-hidden')).toBe('true');
   });
 
-  it('a screen reader reads the label followed by "required" once, never "star"', () => {
+  it('the name is the label alone and the control exposes the state, so "required" is read once, never "star"', () => {
     spectator = createHost(
       `<app-form-field label="Email or username" [required]="true"><app-input /></app-form-field>`
     );
 
-    expect(accessibleLabel(label())).toBe('Email or username required');
-    expect(label()?.textContent).not.toContain('(required)');
+    // A visually hidden "required" in the label would be announced twice next to the state (review of R02).
+    expect(accessibleLabel(label())).toBe('Email or username');
+    expect(label()?.textContent).not.toContain('required');
+    expect(spectator.query<HTMLInputElement>('input')?.required).toBe(true);
   });
 
   it('the asterisk is glued to the last word of the label so it never wraps alone (RQ-06)', () => {
@@ -89,11 +91,10 @@ describe('UiFormFieldComponent required marker (D4, RQ-01 to RQ-06)', () => {
     expect(label()?.textContent).toContain(`Quantity${NBSP}*`);
   });
 
-  it('an optional field has no asterisk and no hidden word', () => {
+  it('an optional field has no asterisk', () => {
     spectator = createHost(`<app-form-field label="Remark"><app-input /></app-form-field>`);
 
     expect(asterisk()).toBeNull();
-    expect(spectator.query('.ui-form-field-sr')).toBeNull();
     expect(accessibleLabel(label())).toBe('Remark');
   });
 
@@ -130,7 +131,8 @@ describe('UiFormFieldComponent required marker (D4, RQ-01 to RQ-06)', () => {
       { hostProps: { control } }
     );
 
-    expect(accessibleLabel(label())).toBe('Name required');
+    expect(accessibleLabel(label())).toBe('Name');
+    expect(spectator.query<HTMLInputElement>('input')?.required).toBe(true);
     expect(spectator.query('.ui-form-field-hint')?.textContent).toContain('Shown on the receipt');
     expect(spectator.query('.ui-form-field-error')).not.toBeNull();
     expect(spectator.query('input')?.getAttribute('aria-invalid')).toBe('true');

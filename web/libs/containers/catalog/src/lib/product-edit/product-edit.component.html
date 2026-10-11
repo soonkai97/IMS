@@ -97,6 +97,7 @@
           <app-form-field
             class="product-edit-page-grow"
             [label]="'product.conversionUnit' | t"
+            [required]="true"
             [control]="conversion.controls.fromUomId"
           >
             <app-select formControlName="fromUomId" [options]="$unitOptions()" [placeholder]="''" />
@@ -104,6 +105,7 @@
           <app-form-field
             class="product-edit-page-grow"
             [label]="'product.conversionFactor' | t"
+            [required]="true"
             [control]="conversion.controls.factor"
           >
             <app-input type="number" formControlName="factor" inputMode="decimal" />
