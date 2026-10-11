@@ -166,6 +166,10 @@ test.describe('EA-23 Cost and value visibility', () => {
     await expect(page.getByRole('columnheader', { name: 'Quantity' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Stock effect' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Amount' })).toBeVisible();
+    // PR-06: Product, Unit and Unit cost are on the screen for a role with cost.view.
+    for (const name of ['Product', 'Unit', 'Unit cost']) {
+      await expect(page.getByRole('columnheader', { name, exact: true })).toBeVisible();
+    }
     const rows = page.getByRole('row').filter({ hasText: no });
     await expect(rows).toHaveCount(2);
     const reversal = rows.filter({ hasText: 'Reversal' });

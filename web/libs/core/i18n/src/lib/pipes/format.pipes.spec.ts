@@ -1,5 +1,26 @@
 import { TestBed } from '@angular/core/testing';
-import { AppDatePipe, AppSignedQtyPipe } from './format.pipes';
+import { AppDatePipe, AppSignedQtyPipe, AppUnitPricePipe } from './format.pipes';
+
+describe('AppUnitPricePipe', () => {
+  let pipe: AppUnitPricePipe;
+
+  beforeEach(() => {
+    pipe = TestBed.runInInjectionContext(() => new AppUnitPricePipe());
+  });
+
+  it('shows up to 4 decimals and trims trailing zeros down to 2', () => {
+    expect(pipe.transform(3.3333)).toBe('3.3333');
+    expect(pipe.transform(0.003)).toBe('0.003');
+    expect(pipe.transform(10)).toBe('10.00');
+    expect(pipe.transform(1234.5)).toBe('1,234.50');
+    expect(pipe.transform(1.23456)).toBe('1.2346');
+  });
+
+  it('shows a dash for nothing', () => {
+    expect(pipe.transform(undefined)).toBe('-');
+    expect(pipe.transform(null)).toBe('-');
+  });
+});
 
 describe('AppSignedQtyPipe', () => {
   let pipe: AppSignedQtyPipe;

@@ -1,5 +1,10 @@
 import { Pipe, PipeTransform, inject } from '@angular/core';
-import { BUSINESS_TIME_ZONE, MAX_QTY_DECIMALS, MONEY_DECIMALS } from '@ims/utils';
+import {
+  BUSINESS_TIME_ZONE,
+  MAX_QTY_DECIMALS,
+  MONEY_DECIMALS,
+  UNIT_PRICE_DECIMALS
+} from '@ims/utils';
 import { I18nService } from '../services/i18n.service';
 
 const EMPTY_VALUE = '-';
@@ -70,6 +75,22 @@ export class AppMoneyPipe implements PipeTransform {
     return new Intl.NumberFormat(this.i18n.$locale(), {
       minimumFractionDigits: MONEY_DECIMALS,
       maximumFractionDigits: MONEY_DECIMALS
+    }).format(value);
+  }
+}
+
+/** Unit prices (cost per base unit): up to 4 decimals, trailing zeros trimmed to 2 ("10.00", "3.3333", "0.003"). */
+@Pipe({ name: 'appUnitPrice', pure: false })
+export class AppUnitPricePipe implements PipeTransform {
+  private readonly i18n = inject(I18nService);
+
+  transform(value: number | undefined | null): string {
+    if (value === undefined || value === null) {
+      return EMPTY_VALUE;
+    }
+    return new Intl.NumberFormat(this.i18n.$locale(), {
+      minimumFractionDigits: MONEY_DECIMALS,
+      maximumFractionDigits: UNIT_PRICE_DECIMALS
     }).format(value);
   }
 }

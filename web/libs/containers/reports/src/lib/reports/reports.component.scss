@@ -45,9 +45,15 @@
 // The badge sits under the number, so it never widens the (no-wrap) number column.
 .reports-page-docno {
   display: inline-flex;
+  white-space: nowrap;
   flex-direction: column;
   gap: space(0);
   align-items: flex-start;
+}
+
+// A SKU and a date are one token each: never broken at a hyphen or a space (PR-06).
+.reports-page-nowrap {
+  white-space: nowrap;
 }
 
 // A wide table scrolls here, not the page (WCAG 1.4.10 allows two-dimensional data tables); the region is focusable.

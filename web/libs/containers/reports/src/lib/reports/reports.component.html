@@ -20,7 +20,7 @@
   <app-form-field [label]="'filter.from' | t">
     <app-input type="date" [formControl]="fromControl" />
   </app-form-field>
-  <app-form-field [label]="'filter.to' | t">
+  <app-form-field [label]="'filter.to' | t" [error]="$toError()">
     <app-input type="date" [formControl]="toControl" />
   </app-form-field>
 </div>
@@ -34,13 +34,17 @@
 
 @if ($isMovementsTab()) {
   <div class="reports-page-toolbar">
-    <app-button [loading]="$exportingMovements()" (clicked)="onExportMovements()">
+    <app-button
+      [loading]="$exportingMovements()"
+      [disabled]="$rangeInvalid()"
+      (clicked)="onExportMovements()"
+    >
       <app-icon name="download" />
       {{ 'common.exportExcel' | t }}
     </app-button>
   </div>
 
-  <!-- Ten columns are wider than a 1024px window: the table scrolls inside its own focusable region, not the page. -->
+  <!-- Thirteen columns are wider than a 1024px window: the table scrolls inside its own focusable region, not the page. -->
   <div
     class="reports-page-table"
     role="region"
@@ -63,8 +67,13 @@
           }
         </span>
       </ng-template>
-      <ng-template appCell="date" let-row>{{ row.postedAt | appDate }}</ng-template>
-      <ng-template appCell="qty" let-row>{{ row.qty | appQty }} {{ row.uomCode }}</ng-template>
+      <ng-template appCell="date" let-row>
+        <span class="reports-page-nowrap">{{ row.postedAt | appDate }}</span>
+      </ng-template>
+      <ng-template appCell="sku" let-row>
+        <span class="reports-page-nowrap">{{ row.sku }}</span>
+      </ng-template>
+      <ng-template appCell="qty" let-row>{{ row.qty | appQty }}</ng-template>
       <!-- Signed, in base units: the sign is the text, the colour only reinforces it (mvp-ux 3.9). -->
       <ng-template appCell="effect" let-row>
         <span
@@ -74,6 +83,8 @@
           >{{ row.stockEffect | appSignedQty }}</span
         >
       </ng-template>
+      <!-- A cost per base unit is a unit price (up to 4 decimals); the line amount is money (exactly 2). -->
+      <ng-template appCell="unitCost" let-row>{{ row.unitCost | appUnitPrice }}</ng-template>
       <ng-template appCell="amount" let-row>{{ row.amount | appMoney }}</ng-template>
       <app-empty-state empty icon="reports" [message]="'reports.empty' | t" />
     </app-table>
@@ -98,7 +109,11 @@
     </app-card>
     <app-card [heading]="'reports.export.ledger' | t">
       <p>{{ 'reports.export.ledgerHint' | t }}</p>
-      <app-button [loading]="$exportingLedger()" (clicked)="onExportLedger()">
+      <app-button
+        [loading]="$exportingLedger()"
+        [disabled]="$rangeInvalid()"
+        (clicked)="onExportLedger()"
+      >
         <app-icon name="download" />
         {{ 'common.exportExcel' | t }}
       </app-button>
