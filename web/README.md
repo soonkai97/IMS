@@ -40,7 +40,7 @@ origin). Edit the deployed `assets/config.json` to repoint a build without rebui
 | `npm run lint`                         | ESLint (module boundaries, conventions) + Stylelint                     |
 | `npm run format` / `format:check`      | Prettier                                                                |
 | `npm run api:generate`                 | download `/openapi/v1.json`, normalise it, regenerate the NSwag client  |
-| `npm run contrast`                     | WCAG AA check of the colour palette (light and dark)                    |
+| `npm run contrast`                     | WCAG AA gate: 162 palette checks (81 pairs x light, dark) + alias check |
 | `npm run dep-graph`                    | Nx project graph                                                        |
 | `node tools/scaffold-libs.mjs`         | (re)generate library boilerplate and path aliases from `tools/libs.mjs` |
 | `node tools/scan-i18n-keys.mjs`        | list message keys used in code but missing in the English catalog       |
@@ -93,6 +93,22 @@ not render it at all (no `0.00`, no `-`, no empty column):
 - table columns: `...columnWhen(permissions.has(PERMISSION.CostView), { key: 'amount', ... })` (`@ims/ui`).
 
 The e2e scenario `13-cost-visibility` checks Warehouse staff, Clerk and Supervisor on the real screens.
+
+## Colour palette and contrast gate
+
+The palette (2026 refresh, `docs/design/2026-refresh-visual.md` 2.2) is two maps of role-named tokens, `$light` and `$dark`, in
+`libs/shared/styles/src/variables/_palette.var.scss`: `canvas`, `surface`, `surface-raised`, `surface-sunken`, `surface-strong`,
+`text`, `text-muted`, `accent`, and the roles `success`, `warning`, `danger`, `info` (each with `on-<role>`, `<role>-soft`,
+`on-<role>-soft`), `focus`, `chart-1..6`. It is the only file that may hold a hex value (stylelint `color-no-hex`).
+
+The names used before the refresh (`bg`, `surface-2`, `surface-3`, `primary*`, `warning-border`, `status-*`) still work through the
+`$aliases` map (old name to canonical name; no value is copied, so an alias cannot drift). `color('primary')` compiles to
+`var(--ims-color-accent)`. A new component uses the canonical names; the aliases are removed in slice R24.
+
+`npm run contrast` (`scripts/check-contrast.mjs`) runs the 81 pairs of the visual spec in light and dark (162 checks: 4.5 text,
+3 UI components, borders, focus ring, chart series) plus a few call-site pairs, and exits 1 when a pair misses its ratio, when
+`$light` and `$dark` differ in keys, or when an alias target does not exist. A new token enters the palette together with the
+pairs that use it. `--all` prints every ratio. CI runs it before the production build.
 
 ## Internationalisation
 
