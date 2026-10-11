@@ -97,3 +97,20 @@ Then append one entry to `docs/team/HANDOFFS.md` (see `PROTOCOL.md`).
 
 `.github/pull_request_template.md` collects the same information from the author. `.github/CODEOWNERS` assigns the human owner;
 agent roles are not GitHub users, so their reviews are posted by the orchestrator on request (`gh pr review`), never automatically.
+
+## 8. Review gate before merge (decided by the product owner)
+
+Passing CI is necessary, not sufficient: agents author most changes and their own tests share their blind spots. Before the orchestrator merges
+any non-trivial pull request an independent reviewer reads it:
+
+- **Applies to:** every PR over about 200 changed lines, and every PR, whatever the size, that touches money (costing, rounding, totals), permissions
+  or cost visibility, authentication or security headers, a database migration, posting or reversal logic, or CI/CD and the PR guard.
+  Pure documentation, dependency bumps that pass CI and one-line fixes are exempt.
+- **Who:** an agent that did not write the change and has not seen the author's reasoning. It gets the diff and the repository, not a summary of intent.
+  Money, permissions, migrations and security changes also get the matching specialist role from section 6.
+- **What it checks:** logic errors and missed edge cases, money and rounding correctness, authorization and ownership checks, injection and logging of user input,
+  data loss on partial input (for example PUT with missing fields), concurrency and idempotency, migrations (Up, Down, existing data), behaviour that
+  differs between local and CI (Linux, incremental builds), and whether the tests would actually fail if the change were wrong.
+- **Output:** findings ranked Blocker / Major / Minor with file, line and a concrete failing scenario; no style nitpicks that the linters cover.
+- **Rule:** a Blocker or Major is fixed (or explicitly accepted by the product owner) before merge; Minor findings become TASKS.md items.
+  The orchestrator records the verdict in the PR as a comment.
