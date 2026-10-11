@@ -13,13 +13,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
             // MAINTENANCE WINDOW. A cost per base unit and the moving average keep 10 decimal places (Limits.CostDecimals) in decimal(22,10): the integer part stays
             // 12 digits, as in the decimal(18,6) it replaces, so no value can overflow. Changing the scale rewrites the ledger, the document lines and the balances under a
             // schema-modification lock (the ledger is the big one; measured duration: docs/architecture/backend.md, "Costing and reversal"). Stop the API first.
-            // The check below fails the migration with a readable message, before anything is changed, if a cost does not fit (none can, today).
-            migrationBuilder.Sql(@"
-IF EXISTS (SELECT 1 FROM [StockBalance] WHERE ABS([AvgCost]) >= 1000000000000)
-   OR EXISTS (SELECT 1 FROM [StockDocumentLine] WHERE ABS([UnitCost]) >= 1000000000000)
-   OR EXISTS (SELECT 1 FROM [StockLedgerEntry] WHERE ABS([UnitCost]) >= 1000000000000)
-    THROW 50000, N'A cost of 1,000,000,000,000 or more exists in the stock tables; it does not fit the new cost columns. Correct it before migrating.', 1;");
-
+            // No pre-check of the values is needed: nothing can overflow, because the old columns cannot hold a cost the new ones cannot.
             migrationBuilder.AlterColumn<decimal>(
                 name: "UnitCost",
                 table: "StockLedgerEntry",

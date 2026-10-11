@@ -10,6 +10,10 @@
   average on purpose), pairs with no stock or a non-positive ledger value (nothing sound to divide), and the ledger itself (append-only; issues that were booked at
   the contaminated average keep their cost, only the average of the stock that remains is corrected).
 
+  READ THE REPORT BEFORE APPLYING. A pair whose stock was ever negative (negative stock allowed, an issue under override) may differ from its ledger value by design:
+  a receipt onto zero or negative stock REPLACES the average instead of blending it. Such a difference is not the old bug and must not be "repaired": leave those
+  pairs out (for a pair the report lists, check whether its running quantity ever went below zero) or restrict the update to the pairs you have checked.
+
   Usage (maintenance window, API stopped, database backed up):
     sqlcmd -S <server> -E -d <database> -b -v Apply=0 -i docs/dba/15-repair-reversal-average.sql     -- report only (default)
     sqlcmd -S <server> -E -d <database> -b -v Apply=1 -i docs/dba/15-repair-reversal-average.sql     -- report, then update inside one transaction
