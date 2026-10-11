@@ -16,13 +16,13 @@ public class StockDocumentLine : Entity
     public decimal UnitCost { get; private set; }
     public string? Remark { get; private set; }
 
-    /// <summary>Value of the line: base quantity x cost per base unit, rounded to a cent (<see cref="Money.Rounding"/>). A document total is the sum of these, not a rounded sum.</summary>
-    [VisibleWith(Permissions.CostView)]
-    public decimal Amount => Money.Amount(BaseQty, UnitCost);
-
     public StockDocument Document { get; private set; } = null!;
     public Product Product { get; private set; } = null!;
     public Uom Uom { get; private set; } = null!;
+
+    /// <summary>Value of the line: base quantity x cost per base unit, rounded to a cent (<see cref="Money.Rounding"/>). A document total is the sum of these, not a rounded sum.</summary>
+    [VisibleWith(Permissions.CostView)]
+    public decimal Amount => Money.Amount(BaseQty, UnitCost);
 
     /// <summary>
     /// Builds a line: the product must be usable, quantities convert to the base unit, and the entered cost
