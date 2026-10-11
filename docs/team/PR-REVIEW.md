@@ -111,6 +111,7 @@ any non-trivial pull request an independent reviewer reads it:
 - **What it checks:** logic errors and missed edge cases, money and rounding correctness, authorization and ownership checks, injection and logging of user input,
   data loss on partial input (for example PUT with missing fields), concurrency and idempotency, migrations (Up, Down, existing data), behaviour that
   differs between local and CI (Linux, incremental builds), and whether the tests would actually fail if the change were wrong.
+- **Lean check (every PR, whatever the size):** ask "Which stated requirement needs this? Is there a simpler way? Does it add a dependency or a configuration surface?" (`docs/design/lean-scope.md` section 1). Flag over-engineering: unneeded abstraction, speculative generality, configuration nobody will change, a new dependency without a stated requirement. A slice on the deferred or dropped list of `lean-scope.md` (sections 4 and 5) is a Major finding unless the project-manager recorded its trigger in HANDOFFS.
 - **Output:** findings ranked Blocker / Major / Minor with file, line and a concrete failing scenario; no style nitpicks that the linters cover.
 - **Rule:** a Blocker or Major is fixed (or explicitly accepted by the product owner) before merge; Minor findings become TASKS.md items.
   The orchestrator records the verdict in the PR as a comment.
