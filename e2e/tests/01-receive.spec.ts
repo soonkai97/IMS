@@ -70,6 +70,12 @@ test.describe('IN-01 Receive stock (Warehouse staff)', () => {
     await page.keyboard.press('Backspace');
     await page.keyboard.press('Backspace');
     await expect(qty).toHaveValue('');
+
+    // The point is not eaten while typing: 1.5, Backspace, 7 gives 1.7 (the old field gave 17).
+    await page.keyboard.type('1.5');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('7');
+    await expect(qty).toHaveValue('1.7');
   });
 
   test('given a saved draft, when staff double clicks Save draft, then exactly one save is sent and no stale-document banner shows (NR-07)', async ({

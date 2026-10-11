@@ -54,16 +54,49 @@ describe('UiInputComponent number entry (NR-01, NR-08)', () => {
     expect(select).toHaveBeenCalledTimes(1);
   });
 
-  it('NR-01: a decimal-keyboard field selects too, a plain text field does not', () => {
-    const decimal = render({ type: 'text', inputMode: 'decimal' });
-    const decimalSelect = jest.spyOn(decimal, 'select');
-    spectator.dispatchFakeEvent(decimal, 'focus');
-    expect(decimalSelect).toHaveBeenCalledTimes(1);
-
+  it('NR-01: a plain text field does not select on focus', () => {
     const text = render({ type: 'text' });
     const textSelect = jest.spyOn(text, 'select');
+
     spectator.dispatchFakeEvent(text, 'focus');
+
     expect(textSelect).not.toHaveBeenCalled();
+  });
+
+  describe('selects again after the browser placed the caret (iOS, Android)', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    it('NR-01: a second select follows the focus and the focusing tap, while the field is still focused', () => {
+      const input = render();
+      input.focus();
+      jest.runAllTimers();
+      const select = jest.spyOn(input, 'select');
+
+      spectator.dispatchFakeEvent(input, 'focus');
+      spectator.dispatchMouseEvent(input, 'mousedown');
+      expect(select).toHaveBeenCalledTimes(1);
+      jest.runAllTimers();
+
+      expect(select).toHaveBeenCalledTimes(2);
+    });
+
+    it('NR-01: the late select is skipped once the user typed, and when the field lost the focus', () => {
+      const input = render();
+      input.focus();
+      jest.runAllTimers();
+      const select = jest.spyOn(input, 'select');
+
+      spectator.dispatchFakeEvent(input, 'focus');
+      type(input, '1');
+      jest.runAllTimers();
+      expect(select).toHaveBeenCalledTimes(1);
+
+      spectator.dispatchFakeEvent(input, 'focus');
+      input.blur();
+      jest.runAllTimers();
+      expect(select).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('NR-01: the mouseup of the tap that focused the field does not drop the selection; later taps place the caret', () => {
@@ -149,5 +182,15 @@ describe('UiInputComponent number entry (NR-01, NR-08)', () => {
 
     spectator.component.writeValue(null);
     expect(input.value).toBe('');
+  });
+
+  it('an empty model clears text the browser holds back as invalid ("-"), e.g. after form.reset()', () => {
+    const input = render();
+    Object.defineProperty(input, 'validity', { value: { badInput: true } });
+    const writes = watchWrites(input);
+
+    spectator.component.writeValue(null);
+
+    expect(writes).toHaveBeenCalledWith('');
   });
 });

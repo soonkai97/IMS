@@ -700,9 +700,9 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     this.confirm
       .ask({
         heading: this.i18n.t('dialog.removeLine.title', { sku: line.sku }),
-        // Warehouse staff have no cost: the word stays out of their dialog (NR-09).
+        // Only a receipt line has a cost, and warehouse staff may not see it: the word stays out otherwise (NR-09).
         body: this.i18n.t(
-          this.permissions.has(PERMISSION.CostView)
+          this.$type() === DocumentType.Receipt && this.permissions.has(PERMISSION.CostView)
             ? 'dialog.removeLine.bodyWithCost'
             : 'dialog.removeLine.body'
         ),

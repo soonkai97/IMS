@@ -57,7 +57,7 @@ export class UiInputComponent implements ControlValueAccessor {
   $invalid = computed(() => this.field?.invalid() ?? false);
   $required = computed(() => this.field?.required() ?? false);
   /** A number is replaced when the field is entered: typing 12 over the default 1 gives 12, not 112 (NR-01). */
-  $selectsOnFocus = computed(() => this.$type() === 'number' || this.$inputMode() === 'decimal');
+  $selectsOnFocus = computed(() => this.$type() === 'number');
   $isPassword = computed(() => this.$type() === 'password');
   $nativeType = computed(() => (this.$isPassword() && this.$revealed() ? 'text' : this.$type()));
   $toggleLabel = computed(() =>
@@ -69,6 +69,8 @@ export class UiInputComponent implements ControlValueAccessor {
   private onTouched: () => void = () => undefined;
   /** True for a tap that moves the focus into the field: its mouseup would drop the selection again. */
   private tapFocuses = false;
+  /** True once the user typed since the field was entered: a late select must not swallow what was typed. */
+  private edited = false;
 
   focus(): void {
     this.$control()?.nativeElement.focus();
@@ -79,7 +81,9 @@ export class UiInputComponent implements ControlValueAccessor {
     this.$value.set(text);
     // While a number is typed ("1.") the browser's text is not the model: write only a real change (NR-08).
     const element = this.$control()?.nativeElement;
-    if (element && this.toModelValue(element.value) !== this.toModelValue(text)) {
+    // An empty model also clears text the browser holds back as invalid ("-", "e"), e.g. after form.reset().
+    const staleText = text === '' && element?.validity.badInput === true;
+    if (element && (staleText || this.toModelValue(element.value) !== this.toModelValue(text))) {
       element.value = text;
     }
   }
@@ -100,6 +104,7 @@ export class UiInputComponent implements ControlValueAccessor {
     if (!(event.target instanceof HTMLInputElement)) {
       return;
     }
+    this.edited = true;
     const raw = event.target.value;
     // A number keeps what was typed ("1.", "-"): writing it back would eat the character and move the caret (NR-08).
     if (this.$type() !== 'number') {
@@ -114,8 +119,9 @@ export class UiInputComponent implements ControlValueAccessor {
   }
 
   onFocus(event: FocusEvent): void {
+    this.edited = false;
     if (this.$selectsOnFocus() && event.target instanceof HTMLInputElement) {
-      event.target.select();
+      this.selectAll(event.target);
     }
   }
 
@@ -123,6 +129,8 @@ export class UiInputComponent implements ControlValueAccessor {
     if (this.tapFocuses) {
       event.preventDefault();
       this.tapFocuses = false;
+      // Touch browsers place the caret after the synthetic mouse events: select again once they are done.
+      this.selectAll(event.target);
     }
   }
 
@@ -139,6 +147,19 @@ export class UiInputComponent implements ControlValueAccessor {
 
   onToggleReveal(): void {
     this.$revealed.update(revealed => !revealed);
+  }
+
+  /** Selects now and once more after the browser's own focus and caret handling (iOS, Android), unless the user typed. */
+  private selectAll(target: EventTarget | null): void {
+    if (!(target instanceof HTMLInputElement)) {
+      return;
+    }
+    target.select();
+    setTimeout(() => {
+      if (!this.edited && document.activeElement === target) {
+        target.select();
+      }
+    }, 0);
   }
 
   private toModelValue(raw: string): string | number | null {
