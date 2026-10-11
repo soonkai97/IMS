@@ -40,26 +40,36 @@ public class StockDocumentLine : Entity
     public decimal Amount { get; private set; }
 
     /// <summary>
+    /// True when nobody typed this line's cost: it is valued at the average cost of the product (an issue always; a receipt saved by someone who may not enter
+    /// cost, and a receipt line whose cost was left out of a draft that already had it taken from the average). Such a line has no cost to edit
+    /// (<see cref="EnteredUnitCost"/> is only its average per entered unit, shown for information): saving the draft again keeps it at the average, so a Warehouse
+    /// staff receipt is never re-priced by someone who opens and saves it. A cost typed on the line makes it a typed cost (false).
+    /// </summary>
+    public bool CostFromAverage { get; private set; }
+
+    /// <summary>
     /// Builds a line: the product must be usable, quantities convert to the base unit, the entered cost (per entered unit, at most 2 decimals on a receipt) becomes a
     /// cost per base unit for stock valuation, and the line amount is computed once from the entered quantity and cost.
     /// </summary>
-    public static StockDocumentLine Create(Product product, DocumentType documentType, decimal qty, int? uomId, decimal? unitCost, string? remark)
+    /// <param name="costFromAverage">The receipt line takes the average of the product (the cost is not typed): the caller values it afterwards with <see cref="StockDocument.ApplyKnownReceiptCosts"/>. An issue is always valued at the average.</param>
+    public static StockDocumentLine Create(Product product, DocumentType documentType, decimal qty, int? uomId, decimal? unitCost, string? remark, bool costFromAverage = false)
     {
         product.EnsureUsableOnDocuments();
         if (qty <= 0) throw new DomainException(Messages.QtyPositive);
-        if (unitCost < 0) throw new DomainException(Messages.CostNegative);
-        var isReceipt = documentType == DocumentType.Receipt;
-        if (isReceipt && unitCost is { } entered && !Money.IsExact(entered)) throw new DomainException(Messages.CostTooPrecise);
+        var fromAverage = documentType != DocumentType.Receipt || costFromAverage;
+        var typed = fromAverage ? null : unitCost;
+        if (typed < 0) throw new DomainException(Messages.CostNegative);
+        if (typed is { } entered && !Money.IsExact(entered)) throw new DomainException(Messages.CostTooPrecise);
 
         var uom = uomId ?? product.BaseUomId;
         var baseQty = product.ToBaseQuantity(qty, uom);
-        var enteredCost = isReceipt ? unitCost ?? 0m : 0m;
+        var enteredCost = typed ?? 0m;
         return new StockDocumentLine
         {
             // Only the key is stored: the product may be a detached read copy, and assigning it as a navigation would make EF insert it again.
             ProductId = product.Id, Qty = qty, UomId = uom, BaseQty = baseQty,
-            UnitCost = CostingPolicy.BaseUnitCost(documentType, unitCost, qty, baseQty), Remark = remark,
-            EnteredUnitCost = enteredCost, Amount = EnsureAmountFits(Money.Amount(qty, enteredCost))
+            UnitCost = CostingPolicy.BaseUnitCost(documentType, typed, qty, baseQty), Remark = remark,
+            EnteredUnitCost = enteredCost, Amount = EnsureAmountFits(Money.Amount(qty, enteredCost)), CostFromAverage = fromAverage
         };
     }
 

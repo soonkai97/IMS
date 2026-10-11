@@ -147,17 +147,16 @@ public partial class CostVisibilityCoverageTests
     }
 
     [Fact]
-    public void EveryUnitPriceHeader_IsAGatedColumnOfSomeExport_AndEveryOtherCostColumnIsMoney()
+    public void TheUnitPriceColumns_AreTheDerivedCostPerBaseUnit_AndEveryOtherMoneyColumnHasTwoDecimals()
     {
         var columns = ColumnSets().SelectMany(set => set.Columns).ToList();
 
-        foreach (var header in ReportColumn.UnitPriceHeaders)
-        {
-            var named = columns.Where(c => c.Header == header).ToList();
-            Assert.NotEmpty(named);                                           // a renamed column must not silently fall back to 2 decimals
-            Assert.All(named, c => { Assert.NotNull(c.VisibleWith); Assert.Equal(4, c.DecimalPlaces); });
-        }
-        Assert.All(columns.Where(c => c.IsMoney && !ReportColumn.UnitPriceHeaders.Contains(c.Header)), c => Assert.Equal(2, c.DecimalPlaces));
+        // Only gated columns can be unit prices, and they are exactly the derived cost per base unit: the average and the unit cost of a ledger or movement row.
+        // The template's "UnitCost" is what a person types per entered unit: money.
+        Assert.All(columns.Where(c => c.UnitPrice), c => { Assert.NotNull(c.VisibleWith); Assert.Equal(4, c.DecimalPlaces); });
+        Assert.Equal(["Avg cost", "Unit cost", "Unit cost"], columns.Where(c => c.UnitPrice).Select(c => c.Header).Order());
+        Assert.All(columns.Where(c => c.IsMoney && !c.UnitPrice), c => Assert.Equal(2, c.DecimalPlaces));
+        Assert.All(columns.Where(c => !c.IsMoney), c => Assert.Null(c.DecimalPlaces));
     }
 
     [Fact]

@@ -860,6 +860,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("BaseQty")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<bool>("CostFromAverage")
+                        .HasColumnType("bit");
+
                     b.Property<int>("DocumentId")
                         .HasColumnType("int");
 

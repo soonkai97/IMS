@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Ims.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261011032617_StoredLineAmount")]
+    [Migration("20261011063707_StoredLineAmount")]
     partial class StoredLineAmount
     {
         /// <inheritdoc />
@@ -862,6 +862,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.Property<decimal>("BaseQty")
                         .HasColumnType("decimal(18,4)");
+
+                    b.Property<bool>("CostFromAverage")
+                        .HasColumnType("bit");
 
                     b.Property<int>("DocumentId")
                         .HasColumnType("int");

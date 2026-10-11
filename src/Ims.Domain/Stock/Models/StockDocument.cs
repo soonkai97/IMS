@@ -146,7 +146,7 @@ public class StockDocument : Entity
     {
         if (Type != DocumentType.Receipt) return;
         EnsureEditable();
-        foreach (var line in _lines) line.SetKnownCost(averageCostByProduct.GetValueOrDefault(line.ProductId));
+        foreach (var line in _lines.Where(l => l.CostFromAverage)) line.SetKnownCost(averageCostByProduct.GetValueOrDefault(line.ProductId));
     }
 
     public void EnsureEditable()

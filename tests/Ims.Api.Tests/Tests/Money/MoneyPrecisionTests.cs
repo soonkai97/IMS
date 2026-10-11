@@ -338,7 +338,7 @@ public class MoneyPrecisionTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task An_issue_line_in_cartons_shows_the_average_per_carton_and_per_piece()
+    public async Task An_issue_line_is_at_the_average_it_has_no_cost_to_edit_and_shows_the_average_and_the_amount()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync(customize: b => b.WithConversion(fixture.Reference.CartonUnitId, 12));
@@ -347,8 +347,95 @@ public class MoneyPrecisionTests(ApiFixture fixture)
         var draft = await s.DraftIssueAsync(s.Admin, Warehouse, new Line(product.Id, 2, null, fixture.Reference.CartonUnitId));
 
         var line = Assert.Single(draft.Lines);
-        Assert.Equal((30.00m, 2.5m, 60.00m), (line.UnitCost, line.BaseUnitCost, line.Amount)); // 2 cartons of 12 pieces at 2.50
+        Assert.Null(line.UnitCost);
+        Assert.True(line.CostFromAverage);
+        Assert.Equal((2.5m, 60.00m), (line.BaseUnitCost, line.Amount)); // 2 cartons of 12 pieces at 2.50 a piece
         Assert.Equal(60.00m, draft.TotalAmount);
+    }
+
+    // ----- review MA1: a line at the average is not re-priced by opening the draft and saving it -----
+    /// <summary>1,000 pieces at 0.0030 (a carton of 1,000 at 3.00 in stock), then a Warehouse staff receipt of 1,000 pieces: valued at the average, 3.00.</summary>
+    private async Task<(StockScenario S, int ProductId, DocumentDto StaffDraft)> StaffReceiptAtASubCentAverageAsync()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync(customize: b => b.WithConversion(fixture.Reference.CartonUnitId, 1000));
+        await s.ReceiveAsync(Warehouse, new Line(product.Id, 1, 3.00m, fixture.Reference.CartonUnitId));
+        var draft = await s.DraftReceiptAsync(s.Staff, Warehouse, new Line(product.Id, 1000));
+        return (s, product.Id, (await s.Supervisor.Documents.GetAsync(draft.Id)).Data<DocumentDto>());
+    }
+
+    private static DocumentSaveRequest SaveBack(StockScenario s, int warehouse, DocumentDto read) =>
+        new DocumentBuilder(warehouse).WithPartner(s.Reference.SupplierId).WithLines(read.Lines.Select(l => new Line(l.ProductId, l.Qty, l.UnitCost, l.UomId)).ToArray()).Build();
+
+    [Fact]
+    public async Task A_staff_receipt_read_by_a_supervisor_has_no_cost_to_edit_and_saving_it_back_keeps_the_average()
+    {
+        var (s, productId, read) = await StaffReceiptAtASubCentAverageAsync();
+        var line = Assert.Single(read.Lines);
+        Assert.Equal((null, 0.0030m, 3.00m, true), (line.UnitCost, line.BaseUnitCost, line.Amount, line.CostFromAverage));
+
+        var saved = (await s.Supervisor.Documents.UpdateAsync(read.Id, SaveBack(s, Warehouse, read), read.ConcurrencyToken)).Data<DocumentDto>();
+        var again = Assert.Single((await s.Supervisor.Documents.GetAsync(read.Id)).Data<DocumentDto>().Lines);
+
+        foreach (var kept in new[] { Assert.Single(saved.Lines), again })
+            Assert.Equal((null, 0.0030m, 3.00m, true), (kept.UnitCost, kept.BaseUnitCost, kept.Amount, kept.CostFromAverage)); // not 0.00 / 0.00
+        await s.CompleteAsync(await s.SubmitAsync(s.Supervisor, saved));
+        var row = (await s.BalanceAsync(productId, Warehouse))!;
+        Assert.Equal((2000m, 0.0030m, 6.00m), (row.QtyOnHand, row.AvgCost, row.Value)); // the receipt did not pull the average down
+    }
+
+    [Fact]
+    public async Task An_average_of_1_2349_times_a_thousand_pieces_is_1234_90_before_and_after_the_save()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        await s.ReceiveAsync(Warehouse, new Line(product.Id, 51, 1.23m), new Line(product.Id, 49, 1.24m)); // (62.73 + 60.76) / 100 = 1.2349
+        var draft = await s.DraftReceiptAsync(s.Staff, Warehouse, new Line(product.Id, 1000));
+        var read = (await s.Supervisor.Documents.GetAsync(draft.Id)).Data<DocumentDto>();
+        Assert.Equal((1234.90m, 1234.90m), (Assert.Single(read.Lines).Amount, read.TotalAmount));
+
+        var saved = (await s.Supervisor.Documents.UpdateAsync(read.Id, SaveBack(s, Warehouse, read), read.ConcurrencyToken)).Data<DocumentDto>();
+
+        Assert.Equal((1234.90m, 1234.90m, true), (Assert.Single(saved.Lines).Amount, saved.TotalAmount, Assert.Single(saved.Lines).CostFromAverage)); // not 1,230.00
+    }
+
+    [Fact]
+    public async Task A_cost_typed_on_a_line_at_the_average_makes_it_a_typed_cost()
+    {
+        var (s, _, read) = await StaffReceiptAtASubCentAverageAsync();
+        var line = Assert.Single(read.Lines);
+        var request = new DocumentBuilder(Warehouse).WithPartner(s.Reference.SupplierId).WithLines(new Line(line.ProductId, line.Qty, 2.00m, line.UomId)).Build();
+
+        var saved = Assert.Single((await s.Supervisor.Documents.UpdateAsync(read.Id, request, read.ConcurrencyToken)).Data<DocumentDto>().Lines);
+
+        Assert.Equal((2.00m, 2000.00m, false), (saved.UnitCost, saved.Amount, saved.CostFromAverage));
+    }
+
+    [Fact]
+    public async Task A_new_line_without_a_cost_in_a_draft_that_has_a_line_at_the_average_is_a_typed_zero()
+    {
+        var (s, productId, read) = await StaffReceiptAtASubCentAverageAsync();
+        var other = await s.NewProductAsync();
+        var request = new DocumentBuilder(Warehouse).WithPartner(s.Reference.SupplierId)
+            .WithLines(new Line(productId, 1000), new Line(other.Id, 5)).Build();
+
+        var saved = (await s.Supervisor.Documents.UpdateAsync(read.Id, request, read.ConcurrencyToken)).Data<DocumentDto>();
+
+        Assert.True(saved.Lines.Single(l => l.ProductId == productId).CostFromAverage);   // matched to the line that was at the average
+        var added = saved.Lines.Single(l => l.ProductId == other.Id);
+        Assert.Equal((0m, 0m, false), (added.UnitCost, added.Amount, added.CostFromAverage)); // no earlier line: a cost left out is zero, as before
+    }
+
+    [Fact]
+    public async Task A_supervisors_receipt_without_a_cost_on_a_line_is_a_typed_zero_as_before()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+
+        var draft = await s.DraftReceiptAsync(s.Supervisor, Warehouse, new Line(product.Id, 5));
+
+        var line = Assert.Single(draft.Lines);
+        Assert.Equal((0m, 0m, false), (line.UnitCost, line.Amount, line.CostFromAverage));
     }
 
     // ----- review m1..m3: where a cost is judged, how an import cell is read -----
