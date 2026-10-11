@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-motion="full">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>IMS motion demo (2026 refresh)</title>
+<!--
+  Live demo of docs/design/2026-refresh-motion.md. One file, no dependencies, no network.
+  Open it in a current Chrome, Edge, Safari 17.4+ or Firefox 129+ (dialog animation uses @starting-style).
+  Use the Motion switch (Full / Lite / Reduced / Off) to see every reduced-motion equivalent.
+  Everything animates opacity and transform only, except the disclosure height (grid-template-rows) and the
+  chart/check reveal (clip-path), which are the two named exceptions in the spec.
+-->
+<style>
+/* ---------- colour tokens (docs/design/2026-refresh-visual.md 2.2) ---------- */
+:root {
+  --canvas:#f4f5f7; --surface:#fff; --raised:#fff; --sunken:#eceef2; --strong:#e0e4ea;
+  --border:#d5d9e0; --bstrong:#6b7482; --text:#151a21; --muted:#4a5361;
+  --accent:#2447c4; --accent-hover:#1c37a0; --accent-pressed:#162c84; --on-accent:#fff; --accent-soft:#e4eaff; --on-accent-soft:#1b2f86;
+  --success:#17692f; --on-success:#fff; --success-soft:#e1f4e7; --on-success-soft:#124d24;
+  --danger:#b3261e; --danger-soft:#fdebe9; --on-danger-soft:#7a1a14; --danger-hover:#8f1d17; --on-danger:#fff;
+  --focus:#2447c4; --shine:rgb(255 255 255 / 65%); --scrim:rgb(10 14 20 / 50%);
+  --sh2:0 4px 12px rgb(16 24 40 / 12%), 0 1px 3px rgb(16 24 40 / 8%);
+  --sh3:0 12px 32px rgb(16 24 40 / 16%), 0 2px 6px rgb(16 24 40 / 8%);
+}
+html[data-theme="dark"] {
+  --canvas:#0e1217; --surface:#151a21; --raised:#1d232c; --sunken:#0b0f14; --strong:#2a323e;
+  --border:#2a313c; --bstrong:#8590a0; --text:#e8ecf2; --muted:#a9b3c1;
+  --accent:#8fb3ff; --accent-hover:#abc6ff; --accent-pressed:#7aa0f5; --on-accent:#0b1530; --accent-soft:#1c2b52; --on-accent-soft:#d4e1ff;
+  --success:#6fd195; --on-success:#07210f; --success-soft:#112c1b; --on-success-soft:#bfeacb;
+  --danger:#ff8f86; --danger-soft:#3e1613; --on-danger-soft:#ffd1cc; --danger-hover:#ffb1aa; --on-danger:#2a0805;
+  --focus:#9bbcff; --shine:rgb(29 35 44 / 75%); --scrim:rgb(0 0 0 / 60%);
+  --sh2:0 4px 12px rgb(0 0 0 / 45%); --sh3:0 12px 32px rgb(0 0 0 / 55%);
+}
+
+/* ---------- motion tokens (spec section 2) ---------- */
+:root {
+  --dur-micro:80ms; --dur-fast:120ms; --dur-base:200ms; --dur-moderate:280ms; --dur-slow:400ms;
+  --ease-standard:cubic-bezier(.4,0,.2,1); --ease-out:cubic-bezier(0,0,.2,1); --ease-out-strong:cubic-bezier(.22,1,.36,1);
+  --ease-in:cubic-bezier(.4,0,1,1); --ease-spring:cubic-bezier(.34,1.45,.64,1);
+  --move-xs:4px; --move-sm:8px; --move-md:12px; --slide:100%;
+  --pop-from:.94; --press:.97; --leave-scale:.98; --lift:-2px; --shake:4px; --stagger:25ms;
+}
+/* Reduced = what OS "reduce motion" users get: no movement, no scale, fades capped at 120ms. */
+html[data-motion="reduced"] {
+  --dur-base:120ms; --dur-moderate:120ms; --dur-slow:120ms;
+  --move-xs:0px; --move-sm:0px; --move-md:0px; --slide:0%; --pop-from:1; --press:1; --leave-scale:1; --lift:0px; --shake:0px; --stagger:0ms;
+}
+/* Off = test kill switch: everything lands in 1ms. */
+html[data-motion="off"] {
+  --dur-micro:1ms; --dur-fast:1ms; --dur-base:1ms; --dur-moderate:1ms; --dur-slow:1ms;
+  --move-xs:0px; --move-sm:0px; --move-md:0px; --slide:0%; --pop-from:1; --press:1; --leave-scale:1; --lift:0px; --shake:0px; --stagger:0ms;
+}
+/* Lite = automatic on weak devices: keep feedback, drop the decoration. */
+html[data-motion="lite"] { --stagger:0ms; }
+
+/* ---------- base ---------- */
+* { box-sizing:border-box; }
+[hidden] { display:none !important; }
+body { margin:0; font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; color:var(--text); background:var(--canvas); }
+h1 { font-size:1.5rem; line-height:1.25; margin:0; }
+h2 { font-size:1.25rem; margin:0 0 4px; }
+p { margin:0; }
+.muted { color:var(--muted); font-size:.9375rem; }
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+.wrap { max-width:60rem; margin:0 auto; padding:16px; display:grid; gap:16px; }
+.top { position:sticky; top:0; z-index:5; background:var(--surface); border-bottom:1px solid var(--border); }
+.top .wrap { grid-template-columns:1fr auto; align-items:center; padding-block:12px; gap:12px 24px; }
+@media (max-width:599px) { .top { position:static; } .top .wrap { grid-template-columns:1fr; } }
+.ctl { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; }
+.ctl label { font-size:.8125rem; color:var(--muted); display:block; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; display:grid; gap:12px; align-content:start; }
+.grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(18rem,1fr)); gap:16px; }
+.row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.note { font-size:.8125rem; color:var(--muted); border-left:3px solid var(--border); padding-left:8px; }
+svg.i { width:20px; height:20px; flex:none; fill:none; stroke:currentColor; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; }
+.live { font-variant-numeric:tabular-nums; font-size:.8125rem; color:var(--muted); }
+
+/* ---------- reveal / enter keyframes (spec 3.2) ---------- */
+@keyframes rise  { from { opacity:0; transform:translateY(var(--move-sm)); } }
+@keyframes rise-xs { from { opacity:0; transform:translateY(var(--move-xs)); } }
+@keyframes fade  { from { opacity:0; } }
+@keyframes pop   { from { opacity:0; transform:scale(var(--pop-from)); } }
+@keyframes leave { to { opacity:0; transform:scale(var(--leave-scale)); } }
+@keyframes shimmer { from { transform:translateX(-100%); } to { transform:translateX(100%); } }
+@keyframes spin  { to { transform:rotate(360deg); } }
+@keyframes shake { 0%,100% { transform:none; } 20% { transform:translateX(calc(var(--shake) * -1)); } 40% { transform:translateX(var(--shake)); } 60% { transform:translateX(calc(var(--shake) * -.6)); } 80% { transform:translateX(calc(var(--shake) * .6)); } }
+@keyframes bar-up { from { transform:scaleY(0); } }
+@keyframes wipe { from { clip-path:inset(0 100% 0 0); } to { clip-path:inset(0); } }
+
+/* staggered entrance: only the first 8 children animate, the rest appear at once */
+.reveal > * { animation:rise var(--dur-base) var(--ease-out) backwards; animation-delay:calc(var(--i, 0) * var(--stagger)); }
+.reveal > :nth-child(n+9) { animation:none; }
+.enter { animation:rise var(--dur-base) var(--ease-spring) backwards; }
+.leaving { animation:leave var(--dur-fast) var(--ease-in) forwards; pointer-events:none; }
+
+/* ---------- buttons (spec 3.3) ---------- */
+.btn { position:relative; isolation:isolate; overflow:hidden; display:inline-grid; place-items:center; min-height:48px; min-width:44px; padding:0 16px;
+  font:inherit; font-weight:500; border:1px solid transparent; border-radius:8px; cursor:pointer;
+  transition:transform var(--dur-base) var(--ease-spring); }
+.btn::before, .btn::after { content:""; position:absolute; inset:0; z-index:-1; opacity:0; }
+.btn::before { background:var(--hov); transition:opacity var(--dur-fast) var(--ease-out); }     /* hover fade = opacity of an overlay */
+.btn::after  { background:var(--success); transition:opacity var(--dur-base) var(--ease-out); } /* success fill = opacity of an overlay */
+@media (hover:hover) { .btn:hover::before { opacity:1; } }
+.btn:active { transform:scale(var(--press)); transition-duration:var(--dur-micro); transition-timing-function:var(--ease-out); }
+.btn.primary { background:var(--accent); color:var(--on-accent); --hov:var(--accent-hover); }
+.btn.secondary { background:var(--surface); color:var(--text); border-color:var(--bstrong); --hov:var(--sunken); }
+.btn.quiet { background:transparent; color:var(--text); --hov:var(--sunken); }
+.btn.danger { background:var(--danger); color:var(--on-danger); --hov:var(--danger-hover); }
+.btn.sm { min-height:44px; }
+.btn[aria-disabled="true"] { cursor:not-allowed; }
+.btn[data-state="done"]::after { opacity:1; }
+.stack { display:grid; }
+.lyr { grid-area:1/1; display:inline-flex; gap:8px; align-items:center; justify-content:center; white-space:nowrap;
+  transition:opacity var(--dur-fast) var(--ease-out), transform var(--dur-base) var(--ease-out); }
+.lyr.busy, .lyr.done { opacity:0; transform:translateY(var(--move-sm)); }
+.btn[data-state="busy"] .idle, .btn[data-state="done"] .idle, .btn[data-state="busy"] .done { opacity:0; transform:translateY(calc(var(--move-sm) * -1)); }
+.btn[data-state="busy"] .busy, .btn[data-state="done"] .done { opacity:1; transform:none; }
+.btn[data-state="done"] .done { color:var(--on-success); }
+.btn[data-state="busy"] .spin { animation:spin .8s linear infinite; }   /* a loop runs only while it is visible */
+.clock { display:none; }
+html[data-motion="reduced"] .spin, html[data-motion="off"] .spin { display:none; }
+html[data-motion="reduced"] .clock, html[data-motion="off"] .clock { display:block; }
+.shake { animation:shake 280ms var(--ease-standard); }
+.tick path { clip-path:inset(0 100% 0 0); }
+.btn[data-state="done"] .tick path, .played .tick path { animation:wipe var(--dur-base) var(--ease-out) 60ms forwards; }
+html[data-motion="reduced"] .btn[data-state="done"] .tick path, html[data-motion="off"] .btn[data-state="done"] .tick path { clip-path:none; animation:none; }
+
+/* ---------- banners / messages: disclosure by grid rows (the one height exception) ---------- */
+.disc { display:grid; grid-template-rows:0fr; transition:grid-template-rows var(--dur-base) var(--ease-out-strong); }
+.disc.open { grid-template-rows:1fr; }
+.disc > .in { min-height:0; overflow:hidden; }
+.disc > .in > * { opacity:0; transform:translateY(var(--move-xs)); transition:opacity var(--dur-fast) var(--ease-out) 40ms, transform var(--dur-base) var(--ease-out) 40ms; }
+.disc.open > .in > * { opacity:1; transform:none; }
+html[data-motion="reduced"] .disc { transition:none; }
+.banner { display:flex; gap:8px; align-items:flex-start; padding:12px 16px; border-left:3px solid var(--danger); border-radius:8px; background:var(--danger-soft); color:var(--on-danger-soft); margin-top:4px; }
+
+/* ---------- overlays: native <dialog> with @starting-style (spec 3.5) ---------- */
+dialog { color:var(--text); background:var(--raised); border:1px solid var(--border); border-radius:12px; padding:0; box-shadow:var(--sh3); max-height:calc(100dvh - 32px);
+  opacity:0; transform:translateY(var(--move-md)) scale(var(--pop-from));
+  transition:opacity var(--dur-fast) var(--ease-in), transform var(--dur-fast) var(--ease-in), overlay var(--dur-fast) allow-discrete, display var(--dur-fast) allow-discrete; }
+dialog[open] { opacity:1; transform:none;
+  transition:opacity var(--dur-base) var(--ease-out), transform var(--dur-moderate) var(--ease-spring), overlay var(--dur-moderate) allow-discrete, display var(--dur-moderate) allow-discrete; }
+@starting-style { dialog[open] { opacity:0; transform:translateY(var(--move-md)) scale(var(--pop-from)); } }
+dialog::backdrop { background:var(--scrim); opacity:0;
+  transition:opacity var(--dur-fast) var(--ease-in), overlay var(--dur-fast) allow-discrete, display var(--dur-fast) allow-discrete; }
+dialog[open]::backdrop { opacity:1; transition-duration:var(--dur-base); transition-timing-function:var(--ease-out); }
+@starting-style { dialog[open]::backdrop { opacity:0; } }
+dialog.dlg { width:min(100% - 32px, 30rem); }
+/* drawer: edge-anchored, so no overshoot */
+dialog.drawer { margin:0 0 0 auto; height:100dvh; max-height:none; width:min(100%, 26rem); border-radius:12px 0 0 12px; transform:translateX(var(--slide)); }
+dialog.drawer[open] { transform:none; transition:opacity var(--dur-base) var(--ease-out), transform var(--dur-moderate) var(--ease-out-strong), overlay var(--dur-moderate) allow-discrete, display var(--dur-moderate) allow-discrete; }
+@starting-style { dialog.drawer[open] { opacity:0; transform:translateX(var(--slide)); } }
+/* phone: the dialog becomes a bottom sheet, also edge-anchored (no overshoot) */
+@media (max-width:599px) {
+  dialog.dlg { width:100%; max-width:none; margin:auto 0 0; border-radius:16px 16px 0 0; transform:translateY(var(--slide)); }
+  dialog.dlg[open] { transform:none; transition:opacity var(--dur-base) var(--ease-out), transform var(--dur-moderate) var(--ease-out-strong), overlay var(--dur-moderate) allow-discrete, display var(--dur-moderate) allow-discrete; }
+  @starting-style { dialog.dlg[open] { opacity:0; transform:translateY(var(--slide)); } }
+}
+.dh { display:flex; justify-content:space-between; align-items:center; padding:8px 8px 8px 16px; border-bottom:1px solid var(--border); }
+.db { padding:16px; display:grid; gap:12px; }
+.df { padding:8px 16px 16px; display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+
+/* ---------- toasts (spec 3.6) ---------- */
+#toasts { position:fixed; right:16px; bottom:16px; z-index:50; display:flex; flex-direction:column; gap:8px; width:min(24rem, calc(100% - 32px)); }
+.toast { display:flex; gap:12px; align-items:center; background:var(--raised); border:1px solid var(--border); border-left:3px solid var(--success); border-radius:8px; box-shadow:var(--sh2); padding:12px 8px 12px 16px;
+  animation:rise var(--dur-base) var(--ease-spring) backwards; }
+.toast .ok { color:var(--success); animation:pop var(--dur-moderate) var(--ease-spring) 80ms backwards; }
+.toast p { flex:1; }
+@media (max-width:599px) { #toasts { top:72px; bottom:auto; } }
+
+/* ---------- segmented control and tabs: sliding indicator by transform (spec 3.4) ---------- */
+.seg { position:relative; display:grid; grid-auto-flow:column; grid-auto-columns:1fr; background:var(--sunken); border:1px solid var(--border); border-radius:8px; padding:2px; }
+.seg .thumb { position:absolute; top:2px; bottom:2px; left:2px; width:calc((100% - 4px) / var(--n)); background:var(--surface); border:1px solid var(--bstrong); border-radius:6px; pointer-events:none; }
+.seg[data-ready] .thumb { transition:transform var(--dur-base) var(--ease-standard); }
+.seg button { position:relative; min-height:44px; padding:0 12px; background:none; border:0; font:inherit; color:var(--text); cursor:pointer; border-radius:6px; }
+.seg button[aria-checked="true"] { font-weight:600; }
+.tabs { position:relative; display:flex; gap:4px; border-bottom:1px solid var(--border); overflow-x:auto; }
+.tabs button { min-height:44px; padding:0 16px; background:none; border:0; font:inherit; color:var(--muted); cursor:pointer; }
+.tabs button[aria-selected="true"] { color:var(--accent); font-weight:600; }
+.tabs .ind { position:absolute; left:0; bottom:0; width:1px; height:3px; background:var(--accent); transform-origin:0 0; pointer-events:none; }
+.tabs[data-ready] .ind { transition:transform var(--dur-base) var(--ease-standard); }
+html[data-motion="reduced"] .seg .thumb, html[data-motion="reduced"] .tabs .ind { transition:none !important; }  /* reduced: the indicator jumps */
+.panel { padding-top:8px; }
+.panel.in { animation:rise var(--dur-base) var(--ease-out) backwards; }
+
+/* ---------- list, chips, expanding row ---------- */
+.list { list-style:none; margin:0; padding:0; border:1px solid var(--border); border-radius:8px; background:var(--surface); overflow:hidden; }
+.list > li + li { border-top:1px solid var(--border); }
+.line { width:100%; display:grid; grid-template-columns:1fr auto auto; gap:12px; align-items:center; min-height:48px; padding:8px 16px; background:none; border:0; font:inherit; color:var(--text); text-align:start; cursor:pointer; }
+@media (hover:hover) { .line:hover { background:var(--sunken); } }  /* rows: instant hover, by ruling (5,000-row tables) */
+.num { font-variant-numeric:tabular-nums; }
+.chip { display:inline-grid; height:24px; border-radius:999px; font-size:.8125rem; font-weight:500; }
+.chip > span { grid-area:1/1; display:inline-flex; align-items:center; gap:4px; padding:0 8px; border-radius:999px; transition:opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-spring); }
+.chip .d { background:var(--strong); color:var(--text); }
+.chip .p { background:var(--success-soft); color:var(--on-success-soft); opacity:0; transform:scale(var(--pop-from)); }
+.chip.posted .d { opacity:0; }
+.chip.posted .p { opacity:1; transform:none; }
+.chip svg { width:16px; height:16px; }
+.xp { display:grid; grid-template-rows:0fr; transition:grid-template-rows var(--dur-moderate) var(--ease-out-strong); background:var(--sunken); }
+.xp.open { grid-template-rows:1fr; }
+.xp > div { min-height:0; overflow:hidden; }
+.xp p { padding:12px 16px; opacity:0; transition:opacity var(--dur-fast) var(--ease-out) 60ms; }
+.xp.open p { opacity:1; }
+html[data-motion="reduced"] .xp { transition:none; }
+.chev { transition:transform var(--dur-base) var(--ease-standard); }
+[aria-expanded="true"] .chev { transform:rotate(180deg); }
+html[data-motion="reduced"] .chev { transition:none; }
+
+/* ---------- skeleton: shimmer by transform, finite, static in reduced/lite (spec 3.9) ---------- */
+.sk { position:relative; overflow:hidden; background:var(--strong); border-radius:6px; height:1em; }
+.sk::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg, transparent, var(--shine), transparent); transform:translateX(-100%); animation:shimmer 1.5s linear 6; }
+html[data-motion="reduced"] .sk, html[data-motion="lite"] .sk { opacity:.7; }
+html[data-motion="reduced"] .sk::after, html[data-motion="lite"] .sk::after, html[data-motion="off"] .sk::after { animation:none; display:none; }
+.sk.t { height:1.5em; width:40%; } .sk.l { width:90%; } .sk.m { width:65%; } .sk.s { width:35%; }
+.skwrap { display:grid; gap:12px; }
+
+/* ---------- counters, chart, success mark ---------- */
+.tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(8rem,1fr)); gap:12px; }
+.tile { background:var(--sunken); border:1px solid var(--border); border-radius:8px; padding:12px 16px; cursor:pointer; transition:transform var(--dur-base) var(--ease-out); }
+@media (hover:hover) and (pointer:fine) { .tile:hover { transform:translateY(var(--lift)); } }
+.tile strong { display:grid; font-size:2rem; line-height:1.15; font-weight:600; font-variant-numeric:tabular-nums; }
+.tile strong > span { grid-area:1/1; }
+.tile .size { visibility:hidden; }
+.chart { position:relative; width:100%; max-width:22rem; aspect-ratio:22/9; }
+.chart svg { position:absolute; inset:0; width:100%; height:100%; }
+.bar { fill:var(--accent); transform-box:fill-box; transform-origin:bottom; }
+.chart.play .bar { animation:bar-up var(--dur-slow) var(--ease-out) backwards; animation-delay:calc(var(--i) * 20ms); }
+.line-path { fill:none; stroke:var(--text); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.chart.play .lineclip { animation:wipe var(--dur-slow) var(--ease-out) 120ms backwards; }
+html[data-motion="reduced"] .chart.play .bar, html[data-motion="lite"] .chart.play .bar { animation:fade var(--dur-fast) backwards; }
+html[data-motion="reduced"] .chart.play .lineclip, html[data-motion="lite"] .chart.play .lineclip { animation:fade var(--dur-fast) backwards; }
+html[data-motion="off"] .chart.play .bar, html[data-motion="off"] .chart.play .lineclip { animation:none; }
+.mark { width:56px; height:56px; border-radius:50%; background:var(--success-soft); color:var(--success); display:grid; place-items:center; }
+.mark svg { width:32px; height:32px; stroke-width:2.25; }
+.mark.play { animation:pop var(--dur-moderate) var(--ease-spring) backwards; }
+.mark.play path { animation:wipe var(--dur-base) var(--ease-out) 120ms backwards; }
+
+/* ---------- form field and micro-interactions (spec 3.8) ---------- */
+.field { position:relative; }
+.field label { display:block; font-size:.9375rem; font-weight:500; margin-bottom:4px; }
+.field label i { color:var(--danger); font-style:normal; font-weight:600; }
+.field input[type="text"] { width:100%; min-height:48px; padding:0 16px; font:inherit; color:var(--text); background:var(--surface); border:1px solid var(--bstrong); border-radius:8px; }
+.field input[aria-invalid="true"] { border-color:var(--danger); box-shadow:inset 0 0 0 1px var(--danger); }
+.field .ul { position:absolute; left:8px; right:8px; bottom:0; height:2px; background:var(--accent); transform:scaleX(0); transition:transform var(--dur-base) var(--ease-out); pointer-events:none; }
+.field.box:focus-within .ul { transform:scaleX(1); }
+.field.box { position:relative; }
+html[data-motion="reduced"] .field .ul { transition:none; }
+.errmsg { color:var(--danger); font-size:.9375rem; display:flex; gap:4px; align-items:center; padding-top:4px; }
+.ctrl { display:flex; flex-wrap:wrap; gap:16px 24px; align-items:center; }
+.ctrl label { display:inline-flex; gap:8px; align-items:center; min-height:44px; cursor:pointer; }
+input[type="checkbox"].cb, input[type="radio"].rd { appearance:none; position:relative; margin:0; width:24px; height:24px; border:2px solid var(--bstrong); background:var(--surface); cursor:pointer; flex:none; }
+input.cb { border-radius:6px; } input.rd { border-radius:50%; }
+input.cb::after, input.rd::after { content:""; position:absolute; inset:-2px; border-radius:inherit; background:var(--accent); opacity:0; transform:scale(.6); transition:opacity var(--dur-fast) var(--ease-out), transform var(--dur-base) var(--ease-spring); }
+input.cb::before { content:""; position:absolute; z-index:1; left:6px; top:1px; width:7px; height:13px; border:solid var(--on-accent); border-width:0 2.5px 2.5px 0; transform:rotate(45deg); clip-path:inset(100% 0 0 0); transition:clip-path var(--dur-fast) var(--ease-out) 50ms; }
+input.rd::before { content:""; position:absolute; z-index:1; inset:5px; border-radius:50%; background:var(--on-accent); opacity:0; transform:scale(0); transition:transform var(--dur-base) var(--ease-spring), opacity var(--dur-fast); }
+input.cb:checked::after, input.rd:checked::after { opacity:1; transform:none; }
+input.cb:checked::before { clip-path:inset(0); }
+input.rd:checked::before { opacity:1; transform:none; }
+input.sw { appearance:none; position:relative; margin:0; width:44px; height:24px; border-radius:999px; border:2px solid var(--bstrong); background:var(--surface); cursor:pointer; flex:none; }
+input.sw::after { content:""; position:absolute; inset:-2px; border-radius:inherit; background:var(--accent); opacity:0; transition:opacity var(--dur-base) var(--ease-out); }
+input.sw::before { content:""; position:absolute; z-index:1; left:2px; top:2px; width:16px; height:16px; border-radius:50%; background:var(--bstrong); transform-origin:left center; transition:transform var(--dur-base) var(--ease-out-strong), background-color 0s; }
+input.sw:checked::after { opacity:1; }
+input.sw:checked::before { background:var(--on-accent); transform:translateX(20px); }
+input.sw:active::before { transform:scaleX(1.2); }
+input.sw:checked:active::before { transform:translateX(18px) scaleX(1.2); }
+html[data-motion="reduced"] input.sw::before { transition:none; }
+
+/* ---------- top progress bar: trickle then complete, never loops (spec 3.10) ---------- */
+#bar { position:fixed; left:0; right:0; top:0; height:3px; z-index:60; pointer-events:none; opacity:0; background:var(--strong); }
+#bar i { position:absolute; inset:0; background:var(--accent); transform-origin:0 0; transform:scaleX(0); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-spin" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.5v.01"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+</svg>
+<div id="bar" aria-hidden="true"><i></i></div>
+
+<header class="top">
+  <div class="wrap">
+    <div>
+      <h1>IMS motion demo</h1>
+      <p class="muted">docs/design/2026-refresh-motion.md. Hover, press, open, replay. <span class="live" id="anims" aria-hidden="true"></span></p>
+    </div>
+    <div class="ctl">
+      <div><label id="lt">Theme</label>
+        <div class="seg" role="radiogroup" aria-labelledby="lt" id="segTheme"><span class="thumb"></span>
+          <button role="radio" data-v="system">System</button><button role="radio" data-v="light">Light</button><button role="radio" data-v="dark">Dark</button></div></div>
+      <div><label id="lm">Motion</label>
+        <div class="seg" role="radiogroup" aria-labelledby="lm" id="segMotion"><span class="thumb"></span>
+          <button role="radio" data-v="full">Full</button><button role="radio" data-v="lite">Lite</button><button role="radio" data-v="reduced">Reduced</button><button role="radio" data-v="off">Off</button></div></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="note" id="osnote" hidden>Your operating system asks for reduced motion, so this page started in Reduced. Choose Full to compare.</p>
+  <p class="note">Full = everything. Lite = automatic on weak devices (no stagger, shimmer, count-up, chart draw, route fade). Reduced = the OS setting: nothing moves, only short fades. Off = test kill switch.</p>
+
+  <section class="grid2">
+    <div class="card">
+      <h2>Buttons</h2>
+      <p class="muted">Hover fades an overlay, press scales to 0.97, release springs back.</p>
+      <div class="row">
+        <button class="btn primary" type="button">Primary</button>
+        <button class="btn secondary" type="button">Secondary</button>
+        <button class="btn quiet" type="button">Quiet</button>
+        <button class="btn danger" type="button">Danger</button>
+      </div>
+      <div class="row">
+        <button class="btn primary" type="button" id="save" data-state="idle">
+          <span class="stack">
+            <span class="lyr idle">Save draft</span>
+            <span class="lyr busy"><svg class="i spin"><use href="#i-spin"/></svg><svg class="i clock"><use href="#i-clock"/></svg>Saving</span>
+            <span class="lyr done"><svg class="i tick"><use href="#i-check"/></svg>Saved</span>
+          </span>
+        </button>
+        <button class="btn secondary" type="button" id="fail">Sign in (wrong password)</button>
+      </div>
+      <div class="disc" id="failMsg" role="alert"><div class="in"><div class="banner"><svg class="i"><use href="#i-alert"/></svg><span>Wrong user name or password. Check both and try again.</span></div></div></div>
+      <p class="note">Save: label morphs to a tick, button width never changes. Sign in: one 4px shake, none in Reduced. Busy shows a spinner after a short wait; in Reduced it shows the clock and the word.</p>
+    </div>
+
+    <div class="card">
+      <h2>Overlays</h2>
+      <p class="muted">Dialog: spring pop. Drawer and phone sheet: edge slide, no overshoot. Scrim fades.</p>
+      <div class="row">
+        <button class="btn secondary" type="button" id="openDlg">Open dialog</button>
+        <button class="btn secondary" type="button" id="openDrw">Open drawer</button>
+        <button class="btn secondary" type="button" id="toast">Show toast</button>
+      </div>
+      <p class="note">Narrow the window under 600px to see the dialog become a bottom sheet. Toasts stack (max 2), the survivor slides into place (FLIP). Reduced: fade only.</p>
+    </div>
+
+    <div class="card">
+      <h2>Tabs and segmented control</h2>
+      <div class="tabs" role="tablist" aria-label="Document" id="tabs"><span class="ind"></span>
+        <button role="tab" aria-selected="true">Lines</button><button role="tab" aria-selected="false">History</button><button role="tab" aria-selected="false">Attachments</button></div>
+      <div class="panel" id="tabPanel"></div>
+      <div class="seg" role="radiogroup" aria-label="Density" id="segDemo"><span class="thumb"></span>
+        <button role="radio" data-v="a">Comfortable</button><button role="radio" data-v="b">Compact</button></div>
+      <p class="note">The indicator slides with transform (scaleX for the tab underline, translateX for the equal-width segments). Reduced: it jumps.</p>
+    </div>
+
+    <div class="card">
+      <h2>Form micro-interactions</h2>
+      <div class="field">
+        <label for="f1">Reason <i aria-hidden="true">*</i></label>
+        <div class="field box"><input id="f1" type="text" required aria-describedby="f1e" placeholder="Why is this being reversed?"><span class="ul"></span></div>
+        <div class="disc" id="f1e"><div class="in"><div class="errmsg"><svg class="i"><use href="#i-alert"/></svg>Enter a reason.</div></div></div>
+      </div>
+      <div class="ctrl">
+        <label><input class="cb" type="checkbox"> Checkbox</label>
+        <label><input class="rd" type="radio" name="r" checked> Radio A</label>
+        <label><input class="rd" type="radio" name="r"> Radio B</label>
+        <label><input class="sw" type="checkbox" role="switch"> Switch</label>
+      </div>
+      <div class="row"><button class="btn secondary sm" type="button" id="check">Check the field</button></div>
+      <p class="note">Focus: the ring is instant, an underline grows under it. The message opens by grid rows and the text rises 4px.</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <div><h2>List with staggered entrance and expanding row</h2>
+      <p class="muted">Only the first 8 rows animate (25ms apart). Rows 9 and 10 appear at once. Click a row to expand.</p></div>
+      <div class="row"><button class="btn secondary sm" type="button" id="replayList">Replay entrance</button>
+      <button class="btn secondary sm" type="button" id="addRow">Add row</button>
+      <button class="btn quiet sm" type="button" id="delRow">Remove first</button></div>
+    </div>
+    <ul class="list reveal" id="list"></ul>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <h2>Skeleton and content</h2>
+      <div class="row"><button class="btn secondary sm" type="button" id="slow">Load (1.5 s)</button><button class="btn secondary sm" type="button" id="fast">Load (200 ms)</button></div>
+      <div id="skBox" style="min-height:8.5rem">
+        <div class="skwrap" id="sk" hidden><div class="sk t"></div><div class="sk l"></div><div class="sk m"></div><div class="sk s"></div></div>
+        <div class="reveal" id="skContent" style="display:grid;gap:8px"><h3 style="margin:0">RCV-2610-0007</h3><p>Receipt from Acme Supplies, 12 lines.</p><p class="muted">Posted today by Raj.</p><p class="muted">Warehouse: Main.</p></div>
+      </div>
+      <p class="note">The skeleton shows after 300 ms and stays at least 400 ms, so the 200 ms load shows none. The shimmer is transform-only, stops after 9 s, and is static in Reduced and Lite.</p>
+    </div>
+
+    <div class="card">
+      <h2>Counters and chart</h2>
+      <div class="tiles" id="tiles">
+        <div class="tile" data-to="1284"><span class="muted">Posted this month</span><strong><span class="size"></span><span class="val" aria-hidden="true"></span><span class="sr-only val-sr"></span></strong></div>
+        <div class="tile" data-to="37"><span class="muted">Waiting for approval</span><strong><span class="size"></span><span class="val" aria-hidden="true"></span><span class="sr-only val-sr"></span></strong></div>
+        <div class="tile" data-to="12"><span class="muted">Low stock</span><strong><span class="size"></span><span class="val" aria-hidden="true"></span><span class="sr-only val-sr"></span></strong></div>
+      </div>
+      <div class="chart" id="chart" aria-hidden="true">
+        <svg viewBox="0 0 220 90" preserveAspectRatio="none"><g id="bars"></g></svg>
+        <svg viewBox="0 0 220 90" preserveAspectRatio="none"><g class="lineclip"><path class="line-path" d="M10 62 L48 50 L86 56 L124 30 L162 38 L200 14"/></g></svg>
+      </div>
+      <div class="row"><button class="btn secondary sm" type="button" id="replayNum">Replay</button></div>
+      <p class="note">Counts (integers only, never money) run 400 ms once and a click skips them; the real value is already in the page for screen readers. Charts draw in once when they appear.</p>
+    </div>
+
+    <div class="card">
+      <h2>Posted: chip swap and check</h2>
+      <div class="row" style="gap:16px">
+        <div class="mark" id="mark" hidden aria-hidden="true"><svg class="i"><use href="#i-check"/></svg></div>
+        <div><p>RCV-2610-0007</p>
+          <span class="chip" id="chip"><span class="d">Draft</span><span class="p"><svg class="i"><use href="#i-check"/></svg>Posted</span></span></div>
+      </div>
+      <div class="row"><button class="btn primary" type="button" id="post"><span class="stack"><span class="lyr idle">Post document</span><span class="lyr busy"><svg class="i spin"><use href="#i-spin"/></svg><svg class="i clock"><use href="#i-clock"/></svg>Working</span><span class="lyr done"><svg class="i tick"><use href="#i-check"/></svg>Posted</span></span></button>
+        <button class="btn quiet sm" type="button" id="unpost">Reset</button></div>
+      <p class="note">The chip crossfades with a small pop, the mark pops and the tick wipes in, a toast confirms. Confirmation never relies on motion: the word "Posted" is always there.</p>
+    </div>
+
+    <div class="card">
+      <h2>Page load bar</h2>
+      <div class="row"><button class="btn secondary sm" type="button" id="nav">Simulate navigation</button></div>
+      <p class="note">Appears after 300 ms of waiting, creeps to 80 percent, completes and fades. It never loops. Reduced: a static bar.</p>
+    </div>
+  </section>
+</main>
+
+<div id="toasts" aria-live="polite" role="status"></div>
+
+<dialog class="dlg" id="dlg" aria-labelledby="dlgT">
+  <div class="dh"><h2 id="dlgT" style="margin:0">Reverse this receipt?</h2><button class="btn quiet" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <div class="db"><p>This posts an opposite document. Stock goes back to what it was before.</p>
+    <div class="field"><label for="why">Reason <i aria-hidden="true">*</i></label><div class="field box"><input id="why" type="text" required><span class="ul"></span></div></div></div>
+  <div class="df"><button class="btn secondary" type="button" data-close>Cancel</button><button class="btn danger" type="button" data-close>Reverse</button></div>
+</dialog>
+<dialog class="drawer" id="drw" aria-labelledby="drwT">
+  <div class="dh"><h2 id="drwT" style="margin:0">RCV-2610-0007</h2><button class="btn quiet" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <div class="db reveal"><p class="muted">Document peek. The content below rises in after the panel arrives.</p><p>Acme Supplies, Main warehouse</p><p>12 lines, 340 units</p><p class="muted">Posted today by Raj.</p></div>
+</dialog>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const root = document.documentElement;
+const mode = () => root.dataset.motion;
+const full = () => mode() === 'full';
+const replay = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+/* equal-width segmented control with a transform-only thumb */
+function segmented(el, initial, onChange) {
+  const btns = $$('button', el), th = $('.thumb', el);
+  el.style.setProperty('--n', btns.length);
+  const sel = (i, silent) => {
+    btns.forEach((b, j) => { b.setAttribute('aria-checked', j === i); b.tabIndex = j === i ? 0 : -1; });
+    th.style.transform = `translateX(${i * 100}%)`;
+    if (!silent && onChange) onChange(btns[i].dataset.v);
+  };
+  btns.forEach((b, i) => b.addEventListener('click', () => sel(i)));
+  el.addEventListener('keydown', e => {
+    const i = btns.findIndex(b => b.getAttribute('aria-checked') === 'true');
+    const n = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? (i + 1) % btns.length : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? (i + btns.length - 1) % btns.length : -1;
+    if (n >= 0) { e.preventDefault(); sel(n); btns[n].focus(); }
+  });
+  sel(Math.max(0, btns.findIndex(b => b.dataset.v === initial)), true);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.dataset.ready = '1'));
+}
+
+/* theme with a view-transition crossfade (no flash); instant when motion is off */
+const mq = matchMedia('(prefers-color-scheme: dark)');
+let themePref = 'system';
+function applyTheme() {
+  const t = themePref === 'system' ? (mq.matches ? 'dark' : 'light') : themePref;
+  const set = () => { root.dataset.theme = t; };
+  if (document.startViewTransition && mode() !== 'off' && mode() !== 'lite') document.startViewTransition(set); else set();
+}
+mq.addEventListener('change', () => { if (themePref === 'system') root.dataset.theme = mq.matches ? 'dark' : 'light'; });
+segmented($('#segTheme'), 'system', v => { themePref = v; applyTheme(); });
+root.dataset.theme = mq.matches ? 'dark' : 'light';
+
+/* motion mode */
+const osReduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+root.dataset.motion = osReduce ? 'reduced' : 'full';
+if (osReduce) $('#osnote').hidden = false;
+segmented($('#segMotion'), root.dataset.motion, v => { root.dataset.motion = v; });
+const style = document.createElement('style');   /* view-transition timing follows the tokens */
+style.textContent = '::view-transition-old(root),::view-transition-new(root){animation-duration:var(--dur-base);animation-timing-function:var(--ease-standard)}';
+document.head.append(style);
+
+/* live count of running animations: idle page should read 0 */
+setInterval(() => { $('#anims').textContent = 'Running animations: ' + document.getAnimations().length; }, 400);
+
+/* buttons */
+async function runSave(btn, ms, after) {
+  if (btn.getAttribute('aria-disabled') === 'true') return;
+  btn.setAttribute('aria-disabled', 'true');
+  const timer = setTimeout(() => btn.dataset.state = 'busy', 150);   /* a fast answer shows no spinner */
+  await wait(ms); clearTimeout(timer);
+  btn.dataset.state = 'done'; if (after) after();
+  await wait(1500);
+  btn.dataset.state = 'idle'; btn.removeAttribute('aria-disabled');
+}
+$('#save').addEventListener('click', e => runSave(e.currentTarget, 800, () => toast('Draft saved.')));
+$('#fail').addEventListener('click', async e => {
+  const b = e.currentTarget; if (b.getAttribute('aria-disabled')) return;
+  b.setAttribute('aria-disabled', 'true'); $('#failMsg').classList.remove('open'); await wait(500);
+  b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
+  $('#failMsg').classList.add('open'); b.removeAttribute('aria-disabled');
+  b.addEventListener('animationend', () => b.classList.remove('shake'), { once: true });
+});
+
+/* overlays */
+$('#openDlg').addEventListener('click', () => { $('#dlg').showModal(); $('#why').focus(); });
+$('#openDrw').addEventListener('click', () => { $('#drw').showModal(); replay($('.db', $('#drw')), 'reveal'); $$('.db > *', $('#drw')).forEach((c, i) => c.style.setProperty('--i', i)); });
+$$('dialog').forEach(d => {
+  d.addEventListener('click', e => { if (e.target === d || e.target.closest('[data-close]')) d.close(); });
+});
+
+/* toasts: enter, auto-leave, FLIP of the survivors */
+const host = $('#toasts');
+function toast(msg) {
+  const old = $$('.toast:not(.leaving)', host);
+  if (old.length >= 2) dismiss(old[0]);
+  const t = document.createElement('div'); t.className = 'toast';
+  t.innerHTML = '<svg class="i ok"><use href="#i-check"/></svg><p></p><button class="btn quiet" type="button" aria-label="Dismiss"><svg class="i"><use href="#i-x"/></svg></button>';
+  $('p', t).textContent = msg; host.append(t);
+  $('button', t).addEventListener('click', () => dismiss(t));
+  t._timer = setTimeout(() => dismiss(t), 4000);
+}
+function dismiss(t) {
+  if (!t.isConnected || t.classList.contains('leaving')) return;
+  clearTimeout(t._timer);
+  const sibs = $$('.toast', host).filter(x => x !== t), before = sibs.map(s => s.getBoundingClientRect().top);
+  t.classList.add('leaving'); t.setAttribute('aria-hidden', 'true');
+  let gone = false;
+  const done = () => {
+    if (gone) return; gone = true; t.remove();
+    if (full()) sibs.forEach((s, i) => { const d = before[i] - s.getBoundingClientRect().top; if (d) s.animate([{ transform: `translateY(${d}px)` }, { transform: 'none' }], { duration: 200, easing: 'cubic-bezier(0,0,.2,1)' }); });
+  };
+  t.addEventListener('animationend', done, { once: true }); setTimeout(done, 400);
+}
+$('#toast').addEventListener('click', () => toast('Receipt RCV-2610-0007 posted. Stock updated.'));
+
+/* tabs with a sliding underline */
+(function () {
+  const el = $('#tabs'), btns = $$('[role=tab]', el), ind = $('.ind', el), panel = $('#tabPanel');
+  const text = ['12 lines, 340 units. Edit quantities before posting.', 'Created by Raj, submitted by Raj, approved by Mei Ling.', 'No attachments yet.'];
+  function place(i) { const b = btns[i]; ind.style.transform = `translateX(${b.offsetLeft}px) scaleX(${b.offsetWidth})`; }
+  function sel(i, first) {
+    btns.forEach((b, j) => { b.setAttribute('aria-selected', j === i); b.tabIndex = j === i ? 0 : -1; });
+    place(i); panel.textContent = text[i]; if (!first) replay(panel, 'in');
+  }
+  btns.forEach((b, i) => b.addEventListener('click', () => sel(i)));
+  el.addEventListener('keydown', e => {
+    const i = btns.findIndex(b => b.getAttribute('aria-selected') === 'true');
+    const n = e.key === 'ArrowRight' ? (i + 1) % 3 : e.key === 'ArrowLeft' ? (i + 2) % 3 : -1;
+    if (n >= 0) { e.preventDefault(); sel(n); btns[n].focus(); }
+  });
+  sel(0, true); requestAnimationFrame(() => requestAnimationFrame(() => el.dataset.ready = '1'));
+  addEventListener('resize', () => { delete el.dataset.ready; place(btns.findIndex(b => b.getAttribute('aria-selected') === 'true')); requestAnimationFrame(() => requestAnimationFrame(() => el.dataset.ready = '1')); });
+})();
+segmented($('#segDemo'), 'a');
+
+/* form */
+$('#check').addEventListener('click', () => {
+  const inp = $('#f1'), bad = !inp.value.trim();
+  inp.setAttribute('aria-invalid', bad); $('#f1e').classList.toggle('open', bad); if (bad) inp.focus();
+});
+$('#f1').addEventListener('input', e => { if (e.target.value.trim()) { e.target.removeAttribute('aria-invalid'); $('#f1e').classList.remove('open'); } });
+
+/* list */
+const docs = Array.from({ length: 10 }, (_, i) => ({ no: 'RCV-2610-' + String(i + 1).padStart(4, '0'), qty: 40 + i * 13, posted: i % 3 === 0 }));
+function row(d) {
+  const li = document.createElement('li');
+  li.innerHTML = `<button class="line" type="button" aria-expanded="false"><span class="num"><strong>${d.no}</strong></span>
+    <span class="chip ${d.posted ? 'posted' : ''}"><span class="d">Draft</span><span class="p"><svg class="i"><use href="#i-check"/></svg>Posted</span></span>
+    <span class="row" style="flex-wrap:nowrap"><span class="num">${d.qty}</span><svg class="i chev"><use href="#i-chev"/></svg></span></button>
+    <div class="xp"><div inert><p class="muted">Acme Supplies, 3 lines. Expanding uses grid rows (0fr to 1fr), so nothing is measured in JavaScript.</p></div></div>`;
+  const btn = $('.line', li), xp = $('.xp', li);
+  btn.addEventListener('click', () => { const o = btn.getAttribute('aria-expanded') !== 'true'; btn.setAttribute('aria-expanded', o); xp.classList.toggle('open', o); $('div', xp).inert = !o; });
+  return li;
+}
+const list = $('#list');
+function fillList() { list.replaceChildren(...docs.map(row)); $$(':scope > li', list).forEach((li, i) => li.style.setProperty('--i', i)); }
+fillList();
+$('#replayList').addEventListener('click', () => { fillList(); replay(list, 'reveal'); });
+$('#addRow').addEventListener('click', () => {
+  const lis = $$(':scope > li', list).slice(0, 30), before = lis.map(l => l.getBoundingClientRect().top);
+  const li = row({ no: 'RCV-2610-' + String(Math.floor(Math.random() * 9000) + 1000), qty: 20, posted: false });
+  li.style.animation = 'none'; list.prepend(li); void li.offsetWidth; li.style.animation = ''; li.classList.add('enter'); li.style.setProperty('--i', 0);
+  li.addEventListener('animationend', () => li.classList.remove('enter'), { once: true });
+  if (full()) lis.forEach((l, i) => { const d = before[i] - l.getBoundingClientRect().top; if (d) l.animate([{ transform: `translateY(${d}px)` }, { transform: 'none' }], { duration: 200, easing: 'cubic-bezier(0,0,.2,1)' }); });
+});
+$('#delRow').addEventListener('click', () => {
+  const first = list.firstElementChild; if (!first || first.classList.contains('leaving')) return;
+  const sibs = $$(':scope > li', list).slice(1, 31), before = sibs.map(l => l.getBoundingClientRect().top);
+  first.classList.add('leaving');
+  let gone = false; const done = () => { if (gone) return; gone = true; first.remove();
+    if (full()) sibs.forEach((l, i) => { const d = before[i] - l.getBoundingClientRect().top; if (d) l.animate([{ transform: `translateY(${d}px)` }, { transform: 'none' }], { duration: 200, easing: 'cubic-bezier(0,0,.2,1)' }); }); };
+  first.addEventListener('animationend', done, { once: true }); setTimeout(done, 400);
+});
+
+/* skeleton: 300 ms delay, 400 ms minimum */
+let loadToken = 0;
+async function load(ms) {
+  const my = ++loadToken, sk = $('#sk'), ct = $('#skContent');
+  ct.style.display = 'none'; sk.hidden = true; let shownAt = 0;
+  const t = setTimeout(() => { if (my === loadToken) { sk.hidden = false; shownAt = performance.now(); } }, 300);
+  await wait(ms); clearTimeout(t); if (my !== loadToken) return;
+  if (shownAt) await wait(Math.max(0, 400 - (performance.now() - shownAt)));
+  if (my !== loadToken) return;
+  sk.hidden = true; ct.style.display = 'grid'; $$(':scope > *', ct).forEach((c, i) => c.style.setProperty('--i', i)); replay(ct, 'reveal');
+}
+$('#slow').addEventListener('click', () => load(1500));
+$('#fast').addEventListener('click', () => load(200));
+$$(':scope > *', $('#skContent')).forEach((c, i) => c.style.setProperty('--i', i));
+
+/* counters: integers only, 400 ms, once per load, a click skips them */
+const fmt = n => n.toLocaleString('en-US');
+const raf = new WeakMap();
+function count(tile) {
+  const to = +tile.dataset.to, val = $('.val', tile);
+  $('.size', tile).textContent = fmt(to); $('.val-sr', tile).textContent = fmt(to);
+  cancelAnimationFrame(raf.get(tile));
+  if (!full() || to < 10) { val.textContent = fmt(to); return; }
+  const t0 = performance.now(), d = 400;
+  const step = t => { const p = Math.min(1, (t - t0) / d), e = 1 - Math.pow(1 - p, 3); val.textContent = fmt(Math.round(to * e)); if (p < 1) raf.set(tile, requestAnimationFrame(step)); };
+  val.textContent = '0'; raf.set(tile, requestAnimationFrame(step));
+}
+$$('.tile').forEach(t => t.addEventListener('click', () => { cancelAnimationFrame(raf.get(t)); $('.val', t).textContent = fmt(+t.dataset.to); }));
+
+/* chart draw-in */
+const bars = $('#bars'), vals = [34, 48, 41, 62, 55, 70, 58, 76];
+bars.innerHTML = vals.map((v, i) => `<rect class="bar" style="--i:${i}" x="${10 + i * 25}" y="${88 - v}" width="16" height="${v}" rx="2" opacity=".85"/>`).join('');
+function draw() { const c = $('#chart'); c.classList.remove('play'); void c.offsetWidth; if (mode() !== 'off') c.classList.add('play'); }
+$('#replayNum').addEventListener('click', () => { $$('.tile').forEach((t, i) => setTimeout(() => count(t), i * 40)); draw(); });
+$$('.tile').forEach(count); draw();
+
+/* posted */
+async function post() {
+  const b = $('#post'); if (b.getAttribute('aria-disabled')) return;
+  b.setAttribute('aria-disabled', 'true'); const t = setTimeout(() => b.dataset.state = 'busy', 150); await wait(700); clearTimeout(t);
+  b.dataset.state = 'done'; $('#chip').classList.add('posted');
+  const m = $('#mark'); m.hidden = false; replay(m, 'play'); toast('Receipt RCV-2610-0007 posted. Stock updated.');
+  await wait(1500); b.dataset.state = 'idle'; b.removeAttribute('aria-disabled');
+}
+$('#post').addEventListener('click', post);
+$('#unpost').addEventListener('click', () => { $('#chip').classList.remove('posted'); $('#mark').hidden = true; });
+
+/* page load bar: starts after 300 ms, creeps to 80 percent, completes, fades; never loops */
+$('#nav').addEventListener('click', async () => {
+  const bar = $('#bar'), fill = $('i', bar), animate = mode() === 'full' || mode() === 'lite';
+  fill.style.transition = 'none'; fill.style.transform = 'scaleX(0)'; bar.style.transition = 'none'; bar.style.opacity = 0;
+  await wait(300); void fill.offsetWidth;
+  bar.style.opacity = 1;
+  if (animate) { fill.style.transition = 'transform 2s cubic-bezier(.1,.6,.2,1)'; fill.style.transform = 'scaleX(.8)'; } else { fill.style.transform = 'scaleX(.4)'; }
+  await wait(1800);
+  if (animate) { fill.style.transition = 'transform 200ms cubic-bezier(0,0,.2,1)'; fill.style.transform = 'scaleX(1)'; await wait(200); }
+  bar.style.transition = 'opacity 200ms'; bar.style.opacity = 0;
+});
+</script>
+</body>
+</html>

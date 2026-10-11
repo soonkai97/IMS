@@ -1,0 +1,393 @@
+# ADR: Configurable roles and permissions
+
+Status: Proposed (needs the owner answers in section 8). Date: 2026-10-11. Author: be-architect.
+Inputs: `docs/architecture/backend.md`, `adr-guid-keys.md` (revised 2026-10-11), `docs/design/mvp-ux.md` (1.1, 1.2, 1.4, 7.2), `docs/security/security-review-initial.md` (SEC-06, SEC-08, SEC-09, SEC-10), `docs/qa/retest-edge-accessibility.md` (ER-15), `docs/design/2026-refresh-plan.md`, PRD 3 and AUTH-02/03, and the code at HEAD 9d5a782 (file:line below).
+Scope: design only. No code was changed. `backend.md` is updated after acceptance (slice RP-0); its trade-off line "Roles and the permission matrix are code. Per-customer roles are a Phase 2 change" is superseded by this ADR.
+
+## 0. Decision in short
+
+1. **Permissions stay defined in code** (a catalog: stable code, group, description, dangerous flag, required permissions, default holders). The catalog is synced into a `Permission` table at start-up so the UI can list it and foreign keys hold. A new code-defined permission appears in the API and the role editor in the same release, granted to Admin and to no custom role.
+2. **Roles move to the database.** Five system roles are seeded with their current codes (`Admin`, `Owner`, `Supervisor`, `WarehouseStaff`, `Clerk`) and exactly today's permissions. System roles cannot be deleted or deactivated and keep their code; Admin can never lose a small administrability core (`users.read`, `users.manage`, `roles.read`, `roles.manage`). Custom roles can be created, renamed, copied, deactivated and deleted when unused.
+3. **One role per user.** Several roles per user is rejected (section 2.4). The owner's "or even user" wish is met by **per-user overrides** (grant or deny), with rules that keep sprawl small: always a reason, a grant always ends (at most 180 days), a deny may be permanent, nothing on the administrability core, never on yourself, dangerous permissions only by an administrator.
+4. **Every role-name rule in the code becomes a permission or a rule parameter.** There are six: see all warehouses (becomes a per-user data scope flag), own-only editing (`document.edit.any`), posting an approval-required document (`document.post.approved`), overriding negative stock (`stock.negative.override`), and the two approval tiers (`document.approve` for standard documents, new `document.approve.large` for large ones; the approval rule stores a tier instead of a role name). The catalog grows from 15 to 21 permissions. Nothing in Domain, Application or Api may compare a role name afterwards (architecture test).
+5. **Warehouse scope stays a separate per-user data scope.** The only change: "sees every warehouse" stops being a hidden trait of the Admin and Owner roles and becomes an explicit `AllWarehouses` flag on the user (migrated to true for today's Admin and Owner users).
+6. **The token carries identity only.** Rights are looked up per request from an **access snapshot** (active flag, role, effective permissions, scope) held in a short in-memory cache and invalidated by a one-row **access epoch** in the database that every instance polls every 2 seconds. A demotion or deactivation takes effect on the next request on the instance that made the change and within about 3 seconds on any other instance. This closes ER-15 and SEC-06. Cost: one cache lookup per request and four small indexed reads per user after a change; nothing grows with the 1M-row tables.
+7. **One computation, one answer.** `EffectivePermissions` (pure, in Domain) turns role grants, active overrides and the catalog into the permission set. The API policies, the domain policies, `ICallerPermissions`, `/api/auth/me` and the `effective-permissions` endpoint all read that one result. The `permissions` list the web app consumes keeps its shape (a string array); it gains new codes, plus additive fields `roleName`, `seesAllWarehouses` and `permissionsVersion`.
+8. **Safety rails are domain rules, tested as such:** the last-administrator guard is generalised from "role is Admin" to "holds the administrability core" and made race-free (today two administrators demoting each other at once both pass it); no self-service on your own role or exceptions; nobody grants what they do not hold; every change writes who, what, before and after.
+9. **New tables follow whatever `adr-guid-keys.md` chooses** (section 4.3). Only `Role` is addressed by a client. The design uses opaque ids in URLs, `Code` for the stable string, and no integer arithmetic.
+10. **Cost:** 10 backend slices, about 10,200 changed lines including tests, **about 137 agent-hours to build and about 30 more for reviews, security and QA**; about 13 working days on the critical path with two backend agents. Web adds about 4 slices (about 40 hours). Slices RP-1 to RP-4b can start now; RP-5 to RP-7 (public endpoints) should be built after the GUID flip PR-7 or be given the GUID treatment from the start (section 7.3).
+
+## 1. What the code does today (facts)
+
+- **Permissions are a static map from role name** (`Permissions.cs:36-47`, `Roles.cs:11`). The JWT carries the role name and the warehouse ids (`TokenService.cs:20-25`), not permissions. Each policy asks `IsInRole(role) && Permissions.Has(role, permission)` (`PresentationServices.cs:50-52`). So the review wording "permissions live in the 15-minute JWT" is nearly right: the **role and the scope** live there and everything else is derived from them at request time. `CurrentUser` reads the same claims (`CurrentUser.cs:13-17`); `ConfigureJwtBearer.cs:13-20` has no event that could check the database.
+- **Why ER-15 exists.** `UpdateUserHandler.cs:31-36` revokes the user's refresh tokens when role, scope, status or password change, but the access token stays valid until it expires (`AccessMinutes` 15). A demoted supervisor kept reading reports; a deactivated user still created a receipt (QA retest). Nothing validates a live user against the database after login.
+- **A race in the last-admin guard.** `UpdateUserHandler.cs:15-20` checks "another active administrator exists" and then saves. Two administrators demoting each other in parallel each see the other and both pass. The user rows differ, so the row-version token does not catch it. (New finding; fixed by section 2.9.)
+- **Role names are tested in more than a dozen places, not 2 (the table groups them by rule):**
+
+| Where | Rule today | Becomes |
+|---|---|---|
+| `Roles.cs:14`, `CurrentUser.cs:17`, `WarehouseScope.cs:6`, `DocumentAccess.cs:19`, `Seeder.cs:72` | Admin and Owner see every warehouse | `User.AllWarehouses` |
+| `DocumentActionPolicy.cs:11-12` | "restricted to own" = has `document.create` and lacks `document.approve` (implicit: giving a Clerk `document.approve` silently lifts the restriction) | explicit `document.edit.any` |
+| `PostingAuthority.cs:10`, used at `DocumentActionPolicy.cs:73` and `PostDocumentHandler.cs:16` | Warehouse staff may not post a document that needed approval | `document.post.approved` |
+| `PostingAuthority.cs:13`, `PostDocumentHandler.cs:22` | BR-03: negative-stock override needs rank >= Supervisor | `stock.negative.override` |
+| `ApprovalPolicy.cs:7-40`, `ApprovalsWaitingCountSpec.cs:14-15`, `ApprovalEvaluator.cs:15-27`, `ApprovalRule.cs:14,28` | rank Admin 4, Owner 3, Supervisor 2; Admin reviews anything, Owner only large, Supervisor only the rest; a rule names a role | two tier permissions and an `ApproverTier` on the rule |
+| `User.cs:37`, `UserSaveRequestValidator.cs:17`, `ApprovalRuleSaveRequestValidator.cs:13` | `Roles.All.Contains` | role lookup in the database |
+| `UpdateUserHandler.cs:15`, `ActiveAdminsSpec.cs:9`, `Seeder.cs:54,60` | "Admin" is the administrator | holder of the administrability core |
+| web: `permissions.const.ts:23-40`, `permission.service.ts:16`, `menu.const.ts:123-129`, `list-scope.preference.ts:26`, `approval-visibility.ts:34-41`, `settings.component.ts:120-125` | role constants decide phone tabs, "mine first", "sees all warehouses", the approval inbox fallback and the rule form | derived from `permissions` and the new `seesAllWarehouses`; rule form uses the tier |
+
+- **Tests.** About 450 references to roles in 38 test files. Most only name a system role to sign in as (`TestUsers`, `RoleMatrix`) and stay valid because system role codes do not change. The files that test role-to-permission functions (`PermissionsTests` 61, `DocumentActionPolicyTests` 59, `ApprovalPolicyTests` 44, `AllowedActionsTests` 45) change signature.
+- **Endpoint coverage today.** `EndpointCoverageTests` compares the code's `[Authorize(Policy)]` list with a hand-kept table but silently skips actions with no policy (`EndpointCoverageTests.cs:46-47`); the attachment routes rely on the fallback policy and handler checks (SEC-10); the test `Only_attachments_can_be_deleted_everything_else_is_deactivated` forbids any other DELETE verb.
+- **Row-level audit exists** for a fixed set of entities (`AppDbContext.cs:238-242`: User, ApprovalRule, SystemSetting, master data). `AuditActions` has user and settings events but nothing for permission changes, which AUTH-03 asks for.
+- **Doc drift to correct in passing:** SEC-09 says `users.read` is held by Owner and Supervisor; at HEAD only Admin holds it (`Permissions.cs:39-46`).
+
+## 2. The model
+
+### 2.1 The permission catalog (code is the source of truth)
+
+A permission is a stable, lower-case, dotted code (`document.approve.large`), at most 64 characters, never renamed once released (a rename is a new code plus a migration). The catalog entry holds:
+
+| Field | Meaning |
+|---|---|
+| Code | The existing `Permissions` constants stay as the way code refers to a permission (no churn in call sites) |
+| Group | Administration, Master data, Documents, Stock and reports, Cost and value: the sections of the role editor |
+| Description | One plain sentence in English (the web adds translations by code, `perm.<code>`, with the description as fallback) |
+| IsDangerous | Granting needs an administrator, a reason, and shows a warning (section 2.9). Pinned by a test, so adding one is a visible diff |
+| Requires | Other codes that must come with it (closure is validated when a role is saved; for example `document.post.approved` requires `document.post`) |
+| AdminCore | Part of the administrability core (the four codes in decision 2) |
+| DefaultFor | System roles that get it **the first time the row is inserted**, and never again (so an administrator's later removal survives restarts). Admin always gets every new permission |
+
+**The 21 permissions** (6 are new). Dangerous: `users.manage`, `roles.manage`, `settings.manage`, `document.reverse`, `stock.negative.override`, `audit.read`, `cost.view`, `valuation.view`.
+
+| Group | Codes |
+|---|---|
+| Administration | `users.read`, `users.manage`, `roles.read` (new), `roles.manage` (new), `settings.manage`, `audit.read` |
+| Master data | `masterdata.read`, `masterdata.manage`, `partners.create` |
+| Documents | `document.create`, `document.edit.any` (new), `document.approve` (now: standard documents), `document.approve.large` (new), `document.post`, `document.post.approved` (new), `document.reverse`, `stock.negative.override` (new) |
+| Stock and reports | `stock.read`, `reports.read` |
+| Cost and value | `cost.view`, `valuation.view` |
+
+**Default holders (the system roles, exactly today's behaviour):**
+
+| Role | Permissions |
+|---|---|
+| Admin | all 21 |
+| Owner | `masterdata.read`, `document.approve.large`, `stock.read`, `reports.read`, `audit.read`, `cost.view`, `valuation.view` |
+| Supervisor | `masterdata.manage`, `masterdata.read`, `partners.create`, `document.create`, `document.edit.any`, `document.approve`, `document.post`, `document.post.approved`, `document.reverse`, `stock.negative.override`, `stock.read`, `reports.read`, `cost.view`, `valuation.view` |
+| WarehouseStaff | `masterdata.read`, `document.create`, `document.post`, `stock.read` |
+| Clerk | `masterdata.read`, `partners.create`, `document.create`, `stock.read`, `cost.view` |
+
+Notes: the Owner loses the code `document.approve` and gains `document.approve.large`; this is the one visible change in a role's `permissions` list and the web must follow (section 3.5). The Owner does not get `stock.negative.override` because the Owner cannot post, so it would be inert and the role editor would show a right that does nothing (`Requires` would also flag it).
+
+**Sync.** At start-up, after migrations (`Seeder.SeedAsync`), `PermissionCatalogSync` makes the `Permission` table equal the catalog: insert new codes (and grant them per `DefaultFor` plus Admin), update group/description/flags (code owns them), set `RetiredAt` on a code the catalog no longer has (assignments are kept but ignored by the computation), clear it if it returns, and re-add any missing AdminCore code to the Admin role (self-heal after a manual database edit). It runs under a transaction-owned application lock so two instances starting together do not race; the primary key is the backstop, and a lost race retries through `ExecuteAsync`. A sync that changed anything bumps the access epoch and writes one audit row `permissions.catalog-synced` (actor `system`, added and retired lists).
+
+**OpenAPI.** The codes are published as a string enum `PermissionCode` (built from the catalog like `EnumSchemaTransformer` does), used by `UserInfo.permissions[]` and the role DTOs, so the generated web client gets every new code without a hand-copied list.
+
+### 2.2 Roles
+
+`Role`: Code (immutable, unique among live rows, a slug; system roles keep their present strings; a custom role gets a slug of its first name with a number on collision), Name (display, editable, unique among live rows, 2 to 60 characters), Description (at most 200), IsSystem, IsActive, a revision counter that moves whenever its permission set changes (so the role's concurrency token covers its children), and the standard audit columns with soft delete.
+
+| Operation | Rule |
+|---|---|
+| Create | Name, optional Description, optional **copy from** an existing role (copies its permission set at that moment; no live link; the audit row names the source) or an explicit set |
+| Rename / edit text | Custom and system roles; Code never changes |
+| Deactivate | Refused while any user (active or not) still has the role (409 with the count). An inactive role cannot be assigned. A deactivated role **never** silently strips people, because that would lock users out without an audit trail on them |
+| Delete | Custom roles only, only when no user has it (soft delete; the name can be reused). System roles: 409 |
+| System roles | Seeded by the migration; not deletable or deactivatable; permissions editable except the Admin core. A later "reset to defaults" action (RP-9, optional) restores the catalog defaults |
+
+### 2.3 Role-permission assignments
+
+`RolePermission(role, permission code)` rows, unique among live rows. The role editor sends the **whole set** (replace); the server computes the diff, validates it, writes it, and returns `added` and `removed`. Removing a grant is a soft delete like everything else. Codes that are retired in the catalog are ignored by the computation and hidden from the editor.
+
+### 2.4 One role per user, or several (decision: one)
+
+| | One role + overrides (recommended) | Several roles (union) |
+|---|---|---|
+| Contract | `UserInfo.role` and `UserSaveRequest.role` keep their meaning; nothing breaks | `role` becomes a list: breaking for the web, the audit text, the users filter and the shell |
+| UI that needs "the" role | Role label in the shell, the Home profile (R17, R19), phone tabs: one answer | Needs a rule for which role wins; invites "primary role" fields |
+| Conflicts | None between roles; one explicit deny wins over one explicit grant, only at user level | Union plus deny is a conflict language (two roles disagree) that administrators must understand |
+| Audit | One before/after pair | Set arithmetic in every entry |
+| Cost | Included | About +10 hours and a longer matrix test |
+| Reversibility | A `UserRole` join table can be added later without changing the computation (the computation takes "role grants" as an input set) | n/a |
+
+A person who really does two jobs gets a role for the main job and a time-boxed grant for the rest. If, after a year, administrators keep stacking overrides on the same combination, that combination should become a role; the Users list shows how many users carry overrides, so this is visible.
+
+### 2.5 Per-user overrides (decision: yes, constrained)
+
+The owner's wish ("or even user") is reasonable (cover for leave, one person who must not post). The cost is permission sprawl: access that no role explains, hard to review. The recommendation keeps the wish and puts a price on exceptions:
+
+| Rule | Why |
+|---|---|
+| An override is (user, permission, Grant or Deny, reason, optional end date), one per user and permission | No conflicting pairs can exist; "deny wins" is then trivially true |
+| Reason is mandatory (at least 5 characters trimmed, like the other reasons in the product) | Reviewability |
+| A **Grant must have an end date**, at most 180 days ahead; a **Deny may be permanent** | A grant is an exception; if it is permanent the person needs a role. A permanent deny is a legitimate restriction |
+| Not allowed on the AdminCore codes, in either direction | The core only changes through the role assignment, which the last-administrator guard watches |
+| Not allowed on yourself | No self-service escalation (and no self-lockout through a deny) |
+| Granting a dangerous permission, or any permission the actor does not hold, is refused unless the actor is an administrator (holds the core) | Section 2.9 |
+| Needs `roles.manage` | Same power as editing a role; kept apart from `users.manage` (user administrators who may not widen rights) |
+| Expiry is exact: the snapshot is valid only until the next override end date; a 5-minute sweeper then soft-deletes the row, writes `user.override-expired` and bumps the epoch | No reliance on a request writing anything; audit stays complete |
+| The Users list shows an "exceptions" count and the user form lists them with their end dates | Sprawl stays visible |
+
+Default: Admin only (nobody else holds `roles.manage`). The effect on the audit and review cost is one extra entity type and four events.
+
+### 2.6 Warehouse scope stays a separate per-user data scope
+
+Features (permissions) and data scope (warehouses) stay two dimensions (PRD 3). `UserWarehouse` is unchanged. Today's hidden rule "Admin and Owner see all" becomes `User.AllWarehouses` (bit, default false, migrated true for existing Admin and Owner users, true for the seeded admin). It lives on the user, not the role, because a regional owner limited to two warehouses is a legitimate case that a role trait cannot express (cost of the other choice: a role-level `SeesAllWarehouses` is one column fewer and no per-user form field; switching later is a one-day change, section 8 Q6). Rules: the flag and the warehouse list are part of the access snapshot (so they are as fresh as permissions); changing either is audited; an actor can only assign warehouses inside their own scope and may set `AllWarehouses` only if they have it (scope cannot be escalated either); a custom role never carries scope.
+
+### 2.7 Own-only edits and Large-document limits as permissions plus parameters
+
+- **Own-only.** `document.edit.any` ("edit, submit or cancel any user's draft or submission in your warehouses"). Without it a user acts only on documents they created or submitted, exactly as `DocumentActionPolicy` does today. The rule is now explicit, so granting `document.approve` to a Clerk no longer removes the restriction by accident. The ownership guard itself stays a business rule in the domain policy, parameterised by the permission set, not by a role name.
+- **Large-document limits.** Two tier permissions, `document.approve` (standard) and `document.approve.large`. The rule parameter is `ApproverTier` (Standard or Large) instead of `RoleRequired`. A document is Large when any fired rule says Large (as `ApprovalPolicy.IsLarge` does today with rank). Review routing is one line: a Large document may be reviewed by a holder of `document.approve.large`, any other by a holder of `document.approve`; a holder of both (Admin) reviews all; segregation of duties (BR-07, `AllowSelfApproval`) is untouched. `ApprovalPolicy.CanApprove` collapses into `MayReview` because rank no longer exists. The inbox and the "waiting" count become: both tiers, no tier filter; only large, `IsLarge`; only standard, `not IsLarge`; neither, zero.
+- **Who approves a rule?** The web shows "Approver role" on a rule and in the trigger text. The server derives it: the names of the active roles that hold the tier's permission. `roleRequired` stays on `ApprovalRuleDto` and `ApprovalTriggerDto` for one release (value: `Supervisor` for Standard, `Owner` for Large when those roles hold the permission, otherwise the first holder's name), next to the new `approverTier` and `approverRoles`. The deprecated field is removed in the clean-up slice.
+- **Two tiers are a deliberate limit.** A third tier is a new permission, a new enum value and a migration, not data. The old option "Admin" in the rule form (a rule only an Administrator can satisfy, `settings.component.ts:121`) maps to Large; with the seeded data there is no such rule. The migration logs how many rules changed meaning (Q5).
+- **Cost visibility.** Unchanged mechanism: `[VisibleWith(permission)]`, `CostVisibilityBehavior`, `ReportWriter` columns, `RequestGuard` sort refusal all take the permission from `ICallerPermissions`, which now reads the snapshot. What changes is that the owner's rule "Warehouse staff never see cost" (mvp-ux 1.4) is no longer enforced by the code but by the defaults of the system role, plus the dangerous flag on `cost.view` and `valuation.view`. Q4 asks whether any role must be unable to get them.
+
+### 2.8 The effective-permissions computation (single source of truth)
+
+`EffectivePermissions.Compute` in Domain, pure, unit-tested without a database:
+
+1. Start with the role's grants, restricted to codes that are active in the catalog.
+2. Add overrides of type Grant that are not past their end date.
+3. Remove overrides of type Deny that are not past their end date (deny wins).
+4. Return the set, a stable fingerprint of (role, set, AllWarehouses, warehouse ids, active flag), and the earliest end date of any override still in force (the snapshot's validity limit).
+
+An inactive user has no snapshot (the request is refused). The per-permission "source" shown in the UI (`Role`, `OverrideGrant`, `OverrideDeny`, `None`, with end date) comes from the same function. Nothing else computes rights; the architecture tests of section 6 enforce it.
+
+### 2.9 Safety rails
+
+| Rail | Rule | Test |
+|---|---|---|
+| Administrability | The Admin role always holds the AdminCore; removing one is refused (409). Sync re-adds a missing one. A role edit, a role reassignment, an override, a deactivation or a delete is refused when it would leave **no active user holding the whole core**. Evaluated on the proposed state inside the transaction | last-admin matrix: edit role, change role, deactivate, delete role, override, each as the last holder |
+| No race | All access-changing commands take one transaction-owned application lock (`access:admin`) first; it is never held together with stock or document locks, so the global lock order in `backend.md` is unchanged | two administrators demoting each other in parallel: exactly one succeeds |
+| No self-service | You cannot change your own role, `AllWarehouses`, warehouses or exceptions (409 `CannotChangeOwnAccess`), and you cannot deactivate yourself (exists). Another administrator does it | self matrix |
+| No escalation | An actor may grant (to a role or a user) only permissions they hold themselves. Dangerous permissions, the AdminCore, system roles and any role that holds a permission the actor lacks can only be edited by an administrator. A user whose effective rights exceed yours cannot be edited by you. Assigning a role is a grant of all its permissions, so the same containment applies | escalation matrix with a delegated manager |
+| Dangerous | Adding a dangerous permission (to a role or as an exception) needs an administrator and a reason | catalog-driven test |
+| Dependencies | A role set must be closed under `Requires`; violation is 400 with the missing code | generated from the catalog |
+| Audit | Row-level audit (automatic, cannot be forgotten) is switched on for Role, RolePermission, UserPermissionOverride (added to `AppDbContext.Audited`), plus **one explicit event per request** with who, what, before and after in role codes and permission codes: `role.created`, `role.updated`, `role.permissions-changed`, `role.deleted`, `user.role-changed`, `user.scope-changed`, `user.override-set`, `user.override-cleared`, `user.override-expired`, `permissions.catalog-synced`, and `access.refused` for a blocked escalation attempt by an authenticated user. Entity id in the audit row is the role **code**, so it reads well and does not depend on the key decision. The audit log stays Owner and Admin only | every command, asserted in the integration test of that command |
+| Concurrency | Roles carry the usual concurrency token (`ETag`, `If-Match`); a permission replace without it is refused (428) because a lost update here is a security bug | stale-edit test |
+| Failed logins | Lockout counters never touch the epoch (an attacker must not be able to churn every cache); SEC-08 (limiter per account and address) is independent of this epic | test that failed logins do not bump the epoch |
+
+## 3. Enforcement and freshness
+
+### 3.1 Options weighed
+
+| Option | Staleness | Per-request cost | Verdict |
+|---|---|---|---|
+| Permissions as claims in the 15-minute JWT | up to 15 minutes (today's ER-15) | none | Rejected: cannot revoke; token grows with every new permission |
+| Short token (1 to 2 minutes) | 1 to 2 minutes | refresh traffic x10, hurts the Phase 2 offline plan | Rejected |
+| Token with a version claim checked against the database | until the version is read, i.e. a lookup per request anyway | one read per request | Same lookup as below without the cache; rejected |
+| **Lookup per request through a cached snapshot, invalidated by a database epoch (chosen)** | same instance: next request; other instances: poll interval (2 s) + request time | one in-memory lookup | Chosen |
+| Distributed cache or pub/sub (Redis) | instant | one network hop | Not needed: there is no Redis in the stack, and SQL polling meets the target. The port (`IAccessSnapshots`) lets a later release swap it |
+
+### 3.2 How a request is evaluated
+
+1. The JWT is validated as today (signature, issuer, audience, lifetime). The token now carries identity only: `sub`, `NameIdentifier`, `Name`. The role and warehouse claims are dropped; tokens issued before the deploy still validate and their extra claims are ignored. A forged valid-looking token with `Role=Admin` therefore gains nothing (test).
+2. A bearer event (`OnTokenValidated`, in Api) asks `IAccessSnapshots.GetAsync(userId)`. No snapshot (user missing, inactive or deleted) fails the validation: **401** with the same body as an expired token, so the web's existing refresh then sign-in path runs (the refresh token is revoked on deactivation, as today). A role change does not sign anyone out; the person just gets the new rights.
+3. The snapshot (immutable) is stored for the request. `CurrentUser` exposes `Permissions`, `Has(code)`, `SeesAllWarehouses`, `WarehouseIds`; `Role` (the code) remains only for display and audit. Policies are one `PermissionRequirement` handler per catalog code, plus an any-of policy `DocumentReview` (`document.approve` or `document.approve.large`) for the approve and reject endpoints. They fail closed.
+4. Every response carries `X-Permissions-Version: <fingerprint>` (added to the CORS exposed headers). The web compares it with the value it got at sign-in; a difference triggers one `GET /api/auth/me`, so menus and buttons follow a change without waiting for a refresh. This is a contract addition, not a change.
+
+### 3.3 The cache and the epoch
+
+- **Snapshot loader (Application).** Four indexed reads by user id: user with role, role permissions, active overrides, warehouses. About 1 to 2 ms (to be measured by be-dba in RP-3). It runs on a miss only.
+- **Cache (Infrastructure).** `IMemoryCache` entries keyed by user id, valid while (a) the entry's epoch equals the instance's current epoch, (b) the entry is younger than `Access:SnapshotTtlSeconds` (default 60; the backstop if the watcher stops), (c) now is before the snapshot's earliest override end date. Single-flight per user so six parallel requests cause one load. A failed load is an error (503/500), never an allow.
+- **Epoch (database).** One-row table `AccessEpoch`. Every access-changing command increments it **in its own transaction** (under the `access:admin` lock). A hosted watcher in each instance reads it every `Access:EpochPollSeconds` (default 2, range 1 to 30) and publishes it to the cache. The instance that made the change also clears its own cache immediately after commit. Reading the epoch before loading the data means a change that lands in between only makes the entry look stale, never fresh.
+- **Staleness.** Same instance: none. Other instances: poll interval plus one request, about 3 seconds at p99 with the defaults. Watcher or database trouble: the TTL caps it at 60 seconds. This is the number to quote for ER-15 and SEC-06 ("within seconds", measured by a test).
+- **Cost at scale.** One scalar read every 2 seconds per instance (0.5 per second); one dictionary lookup per request; after an access change every active user reloads once (a few hundred users: a few hundred small queries over a minute). Memory is about 2 KB per signed-in user. None of it touches the ledger, document or audit tables, so the 1M-row and 3M-row tiers are not affected. k6 stays the check (p95 of authenticated reads within 5 percent of today).
+- **Multiple instances.** Correct by construction: the epoch is shared state in the database, the cache is per instance. No instance clock is compared with another's.
+
+### 3.4 Login, refresh, me
+
+Login and refresh build `UserInfo` from the same loader (uncached, fresh) instead of `Permissions.For(user.Role)` (`UserInfoMapper.cs:8`). Refresh no longer needs to carry rights anywhere; the 15-minute token lifetime (SEC-06 cap) stays and could later be lengthened because rights do not ride in it (not recommended now). `UpdateUserHandler` keeps revoking refresh tokens for deactivation and password change, and stops doing it for a plain role or scope change (the snapshot handles it; forcing a sign-in on a demotion helps nobody).
+
+### 3.5 The `permissions` contract the web consumes
+
+Kept: `UserInfo.permissions` is the string array of **effective** codes; `id`, `username`, `displayName`, `role` (the role code), `warehouseIds` keep their meaning. Additive: `roleName` (display), `seesAllWarehouses`, `permissionsVersion`. Content change the web must follow in the same release: the Owner's list has `document.approve.large` instead of `document.approve`, so the Approvals menu and route guard must accept either tier (menu items already use "any of"); `ROLE`, `ALL_ROLES`, `ALL_WAREHOUSE_ROLES`, `PHONE_TABS_BY_ROLE`, `MINE_FIRST_ROLES` and the switch in `approval-visibility.ts` go away. Replacements, all derived from `permissions` in one function in the identity library so no screen invents its own: Home profile (administrator when `users.manage`; reviewer when an approve tier; doer when `document.create`; otherwise overseer), phone tabs per profile, "mine first" for users without `document.edit.any`. Role labels use `roleName` (system roles keep their translated labels through the code; custom names are shown as typed).
+
+## 4. Data model and migration
+
+### 4.1 Tables
+
+| Table | New or changed | Columns that matter | Keys and indexes |
+|---|---|---|---|
+| `Permission` | new | Code (natural key, 64), Group, Description, IsDangerous, AdminCore, SortOrder, RetiredAt, audit columns | PK on Code. Sync-managed; never soft deleted (retired instead) |
+| `Role` | new | Code, Name, Description, IsSystem, IsActive, PermissionsRevision, audit columns with `ROW_VERSION` | Unique Code and unique Name among live rows (filtered on `REC_DELETED = 0`) |
+| `RolePermission` | new | RoleId, PermissionCode, audit columns | Unique (RoleId, PermissionCode) among live rows; FK to Role and Permission, restrict |
+| `UserPermissionOverride` | new | UserId, PermissionCode, Effect (Grant 1, Deny 2), Reason (200), ExpiresAt, audit columns (creator = who set it) | Unique (UserId, PermissionCode) among live rows; filtered index on ExpiresAt where not null (the sweeper) |
+| `AccessEpoch` | new | single row, Value bigint | Seeded with one row; never read by users |
+| `User` | changed | `Role` (string) replaced by `RoleId` (FK, restrict); new `AllWarehouses` bit | Index on RoleId (role in-use check, users in role) |
+| `ApprovalRule` | changed | `RoleRequired` (string) replaced by `ApproverTier` (1 Standard, 2 Large) | none new |
+| `AuditLog` | none | new entity names and action names only | `AuditEntities.Known`, `AuditActions.Known` |
+
+No big table is touched (`User` and `ApprovalRule` are tiny), so the migration is online-safe and needs no index rebuild.
+
+### 4.2 Migration `AddRolesAndPermissions` (one migration, working `Down`)
+
+`Up`, in this order, all in the migration's own transaction:
+1. Create the five tables; seed `AccessEpoch` with one row.
+2. Insert a **frozen copy** of the 21 permissions, the five system roles (codes as today) and their role-permission rows (section 2.1 table). The migration never reads the live catalog, because the catalog will change after this migration ships. A fresh database gets the same rows from the same migration, so there is one path for new and upgraded installs; the start-up sync handles anything newer.
+3. Add `User.RoleId` null, set it from `Role.Code = User.Role`, then **stop with an error if any user is unmapped** (never default silently to a lower or higher role), then make it NOT NULL with the FK and index.
+4. Add `User.AllWarehouses` (default false); set true for users whose old role was Admin or Owner.
+5. Add `ApprovalRule.ApproverTier`; Supervisor to Standard, Owner and Admin to Large, anything else to Large (the stricter reading); count and log the rules whose meaning narrowed (an Admin-only rule).
+6. Drop `User.Role` and `ApprovalRule.RoleRequired`.
+
+`Down`: re-create both string columns from the codes (a user in a custom role becomes `WarehouseStaff`, the least privilege; a tier maps back to Supervisor or Owner), drop the new columns, tables and indexes. Tested up, down, up on an empty and on a populated database (the 1M-tier copy), with the SQL extras unchanged.
+
+**Safe default, proved.** Before RP-1 starts, the old behaviour is captured as oracle fixtures in the tests: `Permissions.For(role)` for the five roles, and the outputs of `DocumentActionPolicy`, `ApprovalPolicy` and `PostingAuthority` for every role, document status, large flag, submitter and creator combination (a few thousand rows, generated from the current code and committed). The **rights-parity test** feeds the migrated database's five system roles through the new computation and the new policies and must reproduce the oracle exactly, except for the two documented renames (Owner: `document.approve` becomes `document.approve.large`; Admin-only rules become Large). The same test runs on a fresh database and on one migrated from a populated `Ims_QA` copy, and the results must be identical.
+
+**Rollback.** Before merge: not merged. After merge: `dotnet ef database update <previous>` runs `Down`; the old application then works again (it needs the `Role` column back). Sessions in flight survive both directions because tokens still carry the identity claims.
+
+### 4.3 Effect of the GUID key decision (`adr-guid-keys.md`)
+
+The design needs no integer arithmetic. Role ids are opaque in URLs and DTOs; the stable human value is `Role.Code` (immutable, so it may also be used in the audit `EntityId` and in `UserSaveRequest.role`, which therefore does not change when ids become GUIDs).
+
+| Table | Option 1 (hybrid, recommended there) | Option 2b | Options 2a and 3 |
+|---|---|---|---|
+| `Role` | int key + `PublicId` (becomes the 10th table of `AddPublicIds`, about +1 hour) | GUID primary key + int alternate key | GUID primary key |
+| `User.RoleId`, `RolePermission.RoleId` | stay int | reference the int alternate key | become GUID (16 bytes, tiny tables) |
+| `UserPermissionOverride` | int key; addressed as (user public id, permission code), no public id of its own | same | GUID key |
+| `RolePermission` | int key; no public id | same | GUID key |
+| `Permission` | natural string key; unaffected | unaffected | unaffected |
+| `AccessEpoch` | unaffected | unaffected | unaffected |
+| `ApprovalRule` | already one of the 9 | already in the set | already in the set |
+
+If this epic lands before `AddPublicIds`, `Role` is created with a `PublicId` column already (one unique index) so the later migration only has to expose it. If it lands after, `Role` is built with the pattern from day one. Either way no table here is large, so the choice between the options costs nothing in storage or speed.
+
+## 5. API surface
+
+All under `/api`. Operation ids follow `Tag_action` (`Roles_list`, `Roles_replacePermissions`, `Permissions_list`, `Users_setPermissionOverride`). Errors are ProblemDetails with the usual `code` extension. A role id is opaque.
+
+| Method and path | Needs | Behaviour |
+|---|---|---|
+| `GET /api/permissions` | `roles.read` | The catalog: code, group, description, isDangerous, requires, adminCore, retired. Cacheable by `ETag` |
+| `GET /api/roles?search&includeInactive` | `roles.read` | Array (hard cap 1,000): id, code, name, description, isSystem, isActive, permissionCount, userCount, concurrencyToken |
+| `GET /api/roles/{id}` | `roles.read` | The role with its permission codes; `ETag` |
+| `POST /api/roles` | `roles.manage` | Body: name, description, optional `copyFromRoleId`, optional `permissions`. 201 with `Location`. Not idempotent by design (no client ids): a retry answers 409 `role_name_exists` and changes nothing |
+| `PUT /api/roles/{id}` | `roles.manage` | Name, description, isActive. `If-Match` optional. Code, isSystem in the body are ignored with 400 if present (no mass assignment) |
+| `PUT /api/roles/{id}/permissions` | `roles.manage` | Body: permission codes and a reason (required when it adds a dangerous one). **`If-Match` required** (428 `if_match_required`, 409 when stale). Idempotent replace; returns `added`, `removed`, new token. Same set again: 200 and no audit row |
+| `DELETE /api/roles/{id}` | `roles.manage` | 204; 409 `role_in_use` or `system_role_protected` |
+| `GET /api/roles/{id}/users?page&pageSize` | `roles.read` | Paged users with this role (what blocks a delete or deactivation) |
+| `POST /api/roles/{id}/reset` | `roles.manage` | RP-9, system roles only |
+| `POST /api/users`, `PUT /api/users/{id}` | `users.manage` | **Unchanged path and shape**: `role` is still the role code; new optional `allWarehouses`. The role assignment is the existing user save, so there is no second place to assign a role. Creating or changing a user also passes the escalation and self rules |
+| `GET /api/users/{id}/permission-overrides` | `roles.read` | Active and expired, with end dates |
+| `PUT /api/users/{id}/permission-overrides/{code}` | `roles.manage` | Body: effect, reason, expiresAt. Idempotent upsert (201 new, 200 replace or unchanged) |
+| `DELETE /api/users/{id}/permission-overrides/{code}` | `roles.manage` | 204, also when it did not exist |
+| `GET /api/users/{id}/effective-permissions` | `roles.read` | Every catalog code with `granted` and `source` (`Role`, `OverrideGrant`, `OverrideDeny`, `None`), end date, plus role, scope and fingerprint. The same function as `/auth/me` |
+| `GET /api/auth/me`, login, refresh | signed in | Same shape, additive fields (section 3.5) |
+
+**Conventions kept or changed on purpose.** `DELETE` appears for roles and overrides: the test that allows it only for attachments gets an explicit two-entry allow-list with the reason (configuration rows with no history of their own beyond the audit). Role and permission writes run inside `ExecuteAsync`. Dates are UTC with `Z`. `users.manage` alone can no longer widen anyone's rights beyond what the actor holds; widening what a role can do needs `roles.manage`.
+
+**Validation and messages** (constants in `Messages`, English, shown by the web as server sentences where it has no key):
+
+| Case | Status and code | Message |
+|---|---|---|
+| Name taken | 409 `role_name_exists` | A role named '{name}' already exists. |
+| Unknown permission | 400 | Unknown permission '{code}'. |
+| Missing dependency | 400 | '{code}' also needs '{required}'. |
+| Beyond own rights | 403 `grant_beyond_own` | You can only grant permissions you hold yourself. |
+| Dangerous without administrator | 403 | Only an administrator can grant '{code}'. |
+| Reason missing or short | 400 | Give a reason of at least 5 characters. |
+| Grant without end date or beyond 180 days | 400 | A granted exception needs an end date within 180 days. |
+| Core removed from Admin | 409 `admin_core_required` | The Administrator role must keep: {list}. |
+| Last holder of the core | 409 | At least one active administrator must remain. (existing text) |
+| Own account | 409 `cannot_change_own_access` | You cannot change your own role, scope or exceptions. Ask another administrator. |
+| System role | 409 `system_role_protected` | System roles cannot be deleted or deactivated. |
+| Role in use | 409 `role_in_use` | {n} user(s) still have this role. Move them to another role first. |
+| Stale edit | 409 | existing stale-document wording, role variant |
+| Reviewer tier mismatch | 403 | Reviewers of large documents only review large ones. A standard approver reviews this one. (replaces `OwnerReviewsLargeOnly`) |
+
+## 6. Test strategy
+
+Principle: tests are generated from the catalog and from the controllers, not from hand-kept role tables. A new permission or endpoint therefore gets coverage without anyone remembering to add it.
+
+1. **Catalog (Domain.Tests).** Every `Permissions` constant has an entry and vice versa; codes unique, pattern-valid, at most 64 characters; every entry has group and description; `Requires` points to real codes and is acyclic; the dangerous set and the AdminCore are pinned by snapshot (a change is a visible diff); `DefaultFor` holders satisfy `Requires`.
+2. **Every code-defined permission is assignable and effective** (integration). For each catalog code: create a role with that code plus its `Requires` closure through the API, assign it to a user, and assert the code is in the user's `/me` list, in `effective-permissions` with source `Role`, and that the sync row exists. Also: add a fake code to a test catalog, run the sync, and assert it appears in `/api/permissions`, goes to Admin only, and is assignable.
+3. **Every permission is enforced somewhere.** A reflection test requires each code to be referenced by at least one `[Authorize(Policy)]`, a handler guard, a `[VisibleWith]` tag, or a registered domain-policy use (a short allow-list file with the test that proves each: `document.edit.any`, `document.post.approved`, `stock.negative.override`, `document.approve.large`). No dead switches.
+4. **Endpoint matrix generated from the controllers.** For every action with an `[Authorize(Policy)]` and for each of: a role with exactly the required closure (not 403), a role with every permission except the required one (403), no token (401). Replaces the hand-kept `EndpointCatalog` table; the table stays only as a pin of the route-to-policy list.
+5. **Architecture tests** (`Ims.Architecture.Tests`): (a) every controller action has a policy or is in a short `AnonymousOrAnySignedIn` allow-list with a reason (login, refresh, logout, me, change-password, health); this also puts the attachment routes under the rule (SEC-10) and removes the silent skip in `EndpointCoverageTests`; (b) no use of `Roles.*`/`SystemRoleCodes`, `.Role ==`, `IsInRole` or `Permissions.Has(role, ...)` in Domain, Application or Api outside `SystemRoleDefaults` and the Seeder; (c) `EffectivePermissions` is the only code that combines grants and overrides; (d) Domain policies take `ActorRights`, not strings; (e) the DELETE allow-list; (f) OpenAPI: `PermissionCode` enum equals the catalog; operation ids pinned for the role endpoints.
+6. **Cost visibility and review routing by permission set, not by role.** `CostVisibilityMatrixTests` and `ReviewRoutingTests` are re-keyed: ask every read, export and document command as a caller whose role holds exactly {none}, {cost.view}, {valuation.view}, {both}; and every approval path with {approve}, {approve.large}, {both}, {neither}. Stronger than the five-role version, and it proves the rule holds for a role nobody invented yet.
+7. **Security (integration plus PoC scripts in `tests/security`).** A delegated manager (holds `roles.manage` only) tries: grant a permission they lack; edit a role holding more than they do; assign a stronger role to a user or to themselves; set an exception on themselves; grant a dangerous permission; remove `users.manage` from Admin; delete or deactivate a system role; deactivate a role in use; mass-assign `isSystem` or `code`; edit with a stale or missing `If-Match`. Each expects the status and message of section 5 and an `access.refused` audit row where applicable. Two administrators demoting each other in parallel: exactly one succeeds, an active administrator remains. A user's snapshot is never served to another user (parallel mixed requests).
+8. **Token freshness** (closes ER-15 and SEC-06). Demote: next request 403 on the same host, under 100 ms. Deactivate: next request 401. Two hosts on one database (poll set to 100 ms in tests): a change through host A is seen on host B within one second. Override end date passes (fake clock): the right is gone on the next request without any write. Watcher stopped: the TTL backstop applies. A validly signed token with an old or forged `Role` claim gets the database role's rights. Failed logins leave the epoch unchanged.
+9. **Migration.** The rights-parity test of section 4.2 on a fresh and a migrated database; up, down, up; the unmapped-user stop; the tier mapping including the Admin-only rule.
+10. **Audit.** Each command is asserted to write its explicit event with who, what, before and after, and its row-level rows; the scrubber and the Owner-and-Admin-only rule still hold.
+11. **End to end.** `06-roles` is generated from permission sets. New scenario: an administrator creates the role "Report viewer" (copy of Clerk plus `reports.read`), creates a user in it, signs in as that user, sees exactly those menu items; the administrator removes `reports.read`; the user's next navigation shows the forbidden page without signing out. A second scenario for a deactivated user (sign-in page with the return URL). QA personas retest ER-15 and the edge matrix.
+12. **Performance.** The existing k6 read scenarios must stay within 5 percent at p95; a counter test shows one snapshot load per user per epoch.
+
+## 7. Slice plan
+
+Each slice is under about 1,200 changed lines (tests included, generated migration designers and the generated API client excluded; the repository guard rejects a pull request over 1,500). Hours are agent-hours including building, running the suites and fixing; ranges about plus or minus 25 percent. Every slice gets the independent review of the PR protocol; be-dba reviews RP-2 and RP-3, security-engineer RP-3, RP-6, RP-7.
+
+### 7.1 Backend slices
+
+| Slice | Content | Lines | Hours | Depends on |
+|---|---|---|---|---|
+| RP-0 | This ADR accepted; owner answers recorded; `backend.md`, `mvp-ux.md` 1.1/1.2 reworded as "defaults of the system roles"; the oracle fixtures of section 4.2 committed | 250 (docs, fixtures) | 4 | owner |
+| RP-1 | Catalog, `SystemRoleDefaults`, `ActorRights`, `EffectivePermissions`; Domain policies (`DocumentActionPolicy`, `ApprovalPolicy` by tier, `PostingAuthority`) take `ActorRights` built from the old static map (a shim), `ApprovalRule` keeps its string for now and maps to a tier; catalog and calculator tests; policy tests re-keyed to the oracle. No database change, no behaviour change | 1,000 | 14 | RP-0 |
+| RP-2 | Entities, mappings, `AddRolesAndPermissions` migration with frozen seed and `Down`, `PermissionCatalogSync`, Seeder, row-level audit set, specs; `User.Role` becomes the role's code through the relation so the app still runs on the static map; migration, parity and sync tests | 1,000 (+900 generated) | 16 | RP-1 |
+| RP-3 | Access snapshot loader, cache, epoch table access and watcher, bearer event, `CurrentUser` from the snapshot (role code, scope, active flag; permissions still from the static map), token trimmed to identity, `X-Permissions-Version`, deactivation gives 401, refresh no longer revoked on role change, `UserInfo` additive fields, options and constants. **Closes ER-15 and SEC-06 for the five system roles** | 950 | 14 | RP-2 |
+| RP-4a | Permissions come from the database through the snapshot; `ActorRights` replaces `Permissions.Has(role, ...)` in every call site (documents, attachments, `CallerPermissions`, counts, posting); policies generated from the catalog plus `DocumentReview`; `document.edit.any`, `document.post.approved`, `stock.negative.override` enforced; static map deleted; `Roles` becomes `SystemRoleCodes` | 1,100 | 16 | RP-3 |
+| RP-4b | Approval tiers end to end (`ApproverTier`, rule API with the deprecated `roleRequired`, validators, inbox spec, evaluator, messages), `User.AllWarehouses` replaces `SeesAllWarehouses` (user save, scope, seed), user validators use the role table | 800 | 11 | RP-4a |
+| RP-5 | `Features/Roles`: permissions list, roles list and detail, create (with copy), update, deactivate, delete, users of a role; ETags; audit events; controllers and OpenAPI (`PermissionCode`); messages | 1,150 | 16 | RP-3 (parallel with RP-4a/4b on a second agent) |
+| RP-6 | Replace role permissions with diff, closure, containment, dangerous rule, Admin core, `AdministrabilityGuard` and the `access:admin` lock used by user save and all role writes; escalation and last-admin security tests | 1,100 | 18 | RP-4a, RP-5 |
+| RP-7 | Overrides (set, clear, list), `effective-permissions`, expiry sweeper, exceptions count in the users list, user save rails (self, scope containment) | 1,000 | 15 | RP-6 |
+| RP-8 | Generated endpoint matrix, architecture tests, permission-set re-keying of visibility and routing tests, DELETE allow-list, removal of the deprecated `roleRequired` plan note, docs | 1,100 | 14 | RP-7 (parts land earlier with each slice) |
+| RP-9 (optional) | Reset a system role to defaults; impact preview ("this change affects 12 users") | 500 | 8 | RP-6 |
+
+Totals without RP-9: about 10,200 lines (the tests are about 55 percent of it), **137 agent-hours** (range 105 to 170). Reviews, DBA and security passes and QA retests add about 30 hours. Critical path RP-0, RP-1, RP-2, RP-3, RP-4a, RP-6, RP-7, RP-8 is about 13 working days; RP-4b and RP-5 run beside RP-4a on the second backend agent. Slices touch disjoint areas except the policy registration in `PresentationServices` (RP-4a and RP-5; RP-5 only adds controllers) and `Messages`/`AuditActions` (append-only, trivial rebase). RP-1 can start the day the ADR is accepted; RP-1 to RP-3 need no owner answer except Q1 to Q3.
+
+### 7.2 Web slices (for fe-architect to confirm; outside the backend plan)
+
+| Slice | Content | Lines | Hours | Needs |
+|---|---|---|---|---|
+| P01 | Identity library: remove role constants, add the derived profile function (Home profile, phone tabs, mine-first), `seesAllWarehouses`, handle `X-Permissions-Version` and the 401 on deactivation; approval inbox and menu accept both tiers | 450 | 6 | RP-3 contract (can start from this ADR) |
+| P02 | Roles screen: list, editor with grouped permission matrix, dangerous warnings, copy, deactivate, delete, users of a role | 1,000 | 14 | RP-5, RP-6, ui-ux-designer screen design |
+| P03 | Users screen: role from the API, All warehouses, exceptions panel with end dates, effective view; B18 unlock lands here | 1,000 | 14 | RP-7 |
+| P04 | Settings: approval rule form uses the tier and shows the approver roles | 400 | 6 | RP-4b |
+
+### 7.3 Interaction with the GUID plan (`adr-guid-keys.md`)
+
+- RP-0 to RP-4b create no addressed id; they can run before, during or after PR-1 to PR-7. Only RP-2 adds the `Role` table: build it with a `PublicId` if PR-3 has merged, otherwise add `Role` to the PR-3 list (about 1 hour).
+- RP-5 to RP-7 are new public endpoints. Build them **after PR-7** (ids are strings from the start) or, if they must go first, accept about 3 hours of rework for the role id type. The `role` code string in user save and `UserInfo` is not affected either way.
+- If option 2a or 3 is chosen, the new tables get GUID keys at creation (section 4.3).
+
+### 7.4 Interaction with the 2026 refresh plan (`docs/design/2026-refresh-plan.md`)
+
+| Slice | Effect | Action |
+|---|---|---|
+| R10 shell, phone tabs (wave 4), R17 Doer Home (wave 4) | They are about to cement `PHONE_TABS_BY_ROLE` and role-keyed Home profiles | Build them against the derived profile function now (P01, or the same helper added inside R10); do not add new role constants. If P01 is not ready, a local helper behind one export is enough |
+| R19 Reviewer, Overseer, Admin Home (wave 14) | Same: profile by permissions; Admin profile = `users.manage` | Insert P01 before wave 4 or fold it into R10; nothing later waits |
+| R06 preferences, R12 density | Keyed by user id only | None |
+| R25 sign-in, R26 re-sign-in in place | A deactivated user now gets 401 on the next call, not after 15 minutes; a demotion never signs out | R26 copy: "your access was changed" is a 401 reason; add to its acceptance. B18 unlock goes with P03 |
+| R18, R20 palette | Actions and results filtered by permission | They must re-read permissions after a `permissionsVersion` change (signal from the identity library) |
+| A02 to A04 tables | The Users and Roles screens use the new grid | P02 and P03 after A02 and A04 (wave 7), R08 controls (wave 3) and R13 dialogs (wave 7); realistic placement: waves 9 to 11, lane "none" (new administration lane) |
+| Q01 stub harness, `e2e/src/config.ts` Role type, `06-roles.spec` | Role-keyed fixtures | Re-key to permission sets in the same slice as P01 or in Q01's registry from the start |
+| Plan section 3.2 item S2 ("say so on the Users screen") | Obsolete after RP-3 | Drop it |
+| B9 per-user preferences, B4 two-decimal rule | Independent | None |
+
+No refresh slice has to wait for the backend work; two (R10, R17) should adopt the derived profile helper when they are built.
+
+## 8. Questions only the product owner can answer
+
+Each has a default that is used if no answer comes. None is a taste question.
+
+| # | Question | Recommended default |
+|---|---|---|
+| Q1 | Can one person hold two jobs at once (for example Supervisor and Clerk), or is one role per person enough, with time-limited exceptions for cover? | One role per person; exceptions cover the rest (section 2.4) |
+| Q2 | May administrators give one person an exception (extra or removed permission)? Must every extra permission end on a date, and how far ahead (default 180 days)? May a restriction be permanent? | Yes; reason always; extra permissions end within 180 days; restrictions may be permanent; Administrators only |
+| Q3 | Should anyone other than an Administrator be allowed to manage roles (for example an HR or IT manager), limited to rights they hold themselves? | Capability exists, nobody but Admin holds `roles.manage` at install; revisit when a customer asks |
+| Q4 | The earlier decision "Warehouse staff never see cost or value" (mvp-ux 1.4) becomes a default, not a hard rule: an administrator could give `cost.view` to any role. Is that acceptable, or must some roles (Warehouse staff, Clerk) be unable to get `valuation.view` or `cost.view` at all? | Configurable by administrators only, with a reason and an audit entry; system role defaults unchanged. If the owner wants a hard "never", it is a one-line catalog flag (`NeverFor`) |
+| Q5 | Are two approval levels enough (standard, and large for the Owner)? Is a rule that only an Administrator may satisfy needed? (Today the rule form offers it; no seeded data uses it.) | Two levels; an Administrator-only rule becomes a Large rule |
+| Q6 | Should "sees every warehouse" be set per person (an Owner could be limited to two warehouses) or per role (every Owner sees all)? | Per person, set to "all" for today's Admin and Owner users |
+| Q7 | When an administrator wants to deactivate or delete a role that people still have, is it correct that the system refuses until they are moved? (The alternative, silently removing their access, is worse for audit.) | Refuse |
+
+Statements for the owner to confirm without a question: a demoted person keeps their session and simply loses rights within seconds; a deactivated person is signed out on their next request; every change to roles and exceptions is kept forever in the audit log.
+
+## 9. Risks and how they are contained
+
+| Risk | Containment |
+|---|---|
+| A caching bug becomes an authorization bug | Fail closed; fingerprint in every response; TTL backstop; epoch read before load; freshness and cross-user tests; the cache is one class behind a port |
+| Behaviour drifts from today for existing users | Oracle fixtures committed before the first change; parity test on fresh and migrated databases; slices RP-1 to RP-3 change no rights |
+| Many call sites change at once (more than a dozen role-name checks, 450 test references) | Shim in RP-1, the data source swap in RP-4a, architecture tests ban the old calls afterwards; most test references name a system role code that does not change |
+| Role editor becomes a way to break the system | AdminCore, last-holder guard under a lock, containment, dangerous flag, reason, audit; RP-9 reset |
+| Semantic change of `document.approve` for the Owner | Documented in 2.1 and 3.5; web follows in P01 in the same release; the deprecated `roleRequired` field gives the UI one release to move |
+| Permission sprawl through exceptions | Reason, mandatory end date on grants, exceptions count and list in the UI, Q2 |
+| Epoch row contention | Writes only on administrator actions, under one application lock; reads are separate and unlocked (`READ_COMMITTED_SNAPSHOT`) |
