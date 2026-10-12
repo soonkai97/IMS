@@ -25,6 +25,13 @@ test.describe("R08 A busy button does not change size or clip its label", () => 
     });
     const idle = await login.submit.boundingBox();
     expect(idle?.width).toBeLessThan(150);
+    const faceHeight = () =>
+      login.submit.evaluate(
+        (button) =>
+          button.querySelector(".ui-button-face")?.getBoundingClientRect()
+            .height ?? 0,
+      );
+    const idleFaceHeight = await faceHeight();
 
     await login.username.fill("nobody");
     await login.passwordBox.fill("not-a-password");
@@ -35,6 +42,8 @@ test.describe("R08 A busy button does not change size or clip its label", () => 
     const busy = await login.submit.boundingBox();
     expect(busy?.width).toBeCloseTo(idle?.width ?? 0, 1);
     expect(busy?.height).toBeCloseTo(idle?.height ?? 0, 1);
+    // The two-word label stays on one line: a wrapped "Sign / in" makes the face two lines high and the button 0.4px taller.
+    expect(await faceHeight()).toBeCloseTo(idleFaceHeight, 1);
 
     const fit = await login.submit.evaluate((button) => {
       const box = button.getBoundingClientRect();
