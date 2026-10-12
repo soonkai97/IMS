@@ -21,3 +21,12 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 export function isPublicId(value: unknown): value is PublicId {
   return typeof value === 'string' && PUBLIC_ID_PATTERN.test(value);
 }
+
+/**
+ * An id that came from outside the API (a route parameter, a link) in the form the API uses (lower case), or
+ * undefined when it is not a GUID. The API writes GUIDs in lower case and the pages compare with `===`, so every page
+ * reads such an id through this one function.
+ */
+export function normalizePublicId(value: string | null | undefined): PublicId | undefined {
+  return isPublicId(value) ? value.toLowerCase() : undefined;
+}

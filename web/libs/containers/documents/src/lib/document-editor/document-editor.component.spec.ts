@@ -577,6 +577,23 @@ describe('DocumentEditorPageComponent', () => {
   });
 
   describe('a link that starts a receipt for a product (NV-13)', () => {
+    // Two warehouses, so nothing is preselected and the link is the only thing that can choose one.
+    const LETTERS_ID = 'abcdef01-2345-4678-89ab-cdef01234567';
+    const twoWarehouses = {
+      provide: WarehousesStore,
+      useValue: {
+        ensureLoaded: jest.fn(),
+        $warehouses: signal([
+          { id: guid(1), name: 'Main warehouse', isActive: true },
+          { id: LETTERS_ID, name: 'Second warehouse', isActive: true }
+        ]),
+        $activeWarehouses: signal([
+          { id: guid(1), name: 'Main warehouse', isActive: true },
+          { id: LETTERS_ID, name: 'Second warehouse', isActive: true }
+        ])
+      }
+    };
+
     it('picks the warehouse and the product and focuses the quantity', async () => {
       lookup.mockReturnValue(of({ found: true, product: WIDGET }));
       opened.set(undefined);
@@ -603,12 +620,31 @@ describe('DocumentEditorPageComponent', () => {
       lookup.mockReturnValue(of({ found: false, product: undefined }));
       opened.set(undefined);
       spectator = createComponent({
+        providers: [twoWarehouses],
         props: { type: DocumentType.Receipt, id: 'new', sku: 'DEMO-001', warehouseId: '1' } as never
       });
       spectator.detectChanges();
       await spectator.fixture.whenStable();
 
-      expect(spectator.component.$warehouseId()).not.toBe('1');
+      expect(spectator.component.$warehouseId()).toBeNull();
+    });
+
+    it('lower-cases a hand-typed warehouse id so the select shows it', async () => {
+      lookup.mockReturnValue(of({ found: false, product: undefined }));
+      opened.set(undefined);
+      spectator = createComponent({
+        providers: [twoWarehouses],
+        props: {
+          type: DocumentType.Receipt,
+          id: 'new',
+          sku: 'DEMO-001',
+          warehouseId: LETTERS_ID.toUpperCase()
+        } as never
+      });
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(spectator.component.$warehouseId()).toBe(LETTERS_ID);
     });
 
     it('an unknown or deactivated product leaves the form empty', async () => {
@@ -640,6 +676,24 @@ describe('DocumentEditorPageComponent', () => {
       expect(spectator.query('a[href="/"]')?.textContent).toContain('Go to Home');
       expect(text()).not.toContain('Retry');
     });
+
+    it.each([DocumentType.Receipt, DocumentType.Issue])(
+      'an old numeric bookmark (%s) is a not-found page and makes no request',
+      async type => {
+        opened.set(undefined);
+        spectator = createComponent({ props: { type, id: '123' } as never });
+        spectator.detectChanges();
+        await spectator.fixture.whenStable();
+        spectator.detectChanges();
+
+        const detail = spectator.inject(DocumentsStore).detail;
+        expect(detail.load).not.toHaveBeenCalled();
+        expect(spectator.component.$isNew()).toBe(false);
+        expect(spectator.query('h1')?.textContent).toContain('Page not found');
+        expect(text()).toContain("This page or document doesn't exist or was removed.");
+        expect(text()).not.toContain('Retry');
+      }
+    );
 
     it('while a saved document loads the title is not "New receipt"', async () => {
       opened.set(undefined);

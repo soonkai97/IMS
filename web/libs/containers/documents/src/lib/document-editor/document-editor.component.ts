@@ -93,7 +93,7 @@ import {
   UiTabsComponent,
   UiTextareaComponent
 } from '@ims/ui';
-import { applyFieldErrors, controlSignal, isDefined, isPublicId } from '@ims/utils';
+import { applyFieldErrors, controlSignal, isDefined, normalizePublicId } from '@ims/utils';
 import { DocumentActionsComponent } from '../document-actions/document-actions.component';
 import { DocumentLineEditorComponent } from '../line-editor/line-editor.component';
 import { DocumentEditorViewService } from './document-editor.view-service';
@@ -208,10 +208,15 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   $lastAdded = signal<string | undefined>(undefined);
   $showLineError = signal(false);
 
-  /** The id in the URL (the API sends GUIDs in lower case, a typed link may not); undefined on `/new`. */
+  /** The id in the URL; undefined on `/new` and when it is not a GUID. */
   private readonly $routeDocumentId = computed(() => {
     const id = this.$id();
-    return id === undefined || id === NEW_DOCUMENT_ID ? undefined : id.toLowerCase();
+    return id === undefined || id === NEW_DOCUMENT_ID ? undefined : normalizePublicId(id);
+  });
+  /** An old bookmark (`/receipts/123`): not a document, so it is a not-found page and no request is made. */
+  private readonly $unusableRouteId = computed(() => {
+    const id = this.$id();
+    return id !== undefined && id !== NEW_DOCUMENT_ID && this.$routeDocumentId() === undefined;
   });
   /**
    * Set the moment a new document is created. The editor is bound to the saved document from then on (so a repeated
@@ -219,7 +224,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
    */
   private readonly $createdId = signal<PublicId | undefined>(undefined);
   readonly $documentId = computed(() => this.$routeDocumentId() ?? this.$createdId());
-  readonly $isNew = computed(() => this.$documentId() === undefined);
+  readonly $isNew = computed(() => this.$documentId() === undefined && !this.$unusableRouteId());
   readonly $isIssue = computed(() => this.$type() === DocumentType.Issue);
   readonly $document = computed<DocumentDto | undefined>(() => {
     const document = this.documents.detail.$data();
@@ -244,7 +249,9 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   readonly $loadFailed = this.documents.detail.$isFailed;
   /** The id in the URL belongs to no document (an old bookmark): a page of its own, and retrying cannot help. */
   readonly $notFound = computed(
-    () => this.documents.detail.$operation().error?.kind === API_ERROR_KIND.NotFound
+    () =>
+      this.$unusableRouteId() ||
+      this.documents.detail.$operation().error?.kind === API_ERROR_KIND.NotFound
   );
   readonly $canPost = computed(() => this.permissions.has(PERMISSION.DocumentPost));
   /** The button that was tapped shows the spinner, not whichever button is primary (NV-21). */
@@ -558,8 +565,11 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   /** Opens what the route names; also when the same page is reused for another document (EA-20). */
   private readonly openDocument = effect(() => {
     const id = this.$documentId();
+    const unusable = this.$unusableRouteId();
     untracked(() => {
-      if (id === undefined) {
+      if (unusable) {
+        this.documents.detail.reset();
+      } else if (id === undefined) {
         this.documents.detail.reset();
         this.view.startNew(null);
         this.prefillFromLink();
@@ -793,8 +803,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
 
   /** From Low stock: the warehouse and the product are chosen already and the cursor lands on the quantity (NV-13). */
   private prefillFromLink(): void {
-    const warehouseId = this.$warehouseParam();
-    if (isPublicId(warehouseId)) {
+    const warehouseId = normalizePublicId(this.$warehouseParam());
+    if (warehouseId) {
       this.view.header.controls.warehouseId.setValue(warehouseId);
     }
     const sku = this.$sku();

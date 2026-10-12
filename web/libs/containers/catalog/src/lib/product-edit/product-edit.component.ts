@@ -27,6 +27,7 @@ import {
   UiButtonComponent,
   UiCardComponent,
   UiCheckboxComponent,
+  UiEmptyStateComponent,
   UiFormFieldComponent,
   UiFormLegendComponent,
   UiIconComponent,
@@ -35,7 +36,7 @@ import {
   UiSelectComponent,
   UiSkeletonComponent
 } from '@ims/ui';
-import { applyFieldErrors } from '@ims/utils';
+import { applyFieldErrors, normalizePublicId } from '@ims/utils';
 
 type ConversionGroup = FormGroup<{
   fromUomId: FormControl<PublicId | null>;
@@ -53,6 +54,7 @@ const MAX_SAFETY_STOCK = 1_000_000_000;
     UiButtonComponent,
     UiCardComponent,
     UiCheckboxComponent,
+    UiEmptyStateComponent,
     UiFormFieldComponent,
     UiFormLegendComponent,
     UiIconComponent,
@@ -99,7 +101,11 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
     conversions: new FormArray<ConversionGroup>([])
   });
 
+  /** The id in the URL as the API writes it; undefined on `/products/new` and for anything that is not a GUID. */
+  $productId = computed(() => normalizePublicId(this.$id()));
   $isNew = computed(() => this.$id() === undefined);
+  /** An old bookmark (`/products/123`): no product, no request, and nothing to save. */
+  $notFound = computed(() => !this.$isNew() && this.$productId() === undefined);
   $canManage = computed(() => this.permissions.has(PERMISSION.MasterDataManage));
   $isLoading = this.store.detail.$isLoading;
   $isSaving = this.store.save.$isRunning;
@@ -109,9 +115,14 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
   $categoryOptions = computed<readonly SelectOption[]>(() =>
     this.catalog.$categories().map(category => ({ value: category.id, label: category.name }))
   );
-  $heading = computed(() =>
-    this.$isNew() ? this.i18n.t('product.new') : (this.store.detail.$data()?.sku ?? '')
-  );
+  $heading = computed(() => {
+    if (this.$isNew()) {
+      return this.i18n.t('product.new');
+    }
+    return this.$notFound()
+      ? this.i18n.t('notFound.title')
+      : (this.store.detail.$data()?.sku ?? '');
+  });
 
   /** Messages of a failed save that belong to no field. */
   $generalErrors = computed(() => {
@@ -129,7 +140,7 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
    * between two products): reading the id once left the form on the previous product (EA-20).
    */
   private readonly openProduct = effect(() => {
-    const id = this.$id();
+    const id = this.$productId();
     untracked(() => {
       if (id === undefined) {
         this.store.detail.reset();
@@ -141,7 +152,7 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
 
   private readonly populateForm = effect(() => {
     const product = this.store.detail.$data();
-    if (product && product.id === this.$id()?.toLowerCase()) {
+    if (product && product.id === this.$productId()) {
       this.patch(product);
     }
   });
@@ -192,11 +203,11 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
 
   onSave(): void {
     this.form.markAllAsTouched();
-    if (this.form.invalid || !this.$canManage()) {
+    if (this.form.invalid || !this.$canManage() || this.$notFound()) {
       return;
     }
     this.store.save
-      .run({ id: this.$id(), body: this.toRequest() })
+      .run({ id: this.$productId(), body: this.toRequest() })
       .pipe(
         tap(product => {
           this.form.markAsPristine();

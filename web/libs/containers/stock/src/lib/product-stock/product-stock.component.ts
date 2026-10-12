@@ -20,7 +20,7 @@ import {
   UiPagerComponent,
   UiTableComponent
 } from '@ims/ui';
-import { createPageState, loadOnChange } from '@ims/utils';
+import { createPageState, loadOnChange, normalizePublicId } from '@ims/utils';
 
 /** Stock of one product per warehouse, plus its append-only ledger; every line links to the source document (STK-02). */
 @Component({
@@ -48,10 +48,13 @@ export class ProductStockPageComponent implements OnInit {
   /** Route parameter :productId */
   $productId = input.required<string>({ alias: 'productId' });
 
+  /** The id as the API writes it; undefined for an old bookmark (`/stock/123`), which is a not-found page, no request. */
+  private readonly $id = computed(() => normalizePublicId(this.$productId()));
+  readonly $notFound = computed(() => this.$id() === undefined);
   private readonly pageState = createPageState(this.$productId);
 
   readonly $query = computed<LedgerQuery>(() => ({
-    productId: this.$productId(),
+    productId: this.$id(),
     page: this.pageState.$page(),
     pageSize: DEFAULT_PAGE_SIZE
   }));
@@ -87,12 +90,19 @@ export class ProductStockPageComponent implements OnInit {
   ];
 
   constructor() {
-    loadOnChange(this.$query, query => this.store.ledger.load(query));
+    loadOnChange(this.$query, query => {
+      if (query.productId !== undefined) {
+        this.store.ledger.load(query);
+      }
+    });
   }
 
   ngOnInit(): void {
-    this.products.detail.load(this.$productId());
-    this.store.productStock.load(this.$productId());
+    const id = this.$id();
+    if (id !== undefined) {
+      this.products.detail.load(id);
+      this.store.productStock.load(id);
+    }
   }
 
   onPageChange(page: number): void {

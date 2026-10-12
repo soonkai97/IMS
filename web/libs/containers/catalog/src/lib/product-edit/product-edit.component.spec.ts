@@ -63,6 +63,16 @@ describe('ProductEditPageComponent follows the URL (EA-20)', () => {
     expect(load).toHaveBeenCalledTimes(2);
   });
 
+  it('an old numeric bookmark is a not-found page: no request, no form, nothing to save', async () => {
+    spectator = createComponent({ props: { id: '123' } as never });
+    await settle();
+
+    expect(load).not.toHaveBeenCalled();
+    expect(spectator.query('h1')?.textContent).toContain('Page not found');
+    expect(spectator.query('form')).toBeNull();
+    expect(spectator.queryAll('button').length).toBe(0);
+  });
+
   it('a new product starts empty instead of loading anything', async () => {
     spectator = createComponent();
     await settle();
