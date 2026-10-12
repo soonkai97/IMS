@@ -15,6 +15,7 @@ export const MS_MESSAGES: Messages = {
   'common.cancel': 'Batal',
   'common.done': 'Selesai',
   'common.edit': 'Sunting',
+  'common.editFor': 'Sunting {name}',
   'common.moreActions': 'Lagi tindakan',
   'common.exportExcel': 'Eksport Excel',
   'common.remove': 'Buang',
@@ -287,6 +288,7 @@ export const MS_MESSAGES: Messages = {
 
   'receipts.empty': 'Belum ada penerimaan.',
   'receipts.new': 'Penerimaan baharu',
+  'lowStock.newReceiptFor': 'Penerimaan baharu untuk {product}',
   'receipts.title': 'Penerimaan',
   'issues.empty': 'Belum ada pengeluaran.',
   'issues.new': 'Pengeluaran baharu',
@@ -503,6 +505,8 @@ export const MS_MESSAGES: Messages = {
   'settings.title': 'Tetapan',
   'rule.amountThreshold': 'Jumlah dari ({currency})',
   'rule.edit': 'Sunting peraturan',
+  'rule.editFor':
+    'Sunting peraturan {type} untuk {role}, jumlah dari {amount}, kuantiti dari {qty}',
   'rule.empty': 'Belum ada peraturan kelulusan.',
   'rule.new': 'Peraturan baharu',
   'rule.qtyThreshold': 'Kuantiti dari',
@@ -520,5 +524,6 @@ export const MS_MESSAGES: Messages = {
   'audit.searchLabel': 'Cari log audit',
   'audit.searchPlaceholder': 'No. dokumen atau nama objek',
   'audit.show': 'Papar',
+  'audit.showFor': 'Papar butiran {action} pada {entity} pada {when}, entri {id}',
   'audit.title': 'Log audit'
 };

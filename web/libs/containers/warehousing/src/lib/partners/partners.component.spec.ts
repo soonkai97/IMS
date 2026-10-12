@@ -96,6 +96,13 @@ describe('PartnersPageComponent (Clerk creates, Supervisor and Admin manage)', (
     expect(headers()).toContain('Actions');
   });
 
+  it('ER-10: the Edit button of a row is named after the partner, so a list of them is not eight times "Edit"', () => {
+    render(PERMISSION.MasterDataRead, PERMISSION.PartnersCreate, PERMISSION.MasterDataManage);
+
+    const edit = spectator.queryAll('button').find(button => button.textContent?.includes('Edit'));
+    expect(edit?.getAttribute('aria-label')).toBe('Edit Acme Trading (Supplier)');
+  });
+
   it('read-only roles see neither New partner nor Edit', () => {
     render(PERMISSION.MasterDataRead);
 

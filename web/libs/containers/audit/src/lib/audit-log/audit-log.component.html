@@ -34,7 +34,21 @@
 >
   <ng-template appCell="at" let-row>{{ row.at | appDate }}</ng-template>
   <ng-template appCell="details" let-row>
-    <app-button variant="ghost" (clicked)="onShowDetails(row)">{{ 'audit.show' | t }}</app-button>
+    <app-button
+      variant="ghost"
+      [ariaLabel]="
+        'audit.showFor'
+          | t
+            : {
+                action: row.action ?? '',
+                entity: entityOf(row),
+                when: row.at | appDate,
+                id: row.id
+              }
+      "
+      (clicked)="onShowDetails(row)"
+      >{{ 'audit.show' | t }}</app-button
+    >
   </ng-template>
   <app-empty-state empty icon="audit" [message]="'audit.empty' | t">
     @if ($hasFilters()) {

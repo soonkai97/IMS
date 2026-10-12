@@ -58,6 +58,71 @@ describe('UiTableComponent card layout', () => {
   });
 });
 
+describe('UiTableComponent structure (A02)', () => {
+  const rows: Row[] = [{ no: 'RCV-1', partner: 'Acme', status: 'Draft' }];
+  const createComponent = createComponentFactory({
+    component: UiTableComponent<Row>,
+    providers: [provideRouter([])],
+    detectChanges: false
+  });
+  const columns: TableColumn<Row>[] = [
+    { key: 'no', header: 'No.', value: row => row.no, primary: true, sortKey: 'no' },
+    { key: 'partner', header: 'Partner', value: row => row.partner },
+    { key: 'status', header: 'Status', value: row => row.status, type: 'status' }
+  ];
+
+  function render(props: Record<string, unknown> = {}): Spectator<UiTableComponent<Row>> {
+    const spectator = createComponent({
+      props: { columns, rows, caption: 'Receipts', ...props } as never
+    });
+    spectator.detectChanges();
+    return spectator;
+  }
+
+  it('is one native table: a caption, a header row of column headers, then the body rows', () => {
+    const spectator = render();
+
+    expect(spectator.query('table > caption')?.textContent?.trim()).toBe('Receipts');
+    const headers = spectator.queryAll('table > thead > tr > th');
+    expect(headers.map(th => th.getAttribute('scope'))).toEqual(['col', 'col', 'col']);
+    expect(spectator.queryAll('table > tbody > tr.ui-table-row')).toHaveLength(1);
+  });
+
+  it('every cell carries its column header, so a card (which hides the header row) can show it', () => {
+    const spectator = render();
+
+    expect(spectator.queryAll('td').map(td => td.getAttribute('data-label'))).toEqual([
+      'No.',
+      'Partner',
+      'Status'
+    ]);
+  });
+
+  it('the sort state is in aria-sort on the header and a real button inside it', () => {
+    const spectator = render({ sort: { sortBy: 'no', desc: true } });
+
+    const first = spectator.query('th');
+    expect(first?.getAttribute('aria-sort')).toBe('descending');
+    expect(first?.querySelector('button.ui-table-sort')).toBeTruthy();
+    expect(spectator.queryAll('th')[1].hasAttribute('aria-sort')).toBe(false);
+  });
+
+  it('shows no header over an empty table (TB-06): the empty state replaces the whole grid', () => {
+    const spectator = render({ rows: [] });
+
+    expect(spectator.query('table')).toBeNull();
+    expect(spectator.query('th')).toBeNull();
+  });
+
+  it('is the scroll box that only a table wider than its room scrolls in: no role and no tab stop while it fits', () => {
+    const spectator = render();
+
+    const box = spectator.query('.ui-table-scroll');
+    expect(box?.querySelector('table.ui-table-grid')).toBeTruthy();
+    expect(box?.hasAttribute('data-scroll-region')).toBe(false);
+  });
+});
+
 describe('UiTableComponent long values (L00)', () => {
   const long = 'W'.repeat(300);
   const rows: Row[] = [{ no: 'RCV-1', partner: long, status: 'Draft' }];

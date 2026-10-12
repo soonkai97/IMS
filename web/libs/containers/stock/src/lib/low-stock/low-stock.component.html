@@ -34,6 +34,7 @@
         class="ui-link-button low-stock-page-create"
         routerLink="/receipts/new"
         [queryParams]="receiptParams(row)"
+        [attr.aria-label]="'lowStock.newReceiptFor' | t: { product: productOf(row) }"
         >{{ 'receipts.new' | t }}</a
       >
     }

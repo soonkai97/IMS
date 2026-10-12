@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
@@ -90,6 +92,38 @@ describe('LowStockPageComponent Create receipt shortcut (NV-13)', () => {
       '/receipts/new?sku=DEMO-002'
     );
     expect(spectator.element.textContent).not.toContain('undefined');
+  });
+
+  it('ER-10: the link names its row (SKU and warehouse), so 25 of them are not 25 times "New receipt"', () => {
+    const link = () => spectator.query('a.low-stock-page-create');
+    const rowData = (
+      spectator.inject(StockStore) as unknown as {
+        lowStock: { $data: ReturnType<typeof signal<PagedResultOfLowStockAlert>> };
+      }
+    ).lowStock.$data;
+    rowData.set({ items: [ROW], page: 1, pageSize: 25, total: 1 } as PagedResultOfLowStockAlert);
+    spectator.detectChanges();
+    expect(link()?.getAttribute('aria-label')).toBe('New receipt for DEMO-002 (Store B)');
+
+    rowData.set({
+      items: [
+        { ...ROW, warehouseId: undefined, warehouseCode: undefined, warehouseName: undefined }
+      ],
+      page: 1,
+      pageSize: 25,
+      total: 1
+    } as PagedResultOfLowStockAlert);
+    spectator.detectChanges();
+
+    expect(link()?.getAttribute('aria-label')).toBe('New receipt for DEMO-002');
+  });
+
+  it('A02: the link has no z-index of its own: in a table it would paint over the sticky header', () => {
+    const styles = readFileSync(join(__dirname, 'low-stock.component.scss'), 'utf8');
+    const rule = /\.low-stock-page-create\s*{[^}]*}/.exec(styles)?.[0] ?? '';
+
+    expect(rule).toContain('position: relative');
+    expect(rule).not.toContain('z-index');
   });
 
   it('PS-04: a negative balance carries its own chip', () => {

@@ -15,6 +15,7 @@ export const ZH_MESSAGES: Messages = {
   'common.cancel': '取消',
   'common.done': '完成',
   'common.edit': '编辑',
+  'common.editFor': '编辑 {name}',
   'common.moreActions': '更多操作',
   'common.exportExcel': '导出 Excel',
   'common.remove': '移除',
@@ -279,6 +280,7 @@ export const ZH_MESSAGES: Messages = {
 
   'receipts.empty': '还没有入库单。',
   'receipts.new': '新建入库单',
+  'lowStock.newReceiptFor': '为 {product} 新建入库单',
   'receipts.title': '入库单',
   'issues.empty': '还没有出库单。',
   'issues.new': '新建出库单',
@@ -484,6 +486,7 @@ export const ZH_MESSAGES: Messages = {
   'settings.title': '设置',
   'rule.amountThreshold': '金额起（{currency}）',
   'rule.edit': '编辑规则',
+  'rule.editFor': '编辑{role}的{type}规则，金额起 {amount}，数量起 {qty}',
   'rule.empty': '还没有审批规则。',
   'rule.new': '新建规则',
   'rule.qtyThreshold': '数量起',
@@ -501,5 +504,6 @@ export const ZH_MESSAGES: Messages = {
   'audit.searchLabel': '搜索审计日志',
   'audit.searchPlaceholder': '单号或对象名称',
   'audit.show': '查看',
+  'audit.showFor': '查看 {when} 对 {entity} 的 {action} 详情，记录 {id}',
   'audit.title': '审计日志'
 };

@@ -67,7 +67,20 @@
         />
       </ng-template>
       <ng-template appCell="actions" let-row>
-        <app-button variant="ghost" (clicked)="onEditRule(row)">
+        <app-button
+          variant="ghost"
+          [ariaLabel]="
+            'rule.editFor'
+              | t
+                : {
+                    type: ruleTypeLabel(row),
+                    role: ruleRoleLabel(row),
+                    amount: (row.amountThreshold | appMoney) || '-',
+                    qty: row.qtyThreshold | appQty
+                  }
+          "
+          (clicked)="onEditRule(row)"
+        >
           <app-icon name="pencil" />
           {{ 'common.edit' | t }}
         </app-button>
