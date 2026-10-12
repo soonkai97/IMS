@@ -5,12 +5,12 @@ namespace Ims.Application.Features.Stock;
 internal static class StockFilters
 {
     /// <param name="search">The resolved <see cref="StockFilter.Search"/> (see <see cref="ProductSearch"/>); null = no text search.</param>
-    public static void Apply(ISpecificationBuilder<StockBalance> query, StockFilter f, int? warehouseId, int? categoryId, IReadOnlyCollection<int>? scope, ProductSearch? search)
+    public static void Apply(ISpecificationBuilder<StockBalance> query, StockFilter f, int? warehouseId, int? productId, int? categoryId, IReadOnlyCollection<int>? scope, ProductSearch? search)
     {
         query.AsNoTracking();
         if (scope is not null) query.Where(b => scope.Contains(b.WarehouseId));
         if (warehouseId is { } w) query.Where(b => b.WarehouseId == w);
-        if (f.ProductId is { } p) query.Where(b => b.ProductId == p);
+        if (productId is { } p) query.Where(b => b.ProductId == p);
         if (categoryId is { } c) query.Where(b => b.Product.CategoryId == c);
         if (search is { } s)
         {

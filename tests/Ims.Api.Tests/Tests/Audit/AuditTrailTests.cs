@@ -135,7 +135,7 @@ public class AuditTrailTests(ApiFixture fixture)
         var created = Assert.Single(entries, e => e.Action == AuditActions.RowCreated);
         Assert.Contains(product.Sku, created.After);
         using (var createdPayload = JsonDocument.Parse(created.After!))
-            Assert.Equal(product.Id, createdPayload.RootElement.GetProperty("Id").GetInt32()); // the generated id, not 0
+            Assert.Equal(product.Id, createdPayload.RootElement.GetProperty("PublicId").GetGuid()); // the generated public id, the one the audit row is named by
         Assert.Null(created.Before);
         var updated = Assert.Single(entries, e => e.Action == AuditActions.RowUpdated);
         using var before = JsonDocument.Parse(updated.Before!);

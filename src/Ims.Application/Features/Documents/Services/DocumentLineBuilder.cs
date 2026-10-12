@@ -19,7 +19,7 @@ public class DocumentLineBuilder(IReadRepository<Product> products, IIdMap<Uom> 
             : new Dictionary<(int, int), int>();
 
         var ids = inputs.Select(i => i.ProductId).Distinct().ToList();
-        var byId = (await products.ListAsync(new ProductsForLinesSpec(ids), ct)).ToDictionary(p => p.Id);
+        var byId = (await products.ListAsync(new ProductsForLinesSpec(ids), ct)).ToDictionary(p => p.PublicId);
 
         // The units a client names are public ids; a unit that does not exist becomes the id of no row, which the domain refuses like any unit the product cannot convert.
         var units = await uomIds.ToInternalAsync(inputs.Where(i => i.UomId is not null).Select(i => i.UomId!.Value), ct);

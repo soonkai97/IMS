@@ -42,10 +42,10 @@ public class EqualTimestampPagingTests(ApiFixture fixture)
     private async Task<ApiClient> AdminOn(WebApplicationFactory<Program> host) =>
         SignedIn(host, (await fixture.AsAsync(Roles.Admin)).AccessToken!);
 
-    private DocumentSaveRequest Receipt(Guid warehouseId, int productId, decimal quantity) =>
+    private DocumentSaveRequest Receipt(Guid warehouseId, Guid productId, decimal quantity) =>
         new DocumentBuilder(warehouseId).WithPartner(fixture.Reference.SupplierId).WithLines(new Line(productId, quantity, 1m)).Build();
 
-    private async Task<DocumentDto> PostReceiptAsync(ApiClient by, Guid warehouseId, int productId, decimal quantity)
+    private async Task<DocumentDto> PostReceiptAsync(ApiClient by, Guid warehouseId, Guid productId, decimal quantity)
     {
         var draft = (await by.Documents.CreateReceiptAsync(Receipt(warehouseId, productId, quantity))).Data<DocumentDto>();
         (await by.Documents.SubmitAsync(draft.Id)).ShouldBeOk();

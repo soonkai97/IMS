@@ -15,7 +15,7 @@ public class IfMatchRequiredTests(ApiFixture fixture)
 {
     private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
-    private async Task<(StockScenario S, DocumentDto Draft, int ProductId)> DraftAsync()
+    private async Task<(StockScenario S, DocumentDto Draft, Guid ProductId)> DraftAsync()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var productId = (await s.NewProductAsync()).Id;

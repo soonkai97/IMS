@@ -37,7 +37,7 @@ public class ApiExceptionHandler(ILogger<ApiExceptionHandler> log, IProblemDetai
                 break;
             case InsufficientStockException ise:
                 pd.Extensions[ProblemExtensions.Code] = ProblemCodes.InsufficientStock;
-                pd.Extensions[ProblemExtensions.ProductId] = ise.ProductId;
+                if (ise.ProductPublicId is { } productId) pd.Extensions[ProblemExtensions.ProductId] = productId;
                 pd.Extensions[ProblemExtensions.Available] = ise.Available;
                 pd.Extensions[ProblemExtensions.Requested] = ise.Requested;
                 break;

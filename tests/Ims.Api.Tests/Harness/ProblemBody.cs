@@ -8,7 +8,7 @@ public sealed record ProblemBody
     public string? Detail { get; init; }
     public string? CorrelationId { get; init; }
     public Dictionary<string, string[]>? Errors { get; init; }
-    public int? ProductId { get; init; }
+    public Guid? ProductId { get; init; }
     public decimal? Available { get; init; }
     public decimal? Requested { get; init; }
 

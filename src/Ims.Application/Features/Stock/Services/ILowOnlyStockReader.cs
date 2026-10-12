@@ -10,9 +10,9 @@ namespace Ims.Application.Features.Stock;
 /// </summary>
 public interface ILowOnlyStockReader
 {
-    /// <param name="warehouseId">The filter's warehouse and category as integer ids (the handler translates the public ids; see <c>IdMapExtensions</c>); null = no such filter.</param>
-    Task<int> CountAsync(StockFilter filter, int? warehouseId, int? categoryId, IReadOnlyCollection<int>? scope, ProductSearch? search, CancellationToken ct);
+    /// <param name="warehouseId">The filter's warehouse, product and category as integer ids (the handler translates the public ids; see <c>IdMapExtensions</c>); null = no such filter.</param>
+    Task<int> CountAsync(StockFilter filter, int? warehouseId, int? productId, int? categoryId, IReadOnlyCollection<int>? scope, ProductSearch? search, CancellationToken ct);
 
     /// <param name="paged">False returns every row up to the export cap.</param>
-    Task<IReadOnlyList<StockRow>> ListAsync(StockFilter filter, int? warehouseId, int? categoryId, IReadOnlyCollection<int>? scope, ProductSearch? search, bool paged, CancellationToken ct);
+    Task<IReadOnlyList<StockRow>> ListAsync(StockFilter filter, int? warehouseId, int? productId, int? categoryId, IReadOnlyCollection<int>? scope, ProductSearch? search, bool paged, CancellationToken ct);
 }

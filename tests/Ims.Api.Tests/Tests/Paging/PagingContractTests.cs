@@ -275,7 +275,7 @@ public class PagingContractTests(ApiFixture fixture)
         // quantity: low < mid < high; value (qty x cost): mid < high < low
         await s.ReceiveAsync(warehouse.Id, new Line(low.Id, 5, 1000m), new Line(mid.Id, 20, 1m), new Line(high.Id, 50, 2m));
 
-        async Task<int[]> ProductsAsync(string sort) =>
+        async Task<Guid[]> ProductsAsync(string sort) =>
             (await s.Admin.GetAsync($"/api/stock?warehouseId={warehouse.Id}&{sort}")).Data<PagedResult<StockRow>>().Items.Select(r => r.ProductId).ToArray();
 
         Assert.Equal([low.Id, mid.Id, high.Id], await ProductsAsync("sortBy=QtyOnHand"));

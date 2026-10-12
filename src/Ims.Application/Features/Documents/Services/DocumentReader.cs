@@ -26,7 +26,7 @@ public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentA
     private async Task<DocumentDto> WithStockAsync(DocumentDto dto, CancellationToken ct)
     {
         if (!DocumentStatuses.IsOpen(dto.Status) || dto.Lines.Count == 0) return dto;
-        var onHand = await availability.OnHandAsync(dto.WarehouseKey, dto.Lines.Select(l => l.ProductId).Distinct().ToList(), ct);
-        return dto with { Lines = dto.Lines.Select(l => l with { Available = onHand.GetValueOrDefault(l.ProductId) }).ToList() };
+        var onHand = await availability.OnHandAsync(dto.WarehouseKey, dto.Lines.Select(l => l.ProductKey).Distinct().ToList(), ct);
+        return dto with { Lines = dto.Lines.Select(l => l with { Available = onHand.GetValueOrDefault(l.ProductKey) }).ToList() };
     }
 }

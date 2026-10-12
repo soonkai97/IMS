@@ -26,7 +26,7 @@ public class AllowedActionsTests(ApiFixture fixture)
         }
     }
 
-    private async Task<(StockScenario S, int ProductId)> ScenarioWithStockAsync()
+    private async Task<(StockScenario S, Guid ProductId)> ScenarioWithStockAsync()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();

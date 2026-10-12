@@ -19,7 +19,7 @@ public partial class DocumentReadQueryTests(ApiFixture fixture)
     [GeneratedRegex(@"^SELECT \[\w+\]\.\[Id\], \[\w+\]\.\[PublicId\]\s+FROM \[Warehouse\]", RegexOptions.IgnoreCase)]
     private static partial Regex WarehouseByPublicId();
 
-    private sealed class CommandLog : DbCommandInterceptor
+    internal sealed class CommandLog : DbCommandInterceptor
     {
         public ConcurrentQueue<string> Commands { get; } = new();
 
