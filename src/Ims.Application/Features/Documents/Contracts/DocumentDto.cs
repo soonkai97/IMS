@@ -19,7 +19,7 @@ namespace Ims.Application.Features.Documents;
 /// <param name="WarehouseKey">The integer key of the warehouse, for the server to look up stock without translating <c>WarehouseId</c> back with another query; not part of the JSON.</param>
 /// <param name="CreatedByKey">The integer key of the user who created the document, for the ownership rules (compared with the caller's own integer key, never with a client id); not part of the JSON.</param>
 /// <param name="SubmittedByKey">Same for the user who submitted it, for the self-approval rule; not part of the JSON.</param>
-public record DocumentDto(int Id, DocumentType Type, string No, DocumentStatus Status, Guid WarehouseId, string WarehouseName,
+public record DocumentDto(Guid Id, DocumentType Type, string No, DocumentStatus Status, Guid WarehouseId, string WarehouseName,
     Guid? PartnerId, string? PartnerName, IssuePurpose? Purpose, string? Remark,
     bool RequiresApproval, bool RequiresOverride, bool IsLarge, bool IsReturned,
     string? RejectionReason, string? CancelReason, string? ReversalReason, string? NegativeStockOverrideReason,

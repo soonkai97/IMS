@@ -126,7 +126,7 @@ public class ProblemDetailsTests(ApiFixture fixture)
     {
         var admin = await fixture.AsAsync(Roles.Admin);
 
-        AssertShape(await admin.Documents.GetAsync(9_999_999), HttpStatusCode.NotFound, "Not found");
+        AssertShape(await admin.Documents.GetAsync(Guid.NewGuid()), HttpStatusCode.NotFound, "Not found");
         AssertShape(await admin.Products.GetAsync(Guid.NewGuid()), HttpStatusCode.NotFound, "Not found");
     }
 
@@ -173,7 +173,7 @@ public class ProblemDetailsTests(ApiFixture fixture)
         var admin = await fixture.AsAsync(Roles.Admin);
         var product = await new ProductBuilder(fixture.Reference).CreateAsync(admin);
 
-        var notFound = await admin.Documents.GetAsync(9_999_999);
+        var notFound = await admin.Documents.GetAsync(Guid.NewGuid());
         var conflict = await admin.Products.CreateAsync(new ProductBuilder(fixture.Reference).WithSku(product.Sku).Build());
         var badRequest = await admin.Products.CreateAsync(new ProductBuilder(fixture.Reference).WithSku("").Build());
         var unauthorized = await fixture.Anonymous().Auth.LoginAsync("nobody-" + Guid.NewGuid().ToString("N"), "x");
@@ -192,7 +192,7 @@ public class ProblemDetailsTests(ApiFixture fixture)
         const string id = "test-corr_ID-12345";
 
         var ok = await admin.SendAsync(HttpMethod.Get, "/api/warehouses", customize: r => r.Headers.Add("X-Correlation-Id", id));
-        var notFound = await admin.SendAsync(HttpMethod.Get, "/api/documents/9999999", customize: r => r.Headers.Add("X-Correlation-Id", id));
+        var notFound = await admin.SendAsync(HttpMethod.Get, $"/api/documents/{Guid.NewGuid()}", customize: r => r.Headers.Add("X-Correlation-Id", id));
 
         Assert.Equal(id, ok.ShouldBeOk().CorrelationHeader);
         Assert.Equal(id, notFound.CorrelationHeader);

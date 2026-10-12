@@ -6,5 +6,5 @@ public sealed class AttachmentUploadersSpec : Specification<Attachment, Attachme
 {
     public AttachmentUploadersSpec(AttachmentOwnerType ownerType, int ownerId) =>
         Query.AsNoTracking().Where(a => a.OwnerType == ownerType && a.OwnerId == ownerId)
-            .Select(a => new AttachmentUploader(a.Id, a.UploadedBy));
+            .Select(a => new AttachmentUploader(a.PublicId, a.UploadedBy));
 }

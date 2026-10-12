@@ -16,7 +16,7 @@ const check = (name, ok, detail = '') => {
 };
 
 // Every document command must carry the document version in If-Match (428 otherwise); the smoke test uses the explicit "any version" wildcard.
-const DOCUMENT_COMMAND = /^\/api\/documents\/\d+(\/(submit|approve|reject|cancel|post|reverse))?$/;
+const DOCUMENT_COMMAND = /^\/api\/documents\/[0-9a-fA-F-]{36}(\/(submit|approve|reject|cancel|post|reverse))?$/;
 const needsIfMatch = (method, path) => DOCUMENT_COMMAND.test(path) && (method === 'PUT' || (method === 'POST' && path.split('/').length === 5));
 
 async function api(method, path, { token, body, headers } = {}) {
@@ -60,6 +60,9 @@ let r = await api('POST', '/api/documents/receipts', { token: clerk, body: doc(s
 check('clerk creates receipt (draft)', r.status === 200 && r.body.status === 'Draft', JSON.stringify(r.body));
 const rcv = r.body;
 check('document number has the RCV prefix', /^RCV-/.test(rcv.no), rcv.no);
+check('the document is named by a 36-character public id and its lines carry no id', typeof rcv.id === 'string' && rcv.id.length === 36 && rcv.lines.every(l => !('id' in l)), JSON.stringify(rcv.lines[0]));
+r = await api('GET', '/api/documents/1', { token: admin });
+check('the integer document route is gone (404)', r.status === 404, String(r.status));
 check('draft does not change stock', (await stockOf(p1.id)).qty === 0);
 r = await api('POST', `/api/documents/${rcv.id}/submit`, { token: clerk });
 check('submit -> Submitted, no approval needed', r.body.status === 'Submitted' && r.body.requiresApproval === false);
@@ -68,6 +71,8 @@ check('allowedActions offers the staff post', r.body.allowedActions?.includes('p
 r = await api('POST', `/api/documents/${rcv.id}/post`, { token: staff, body: {} });
 check('staff posts the receipt', r.body.status === 'Posted', JSON.stringify(r.body));
 check('stock increased to 1000', (await stockOf(p1.id)).qty === 1000);
+r = await api('GET', `/api/stock/ledger?productId=${p1.id}&sourceDocId=${rcv.id}`, { token: admin });
+check('the ledger names its source document by public id and filters by it', r.body.items.length === 1 && r.body.items[0].sourceDocId === rcv.id, JSON.stringify(r.body).slice(0, 200));
 r = await api('PUT', `/api/documents/${rcv.id}`, { token: clerk, body: doc(supplier.id, [{ productId: p1.id, qty: 1 }]) });
 check('posted document cannot be edited (400)', r.status === 400);
 
@@ -213,7 +218,10 @@ r = await upload(staff, 'Document', rcv.id, Buffer.concat([png, Buffer.alloc(11 
 check('an 11 MB file is refused', r.status === 400 || r.status === 413, String(r.status));
 r = await upload(null, 'Document', rcv.id, png, 'a.png');
 check('upload without a token is 401', r.status === 401);
-// restored in PR-7 (attachment ownerId becomes a public id): the clerk-403 and admin-product-image checks need a product ownerId the client can name
+r = await upload(clerk, 'Product', p1.id, png, 'p.png');
+check('clerk cannot attach files to a product (403)', r.status === 403, String(r.status));
+r = await upload(admin, 'Product', p1.id, png, 'p.png');
+check('admin attaches a product image, owner named by its public id', r.status === 200 && r.body.ownerType === 'Product' && r.body.ownerId === p1.id && r.body.id.length === 36, JSON.stringify(r.body));
 r = await api('DELETE', '/api/attachments/' + att.id, { token: staff });
 check('a file on a posted document cannot be removed (409)', r.status === 409, String(r.status));
 r = await api('POST', '/api/documents/receipts', { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 1, unitCost: 1 }]) });

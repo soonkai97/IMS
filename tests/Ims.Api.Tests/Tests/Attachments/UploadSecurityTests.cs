@@ -17,12 +17,11 @@ namespace Ims.Api.Tests.Tests.Attachments;
 [Collection(ApiCollection.Name)]
 public class UploadSecurityTests(ApiFixture fixture)
 {
-    private async Task<(ApiClient Admin, int ProductId)> AdminWithProductAsync()
+    private async Task<(ApiClient Admin, Guid ProductId)> AdminWithProductAsync()
     {
         var admin = await fixture.AsAsync(Roles.Admin);
         var product = await new ProductBuilder(fixture.Reference).CreateAsync(admin);
-        // An attachment names its owner by the integer key until the attachment flip (GUID plan PR-7); the product itself is already addressed by its public id.
-        return (admin, await fixture.Database.ScalarAsync<int>("SELECT Id FROM Product WHERE PublicId = @p", ("@p", product.Id)));
+        return (admin, product.Id);
     }
 
     private static AttachmentsClient Files(ApiClient client) => new(client);

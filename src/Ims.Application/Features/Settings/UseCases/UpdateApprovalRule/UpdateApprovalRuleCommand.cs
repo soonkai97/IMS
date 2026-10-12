@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Settings;
 
-public record UpdateApprovalRuleCommand(int Id, ApprovalRuleSaveRequest Data) : ICommand<ApprovalRuleDto>;
+public record UpdateApprovalRuleCommand(Guid Id, ApprovalRuleSaveRequest Data) : ICommand<ApprovalRuleDto>;

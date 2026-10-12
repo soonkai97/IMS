@@ -56,7 +56,7 @@ public class ImportOpeningStockHandler(IExcelReader excel, IReadRepository<Produ
         ImportSheet.EnsureNoErrors(results);
         var firstDoc = await uow.ExecuteAsync(async () =>
         {
-            int? first = null;
+            Guid? first = null;
             foreach (var g in parsed.GroupBy(x => x.WarehouseId))
             {
                 var request = new DocumentSaveRequest(publicIds[g.Key], null, null, ImportColumns.OpeningStockRemark,

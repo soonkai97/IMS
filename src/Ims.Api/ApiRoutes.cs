@@ -21,8 +21,6 @@ public static class ApiRoutes
     public const string Attachments = Prefix + "/attachments";
     public const string Health = "/health";
 
-    public const string Id = "{id:int}";
-
-    /// <summary>The route of an entity addressed by its public id (a GUID): warehouses, partners, categories, units, users and products so far; documents and attachments follow in the GUID plan (PR-7).</summary>
+    /// <summary>The route of an entity addressed by its public id (a GUID): every addressable entity (the integer route is gone).</summary>
     public const string PublicId = "{id:guid}";
 }

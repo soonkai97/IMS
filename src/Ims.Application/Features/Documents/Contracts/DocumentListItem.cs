@@ -10,11 +10,12 @@ namespace Ims.Application.Features.Documents;
 /// <param name="RowVersion">Source of <see cref="ConcurrencyToken"/>; not part of the JSON.</param>
 /// <param name="CreatedByKey">The integer key of the creator, for the ownership rules (compared with the caller's own integer key); not part of the JSON.</param>
 /// <param name="SubmittedByKey">Same for the submitter, for the self-approval rule; not part of the JSON.</param>
-public record DocumentListItem(int Id, DocumentType Type, string No, DocumentStatus Status, string WarehouseName,
+/// <param name="Key">The integer key of the document: the position the seek cursor of the list is made from (the public id, <c>Id</c>, has no order); not part of the JSON.</param>
+public record DocumentListItem(Guid Id, DocumentType Type, string No, DocumentStatus Status, string WarehouseName,
     string? PartnerName, DateTime CreatedAt, DateTime? PostedAt, decimal TotalQty, [property: VisibleWith(Permissions.CostView)] decimal? TotalAmount, string CreatedBy,
     Guid CreatedById, string CreatedByName, Guid? SubmittedById, string? SubmittedBy, string? SubmittedByName, DateTime? SubmittedAt,
     bool RequiresApproval, bool RequiresOverride, bool IsLarge, bool IsReturned,
-    [property: JsonIgnore] byte[] RowVersion, [property: JsonIgnore] int CreatedByKey, [property: JsonIgnore] int? SubmittedByKey)
+    [property: JsonIgnore] byte[] RowVersion, [property: JsonIgnore] int CreatedByKey, [property: JsonIgnore] int? SubmittedByKey, [property: JsonIgnore] int Key)
 {
     /// <summary>Same value as <c>concurrencyToken</c> on the full document: compare it to know whether an open document has gone stale.</summary>
     [Required]

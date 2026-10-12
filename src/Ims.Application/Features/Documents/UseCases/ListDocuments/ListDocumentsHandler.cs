@@ -17,6 +17,6 @@ public class ListDocumentsHandler(IReadRepository<StockDocument> documents, IDoc
         // The caller's review right is decided by the policy, not by SQL, so a row says whether this caller may act on it.
         var system = await settings.GetAsync(ct);
         var items = rows.Select(r => r with { CanAct = access.CanAct(r, system) }).ToList();
-        return new PagedResult<DocumentListItem>(items, total, page, size, Paging.NextCursor(items, size, d => d.Id, cursors, CursorLists.Documents));
+        return new PagedResult<DocumentListItem>(items, total, page, size, Paging.NextCursor(items, size, d => d.Key, cursors, CursorLists.Documents));
     }
 }

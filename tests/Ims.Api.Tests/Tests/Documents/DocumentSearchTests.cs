@@ -82,7 +82,7 @@ public class DocumentSearchTests(ApiFixture fixture)
 
         Assert.Equal(partners, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM Partner WHERE Name LIKE @m + N'%'", ("@m", marker)));
         Assert.Equal(2, found.Total);
-        Assert.Equal([ofFirst.Id, ofLast.Id], found.Items.Select(d => d.Id).Order());
+        Assert.Equal([ofLast.Id, ofFirst.Id], found.Items.Select(d => d.Id)); // newest first
     }
 
     [Theory]

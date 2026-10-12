@@ -200,9 +200,10 @@ public class PagingContractTests(ApiFixture fixture)
         var s = await StockScenario.CreateAsync(fixture);
         var warehouse = await s.NewWarehouseAsync();
         var product = await s.NewProductAsync();
-        for (var i = 0; i < 5; i++) await s.DraftReceiptAsync(s.Admin, warehouse.Id, new Line(product.Id, 1, 1m));
+        var created = new List<Guid>();
+        for (var i = 0; i < 5; i++) created.Add((await s.DraftReceiptAsync(s.Admin, warehouse.Id, new Line(product.Id, 1, 1m))).Id);
 
-        var ids = new List<int>();
+        var ids = new List<Guid>();
         string? cursor = null;
         var pages = 0;
         do
@@ -216,7 +217,7 @@ public class PagingContractTests(ApiFixture fixture)
 
         Assert.Equal(5, ids.Count);
         Assert.Equal(ids.Distinct().Count(), ids.Count);
-        Assert.Equal(ids.OrderByDescending(i => i), ids);
+        Assert.Equal(Enumerable.Reverse(created), ids); // newest first: the order of creation, reversed (the public id has no order)
     }
 
     [Fact]

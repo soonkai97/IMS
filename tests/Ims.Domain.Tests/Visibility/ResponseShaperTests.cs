@@ -54,7 +54,7 @@ public class ResponseShaperTests
     [Fact]
     public void ABareListOfRules_IsShapedToo_AndAQuantityIsNotMoney()
     {
-        var rules = new List<ApprovalRuleDto> { new(1, DocumentType.Issue, 500m, 10m, Roles.Supervisor, true) };
+        var rules = new List<ApprovalRuleDto> { new(Guid.NewGuid(), DocumentType.Issue, 500m, 10m, Roles.Supervisor, true) };
 
         ResponseShaper.Shape(rules, Nothing);
 
@@ -81,7 +81,7 @@ public class ResponseShaperTests
     {
         var summary = new StockSummary(1234m, 5, 2);
         var row = new StockRow(Guid.NewGuid(), "S", "P", null, "PCS", Guid.NewGuid(), "W", "W", 3m, 0m, 2m, 6m, 0m, false, false);
-        var ledger = new LedgerRow(1, DateTime.UtcNow, "S", "P", "W", "W", 3m, 2m, LedgerReason.Receipt, 1, "RCV", "u");
+        var ledger = new LedgerRow(1, DateTime.UtcNow, "S", "P", "W", "W", 3m, 2m, LedgerReason.Receipt, Guid.NewGuid(), "RCV", "u");
         var movement = new MovementRow(DateTime.UtcNow, "RCV", DocumentType.Receipt, DocumentStatus.Posted, "W", null, "S", "P", 3m, "PCS", 3m, 3m, 2m, 6m, false);
 
         foreach (var shaped in new object[] { summary, row, ledger, movement }) ResponseShaper.Shape(shaped, CostOnly);
