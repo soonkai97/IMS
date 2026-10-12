@@ -30,7 +30,7 @@ public class DocumentAttachmentPolicy(IReadRepository<StockDocument> documents, 
     private async Task<DocumentScope> LoadScopedAsync(int documentId, CancellationToken ct)
     {
         var scope = await documents.FirstOrDefaultAsync(new DocumentScopeSpec(documentId), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
-        access.EnsureWarehouse(scope.WarehouseId);
+        access.EnsureDocumentInScope(scope.WarehouseId); // 404 like a missing document, never a 403 that confirms the id exists (SEC-11)
         return scope;
     }
 
