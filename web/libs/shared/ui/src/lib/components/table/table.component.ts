@@ -12,11 +12,20 @@ import {
 import { RouterLink } from '@angular/router';
 import { toClassStr } from '@ims/utils';
 import { UI_TEXT } from '../../tokens/ui-text.token';
+import { UiScrollRegionDirective } from '../../directives/scroll-region.directive';
 import { UiButtonComponent } from '../button/button.component';
+import { UiClampedTextComponent } from '../clamped-text/clamped-text.component';
 import { UiIconComponent } from '../icon/icon.component';
 import { UiSkeletonComponent } from '../skeleton/skeleton.component';
 import { UiCellDirective } from './cell.directive';
-import { TableCell, TableColumn, TableHeader, TableItem, TableSort } from './table.types';
+import {
+  TableCell,
+  TableColumn,
+  TableHeader,
+  TableItem,
+  TableSort,
+  columnTypeOf
+} from './table.types';
 
 /**
  * One data definition, two renderings: a table from 1024px up and a card list below (docs/design/mvp-ux.md 2).
@@ -24,7 +33,15 @@ import { TableCell, TableColumn, TableHeader, TableItem, TableSort } from './tab
  */
 @Component({
   selector: 'app-table',
-  imports: [NgTemplateOutlet, RouterLink, UiButtonComponent, UiIconComponent, UiSkeletonComponent],
+  imports: [
+    NgTemplateOutlet,
+    RouterLink,
+    UiButtonComponent,
+    UiClampedTextComponent,
+    UiIconComponent,
+    UiScrollRegionDirective,
+    UiSkeletonComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './table.component.html',
   styleUrl: './table.component.scss',
@@ -57,6 +74,7 @@ export class UiTableComponent<Row extends object> {
     const sort = this.$sort();
     return this.$columns().map(column => ({
       key: column.key,
+      type: columnTypeOf(column),
       header: column.header,
       alignEnd: column.align === 'end',
       hideOnPhone: column.hideOnPhone === true,
@@ -78,6 +96,7 @@ export class UiTableComponent<Row extends object> {
         const template = templates.get(column.key) ?? null;
         return {
           key: column.key,
+          type: columnTypeOf(column),
           header: column.header,
           text,
           template,

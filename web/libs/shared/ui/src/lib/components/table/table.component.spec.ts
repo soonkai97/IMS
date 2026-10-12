@@ -57,3 +57,73 @@ describe('UiTableComponent card layout', () => {
     expect(firstPartner?.textContent?.trim()).toBe('Acme');
   });
 });
+
+describe('UiTableComponent long values (L00)', () => {
+  const long = 'W'.repeat(300);
+  const rows: Row[] = [{ no: 'RCV-1', partner: long, status: 'Draft' }];
+  const createComponent = createComponentFactory({
+    component: UiTableComponent<Row>,
+    providers: [provideRouter([])],
+    detectChanges: false
+  });
+
+  function render(columns: TableColumn<Row>[]): Spectator<UiTableComponent<Row>> {
+    const spectator = createComponent({ props: { columns, rows, caption: 'Receipts' } as never });
+    spectator.detectChanges();
+    return spectator;
+  }
+
+  it('gives every column a type class: declared, else number when aligned to the end, name when primary, text otherwise', () => {
+    const spectator = render([
+      { key: 'no', header: 'No.', value: row => row.no, primary: true, type: 'code' },
+      { key: 'partner', header: 'Partner', value: row => row.partner },
+      { key: 'qty', header: 'Qty', value: () => '3', align: 'end' },
+      { key: 'name', header: 'Name', value: row => row.no, primary: true }
+    ]);
+
+    const headers = spectator.queryAll('th').map(th => th.className);
+    expect(headers[0]).toContain('--code');
+    expect(headers[1]).toContain('--text');
+    expect(headers[2]).toContain('--number');
+    expect(headers[3]).toContain('--name');
+    expect(spectator.query('td.--code')).toBeTruthy();
+  });
+
+  it('puts name and text cells in app-clamped-text, which holds the full value, and leaves codes as plain text', () => {
+    const spectator = render([
+      { key: 'no', header: 'No.', value: row => row.no, type: 'code' },
+      { key: 'partner', header: 'Partner', value: row => row.partner }
+    ]);
+
+    expect(spectator.query('td.--code app-clamped-text')).toBeNull();
+    expect(spectator.query('td.--code')?.textContent?.trim()).toBe('RCV-1');
+    expect(spectator.query('td.--text app-clamped-text')?.textContent?.trim()).toBe(long);
+  });
+
+  it('only a title that links to its detail page is not expandable in place', () => {
+    const spectator = createComponent({
+      props: {
+        columns: [
+          { key: 'partner', header: 'Partner', value: (row: Row) => row.partner, primary: true }
+        ],
+        rows,
+        caption: 'Receipts',
+        rowLink: () => ['/receipts', 1]
+      } as never
+    });
+    spectator.detectChanges();
+
+    expect(spectator.query('a.ui-table-link app-clamped-text')).toBeTruthy();
+    expect(spectator.query('app-clamped-text button')).toBeNull();
+  });
+
+  it('sits in a scroll box that is a region and a tab stop only while it really scrolls', () => {
+    const spectator = render([{ key: 'no', header: 'No.', value: row => row.no, type: 'code' }]);
+
+    // jsdom lays nothing out, so the table fits: no landmark and no extra tab stop.
+    const box = spectator.query('.ui-table-scroll');
+    expect(box).toBeTruthy();
+    expect(box?.hasAttribute('role')).toBe(false);
+    expect(box?.hasAttribute('tabindex')).toBe(false);
+  });
+});

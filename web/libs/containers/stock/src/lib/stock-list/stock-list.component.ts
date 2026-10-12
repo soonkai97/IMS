@@ -137,6 +137,7 @@ export class StockListPageComponent implements OnInit {
   $columns = computed<readonly TableColumn<StockRow>[]>(() => [
     {
       key: 'sku',
+      type: 'code',
       header: this.i18n.t('product.sku'),
       value: row => row.sku,
       primary: true,
@@ -177,7 +178,7 @@ export class StockListPageComponent implements OnInit {
       hideOnPhone: true,
       sortKey: StockSort.Value
     }),
-    { key: 'status', header: this.i18n.t('product.status'), phoneEnd: true }
+    { key: 'status', type: 'status', header: this.i18n.t('product.status'), phoneEnd: true }
   ]);
 
   readonly rowLink = (row: StockRow): readonly unknown[] => ['/stock', row.productId];

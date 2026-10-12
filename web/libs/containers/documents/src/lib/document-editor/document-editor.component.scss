@@ -81,6 +81,12 @@
   border-radius: border-radius('md');
 }
 
+// A product name or an actor can be one long unbroken word: it breaks, instead of widening the row (L00).
+.document-editor-readonly-line > *,
+.document-editor-history > li > * {
+  @include wrap-anywhere;
+}
+
 .document-editor-history > li {
   display: flex;
   flex-wrap: wrap;

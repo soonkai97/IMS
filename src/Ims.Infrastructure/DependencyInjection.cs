@@ -43,6 +43,7 @@ public static class DependencyInjection
                 // Loading two or more collections in one query multiplies the rows (a cartesian product). Each collection gets
                 // its own query instead; nothing is multiplied and the cost stays linear in the data actually returned.
                 .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
+            .AddInterceptors(new RecompileInterceptor())
             // If someone forces a single query with two or more collection includes, fail loudly instead of silently exploding.
             .ConfigureWarnings(w => w
                 .Throw(RelationalEventId.MultipleCollectionIncludeWarning)
