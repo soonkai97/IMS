@@ -15,7 +15,9 @@ $widths: (
   'content-max': 76rem,
   'dialog': 30rem,
   'form-max': 40rem,
-  'toast': 24rem
+  'toast': 24rem,
+  'badge': 1.25rem,
+  'tab-cue': 1.5rem
 );
 
 $z-index: (
@@ -59,6 +61,11 @@ $collapsed-duration: 1ms;
   }
 
   @return map.get($heights, $name);
+}
+
+/// The phone tab bar: its height plus the home-indicator inset. The tab bar, the page's bottom room and the action bar read it.
+@function tabbar-offset() {
+  @return calc(#{height('tabbar')} + var(--ims-safe-bottom));
 }
 
 @function width($name) {

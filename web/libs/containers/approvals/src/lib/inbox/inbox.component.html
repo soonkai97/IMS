@@ -2,12 +2,15 @@
 
 <app-tabs
   [label]="'approvals.title' | t"
+  panel="approvals-panel"
   [tabs]="$tabs()"
   [active]="$tab()"
   (activeChange)="onTabChange($event)"
 />
 
 <app-table
+  appTabPanel="approvals-panel"
+  [labelledByTab]="$tab()"
   [columns]="$columns()"
   [rows]="$rows()"
   [caption]="'approvals.title' | t"

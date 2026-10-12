@@ -37,6 +37,7 @@ import {
   UiPagerComponent,
   UiStatusChipComponent,
   UiTableComponent,
+  UiTabPanelDirective,
   UiTabsComponent
 } from '@ims/ui';
 import { controlSignal, createPageState, saveCsv, toCsv } from '@ims/utils';
@@ -65,6 +66,7 @@ const ERROR_LIST_FILE = 'import-errors.csv';
     UiPagerComponent,
     UiStatusChipComponent,
     UiTableComponent,
+    UiTabPanelDirective,
     UiTabsComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

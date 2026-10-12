@@ -1,0 +1,11 @@
+@use '../libs' as *;
+
+// Route change = one crossfade of the page (router `withViewTransitions`); the shell chrome has its own `view-transition-name` and
+// stays still. Every group, the chrome's too, uses the `fast` token (the browser default of 250ms ignores reduced motion); the token
+// is 1ms under prefers-reduced-motion and data-motion="off" because these pseudo-elements inherit the custom properties.
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: duration('fast');
+  animation-timing-function: easing('standard');
+}

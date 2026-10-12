@@ -73,6 +73,22 @@ or `all`.
 - `app-checkbox` and `app-radio-group` draw their own 24px box (`border-strong` edge, `accent` fill, tick or dot); the row is the
   44px target. `app-radio-group variant="segmented"` is one track with equal options, still native radios.
 
+## Shell, tab bar, action bar, tabs
+
+- Phone: top bar, bottom tab bar (`$profile().phoneTabs` plus "More"; links with `aria-current`, not a tablist), content. Tablet: icon
+  rail. Desktop: sidebar. The current page is shown by shape (a 3px pill above the tab icon, a 3px edge in the sidebar), not colour only.
+- Safe areas: `viewport-fit=cover`; `--ims-safe-*` are the insets and `tabbar-offset()` is the tab bar height plus the bottom inset.
+  Components never write `env()`.
+- Sticky action bar (`.document-editor-bar`): phone = full-width strip directly above the tab bar; tablet and up = floating card. It
+  publishes its real height as `--ims-action-bar-height` (`appPublishHeight`; it grows when the buttons wrap at 320px) and the `html`
+  scroll padding reserves tab bar + that height, so a focused field is scrolled clear of it (e2e `16-shell`). Toasts: R11.
+- Route fade: `withViewTransitions(ROUTE_FADE)`, one `fast` crossfade; top bar, sidebar and tab bar have a `view-transition-name` and
+  stay still; query-only navigations skip it; 1ms under reduced motion. Never name content elements (a named element becomes the
+  containing block of fixed descendants).
+- Top progress bar: behind `delayedLoading`, `role="progressbar"` without a value, named "Loading".
+- Tabs: `<app-tabs panel="id">` plus `<div appTabPanel="id" [labelledByTab]="active">` around what it controls (`aria-controls`,
+  `role="tabpanel"`, `aria-labelledby`). Arrows, Home and End move.
+
 ## Naming: flat BEM, component specific
 
 - Block = component purpose, prefixed by the library area: `ui-button`, `document-editor-bar`, `stock-list-page-filters`
