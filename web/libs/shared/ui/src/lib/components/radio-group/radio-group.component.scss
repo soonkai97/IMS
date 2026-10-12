@@ -32,6 +32,16 @@
   display: flex;
   flex-wrap: wrap;
   gap: space(1);
+
+  // Segmented: one track, the options share it equally and the chosen one is filled.
+  &.--segmented {
+    flex-wrap: nowrap;
+    gap: space(0);
+    padding: space(0);
+    background: color('surface-sunken');
+    border: border-width('thin') solid color('border-strong');
+    border-radius: border-radius('md');
+  }
 }
 
 .ui-radio-group-option {
@@ -46,18 +56,101 @@
   border-radius: border-radius('md');
 
   &.--checked {
-    background: color('primary-soft');
-    border-color: color('primary');
+    background: color('accent-soft');
+    border-color: color('accent');
   }
 
-  &:focus-within {
-    @include focus-ring;
+  &:has(:disabled) {
+    color: color('text-muted');
+    cursor: not-allowed;
+  }
+
+  &.--segmented {
+    position: relative;
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+    min-height: height('touch-min');
+    text-align: center;
+    background: transparent;
+    border-color: transparent;
+    border-radius: border-radius('sm');
+
+    @media (hover: hover) {
+      &:hover:not(.--checked, :has(:disabled)) {
+        background: color('surface-strong');
+      }
+    }
+
+    &.--checked {
+      font-weight: font-weight('medium');
+      color: color('on-accent');
+      background: color('accent');
+      border-color: color('accent');
+    }
+
+    // The radio itself is hidden, so the option shows the keyboard focus.
+    &:has(:focus-visible) {
+      @include focus-ring;
+    }
   }
 }
 
+// Drawn by us: a 24px circle with the `border-strong` edge; checked is a ring with a dot (shape, not only colour).
 .ui-radio-group-input {
-  width: 1.125rem;
-  height: 1.125rem;
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
   margin: 0;
-  accent-color: color('primary');
+  appearance: none;
+  cursor: inherit;
+  background: color('surface');
+  border: border-width('thick') solid color('border-strong');
+  border-radius: border-radius('pill');
+
+  @media (hover: hover) {
+    &:hover:not(:checked, :disabled) {
+      border-color: color('text-muted');
+    }
+  }
+
+  &:checked {
+    background: color('accent');
+    border-color: color('accent');
+    box-shadow: inset 0 0 0 0.25rem color('surface');
+  }
+
+  &:disabled {
+    background: color('surface-sunken');
+    border-color: color('border');
+  }
+
+  &:disabled:checked {
+    background: color('text-muted');
+    border-color: color('text-muted');
+  }
+
+  &.--segmented {
+    @include visually-hidden;
+  }
+
+  // Windows high contrast removes backgrounds and shadows: draw the dot with system colours.
+  @media (forced-colors: active) {
+    &:checked {
+      forced-color-adjust: none;
+      background: Highlight;
+      border-color: Highlight;
+      box-shadow: inset 0 0 0 0.25rem Canvas;
+    }
+  }
+}
+
+// The same for the chosen segment: a filled Highlight with HighlightText.
+@media (forced-colors: active) {
+  .ui-radio-group-option.--segmented.--checked {
+    forced-color-adjust: none;
+    color: HighlightText;
+    background: Highlight;
+    border-color: Highlight;
+  }
 }

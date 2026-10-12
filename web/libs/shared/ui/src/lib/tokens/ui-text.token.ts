@@ -16,6 +16,8 @@ export interface UiText {
   readonly nextPage: string;
   readonly clear: string;
   readonly retry: string;
+  /** The word a button shows for 1.5s after a save that stays on the screen. */
+  readonly saved: string;
   readonly chooseFile: string;
   readonly dropFile: string;
   readonly selectPlaceholder: string;
@@ -39,6 +41,7 @@ const DEFAULT_UI_TEXT: UiText = {
   nextPage: 'Next page',
   clear: 'Clear',
   retry: 'Retry',
+  saved: 'Saved',
   chooseFile: 'Choose file',
   dropFile: 'or drop a file here',
   selectPlaceholder: 'Select...',

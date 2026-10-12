@@ -1,7 +1,8 @@
 @use '../variables' as *;
 @use 'a11y.mixin' as a11y;
 
-/// Shared look of text-like form controls (input, select, textarea).
+/// Shared look of text-like form controls (input, select, textarea): rest, hover, focus, error, disabled, read-only.
+/// Border and ring change at once (no transition); the error is also in the text under the field, never colour alone.
 @mixin control-base {
   box-sizing: border-box;
   width: 100%;
@@ -18,17 +19,33 @@
     color: color('text-muted');
   }
 
+  @media (hover: hover) {
+    &:hover:not(:disabled, [readonly], :focus-visible, .--invalid) {
+      border-color: color('text-muted');
+    }
+  }
+
   &:focus-visible {
     @include a11y.focus-ring;
+
+    border-color: color('accent');
   }
 
-  &:disabled,
   &[readonly] {
     color: color('text-muted');
-    background: color('surface-2');
+    background: color('surface-sunken');
   }
 
+  &:disabled {
+    color: color('text-muted');
+    cursor: not-allowed;
+    background: color('surface-sunken');
+    border-color: color('border');
+  }
+
+  // A 1px inset ring of the same colour makes the edge look 2px thick without moving the layout.
   &.--invalid {
     border-color: color('danger');
+    box-shadow: inset 0 0 0 border-width('thin') color('danger');
   }
 }

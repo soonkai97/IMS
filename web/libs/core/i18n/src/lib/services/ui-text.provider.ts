@@ -21,6 +21,7 @@ export function provideUiText(): EnvironmentProviders {
           nextPage: i18n.t('ui.nextPage'),
           clear: i18n.t('ui.clear'),
           retry: i18n.t('ui.retry'),
+          saved: i18n.t('ui.saved'),
           chooseFile: i18n.t('ui.chooseFile'),
           dropFile: i18n.t('ui.dropFile'),
           selectPlaceholder: i18n.t('ui.selectPlaceholder'),

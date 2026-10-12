@@ -31,6 +31,14 @@ describe('UiFormFieldComponent error wording', () => {
     );
   });
 
+  it('the error has an icon as well as text, so colour is never the only cue (FR-08)', () => {
+    render(new FormControl(null, [Validators.required]));
+
+    const error = spectator.query('.ui-form-field-error');
+    expect(error?.querySelector('app-icon[name="alert"]')).not.toBeNull();
+    expect(error?.textContent).toContain('Invalid value (required)');
+  });
+
   it('falls back to the kit sentence for errors it has no field wording for', () => {
     render(new FormControl(null, [Validators.required]), { min: 'Enter a quantity above 0.' });
 

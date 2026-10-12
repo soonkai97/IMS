@@ -1,31 +1,67 @@
 @use 'libs' as *;
 
+// Press feedback: a transform only, so no layout moves (docs/design/2026-refresh-motion.md 3.7, lean set). Colours change at
+// once. press-scale() is 0.97, and 1 (no movement) under reduced motion.
 :host {
   --button-bg: #{color('surface')};
-  --button-bg-hover: #{color('surface-2')};
+  --button-bg-hover: #{color('surface-sunken')};
+  --button-bg-pressed: #{color('surface-strong')};
   --button-fg: #{color('text')};
+  --button-fg-hover: #{color('text')};
   --button-border: #{color('border-strong')};
+  --button-border-pressed: #{color('border-strong')};
+
+  // After a save that stays on the screen (UX 7.2): a filled variant turns solid green, the others a soft green with a green edge.
+  --button-bg-saved: #{color('success-soft')};
+  --button-fg-saved: #{color('on-success-soft')};
+  --button-border-saved: #{color('success')};
+
+  // Disabled is a grey button with readable text, not a faded copy of the coloured one (NV-20).
+  --button-bg-disabled: #{color('surface-strong')};
+  --button-border-disabled: #{color('border')};
 
   display: inline-flex;
 
   &.--primary {
-    --button-bg: #{color('primary')};
-    --button-bg-hover: #{color('primary-hover')};
-    --button-fg: #{color('on-primary')};
-    --button-border: #{color('primary')};
+    --button-bg: #{color('accent')};
+    --button-bg-hover: #{color('accent-hover')};
+    --button-bg-pressed: #{color('accent-pressed')};
+    --button-fg: #{color('on-accent')};
+    --button-fg-hover: #{color('on-accent')};
+    --button-border: #{color('accent')};
+    --button-border-pressed: #{color('accent-pressed')};
+    --button-bg-saved: #{color('success')};
+    --button-fg-saved: #{color('on-success')};
   }
 
   &.--danger {
     --button-bg: #{color('danger')};
     --button-bg-hover: #{color('danger-hover')};
+    --button-bg-pressed: #{color('danger-pressed')};
     --button-fg: #{color('on-danger')};
+    --button-fg-hover: #{color('on-danger')};
     --button-border: #{color('danger')};
+    --button-border-pressed: #{color('danger-pressed')};
+    --button-bg-saved: #{color('success')};
+    --button-fg-saved: #{color('on-success')};
+  }
+
+  // For a destructive action placed beside a primary one (Reverse on a posted document).
+  &.--danger-outline {
+    --button-bg-hover: #{color('danger-soft')};
+    --button-bg-pressed: #{color('danger-soft')};
+    --button-fg: #{color('danger')};
+    --button-fg-hover: #{color('on-danger-soft')};
+    --button-border: #{color('danger')};
+    --button-border-pressed: #{color('danger-hover')};
   }
 
   &.--ghost {
     --button-bg: transparent;
-    --button-bg-hover: #{color('surface-3')};
     --button-border: transparent;
+    --button-border-pressed: transparent;
+    --button-bg-disabled: transparent;
+    --button-border-disabled: transparent;
   }
 
   &.--block {
@@ -39,11 +75,14 @@
 }
 
 .ui-button-control {
-  display: inline-flex;
+  // One grid cell: the label and the "Saved" tick sit on top of each other, so the button is as wide as the wider one.
+  // The column is as wide as the content box and no wider (`minmax(0, 1fr)`), so a busy button with a frozen width spills its
+  // spinner and label evenly into the left and right padding instead of out of the right edge (a text-only label is 28px wider
+  // with the spinner; the padding is 32px).
+  display: inline-grid;
   flex: 1;
-  gap: space(1);
-  align-items: center;
-  justify-content: center;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
   min-width: height('touch-min');
   min-height: height('touch');
   padding: 0 space(2);
@@ -54,24 +93,64 @@
   border: border-width('thin') solid var(--button-border);
   border-radius: border-radius('md');
   cursor: pointer;
-  transition: background-color duration('fast') easing('standard');
+  transition: transform duration('fast') easing('standard');
 
-  &:hover:not(:disabled, [aria-disabled='true']) {
-    background: var(--button-bg-hover);
+  // Hover only where there is a pointer that hovers; a touch screen never shows a stuck hover.
+  @media (hover: hover) {
+    &:hover:not(:disabled, [aria-disabled='true'], .--saved) {
+      color: var(--button-fg-hover);
+      background: var(--button-bg-hover);
+    }
   }
 
-  // Busy: keeps its colours, with the spinner.
+  &:active:not(:disabled, [aria-disabled='true'], .--saved) {
+    color: var(--button-fg-hover);
+    background: var(--button-bg-pressed);
+    border-color: var(--button-border-pressed);
+    transform: scale(press-scale());
+  }
+
+  // Busy keeps its own colours (contrast stays), shows the spinner and ignores clicks.
   &[aria-busy='true'] {
     cursor: progress;
-    opacity: 0.85;
   }
 
-  // A disabled button is grey with readable text, not a faded copy of the coloured one (NV-20).
   &:disabled,
   &[aria-disabled='true']:not([aria-busy='true']) {
     color: color('text-muted');
     cursor: not-allowed;
-    background: color('surface-3');
-    border-color: color('border');
+    background: var(--button-bg-disabled);
+    border-color: var(--button-border-disabled);
   }
+
+  &.--saved {
+    color: var(--button-fg-saved);
+    background: var(--button-bg-saved);
+    border-color: var(--button-border-saved);
+  }
+}
+
+.ui-button-face,
+.ui-button-saved {
+  display: inline-flex;
+  grid-area: 1 / 1;
+  gap: space(1);
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-button-face {
+  // While the "Saved" tick shows, the label keeps its room but is hidden from sight and from assistive technology.
+  &.--covered {
+    visibility: hidden;
+  }
+
+  // The spinner takes the place of the leading icon, so the button does not grow when it appears.
+  &.--busy {
+    --button-icon-display: none;
+  }
+}
+
+.ui-button-icon {
+  display: var(--button-icon-display, contents);
 }
