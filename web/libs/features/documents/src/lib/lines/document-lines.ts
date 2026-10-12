@@ -1,10 +1,11 @@
 import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import { DocumentLineDto, DocumentLineInput, DocumentType, ProductDto } from '@ims/api';
-import { MAX_QUANTITY, MAX_QUANTITY_DECIMALS } from '@ims/models';
+import { MAX_QUANTITY, MAX_QUANTITY_DECIMALS, MAX_UNIT_COST } from '@ims/models';
 import {
   MONEY_DECIMALS,
   decimalPlaces,
   maxDecimals,
+  lineAmount,
   roundMoney,
   roundQuantity,
   toNumber
@@ -65,9 +66,12 @@ export function isValidQuantity(qty: number | null): qty is number {
   );
 }
 
-/** A unit cost is money: not negative, at most 2 decimals. Blank is valid (nobody typed a cost). */
+/** A unit cost is money: from 0 up to the API maximum, at most 2 decimals. Blank is valid (nobody typed a cost). */
 export function isValidUnitCost(unitCost: number | null): boolean {
-  return unitCost === null || (unitCost >= 0 && decimalPlaces(unitCost) <= MONEY_DECIMALS);
+  return (
+    unitCost === null ||
+    (unitCost >= 0 && unitCost <= MAX_UNIT_COST && decimalPlaces(unitCost) <= MONEY_DECIMALS)
+  );
 }
 
 export function createLineGroup(value: LineValue): LineGroup {
@@ -88,7 +92,8 @@ export function createLineGroup(value: LineValue): LineGroup {
     uomId: new FormControl(value.uomId, { nonNullable: true }),
     unitCost: new FormControl<number | null>(value.unitCost, [
       maxDecimals(MONEY_DECIMALS),
-      Validators.min(0)
+      Validators.min(0),
+      Validators.max(MAX_UNIT_COST)
     ]),
     remark: new FormControl(value.remark, { nonNullable: true }),
     available: new FormControl<number | null>({ value: value.available, disabled: true }),
@@ -212,17 +217,17 @@ export function computeTotals(lines: readonly LineValue[], type: DocumentType): 
     totalQty: roundQuantity(valid.reduce((sum, line) => sum + baseQuantity(line), 0)),
     totalAmount:
       type === DocumentType.Receipt
-        ? roundMoney(valid.reduce((sum, line) => sum + lineAmount(line), 0))
+        ? roundMoney(valid.reduce((sum, line) => sum + receiptLineAmount(line), 0))
         : 0,
     shortLineCount:
       type === DocumentType.Issue ? valid.filter(line => lineShortfall(line) > 0).length : 0
   };
 }
 
-/** Receipt line amount in money. A cost the form rejects (3 decimals, negative) is left out, like a blank one. */
-function lineAmount(line: LineValue): number {
+/** Receipt line amount in money. A cost the form rejects (3 decimals, negative, too large) is left out, like a blank one. */
+function receiptLineAmount(line: LineValue): number {
   return isValidUnitCost(line.unitCost)
-    ? roundMoney(toNumber(line.qty) * toNumber(line.unitCost))
+    ? lineAmount(toNumber(line.qty), toNumber(line.unitCost))
     : 0;
 }
 

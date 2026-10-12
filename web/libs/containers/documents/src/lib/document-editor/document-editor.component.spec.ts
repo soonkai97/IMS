@@ -1046,6 +1046,23 @@ describe('DocumentEditorPageComponent', () => {
       }
     });
 
+    it('R04: pasted text the browser cannot read ("1,234.50") is an error that blocks Save, not an empty cost', async () => {
+      await openNewReceipt(...CLERK);
+      const line = spectator.component.view.lines.at(0);
+      line.controls.qty.setValue(4);
+      spectator.detectChanges();
+      const input = costInput() as HTMLInputElement;
+      Object.defineProperty(input, 'validity', { configurable: true, value: { badInput: true } });
+
+      input.dispatchEvent(new Event('input'));
+      line.controls.unitCost.markAsTouched();
+      spectator.detectChanges();
+
+      expect(line.controls.unitCost.errors).toEqual({ badInput: true });
+      expect(spectator.component.view.isValid()).toBe(false);
+      expect(text()).toContain('Enter a number such as 1234.50, without commas or spaces.');
+    });
+
     it('R04: a negative unit cost is refused and an empty one is allowed', async () => {
       await openNewReceipt(...CLERK);
       const cost = spectator.component.view.lines.at(0).controls.unitCost;

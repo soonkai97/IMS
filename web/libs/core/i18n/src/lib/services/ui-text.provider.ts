@@ -66,7 +66,7 @@ function validationMessage(i18n: I18nService, key: string, error: unknown): stri
       // Money has its own sentence (D1); any other limit, a quantity's 4, names the limit.
       const max = boundOf(error, 'max');
       return max === MONEY_DECIMALS
-        ? i18n.t('validation.maxDecimals')
+        ? i18n.t('validation.maxDecimals', { max })
         : i18n.t('validation.decimals', { max });
     }
     case 'badInput':

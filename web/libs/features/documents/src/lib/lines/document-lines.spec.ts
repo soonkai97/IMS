@@ -94,6 +94,28 @@ describe('document line totals', () => {
     expect(computeTotals(badCost, DocumentType.Receipt).totalAmount).toBe(3.3);
   });
 
+  it('R04: the amount matches the API at the half cent (2.5 x 0.87 and 1.5 x 1.45 are 2.18 each, not 2.17)', () => {
+    const lines = [
+      line({ qty: 2.5, unitCost: 0.87 }),
+      line({ productId: 2, qty: 1.5, unitCost: 1.45 }),
+      line({ productId: 3, qty: 9.75, unitCost: 624.18 })
+    ];
+
+    expect(computeTotals(lines, DocumentType.Receipt).totalAmount).toBe(6090.12);
+  });
+
+  it('R04: a unit cost above the API maximum is rejected and left out of the amount', () => {
+    const cost = createLineGroup(line()).controls.unitCost;
+
+    cost.setValue(1_000_000_000);
+    expect(cost.valid).toBe(true);
+    cost.setValue(1_000_000_001);
+    expect(cost.errors).toHaveProperty('max');
+    expect(
+      computeTotals([line({ qty: 1, unitCost: 1_000_000_001 })], DocumentType.Receipt).totalAmount
+    ).toBe(0);
+  });
+
   it('removes float noise (0.1 + 0.2 shows as 0.3)', () => {
     const totals = computeTotals(
       [line({ qty: 0.1 }), line({ productId: 2, qty: 0.2 })],

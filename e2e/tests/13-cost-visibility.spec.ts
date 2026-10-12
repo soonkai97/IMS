@@ -59,7 +59,7 @@ test.describe('EA-23 Cost and value visibility', () => {
     await expect(page.getByRole('columnheader', { name: 'Amount' })).toHaveCount(0);
     await expectNoMoney(page);
     await editor.open('receipts', posted.id);
-    await expect(page.getByText('Amount', { exact: true })).toHaveCount(0);
+    await expect(page.getByText(/^Amount/)).toHaveCount(0);
     await expectNoMoney(page);
 
     // Issue list and draft issue.
@@ -68,7 +68,7 @@ test.describe('EA-23 Cost and value visibility', () => {
     await expect(page.getByRole('columnheader', { name: 'Amount' })).toHaveCount(0);
     await expectNoMoney(page);
     await editor.open('issues', issue.id);
-    await expect(page.getByText('Amount', { exact: true })).toHaveCount(0);
+    await expect(page.getByText(/^Amount/)).toHaveCount(0);
     await expectNoMoney(page);
 
     // Stock: no Value column, nothing to sort by value, no export; the product page carries no cost either.
