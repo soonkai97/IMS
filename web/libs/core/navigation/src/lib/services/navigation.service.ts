@@ -1,12 +1,7 @@
 import { Injectable, InjectionToken, computed, inject } from '@angular/core';
 import { PermissionService } from '@ims/core/identity';
 import { isDefined } from '@ims/utils';
-import {
-  DEFAULT_PHONE_TABS,
-  MENU_GROUPS,
-  MENU_ITEMS,
-  PHONE_TABS_BY_ROLE
-} from '../constants/menu.const';
+import { MENU_GROUPS, MENU_ITEMS } from '../constants/menu.const';
 import { NavBadgeSource, NavEntry, NavGroup } from '../types/menu.types';
 
 export const NAV_BADGE_SOURCES = new InjectionToken<readonly NavBadgeSource[]>(
@@ -43,7 +38,7 @@ export class NavigationService {
   );
 
   readonly $phoneTabs = computed<readonly NavEntry[]>(() => {
-    const ids = PHONE_TABS_BY_ROLE[this.permissions.$role() ?? ''] ?? DEFAULT_PHONE_TABS;
+    const ids = this.permissions.$profile().phoneTabs;
     const entries = this.$entries();
     return ids.map(id => entries.find(entry => entry.id === id)).filter(isDefined);
   });
