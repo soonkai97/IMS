@@ -71,28 +71,38 @@ export class UiButtonComponent {
    * top of the page): it is only inert and announced as busy. Only `disabled` switches the control off natively.
    */
   $isNativeDisabled = computed(() => this.$disabled());
-  $isInert = computed(() => this.$disabled() || this.$loading() || this.$ariaDisabled());
+  $isInert = computed(
+    () => this.$disabled() || this.$loading() || this.$ariaDisabled() || this.$showSaved()
+  );
   $isAriaDisabled = computed(() => this.$ariaDisabled() || this.$loading());
   $hostClass = computed(() =>
     toClassStr(['ui-button', `--${this.$variant()}`, this.$block() && '--block'])
   );
 
-  /** `aria-busy` is at once; the spinner only after 150ms, and stays long enough to be seen. */
-  $spinnerVisible = delayedLoading(this.$loading, { delay: BUTTON_SPINNER_DELAY_MS });
+  /**
+   * `aria-busy` is at once; the spinner only after 150ms. It leaves with the answer (no minimum time, unlike a skeleton): the
+   * button is clickable again at that moment, and a spinner on a button that is no longer busy would be a lie.
+   */
+  $spinnerVisible = delayedLoading(this.$loading, {
+    delay: BUTTON_SPINNER_DELAY_MS,
+    minShow: 0
+  });
   $showSaved = signal(false);
   $savedText = computed(() => this.uiText().saved);
   /**
-   * The width the button had when it became busy. The spinner takes the place of the leading icon, or sits in the button's
-   * padding, and the box must not change size for it (no layout shift).
+   * The width the button had when it became busy or saved. Busy: the spinner takes the place of the leading icon, or spills
+   * evenly into the padding, and the box must not change size for it. Saved: the width does not shrink below it either.
    */
   $lockedWidth = signal<number | null>(null);
+  /** Only a busy button is capped: "Saved" may need more room than a short label, and a clipped word is worse than a wider box. */
+  $maxWidth = computed(() => (this.$showSaved() ? null : this.$lockedWidth()));
 
   private savedTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
     effect(() => {
-      const busy = this.$loading() || this.$spinnerVisible();
-      untracked(() => this.lockWidth(busy));
+      const locked = this.$loading() || this.$spinnerVisible() || this.$showSaved();
+      untracked(() => this.lockWidth(locked));
     });
     effect(() => {
       if (this.$saved()) {
@@ -109,11 +119,13 @@ export class UiButtonComponent {
     this.$clicked.emit(event);
   }
 
-  private lockWidth(busy: boolean): void {
-    if (!busy) {
+  private lockWidth(locked: boolean): void {
+    if (!locked) {
       this.$lockedWidth.set(null);
     } else if (this.$lockedWidth() === null) {
-      const width = this.control()?.nativeElement.offsetWidth ?? 0;
+      // The laid-out width with its decimals (offsetWidth rounds, and getBoundingClientRect follows a press transform).
+      const element = this.control()?.nativeElement;
+      const width = element ? parseFloat(getComputedStyle(element).width) : 0;
       this.$lockedWidth.set(width > 0 ? width : null);
     }
   }

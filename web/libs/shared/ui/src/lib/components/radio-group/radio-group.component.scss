@@ -133,4 +133,24 @@
   &.--segmented {
     @include visually-hidden;
   }
+
+  // Windows high contrast removes backgrounds and shadows: draw the dot with system colours.
+  @media (forced-colors: active) {
+    &:checked {
+      forced-color-adjust: none;
+      background: Highlight;
+      border-color: Highlight;
+      box-shadow: inset 0 0 0 0.25rem Canvas;
+    }
+  }
+}
+
+// The same for the chosen segment: a filled Highlight with HighlightText.
+@media (forced-colors: active) {
+  .ui-radio-group-option.--segmented.--checked {
+    forced-color-adjust: none;
+    color: HighlightText;
+    background: Highlight;
+    border-color: Highlight;
+  }
 }

@@ -26,7 +26,7 @@
 
   &:active {
     background: color('surface-strong');
-    transform: scale(0.97);
+    transform: scale(press-scale());
   }
 
   &.--primary {

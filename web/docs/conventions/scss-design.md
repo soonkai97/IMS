@@ -56,12 +56,16 @@ or `all`.
 
 - `app-button` variants: `primary` (the one main action), `secondary` (default), `danger`, `danger-outline` (a destructive action
   beside a primary one), `ghost` (quiet, toolbars and rows). Rest, hover and pressed colours change at once; pressed also scales to
-  0.97 (a `transform` transition of `fast`). Hover is guarded by `@media (hover: hover)` so a touch screen never shows a stuck hover.
+  `press-scale()` (a `transform` transition of `fast`); the token is 0.97 and 1 under reduced motion and `data-motion="off"`. Hover is
+  guarded by `@media (hover: hover)` so a touch screen never shows a stuck hover.
 - Busy: `loading` sets `aria-busy` and `aria-disabled` at once and ignores clicks, focus stays. The spinner appears after 150ms
-  (`delayedLoading`), replaces the leading `app-icon`, and the button keeps the width it had (`min-width`/`max-width` in px), so
-  nothing shifts. Colours do not change while busy.
-- `[saved]` shows a check and "Saved" for 1.5s (an action that finishes on the same screen). The label stays in the grid cell
-  hidden, so the width does not change. Announcing the result (a live region) is the caller's job.
+  (`delayedLoading`, no minimum time: it leaves with the answer), replaces the leading `app-icon`, and the button keeps the width it
+  had (`min-width`/`max-width` in px). The grid column is `minmax(0, 1fr)`, so a text-only label plus spinner spills evenly into the
+  padding instead of out of one edge. Colours do not change while busy.
+- `[saved]` shows a check and "Saved" for 1.5s (an action that finishes on the same screen); the button does not shrink while it
+  shows and ignores clicks. A label shorter than "Saved" grows the box just enough to fit it. Announcing the result (a live region)
+  is the caller's job.
+- Windows high contrast: the checked checkbox, radio and segment opt out of forced colours and use `Highlight`/`HighlightText`.
 - Disabled: `disabled` for an action that does not exist for this user's state; `ariaDisabled` + `describedBy` when the reason
   matters (the button stays focusable).
 - Text-like controls share the `control-base` mixin: hover border `text-muted`, focus border `accent` plus the ring, error border

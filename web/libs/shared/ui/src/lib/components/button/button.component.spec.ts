@@ -130,6 +130,36 @@ describe('UiButtonComponent busy and saved states', () => {
     expect(button().className).toBe('ui-button-control');
   });
 
+  it('the spinner leaves with the answer: busy and spinner end together', () => {
+    setInput('loading', true);
+    jest.advanceTimersByTime(150);
+    spectator.detectChanges();
+    expect(spinner()).not.toBeNull();
+
+    setInput('loading', false);
+    jest.advanceTimersByTime(0);
+    spectator.detectChanges();
+
+    expect(spinner()).toBeNull();
+    expect(button().getAttribute('aria-busy')).toBe('false');
+  });
+
+  it('does not react to a click while "Saved" shows', () => {
+    const seen: number[] = [];
+    spectator.output('$clicked').subscribe(() => seen.push(1));
+    setInput('saved', true);
+
+    expect(spectator.element.hasAttribute('data-inert')).toBe(true);
+    spectator.click(button());
+    expect(seen).toEqual([]);
+
+    jest.advanceTimersByTime(1500);
+    spectator.detectChanges();
+    expect(spectator.element.hasAttribute('data-inert')).toBe(false);
+    spectator.click(button());
+    expect(seen).toEqual([1]);
+  });
+
   it('shows a tick and "Saved" for 1.5s, then returns to the label', () => {
     setInput('saved', true);
 

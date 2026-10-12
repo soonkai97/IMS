@@ -71,4 +71,17 @@
       border-color: color('text-muted');
     }
   }
+
+  // Windows high contrast removes backgrounds: opt this one control out and draw the checked state with system colours.
+  @media (forced-colors: active) {
+    &:checked {
+      forced-color-adjust: none;
+      background: Highlight;
+      border-color: Highlight;
+
+      &::after {
+        border-color: HighlightText;
+      }
+    }
+  }
 }

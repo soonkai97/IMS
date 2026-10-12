@@ -1,8 +1,7 @@
 @use 'libs' as *;
 
-// Press feedback: a transform only, so no layout moves (docs/design/2026-refresh-motion.md 3.7, lean set). Colours change at once.
-$press-scale: 0.97;
-
+// Press feedback: a transform only, so no layout moves (docs/design/2026-refresh-motion.md 3.7, lean set). Colours change at
+// once. press-scale() is 0.97, and 1 (no movement) under reduced motion.
 :host {
   --button-bg: #{color('surface')};
   --button-bg-hover: #{color('surface-sunken')};
@@ -77,8 +76,12 @@ $press-scale: 0.97;
 
 .ui-button-control {
   // One grid cell: the label and the "Saved" tick sit on top of each other, so the button is as wide as the wider one.
+  // The column is as wide as the content box and no wider (`minmax(0, 1fr)`), so a busy button with a frozen width spills its
+  // spinner and label evenly into the left and right padding instead of out of the right edge (a text-only label is 28px wider
+  // with the spinner; the padding is 32px).
   display: inline-grid;
   flex: 1;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   min-width: height('touch-min');
   min-height: height('touch');
@@ -104,7 +107,7 @@ $press-scale: 0.97;
     color: var(--button-fg-hover);
     background: var(--button-bg-pressed);
     border-color: var(--button-border-pressed);
-    transform: scale($press-scale);
+    transform: scale(press-scale());
   }
 
   // Busy keeps its own colours (contrast stays), shows the spinner and ignores clicks.

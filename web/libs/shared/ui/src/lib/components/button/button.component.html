@@ -12,7 +12,7 @@
   [attr.aria-controls]="$controls()"
   [attr.aria-haspopup]="$popup()"
   [style.min-width.px]="$lockedWidth()"
-  [style.max-width.px]="$lockedWidth()"
+  [style.max-width.px]="$maxWidth()"
   (click)="onClick($event)"
 >
   <span class="ui-button-face" [class.--busy]="$spinnerVisible()" [class.--covered]="$showSaved()">
