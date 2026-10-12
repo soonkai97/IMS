@@ -161,7 +161,7 @@ export class PartnersClient {
     /**
      * @return OK
      */
-    update(id: number, body: PartnerSaveRequest, httpContext?: HttpContext): Observable<PartnerDto> {
+    update(id: string, body: PartnerSaveRequest, httpContext?: HttpContext): Observable<PartnerDto> {
         let url_ = this.baseUrl + "/api/partners/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -344,7 +344,7 @@ export class WarehousesClient {
     /**
      * @return OK
      */
-    update(id: number, body: WarehouseSaveRequest, httpContext?: HttpContext): Observable<WarehouseDto> {
+    update(id: string, body: WarehouseSaveRequest, httpContext?: HttpContext): Observable<WarehouseDto> {
         let url_ = this.baseUrl + "/api/warehouses/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -547,7 +547,7 @@ export class UsersClient {
     /**
      * @return OK
      */
-    update(id: number, body: UserSaveRequest, httpContext?: HttpContext): Observable<UserDto> {
+    update(id: string, body: UserSaveRequest, httpContext?: HttpContext): Observable<UserDto> {
         let url_ = this.baseUrl + "/api/users/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -828,7 +828,7 @@ export class ReportsClient {
      * @param pageSize (optional) 
      * @return OK
      */
-    movements(type?: DocumentType | undefined, warehouseId?: number | undefined, productId?: number | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined, httpContext?: HttpContext): Observable<PagedResultOfMovementRow> {
+    movements(type?: DocumentType | undefined, warehouseId?: string | undefined, productId?: string | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined, httpContext?: HttpContext): Observable<PagedResultOfMovementRow> {
         let url_ = this.baseUrl + "/api/reports/movements?";
         if (type === null)
             throw new globalThis.Error("The parameter 'type' cannot be null.");
@@ -916,7 +916,7 @@ export class ReportsClient {
      * @param desc (optional) 
      * @return The file.
      */
-    exportStockSummary(warehouseId?: number | undefined, productId?: number | undefined, categoryId?: number | undefined, search?: string | undefined, lowOnly?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, sortBy?: StockSort | undefined, desc?: boolean | undefined, httpContext?: HttpContext): Observable<FileResponse> {
+    exportStockSummary(warehouseId?: string | undefined, productId?: string | undefined, categoryId?: string | undefined, search?: string | undefined, lowOnly?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, sortBy?: StockSort | undefined, desc?: boolean | undefined, httpContext?: HttpContext): Observable<FileResponse> {
         let url_ = this.baseUrl + "/api/reports/stock-summary/export?";
         if (warehouseId === null)
             throw new globalThis.Error("The parameter 'warehouseId' cannot be null.");
@@ -1015,7 +1015,7 @@ export class ReportsClient {
      * @param pageSize (optional) 
      * @return The file.
      */
-    exportMovements(type?: DocumentType | undefined, warehouseId?: number | undefined, productId?: number | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined, httpContext?: HttpContext): Observable<FileResponse> {
+    exportMovements(type?: DocumentType | undefined, warehouseId?: string | undefined, productId?: string | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined, httpContext?: HttpContext): Observable<FileResponse> {
         let url_ = this.baseUrl + "/api/reports/movements/export?";
         if (type === null)
             throw new globalThis.Error("The parameter 'type' cannot be null.");
@@ -1104,11 +1104,11 @@ export class ReportsClient {
      * @param sourceDocId (optional) 
      * @param page (optional) 
      * @param pageSize (optional) 
-     * @param afterId (optional) Seek paging: return rows older than this ledger id. Use it instead of `Page` for deep pages (constant cost at any depth).
+     * @param cursor (optional) Seek paging: the `nextCursor` of the previous page, unchanged; returns the rows after it. Use it instead of `Page` for deep pages (constant cost at any depth).
      * @param includeTotal (optional) False skips the row count, which is the expensive part of a very large ledger.
      * @return The file.
      */
-    exportLedger(warehouseId?: number | undefined, productId?: number | undefined, from?: string | undefined, to?: string | undefined, sourceDocId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined, httpContext?: HttpContext): Observable<FileResponse> {
+    exportLedger(warehouseId?: string | undefined, productId?: string | undefined, from?: string | undefined, to?: string | undefined, sourceDocId?: string | undefined, page?: number | undefined, pageSize?: number | undefined, cursor?: string | undefined, includeTotal?: boolean | undefined, httpContext?: HttpContext): Observable<FileResponse> {
         let url_ = this.baseUrl + "/api/reports/ledger/export?";
         if (warehouseId === null)
             throw new globalThis.Error("The parameter 'warehouseId' cannot be null.");
@@ -1138,10 +1138,10 @@ export class ReportsClient {
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (afterId === null)
-            throw new globalThis.Error("The parameter 'afterId' cannot be null.");
-        else if (afterId !== undefined)
-            url_ += "AfterId=" + encodeURIComponent("" + afterId) + "&";
+        if (cursor === null)
+            throw new globalThis.Error("The parameter 'cursor' cannot be null.");
+        else if (cursor !== undefined)
+            url_ += "Cursor=" + encodeURIComponent("" + cursor) + "&";
         if (includeTotal === null)
             throw new globalThis.Error("The parameter 'includeTotal' cannot be null.");
         else if (includeTotal !== undefined)
@@ -1279,7 +1279,7 @@ export class StockClient {
      * @param desc (optional) 
      * @return OK
      */
-    list(warehouseId?: number | undefined, productId?: number | undefined, categoryId?: number | undefined, search?: string | undefined, lowOnly?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, sortBy?: StockSort | undefined, desc?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfStockRow> {
+    list(warehouseId?: string | undefined, productId?: string | undefined, categoryId?: string | undefined, search?: string | undefined, lowOnly?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, sortBy?: StockSort | undefined, desc?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfStockRow> {
         let url_ = this.baseUrl + "/api/stock?";
         if (warehouseId === null)
             throw new globalThis.Error("The parameter 'warehouseId' cannot be null.");
@@ -1371,11 +1371,11 @@ export class StockClient {
      * @param sourceDocId (optional) 
      * @param page (optional) 
      * @param pageSize (optional) 
-     * @param afterId (optional) Seek paging: return rows older than this ledger id. Use it instead of `Page` for deep pages (constant cost at any depth).
+     * @param cursor (optional) Seek paging: the `nextCursor` of the previous page, unchanged; returns the rows after it. Use it instead of `Page` for deep pages (constant cost at any depth).
      * @param includeTotal (optional) False skips the row count, which is the expensive part of a very large ledger.
      * @return OK
      */
-    ledger(warehouseId?: number | undefined, productId?: number | undefined, from?: string | undefined, to?: string | undefined, sourceDocId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfLedgerRow> {
+    ledger(warehouseId?: string | undefined, productId?: string | undefined, from?: string | undefined, to?: string | undefined, sourceDocId?: string | undefined, page?: number | undefined, pageSize?: number | undefined, cursor?: string | undefined, includeTotal?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfLedgerRow> {
         let url_ = this.baseUrl + "/api/stock/ledger?";
         if (warehouseId === null)
             throw new globalThis.Error("The parameter 'warehouseId' cannot be null.");
@@ -1405,10 +1405,10 @@ export class StockClient {
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (afterId === null)
-            throw new globalThis.Error("The parameter 'afterId' cannot be null.");
-        else if (afterId !== undefined)
-            url_ += "AfterId=" + encodeURIComponent("" + afterId) + "&";
+        if (cursor === null)
+            throw new globalThis.Error("The parameter 'cursor' cannot be null.");
+        else if (cursor !== undefined)
+            url_ += "Cursor=" + encodeURIComponent("" + cursor) + "&";
         if (includeTotal === null)
             throw new globalThis.Error("The parameter 'includeTotal' cannot be null.");
         else if (includeTotal !== undefined)
@@ -1465,7 +1465,7 @@ export class StockClient {
      * @param pageSize (optional) 
      * @return OK
      */
-    lowStock(warehouseId?: number | undefined, page?: number | undefined, pageSize?: number | undefined, httpContext?: HttpContext): Observable<PagedResultOfLowStockAlert> {
+    lowStock(warehouseId?: string | undefined, page?: number | undefined, pageSize?: number | undefined, httpContext?: HttpContext): Observable<PagedResultOfLowStockAlert> {
         let url_ = this.baseUrl + "/api/stock/low-stock?";
         if (warehouseId === null)
             throw new globalThis.Error("The parameter 'warehouseId' cannot be null.");
@@ -1699,7 +1699,7 @@ export class ApprovalRulesClient {
     /**
      * @return OK
      */
-    update(id: number, body: ApprovalRuleSaveRequest, httpContext?: HttpContext): Observable<ApprovalRuleDto> {
+    update(id: string, body: ApprovalRuleSaveRequest, httpContext?: HttpContext): Observable<ApprovalRuleDto> {
         let url_ = this.baseUrl + "/api/approval-rules/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -1777,7 +1777,7 @@ export class AuditClient {
      * @param to (optional) 
      * @param page (optional) 
      * @param pageSize (optional) 
-     * @param afterId (optional) Seek paging: return entries older than this id.
+     * @param cursor (optional) Seek paging: the `nextCursor` of the previous page, unchanged; returns the entries after it.
      * @param includeTotal (optional) False skips the row count.
      * @param entityId (optional) Id of the entity starts with: a document number such as ISS-WH01-2610-0017, a user id, a SKU prefix of the bulk events.
      * @param action (optional) Action starts with: "document." for every document event, "login" for sign-ins, "document.posted" for one.
@@ -1785,7 +1785,7 @@ export class AuditClient {
      * @param hideSignIns (optional) Leave out the sign-in events (login.success, login.failed, login.locked, login.lockout, logout), which are most of a busy log: "everything except sign-ins". Combines with the other filters.
      * @return OK
      */
-    list(entityType?: string | undefined, actor?: string | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined, entityId?: string | undefined, action?: string | undefined, search?: string | undefined, hideSignIns?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfAuditLogDto> {
+    list(entityType?: string | undefined, actor?: string | undefined, from?: string | undefined, to?: string | undefined, page?: number | undefined, pageSize?: number | undefined, cursor?: string | undefined, includeTotal?: boolean | undefined, entityId?: string | undefined, action?: string | undefined, search?: string | undefined, hideSignIns?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfAuditLogDto> {
         let url_ = this.baseUrl + "/api/audit?";
         if (entityType === null)
             throw new globalThis.Error("The parameter 'entityType' cannot be null.");
@@ -1811,10 +1811,10 @@ export class AuditClient {
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (afterId === null)
-            throw new globalThis.Error("The parameter 'afterId' cannot be null.");
-        else if (afterId !== undefined)
-            url_ += "AfterId=" + encodeURIComponent("" + afterId) + "&";
+        if (cursor === null)
+            throw new globalThis.Error("The parameter 'cursor' cannot be null.");
+        else if (cursor !== undefined)
+            url_ += "Cursor=" + encodeURIComponent("" + cursor) + "&";
         if (includeTotal === null)
             throw new globalThis.Error("The parameter 'includeTotal' cannot be null.");
         else if (includeTotal !== undefined)
@@ -2076,13 +2076,13 @@ export class DocumentsClient {
      * @param search (optional) Documents whose number or remark contains the text, or whose partner name contains it (case-insensitive; a partial number such as 0100 works).
      * @param page (optional) 
      * @param pageSize (optional) 
-     * @param afterId (optional) Seek paging: return documents older than this id (constant cost at any depth).
+     * @param cursor (optional) Seek paging: the `nextCursor` of the previous page, unchanged; returns the documents after it (constant cost at any depth).
      * @param includeTotal (optional) False skips the row count.
      * @param mine (optional) True returns only documents the caller created.
      * @param requiresApproval (optional) True returns only documents an approval rule held back; false only those it did not. Combine with `status=Submitted` for the approvals inbox.
      * @return OK
      */
-    list(type?: DocumentType | undefined, status?: DocumentStatus | undefined, warehouseId?: number | undefined, from?: string | undefined, to?: string | undefined, search?: string | undefined, page?: number | undefined, pageSize?: number | undefined, afterId?: number | undefined, includeTotal?: boolean | undefined, mine?: boolean | undefined, requiresApproval?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfDocumentListItem> {
+    list(type?: DocumentType | undefined, status?: DocumentStatus | undefined, warehouseId?: string | undefined, from?: string | undefined, to?: string | undefined, search?: string | undefined, page?: number | undefined, pageSize?: number | undefined, cursor?: string | undefined, includeTotal?: boolean | undefined, mine?: boolean | undefined, requiresApproval?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfDocumentListItem> {
         let url_ = this.baseUrl + "/api/documents?";
         if (type === null)
             throw new globalThis.Error("The parameter 'type' cannot be null.");
@@ -2116,10 +2116,10 @@ export class DocumentsClient {
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (afterId === null)
-            throw new globalThis.Error("The parameter 'afterId' cannot be null.");
-        else if (afterId !== undefined)
-            url_ += "AfterId=" + encodeURIComponent("" + afterId) + "&";
+        if (cursor === null)
+            throw new globalThis.Error("The parameter 'cursor' cannot be null.");
+        else if (cursor !== undefined)
+            url_ += "Cursor=" + encodeURIComponent("" + cursor) + "&";
         if (includeTotal === null)
             throw new globalThis.Error("The parameter 'includeTotal' cannot be null.");
         else if (includeTotal !== undefined)
@@ -2233,7 +2233,7 @@ export class DocumentsClient {
     /**
      * @return OK
      */
-    get(id: number, httpContext?: HttpContext): Observable<DocumentDto> {
+    get(id: string, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2287,7 +2287,7 @@ export class DocumentsClient {
     /**
      * @return OK
      */
-    update(id: number, body: DocumentSaveRequest, httpContext?: HttpContext): Observable<DocumentDto> {
+    update(id: string, body: DocumentSaveRequest, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2455,7 +2455,7 @@ export class DocumentsClient {
     /**
      * @return OK
      */
-    submit(id: number, httpContext?: HttpContext): Observable<DocumentDto> {
+    submit(id: string, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}/submit";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2511,7 +2511,7 @@ export class DocumentsClient {
      * @param body (optional) 
      * @return OK
      */
-    approve(id: number, body?: ApproveRequest | null | undefined, httpContext?: HttpContext): Observable<DocumentDto> {
+    approve(id: string, body?: ApproveRequest | null | undefined, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}/approve";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2569,7 +2569,7 @@ export class DocumentsClient {
     /**
      * @return OK
      */
-    reject(id: number, body: RejectRequest, httpContext?: HttpContext): Observable<DocumentDto> {
+    reject(id: string, body: RejectRequest, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}/reject";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2627,7 +2627,7 @@ export class DocumentsClient {
     /**
      * @return OK
      */
-    cancel(id: number, body: CancelRequest, httpContext?: HttpContext): Observable<DocumentDto> {
+    cancel(id: string, body: CancelRequest, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}/cancel";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2686,7 +2686,7 @@ export class DocumentsClient {
      * Posts an Approved (or approval-free Submitted) document. There is no request body: the override reason was recorded at approval.
      * @return OK
      */
-    post(id: number, httpContext?: HttpContext): Observable<DocumentDto> {
+    post(id: string, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}/post";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2740,7 +2740,7 @@ export class DocumentsClient {
     /**
      * @return OK
      */
-    reverse(id: number, body: ReverseRequest, httpContext?: HttpContext): Observable<DocumentDto> {
+    reverse(id: string, body: ReverseRequest, httpContext?: HttpContext): Observable<DocumentDto> {
         let url_ = this.baseUrl + "/api/documents/{id}/reverse";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2918,7 +2918,7 @@ export class CategoriesClient {
     /**
      * @return OK
      */
-    update(id: number, body: CategorySaveRequest, httpContext?: HttpContext): Observable<CategoryDto> {
+    update(id: string, body: CategorySaveRequest, httpContext?: HttpContext): Observable<CategoryDto> {
         let url_ = this.baseUrl + "/api/categories/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -2997,7 +2997,7 @@ export class ProductsClient {
      * @param desc (optional) 
      * @return OK
      */
-    list(search?: string | undefined, categoryId?: number | undefined, active?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, sortBy?: ProductSort | undefined, desc?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfProductDto> {
+    list(search?: string | undefined, categoryId?: string | undefined, active?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, sortBy?: ProductSort | undefined, desc?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfProductDto> {
         let url_ = this.baseUrl + "/api/products?";
         if (search === null)
             throw new globalThis.Error("The parameter 'search' cannot be null.");
@@ -3131,7 +3131,7 @@ export class ProductsClient {
     /**
      * @return OK
      */
-    get(id: number, httpContext?: HttpContext): Observable<ProductDto> {
+    get(id: string, httpContext?: HttpContext): Observable<ProductDto> {
         let url_ = this.baseUrl + "/api/products/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -3185,7 +3185,7 @@ export class ProductsClient {
     /**
      * @return OK
      */
-    update(id: number, body: ProductSaveRequest, httpContext?: HttpContext): Observable<ProductDto> {
+    update(id: string, body: ProductSaveRequest, httpContext?: HttpContext): Observable<ProductDto> {
         let url_ = this.baseUrl + "/api/products/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -3421,7 +3421,7 @@ export class UnitsClient {
     /**
      * @return OK
      */
-    update(id: number, body: UomSaveRequest, httpContext?: HttpContext): Observable<UomDto> {
+    update(id: string, body: UomSaveRequest, httpContext?: HttpContext): Observable<UomDto> {
         let url_ = this.baseUrl + "/api/units/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -3777,7 +3777,7 @@ export class AttachmentsClient {
      * @param ownerId (optional) 
      * @return OK
      */
-    list(ownerType?: AttachmentOwnerType | undefined, ownerId?: number | undefined, httpContext?: HttpContext): Observable<AttachmentDto[]> {
+    list(ownerType?: AttachmentOwnerType | undefined, ownerId?: string | undefined, httpContext?: HttpContext): Observable<AttachmentDto[]> {
         let url_ = this.baseUrl + "/api/attachments?";
         if (ownerType === null)
             throw new globalThis.Error("The parameter 'ownerType' cannot be null.");
@@ -3839,7 +3839,7 @@ export class AttachmentsClient {
      * @param file (optional) 
      * @return OK
      */
-    upload(ownerType?: AttachmentOwnerType | undefined, ownerId?: number | undefined, file?: FileParameter | undefined, httpContext?: HttpContext): Observable<AttachmentDto> {
+    upload(ownerType?: AttachmentOwnerType | undefined, ownerId?: string | undefined, file?: FileParameter | undefined, httpContext?: HttpContext): Observable<AttachmentDto> {
         let url_ = this.baseUrl + "/api/attachments";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -3907,7 +3907,7 @@ export class AttachmentsClient {
      * @param inline (optional) 
      * @return The file.
      */
-    download(id: number, inline?: boolean | undefined, httpContext?: HttpContext): Observable<FileResponse> {
+    download(id: string, inline?: boolean | undefined, httpContext?: HttpContext): Observable<FileResponse> {
         let url_ = this.baseUrl + "/api/attachments/{id}?";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -3970,7 +3970,7 @@ export class AttachmentsClient {
     /**
      * @return OK
      */
-    delete(id: number, httpContext?: HttpContext): Observable<void> {
+    delete(id: string, httpContext?: HttpContext): Observable<void> {
         let url_ = this.baseUrl + "/api/attachments/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -4026,7 +4026,7 @@ export enum ApprovalMetric {
 }
 
 export interface ApprovalRuleDto {
-    id: number;
+    id: string;
     docType: DocumentType;
     /** Money. Null for a caller without `cost.view` (the Warehouse staff), and when the rule has no amount threshold. */
     amountThreshold: number | undefined;
@@ -4057,9 +4057,11 @@ export interface ApproveRequest {
 }
 
 export interface AttachmentDto {
-    id: number;
+    /** The attachment's public id. */
+    id: string;
     ownerType: AttachmentOwnerType;
-    ownerId: number;
+    /** The public id of the owner: of a document when `OwnerType` is Document, of a product when it is Product. */
+    ownerId: string;
     fileName: string;
     contentType: string;
     sizeBytes: number;
@@ -4106,7 +4108,7 @@ export interface CancelRequest {
 }
 
 export interface CategoryDto {
-    id: number;
+    id: string;
     name: string;
 }
 
@@ -4132,13 +4134,13 @@ export interface DocumentCounts {
 }
 
 export interface DocumentDto {
-    id: number;
+    id: string;
     type: DocumentType;
     no: string;
     status: DocumentStatus;
-    warehouseId: number;
+    warehouseId: string;
     warehouseName: string;
-    partnerId: number | undefined;
+    partnerId: string | undefined;
     partnerName: string | undefined;
     purpose: IssuePurpose | undefined;
     remark: string | undefined;
@@ -4155,11 +4157,11 @@ export interface DocumentDto {
     reversalReason: string | undefined;
     /** Why the approver let stock go below zero; set when a document that `requiresOverride` is approved, otherwise null. */
     negativeStockOverrideReason: string | undefined;
-    createdById: number;
+    createdById: string;
     createdBy: string;
     createdByName: string;
     createdAt: string;
-    submittedById: number | undefined;
+    submittedById: string | undefined;
     submittedBy: string | undefined;
     submittedByName: string | undefined;
     submittedAt: string | undefined;
@@ -4173,7 +4175,7 @@ export interface DocumentDto {
     reversedByName: string | undefined;
     /** When a Reversed document was reversed, with `ReversedBy` and `ReversedByName` the user who did it ("Reversed by {name} on {date}"); null otherwise. `ReversalReason` holds why. */
     reversedAt: string | undefined;
-    returnedById: number | undefined;
+    returnedById: string | undefined;
     returnedBy: string | undefined;
     returnedByName: string | undefined;
     returnedAt: string | undefined;
@@ -4192,12 +4194,11 @@ export interface DocumentDto {
 }
 
 export interface DocumentLineDto {
-    id: number;
-    productId: number;
+    productId: string;
     sku: string;
     productName: string;
     qty: number;
-    uomId: number;
+    uomId: string;
     uomCode: string;
     baseQty: number;
     /** The cost per ENTERED unit (the unit in `UomCode`), in money (2 decimals), that a person TYPED: send it back unchanged to keep the line. For a line whose cost nobody typed (`CostFromAverage`) it is `null`: there is nothing to edit, the line is valued at the average (see `BaseUnitCost` and `Amount`). For a typed cost `qty x unitCost` is the line `amount`. Null for a caller without `cost.view` (the Warehouse staff). */
@@ -4214,15 +4215,15 @@ export interface DocumentLineDto {
 }
 
 export interface DocumentLineInput {
-    productId: number;
+    productId: string;
     qty: number;
-    uomId: number | undefined;
+    uomId: string | undefined;
     unitCost: number | undefined;
     remark: string | undefined;
 }
 
 export interface DocumentListItem {
-    id: number;
+    id: string;
     type: DocumentType;
     no: string;
     status: DocumentStatus;
@@ -4234,9 +4235,9 @@ export interface DocumentListItem {
     /** Same meaning as on the full document: an unposted issue is valued at the average cost seen when it was last saved or submitted (`AmountIsEstimate`). Null for a caller without `cost.view` (the Warehouse staff). */
     totalAmount: number | undefined;
     createdBy: string;
-    createdById: number;
+    createdById: string;
     createdByName: string;
-    submittedById: number | undefined;
+    submittedById: string | undefined;
     submittedBy: string | undefined;
     submittedByName: string | undefined;
     submittedAt: string | undefined;
@@ -4257,8 +4258,8 @@ This is exactly the rule behind the "waiting for approval" count. A single docum
 }
 
 export interface DocumentSaveRequest {
-    warehouseId: number;
-    partnerId: number | undefined;
+    warehouseId: string;
+    partnerId: string | undefined;
     purpose: IssuePurpose | undefined;
     remark: string | undefined;
     lines: DocumentLineInput[];
@@ -4290,7 +4291,8 @@ export interface ImportResult {
     created: number;
     /** Rows that update an existing record (a preview reports what a commit would update). */
     updated: number;
-    documentId: number | undefined;
+    /** The public id of the first draft receipt a committed opening-stock import created; null for a preview and for other imports. */
+    documentId: string | undefined;
     rows: ImportRowResult[];
 }
 
@@ -4338,7 +4340,7 @@ export interface LedgerRow {
     /** Cost per base unit of the movement. Null for a caller without `valuation.view`. */
     unitCost: number | undefined;
     reason: LedgerReason;
-    sourceDocId: number;
+    sourceDocId: string;
     sourceDocNo: string;
     user: string;
     /** What this product held in this warehouse right after the movement (the sum of its ledger up to and including this row, in base units). Only given when the ledger is read for one product (`productId`); null otherwise (a list of several products has no single running balance). Stored with the row when it is written (under the same lock that serialises the postings of the product in the warehouse), so reading any page, however deep, costs the same and the answer cannot be overtaken by a posting. */
@@ -4351,11 +4353,11 @@ export interface LoginRequest {
 }
 
 export interface LowStockAlert {
-    productId: number;
+    productId: string;
     sku: string;
     productName: string;
     /** Null (with the code and the name) only for a product stocked in no warehouse the caller can see. It appears ONCE, not once per warehouse. */
-    warehouseId: number | undefined;
+    warehouseId: string | undefined;
     warehouseCode: string | undefined;
     warehouseName: string | undefined;
     /** Zero for a product that is stocked in no warehouse the caller can see (it has no balance row there: it is listed once, with no warehouse). Negative when stock went below zero. */
@@ -4400,8 +4402,8 @@ export interface PagedResultOfAuditLogDto {
     total: number;
     page: number;
     pageSize: number;
-    /** Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. */
-    nextCursor?: number | undefined;
+    /** Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it. */
+    nextCursor?: string | undefined;
 }
 
 /** One page of a server-side paged list. */
@@ -4411,8 +4413,8 @@ export interface PagedResultOfDocumentListItem {
     total: number;
     page: number;
     pageSize: number;
-    /** Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. */
-    nextCursor?: number | undefined;
+    /** Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it. */
+    nextCursor?: string | undefined;
 }
 
 /** One page of a server-side paged list. */
@@ -4422,8 +4424,8 @@ export interface PagedResultOfLedgerRow {
     total: number;
     page: number;
     pageSize: number;
-    /** Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. */
-    nextCursor?: number | undefined;
+    /** Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it. */
+    nextCursor?: string | undefined;
 }
 
 /** One page of a server-side paged list. */
@@ -4433,8 +4435,8 @@ export interface PagedResultOfLowStockAlert {
     total: number;
     page: number;
     pageSize: number;
-    /** Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. */
-    nextCursor?: number | undefined;
+    /** Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it. */
+    nextCursor?: string | undefined;
 }
 
 /** One page of a server-side paged list. */
@@ -4444,8 +4446,8 @@ export interface PagedResultOfMovementRow {
     total: number;
     page: number;
     pageSize: number;
-    /** Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. */
-    nextCursor?: number | undefined;
+    /** Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it. */
+    nextCursor?: string | undefined;
 }
 
 /** One page of a server-side paged list. */
@@ -4455,8 +4457,8 @@ export interface PagedResultOfPartnerDto {
     total: number;
     page: number;
     pageSize: number;
-    /** Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. */
-    nextCursor?: number | undefined;
+    /** Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it. */
+    nextCursor?: string | undefined;
 }
 
 /** One page of a server-side paged list. */
@@ -4466,8 +4468,8 @@ export interface PagedResultOfProductDto {
     total: number;
     page: number;
     pageSize: number;
-    /** Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. */
-    nextCursor?: number | undefined;
+    /** Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it. */
+    nextCursor?: string | undefined;
 }
 
 /** One page of a server-side paged list. */
@@ -4477,8 +4479,8 @@ export interface PagedResultOfStockRow {
     total: number;
     page: number;
     pageSize: number;
-    /** Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. */
-    nextCursor?: number | undefined;
+    /** Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it. */
+    nextCursor?: string | undefined;
 }
 
 /** One page of a server-side paged list. */
@@ -4488,12 +4490,12 @@ export interface PagedResultOfUserDto {
     total: number;
     page: number;
     pageSize: number;
-    /** Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. */
-    nextCursor?: number | undefined;
+    /** Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it. */
+    nextCursor?: string | undefined;
 }
 
 export interface PartnerDto {
-    id: number;
+    id: string;
     type: PartnerType;
     name: string;
     contact: string | undefined;
@@ -4513,12 +4515,12 @@ export enum PartnerType {
 }
 
 export interface ProductDto {
-    id: number;
+    id: string;
     sku: string;
     name: string;
-    categoryId: number | undefined;
+    categoryId: string | undefined;
     categoryName: string | undefined;
-    baseUomId: number;
+    baseUomId: string;
     baseUomCode: string;
     safetyStock: number;
     isActive: boolean;
@@ -4535,8 +4537,8 @@ export interface ProductLookupResult {
 export interface ProductSaveRequest {
     sku: string;
     name: string;
-    categoryId: number | undefined;
-    baseUomId: number;
+    categoryId: string | undefined;
+    baseUomId: string;
     safetyStock: number;
     isActive: boolean;
     barcodes: string[] | undefined;
@@ -4570,13 +4572,13 @@ export interface SettingsDto {
 }
 
 export interface StockRow {
-    productId: number;
+    productId: string;
     sku: string;
     productName: string;
     categoryName: string | undefined;
     uomCode: string;
     /** Null (with the code and the name) only on the low-only row of a product that has no stock in any warehouse the caller can see: it is listed once, belongs to no warehouse and has quantity 0. */
-    warehouseId: number | undefined;
+    warehouseId: string | undefined;
     warehouseCode: string | undefined;
     warehouseName: string | undefined;
     qtyOnHand: number;
@@ -4611,13 +4613,13 @@ export interface StockSummary {
 }
 
 export interface UomConversionDto {
-    fromUomId: number;
-    toUomId: number;
+    fromUomId: string;
+    toUomId: string;
     factor: number;
 }
 
 export interface UomDto {
-    id: number;
+    id: string;
     code: string;
     name: string;
 }
@@ -4628,22 +4630,22 @@ export interface UomSaveRequest {
 }
 
 export interface UserDto {
-    id: number;
+    id: string;
     username: string;
     email: string;
     displayName: string;
     role: string;
     isActive: boolean;
-    warehouseIds: number[];
+    warehouseIds: string[];
 }
 
 export interface UserInfo {
-    id: number;
+    id: string;
     username: string;
     displayName: string;
     role: string;
     permissions: string[];
-    warehouseIds: number[];
+    warehouseIds: string[];
 }
 
 export interface UserSaveRequest {
@@ -4653,11 +4655,11 @@ export interface UserSaveRequest {
     role: string;
     isActive: boolean;
     password: string | undefined;
-    warehouseIds: number[] | undefined;
+    warehouseIds: string[] | undefined;
 }
 
 export interface WarehouseDto {
-    id: number;
+    id: string;
     code: string;
     name: string;
     contact: string | undefined;

@@ -139,8 +139,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -297,8 +297,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -475,8 +475,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -700,16 +700,16 @@
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
             "name": "ProductId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -780,24 +780,24 @@
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
             "name": "ProductId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
             "name": "CategoryId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -888,16 +888,16 @@
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
             "name": "ProductId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -967,16 +967,16 @@
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
             "name": "ProductId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -999,8 +999,8 @@
             "name": "SourceDocId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -1020,12 +1020,11 @@
             }
           },
           {
-            "name": "AfterId",
+            "name": "Cursor",
             "in": "query",
-            "description": "Seek paging: return rows older than this ledger id. Use it instead of `Page` for deep pages (constant cost at any depth).",
+            "description": "Seek paging: the `nextCursor` of the previous page, unchanged; returns the rows after it. Use it instead of `Page` for deep pages (constant cost at any depth).",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             }
           },
           {
@@ -1100,24 +1099,24 @@
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
             "name": "ProductId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
             "name": "CategoryId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -1202,16 +1201,16 @@
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
             "name": "ProductId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -1234,8 +1233,8 @@
             "name": "SourceDocId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -1255,12 +1254,11 @@
             }
           },
           {
-            "name": "AfterId",
+            "name": "Cursor",
             "in": "query",
-            "description": "Seek paging: return rows older than this ledger id. Use it instead of `Page` for deep pages (constant cost at any depth).",
+            "description": "Seek paging: the `nextCursor` of the previous page, unchanged; returns the rows after it. Use it instead of `Page` for deep pages (constant cost at any depth).",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             }
           },
           {
@@ -1307,8 +1305,8 @@
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -1481,8 +1479,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -1587,12 +1585,11 @@
             }
           },
           {
-            "name": "AfterId",
+            "name": "Cursor",
             "in": "query",
-            "description": "Seek paging: return entries older than this id.",
+            "description": "Seek paging: the `nextCursor` of the previous page, unchanged; returns the entries after it.",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             }
           },
           {
@@ -1794,8 +1791,8 @@
             "name": "WarehouseId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -1839,12 +1836,11 @@
             }
           },
           {
-            "name": "AfterId",
+            "name": "Cursor",
             "in": "query",
-            "description": "Seek paging: return documents older than this id (constant cost at any depth).",
+            "description": "Seek paging: the `nextCursor` of the previous page, unchanged; returns the documents after it (constant cost at any depth).",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string"
             }
           },
           {
@@ -1939,8 +1935,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -1978,8 +1974,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2139,8 +2135,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2181,8 +2177,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2256,8 +2252,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2317,8 +2313,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2379,8 +2375,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2420,8 +2416,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2568,8 +2564,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2635,8 +2631,8 @@
             "name": "CategoryId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -2761,8 +2757,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2800,8 +2796,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2988,8 +2984,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -3283,8 +3279,8 @@
             "name": "ownerId",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -3338,8 +3334,8 @@
                     "$ref": "#/components/schemas/AttachmentOwnerType"
                   },
                   "ownerId": {
-                    "type": "integer",
-                    "format": "int32"
+                    "type": "string",
+                    "format": "uuid"
                   },
                   "file": {
                     "type": "string",
@@ -3388,8 +3384,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -3434,8 +3430,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -3469,8 +3465,8 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "docType": {
             "$ref": "#/components/schemas/DocumentType"
@@ -3584,15 +3580,17 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "description": "The attachment's public id.",
+            "format": "uuid"
           },
           "ownerType": {
             "$ref": "#/components/schemas/AttachmentOwnerType"
           },
           "ownerId": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "description": "The public id of the owner: of a document when `OwnerType` is Document, of a product when it is Product.",
+            "format": "uuid"
           },
           "fileName": {
             "type": "string"
@@ -3741,8 +3739,8 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "type": "string"
@@ -3863,8 +3861,8 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "type": {
             "$ref": "#/components/schemas/DocumentType"
@@ -3876,15 +3874,15 @@
             "$ref": "#/components/schemas/DocumentStatus"
           },
           "warehouseId": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "warehouseName": {
             "type": "string"
           },
           "partnerId": {
-            "type": "integer",
-            "format": "int32",
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           },
           "partnerName": {
@@ -3937,8 +3935,8 @@
             "nullable": true
           },
           "createdById": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "createdBy": {
             "type": "string"
@@ -3951,8 +3949,8 @@
             "format": "date-time"
           },
           "submittedById": {
-            "type": "integer",
-            "format": "int32",
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           },
           "submittedBy": {
@@ -4009,8 +4007,8 @@
             "nullable": true
           },
           "returnedById": {
-            "type": "integer",
-            "format": "int32",
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           },
           "returnedBy": {
@@ -4069,7 +4067,6 @@
       },
       "DocumentLineDto": {
         "required": [
-          "id",
           "productId",
           "sku",
           "productName",
@@ -4085,13 +4082,9 @@
         ],
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
-          },
           "productId": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "sku": {
             "type": "string"
@@ -4104,8 +4097,8 @@
             "format": "double"
           },
           "uomId": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "uomCode": {
             "type": "string"
@@ -4160,16 +4153,16 @@
         "type": "object",
         "properties": {
           "productId": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "qty": {
             "type": "number",
             "format": "double"
           },
           "uomId": {
-            "type": "integer",
-            "format": "int32",
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           },
           "unitCost": {
@@ -4214,8 +4207,8 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "type": {
             "$ref": "#/components/schemas/DocumentType"
@@ -4256,15 +4249,15 @@
             "type": "string"
           },
           "createdById": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "createdByName": {
             "type": "string"
           },
           "submittedById": {
-            "type": "integer",
-            "format": "int32",
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           },
           "submittedBy": {
@@ -4320,12 +4313,12 @@
         "type": "object",
         "properties": {
           "warehouseId": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "partnerId": {
-            "type": "integer",
-            "format": "int32",
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           },
           "purpose": {
@@ -4409,8 +4402,9 @@
             "format": "int32"
           },
           "documentId": {
-            "type": "integer",
-            "format": "int32",
+            "type": "string",
+            "description": "The public id of the first draft receipt a committed opening-stock import created; null for a preview and for other imports.",
+            "format": "uuid",
             "nullable": true
           },
           "rows": {
@@ -4536,8 +4530,8 @@
             "$ref": "#/components/schemas/LedgerReason"
           },
           "sourceDocId": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "sourceDocNo": {
             "type": "string"
@@ -4586,8 +4580,8 @@
         "type": "object",
         "properties": {
           "productId": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "sku": {
             "type": "string"
@@ -4596,9 +4590,9 @@
             "type": "string"
           },
           "warehouseId": {
-            "type": "integer",
+            "type": "string",
             "description": "Null (with the code and the name) only for a product stocked in no warehouse the caller can see. It appears ONCE, not once per warehouse.",
-            "format": "int32",
+            "format": "uuid",
             "nullable": true
           },
           "warehouseCode": {
@@ -4744,9 +4738,8 @@
             "format": "int32"
           },
           "nextCursor": {
-            "type": "integer",
-            "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
-            "format": "int64",
+            "type": "string",
+            "description": "Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it.",
             "nullable": true
           }
         },
@@ -4782,9 +4775,8 @@
             "format": "int32"
           },
           "nextCursor": {
-            "type": "integer",
-            "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
-            "format": "int64",
+            "type": "string",
+            "description": "Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it.",
             "nullable": true
           }
         },
@@ -4820,9 +4812,8 @@
             "format": "int32"
           },
           "nextCursor": {
-            "type": "integer",
-            "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
-            "format": "int64",
+            "type": "string",
+            "description": "Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it.",
             "nullable": true
           }
         },
@@ -4858,9 +4849,8 @@
             "format": "int32"
           },
           "nextCursor": {
-            "type": "integer",
-            "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
-            "format": "int64",
+            "type": "string",
+            "description": "Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it.",
             "nullable": true
           }
         },
@@ -4896,9 +4886,8 @@
             "format": "int32"
           },
           "nextCursor": {
-            "type": "integer",
-            "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
-            "format": "int64",
+            "type": "string",
+            "description": "Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it.",
             "nullable": true
           }
         },
@@ -4934,9 +4923,8 @@
             "format": "int32"
           },
           "nextCursor": {
-            "type": "integer",
-            "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
-            "format": "int64",
+            "type": "string",
+            "description": "Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it.",
             "nullable": true
           }
         },
@@ -4972,9 +4960,8 @@
             "format": "int32"
           },
           "nextCursor": {
-            "type": "integer",
-            "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
-            "format": "int64",
+            "type": "string",
+            "description": "Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it.",
             "nullable": true
           }
         },
@@ -5010,9 +4997,8 @@
             "format": "int32"
           },
           "nextCursor": {
-            "type": "integer",
-            "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
-            "format": "int64",
+            "type": "string",
+            "description": "Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it.",
             "nullable": true
           }
         },
@@ -5048,9 +5034,8 @@
             "format": "int32"
           },
           "nextCursor": {
-            "type": "integer",
-            "description": "Id to pass as `afterId` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged.",
-            "format": "int64",
+            "type": "string",
+            "description": "Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it.",
             "nullable": true
           }
         },
@@ -5068,8 +5053,8 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "type": {
             "$ref": "#/components/schemas/PartnerType"
@@ -5136,8 +5121,8 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "sku": {
             "type": "string"
@@ -5146,8 +5131,8 @@
             "type": "string"
           },
           "categoryId": {
-            "type": "integer",
-            "format": "int32",
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           },
           "categoryName": {
@@ -5155,8 +5140,8 @@
             "nullable": true
           },
           "baseUomId": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "baseUomCode": {
             "type": "string"
@@ -5225,13 +5210,13 @@
             "type": "string"
           },
           "categoryId": {
-            "type": "integer",
-            "format": "int32",
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           },
           "baseUomId": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "safetyStock": {
             "type": "number",
@@ -5347,8 +5332,8 @@
         "type": "object",
         "properties": {
           "productId": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "sku": {
             "type": "string"
@@ -5364,9 +5349,9 @@
             "type": "string"
           },
           "warehouseId": {
-            "type": "integer",
+            "type": "string",
             "description": "Null (with the code and the name) only on the low-only row of a product that has no stock in any warehouse the caller can see: it is listed once, belongs to no warehouse and has quantity 0.",
-            "format": "int32",
+            "format": "uuid",
             "nullable": true
           },
           "warehouseCode": {
@@ -5459,12 +5444,12 @@
         "type": "object",
         "properties": {
           "fromUomId": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "toUomId": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "factor": {
             "type": "number",
@@ -5482,8 +5467,8 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "code": {
             "type": "string"
@@ -5523,8 +5508,8 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "username": {
             "type": "string"
@@ -5544,8 +5529,8 @@
           "warehouseIds": {
             "type": "array",
             "items": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         },
@@ -5563,8 +5548,8 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "username": {
             "type": "string"
@@ -5584,8 +5569,8 @@
           "warehouseIds": {
             "type": "array",
             "items": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         },
@@ -5625,8 +5610,8 @@
           "warehouseIds": {
             "type": "array",
             "items": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             },
             "nullable": true
           }
@@ -5645,8 +5630,8 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "code": {
             "type": "string"
