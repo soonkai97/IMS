@@ -6,6 +6,7 @@ $heights: (
   'touch-min': 2.75rem,
   'bar': 3.5rem,
   'tabbar': 4rem,
+  'table-head': 3rem,
   'progress': 0.1875rem
 );
 
@@ -19,7 +20,10 @@ $widths: (
   'badge': 1.25rem,
   'tab-cue': 1.5rem,
   'column-min': 6rem,
-  'code-max': 14rem
+  'code-max': 14rem,
+  'pin-max': 16rem,
+  // A table whose own box is narrower than this is a list of cards (A02); the page leaves 752px at a 1024px window.
+  'table-wide': 45rem
 );
 
 $z-index: (

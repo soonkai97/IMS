@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { apiAs, unique } from '../src/api';
-import { expect, test } from '../src/fixtures';
+import { expect, openSession, test } from '../src/fixtures';
 import { LONG_VARIANTS, longValue, type LongVariant } from '../src/long-values';
 import { DocumentEditor } from '../src/pages/documents';
 import { goTo } from '../src/pages/shell';
@@ -59,14 +59,14 @@ async function expectContained(page: Page, label: string): Promise<void> {
   expect(result.strays, `${label}: sideways scrollers that are not named scroll regions`).toEqual(
     []
   );
-  if (page.viewportSize()!.width >= 1024) {
-    await expectCellsWhole(page, label);
-  }
+  await expectCellsWhole(page, label);
 }
 
 /**
- * On a table (1024 px and up) a number, date, ordinary code, status or action cell is never broken across lines or clipped,
- * and a chip is never cut: those values size their column, they are not squeezed by it (L00, reviewer findings 1 and 2).
+ * On a table (a box of 45rem and wider, A02: 1024 px windows and up) a number, date, ordinary code, status or action cell
+ * is never broken across lines or clipped, and a chip is never cut: those values size their column, they are not squeezed
+ * by it (L00, reviewer findings 1 and 2). A card (a narrower box) may wrap every value, so only rows that really are
+ * table rows are measured; `expectMode` proves which rows those are.
  */
 async function expectCellsWhole(page: Page, label: string): Promise<void> {
   const broken = await page.evaluate(() => {
@@ -76,6 +76,11 @@ async function expectCellsWhole(page: Page, label: string): Promise<void> {
       .join(',');
     for (const cell of Array.from(document.querySelectorAll<HTMLElement>(selector))) {
       if (cell.getClientRects().length === 0) {
+        continue;
+      }
+      // A table in card mode (its rows are grids or flex boxes, its header is hidden): its values may wrap.
+      const bodyRow = cell.closest('table')?.querySelector('tbody tr');
+      if (bodyRow && getComputedStyle(bodyRow).display !== 'table-row') {
         continue;
       }
       const isChipCell = cell.classList.contains('--status');
@@ -211,6 +216,7 @@ test.describe('L00 Content containment', () => {
       await search(/^Search/, mark);
       await expect(page.getByText(mark).first()).toBeVisible();
       await expectContained(page, at('Partners'));
+      await expectMode(page, at('Partners'));
 
       // L00.3: a cut name is readable in full without a pointer: a real button, reachable by keyboard.
       const more = page.getByRole('button', { name: 'Show more' }).first();
@@ -237,12 +243,14 @@ test.describe('L00 Content containment', () => {
       await search(/^Search/, mark);
       await expect(page.getByText(mark).first()).toBeVisible();
       await expectContained(page, at('Products'));
+      await expectMode(page, at('Products'));
 
       await goTo(page, '/users');
       await expect(page.getByRole('heading', { level: 1, name: 'Users' })).toBeVisible();
       await search(/^Search/, mark);
       await expect(page.getByText(mark).first()).toBeVisible();
       await expectContained(page, at('Users'));
+      await expectMode(page, at('Users'));
 
       await goTo(page, '/receipts');
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
@@ -250,19 +258,23 @@ test.describe('L00 Content containment', () => {
       await search(/^Search/, mark);
       await expect(page.getByText(mark).first()).toBeVisible();
       await expectContained(page, at('Receipts list'));
+      await expectMode(page, at('Receipts list'));
 
       await goTo(page, '/stock');
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       await search(/^Search/, mark);
       await expect(page.getByText(mark).first()).toBeVisible();
       await expectContained(page, at('Stock'));
+      await expectMode(page, at('Stock'));
 
-      // The movements report has the widest table (13 columns). Below 1024 px it is cards: nothing scrolls and the table
-      // box is no region and no tab stop. From 1024 px it scrolls inside its own named, focusable region when it must.
+      // The movements report has the widest table (13 columns). Its box is narrower than 45rem below a 1024 px window, so it
+      // is cards: nothing scrolls and the table box is no region and no tab stop. From 1024 px it scrolls inside its own
+      // named, focusable region when it must.
       await goTo(page, '/reports');
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       await expect(page.locator('.ui-table-scroll')).toBeVisible();
       await expectContained(page, at('Reports'));
+      await expectMode(page, at('Reports'));
       if (width < 1024) {
         await expectFits(page.locator('.ui-table-scroll'), at('Reports cards'));
         await expect(page.locator('.ui-table-scroll')).not.toHaveAttribute('tabindex', /.*/);
@@ -317,6 +329,265 @@ test.describe('L00 Content containment', () => {
       await dialog.getByRole('button', { name: 'Cancel' }).click();
       await toast.getByRole('button').last().click();
       await expect(toast).toBeHidden();
+    }
+  });
+});
+
+// A02: the table is a table or a list of cards by the width of its OWN box, its header and first column stay in view, and a
+// row action says which row it acts on (ER-10).
+
+/** Whether the first body row of the first table is a table row (a table) or a grid or flex box (a card). */
+async function tableMode(page: Page): Promise<'table' | 'cards'> {
+  return page.evaluate(() => {
+    const row = document.querySelector('app-table tbody tr');
+    if (!row) {
+      throw new Error('No table row on the page');
+    }
+    return getComputedStyle(row).display === 'table-row' ? 'table' : 'cards';
+  });
+}
+
+async function expectMode(page: Page, label: string): Promise<void> {
+  const expected = page.viewportSize()!.width >= 1024 ? 'table' : 'cards';
+  expect(await tableMode(page), `${label}: table or cards`).toBe(expected);
+}
+
+/** The geometry that sticky behaviour is judged by: the header cell, the first body cell and the box they sit in. */
+function geometry(page: Page): Promise<{
+  region: { top: number; scrollsSideways: boolean; scrollLeft: number; scrollTop: number };
+  headTop: number;
+  barBottom: number;
+  firstLeft: number;
+  firstBackground: string;
+  secondLeft: number;
+}> {
+  return page.evaluate(() => {
+    const region = document.querySelector<HTMLElement>('.ui-table-scroll')!;
+    const first = region.querySelector<HTMLElement>('tbody td')!;
+    const second = region.querySelectorAll<HTMLElement>('tbody td')[1]!;
+    return {
+      region: {
+        top: region.getBoundingClientRect().top,
+        scrollsSideways: region.hasAttribute('data-scroll-region'),
+        scrollLeft: region.scrollLeft,
+        scrollTop: region.scrollTop
+      },
+      headTop: region.querySelector<HTMLElement>('th')!.getBoundingClientRect().top,
+      barBottom: document.querySelector('.shell-bar')!.getBoundingClientRect().bottom,
+      firstLeft: first.getBoundingClientRect().left,
+      firstBackground: getComputedStyle(first).backgroundColor,
+      secondLeft: second.getBoundingClientRect().left
+    };
+  });
+}
+
+/** The accessible names of the actions in the last column of the first table. */
+function rowActions(page: Page): Promise<{ name: string; text: string }[]> {
+  return page
+    .locator('app-table tbody td:last-child')
+    .locator('button, a')
+    .evaluateAll(elements =>
+      elements.map(element => ({
+        name: (element.getAttribute('aria-label') ?? element.textContent ?? '').trim(),
+        text: (element.textContent ?? '').trim()
+      }))
+    );
+}
+
+test.describe('A02 Table: sticky header and first column, cards by container width, row actions named', () => {
+  test.setTimeout(240_000);
+
+  test('given a wide window, when the table is given a narrow box, then it is cards, and a table again when the box is wide', async ({
+    page,
+    signIn
+  }) => {
+    await signIn('admin');
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await goTo(page, '/partners');
+    await expect(page.locator('app-table tbody tr').first()).toBeVisible();
+    expect(await tableMode(page), 'a 1280px window gives the table room').toBe('table');
+
+    // The window does not change; only the table's own box does (a narrow column, a dialog, a side panel).
+    await page.addStyleTag({ content: 'app-table { max-width: 30rem; }' });
+    await expect.poll(() => tableMode(page)).toBe('cards');
+    await expectContained(page, 'Partners in a narrow box');
+
+    await page.addStyleTag({ content: 'app-table { max-width: 60rem; }' });
+    await expect.poll(() => tableMode(page)).toBe('table');
+    await expectContained(page, 'Partners in a wide box');
+
+    // The other way round: a 360px phone is cards whatever the table holds.
+    await page.setViewportSize({ width: 360, height: 740 });
+    await expect.poll(() => tableMode(page)).toBe('cards');
+  });
+
+  test('given a long list, when the page scrolls, then the header stays under the top bar, and a focused action is never hidden under it', async ({
+    page,
+    signIn
+  }) => {
+    const admin = apiAs('admin');
+    const mark = `S${unique()}`;
+    for (let index = 0; index < 24; index++) {
+      await admin.createPartner('Supplier', {
+        name: `${mark} partner ${String(index).padStart(2, '0')}`
+      });
+    }
+    await signIn('admin');
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await goTo(page, '/partners');
+    await page.getByRole('searchbox', { name: /^Search/ }).fill(mark);
+    await expect(page.getByText(`${mark} partner 23`)).toBeVisible();
+    await settled(page);
+
+    const before = await geometry(page);
+    expect(before.region.scrollsSideways, 'five columns fit in 1008px: the page scrolls').toBe(
+      false
+    );
+    await page.evaluate(() => window.scrollTo(0, 700));
+    const after = await geometry(page);
+    expect(after.headTop, 'header sits right under the top bar').toBeGreaterThanOrEqual(
+      after.barBottom - 1
+    );
+    expect(after.headTop).toBeLessThanOrEqual(after.barBottom + 1);
+    const covered = await page.evaluate(() => {
+      const head = document.querySelector('th')!.getBoundingClientRect();
+      const hit = document.elementFromPoint(head.left + 20, head.top + head.height / 2);
+      return !hit || !hit.closest('th');
+    });
+    expect(covered, 'nothing covers the stuck header').toBe(false);
+
+    // Keyboard, forward and then back (going back is what scrolls a focused action up under a sticky header): each Edit
+    // button ends up fully below the stuck header and on screen.
+    const walk = async (key: 'Tab' | 'Shift+Tab'): Promise<number> => {
+      let seen = 0;
+      for (let press = 0; press < 40 && seen < 24; press++) {
+        await page.keyboard.press(key);
+        const hidden = await page.evaluate(() => {
+          const element = document.activeElement as HTMLElement;
+          if (!element.closest('app-table tbody')) {
+            return null;
+          }
+          const head = document.querySelector('th')!.getBoundingClientRect();
+          const rect = element.getBoundingClientRect();
+          return rect.top < head.bottom - 0.5 || rect.bottom > window.innerHeight + 0.5;
+        });
+        if (hidden !== null) {
+          seen++;
+          expect(hidden, `${key}: focused action ${seen} is under the header or off screen`).toBe(
+            false
+          );
+        }
+      }
+      return seen;
+    };
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.getByRole('searchbox', { name: /^Search/ }).focus();
+    expect(await walk('Tab'), 'the walk forward reached the row actions').toBeGreaterThanOrEqual(10);
+    expect(await walk('Shift+Tab'), 'the walk back reached the row actions').toBeGreaterThanOrEqual(
+      10
+    );
+    await expectContained(page, 'Partners, sticky header');
+  });
+
+  test('given a table too wide for its box, when it scrolls both ways, then the header and the first column stay in view', async ({
+    page,
+    signIn
+  }) => {
+    const admin = apiAs('admin');
+    const mark = `W${unique()}`;
+    const lines = [];
+    for (let index = 0; index < 12; index++) {
+      const product = await admin.createProduct({ name: `${mark} product ${index}` });
+      lines.push({ productId: product.id, qty: 2, unitCost: 3 });
+    }
+    await admin.post('receipts', lines);
+
+    await signIn('admin');
+    // Short enough for the scroll box to be shorter than its 12 rows, tall enough that sticky is not switched off (500px).
+    await page.setViewportSize({ width: 1024, height: 600 });
+    await goTo(page, '/reports');
+    await expect(page.locator('.ui-table-scroll[data-scroll-region]')).toBeVisible();
+    await settled(page);
+    await expectMode(page, 'Reports');
+
+    const region = page.locator('.ui-table-scroll');
+    await expect(region).toHaveAttribute('role', 'region');
+    await expect(region).toHaveAttribute('tabindex', '0');
+    const start = await geometry(page);
+    await region.evaluate(element => element.scrollTo({ left: 400, top: 120 }));
+    const moved = await geometry(page);
+
+    expect(moved.region.scrollLeft, 'it scrolled sideways').toBeGreaterThan(100);
+    expect(moved.region.scrollTop, 'it scrolled down inside its own box').toBeGreaterThan(50);
+    expect(
+      Math.abs(moved.headTop - moved.region.top),
+      'header stays at the top of the box'
+    ).toBeLessThanOrEqual(2);
+    expect(
+      Math.abs(moved.firstLeft - start.firstLeft),
+      'first column stays where it was'
+    ).toBeLessThanOrEqual(1);
+    expect(moved.secondLeft, 'the other columns moved').toBeLessThan(start.secondLeft - 100);
+    expect(
+      moved.firstBackground,
+      'the pinned cell is opaque: the columns scroll under it'
+    ).not.toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+    await expectContained(page, 'Reports, scrolled');
+  });
+
+  test('given the screens with a button on every row, then no two row actions on a screen share a name and each name holds the visible label', async ({
+    browser,
+    page,
+    signIn
+  }) => {
+    const admin = apiAs('admin');
+    await admin.createProduct({ safetyStock: 5 });
+    await admin.createProduct({ safetyStock: 5 });
+    await signIn('admin');
+
+    const screens: [string, string, number][] = [
+      ['Users', '/users', 2],
+      ['Partners', '/partners', 2],
+      ['Settings approval rules', '/settings', 1],
+      ['Audit log', '/audit-log', 2]
+    ];
+    for (const [label, path, atLeast] of screens) {
+      await goTo(page, path);
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      await expect
+        .poll(async () => (await rowActions(page)).length, `${label}: row actions found`)
+        .toBeGreaterThanOrEqual(atLeast);
+      await settled(page);
+      const actions = await rowActions(page);
+      const names = actions.map(action => action.name);
+      expect(names.length, `${label}: row actions found`).toBeGreaterThanOrEqual(atLeast);
+      expect(new Set(names).size, `${label}: names repeat: ${names.join(' | ')}`).toBe(
+        names.length
+      );
+      for (const action of actions) {
+        expect(
+          action.name.toLowerCase(),
+          `${label}: the name of "${action.text}" holds its visible label (WCAG 2.5.3)`
+        ).toContain(action.text.toLowerCase());
+      }
+    }
+
+    // Low stock offers New receipt to the roles that create documents.
+    const clerk = await openSession(browser, 'clerk');
+    try {
+      await goTo(clerk.page, '/low-stock');
+      await expect
+        .poll(async () => (await rowActions(clerk.page)).length, 'Low stock: row actions found')
+        .toBeGreaterThanOrEqual(2);
+      await settled(clerk.page);
+      const names = (await rowActions(clerk.page)).map(action => action.name);
+      expect(names.length, 'Low stock: row actions found').toBeGreaterThanOrEqual(2);
+      expect(new Set(names).size, `Low stock: names repeat: ${names.join(' | ')}`).toBe(
+        names.length
+      );
+      expect(names.every(name => name.startsWith('New receipt for '))).toBe(true);
+    } finally {
+      await clerk.context.close();
     }
   });
 });

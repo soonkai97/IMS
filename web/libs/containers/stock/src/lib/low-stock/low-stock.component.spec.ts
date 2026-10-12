@@ -92,6 +92,30 @@ describe('LowStockPageComponent Create receipt shortcut (NV-13)', () => {
     expect(spectator.element.textContent).not.toContain('undefined');
   });
 
+  it('ER-10: the link names its row (SKU and warehouse), so 25 of them are not 25 times "New receipt"', () => {
+    const link = () => spectator.query('a.low-stock-page-create');
+    const rowData = (
+      spectator.inject(StockStore) as unknown as {
+        lowStock: { $data: ReturnType<typeof signal<PagedResultOfLowStockAlert>> };
+      }
+    ).lowStock.$data;
+    rowData.set({ items: [ROW], page: 1, pageSize: 25, total: 1 } as PagedResultOfLowStockAlert);
+    spectator.detectChanges();
+    expect(link()?.getAttribute('aria-label')).toBe('New receipt for DEMO-002 (Store B)');
+
+    rowData.set({
+      items: [
+        { ...ROW, warehouseId: undefined, warehouseCode: undefined, warehouseName: undefined }
+      ],
+      page: 1,
+      pageSize: 25,
+      total: 1
+    } as PagedResultOfLowStockAlert);
+    spectator.detectChanges();
+
+    expect(link()?.getAttribute('aria-label')).toBe('New receipt for DEMO-002');
+  });
+
   it('PS-04: a negative balance carries its own chip', () => {
     expect(spectator.query('app-status-chip')).toBeNull();
 

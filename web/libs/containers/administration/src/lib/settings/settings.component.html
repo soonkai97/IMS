@@ -67,7 +67,7 @@
         />
       </ng-template>
       <ng-template appCell="actions" let-row>
-        <app-button variant="ghost" (clicked)="onEditRule(row)">
+        <app-button variant="ghost" [ariaLabel]="editRuleLabel(row)" (clicked)="onEditRule(row)">
           <app-icon name="pencil" />
           {{ 'common.edit' | t }}
         </app-button>

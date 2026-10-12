@@ -28,7 +28,8 @@ import {
 } from './table.types';
 
 /**
- * One data definition, two renderings: a table from 1024px up and a card list below (docs/design/mvp-ux.md 2).
+ * One data definition, two renderings, chosen by the width of the table's own box: a table from 45rem up (header and first
+ * column stay in view while it scrolls) and a card list below (docs/design/mvp-ux.md 2, A02).
  * Loading, error and empty states are part of the component. Put the empty message in `<app-empty-state empty>`.
  */
 @Component({

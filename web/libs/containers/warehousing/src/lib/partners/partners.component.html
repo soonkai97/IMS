@@ -40,7 +40,11 @@
     />
   </ng-template>
   <ng-template appCell="actions" let-row>
-    <app-button variant="ghost" (clicked)="onEdit(row)">
+    <app-button
+      variant="ghost"
+      [ariaLabel]="'common.editFor' | t: { name: row.name }"
+      (clicked)="onEdit(row)"
+    >
       <app-icon name="pencil" />
       {{ 'common.edit' | t }}
     </app-button>

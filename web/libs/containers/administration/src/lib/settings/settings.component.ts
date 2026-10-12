@@ -145,6 +145,13 @@ export class SettingsPageComponent implements OnInit {
     { key: 'status', type: 'status', header: this.i18n.t('product.status') },
     { key: 'actions', type: 'action', header: this.i18n.t('common.actions'), align: 'end' }
   ]);
+  /** The name of a rule's Edit button: it says which rule (ER-10). */
+  editRuleLabel(rule: ApprovalRuleDto): string {
+    return this.i18n.t('rule.editFor', {
+      type: this.i18n.enumLabel(DOCUMENT_TYPE_LABELS, rule.docType),
+      role: this.i18n.enumLabel(ROLE_LABELS, rule.roleRequired)
+    });
+  }
   $ruleHeading = computed(() =>
     this.i18n.t(this.$editingRuleId() === undefined ? 'rule.new' : 'rule.edit')
   );

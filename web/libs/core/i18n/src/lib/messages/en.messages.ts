@@ -19,6 +19,7 @@ export const EN_MESSAGES = {
   'common.cancel': 'Cancel',
   'common.done': 'Done',
   'common.edit': 'Edit',
+  'common.editFor': 'Edit {name}',
   'common.exportExcel': 'Export Excel',
   'common.moreActions': 'More actions',
   'common.remove': 'Remove',
@@ -302,6 +303,7 @@ export const EN_MESSAGES = {
   // Documents
   'receipts.empty': 'No receipts yet.',
   'receipts.new': 'New receipt',
+  'lowStock.newReceiptFor': 'New receipt for {product}',
   'receipts.title': 'Receipts',
   'issues.empty': 'No issues yet.',
   'issues.new': 'New issue',
@@ -520,6 +522,7 @@ export const EN_MESSAGES = {
   'settings.title': 'Settings',
   'rule.amountThreshold': 'Amount from ({currency})',
   'rule.edit': 'Edit rule',
+  'rule.editFor': 'Edit {type} rule for {role}',
   'rule.empty': 'No approval rules yet.',
   'rule.new': 'New rule',
   'rule.qtyThreshold': 'Quantity from',
@@ -538,5 +541,6 @@ export const EN_MESSAGES = {
   'audit.searchLabel': 'Search the audit log',
   'audit.searchPlaceholder': 'Document number or object name',
   'audit.show': 'Show',
+  'audit.showFor': 'Show details of {action} on {entity} at {when}, entry {id}',
   'audit.title': 'Audit log'
 } as const;

@@ -106,6 +106,11 @@ export class LowStockPageComponent implements OnInit {
     warehouseId: row.warehouseId
   });
 
+  /** What a row's New receipt link is about: the SKU, and the warehouse when the product is stocked in one (ER-10). */
+  productOf(row: LowStockAlert): string {
+    return row.warehouseName ? `${row.sku} (${row.warehouseName})` : row.sku;
+  }
+
   constructor() {
     loadOnChange(this.$query, query => this.store.lowStock.load(query));
   }
