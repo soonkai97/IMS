@@ -2,10 +2,9 @@ import { DOCUMENT } from '@angular/common';
 import { Directive, ElementRef, effect, inject, input } from '@angular/core';
 
 /**
- * Publishes the element's real height as a custom property on `<html>` (`<footer appPublishHeight="--ims-action-bar-height">`),
- * kept current by a ResizeObserver and removed when the element goes away. The sticky action bar uses it so the page's scroll
- * padding is the bar's real height, which changes when its buttons wrap (320px, a long summary): a focused control is then always
- * scrolled clear of the bar instead of under it.
+ * Publishes the element's real height as a custom property on `<html>` (`appPublishHeight="--ims-action-bar-height"`), kept current
+ * by a ResizeObserver and removed with the element. The sticky action bar wraps at 320px, so the page's scroll padding needs its
+ * real height to scroll a focused control clear of it.
  */
 @Directive({ selector: '[appPublishHeight]' })
 export class UiPublishHeightDirective {

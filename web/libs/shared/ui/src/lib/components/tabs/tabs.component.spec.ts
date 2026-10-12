@@ -33,50 +33,45 @@ describe('UiTabsComponent and UiTabPanelDirective accessibility (ER-18)', () => 
     spectator.detectChanges();
   };
 
+  const attr = (name: string): (string | null)[] => tabs().map(tab => tab.getAttribute(name));
+  const selected = (): number => attr('aria-selected').indexOf('true');
+
   it('is a tablist whose tabs each name the panel they control, and the panel names its tab', () => {
     expect(spectator.query('[role="tablist"]')?.getAttribute('aria-label')).toBe('Scope');
-    expect(tabs().map(tab => tab.getAttribute('aria-controls'))).toEqual([
-      'list-panel',
-      'list-panel',
-      'list-panel'
-    ]);
+    expect(attr('aria-controls')).toEqual(['list-panel', 'list-panel', 'list-panel']);
     const panel = spectator.query('#list-panel');
     expect(panel?.getAttribute('role')).toBe('tabpanel');
     expect(panel?.getAttribute('aria-labelledby')).toBe(tabs()[0].id);
   });
 
   it('only the selected tab is in the tab order, and the panel follows the selection', () => {
-    expect(tabs().map(tab => tab.getAttribute('aria-selected'))).toEqual([
-      'true',
-      'false',
-      'false'
-    ]);
-    expect(tabs().map(tab => tab.getAttribute('tabindex'))).toEqual(['0', '-1', '-1']);
+    expect(selected()).toBe(0);
+    expect(attr('tabindex')).toEqual(['0', '-1', '-1']);
 
     spectator.click(tabs()[1]);
 
-    expect(tabs()[1].getAttribute('aria-selected')).toBe('true');
+    expect(selected()).toBe(1);
     expect(spectator.query('#list-panel')?.getAttribute('aria-labelledby')).toBe(tabs()[1].id);
   });
 
   it('arrow keys wrap around, Home and End jump to the first and last tab', () => {
     press(0, 'ArrowLeft');
-    expect(tabs()[2].getAttribute('aria-selected')).toBe('true');
+    expect(selected()).toBe(2);
     expect(document.activeElement).toBe(tabs()[2]);
 
     press(2, 'ArrowRight');
-    expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
+    expect(selected()).toBe(0);
 
     press(0, 'End');
-    expect(tabs()[2].getAttribute('aria-selected')).toBe('true');
+    expect(selected()).toBe(2);
 
     press(2, 'Home');
-    expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
+    expect(selected()).toBe(0);
   });
 
   it('other keys do nothing', () => {
     press(0, 'a');
 
-    expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
+    expect(selected()).toBe(0);
   });
 });

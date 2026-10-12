@@ -3,7 +3,6 @@
   'shell.skipToContent' | t
 }}</a>
 
-<!-- Only after the delay of delayedLoading: a quick answer never flashes the bar. No value: it is indeterminate. -->
 @if ($showProgress()) {
   <div class="shell-progress" role="progressbar" [attr.aria-label]="'ui.loading' | t"></div>
 }

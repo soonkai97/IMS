@@ -17,10 +17,7 @@ describe('UiPublishHeightDirective', () => {
   let notify: () => void = () => undefined;
   let height = 40;
   const disconnect = jest.fn();
-  const createComponent = createComponentFactory({
-    component: HostComponent,
-    detectChanges: false
-  });
+  const createComponent = createComponentFactory(HostComponent);
   const value = (): string => document.documentElement.style.getPropertyValue('--test-bar-height');
 
   beforeEach(() => {
@@ -39,7 +36,6 @@ describe('UiPublishHeightDirective', () => {
       .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
       .mockImplementation(() => ({ height }) as DOMRect);
     spectator = createComponent();
-    spectator.detectChanges();
   });
 
   afterEach(() => {

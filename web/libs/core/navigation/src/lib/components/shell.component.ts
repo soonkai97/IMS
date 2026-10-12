@@ -63,7 +63,6 @@ export class ShellComponent implements OnInit {
   $groups = this.navigation.$groups;
   $phoneTabs = this.navigation.$phoneTabs;
   $moreEntries = this.navigation.$moreEntries;
-  /** The thin top bar: shown after 300ms of pending calls and kept for at least 400ms, so a quick call never flickers it. */
   $showProgress = delayedLoading(this.loading.$isLoading);
   $announcement = this.pageTitle.$announcement;
   $displayName = this.permissions.$displayName;
@@ -94,7 +93,6 @@ export class ShellComponent implements OnInit {
       .subscribe();
   }
 
-  /** Skip link: moves focus to the content without a navigation (see the template). */
   onSkipToContent(event: Event, main: HTMLElement): void {
     event.preventDefault();
     main.focus();

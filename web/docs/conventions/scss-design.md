@@ -75,24 +75,19 @@ or `all`.
 
 ## Shell, tab bar, action bar, tabs
 
-- Phone (< 600px): top bar, bottom tab bar (the entries of `PermissionService.$profile().phoneTabs`, then "More"), content. Tablet: icon
-  rail. Desktop: sidebar by group. The tab bar is navigation (links with `aria-current="page"`), not a tablist; the cue of the current
-  tab is a 3px pill above the icon, the sidebar's a 3px edge (shape, not colour alone). Cells are at least 64px high.
-- Safe areas: the page uses `viewport-fit=cover`; `--ims-safe-top|right|bottom|left` (`globals/_base.scss`) are the insets and
-  `tabbar-offset()` is the tab bar height plus the bottom inset. The tab bar, the room the page leaves for it and the sticky action bar
-  read that one function; never write `env()` in a component.
-- Sticky action bar (`.document-editor-bar`): phone = full-width strip stuck directly above the tab bar, summary on its own line,
-  buttons equal width; tablet and up = floating card at the bottom of the content. It publishes its real height as
-  `--ims-action-bar-height` on `html` (`appPublishHeight`, it grows when the buttons wrap at 320px), and `scroll-padding-block` on
-  `html` reserves tab bar + that height, so a focused field is scrolled clear of the bar (e2e `16-shell` at 320px with 8 lines).
-  Toasts are not positioned here (R11).
-- Route fade: `withViewTransitions(ROUTE_FADE)` plus `globals/_route-fade.scss`. One crossfade of the `fast` token for the page; the
-  top bar, sidebar and tab bar carry a `view-transition-name`, so they stay still. Same-page navigations (a new query string) do not
-  fade. Under reduced motion or `data-motion="off"` the token is 1ms, so it is instant. Never give content elements a
-  `view-transition-name` (a named element becomes the containing block of its fixed descendants).
-- Top progress bar: shown by `delayedLoading` (after 300ms, at least 400ms), `role="progressbar"` without a value, named "Loading".
-- Tabs (`app-tabs`): `panel="id"` on the strip, and `<div appTabPanel="id" [labelledByTab]="activeTab">` around what it controls. Every
-  tab then has `aria-controls`, the panel is `role="tabpanel"` and `aria-labelledby` the selected tab. Arrows, Home and End move.
+- Phone: top bar, bottom tab bar (`$profile().phoneTabs` plus "More"; links with `aria-current`, not a tablist), content. Tablet: icon
+  rail. Desktop: sidebar. The current page is shown by shape (a 3px pill above the tab icon, a 3px edge in the sidebar), not colour only.
+- Safe areas: `viewport-fit=cover`; `--ims-safe-*` are the insets and `tabbar-offset()` is the tab bar height plus the bottom inset.
+  Components never write `env()`.
+- Sticky action bar (`.document-editor-bar`): phone = full-width strip directly above the tab bar; tablet and up = floating card. It
+  publishes its real height as `--ims-action-bar-height` (`appPublishHeight`; it grows when the buttons wrap at 320px) and the `html`
+  scroll padding reserves tab bar + that height, so a focused field is scrolled clear of it (e2e `16-shell`). Toasts: R11.
+- Route fade: `withViewTransitions(ROUTE_FADE)`, one `fast` crossfade; top bar, sidebar and tab bar have a `view-transition-name` and
+  stay still; query-only navigations skip it; 1ms under reduced motion. Never name content elements (a named element becomes the
+  containing block of fixed descendants).
+- Top progress bar: behind `delayedLoading`, `role="progressbar"` without a value, named "Loading".
+- Tabs: `<app-tabs panel="id">` plus `<div appTabPanel="id" [labelledByTab]="active">` around what it controls (`aria-controls`,
+  `role="tabpanel"`, `aria-labelledby`). Arrows, Home and End move.
 
 ## Naming: flat BEM, component specific
 

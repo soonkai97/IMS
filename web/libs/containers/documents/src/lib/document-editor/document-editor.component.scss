@@ -101,10 +101,9 @@
   color: color('danger');
 }
 
-// Primary actions stay in reach. Phone: a full-width strip stuck directly above the tab bar (and the home-indicator inset), the
-// summary on a line of its own and the buttons below it. Tablet and up: a floating card at the bottom of the content, summary
-// left and buttons right. Notes take a full row. It is the last thing in the page, so it never hides a field: a focused field
-// is scrolled clear of it (scroll-padding in globals/_base.scss). On a short window it scrolls with the page (EA-04).
+// Primary actions stay in reach. Phone: a full-width strip directly above the tab bar, summary on its own line, buttons below.
+// Tablet and up: a floating card, summary left and buttons right. Notes take a full row. A focused field is scrolled clear of it
+// (scroll padding in globals/_base.scss). On a short window it scrolls with the page (EA-04).
 .document-editor-bar {
   position: sticky;
   bottom: tabbar-offset();

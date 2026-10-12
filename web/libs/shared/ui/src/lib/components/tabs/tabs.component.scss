@@ -1,6 +1,6 @@
 @use 'libs' as *;
 
-// The strip scrolls sideways when the tabs do not fit; a focus ring drawn outside a tab would be clipped by that, so it is inset.
+// The strip scrolls sideways, which would clip a focus ring drawn outside a tab: the ring is inset.
 :host {
   display: block;
   overflow-x: auto;
@@ -25,7 +25,7 @@
   color: color('text-muted');
   white-space: nowrap;
 
-  // The current tab's underline grows from the middle; it is also the shape cue, so the tab is not told apart by colour alone.
+  // The current tab's underline grows from the middle (a shape cue, not colour alone).
   &::after {
     position: absolute;
     right: 0;

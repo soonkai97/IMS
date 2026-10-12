@@ -1,10 +1,8 @@
 @use '../libs' as *;
 
-// Route change = one short crossfade of the page (router `withViewTransitions`). The shell chrome (top bar, sidebar, tab bar) has
-// its own `view-transition-name`, so it is not part of the page snapshot and stays still. Every group uses the `fast` token,
-// the chrome's too (the browser default is 250ms and ignores reduced motion): the token collapses to 1ms under
-// prefers-reduced-motion and <html data-motion="off">, because custom properties are inherited by these pseudo-elements, so
-// the page then changes at once. Browsers without view transitions simply swap the page.
+// Route change = one crossfade of the page (router `withViewTransitions`); the shell chrome has its own `view-transition-name` and
+// stays still. Every group, the chrome's too, uses the `fast` token (the browser default of 250ms ignores reduced motion); the token
+// is 1ms under prefers-reduced-motion and data-motion="off" because these pseudo-elements inherit the custom properties.
 ::view-transition-group(*),
 ::view-transition-old(*),
 ::view-transition-new(*) {

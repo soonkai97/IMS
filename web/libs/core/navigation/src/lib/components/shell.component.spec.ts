@@ -131,7 +131,10 @@ describe('ShellComponent structure and accessibility', () => {
     });
     afterEach(() => jest.useRealTimers());
 
-    async function tick(ms: number): Promise<void> {
+    /** Sets the pending-calls flag, then lets `ms` pass. */
+    function wait(isLoading: boolean, ms: number): void {
+      loading.set(isLoading);
+      spectator.detectChanges();
       jest.advanceTimersByTime(ms);
       spectator.detectChanges();
     }
@@ -139,12 +142,8 @@ describe('ShellComponent structure and accessibility', () => {
     it('does not show for a call that answers within 300ms (no flicker)', async () => {
       await render('/');
 
-      loading.set(true);
-      spectator.detectChanges();
-      await tick(250);
-      loading.set(false);
-      spectator.detectChanges();
-      await tick(500);
+      wait(true, 250);
+      wait(false, 500);
 
       expect(bar()).toBeNull();
     });
@@ -152,19 +151,15 @@ describe('ShellComponent structure and accessibility', () => {
     it('shows after 300ms as an indeterminate, named progressbar and stays for at least 400ms', async () => {
       await render('/');
 
-      loading.set(true);
-      spectator.detectChanges();
-      await tick(300);
+      wait(true, 300);
 
       expect(bar()?.getAttribute('role')).toBe('progressbar');
       expect(bar()?.getAttribute('aria-label')).toBe('Loading');
       expect(bar()?.hasAttribute('aria-valuenow')).toBe(false);
 
-      loading.set(false);
-      spectator.detectChanges();
-      await tick(300);
+      wait(false, 300);
       expect(bar()).not.toBeNull();
-      await tick(100);
+      wait(false, 100);
       expect(bar()).toBeNull();
     });
   });

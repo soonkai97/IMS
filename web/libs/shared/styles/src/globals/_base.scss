@@ -6,23 +6,20 @@
   box-sizing: border-box;
 }
 
-// Notch and home-indicator insets (index.html has viewport-fit=cover). The `0px` is a length because calc() needs one; the lint
-// rule against units on zero would turn the fallback into a number and break every calc() that adds an inset.
+// Notch and home-indicator insets (viewport-fit=cover). `0px` stays a length: calc() needs one, the lint rule would remove it.
 :root {
   /* stylelint-disable length-zero-no-unit */
   --ims-safe-top: env(safe-area-inset-top, 0px);
   --ims-safe-right: env(safe-area-inset-right, 0px);
   --ims-safe-bottom: env(safe-area-inset-bottom, 0px);
   --ims-safe-left: env(safe-area-inset-left, 0px);
-  // The sticky document action bar publishes its real height here (appPublishHeight); 0 on a page without one.
-  --ims-action-bar-height: 0px;
+  --ims-action-bar-height: 0px; // set by appPublishHeight on the sticky action bar
   /* stylelint-enable length-zero-no-unit */
 }
 
 html {
-  // A focused control is scrolled clear of the sticky top bar and of the bottom bars, so Tab never lands under them (WCAG 2.4.11
-  // Focus Not Obscured). Bottom = what is stuck there: the tab bar (phone only), the action bar at its REAL height (it wraps to
-  // two rows on a narrow phone), and a little air. On a short window both bars flow with the page and nothing is reserved.
+  // A focused control is scrolled clear of the top bar and the bottom bars (WCAG 2.4.11): the tab bar (phone only), the action bar
+  // at its real height (it wraps at 320px) and a little air. On a short window the bars flow with the page: nothing is reserved.
   --ims-scroll-reserve-bottom: calc(
     #{tabbar-offset()} + var(--ims-action-bar-height) + #{space(1)}
   );

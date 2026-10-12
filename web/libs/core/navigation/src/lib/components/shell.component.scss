@@ -1,10 +1,8 @@
 @use 'libs' as *;
 
-// One sweep of the progress segment; the loop is stopped by the reduced-motion rule in globals/_motion.scss.
 $progress-sweep: 1.2s;
 
-// Phones: top bar, content, bottom tab bar. Tablets: icon rail on the left. Desktop: full sidebar.
-// The side insets keep the chrome out of a landscape phone's notch; they are 0 elsewhere (index.html: viewport-fit=cover).
+// Phones: top bar, content, bottom tab bar. Tablets: icon rail. Desktop: sidebar. Side insets keep it out of a landscape notch.
 :host {
   --shell-nav-width: 0px;
 
@@ -56,9 +54,8 @@ $progress-sweep: 1.2s;
   @include visually-hidden;
 }
 
-// The thin top bar while calls are pending (shown by the shell only after the delay of delayedLoading). A 3px track with a
-// 40% segment that sweeps across it. Under reduced motion the global rule runs the sweep once for 0.01ms, which leaves the
-// segment still at the left: a static bar.
+// Thin top bar while calls are pending: a 3px track with a 40% segment sweeping across it. Under reduced motion the sweep runs once
+// for 0.01ms and leaves the segment at the left: a static bar.
 .shell-progress {
   position: fixed;
   top: 0;
@@ -250,8 +247,7 @@ $progress-sweep: 1.2s;
   }
 }
 
-// Five equal cells, each at least 64px high (the tab bar is a navigation landmark of links, not a tablist). The home-indicator
-// inset is padding below the cells.
+// Five equal cells of links (navigation, not a tablist); the home-indicator inset is padding below them.
 .shell-tabbar {
   view-transition-name: shell-tabbar;
   position: fixed;
@@ -351,8 +347,7 @@ $progress-sweep: 1.2s;
   color: color('text-muted');
 }
 
-// Forced colours repaint backgrounds to Canvas, so the cues of the current page and the progress bar must be borders or system
-// colours: the current sidebar row gets an outline, the pills, the edge and the sweeping segment use Highlight, the track an edge.
+// Forced colours repaint backgrounds to Canvas: the current cues and the progress bar use outlines and system colours.
 @media (forced-colors: active) {
   .shell-nav-link.--active {
     outline: border-width('thin') solid Highlight;

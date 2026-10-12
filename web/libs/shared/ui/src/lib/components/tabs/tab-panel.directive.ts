@@ -1,10 +1,7 @@
 import { Directive, computed, input } from '@angular/core';
 import { tabButtonId } from './tabs.component';
 
-/**
- * Marks the element that `app-tabs` controls: `<app-tabs panel="x" [active]="tab" />` and
- * `<div appTabPanel="x" [labelledByTab]="tab">` (the same id, and the id of the selected tab).
- */
+/** The element an `app-tabs` strip controls: `<app-tabs panel="x" />` and `<div appTabPanel="x" [labelledByTab]="activeTab">`. */
 @Directive({
   selector: '[appTabPanel]',
   host: {

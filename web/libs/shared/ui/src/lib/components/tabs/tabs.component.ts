@@ -22,10 +22,7 @@ export function tabButtonId(tabId: string): string {
   return `tab-${tabId}`;
 }
 
-/**
- * Tab strip (role=tablist). The consumer renders the panel for `active` as `role="tabpanel"` with the id it passes as `panel`
- * and `aria-labelledby` = `tabButtonId(active)`, so every tab names the panel it controls (WCAG 4.1.2, ER-18).
- */
+/** Tab strip (role=tablist). The panel it controls is marked with `appTabPanel` and the id passed as `panel` (WCAG 4.1.2, ER-18). */
 @Component({
   selector: 'app-tabs',
   changeDetection: ChangeDetectionStrategy.OnPush,
