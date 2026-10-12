@@ -69,6 +69,15 @@ describe('delayedLoading', () => {
     expect(visible()).toBe(true);
   });
 
+  it('clears its pending timer when the owner is destroyed', () => {
+    setPending(true);
+    expect(jest.getTimerCount()).toBe(1);
+
+    TestBed.resetTestingModule();
+
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
   it('takes its delay and minimum from the options', () => {
     const quick = TestBed.runInInjectionContext(() =>
       delayedLoading(pending, { delay: 10, minShow: 20 })

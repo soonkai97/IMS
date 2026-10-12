@@ -6,16 +6,28 @@ import { compile } from 'sass';
 const SRC = __dirname;
 const css = compile(join(SRC, 'index.scss'), { loadPaths: [SRC] }).css;
 
-/** The body of the first rule whose selector line contains `selector`. */
-function ruleBody(source: string, selector: string): string {
-  const start = source.indexOf(selector);
-  expect(start).toBeGreaterThan(-1);
-  return source.slice(source.indexOf('{', start), source.indexOf('}', start));
+/** One top-level block: from the first `start` to the next closing brace in column 0 (nested braces are indented). */
+function block(start: string): string {
+  const from = css.indexOf(start);
+  expect(from).toBeGreaterThan(-1);
+  return css.slice(from, css.indexOf('\n}', from) + 2);
+}
+
+const OS_SETTING = block('@media (prefers-reduced-motion: reduce)');
+const SWITCH_TOKENS = block(':root[data-motion=off] {');
+const SWITCH_RULES = block(':root[data-motion=off] *');
+const COLLAPSED = /--ims-dur-fast: 1ms[\s\S]*--ims-dur-base: 1ms[\s\S]*--ims-dur-slow: 1ms/;
+
+/** Every animation runs once for 0.01ms, so no loop keeps restarting. */
+function expectStopped(rules: string): void {
+  expect(rules).toContain('animation-iteration-count: 1 !important');
+  expect(rules).toContain('animation-duration: 0.01ms !important');
+  expect(rules).toContain('transition-duration: 0.01ms !important');
 }
 
 describe('motion tokens', () => {
   it('declares three durations and two easings at :root', () => {
-    const root = ruleBody(css, ':root {\n  --ims-dur-fast');
+    const root = block(':root {\n  --ims-dur-fast');
 
     expect(root).toContain('--ims-dur-fast: 120ms');
     expect(root).toContain('--ims-dur-base: 200ms');
@@ -25,34 +37,22 @@ describe('motion tokens', () => {
   });
 
   it('collapses every duration under prefers-reduced-motion', () => {
-    const media = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
-
-    expect(media).toMatch(
-      /--ims-dur-fast: 1ms[\s\S]*--ims-dur-base: 1ms[\s\S]*--ims-dur-slow: 1ms/
-    );
+    expect(OS_SETTING).toMatch(COLLAPSED);
   });
 
   it('collapses every duration with the test switch data-motion=off', () => {
-    const off = ruleBody(css, ':root[data-motion=off] {');
-
-    expect(off).toMatch(/--ims-dur-fast: 1ms[\s\S]*--ims-dur-base: 1ms[\s\S]*--ims-dur-slow: 1ms/);
+    expect(SWITCH_TOKENS).toMatch(COLLAPSED);
   });
 });
 
 describe('no infinite animation under reduced motion or in tests', () => {
-  it('runs every animation once and for 0.01ms with the OS setting', () => {
-    const media = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
-
-    expect(media).toContain('animation-iteration-count: 1 !important');
-    expect(media).toContain('animation-duration: 0.01ms !important');
-    expect(media).toContain('transition-duration: 0.01ms !important');
+  it('stops every animation with the OS setting (its own block, not the test switch)', () => {
+    expect(OS_SETTING).not.toContain('data-motion');
+    expectStopped(OS_SETTING);
   });
 
-  it('does the same with data-motion=off', () => {
-    const rules = css.slice(css.indexOf(':root[data-motion=off] *'));
-
-    expect(rules).toContain('animation-iteration-count: 1 !important');
-    expect(rules).toContain('animation-duration: 0.01ms !important');
+  it('stops every animation with data-motion=off', () => {
+    expectStopped(SWITCH_RULES);
   });
 
   it('the skeleton shimmer is finite on its own (6 sweeps), not only through the safety net', () => {

@@ -6,5 +6,6 @@ export * from './lib/guards';
 export * from './lib/numbers';
 export * from './lib/operations';
 export * from './lib/reactive/delayed-loading';
+export * from './lib/reactive/delayed-loading-options';
 export * from './lib/reactive/query-signals';
 export * from './lib/to-class-str';

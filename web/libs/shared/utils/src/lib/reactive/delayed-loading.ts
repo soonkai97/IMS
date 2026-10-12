@@ -1,12 +1,6 @@
 import { DestroyRef, Signal, effect, inject, signal, untracked } from '@angular/core';
 import { LOADING_DELAY_MS, LOADING_MIN_SHOW_MS } from '../constants';
-
-export interface DelayedLoadingOptions {
-  /** How long the request must be pending before the indicator shows. */
-  readonly delay?: number;
-  /** How long the indicator stays once it showed. */
-  readonly minShow?: number;
-}
+import { DelayedLoadingOptions } from './delayed-loading-options';
 
 /**
  * Turns "a request is pending" into "show the skeleton or spinner": true only after the request has been pending for `delay` ms
@@ -27,11 +21,11 @@ export function delayedLoading(
       clearTimeout(timer);
       if (isLoading && !visible()) {
         timer = setTimeout(() => {
-          shownAt = Date.now();
+          shownAt = performance.now();
           visible.set(true);
         }, delay);
       } else if (!isLoading && visible()) {
-        const remaining = Math.max(0, minShow - (Date.now() - shownAt));
+        const remaining = Math.max(0, minShow - (performance.now() - shownAt));
         timer = setTimeout(() => visible.set(false), remaining);
       }
     });
