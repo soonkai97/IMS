@@ -12,7 +12,6 @@ public class QueryAuditLogValidator : AbstractValidator<QueryAuditLogQuery>
         RuleFor(x => x.Filter.Actor).MaximumLength(Limits.AuditTextMaxLength).WithMessage(Messages.SearchTooLong);
         RuleFor(x => x.Filter.Action).MaximumLength(Limits.AuditTextMaxLength).WithMessage(Messages.SearchTooLong);
         RuleFor(x => x.Filter.Search).MaximumLength(Limits.AuditTextMaxLength).WithMessage(Messages.SearchTooLong);
-        RuleFor(x => x.Filter.Cursor).MustBeAValidCursor();
         RuleFor(x => x.Filter.To).MustNotBeBefore(x => x.Filter.From);
     }
 }

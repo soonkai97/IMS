@@ -15,6 +15,8 @@ public static class PresentationServices
     {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, CurrentUser>();
+        services.AddDataProtection();
+        services.AddSingleton<ICursorProtector, DataProtectionCursorProtector>();
 
         services.AddJwtAuthentication()
                 .AddPermissionPolicies()

@@ -122,18 +122,32 @@ public class PagingContractTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task The_next_cursor_is_an_opaque_token_of_the_last_row_of_a_full_page_and_absent_on_a_short_page()
+    public async Task The_next_cursor_continues_after_the_last_row_of_a_full_page_hides_its_id_and_is_absent_on_a_short_page()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
         for (var i = 0; i < 3; i++) await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 1, 1m));
 
+        var whole = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=10")).Data<PagedResult<LedgerRow>>();
         var full = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=2")).Data<PagedResult<LedgerRow>>();
-        var short_ = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=10")).Data<PagedResult<LedgerRow>>();
+        var rest = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=2&cursor={Uri.EscapeDataString(full.NextCursor!)}")).Data<PagedResult<LedgerRow>>();
 
-        Assert.Equal(CursorToken.Encode(full.Items[^1].Id), full.NextCursor);
+        Assert.NotNull(full.NextCursor);
         Assert.DoesNotContain(full.Items[^1].Id.ToString(), full.NextCursor); // the key is not in plain sight
-        Assert.Null(short_.NextCursor);
+        Assert.Equal(whole.Items.Skip(2).Select(r => r.Id), rest.Items.Select(r => r.Id));
+        Assert.Null(whole.NextCursor);
+    }
+
+    [Fact]
+    public async Task A_cursor_of_one_list_is_a_400_on_another()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        for (var i = 0; i < 3; i++) await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 1, 1m));
+        var ledgerCursor = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=2")).Data<PagedResult<LedgerRow>>().NextCursor!;
+
+        foreach (var url in new[] { "/api/documents", "/api/audit" })
+            Assert.Equal([Messages.CursorInvalid], (await s.Admin.GetAsync($"{url}?pageSize=2&cursor={Uri.EscapeDataString(ledgerCursor)}")).ShouldBeProblem(System.Net.HttpStatusCode.BadRequest).ErrorsFor("cursor"));
     }
 
     [Theory]

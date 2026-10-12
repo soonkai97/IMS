@@ -16,7 +16,8 @@ public static class Paging
     }
 
     /// <summary>The cursor for the next seek page: the id of the last row as a <see cref="CursorToken"/>, when the page is full.</summary>
-    public static string? NextCursor<T>(IReadOnlyList<T> items, int size, Func<T, long> id) => items.Count == size && items.Count > 0 ? CursorToken.Encode(id(items[^1])) : null;
+    public static string? NextCursor<T>(IReadOnlyList<T> items, int size, Func<T, long> id, ICursorProtector cursors, string list) =>
+        items.Count == size && items.Count > 0 ? CursorToken.Encode(cursors, list, id(items[^1])) : null;
 
     /// <summary>Start of a Malaysia-local day (UTC+8) expressed in UTC, for inclusive date filters.</summary>
     public static DateTime StartOfDayUtc(DateOnly d) => d.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc).AddHours(-Limits.MalaysiaUtcOffsetHours);

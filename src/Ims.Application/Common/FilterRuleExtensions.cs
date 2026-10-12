@@ -13,10 +13,6 @@ public static class FilterRuleExtensions
     public static IRuleBuilderOptions<T, string?> MustBeLongEnoughToSearch<T>(this IRuleBuilder<T, string?> rule) =>
         rule.Must(text => string.IsNullOrWhiteSpace(text) || text.Trim().Length >= Limits.SearchMinTextLength).WithMessage(Messages.SearchTooShort);
 
-    /// <summary>A cursor that is given is one <see cref="CursorToken"/> made: garbage, a truncated or an oversized value is a 400 on the <c>cursor</c> field, never a 500. Blank = first page.</summary>
-    public static IRuleBuilderOptions<T, string?> MustBeAValidCursor<T>(this IRuleBuilder<T, string?> rule) =>
-        rule.Must(cursor => cursor is null || CursorToken.TryDecode(cursor, out _)).WithMessage(Messages.CursorInvalid);
-
     /// <summary>The "to" date is not earlier than the "from" date.</summary>
     public static IRuleBuilderOptions<T, DateOnly?> MustNotBeBefore<T>(this IRuleBuilder<T, DateOnly?> rule, Func<T, DateOnly?> from) =>
         rule.Must((filter, to) => to is null || from(filter) is not { } start || start <= to).WithMessage(Messages.DateRangeInvalid);

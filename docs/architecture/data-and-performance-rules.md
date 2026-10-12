@@ -87,11 +87,12 @@ No N+1 queries: a use case issues a fixed number of queries regardless of how ma
 Every list that can grow returns `{ items, total, page, pageSize, nextCursor }`. Sort keys are enums. Small lookup lists (units, categories,
 warehouses, approval rules) return plain arrays with a hard cap.
 
-`nextCursor` is an opaque string (`CursorToken`: base64url of a version byte and the 8-byte internal `Id` of the last row; it is `null` on the last page).
-A client passes it back unchanged as the `cursor` query parameter of the same list and never parses it. The documents, ledger and audit lists seek on it
-(`Id < position`, newest first), so the plan is the one the integer `afterId` used. A value the server did not make (garbage, truncated, another version,
-over `Limits.CursorMaxLength`) is a 400 on the `cursor` field. It is not signed: a forged value only moves the start of a page inside the filter and
-warehouse scope that still apply.
+`nextCursor` is an opaque, encrypted string (`CursorToken`: base64url of the Data Protection output for a version byte and the 8-byte internal `Id` of the last row;
+purpose `Ims.Cursor.v1` plus one sub-purpose per list; `null` on the last page). It hides the row counter (decision D2). A client passes it back unchanged as the
+`cursor` query parameter of the same list and never parses it. The documents, ledger and audit lists seek on it (`Id < position`, newest first), so the plan is the
+one the integer `afterId` used. A value the server did not make for that list (garbage, altered, truncated, another list, another version, a variant spelling, over
+`Limits.CursorMaxLength`, or made with a key that no longer exists) is a 400 on the `cursor` field. Tests and load scripts collect cursors by walking pages; they never
+build one. The Data Protection key ring must be persisted and shared by every instance of a deployment; a lost key only invalidates outstanding cursors.
 
 The order of a list is part of its contract: it is total (it ends in unique keys), so a walk through the pages never skips or repeats a row,
 and the export of a list uses the very same order as its pages. The receipt/issue detail (`/api/reports/movements` and its export) is
