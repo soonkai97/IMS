@@ -78,6 +78,16 @@ session routes. New agent types register after a session reload; until then they
 - Phase 3: accounting export, API keys/webhooks, e-commerce, OCR drafts, reorder suggestions
 - Phase 4: batch/expiry, serial, multi-company, BOM/FIFO, RFID, NL queries, owner dashboard
 
+## Review follow-ups (minor, none blocking; found 2026-10-12)
+- #57: typing "abc" then deleting to "ab" shows the unfiltered list while the box still reads "ab" (fix the comment or add a 3-to-2 spec); `API_MIN_SEARCH_LENGTH` sits under the wrong comment in `pagination.const.ts`.
+- #57: the ledger "balance after" column and the document "Reversed by" line have no screen yet (client fields exist); needs a designer look, about 100 lines.
+- #55 accepted gap: no horizontal scroll at 1280 and the `15-reports-range` e2e are deferred to slice L04 (table column priorities).
+- #55 minors not done: cancel an in-flight request when the range turns invalid; `format.pipes.ts` holds five pipes (one type per file).
+- #52: `docs/dba/08-reconcile-drill.sql` check 3 uses `ISNULL` sentinels (-1, -2); two practically impossible cases are missed.
+- Run the full e2e suite once after F1 and R04 merge (it runs only manually and weekly); watch `12-low-stock` ("New receipt line never appeared" once).
+- Deferred: backend text limits (partner 120, product 80); `includeTotal=false` once a screen shows no total; Dependabot retries for stylelint 17 (needs `stylelint-config-standard-scss` support) and the .NET group (Microsoft.CodeAnalysis 5.9.0 conflict).
+- Owner spot-check: on a phone, tap a quantity field on a receipt and type; the value should be replaced (R27, untested on real iOS and Android).
+
 ## Open questions for the user (from PRD 14.3 and delivery)
 Defaults and deadlines for all owner decisions: [roadmap section 8.2](docs/pm/ROADMAP.md). Still open: O1 corrections confirmations (by WD 5), O3 hosting direction (by WD 10), O4 `large-change` label for the id-switch merge (by WD 15), O10 native speakers for zh and ms. Closed by the lean approval: roles defaults, tables, motion, date field and `Partner.Code` (not now).
 - Hosting model for deploy.yml: customer-owned servers, our cloud, or hybrid? Recommended default: one small VM (about US$6-24 a month) with Docker Compose; free-tier only for a data-free demo; managed always-on cloud is about US$100-200 a month
