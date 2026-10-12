@@ -1,25 +1,49 @@
 @use 'sass:map';
 
+// Radius (visual spec 2.5). An inner radius is the outer radius minus the padding between them. 'sheet' is the top corners of a
+// bottom sheet (lg + 4px).
 $border-radius: (
   'sm': 6px,
-  'md': 10px,
-  'lg': 16px,
+  'md': 8px,
+  'lg': 12px,
+  'sheet': 16px,
   'pill': 999px,
   'circle': 50%
 );
 
+// 'ring' is the focus ring, 'edge' the accent bar on the inline start of banners, toasts, selected rows and lines. 'focus' is the
+// old name of 'edge' (it used to serve both) and goes away in slice R24.
+$edge-width: 3px;
+
 $border-width: (
   'thin': 1px,
   'thick': 2px,
-  'focus': 3px
+  'ring': 2px,
+  'edge': $edge-width,
+  'focus': $edge-width
 );
 
-$shadows: (
+// Elevation (visual spec 2.6): three levels, subtle. Light separates layers with a shadow; in dark the shadow is weak and the layer
+// reads through its lighter surface and its border. Emitted per theme as --ims-shadow-1..3 by globals/_themes.scss.
+$shadows-light: (
   1: (
-    0 1px 2px rgb(16 24 40 / 10%),
+    0 1px 2px rgb(16 24 40 / 8%),
+    0 1px 1px rgb(16 24 40 / 6%)
+  ),
+  2: (
+    0 4px 12px rgb(16 24 40 / 12%),
     0 1px 3px rgb(16 24 40 / 8%)
   ),
-  2: 0 8px 24px rgb(16 24 40 / 22%)
+  3: (
+    0 12px 32px rgb(16 24 40 / 16%),
+    0 2px 6px rgb(16 24 40 / 8%)
+  )
+);
+
+$shadows-dark: (
+  1: 0 1px 2px rgb(0 0 0 / 40%),
+  2: 0 4px 12px rgb(0 0 0 / 45%),
+  3: 0 12px 32px rgb(0 0 0 / 55%)
 );
 
 @function border-radius($name) {
@@ -38,10 +62,11 @@ $shadows: (
   @return map.get($border-width, $name);
 }
 
+/// shadow(1) -> var(--ims-shadow-1): 1 sticky bars, 2 menus and toasts, 3 dialogs and sheets.
 @function shadow($level) {
-  @if not map.has-key($shadows, $level) {
+  @if not map.has-key($shadows-light, $level) {
     @error 'Unknown shadow level "#{$level}".';
   }
 
-  @return map.get($shadows, $level);
+  @return var(--ims-shadow-#{$level});
 }
