@@ -1,6 +1,6 @@
 namespace Ims.Domain;
 
-public class User : Entity
+public class User : PublicEntity
 {
     public static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(Limits.LockoutMinutes);
 

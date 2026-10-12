@@ -39,6 +39,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
                     b.Property<decimal?>("QtyThreshold")
                         .HasColumnType("decimal(18,4)");
 
@@ -80,6 +85,12 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ApprovalRule_PublicId");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex("PublicId"), 90);
+
                     b.ToTable("ApprovalRule");
                 });
 
@@ -109,6 +120,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("OwnerType")
                         .HasColumnType("int");
+
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("RecCreDate")
                         .ValueGeneratedOnAdd()
@@ -163,6 +179,12 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Attachment_PublicId");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex("PublicId"), 90);
 
                     b.HasIndex("StoragePath")
                         .IsUnique()
@@ -275,6 +297,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
                     b.Property<DateTime>("RecCreDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -311,6 +338,12 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.HasIndex("Name")
                         .IsUnique()
                         .HasFilter("[REC_DELETED] = 0");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Category_PublicId");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex("PublicId"), 90);
 
                     b.ToTable("Category");
                 });
@@ -385,6 +418,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
                     b.Property<DateTime>("RecCreDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -421,6 +459,12 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Partner_PublicId");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex("PublicId"), 90);
+
                     b.HasIndex("Type", "Name")
                         .IsUnique()
                         .HasFilter("[REC_DELETED] = 0");
@@ -449,6 +493,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
+
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("RecCreDate")
                         .ValueGeneratedOnAdd()
@@ -499,6 +548,12 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasFilter("[REC_DELETED] = 0");
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Name"), new[] { "Sku", "IsActive" });
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Product_PublicId");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex("PublicId"), 90);
 
                     b.HasIndex("Sku")
                         .IsUnique()
@@ -730,6 +785,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Property<int?>("PostedBy")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
                     b.Property<int?>("Purpose")
                         .HasColumnType("int");
 
@@ -831,6 +891,12 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("PostedAt"), new[] { "Status", "WarehouseId" });
 
                     b.HasIndex("PostedBy");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_StockDocument_PublicId");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex("PublicId"), 90);
 
                     b.HasIndex("RejectedBy");
 
@@ -1094,6 +1160,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
                     b.Property<DateTime>("RecCreDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -1130,6 +1201,12 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.HasIndex("Code")
                         .IsUnique()
                         .HasFilter("[REC_DELETED] = 0");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Uom_PublicId");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex("PublicId"), 90);
 
                     b.ToTable("Uom");
                 });
@@ -1229,6 +1306,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
                     b.Property<DateTime>("RecCreDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -1275,6 +1357,12 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.HasIndex("Email")
                         .IsUnique()
                         .HasFilter("[REC_DELETED] = 0");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_User_PublicId");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex("PublicId"), 90);
 
                     b.HasIndex("Username")
                         .IsUnique()
@@ -1366,6 +1454,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
                     b.Property<DateTime>("RecCreDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -1402,6 +1495,12 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.HasIndex("Code")
                         .IsUnique()
                         .HasFilter("[REC_DELETED] = 0");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Warehouse_PublicId");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex("PublicId"), 90);
 
                     b.ToTable("Warehouse");
                 });

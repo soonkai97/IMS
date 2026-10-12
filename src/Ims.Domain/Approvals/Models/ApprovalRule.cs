@@ -1,7 +1,7 @@
 namespace Ims.Domain;
 
 /// <summary>BR-06: when a document of a type needs approval, and who may give it.</summary>
-public class ApprovalRule : Entity
+public class ApprovalRule : PublicEntity
 {
     private ApprovalRule() { }
 

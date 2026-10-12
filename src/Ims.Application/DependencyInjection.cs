@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddMessaging();
 
         // Ports implemented inside Application itself.
+        services.TryAddScoped(typeof(IIdMap<>), typeof(IdMap<>));
         services.TryAddScoped<IAuditTrail, AuditTrail>();
         services.TryAddScoped<ISystemSettings, DbSystemSettings>();
 

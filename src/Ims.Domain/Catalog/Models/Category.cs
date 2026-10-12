@@ -1,6 +1,6 @@
 namespace Ims.Domain;
 
-public class Category : Entity
+public class Category : PublicEntity
 {
     private Category() { }
 
