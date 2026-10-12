@@ -43,7 +43,7 @@ persistence layer on save, never by use cases.
 | Current stock of a product | one row in `StockBalance` (read model kept by posting), not a sum over the ledger |
 | Next document number | one sequence row per type/warehouse/month |
 | Lookup by SKU / barcode / document number / id | unique or primary-key index seek |
-| Deep paging of ledger, documents, audit | seek (cursor) paging: `afterId`, constant cost at any depth |
+| Deep paging of ledger, documents, audit | seek (cursor) paging: `cursor` / `nextCursor`, constant cost at any depth |
 | Page numbers (OFFSET) | refused beyond 10,000 rows; use a cursor or a narrower filter |
 | Row count | skippable (`includeTotal=false`); the count is the only O(n) part of a list |
 | Summaries and totals | aggregated by SQL Server into one row (`IStockSummaryReader`) |
@@ -86,6 +86,20 @@ No N+1 queries: a use case issues a fixed number of queries regardless of how ma
 
 Every list that can grow returns `{ items, total, page, pageSize, nextCursor }`. Sort keys are enums. Small lookup lists (units, categories,
 warehouses, approval rules) return plain arrays with a hard cap.
+
+`nextCursor` is an opaque, encrypted string (`CursorToken`: base64url of the Data Protection output for a version byte and the 8-byte internal `Id` of the last row;
+purpose `Ims.Cursor.v1` plus one sub-purpose per list; `null` on the last page). It hides the row counter (decision D2). A client passes it back unchanged as the
+`cursor` query parameter of the same list and never parses it. The documents, ledger and audit lists seek on it (`Id < position`, newest first), so the plan is the
+one the integer `afterId` used. A value the server did not make for that list (garbage, altered, truncated, another list, another version, a variant spelling, over
+`Limits.CursorMaxLength`, or made with a key that no longer exists) is a 400 on the `cursor` field. Tests and load scripts collect cursors by walking pages; they never
+build one.
+
+**Key ring (operations).** The keys that encrypt cursors are files in the directory named by `DataProtection:KeysPath` (application name `Ims`). In Production the
+setting is required and the API refuses to start without it; at start-up it protects one value, so a directory that cannot be written also stops the boot with a
+message. Every instance of a deployment must point at the same persisted directory (the Docker image sets `DataProtection__KeysPath=/app/keys` and docker-compose
+mounts the named volume `keys` there, which also works with `read_only: true`). Outside Production the default is `ims-dataprotection-keys` under the temp directory,
+never inside the repository. The keys are secrets: do not commit, log or copy them into images. A lost or replaced directory only makes outstanding cursors fail with
+a 400; clients restart from page 1 and no data is lost. The keys are not part of the SQL backup.
 
 The order of a list is part of its contract: it is total (it ends in unique keys), so a walk through the pages never skips or repeats a row,
 and the export of a list uses the very same order as its pages. The receipt/issue detail (`/api/reports/movements` and its export) is

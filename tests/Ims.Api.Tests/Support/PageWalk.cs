@@ -10,7 +10,7 @@ namespace Ims.Api.Tests.Support;
 /// </summary>
 public static class PageWalk
 {
-    private const string CursorParameter = "afterId";
+    private const string CursorParameter = "cursor";
     private const int MostPages = 50;
 
     /// <param name="url">A list URL that already has a query string (with the page size).</param>

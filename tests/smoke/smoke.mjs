@@ -229,10 +229,12 @@ check('a removed file is gone (404)', r.status === 404);
 
 console.log('Paging contracts');
 r = await api('GET', '/api/stock/ledger?productId=' + p1.id + '&pageSize=2', { token: admin });
-check('ledger page has items, total and a cursor', r.body.items.length === 2 && r.body.total >= 2 && r.body.nextCursor > 0, JSON.stringify(r.body).slice(0, 200));
+check('ledger page has items, total and a cursor', r.body.items.length === 2 && r.body.total >= 2 && typeof r.body.nextCursor === 'string' && r.body.nextCursor.length > 0, JSON.stringify(r.body).slice(0, 200));
 const page1 = r.body;
-r = await api('GET', '/api/stock/ledger?productId=' + p1.id + '&pageSize=2&afterId=' + page1.nextCursor + '&includeTotal=false', { token: admin });
-check('seek page continues after the cursor without a count', r.body.items.every(i => i.id < page1.nextCursor) && r.body.total === -1 && !page1.items.some(i => r.body.items.some(j => j.id === i.id)), JSON.stringify(r.body).slice(0, 200));
+r = await api('GET', '/api/stock/ledger?productId=' + p1.id + '&pageSize=2&cursor=' + encodeURIComponent(page1.nextCursor) + '&includeTotal=false', { token: admin });
+check('seek page continues after the cursor without a count', r.body.items.every(i => i.id < page1.items[page1.items.length - 1].id) && r.body.total === -1 && !page1.items.some(i => r.body.items.some(j => j.id === i.id)), JSON.stringify(r.body).slice(0, 200));
+r = await api('GET', '/api/stock/ledger?pageSize=2&cursor=garbage', { token: admin });
+check('a cursor the server did not make is a 400, not a 500', r.status === 400 && Array.isArray(r.body.errors?.cursor), JSON.stringify(r.body).slice(0, 200));
 for (const path of ['/api/users?pageSize=2', '/api/partners?pageSize=1', '/api/stock/low-stock?pageSize=1', '/api/reports/movements?pageSize=1', '/api/documents?pageSize=1', '/api/audit?pageSize=1']) {
   r = await api('GET', path, { token: admin });
   check(path + ' is server-side paged', r.status === 200 && Array.isArray(r.body.items) && r.body.items.length <= 2 && typeof r.body.total === 'number' && r.body.pageSize >= 1, String(r.status));
@@ -240,7 +242,7 @@ for (const path of ['/api/users?pageSize=2', '/api/partners?pageSize=1', '/api/s
 r = await api('GET', '/api/products?pageSize=999999', { token: admin });
 check('an absurd page size is clamped', r.status === 200 && r.body.pageSize <= 200, String(r.status));
 r = await api('GET', '/api/products?pageSize=200&page=2147483647', { token: admin });
-check('a very deep OFFSET page is refused with a clear 400 (use a cursor), not a slow query or a 500', r.status === 400 && /afterId|too deep/i.test(r.body.detail ?? ''), JSON.stringify(r.body));
+check('a very deep OFFSET page is refused with a clear 400 (use a cursor), not a slow query or a 500', r.status === 400 && /cursor|too deep/i.test(r.body.detail ?? ''), JSON.stringify(r.body));
 r = await api('GET', '/api/products?sortBy=Name&desc=true&pageSize=5', { token: admin });
 check('products sort by name descending', r.status === 200 && r.body.items.every((x, i, a) => i === 0 || a[i - 1].name.localeCompare(x.name) >= 0), String(r.status));
 r = await api('GET', "/api/products?search=' OR 1=1 --&pageSize=5", { token: admin });
