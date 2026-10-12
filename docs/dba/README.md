@@ -100,6 +100,41 @@ The movements report has no cursor of its own: it pages by OFFSET (capped at 10,
 through the pages never skips or repeats a row (tested at page sizes 1, 2 and 3 across a tie). The remaining cost at 1M ledger rows is the
 count, which is O(lines); an `includeTotal=false` switch like the ledger's would remove it if the unfiltered report ever has to be faster.
 
+**4b. Movements report for one product: a plan of its own per call** (found in the review of PR 70, item M3: `?productId=<cold product>` cost 2.4M reads and
+1.3-1.5 s at 450,000 lines; present on main since R3). **Root cause: parameter sniffing, not a missing index.** The statement has one cached plan for every
+`ProductId = @p`. For a product with thousands of lines the cheapest plan walks the documents by `PostedAt` (newest first) and stops after 50 matches (4,352 reads
+for a product with 5 % of the lines). SQL Server compiles it for whichever product arrives first after a restart, a plan-cache clear or a statistics update; every
+cold product then walks every document looking for matches. With a plan of its own each product is cheap: the optimizer seeks `IX_StockDocumentLine_ProductId`
+for a product with few lines and walks `PostedAt` for a hot one. Measured with `17-movements-by-product.sql` (the page statement through `sp_executesql`) and
+`18-measure-movements-by-product.ps1` (the API, page plus both counts, reads from the Query Store), 1M tier (1,051,488 lines, uniform over 20,000 products, plus products 3, 4 and 5
+with 50,045, 10,050 and 3,044 lines to get the plan flip; the Zipf seed alone, hottest product 0.5 %, only reaches 4,000 reads because its shared plan is a hash join):
+
+| Call (API, reads of page + counts) | Before, plan compiled by the hot product | After (`OPTION (RECOMPILE)`) |
+|---|---|---|
+| cold product, 0 lines | **4,212,875** reads, 990-2,200 ms | 18 reads, 40-80 ms |
+| cold product, 49 lines | **4,274,995-4,301,095** reads, 1,650-4,030 ms | 1,049 reads, 60-220 ms |
+| cold product, 81 lines | **2,377,568-2,459,166** reads, 870-3,800 ms | 1,469 reads, 75-390 ms |
+| 3,044 lines, plan shared with a hot product | 113,333 reads, 124-270 ms | 25,076 reads |
+| 10,050 lines | 45,350 reads, 100-245 ms | 47,144 reads |
+| 50,045 lines (5 % of the table) | 27,905 reads, 500-600 ms | 27,887 reads (page 4,392 + the counts) |
+| hot product when a cold product compiled the plan | 639,356 reads, 250-660 ms | 26,917 reads |
+| default page, no filter (untouched) | 8,837-9,076 reads, 140-310 ms | 8,837-9,076 reads (same code path) |
+
+The wall times of one call are noisy on this shared machine (the same call differs 2-4x between sessions, and a first call includes JIT); the logical reads are exact.
+Server-side, `17-movements-by-product.sql` (`results-1m-movements-by-product-plan.txt`): 0 lines 4.03M reads and 2,550 ms with the shared plan, 12 reads and 53-64 ms with
+`RECOMPILE` (the compile is most of that: 50-130 ms of CPU per statement; a normal plan costs 0-2 ms to run for a cold product).
+
+Fix: `EfMovementReader` tags the page and both counts with `TagWith(RecompileInterceptor.Tag)` **only when a product filter is present**; `RecompileInterceptor`
+(registered on the context) turns the tag into `OPTION (RECOMPILE)`. No schema change, no migration. The default report and every other filter keep the cached plan. The price
+is one compile (about 50-130 ms of CPU) for the page, and a little for each count, per product-filtered request; that report is a supervisor's drill-down, not a polled
+screen. If it is ever called hundreds of times per second, replace the hint by a plan chosen from the product's line count (two statement texts).
+
+Rejected: an index. `IX_StockDocumentLine_ProductId_Live (ProductId) INCLUDE (DocumentId) WHERE REC_DELETED = 0` (candidate measured on the 1M Zipf database, all products,
+fresh and shared plans): reads within 2 % of the existing foreign-key index for every product, and the shared-plan problem is the same, because the cost is in the plan the
+cache hands out, not in the access path. It would add a write to every document line insert for nothing (not measured: not shipped). The other alternative, one plan for a
+typical product (what `OPTIMIZE FOR UNKNOWN` gives; the "cold-first" scenario of `17-movements-by-product.sql`): cold products are cheap, but a product with 5 % of the lines
+reads 601,236 reads (666 ms) instead of 4,392 for the page, and the cost grows with the table.
+
 ## 5. Rejected proposals (the previous investigation proposed 13 index changes; evidence decides)
 
 | Proposal | Verdict | Reason |
@@ -183,6 +218,7 @@ Use a throw-away database whose name starts with `Ims_Perf` (the scripts refuse 
 | `05-backup-restore.sql`, `06-sizes.sql`, `07-maintenance.sql`, `08-reconcile-drill.sql` | recovery and upkeep (section 8) |
 | `09-rewrite-candidates.sql`, `summarize-stats.awk` | EF statement versus rewrite (R1, R2, R4) |
 | `12-movements-order.sql`, `13-movements-order-diff.sql`, `14-write-path-bench.sql` | R3: old versus new order against five index sets, page, count and export (reads, CPU); which report rows change position; what the two indexes cost per posting transaction |
+| `17-movements-by-product.sql`, `18-measure-movements-by-product.ps1`, `results-1m-movements-by-product-*` | section 4b: the report for one product with a shared plan versus a plan per call (statement-level reads and times; the API with Query Store reads) |
 | `10-filtered-vs-unfiltered.sql` | why the indexes are filtered on `REC_DELETED = 0` |
 | `11-snapshot.sql`, `11b-snapshot-diff.sql` | deadlock and lock-wait counters around a load test (used by `tests/load/run-scenario.ps1`) |
 | `results-1m-before.csv`, `results-1m-after.csv` | the comparison in section 3 (`-before-run1` = first, colder baseline; `-full-proposal` = all 13 proposed index changes applied) |
