@@ -193,4 +193,54 @@ describe('UiInputComponent number entry (NR-01, NR-08)', () => {
 
     expect(writes).toHaveBeenCalledWith('');
   });
+
+  describe('R04: text a number field cannot read is an error, not a silent empty value', () => {
+    function unreadable(input: HTMLInputElement, badInput: boolean): void {
+      Object.defineProperty(input, 'validity', { configurable: true, value: { badInput } });
+    }
+
+    it('"1,234.50" pasted: the model is empty and the field reports badInput', () => {
+      const input = render();
+      unreadable(input, true);
+      type(input, '');
+
+      expect(changes).toEqual([null]);
+      expect(spectator.component.validate()).toEqual({ badInput: true });
+    });
+
+    it('the text stays on screen when the field is left, so the user sees what was wrong', () => {
+      const input = render();
+      unreadable(input, true);
+      type(input, '');
+      const writes = watchWrites(input);
+
+      spectator.dispatchFakeEvent(input, 'blur');
+
+      expect(writes).not.toHaveBeenCalled();
+    });
+
+    it('a readable number (a locale comma already turned into a point by the browser) is valid', () => {
+      const input = render();
+      unreadable(input, false);
+      type(input, '12.5');
+
+      expect(changes).toEqual([12.5]);
+      expect(spectator.component.validate()).toBeNull();
+    });
+
+    it('an empty field is valid here (a required field says so itself)', () => {
+      const input = render();
+      unreadable(input, false);
+      type(input, '');
+
+      expect(spectator.component.validate()).toBeNull();
+    });
+
+    it('a text field never reports badInput', () => {
+      const input = render({ type: 'text' });
+      unreadable(input, true);
+
+      expect(spectator.component.validate()).toBeNull();
+    });
+  });
 });

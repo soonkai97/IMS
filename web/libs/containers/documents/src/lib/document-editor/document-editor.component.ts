@@ -177,6 +177,9 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   private readonly partners = inject(PartnersStore);
   private readonly permissions = inject(PermissionService);
   private readonly products = inject(ProductsStore);
+  /** The same formatting as the templates (D1): money has 2 decimals, a quantity keeps its own. */
+  private readonly moneyPipe = new AppMoneyPipe();
+  private readonly qtyPipe = new AppQtyPipe();
   private readonly router = inject(Router);
   private readonly settings = inject(SystemSettingsStore);
   private readonly stock = inject(StockStore);
@@ -500,21 +503,15 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   });
   /** Why an approval rule held the document back, in words (PS-03): the value or quantity that reached a limit. */
   readonly $approvalTriggers = computed(() => {
-    const locale = this.i18n.$locale();
-    const amount = new Intl.NumberFormat(locale, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-    const quantity = new Intl.NumberFormat(locale, { maximumFractionDigits: 3 });
     return (this.$document()?.approvalTriggers ?? []).map(trigger => {
       const isAmount = trigger.metric === ApprovalMetric.Amount;
-      const format = isAmount ? amount : quantity;
+      const format = isAmount ? this.moneyPipe : this.qtyPipe;
       // A caller without cost.view gets the kind of rule and the approver, but null numbers for an amount rule.
       const known = isDefined(trigger.actual) && isDefined(trigger.threshold);
       return {
         key: this.triggerKey(isAmount, known),
-        actual: known ? format.format(trigger.actual ?? 0) : '',
-        threshold: known ? format.format(trigger.threshold ?? 0) : '',
+        actual: known ? format.transform(trigger.actual ?? 0) : '',
+        threshold: known ? format.transform(trigger.threshold ?? 0) : '',
         role: this.i18n.enumLabel(ROLE_LABELS, trigger.roleRequired)
       };
     });

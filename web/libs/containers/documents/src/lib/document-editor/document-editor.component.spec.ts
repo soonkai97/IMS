@@ -11,6 +11,7 @@ import {
   IssuePurpose,
   ProductDto
 } from '@ims/api';
+import { provideUiText } from '@ims/core/i18n';
 import { PermissionService } from '@ims/core/identity';
 import { PageTitleService, unsavedChangesGuard } from '@ims/core/navigation';
 import { ConfirmService } from '@ims/core/notification';
@@ -144,6 +145,7 @@ describe('DocumentEditorPageComponent', () => {
     detectChanges: false,
     providers: [
       provideRouter([]),
+      provideUiText(),
       {
         provide: CatalogStore,
         useValue: { ensureLoaded: jest.fn(), $unitCodes: signal(new Map()) }
@@ -439,6 +441,24 @@ describe('DocumentEditorPageComponent', () => {
       spectator.detectChanges();
 
       expect(text()).toContain('Enter a quantity above 0.');
+    });
+
+    it('ER-12: 0.0001 is accepted, 0.00001 says "Use at most 4 decimals." and is left out of the totals line', async () => {
+      await openNew();
+      fillNewIssue();
+      const quantity = spectator.component.view.lines.at(0).controls.qty;
+
+      quantity.setValue(0.0001);
+      quantity.markAsTouched();
+      spectator.detectChanges();
+      expect(text()).not.toContain('Enter a quantity above 0.');
+      expect(text()).toContain('1 line | 0.0001 units');
+
+      quantity.setValue(0.00001);
+      spectator.detectChanges();
+      expect(text()).toContain('Use at most 4 decimals.');
+      expect(text()).not.toContain('Enter a quantity above 0.');
+      expect(text()).toContain('0 lines | 0 units');
     });
 
     it('EA-27: every control of a line names its product', async () => {
@@ -1003,6 +1023,37 @@ describe('DocumentEditorPageComponent', () => {
       expect(costInput()).not.toBeNull();
       expect(text()).toContain('Unit cost');
       expect(text()).toContain('10.00');
+    });
+
+    it('R04: a unit cost with a 3rd decimal is blocked with a message, not rounded', async () => {
+      await openNewReceipt(...CLERK);
+      const line = spectator.component.view.lines.at(0);
+      line.controls.qty.setValue(4);
+
+      line.controls.unitCost.setValue(12.345);
+      line.controls.unitCost.markAsTouched();
+      spectator.detectChanges();
+
+      expect(text()).toContain('Enter an amount with at most 2 decimals.');
+      expect(line.controls.unitCost.value).toBe(12.345);
+      expect(spectator.component.view.lines.invalid).toBe(true);
+      // The amount is left out until the cost is valid.
+      expect(text()).not.toContain('49.38');
+
+      for (const accepted of [10, 10.5, 10.55]) {
+        line.controls.unitCost.setValue(accepted);
+        expect(line.controls.unitCost.valid).toBe(true);
+      }
+    });
+
+    it('R04: a negative unit cost is refused and an empty one is allowed', async () => {
+      await openNewReceipt(...CLERK);
+      const cost = spectator.component.view.lines.at(0).controls.unitCost;
+
+      cost.setValue(-1);
+      expect(cost.errors).toHaveProperty('min');
+      cost.setValue(null);
+      expect(cost.valid).toBe(true);
     });
 
     it('Warehouse staff: what is sent for a saved receipt line carries no unit cost', async () => {

@@ -1,4 +1,3 @@
-import { FormControl } from '@angular/forms';
 import { DocumentLineDto, DocumentType, ProductDto } from '@ims/api';
 import {
   LineValue,
@@ -8,8 +7,8 @@ import {
   createLineGroup,
   lineFromDocument,
   lineShortfall,
+  isValidQuantity,
   maxCoveredQuantity,
-  maxDecimals,
   toLineInputs
 } from './document-lines';
 
@@ -62,6 +61,37 @@ describe('document line totals', () => {
     ];
 
     expect(computeTotals(lines, DocumentType.Receipt).totalQty).toBe(1);
+  });
+
+  it('ER-12: a line the form rejects is left out of the totals line (count, quantity, amount)', () => {
+    const lines = [
+      line({ qty: 0.0001, unitCost: 10 }),
+      line({ productId: 2, qty: 0.00001, unitCost: 10 }),
+      line({ productId: 3, qty: 0, unitCost: 10 }),
+      line({ productId: 4, qty: null, unitCost: 10 }),
+      line({ productId: 5, qty: 2, unitCost: 10 })
+    ];
+
+    const totals = computeTotals(lines, DocumentType.Receipt);
+
+    expect(totals.lineCount).toBe(5);
+    expect(totals.validLineCount).toBe(2);
+    expect(totals.totalQty).toBe(2.0001);
+    expect(totals.totalAmount).toBe(20);
+  });
+
+  it('R04: the amount is the sum of line amounts rounded to cents, and skips a rejected unit cost', () => {
+    const half = [
+      line({ qty: 0.5, unitCost: 0.01 }),
+      line({ productId: 2, qty: 0.5, unitCost: 0.01 })
+    ];
+    const badCost = [
+      line({ qty: 2, unitCost: 1.005 }),
+      line({ productId: 2, qty: 3, unitCost: 1.1 })
+    ];
+
+    expect(computeTotals(half, DocumentType.Receipt).totalAmount).toBe(0.02);
+    expect(computeTotals(badCost, DocumentType.Receipt).totalAmount).toBe(3.3);
   });
 
   it('removes float noise (0.1 + 0.2 shows as 0.3)', () => {
@@ -185,7 +215,33 @@ describe('request building and validation', () => {
     expect(qty.errors).toHaveProperty('required');
   });
 
-  it('maxDecimals ignores non-numbers', () => {
-    expect(maxDecimals(2)(new FormControl('abc'))).toBeNull();
+  it('ER-12: one quantity rule, the API\'s: 0.0001 is accepted, 0.00001 says "at most 4 decimals", 0 says "above 0"', () => {
+    const qty = createLineGroup(line()).controls.qty;
+
+    qty.setValue(0.0001);
+    expect(qty.valid).toBe(true);
+    qty.setValue(0.0005);
+    expect(qty.valid).toBe(true);
+    qty.setValue(0.00001);
+    expect(Object.keys(qty.errors ?? {})[0]).toBe('decimals');
+    qty.setValue(0);
+    expect(Object.keys(qty.errors ?? {})[0]).toBe('min');
+    qty.setValue(-1);
+    expect(Object.keys(qty.errors ?? {})[0]).toBe('min');
+    expect([0.0001, 1.2345, 1_000_000_000].every(isValidQuantity)).toBe(true);
+    expect([null, 0, -1, 0.00001, 1_000_000_001].some(isValidQuantity)).toBe(false);
+  });
+
+  it('R04: a unit cost has at most 2 decimals and is not negative; blank is allowed', () => {
+    const cost = createLineGroup(line()).controls.unitCost;
+
+    for (const accepted of [null, 0, 10, 10.5, 10.55]) {
+      cost.setValue(accepted);
+      expect(cost.valid).toBe(true);
+    }
+    cost.setValue(12.345);
+    expect(cost.errors).toEqual({ decimals: { max: 2 } });
+    cost.setValue(-5);
+    expect(cost.errors).toHaveProperty('min');
   });
 });
