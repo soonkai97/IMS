@@ -111,5 +111,26 @@ public class AttachmentFlipTests(ApiFixture fixture)
 
         Assert.Equal([AuditActions.AttachmentDeleted, AuditActions.AttachmentUploaded], events.Select(e => e.Action).Order());
         Assert.All(events, e => Assert.Equal(file.Id.ToString(), e.EntityId));
+        // Both payloads say the same things: no owner id at all, so the integer key of the owner never reaches the audit trail.
+        Assert.All(events, e => Assert.DoesNotContain("OwnerId", e.Before ?? e.After ?? ""));
+        Assert.All(events, e => Assert.Contains(nameof(AttachmentOwnerType.Product), e.Before ?? e.After ?? ""));
+    }
+
+    [Fact]
+    public async Task A_caller_without_the_document_permission_gets_the_same_403_for_a_real_and_an_unknown_document_on_upload_and_delete()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var draft = await s.DraftReceiptAsync(s.Admin, Warehouse, new Line(product.Id, 1, 1m));
+        var file = (await Files(s.Admin).UploadAsync(AttachmentOwnerType.Document, draft.Id, Jpeg())).Data<AttachmentDto>();
+
+        // The Owner reads every document but may not create or change one: the permission is checked before the document is looked up.
+        var real = (await Files(s.Owner).UploadAsync(AttachmentOwnerType.Document, draft.Id, Jpeg())).ShouldBeProblem(HttpStatusCode.Forbidden);
+        var unknown = (await Files(s.Owner).UploadAsync(AttachmentOwnerType.Document, Guid.NewGuid(), Jpeg())).ShouldBeProblem(HttpStatusCode.Forbidden);
+        var delete = (await s.Owner.DeleteAsync($"/api/attachments/{file.Id}")).ShouldBeProblem(HttpStatusCode.Forbidden);
+
+        Assert.Equal((real.Title, real.Detail), (unknown.Title, unknown.Detail));
+        Assert.Equal((real.Title, real.Detail), (delete.Title, delete.Detail));
+        Assert.Single((await Files(s.Admin).ListAsync(AttachmentOwnerType.Document, draft.Id)).Data<List<AttachmentDto>>()); // nothing was added or removed
     }
 }

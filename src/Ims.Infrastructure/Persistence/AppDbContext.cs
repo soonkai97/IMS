@@ -403,14 +403,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             : JsonSerializer.Serialize(p.Changed.ToDictionary(name => name, name => p.Entry.Property(name).CurrentValue), Json);
 
     /// <summary>
-    /// The entities whose API speaks the public id (PR-4 to PR-7 of docs/architecture/adr-guid-keys.md; all nine now): their audit rows name them by <see cref="PublicEntity.PublicId"/>, the id the
-    /// client has. Every entity that gets an audit row of its own is covered; the key of any other (a child row without a public id) is its integer key. The business
-    /// events of the API use the same id (the attachment events); the document events name the document by its number. Rows written before a flip keep the integer;
-    /// the audit page and its entity-id filter are plain text and show and match both.
+    /// The row-audited entities that have a public id (every entry of <see cref="Audited"/> that derives from <see cref="PublicEntity"/>): their audit rows name them by
+    /// <see cref="PublicEntity.PublicId"/>, the id the client has. The others in <see cref="Audited"/> are child rows (barcodes, unit conversions) and keep their integer key.
+    /// StockDocument and Attachment are not row-audited at all: their business events name them explicitly (the attachment events by public id, the document events by the
+    /// document NUMBER, what the audit search uses). Rows written before a flip keep the integer; the audit page and its entity-id filter are plain text and show and match both.
     /// </summary>
     private static readonly HashSet<Type> AuditedByPublicId =
     [
-        typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom), typeof(User), typeof(Product), typeof(ApprovalRule), typeof(StockDocument), typeof(Attachment)
+        typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom), typeof(User), typeof(Product), typeof(ApprovalRule)
     ];
 
     private static string KeyOf(EntityEntry e) =>

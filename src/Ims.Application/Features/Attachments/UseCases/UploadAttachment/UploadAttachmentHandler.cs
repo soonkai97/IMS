@@ -34,7 +34,7 @@ public class UploadAttachmentHandler(IAttachmentOwners owners, IFileStorage stor
             attachments.Add(attachment);
             await uow.SaveChangesAsync(ct);
             audit.Record(AuditActions.AttachmentUploaded, AuditEntities.Attachment, attachment.PublicId.ToString(),
-                after: new { cmd.OwnerType, cmd.OwnerId, attachment.FileName, attachment.SizeBytes, attachment.Sha256 });
+                after: new { cmd.OwnerType, attachment.FileName, attachment.SizeBytes, attachment.Sha256 });
             await uow.SaveChangesAsync(ct);
             return new AttachmentDto(attachment.PublicId, attachment.OwnerType, cmd.OwnerId, attachment.FileName, attachment.ContentType,
                 attachment.SizeBytes, current.Username, attachment.UploadedAt);

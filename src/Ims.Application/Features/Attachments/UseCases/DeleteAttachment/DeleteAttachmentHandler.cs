@@ -13,7 +13,7 @@ public class DeleteAttachmentHandler(IRepository<Attachment> attachments, IAttac
         catch (NotFoundException) { throw new NotFoundException(Messages.AttachmentNotFound); } // an owner the caller cannot see: same answer as a missing file (SEC-11)
 
         a.Delete();
-        audit.Record(AuditActions.AttachmentDeleted, AuditEntities.Attachment, a.PublicId.ToString(), before: new { a.OwnerType, a.OwnerId, a.FileName });
+        audit.Record(AuditActions.AttachmentDeleted, AuditEntities.Attachment, a.PublicId.ToString(), before: new { a.OwnerType, a.FileName });
         await uow.SaveChangesAsync(ct);
 
         try { await storage.DeleteAsync(a.StoragePath, CancellationToken.None); }

@@ -19,15 +19,15 @@ public class DocumentAttachmentPolicy(IReadRepository<StockDocument> documents, 
 
     public async Task EnsureCanWriteAsync(int ownerId, CancellationToken ct)
     {
+        RequireDocumentPermission(); // before the look-up: without the permission every id answers 403
         var scope = await LoadScopedAsync(ownerId, ct);
-        RequireDocumentPermission();
         if (scope.Status == DocumentStatus.Cancelled) throw new ConflictException(Messages.AttachmentOnCancelled);
     }
 
     public async Task EnsureCanDeleteAsync(int ownerId, CancellationToken ct)
     {
-        var scope = await LoadScopedAsync(ownerId, ct);
         RequireDocumentPermission();
+        var scope = await LoadScopedAsync(ownerId, ct);
         if (scope.Status != DocumentStatus.Draft) throw new ConflictException(Messages.AttachmentDeleteOnlyDraft);
     }
 
