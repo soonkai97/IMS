@@ -5,7 +5,9 @@ import { UiPublishHeightDirective } from './publish-height.directive';
 @Component({
   imports: [UiPublishHeightDirective],
   template: `@if ($shown()) {
-    <footer appPublishHeight="--test-bar-height">bar</footer>
+    <footer appPublishHeight="--test-bar-height" appPublishClearance="--test-bar-clearance">
+      bar
+    </footer>
   }`
 })
 class HostComponent {
@@ -16,12 +18,16 @@ describe('UiPublishHeightDirective', () => {
   let spectator: Spectator<HostComponent>;
   let notify: () => void = () => undefined;
   let height = 40;
+  let top = 700;
   const disconnect = jest.fn();
   const createComponent = createComponentFactory(HostComponent);
   const value = (): string => document.documentElement.style.getPropertyValue('--test-bar-height');
+  const clearance = (): string =>
+    document.documentElement.style.getPropertyValue('--test-bar-clearance');
 
   beforeEach(() => {
     height = 40;
+    top = 700;
     disconnect.mockClear();
     (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
       constructor(callback: () => void) {
@@ -34,7 +40,7 @@ describe('UiPublishHeightDirective', () => {
     };
     jest
       .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
-      .mockImplementation(() => ({ height }) as DOMRect);
+      .mockImplementation(() => ({ height, top }) as DOMRect);
     spectator = createComponent();
   });
 
@@ -52,11 +58,26 @@ describe('UiPublishHeightDirective', () => {
     expect(value()).toBe('152px');
   });
 
-  it('removes the property and stops observing when the element goes away', () => {
+  it('publishes how far the top edge is above the bottom of the window, and follows a scroll (a bar that has not reached the bottom)', () => {
+    expect(clearance()).toBe(`${window.innerHeight - 700}px`);
+
+    top = window.innerHeight - 66;
+    window.dispatchEvent(new Event('scroll'));
+
+    expect(clearance()).toBe('66px');
+
+    top = window.innerHeight + 200;
+    window.dispatchEvent(new Event('scroll'));
+
+    expect(clearance()).toBe('0px');
+  });
+
+  it('removes the properties and stops observing when the element goes away', () => {
     spectator.component.$shown.set(false);
     spectator.detectChanges();
 
     expect(value()).toBe('');
+    expect(clearance()).toBe('');
     expect(disconnect).toHaveBeenCalled();
   });
 });

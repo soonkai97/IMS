@@ -9,7 +9,7 @@ import {
   DocumentsClient,
   PagedResultOfDocumentListItem
 } from '@ims/api';
-import { withIfMatch } from '@ims/core/http';
+import { handledInline, withIfMatch } from '@ims/core/http';
 import { PagedQuery } from '@ims/models';
 import { ApiCommand, QueryLoader } from '@ims/utils';
 
@@ -81,7 +81,10 @@ export class DocumentsStore {
       query.mine
     )
   );
-  readonly detail = new QueryLoader<number, DocumentDto>(id => this.client.get(id));
+  /** The editor shows a failed load in a banner with Retry, so the call raises no toast (one failure, one announcement). */
+  readonly detail = new QueryLoader<number, DocumentDto>(id =>
+    this.client.get(id, handledInline())
+  );
   /** Home numbers and the approvals badge: four indexed counts for the signed-in user. */
   readonly counts = new QueryLoader<void, DocumentCounts>(() => this.client.counts());
 

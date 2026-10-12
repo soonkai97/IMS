@@ -32,7 +32,7 @@
   </app-empty-state>
 } @else if ($loadFailed()) {
   <app-banner kind="danger">
-    {{ 'error.generic' | t }}
+    {{ $loadErrorMessage() || ('error.generic' | t) }}
     <app-button bannerActions (clicked)="onRetryLoad()">{{ 'ui.retry' | t }}</app-button>
   </app-banner>
 } @else {
@@ -296,7 +296,11 @@
   }
 
   @if ($showBar()) {
-    <footer class="document-editor-bar" appPublishHeight="--ims-action-bar-height">
+    <footer
+      class="document-editor-bar"
+      appPublishHeight="--ims-action-bar-height"
+      appPublishClearance="--ims-action-bar-clearance"
+    >
       @if ($editable()) {
         <p class="document-editor-totals" aria-live="polite">
           {{ 'doc.totals' | t: { lines: $totals().validLineCount, qty: $totals().totalQty } }}

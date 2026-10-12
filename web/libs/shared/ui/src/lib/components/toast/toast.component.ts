@@ -12,14 +12,14 @@ const TOAST_ICONS: Record<ToastKind, IconName> = {
   info: 'info'
 };
 
-/** One notification. Errors are `role=alert` and stay until dismissed; success and info are polite status messages. */
+/** One notification. It has no live role: app-toast-host holds the two live regions (alert and status) it appears in. */
 @Component({
   selector: 'app-toast',
   imports: [UiIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './toast.component.html',
   styleUrl: './toast.component.scss',
-  host: { '[class]': '$hostClass()', '[attr.role]': '$role()' }
+  host: { '[class]': '$hostClass()' }
 })
 export class UiToastComponent {
   private readonly uiText = inject(UI_TEXT);
@@ -32,7 +32,6 @@ export class UiToastComponent {
   $actioned = output<void>({ alias: 'actioned' });
 
   $icon = computed(() => TOAST_ICONS[this.$kind()]);
-  $role = computed(() => (this.$kind() === 'error' ? 'alert' : 'status'));
   $dismissLabel = computed(() => this.uiText().dismiss);
   $hostClass = computed(() => toClassStr(['ui-toast', `--${this.$kind()}`]));
 

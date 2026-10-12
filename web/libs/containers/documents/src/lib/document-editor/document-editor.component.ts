@@ -241,6 +241,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     () => this.documents.detail.$isLoading() && this.$document() === undefined
   );
   readonly $loadFailed = this.documents.detail.$isFailed;
+  /** The load call raises no toast; this banner is the one announcement, with the sentence the interceptor mapped. */
+  readonly $loadErrorMessage = computed(() => this.documents.detail.$operation().error?.message);
   /** The id in the URL belongs to no document (an old bookmark): a page of its own, and retrying cannot help. */
   readonly $notFound = computed(
     () => this.documents.detail.$operation().error?.kind === API_ERROR_KIND.NotFound

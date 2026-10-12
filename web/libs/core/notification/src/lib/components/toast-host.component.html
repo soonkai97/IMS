@@ -1,9 +1,32 @@
-@for (toast of $toasts(); track toast.id) {
+<!--
+  Two live regions that exist before any toast does (a region inserted together with its text is often not announced): errors
+  are announced at once (assertive), success and info politely. aria-live, not role=alert, so the empty region is not an "alert"
+  on the page. Each toast appears in exactly one of them and carries no role of its own,
+  so one failure is one announcement.
+-->
+<div class="toast-host-group" aria-live="assertive" aria-atomic="false">
+  @for (toast of $errors(); track toast.id) {
+    <ng-container [ngTemplateOutlet]="item" [ngTemplateOutletContext]="{ $implicit: toast }" />
+  }
+</div>
+<div class="toast-host-group" aria-live="polite" aria-atomic="false">
+  @for (toast of $messages(); track toast.id) {
+    <ng-container [ngTemplateOutlet]="item" [ngTemplateOutletContext]="{ $implicit: toast }" />
+  }
+</div>
+
+<ng-template #item let-toast>
   <app-toast
+    animate.enter="toast-host-enter"
+    animate.leave="toast-host-leave"
     [kind]="toast.kind"
     [message]="toast.message"
     [actionLabel]="toast.action?.label"
     (dismissed)="onDismiss(toast)"
     (actioned)="onAction(toast)"
+    (mouseenter)="onHold(toast)"
+    (focusin)="onHold(toast)"
+    (mouseleave)="onRelease(toast, $event)"
+    (focusout)="onRelease(toast, $event)"
   />
-}
+</ng-template>

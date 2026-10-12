@@ -43,6 +43,8 @@ export class HomePageComponent implements OnInit {
   $counts = this.documents.counts.$data;
   $isLoading = this.stock.summary.$isLoading;
   $failed = this.stock.summary.$isFailed;
+  /** The summary call raises no toast; the banner is the one announcement, with the sentence the interceptor mapped. */
+  $errorMessage = computed(() => this.stock.summary.$operation().error?.message);
   $displayName = this.permissions.$displayName;
 
   $canViewStock = computed(() => this.permissions.has(PERMISSION.StockRead));

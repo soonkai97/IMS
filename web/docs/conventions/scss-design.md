@@ -81,13 +81,29 @@ or `all`.
   Components never write `env()`.
 - Sticky action bar (`.document-editor-bar`): phone = full-width strip directly above the tab bar; tablet and up = floating card. It
   publishes its real height as `--ims-action-bar-height` (`appPublishHeight`; it grows when the buttons wrap at 320px) and the `html`
-  scroll padding reserves tab bar + that height, so a focused field is scrolled clear of it (e2e `16-shell`). Toasts: R11.
+  scroll padding reserves tab bar + that height, so a focused field is scrolled clear of it (e2e `16-shell`). It also publishes
+  `--ims-action-bar-clearance` (its top edge above the bottom of the window, kept current on scroll) for the toast host.
 - Route fade: `withViewTransitions(ROUTE_FADE)`, one `fast` crossfade; top bar, sidebar and tab bar have a `view-transition-name` and
   stay still; query-only navigations skip it; 1ms under reduced motion. Never name content elements (a named element becomes the
   containing block of fixed descendants).
 - Top progress bar: behind `delayedLoading`, `role="progressbar"` without a value, named "Loading".
 - Tabs: `<app-tabs panel="id">` plus `<div appTabPanel="id" [labelledByTab]="active">` around what it controls (`aria-controls`,
   `role="tabpanel"`, `aria-labelledby`). Arrows, Home and End move.
+
+## Feedback: one failure, one announcement
+
+- A failed call is announced once. Field validation (400 with field errors) shows at the field and raises no toast. A call whose
+  screen shows the failure in place (a banner, a message at a field) is flagged `handledInline()` (`@ims/core/http`; pass statuses to
+  flag only those, `handledInline(HTTP_STATUS.Conflict)`) and raises no toast; the screen shows `error.message`, the one sentence the
+  error interceptor mapped (network, timeout, gateway, 403, 429, the API's own `detail`). Every other failure raises one error toast.
+  A table error panel stays silent (the toast announces it, EA-26). Never flag a call whose failure the screen does not show.
+- Toasts: success and info leave after 4s (paused while the pointer or focus is on one); an error stays until it is dismissed, the
+  user starts a write or goes to another page. The same text within 2s shows once (an error on screen is never repeated); at most two
+  are visible, a newer one replaces the oldest success or info, never an error. A toast never takes focus.
+- The host holds two live regions that always exist (`aria-live` assertive for errors, polite for the rest; not `role="alert"`, so an
+  empty region is not an alert on the page). A toast has no role of its own, so one toast is one announcement.
+- Position: phone directly under the top bar (ruling C6); from 600px bottom right, above the action bar through
+  `--ims-action-bar-clearance`. Both use the safe-area insets. Enter is a fade with a small rise (`base`), leave a fade (`fast`).
 
 ## Naming: flat BEM, component specific
 

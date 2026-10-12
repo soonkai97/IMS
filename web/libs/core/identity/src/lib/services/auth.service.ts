@@ -14,6 +14,8 @@ import {
   throwError
 } from 'rxjs';
 import { AuthClient, AuthResult, LoginRequest, UserInfo } from '@ims/api';
+import { handledInline } from '@ims/core/http';
+import { HTTP_STATUS } from '@ims/models';
 import { ApiCommand } from '@ims/utils';
 import {
   LOGIN_ROUTE,
@@ -50,7 +52,8 @@ export class AuthService {
   readonly sessionEnded$ = this.sessionEnded.asObservable();
 
   readonly login = new ApiCommand<LoginRequest, UserInfo>(credentials =>
-    this.authClient.login(credentials).pipe(
+    // The sign-in page shows a rate-limit answer in its banner, so that one raises no toast.
+    this.authClient.login(credentials, handledInline(HTTP_STATUS.TooManyRequests)).pipe(
       tap(result => this.acceptTokens(result)),
       switchMap(() => this.authClient.me()),
       tap(user => this.$currentUser.set(user))
