@@ -9,7 +9,8 @@
   color: color('danger');
 }
 
+// Positioned, and later in the row than the title link's cover, so it can be pressed. No z-index: inside a table it must stay
+// below the sticky header.
 .low-stock-page-create {
   position: relative;
-  z-index: z-index('sticky');
 }

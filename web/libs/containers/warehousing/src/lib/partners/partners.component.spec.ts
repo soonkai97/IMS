@@ -100,7 +100,7 @@ describe('PartnersPageComponent (Clerk creates, Supervisor and Admin manage)', (
     render(PERMISSION.MasterDataRead, PERMISSION.PartnersCreate, PERMISSION.MasterDataManage);
 
     const edit = spectator.queryAll('button').find(button => button.textContent?.includes('Edit'));
-    expect(edit?.getAttribute('aria-label')).toBe('Edit Acme Trading');
+    expect(edit?.getAttribute('aria-label')).toBe('Edit Acme Trading (Supplier)');
   });
 
   it('read-only roles see neither New partner nor Edit', () => {

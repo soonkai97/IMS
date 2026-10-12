@@ -149,8 +149,15 @@ page scroll at any width, and a short one (a number, a date, a code, a chip) mus
   container), so the header sticks to the page under the top bar (`--ims-table-head-top`). While it scrolls
   (`data-scroll-region`) the box becomes a scroll container, as tall as the window leaves, and the header sticks to the top of
   it, and the first column is pinned (`sticky`, capped at `width('pin-max')`) with an opaque cell and an edge line. A focused
-  control is kept clear of the header: `scroll-padding` on the scroll box, `scroll-margin` (in `globals/_base.scss`, because the
-  table's stylesheet cannot reach a button inside `app-button`) on the page. Z-index values inside the box are local to it.
+  control is kept clear of the header at its real height (a label that wraps makes it taller than `height('table-head')`):
+  the thead publishes it as `--ims-table-head-height` on the box (`appPublishHeight` with `publishScope`), `scroll-padding` on
+  the scroll box and `scroll-margin` (in `globals/_base.scss`, because the table's stylesheet cannot reach a button inside
+  `app-button`) on the page read it. Header labels wrap at spaces only (`word-break: keep-all`, so a Chinese label stays on one
+  line).
+- Stacking inside a table box: the box is `isolation: isolate`, so nothing in a cell can paint over the page bars. Inside it the
+  order is the local z-index scale `raised` (a control in a cell, e.g. Show more) < `pinned` (first column) < `head` <
+  `corner`. A control in a cell uses `raised` at most and never `sticky` or higher: it would paint over the header (a Low stock
+  button once did). To be pressable above the row's link cover a button is positioned, later in the row; it needs no z-index.
 - A button or link in a table row says which row it acts on: `aria-label` on the button, containing its visible text
   ("Edit qa1", "New receipt for SKU-1"), and different in every row (ER-10). `e2e/tests/15-containment.spec.ts` checks the five
   screens that have one.

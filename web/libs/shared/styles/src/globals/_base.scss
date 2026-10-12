@@ -39,11 +39,12 @@ html {
 }
 
 // A control in a table row is scrolled clear of the sticky table header as well (A02), which sticks under the top bar while the
-// page scrolls (a scroll box of its own has its own scroll padding). Here and not in app-table's stylesheet: that one is
-// encapsulated and cannot reach the button inside an app-button.
+// page scrolls (a scroll box of its own has its own scroll padding). The header's real height comes from the box
+// (--ims-table-head-height, published by app-table): a label that wraps makes it taller than 3rem. Here and not in app-table's
+// stylesheet: that one is encapsulated and cannot reach the button inside an app-button.
 @container ims-table (min-width: #{width('table-wide')}) {
   .ui-table-scroll:not([data-scroll-region]) .ui-table-cell :is(a, button) {
-    scroll-margin-block-start: height('table-head');
+    scroll-margin-block-start: var(--ims-table-head-height, #{height('table-head')});
   }
 }
 

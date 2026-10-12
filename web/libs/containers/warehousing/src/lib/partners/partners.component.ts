@@ -187,6 +187,11 @@ export class PartnersPageComponent {
     this.open(undefined, { type: PartnerType.Supplier, name: '', contact: '', isActive: true });
   }
 
+  /** A supplier and a customer may share a name: the type tells their Edit buttons apart (ER-10). */
+  nameOf(row: PartnerDto): string {
+    return `${row.name} (${this.i18n.enumLabel(PARTNER_TYPE_LABELS, row.type)})`;
+  }
+
   onEdit(row: PartnerDto): void {
     this.open(row.id, {
       type: row.type,

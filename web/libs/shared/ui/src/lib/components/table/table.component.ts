@@ -12,6 +12,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { toClassStr } from '@ims/utils';
 import { UI_TEXT } from '../../tokens/ui-text.token';
+import { UiPublishHeightDirective } from '../../directives/publish-height.directive';
 import { UiScrollRegionDirective } from '../../directives/scroll-region.directive';
 import { UiButtonComponent } from '../button/button.component';
 import { UiClampedTextComponent } from '../clamped-text/clamped-text.component';
@@ -40,6 +41,7 @@ import {
     UiButtonComponent,
     UiClampedTextComponent,
     UiIconComponent,
+    UiPublishHeightDirective,
     UiScrollRegionDirective,
     UiSkeletonComponent
   ],

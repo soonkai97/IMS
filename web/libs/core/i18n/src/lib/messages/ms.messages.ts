@@ -505,7 +505,8 @@ export const MS_MESSAGES: Messages = {
   'settings.title': 'Tetapan',
   'rule.amountThreshold': 'Jumlah dari ({currency})',
   'rule.edit': 'Sunting peraturan',
-  'rule.editFor': 'Sunting peraturan {type} untuk {role}',
+  'rule.editFor':
+    'Sunting peraturan {type} untuk {role}, jumlah dari {amount}, kuantiti dari {qty}',
   'rule.empty': 'Belum ada peraturan kelulusan.',
   'rule.new': 'Peraturan baharu',
   'rule.qtyThreshold': 'Kuantiti dari',

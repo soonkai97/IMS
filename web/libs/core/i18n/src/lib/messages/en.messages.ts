@@ -522,7 +522,7 @@ export const EN_MESSAGES = {
   'settings.title': 'Settings',
   'rule.amountThreshold': 'Amount from ({currency})',
   'rule.edit': 'Edit rule',
-  'rule.editFor': 'Edit {type} rule for {role}',
+  'rule.editFor': 'Edit {type} rule for {role}, amount from {amount}, quantity from {qty}',
   'rule.empty': 'No approval rules yet.',
   'rule.new': 'New rule',
   'rule.qtyThreshold': 'Quantity from',

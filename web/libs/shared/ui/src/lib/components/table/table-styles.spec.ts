@@ -27,6 +27,32 @@ function container(query: string): string {
 const WIDE = container('@container ims-table (min-width: 45rem)');
 const NARROW = container('@container ims-table (width < 45rem)');
 
+/** All declarations of every rule in the wide block whose selector list holds exactly `selector`. */
+function declarations(selector: string): string {
+  const found: string[] = [];
+  let start = 0;
+  for (let index = 0; index < WIDE.length; index++) {
+    if (WIDE[index] === '{') {
+      const close = WIDE.indexOf('}', index);
+      const body = WIDE.slice(index + 1, close);
+      if (body.includes('{')) {
+        // An at-rule around the rules: its rules follow.
+        start = index + 1;
+        continue;
+      }
+      const selectors = WIDE.slice(start, index).split(',');
+      if (selectors.some(part => part.trim() === selector)) {
+        found.push(body);
+      }
+      index = close;
+      start = close + 1;
+    } else if (WIDE[index] === '}') {
+      start = index + 1;
+    }
+  }
+  return found.join('\n');
+}
+
 describe('app-table styles (A02)', () => {
   it('is its own size container, so it answers to its box and not to the window', () => {
     expect(css).toMatch(/:host\s*{[^}]*container: ims-table ?\/ ?inline-size/);
@@ -64,6 +90,51 @@ describe('app-table styles (A02)', () => {
     expect(rule).toContain('max-width: 16rem');
     // Outside a scrolling box nothing is pinned.
     expect(WIDE.replace(pinned, '')).not.toMatch(/:first-child[^{]*{[^}]*position: sticky/);
+  });
+
+  describe('stacking (a control in a cell must never paint over the header or the pinned column)', () => {
+    const PINNED = '.ui-table-scroll[data-scroll-region] .ui-table-cell:first-child';
+    const CORNER = '.ui-table-scroll[data-scroll-region] .ui-table-header:first-child';
+    const zOf = (text: string): number => Number(/z-index: (\d+)/.exec(text)?.[1] ?? NaN);
+    const clamped = compile(join(__dirname, '../clamped-text/clamped-text.component.scss'), {
+      loadPaths: [STYLES]
+    }).css;
+
+    it('is its own stacking context, so no z-index inside it can escape over the page bars', () => {
+      expect(declarations('.ui-table-scroll')).toContain('isolation: isolate');
+    });
+
+    it('puts the pinned cell above the controls of the other cells, the header above both, the corner on top', () => {
+      const control = zOf(clamped);
+      const pinned = zOf(declarations(PINNED));
+      const header = zOf(declarations('.ui-table-header'));
+      const corner = zOf(declarations(CORNER));
+
+      expect(control).toBeGreaterThan(0);
+      expect(pinned).toBeGreaterThan(control);
+      expect(header).toBeGreaterThan(pinned);
+      expect(corner).toBeGreaterThan(header);
+    });
+
+    it('makes the pinned cell opaque, so the columns that scroll under it do not show through', () => {
+      expect(declarations(PINNED)).toMatch(/background: var\(--ims-color-surface\);/);
+      expect(
+        declarations(
+          '.ui-table-scroll[data-scroll-region] .ui-table-row.--linked:hover .ui-table-cell:first-child'
+        )
+      ).toMatch(/background: var\(--ims-color-surface-sunken\)/);
+      expect(declarations('.ui-table-header')).toMatch(
+        /background: var\(--ims-color-surface-sunken\)/
+      );
+    });
+
+    it('uses the real height of the header (published by app-table) for the scroll padding, not a guess', () => {
+      expect(WIDE).toContain('scroll-padding-block-start: var(--ims-table-head-height, 3rem)');
+    });
+  });
+
+  it('keeps a header on one line per word, Chinese included (L00)', () => {
+    expect(declarations('.ui-table-header')).toContain('word-break: keep-all');
   });
 
   it('keeps the L00 rules: whole numbers and codes, clamped names, a bounded code box', () => {

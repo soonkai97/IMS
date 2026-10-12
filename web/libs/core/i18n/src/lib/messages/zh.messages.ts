@@ -486,7 +486,7 @@ export const ZH_MESSAGES: Messages = {
   'settings.title': '设置',
   'rule.amountThreshold': '金额起（{currency}）',
   'rule.edit': '编辑规则',
-  'rule.editFor': '编辑{role}的{type}规则',
+  'rule.editFor': '编辑{role}的{type}规则，金额起 {amount}，数量起 {qty}',
   'rule.empty': '还没有审批规则。',
   'rule.new': '新建规则',
   'rule.qtyThreshold': '数量起',

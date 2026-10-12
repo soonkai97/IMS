@@ -138,6 +138,8 @@
   .ui-table-scroll {
     --ims-table-head-top: calc(#{height('bar')} + var(--ims-safe-top));
 
+    // Its own stacking context: nothing in a cell can paint over the header or the pinned column, whatever z-index it has.
+    isolation: isolate;
     overflow: clip;
     background:
       linear-gradient(to right, color('surface') 30%, transparent) left / 2rem 100% no-repeat local,
@@ -160,8 +162,9 @@
 
       max-height: calc(100dvh - #{height('bar')} - var(--ims-safe-top) - #{space(4)});
       overflow: auto;
-      // A focused cell is scrolled clear of the sticky header and the pinned first column.
-      scroll-padding-block-start: height('table-head');
+      // A focused cell is scrolled clear of the sticky header (its real height: a label that wraps makes it taller, see
+      // appPublishHeight on the thead) and the pinned first column.
+      scroll-padding-block-start: var(--ims-table-head-height, #{height('table-head')});
       scroll-padding-inline-start: width('pin-max');
 
       @include media-short {
@@ -177,15 +180,16 @@
         inset-inline-start: 0;
         max-width: width('pin-max');
         border-inline-end: border-width('thin') solid color('border');
-        box-shadow: 0.25rem 0 0.375rem -0.25rem color-alpha('text', 20%);
+        box-shadow: shadow('edge');
       }
 
       .ui-table-header:first-child {
-        z-index: 3;
+        z-index: z-index('corner');
       }
 
+      // Above the controls of the other cells (a Show more button is 'raised'), which scroll under it.
       .ui-table-cell:first-child {
-        z-index: 1;
+        z-index: z-index('pinned');
         background: color('surface');
       }
 
@@ -200,11 +204,14 @@
   .ui-table-header {
     position: sticky;
     top: var(--ims-table-head-top);
-    z-index: 2;
+    z-index: z-index('head');
     height: height('table-head');
     padding: 0 space(2);
     font-size: font-size(1);
     font-weight: font-weight('medium');
+    // A header wraps at a space, never inside a word: a Chinese label stays on one line (L00).
+    word-break: keep-all;
+    line-break: strict;
     color: color('text-muted');
     background: color('surface-sunken');
     border-bottom: border-width('thin') solid color('border');

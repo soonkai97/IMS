@@ -26,8 +26,15 @@ $widths: (
   'table-wide': 45rem
 );
 
+// 'raised' to 'corner' are local scales: they order things inside one stacking context (a table box, `isolation: isolate`). A
+// control in a cell is at most 'raised'; the pinned column, the header and their corner stay above it. Nothing inside such a box
+// may use 'sticky' or higher, or it would paint over the header.
 $z-index: (
   'base': 0,
+  'raised': 1,
+  'pinned': 2,
+  'head': 3,
+  'corner': 4,
   'sticky': 10,
   'nav': 20,
   'overlay': 30,

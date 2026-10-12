@@ -337,19 +337,20 @@ test.describe('L00 Content containment', () => {
 // row action says which row it acts on (ER-10).
 
 /** Whether the first body row of the first table is a table row (a table) or a grid or flex box (a card). */
-async function tableMode(page: Page): Promise<'table' | 'cards'> {
+async function tableMode(page: Page): Promise<'table' | 'cards' | 'none'> {
   return page.evaluate(() => {
     const row = document.querySelector('app-table tbody tr');
     if (!row) {
-      throw new Error('No table row on the page');
+      return 'none';
     }
     return getComputedStyle(row).display === 'table-row' ? 'table' : 'cards';
   });
 }
 
+/** The mode settles after a route change and a resize (rows arrive, the box is measured): wait for it, never sleep. */
 async function expectMode(page: Page, label: string): Promise<void> {
   const expected = page.viewportSize()!.width >= 1024 ? 'table' : 'cards';
-  expect(await tableMode(page), `${label}: table or cards`).toBe(expected);
+  await expect.poll(() => tableMode(page), { message: `${label}: table or cards` }).toBe(expected);
 }
 
 /** The geometry that sticky behaviour is judged by: the header cell, the first body cell and the box they sit in. */
@@ -482,7 +483,9 @@ test.describe('A02 Table: sticky header and first column, cards by container wid
     };
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.getByRole('searchbox', { name: /^Search/ }).focus();
-    expect(await walk('Tab'), 'the walk forward reached the row actions').toBeGreaterThanOrEqual(10);
+    expect(await walk('Tab'), 'the walk forward reached the row actions').toBeGreaterThanOrEqual(
+      10
+    );
     expect(await walk('Shift+Tab'), 'the walk back reached the row actions').toBeGreaterThanOrEqual(
       10
     );
@@ -588,6 +591,174 @@ test.describe('A02 Table: sticky header and first column, cards by container wid
       expect(names.every(name => name.startsWith('New receipt for '))).toBe(true);
     } finally {
       await clerk.context.close();
+    }
+  });
+
+  test('given a scrolled table, then a control in another cell never paints over the pinned column or the header', async ({
+    browser,
+    page,
+    signIn
+  }) => {
+    const admin = apiAs('admin');
+    const mark = `Z${unique()}`;
+    for (let index = 0; index < 4; index++) {
+      const product = await admin.createProduct({
+        sku: `${mark}${'K'.repeat(40)}${index}`.slice(0, 64),
+        name: longValue('spaces', 300, `${mark}-${index}-`)
+      });
+      await admin.post('receipts', [{ productId: product.id, qty: 3, unitCost: 1 }]);
+    }
+    await signIn('admin');
+    await page.setViewportSize({ width: 1024, height: 700 });
+    await goTo(page, '/stock');
+    await page.getByRole('searchbox', { name: /^Search/ }).fill(mark);
+    await expect(page.locator('app-table tbody tr')).toHaveCount(4);
+    await settled(page);
+    await expect(page.locator('.ui-table-scroll[data-scroll-region]')).toBeVisible();
+
+    // Slide the box so each Show more button of the Name column sits under the pinned SKU cell, then ask what is on top there.
+    const covered = await page.evaluate(() => {
+      const region = document.querySelector<HTMLElement>('.ui-table-scroll')!;
+      const problems: string[] = [];
+      let checked = 0;
+      for (const row of Array.from(region.querySelectorAll('tbody tr'))) {
+        const pinned = row.querySelector<HTMLElement>('td:first-child')!;
+        const more = row.querySelector<HTMLElement>('td:not(:first-child) .ui-clamped-text-more');
+        if (!more) {
+          continue;
+        }
+        region.scrollLeft +=
+          more.getBoundingClientRect().left - pinned.getBoundingClientRect().left - 40;
+        const button = more.getBoundingClientRect();
+        const cell = pinned.getBoundingClientRect();
+        if (button.left >= cell.right || button.right <= cell.left) {
+          continue;
+        }
+        checked++;
+        const hit = document.elementFromPoint(
+          Math.max(button.left, cell.left) + 5,
+          button.top + button.height / 2
+        );
+        if (!hit || hit.closest('td') !== pinned) {
+          problems.push(`${hit?.tagName}.${hit?.className} is above the pinned cell`);
+        }
+      }
+      return { checked, problems };
+    });
+    expect(covered.checked, 'a button really sat under the pinned cell').toBeGreaterThanOrEqual(1);
+    expect(covered.problems).toEqual([]);
+
+    // The header is above every cell control too: Low stock has a button on every row (clerk, page mode, scrolled).
+    for (let index = 0; index < 16; index++) {
+      await admin.createProduct({ safetyStock: 5 });
+    }
+    const clerk = await openSession(browser, 'clerk');
+    try {
+      await clerk.page.setViewportSize({ width: 1440, height: 800 });
+      await goTo(clerk.page, '/low-stock');
+      await expect
+        .poll(async () => (await rowActions(clerk.page)).length, 'Low stock: row actions found')
+        .toBeGreaterThanOrEqual(12);
+      await settled(clerk.page);
+      await clerk.page.evaluate(() => window.scrollTo(0, 300));
+      const over = await clerk.page.evaluate(() => {
+        const head = document.querySelector('th')!.getBoundingClientRect();
+        let checked = 0;
+        const problems: string[] = [];
+        for (const link of Array.from(
+          document.querySelectorAll<HTMLElement>('a.low-stock-page-create')
+        )) {
+          const rect = link.getBoundingClientRect();
+          if (rect.bottom <= head.top || rect.top >= head.bottom) {
+            continue;
+          }
+          checked++;
+          const y =
+            Math.max(rect.top, head.top) +
+            (Math.min(rect.bottom, head.bottom) - Math.max(rect.top, head.top)) / 2;
+          const hit = document.elementFromPoint(rect.left + rect.width / 2, y);
+          if (!hit || !hit.closest('th')) {
+            problems.push(`${hit?.tagName}.${hit?.className} is above the header`);
+          }
+        }
+        return { checked, problems };
+      });
+      expect(over.checked, 'a New receipt link passed under the header').toBeGreaterThanOrEqual(1);
+      expect(over.problems).toEqual([]);
+    } finally {
+      await clerk.context.close();
+    }
+  });
+
+  test('given Chinese labels, then a header stays on one line per word and a focused control is never under it, forward or back', async ({
+    page,
+    shell,
+    signIn
+  }) => {
+    const admin = apiAs('admin');
+    const mark = `H${unique()}`;
+    for (let index = 0; index < 14; index++) {
+      const product = await admin.createProduct({
+        sku: `${mark}${index}`,
+        name: longValue('spaces', 200, `${mark}-${index}-`)
+      });
+      await admin.post('receipts', [{ productId: product.id, qty: 3, unitCost: 1 }]);
+    }
+    await signIn('admin');
+    await shell.setLanguage('中文');
+    for (const width of [1024, 1280]) {
+      await page.setViewportSize({ width, height: 700 });
+      await goTo(page, '/stock');
+      await page.getByRole('searchbox').first().fill(mark);
+      await expect(page.locator('app-table tbody tr')).toHaveCount(14);
+      await settled(page);
+
+      const head = await page.evaluate(() => {
+        const th = document.querySelector('th')!;
+        return {
+          height: th.getBoundingClientRect().height,
+          published: parseFloat(
+            document
+              .querySelector<HTMLElement>('.ui-table-scroll')!
+              .style.getPropertyValue('--ims-table-head-height')
+          )
+        };
+      });
+      expect(
+        head.height,
+        `${width}px: a Chinese header is one line (no break inside a word)`
+      ).toBeLessThanOrEqual(56);
+      expect(head.published, 'the real header height is published').toBeCloseTo(head.height, 0);
+
+      const walk = async (key: 'Tab' | 'Shift+Tab'): Promise<number> => {
+        let seen = 0;
+        for (let press = 0; press < 80 && seen < 28; press++) {
+          await page.keyboard.press(key);
+          const hidden = await page.evaluate(() => {
+            const element = document.activeElement as HTMLElement;
+            const region = document.querySelector<HTMLElement>('.ui-table-scroll')!;
+            if (!region.contains(element) || element === region || element.closest('thead')) {
+              return null;
+            }
+            const header = region.querySelector('th')!.getBoundingClientRect();
+            return element.getBoundingClientRect().top < header.bottom - 0.5;
+          });
+          if (hidden !== null) {
+            seen++;
+            expect(hidden, `${width}px ${key}: stop ${seen} is under the header`).toBe(false);
+          }
+        }
+        return seen;
+      };
+      await page.getByRole('searchbox').first().focus();
+      expect(
+        await walk('Tab'),
+        `${width}px: forward walk reached the table`
+      ).toBeGreaterThanOrEqual(10);
+      expect(
+        await walk('Shift+Tab'),
+        `${width}px: backward walk reached the table`
+      ).toBeGreaterThanOrEqual(10);
     }
   });
 });
