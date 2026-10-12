@@ -695,3 +695,10 @@
 - Decisions others must respect: `frontend.md` decision 16 (ids opaque, `isPublicId` for ids from outside the API). Nothing in `web/` may parse, sort or number-compare an entity id.
 - Not done (G02 / later): tests/load and tests/smoke id arithmetic (behavior-test-engineer / be-dba); R06/R18 recents are not built in this tree, so no recents migration exists yet (they must store GUID strings and validate with `isPublicId`).
 - Open: e2e `15-button-states` "slow sign-in" fails by 0.375 px of button height on the login page (no ids involved); the other 59 of 60 pass against the integration API.
+
+### 2026-10-12 fe-framework -> behavior-test-engineer, orchestrator (fix: `15-button-states` slow sign-in was red on main)
+- Cause: L00 (#54) replaced `white-space: nowrap` on the button with `overflow-wrap: break-word`, so a busy two-word label ("Sign in") wrapped to two lines (face 46.4px, button 48.375px, spinner squeezed to 14.9px). Fixed in `button.component.scss`: the busy face is `width: max-content`, capped at the padding, so a label that fits on one line stays on one line while a label that wraps when idle (320px) still wraps. The e2e now also compares the face height idle vs busy. Proof: it fails with 12px overflow without the `minmax(0, 1fr)` column and with a 28px width change without the width lock.
+- Decisions others must respect: no tolerance was added; the box must be equal idle and busy. Open conflicts: none.
+
+### 2026-10-12 fe-framework -> fe-architect, orchestrator (G01 review round: M1 fixed)
+- Old numeric links (`/receipts/123`, `/issues/123`, `/products/123`, `/stock/123`) are a not-found page with no request and no toast (one `normalizePublicId` in `@ims/utils`, used by the editor, product-edit, product-stock and the low-stock prefill); new specs per page; minors m1..m4 done. The `15-button-states` item in the entry above is fixed on main (#75) and came in with the integration merge.
