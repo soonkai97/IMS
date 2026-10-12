@@ -214,78 +214,81 @@
   } @else if ($document(); as document) {
     <app-tabs
       [label]="'doc.sections' | t"
+      panel="document-panel"
       [tabs]="$tabs()"
       [active]="$tab()"
       (activeChange)="onTabChange($event)"
     />
-    @if ($isItemsTab()) {
-      <ul class="document-editor-readonly-lines">
-        @for (line of document.lines; track line.id) {
-          <li class="document-editor-readonly-line">
-            <span>
-              <strong>{{ line.sku }}</strong>
-              {{ line.productName }}
-            </span>
-            <span>
-              {{ line.qty | appQty }} {{ line.uomCode }}
-              <ng-container *appCan="'cost.view'">
-                @if (!$isIssue() && (line.unitCost ?? 0) > 0) {
-                  · {{ line.unitCost | appMoney }}
+    <div appTabPanel="document-panel" [labelledByTab]="$tab()">
+      @if ($isItemsTab()) {
+        <ul class="document-editor-readonly-lines">
+          @for (line of document.lines; track line.id) {
+            <li class="document-editor-readonly-line">
+              <span>
+                <strong>{{ line.sku }}</strong>
+                {{ line.productName }}
+              </span>
+              <span>
+                {{ line.qty | appQty }} {{ line.uomCode }}
+                <ng-container *appCan="'cost.view'">
+                  @if (!$isIssue() && (line.unitCost ?? 0) > 0) {
+                    · {{ line.unitCost | appMoney }}
+                  }
+                </ng-container>
+                @if ($isIssue() && line.available !== undefined && line.available !== null) {
+                  ·
+                  @if (line.baseQty > line.available) {
+                    <strong class="document-editor-error">{{
+                      'doc.line.short'
+                        | t
+                          : {
+                              short: (line.baseQty - line.available | appQty),
+                              onHand: (line.available | appQty)
+                            }
+                    }}</strong>
+                  } @else {
+                    <span class="document-editor-muted">{{
+                      'doc.line.onHand' | t: { onHand: (line.available | appQty) }
+                    }}</span>
+                  }
                 }
-              </ng-container>
-              @if ($isIssue() && line.available !== undefined && line.available !== null) {
-                ·
-                @if (line.baseQty > line.available) {
-                  <strong class="document-editor-error">{{
-                    'doc.line.short'
-                      | t
-                        : {
-                            short: (line.baseQty - line.available | appQty),
-                            onHand: (line.available | appQty)
-                          }
-                  }}</strong>
-                } @else {
-                  <span class="document-editor-muted">{{
-                    'doc.line.onHand' | t: { onHand: (line.available | appQty) }
-                  }}</span>
-                }
+              </span>
+            </li>
+          }
+        </ul>
+      }
+      @if ($isHistoryTab()) {
+        <ol class="document-editor-history">
+          @for (event of $history(); track $index) {
+            <li>
+              <strong>{{ event.labelKey | t }}</strong>
+              @if (event.by) {
+                <span>{{ event.by }}</span>
               }
-            </span>
-          </li>
-        }
-      </ul>
-    }
-    @if ($isHistoryTab()) {
-      <ol class="document-editor-history">
-        @for (event of $history(); track $index) {
-          <li>
-            <strong>{{ event.labelKey | t }}</strong>
-            @if (event.by) {
-              <span>{{ event.by }}</span>
-            }
-            @if (event.at) {
-              <span class="document-editor-muted">{{ event.at | appDate }}</span>
-            }
-            @if (event.reason) {
-              <span class="document-editor-muted">{{
-                'doc.history.reason' | t: { reason: event.reason }
-              }}</span>
-            }
-          </li>
-        }
-      </ol>
-    }
-    @if ($isLedgerTab()) {
-      <app-table
-        [columns]="$ledgerColumns()"
-        [rows]="$ledgerRows()"
-        [caption]="'doc.tab.ledger' | t"
-        [loading]="$ledgerLoading()"
-      >
-        <ng-template appCell="qty" let-row>{{ row.qtyDelta | appQty }}</ng-template>
-        <app-empty-state empty icon="list" [message]="'ledger.empty' | t" />
-      </app-table>
-    }
+              @if (event.at) {
+                <span class="document-editor-muted">{{ event.at | appDate }}</span>
+              }
+              @if (event.reason) {
+                <span class="document-editor-muted">{{
+                  'doc.history.reason' | t: { reason: event.reason }
+                }}</span>
+              }
+            </li>
+          }
+        </ol>
+      }
+      @if ($isLedgerTab()) {
+        <app-table
+          [columns]="$ledgerColumns()"
+          [rows]="$ledgerRows()"
+          [caption]="'doc.tab.ledger' | t"
+          [loading]="$ledgerLoading()"
+        >
+          <ng-template appCell="qty" let-row>{{ row.qtyDelta | appQty }}</ng-template>
+          <app-empty-state empty icon="list" [message]="'ledger.empty' | t" />
+        </app-table>
+      }
+    </div>
   }
 
   @if ($askToReverse()) {

@@ -11,6 +11,7 @@
 <app-tabs
   class="document-list-page-tabs"
   [label]="'docs.scope.label' | t"
+  panel="document-list-panel"
   [tabs]="$scopeTabs()"
   [active]="$scope()"
   (activeChange)="onScopeChange($event)"
@@ -61,6 +62,8 @@
 </div>
 
 <app-table
+  appTabPanel="document-list-panel"
+  [labelledByTab]="$scope()"
   [columns]="$columns()"
   [rows]="$page()?.items ?? []"
   [caption]="$heading()"

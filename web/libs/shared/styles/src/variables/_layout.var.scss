@@ -61,6 +61,12 @@ $collapsed-duration: 1ms;
   @return map.get($heights, $name);
 }
 
+/// The phone tab bar: its height plus the home-indicator inset. The tab bar, the room the page leaves for it and the sticky action
+/// bar above it all read this one value. --ims-safe-bottom is 0 unless the page uses viewport-fit=cover (index.html does), see globals/_base.scss.
+@function tabbar-offset() {
+  @return calc(#{height('tabbar')} + var(--ims-safe-bottom));
+}
+
 @function width($name) {
   @if not map.has-key($widths, $name) {
     @error 'Unknown width "#{$name}".';

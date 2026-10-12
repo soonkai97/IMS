@@ -1,7 +1,11 @@
-<a class="shell-skip-link" href="#main-content">{{ 'shell.skipToContent' | t }}</a>
+<!-- The click is handled, not followed: with <base href="/"> a plain "#main-content" link loads "/" (a new page load). -->
+<a class="shell-skip-link" href="#main-content" (click)="onSkipToContent($event, main)">{{
+  'shell.skipToContent' | t
+}}</a>
 
-@if ($isLoading()) {
-  <div class="shell-progress" aria-hidden="true"></div>
+<!-- Only after the delay of delayedLoading: a quick answer never flashes the bar. No value: it is indeterminate. -->
+@if ($showProgress()) {
+  <div class="shell-progress" role="progressbar" [attr.aria-label]="'ui.loading' | t"></div>
 }
 
 <!-- Screen readers hear the new screen's title after a route change (WCAG 2.4.2, 4.1.3). -->
@@ -16,7 +20,7 @@
     variant="ghost"
     popup="dialog"
     (clicked)="onOpenAccount()"
-    [ariaLabel]="'shell.account' | t"
+    [ariaLabel]="$accountLabel()"
   >
     <app-icon name="user" />
     <span class="shell-user-name">{{ $displayName() }}</span>
@@ -54,7 +58,7 @@
   }
 </nav>
 
-<main class="shell-main" id="main-content" tabindex="-1">
+<main #main class="shell-main" id="main-content" tabindex="-1">
   <router-outlet />
 </main>
 

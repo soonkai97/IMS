@@ -101,25 +101,31 @@
   color: color('danger');
 }
 
-// Primary actions stay in reach: sticky above the phone tab bar, at the content bottom elsewhere. One compact row
-// (summary left, buttons right); notes take a full row. On a short window it scrolls with the page (EA-04).
+// Primary actions stay in reach. Phone: a full-width strip stuck directly above the tab bar (and the home-indicator inset), the
+// summary on a line of its own and the buttons below it. Tablet and up: a floating card at the bottom of the content, summary
+// left and buttons right. Notes take a full row. It is the last thing in the page, so it never hides a field: a focused field
+// is scrolled clear of it (scroll-padding in globals/_base.scss). On a short window it scrolls with the page (EA-04).
 .document-editor-bar {
   position: sticky;
-  bottom: calc(#{height('tabbar')} + #{space(1)});
+  bottom: tabbar-offset();
   z-index: z-index('sticky');
   display: flex;
   flex-wrap: wrap;
   gap: space(1) space(2);
   align-items: center;
   justify-content: space-between;
+  // Out to the screen edges: the page content has space(2) of padding on a phone (shell.component.scss).
+  margin-inline: -#{space(2)};
   padding: space(1) space(2);
   background: color('surface');
-  border: border-width('thin') solid color('border');
-  border-radius: border-radius('md');
+  border-top: border-width('thin') solid color('border');
   box-shadow: shadow(1);
 
   @include media-tablet {
     bottom: space(1);
+    margin-inline: 0;
+    border: border-width('thin') solid color('border');
+    border-radius: border-radius('md');
   }
 
   @include media-short {
@@ -130,6 +136,10 @@
 .document-editor-totals {
   flex: 1 1 8rem;
   font-weight: font-weight('medium');
+
+  @include media-phone {
+    flex-basis: 100%;
+  }
 }
 
 .document-editor-bar-note {

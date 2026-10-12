@@ -30,6 +30,7 @@ import {
   UiInputComponent,
   UiPageHeaderComponent,
   UiTableComponent,
+  UiTabPanelDirective,
   UiTabsComponent
 } from '@ims/ui';
 import { applyFieldErrors } from '@ims/utils';
@@ -60,6 +61,7 @@ interface ListRow {
     UiInputComponent,
     UiPageHeaderComponent,
     UiTableComponent,
+    UiTabPanelDirective,
     UiTabsComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

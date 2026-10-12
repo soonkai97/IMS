@@ -28,6 +28,7 @@ import {
   UiPageHeaderComponent,
   UiStatusChipComponent,
   UiTableComponent,
+  UiTabPanelDirective,
   UiTabsComponent
 } from '@ims/ui';
 
@@ -54,6 +55,7 @@ interface InboxRow {
     UiPageHeaderComponent,
     UiStatusChipComponent,
     UiTableComponent,
+    UiTabPanelDirective,
     UiTabsComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

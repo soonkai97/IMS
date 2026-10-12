@@ -29,6 +29,7 @@ describe('ShellComponent structure and accessibility', () => {
   let spectator: Spectator<ShellComponent>;
   const home = entry('home', '/', 'main');
   const stock = entry('stock', '/stock', 'stock', 3);
+  const loading = signal(false);
   const groups: NavGroup[] = [
     { group: { id: 'main', labelKey: 'nav.group.main' }, entries: [home] },
     { group: { id: 'stock', labelKey: 'nav.group.stock' }, entries: [stock] }
@@ -54,7 +55,7 @@ describe('ShellComponent structure and accessibility', () => {
         useValue: { $displayName: signal('Staff'), $role: signal('WarehouseStaff') }
       },
       { provide: AuthService, useValue: { logout: jest.fn() } },
-      { provide: LoadingService, useValue: { $isLoading: signal(false) } },
+      { provide: LoadingService, useValue: { $isLoading: loading } },
       { provide: ThemeService, useValue: { $mode: signal('system'), setMode: jest.fn() } }
     ]
   });
@@ -87,6 +88,85 @@ describe('ShellComponent structure and accessibility', () => {
     await render('/');
 
     expect(spectator.query('header button[aria-haspopup="dialog"]')).toBeTruthy();
+  });
+
+  it('ER-09: the account button name starts with "Account" and contains the visible user name', async () => {
+    await render('/');
+
+    expect(spectator.query('header button')?.getAttribute('aria-label')).toBe('Account, Staff');
+  });
+
+  it('R10 landmarks: a skip link first, one banner, one main, and the tab bar is links, not a tablist', async () => {
+    await render('/');
+
+    const first = spectator.query('a');
+    expect(first?.classList.contains('shell-skip-link')).toBe(true);
+    expect(first?.getAttribute('href')).toBe('#main-content');
+    expect(spectator.queryAll('header')).toHaveLength(1);
+    expect(spectator.queryAll('main#main-content')).toHaveLength(1);
+    const tabbar = spectator.query('nav.shell-tabbar');
+    expect(tabbar?.getAttribute('aria-label')).toBeTruthy();
+    expect(tabbar?.querySelector('[role="tab"], [role="tablist"]')).toBeNull();
+    expect(tabbar?.querySelectorAll('a')).toHaveLength(2);
+  });
+
+  it('R10: the skip link moves focus to the content and does not navigate (base href would reload "/")', async () => {
+    await render('/stock');
+    const link = spectator.query<HTMLAnchorElement>('a.shell-skip-link');
+
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    link?.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(spectator.query('main#main-content'));
+    expect(spectator.inject(Router).url).toBe('/stock');
+  });
+
+  describe('top progress bar', () => {
+    const bar = (): Element | null => spectator.query('.shell-progress');
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      loading.set(false);
+    });
+    afterEach(() => jest.useRealTimers());
+
+    async function tick(ms: number): Promise<void> {
+      jest.advanceTimersByTime(ms);
+      spectator.detectChanges();
+    }
+
+    it('does not show for a call that answers within 300ms (no flicker)', async () => {
+      await render('/');
+
+      loading.set(true);
+      spectator.detectChanges();
+      await tick(250);
+      loading.set(false);
+      spectator.detectChanges();
+      await tick(500);
+
+      expect(bar()).toBeNull();
+    });
+
+    it('shows after 300ms as an indeterminate, named progressbar and stays for at least 400ms', async () => {
+      await render('/');
+
+      loading.set(true);
+      spectator.detectChanges();
+      await tick(300);
+
+      expect(bar()?.getAttribute('role')).toBe('progressbar');
+      expect(bar()?.getAttribute('aria-label')).toBe('Loading');
+      expect(bar()?.hasAttribute('aria-valuenow')).toBe(false);
+
+      loading.set(false);
+      spectator.detectChanges();
+      await tick(300);
+      expect(bar()).not.toBeNull();
+      await tick(100);
+      expect(bar()).toBeNull();
+    });
   });
 
   it('EA-03: a route change is announced to screen readers through a live region', async () => {

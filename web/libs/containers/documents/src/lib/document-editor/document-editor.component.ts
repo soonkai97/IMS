@@ -87,6 +87,7 @@ import {
   UiSkeletonComponent,
   UiStatusChipComponent,
   UiTableComponent,
+  UiTabPanelDirective,
   UiTabsComponent,
   UiTextareaComponent
 } from '@ims/ui';
@@ -153,6 +154,7 @@ interface HistoryEvent {
     UiSkeletonComponent,
     UiStatusChipComponent,
     UiTableComponent,
+    UiTabPanelDirective,
     UiTabsComponent,
     UiTextareaComponent
   ],
