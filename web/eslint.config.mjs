@@ -63,6 +63,19 @@ export default [
         'error',
         { type: 'element', prefix: 'app', style: 'kebab-case' }
       ],
+      // @angular/animations is deprecated in Angular 22 and not a dependency (it is only a test-time peer of Spectator).
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@angular/animations*', '@angular/platform-browser/animations*'],
+              message:
+                'Use CSS transitions, animate.enter and animate.leave (docs/conventions/scss-design.md).'
+            }
+          ]
+        }
+      ],
       '@angular-eslint/no-input-rename': 'off',
       '@angular-eslint/no-output-rename': 'off',
       '@angular-eslint/prefer-on-push-component-change-detection': 'error'

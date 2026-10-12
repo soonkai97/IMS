@@ -1,23 +1,44 @@
 @use 'libs' as *;
 
+// One sweep of the highlight takes 1.5s and it sweeps 6 times (9s), then it stops on the static shape (WCAG 2.2.2: nothing moves
+// for ever). Under reduced motion globals/_motion.scss cuts the animation to a single 0.01ms pass, so the shape is just static.
+$sweep: 1.5s;
+$sweeps: 6;
+
 :host {
   display: grid;
   gap: space(1);
 }
 
 .ui-skeleton-row {
+  position: relative;
   height: height('touch');
+  overflow: hidden;
   background: color('skeleton');
   border-radius: border-radius('md');
-  animation: ui-skeleton-pulse 1.4s ease-in-out infinite;
+
+  // The highlight is decorative and sits on the placeholder only, never over text or a control.
+  &::after {
+    position: absolute;
+    inset: 0;
+    content: '';
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-alpha('surface-raised', 65%),
+      transparent
+    );
+    transform: translateX(-100%);
+    animation: ims-loop-shimmer $sweep linear $sweeps;
+  }
 }
 
 .sr-only {
   @include visually-hidden;
 }
 
-@keyframes ui-skeleton-pulse {
-  50% {
-    opacity: 0.55;
+@keyframes ims-loop-shimmer {
+  to {
+    transform: translateX(100%);
   }
 }

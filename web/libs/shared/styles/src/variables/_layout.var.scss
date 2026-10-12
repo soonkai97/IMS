@@ -27,14 +27,26 @@ $z-index: (
   'toast': 50
 );
 
-$easings: (
-  'smooth': cubic-bezier(0.4, 0, 0.2, 1)
-);
-
+// Motion tokens (lean set, docs/design/lean-scope.md 2.5): three durations and two easings, emitted as --ims-dur-* and
+// --ims-ease-* by globals/_motion.scss. The functions below return the var() reference, so reduced motion and the test switch
+// change every transition without touching a component.
+//   fast 120ms  hover, exits, fades          base 200ms  entrances (toast, banner, dialog opacity)
+//   slow 280ms  bottom sheet and dialog travel
+//   standard    moves inside the screen      out         things arriving (decelerate)
 $durations: (
   'fast': 120ms,
-  'base': 200ms
+  'base': 200ms,
+  'slow': 280ms
 );
+
+$easings: (
+  'standard': cubic-bezier(0.4, 0, 0.2, 1),
+  'out': cubic-bezier(0, 0, 0.2, 1)
+);
+
+// What every duration becomes under prefers-reduced-motion and <html data-motion="off">. 1ms, not 0: a zero duration fires no
+// transitionend / animationend, and code that waits for them would hang.
+$collapsed-duration: 1ms;
 
 @function height($name) {
   @if not map.has-key($heights, $name) {
@@ -65,7 +77,7 @@ $durations: (
     @error 'Unknown easing "#{$name}".';
   }
 
-  @return map.get($easings, $name);
+  @return var(--ims-ease-#{$name});
 }
 
 @function duration($name) {
@@ -73,5 +85,5 @@ $durations: (
     @error 'Unknown duration "#{$name}".';
   }
 
-  @return map.get($durations, $name);
+  @return var(--ims-dur-#{$name});
 }

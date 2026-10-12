@@ -9,7 +9,7 @@
   background: color('surface');
   border: border-width('thin') solid color('border');
   border-radius: border-radius('lg');
-  box-shadow: shadow(2);
+  box-shadow: shadow(3);
 
   &::backdrop {
     background: color-alpha('overlay', 55%);
