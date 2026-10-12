@@ -69,7 +69,6 @@ public static class Messages
     public const string WarehouseCodeRequired = "Warehouse code is required (up to 20 characters).";
     public const string WarehouseNameRequired = "Warehouse name is required.";
     public const string WarehouseCodeExists = "Warehouse code already exists.";
-    public const string NoWarehouseAccess = "You do not have access to this warehouse.";
     public const string WarehouseCannotChange = "The warehouse of an existing document cannot change.";
     public const string PartnerNotFound = "Partner not found.";
     public const string PartnerMissing = "Partner does not exist.";

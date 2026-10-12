@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentAccess access, ISystemSettings settings, IStockAvailability availability,
-    IApprovalEvaluator approvals, IIdMap<Warehouse> warehouseIds) : IDocumentReader, IAppService
+    IApprovalEvaluator approvals) : IDocumentReader, IAppService
 {
     public async Task<DocumentDto> GetAsync(int id, CancellationToken ct)
     {
@@ -26,8 +26,7 @@ public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentA
     private async Task<DocumentDto> WithStockAsync(DocumentDto dto, CancellationToken ct)
     {
         if (!DocumentStatuses.IsOpen(dto.Status) || dto.Lines.Count == 0) return dto;
-        var warehouseId = await warehouseIds.ToInternalOrNoRowAsync(dto.WarehouseId, ct) ?? IdMapExtensions.NoRow;
-        var onHand = await availability.OnHandAsync(warehouseId, dto.Lines.Select(l => l.ProductId).Distinct().ToList(), ct);
+        var onHand = await availability.OnHandAsync(dto.WarehouseKey, dto.Lines.Select(l => l.ProductId).Distinct().ToList(), ct);
         return dto with { Lines = dto.Lines.Select(l => l with { Available = onHand.GetValueOrDefault(l.ProductId) }).ToList() };
     }
 }

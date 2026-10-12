@@ -106,13 +106,19 @@ public class WarehouseScopeTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task Creating_a_document_in_another_warehouse_is_403()
+    public async Task Creating_a_document_in_another_warehouse_is_answered_like_an_unknown_warehouse()
     {
         var setup = await CreateOtherWarehouseAsync();
         var request = new DocumentBuilder(setup.OtherWarehouse.Id).WithLines(new Line(setup.Product.Id, 1, 1m)).Build();
+        var unknown = new DocumentBuilder(Guid.NewGuid()).WithLines(new Line(setup.Product.Id, 1, 1m)).Build();
 
-        (await setup.Scenario.Staff.Documents.CreateReceiptAsync(request)).ShouldBe(HttpStatusCode.Forbidden);
-        (await setup.Scenario.Clerk.Documents.CreateIssueAsync(request)).ShouldBe(HttpStatusCode.Forbidden);
+        // Outside their scope the warehouse does not exist for them: the same 400 as an id that names nothing, so warehouse ids cannot be probed.
+        var expected = (await setup.Scenario.Staff.Documents.CreateReceiptAsync(unknown)).ShouldBeProblem(HttpStatusCode.BadRequest);
+        foreach (var refused in new[] { await setup.Scenario.Staff.Documents.CreateReceiptAsync(request), await setup.Scenario.Clerk.Documents.CreateIssueAsync(request) })
+        {
+            var problem = refused.ShouldBeProblem(HttpStatusCode.BadRequest);
+            Assert.Equal((expected.Title, expected.Detail), (problem.Title, problem.Detail));
+        }
     }
 
     [Fact]

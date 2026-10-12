@@ -100,14 +100,14 @@ public class ProblemDetailsTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task A_403_for_a_warehouse_outside_the_users_scope_has_the_shape()
+    public async Task A_403_raised_by_a_use_case_has_the_shape()
     {
         var s = await StockScenario.CreateAsync(fixture);
-        var other = await s.NewWarehouseAsync();
         var product = await s.NewProductAsync();
-        var request = new DocumentBuilder(other.Id).WithPartner(fixture.Reference.SupplierId).WithLines(new Line(product.Id, 1, 1m)).Build();
+        var draft = await s.DraftReceiptAsync(s.Admin, fixture.Reference.DefaultWarehouseId, new Line(product.Id, 1, 1m));
 
-        AssertShape(await s.Staff.Documents.CreateReceiptAsync(request), HttpStatusCode.Forbidden, "Forbidden");
+        // Warehouse staff may cancel only their own drafts.
+        AssertShape(await s.Staff.Documents.CancelAsync(draft.Id, "not mine", draft.ConcurrencyToken), HttpStatusCode.Forbidden, "Forbidden");
     }
 
     [Fact]
