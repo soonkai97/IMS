@@ -116,6 +116,29 @@ public class PublicIdStorageTests(PublicIdDatabase fixture) : IClassFixture<Publ
     }
 
     [Fact]
+    public async Task A_duplicate_value_that_looks_like_a_public_id_index_is_still_the_general_conflict()
+    {
+        // The server's text quotes the duplicate value too: "... with unique index 'IX_Category_Name'. The duplicate key value is ('UX_Category_PublicId')".
+        var lookalike = $"'{PublicIdColumn.IndexNameOf(nameof(Category))}'";
+        await using (var seed = fixture.NewContext())
+        {
+            seed.Add(Category.Create(lookalike));
+            await seed.SaveChangesAsync();
+        }
+        await using var db = fixture.NewContext();
+        db.Add(Category.Create(lookalike));
+        var failure = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+        Assert.Contains(lookalike, failure.InnerException!.Message); // the premise: the value is in the server's text
+
+        var problem = new SqlExceptionMapper().Map(failure);
+
+        Assert.NotNull(problem);
+        Assert.Equal(Messages.ConcurrencyConflict, problem.Detail);
+        Assert.True(PublicIdColumn.IsViolation("Cannot insert duplicate key row in object 'dbo.Product' with unique index 'UX_Product_PublicId'. The duplicate key value is (x)."));
+        Assert.False(PublicIdColumn.IsViolation("Cannot insert duplicate key row in object 'dbo.Category' with unique index 'IX_Category_Name'. The duplicate key value is ('UX_Category_PublicId')."));
+    }
+
+    [Fact]
     public async Task The_audit_row_of_a_created_row_names_the_integer_key_and_carries_the_public_id()
     {
         var uom = await AddUomAsync();

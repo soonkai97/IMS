@@ -19,8 +19,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
     /// Offline, since ONLINE needs Enterprise or Developer edition, so run it in the maintenance window with the API stopped, like the other migrations that touch big
     /// tables. Measured on 1,000,000 StockDocument rows (LocalDB, warm): 0.02 s, 11.7 s, 2.5 s, 4.0 s and 1.7 s, 20 s in all; the log grows by about 400 MB per
     /// million documents, and the index takes 28 MB. The backfill of a table is ONE command of about 86,000 rows a second, so beyond about 5 million rows in one table
-    /// it passes the 60 s command timeout of the application's connection: run the migration with a longer timeout (dotnet ef) or run it again, it carries on where it
-    /// stopped. The steps run outside the migration's transaction (suppressTransaction); the history row is written only when all of them are done. Giving a row its
+    /// it passes the 60 s command timeout of the application's connection (Limits.DbCommandTimeoutSeconds, a constant: there is no setting, and neither the
+    /// application's start-up migration nor `dotnet ef` can raise it). Only the BACKFILL resumes after such a timeout (its batches are committed, a new run carries on
+    /// with the rows still NULL). NOT NULL, the rebuild and the index are single statements that roll back as a whole; they would need about 24, 15 and 35 million rows
+    /// to reach 60 s. For a table that big run the migration as a script without a timeout (`dotnet ef migrations script` and `sqlcmd -t 0`), or raise the constant for
+    /// the window. The steps run outside the migration's transaction (suppressTransaction); the history row is written only when all of them are done. Giving a row its
     /// id changes its ROW_VERSION, so a document's ETag held by an open browser tab goes stale (a reload fixes it). Down drops the index, the default and the column.
     /// </summary>
     public partial class AddPublicIds : Migration

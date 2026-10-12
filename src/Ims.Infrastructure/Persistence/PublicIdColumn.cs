@@ -22,9 +22,13 @@ public static partial class PublicIdColumn
 
     public static string IndexNameOf(string table) => $"{IndexPrefix}{table}{IndexSuffix}";
 
-    /// <summary>True when the text of a SQL Server unique-index error (2601) names one of the PublicId indexes, for example <c>unique index 'UX_Product_PublicId'</c>.</summary>
+    /// <summary>
+    /// True when the index named in a SQL Server unique-index error (2601) is one of the PublicId indexes. The message is
+    /// <c>Cannot insert duplicate key row in object 'dbo.Product' with unique index 'UX_Product_PublicId'. The duplicate key value is (...)</c>: the index is the
+    /// SECOND quoted name, found by position (so it works in any server language), and a quoted text in the duplicate value (a name typed by a user) cannot match.
+    /// </summary>
     public static bool IsViolation(string errorMessage) => IndexInMessage().IsMatch(errorMessage);
 
-    [GeneratedRegex($"'{IndexPrefix}[A-Za-z0-9]+{IndexSuffix}'", RegexOptions.CultureInvariant)]
+    [GeneratedRegex($"^[^']*'[^']*'[^']*'{IndexPrefix}[A-Za-z0-9]+{IndexSuffix}'", RegexOptions.CultureInvariant)]
     private static partial Regex IndexInMessage();
 }
