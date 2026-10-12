@@ -55,6 +55,22 @@ public class WarehouseScopeTests(ApiFixture fixture)
     }
 
     [Fact]
+    public async Task A_cursor_taken_from_an_unscoped_view_does_not_widen_what_a_scoped_user_sees()
+    {
+        var setup = await CreateOtherWarehouseAsync();
+        var newest = await setup.Scenario.DraftReceiptAsync(setup.Scenario.Admin, setup.OtherWarehouse.Id, new Line(setup.Product.Id, 1, 2m));
+        var adminFirst = (await setup.Scenario.Admin.GetAsync($"/api/documents?warehouseId={setup.OtherWarehouse.Id}&pageSize=1")).Data<PagedResult<DocumentListItem>>();
+        Assert.Equal(newest.No, adminFirst.Items.Single().No);
+        var cursor = Uri.EscapeDataString(adminFirst.NextCursor!);   // points after the newest document of the other warehouse
+
+        var adminRest = (await setup.Scenario.Admin.GetAsync($"/api/documents?pageSize=200&cursor={cursor}")).Data<PagedResult<DocumentListItem>>();
+        var staffRest = (await setup.Scenario.Staff.GetAsync($"/api/documents?pageSize=200&cursor={cursor}")).Data<PagedResult<DocumentListItem>>();
+
+        Assert.Contains(adminRest.Items, d => d.No == setup.DocumentInOther.No);      // the control: older than the cursor and visible to an administrator
+        Assert.DoesNotContain(staffRest.Items, d => d.No == setup.DocumentInOther.No);
+    }
+
+    [Fact]
     public async Task Documents_of_another_warehouse_are_invisible_in_lists_even_when_filtered_for_it()
     {
         var setup = await CreateOtherWarehouseAsync();

@@ -121,6 +121,15 @@ public class PagingContractTests(ApiFixture fixture)
         Assert.Equal(ids.OrderByDescending(i => i), ids); // newest first, strictly decreasing
     }
 
+    /// <summary>What a cursor for this id would look like without encryption: base64url of a version byte and the 8-byte id.</summary>
+    private static string PlainCursorOf(long id)
+    {
+        var bytes = new byte[9];
+        bytes[0] = 1;
+        System.Buffers.Binary.BinaryPrimitives.WriteInt64BigEndian(bytes.AsSpan(1), id);
+        return System.Buffers.Text.Base64Url.EncodeToString(bytes);
+    }
+
     [Fact]
     public async Task The_next_cursor_continues_after_the_last_row_of_a_full_page_hides_its_id_and_is_absent_on_a_short_page()
     {
@@ -133,7 +142,7 @@ public class PagingContractTests(ApiFixture fixture)
         var rest = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=2&cursor={Uri.EscapeDataString(full.NextCursor!)}")).Data<PagedResult<LedgerRow>>();
 
         Assert.NotNull(full.NextCursor);
-        Assert.DoesNotContain(full.Items[^1].Id.ToString(), full.NextCursor); // the key is not in plain sight
+        Assert.DoesNotContain(PlainCursorOf(full.Items[^1].Id), full.NextCursor); // the key is not in plain sight (a decimal id would match a random token by chance, so compare the plain encoding)
         Assert.Equal(whole.Items.Skip(2).Select(r => r.Id), rest.Items.Select(r => r.Id));
         Assert.Null(whole.NextCursor);
     }

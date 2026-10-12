@@ -92,7 +92,14 @@ purpose `Ims.Cursor.v1` plus one sub-purpose per list; `null` on the last page).
 `cursor` query parameter of the same list and never parses it. The documents, ledger and audit lists seek on it (`Id < position`, newest first), so the plan is the
 one the integer `afterId` used. A value the server did not make for that list (garbage, altered, truncated, another list, another version, a variant spelling, over
 `Limits.CursorMaxLength`, or made with a key that no longer exists) is a 400 on the `cursor` field. Tests and load scripts collect cursors by walking pages; they never
-build one. The Data Protection key ring must be persisted and shared by every instance of a deployment; a lost key only invalidates outstanding cursors.
+build one.
+
+**Key ring (operations).** The keys that encrypt cursors are files in the directory named by `DataProtection:KeysPath` (application name `Ims`). In Production the
+setting is required and the API refuses to start without it; at start-up it protects one value, so a directory that cannot be written also stops the boot with a
+message. Every instance of a deployment must point at the same persisted directory (the Docker image sets `DataProtection__KeysPath=/app/keys` and docker-compose
+mounts the named volume `keys` there, which also works with `read_only: true`). Outside Production the default is `ims-dataprotection-keys` under the temp directory,
+never inside the repository. The keys are secrets: do not commit, log or copy them into images. A lost or replaced directory only makes outstanding cursors fail with
+a 400; clients restart from page 1 and no data is lost. The keys are not part of the SQL backup.
 
 The order of a list is part of its contract: it is total (it ends in unique keys), so a walk through the pages never skips or repeats a row,
 and the export of a list uses the very same order as its pages. The receipt/issue detail (`/api/reports/movements` and its export) is

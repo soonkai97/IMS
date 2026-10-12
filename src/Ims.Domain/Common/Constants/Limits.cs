@@ -83,7 +83,7 @@ public static class Limits
     public const int MaxPageNumber = 100_000;
     /// <summary>OFFSET paging cost grows with depth: rows beyond this must be reached with a cursor or by narrowing the filter.</summary>
     public const int MaxOffsetRows = 10_000;
-    /// <summary>An encrypted cursor is about 112 characters; anything over this is refused before it is decoded.</summary>
+    /// <summary>An encrypted cursor is 134 characters today; this limit leaves room for another cipher, and anything over it is refused before it is decoded.</summary>
     public const int CursorMaxLength = 256;
     public const int MaxDocumentLines = 500;
     public const decimal MaxQuantity = 1_000_000_000m;

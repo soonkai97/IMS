@@ -14,12 +14,14 @@ RUN dotnet publish src/Ims.Api/Ims.Api.csproj -c Release -o /app --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app .
-# Non-root user. Writable folders owned by that user: logs, and the physical file storage (mount a volume on /app/storage).
-RUN mkdir -p /app/logs /app/storage && chown -R $APP_UID /app/logs /app/storage
+# Non-root user. Writable folders owned by that user: logs, the physical file storage (mount a volume on /app/storage) and the
+# key ring that encrypts list cursors (mount a volume on /app/keys: it must survive redeploys and be shared by every instance).
+RUN mkdir -p /app/logs /app/storage /app/keys && chown -R $APP_UID /app/logs /app/storage /app/keys
 USER $APP_UID
 ENV ASPNETCORE_URLS=http://+:8080 \
     Logging__Directory=/app/logs \
-    Storage__RootPath=/app/storage
+    Storage__RootPath=/app/storage \
+    DataProtection__KeysPath=/app/keys
 EXPOSE 8080
 # Health is served at GET /health (database check). The runtime image has no curl, so probes belong to the orchestrator
 # (docker compose healthcheck, Kubernetes httpGet, load balancer) rather than a HEALTHCHECK instruction here.
