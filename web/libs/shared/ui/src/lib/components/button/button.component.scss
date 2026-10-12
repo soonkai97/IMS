@@ -149,6 +149,12 @@
   // The spinner takes the place of the leading icon, so the button does not grow when it appears.
   &.--busy {
     --button-icon-display: none;
+
+    // The spinner joins a text-only label, so the face asks for its whole width on one line: a two-word label ("Sign in") must
+    // not wrap and make the button taller. It spills evenly into the padding, and no further: a label that wraps when idle
+    // (L00, 320px) keeps wrapping.
+    width: max-content;
+    max-width: calc(100% + #{space(2) * 2});
   }
 }
 
