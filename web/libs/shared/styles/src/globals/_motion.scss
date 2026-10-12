@@ -18,6 +18,10 @@
   }
 }
 
+@mixin emit-press-scale($value) {
+  --ims-scale-press: #{$value};
+}
+
 // The safety net for animations written with a literal duration or an infinite count. Without the iteration count, a duration of
 // 0.01ms on an infinite animation restarts it every frame and flickers (the bug this replaces).
 /* stylelint-disable declaration-no-important -- reduced motion must win over every component animation */
@@ -35,6 +39,7 @@
 
 :root {
   @include emit-durations;
+  @include emit-press-scale(layout.$press-scale);
 
   @each $name, $curve in layout.$easings {
     --ims-ease-#{$name}: #{$curve};
@@ -44,6 +49,7 @@
 @media (prefers-reduced-motion: reduce) {
   :root {
     @include emit-durations(layout.$collapsed-duration);
+    @include emit-press-scale(layout.$no-press-scale);
   }
 
   @include stop-animations;
@@ -52,5 +58,6 @@
 // Test switch: Playwright sets <html data-motion="off"> to get the same result as an OS with reduced motion.
 :root[data-motion='off'] {
   @include emit-durations(layout.$collapsed-duration);
+  @include emit-press-scale(layout.$no-press-scale);
   @include stop-animations;
 }

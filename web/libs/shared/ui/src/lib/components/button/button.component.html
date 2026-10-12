@@ -1,5 +1,7 @@
 <button
+  #control
   class="ui-button-control"
+  [class.--saved]="$showSaved()"
   [attr.type]="$type()"
   [disabled]="$isNativeDisabled()"
   [attr.aria-disabled]="$isAriaDisabled() || null"
@@ -9,10 +11,21 @@
   [attr.aria-expanded]="$expanded()"
   [attr.aria-controls]="$controls()"
   [attr.aria-haspopup]="$popup()"
+  [style.min-width.px]="$lockedWidth()"
+  [style.max-width.px]="$maxWidth()"
   (click)="onClick($event)"
 >
-  @if ($loading()) {
-    <app-spinner />
+  <span class="ui-button-face" [class.--busy]="$spinnerVisible()" [class.--covered]="$showSaved()">
+    @if ($spinnerVisible()) {
+      <app-spinner />
+    }
+    <span class="ui-button-icon"><ng-content select="app-icon" /></span>
+    <ng-content />
+  </span>
+  @if ($showSaved()) {
+    <span class="ui-button-saved">
+      <app-icon name="check" [size]="20" />
+      {{ $savedText() }}
+    </span>
   }
-  <ng-content />
 </button>

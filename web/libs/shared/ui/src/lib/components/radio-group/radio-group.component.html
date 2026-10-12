@@ -12,12 +12,17 @@
       {{ $legend() }}
     }
   </legend>
-  <div class="ui-radio-group-options">
+  <div class="ui-radio-group-options" [class.--segmented]="$segmented()">
     @for (item of $items(); track item.value) {
-      <label class="ui-radio-group-option" [class.--checked]="item.checked">
+      <label
+        class="ui-radio-group-option"
+        [class.--checked]="item.checked"
+        [class.--segmented]="$segmented()"
+      >
         <input
           class="ui-radio-group-input"
           type="radio"
+          [class.--segmented]="$segmented()"
           [name]="groupName"
           [value]="item.value"
           [checked]="item.checked"

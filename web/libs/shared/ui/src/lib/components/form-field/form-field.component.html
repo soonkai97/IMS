@@ -11,6 +11,9 @@
 }
 <div aria-live="polite">
   @if ($errorText(); as errorText) {
-    <p class="ui-form-field-error" [id]="errorId">{{ errorText }}</p>
+    <p class="ui-form-field-error" [id]="errorId">
+      <app-icon class="ui-form-field-error-icon" name="alert" [size]="16" />
+      <span>{{ errorText }}</span>
+    </p>
   }
 </div>
