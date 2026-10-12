@@ -8,7 +8,7 @@ public class CreateDocumentHandler(IRepository<StockDocument> documents, IReadRe
     public async Task<DocumentDto> HandleAsync(CreateDocumentCommand cmd, CancellationToken ct)
     {
         // The whole body re-runs if two requests race for the same document number.
-        var id = await uow.ExecuteAsync(async () =>
+        var publicId = await uow.ExecuteAsync(async () =>
         {
             var r = cmd.Data;
             var warehouse = await warehouses.FirstOrDefaultAsync(new ByPublicIdSpec<Warehouse>(r.WarehouseId), ct) ?? throw new ValidationException(Messages.WarehouseMissing);
@@ -25,9 +25,9 @@ public class CreateDocumentHandler(IRepository<StockDocument> documents, IReadRe
             documents.Add(doc);
             audit.Record(AuditActions.DocumentCreated, AuditEntities.StockDocument, doc.No, after: new { doc.Type, doc.WarehouseId, Lines = doc.Lines.Count });
             await uow.SaveChangesAsync(ct);
-            return doc.Id;
+            return doc.PublicId;
         }, ct);
-        return await reader.GetAsync(id, ct);
+        return await reader.GetAsync(publicId, ct);
     }
 
     internal static async Task<Partner?> LoadPartnerAsync(IReadRepository<Partner> partners, Guid? partnerId, CancellationToken ct) =>

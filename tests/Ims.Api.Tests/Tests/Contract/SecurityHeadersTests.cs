@@ -44,7 +44,7 @@ public class SecurityHeadersTests(ApiFixture fixture)
 
         var unauthorized = await fixture.Anonymous().Warehouses.ListAsync();                       // authentication middleware
         var forbidden = await clerk.GetAsync("/api/audit");                                        // authorization middleware
-        var notFound = await admin.GetAsync("/api/documents/9999999");                             // exception handler
+        var notFound = await admin.GetAsync($"/api/documents/{Guid.NewGuid()}");                             // exception handler
         var noRoute = await admin.GetAsync("/api/no-such-route");                                  // status-code pages
         var badRequest = await admin.PostAsync("/api/categories", new { name = "" });              // validation
         var malformed = await admin.PostRawJsonAsync("/api/categories", "{not json");              // model binding

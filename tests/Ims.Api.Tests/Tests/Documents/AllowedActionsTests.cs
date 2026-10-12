@@ -16,7 +16,7 @@ public class AllowedActionsTests(ApiFixture fixture)
 
     private static string[] Actions(params string[] actions) => actions.Order().ToArray();
 
-    private async Task AssertActionsAsync(StockScenario s, int documentId, (string Role, string[] Expected)[] expectations)
+    private async Task AssertActionsAsync(StockScenario s, Guid documentId, (string Role, string[] Expected)[] expectations)
     {
         foreach (var (role, expected) in expectations)
         {

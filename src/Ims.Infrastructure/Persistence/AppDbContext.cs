@@ -403,11 +403,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             : JsonSerializer.Serialize(p.Changed.ToDictionary(name => name, name => p.Entry.Property(name).CurrentValue), Json);
 
     /// <summary>
-    /// The entities whose API speaks the public id (PR-4 to PR-6 of docs/architecture/adr-guid-keys.md): their audit rows name them by <see cref="PublicEntity.PublicId"/>, the id the
-    /// client has. Every other entity is still audited by its integer key, as are the business events of its API, until its own flip PR (PR-7) adds it here together
-    /// with those events. Rows written before a flip keep the integer; the audit page and its entity-id filter are plain text and show and match both.
+    /// The entities whose API speaks the public id (PR-4 to PR-7 of docs/architecture/adr-guid-keys.md; all nine now): their audit rows name them by <see cref="PublicEntity.PublicId"/>, the id the
+    /// client has. Every entity that gets an audit row of its own is covered; the key of any other (a child row without a public id) is its integer key. The business
+    /// events of the API use the same id (the attachment events); the document events name the document by its number. Rows written before a flip keep the integer;
+    /// the audit page and its entity-id filter are plain text and show and match both.
     /// </summary>
-    private static readonly HashSet<Type> AuditedByPublicId = [typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom), typeof(User), typeof(Product)];
+    private static readonly HashSet<Type> AuditedByPublicId =
+    [
+        typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom), typeof(User), typeof(Product), typeof(ApprovalRule), typeof(StockDocument), typeof(Attachment)
+    ];
 
     private static string KeyOf(EntityEntry e) =>
         e.Entity is PublicEntity row && AuditedByPublicId.Contains(e.Metadata.ClrType)

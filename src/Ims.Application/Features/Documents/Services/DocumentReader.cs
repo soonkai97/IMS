@@ -4,10 +4,10 @@ namespace Ims.Application.Features.Documents;
 public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentAccess access, ISystemSettings settings, IStockAvailability availability,
     IApprovalEvaluator approvals) : IDocumentReader, IAppService
 {
-    public async Task<DocumentDto> GetAsync(int id, CancellationToken ct)
+    public async Task<DocumentDto> GetAsync(Guid publicId, CancellationToken ct)
     {
         // The caller's warehouses are part of the query: a document elsewhere is simply not found (404, like an unknown id).
-        var dto = await documents.FirstOrDefaultAsync(new DocumentDtoSpec(id, access.WarehouseScope()), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
+        var dto = await documents.FirstOrDefaultAsync(new DocumentDtoSpec(publicId, access.WarehouseScope()), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
         dto = await WithStockAsync(dto, ct);
 
         // A document held for approval: say why (the thresholds it reaches) and whether the caller's role can satisfy the rules in force.

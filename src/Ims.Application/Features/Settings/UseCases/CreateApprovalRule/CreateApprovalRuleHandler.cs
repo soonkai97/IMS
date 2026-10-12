@@ -12,5 +12,5 @@ public class CreateApprovalRuleHandler(IRepository<ApprovalRule> rules, IUnitOfW
         return ToDto(rule);
     }
 
-    internal static ApprovalRuleDto ToDto(ApprovalRule r) => new(r.Id, r.DocType, r.AmountThreshold, r.QtyThreshold, r.RoleRequired, r.IsActive);
+    internal static ApprovalRuleDto ToDto(ApprovalRule r) => new(r.PublicId, r.DocType, r.AmountThreshold, r.QtyThreshold, r.RoleRequired, r.IsActive);
 }

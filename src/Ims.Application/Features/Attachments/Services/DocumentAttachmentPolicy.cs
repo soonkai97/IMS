@@ -7,9 +7,13 @@ namespace Ims.Application.Features.Attachments;
 /// added by people who may create documents, also after posting (the paperwork often arrives later) but not to a cancelled document;
 /// removed only while the document is a Draft.
 /// </summary>
-public class DocumentAttachmentPolicy(IReadRepository<StockDocument> documents, IDocumentAccess access, ICurrentUser current) : IAttachmentOwnerPolicy, IAppService
+public class DocumentAttachmentPolicy(IReadRepository<StockDocument> documents, IIdMap<StockDocument> documentIds, IDocumentAccess access, ICurrentUser current)
+    : IAttachmentOwnerPolicy, IAppService
 {
     public AttachmentOwnerType OwnerType => AttachmentOwnerType.Document;
+
+    public async Task<int> ResolveAsync(Guid ownerPublicId, CancellationToken ct) =>
+        await documentIds.ToInternalOrNoRowAsync(ownerPublicId, ct) ?? IdMapExtensions.NoRow;
 
     public async Task EnsureCanReadAsync(int ownerId, CancellationToken ct) => await LoadScopedAsync(ownerId, ct);
 

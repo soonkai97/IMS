@@ -6,5 +6,5 @@ public class ListApprovalRulesHandler(IReadRepository<ApprovalRule> rules) : IQu
 {
     public async Task<IReadOnlyList<ApprovalRuleDto>> HandleAsync(ListApprovalRulesQuery q, CancellationToken ct) =>
         (await rules.ListAsync(new ApprovalRulesListSpec(), ct))
-        .Select(r => new ApprovalRuleDto(r.Id, r.DocType, r.AmountThreshold, r.QtyThreshold, r.RoleRequired, r.IsActive)).ToList();
+        .Select(r => new ApprovalRuleDto(r.PublicId, r.DocType, r.AmountThreshold, r.QtyThreshold, r.RoleRequired, r.IsActive)).ToList();
 }

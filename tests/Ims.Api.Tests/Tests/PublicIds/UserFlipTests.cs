@@ -129,6 +129,7 @@ public class UserFlipTests(ApiFixture fixture)
 
         Assert.Equal((creatorKey, (int?)submitterKey, creator.Id, (Guid?)submitter.Id), (dto.CreatedByKey, dto.SubmittedByKey, dto.CreatedById, dto.SubmittedById));
         Assert.Equal((creatorKey, (int?)submitterKey, creator.Id, (Guid?)submitter.Id), (item.CreatedByKey, item.SubmittedByKey, item.CreatedById, item.SubmittedById));
+        Assert.Equal(await fixture.Database.ScalarAsync<int>("SELECT Id FROM StockDocument WHERE PublicId = @p", ("@p", submitted.Id)), item.Key); // the cursor position, in its place after the two user keys
     }
 
     [Fact]

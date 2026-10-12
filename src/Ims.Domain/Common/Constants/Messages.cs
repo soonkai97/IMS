@@ -141,12 +141,17 @@ public static class Messages
     public static string InsufficientStock(int productId, int warehouseId, decimal available, decimal requested) =>
         $"Insufficient stock for product {productId} in warehouse {warehouseId}: available {available}, requested {requested}.";
 
+    /// <summary>The conflict for a product or warehouse that cannot be named (it was soft-deleted): by public id, never by the integer keys.</summary>
+    public static string InsufficientStockUnnamed(Guid productPublicId, Guid warehousePublicId, decimal available, decimal requested) =>
+        $"Insufficient stock for product {productPublicId} in warehouse {warehousePublicId}: available {Quantity(available)}, requested {Quantity(requested)}.";
+
     /// <summary>The same conflict in words a person recognises: SKU, warehouse name and unit instead of ids (NV-06 / PS-01).</summary>
     public static string InsufficientStockNamed(string sku, string warehouseName, string uomCode, decimal available, decimal requested) =>
         $"Not enough stock for {sku} in {warehouseName}: {Quantity(available)} {uomCode} available, {Quantity(requested)} needed.";
 
     // ----- Attachments (files stored on disk, metadata in the database) -----
     public const string AttachmentNotFound = "File not found.";
+    public const string AttachmentOwnerRequired = "Choose what the file belongs to.";
     public const string FileEmpty = "The file is empty.";
     public const string FileTypeNotAllowed = "Only JPEG, PNG, WebP images and PDF documents can be uploaded.";
     public const string NotAllowed = "You do not have permission to do this.";

@@ -80,7 +80,7 @@ public sealed class StockScenario
 
     public async Task<DocumentDto> SubmitAsync(ApiClient by, DocumentDto draft) => (await by.Documents.SubmitAsync(draft.Id)).Data<DocumentDto>();
 
-    public async Task<DocumentDto> GetAsync(int documentId) => (await Admin.Documents.GetAsync(documentId)).Data<DocumentDto>();
+    public async Task<DocumentDto> GetAsync(Guid documentId) => (await Admin.Documents.GetAsync(documentId)).Data<DocumentDto>();
 
     /// <summary>
     /// The reviewer a submitted document is routed to (PRD 3.1) who is not its submitter: the Owner for a large document, otherwise a Supervisor,
@@ -118,7 +118,7 @@ public sealed class StockScenario
 
     public async Task<decimal> OnHandAsync(Guid productId, Guid warehouseId) => (await BalanceAsync(productId, warehouseId))?.QtyOnHand ?? 0m;
 
-    public async Task<List<LedgerRow>> LedgerAsync(Guid? productId = null, Guid? warehouseId = null, int? sourceDocId = null)
+    public async Task<List<LedgerRow>> LedgerAsync(Guid? productId = null, Guid? warehouseId = null, Guid? sourceDocId = null)
     {
         var rows = new List<LedgerRow>();
         for (var page = 1; ; page++)

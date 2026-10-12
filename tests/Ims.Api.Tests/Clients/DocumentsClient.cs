@@ -20,20 +20,20 @@ public sealed class DocumentsClient(ApiClient api)
     }
 
     public Task<ApiResponse> CountsAsync() => api.GetAsync("/api/documents/counts");
-    public Task<ApiResponse> GetAsync(int id) => api.GetAsync($"/api/documents/{id}");
+    public Task<ApiResponse> GetAsync(Guid id) => api.GetAsync($"/api/documents/{id}");
     public Task<ApiResponse> CreateReceiptAsync(DocumentSaveRequest request) => api.PostAsync("/api/documents/receipts", request);
     public Task<ApiResponse> CreateIssueAsync(DocumentSaveRequest request) => api.PostAsync("/api/documents/issues", request);
-    public Task<ApiResponse> UpdateAsync(int id, DocumentSaveRequest request, string? ifMatch = null) => Send(HttpMethod.Put, $"/api/documents/{id}", request, ifMatch);
-    public Task<ApiResponse> SubmitAsync(int id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/submit", null, ifMatch);
-    public Task<ApiResponse> ApproveAsync(int id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/approve", null, ifMatch);
-    public Task<ApiResponse> RejectAsync(int id, string reason, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/reject", new RejectRequest(reason), ifMatch);
-    public Task<ApiResponse> CancelAsync(int id, string? reason = null, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/cancel", new CancelRequest(reason), ifMatch);
+    public Task<ApiResponse> UpdateAsync(Guid id, DocumentSaveRequest request, string? ifMatch = null) => Send(HttpMethod.Put, $"/api/documents/{id}", request, ifMatch);
+    public Task<ApiResponse> SubmitAsync(Guid id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/submit", null, ifMatch);
+    public Task<ApiResponse> ApproveAsync(Guid id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/approve", null, ifMatch);
+    public Task<ApiResponse> RejectAsync(Guid id, string reason, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/reject", new RejectRequest(reason), ifMatch);
+    public Task<ApiResponse> CancelAsync(Guid id, string? reason = null, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/cancel", new CancelRequest(reason), ifMatch);
     /// <summary>Approves with the override reason in the body (needed when the document <c>requiresOverride</c>).</summary>
-    public Task<ApiResponse> ApproveWithReasonAsync(int id, string? negativeStockOverrideReason, string? ifMatch = null) =>
+    public Task<ApiResponse> ApproveWithReasonAsync(Guid id, string? negativeStockOverrideReason, string? ifMatch = null) =>
         Send(HttpMethod.Post, $"/api/documents/{id}/approve", new ApproveRequest(negativeStockOverrideReason), ifMatch);
     /// <summary>Posting has no request body: the override reason was recorded when the document was approved.</summary>
-    public Task<ApiResponse> PostAsync(int id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/post", null, ifMatch);
-    public Task<ApiResponse> ReverseAsync(int id, string reason, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/reverse", new ReverseRequest(reason), ifMatch);
+    public Task<ApiResponse> PostAsync(Guid id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/post", null, ifMatch);
+    public Task<ApiResponse> ReverseAsync(Guid id, string reason, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/reverse", new ReverseRequest(reason), ifMatch);
 
     /// <summary>A document write with NO If-Match header at all, to test that the server demands one (428).</summary>
     public Task<ApiResponse> WithoutIfMatchAsync(HttpMethod method, string url, object? body = null) => api.SendAsync(method, url, body, null);

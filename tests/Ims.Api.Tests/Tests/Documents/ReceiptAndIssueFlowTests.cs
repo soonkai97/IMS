@@ -226,7 +226,7 @@ public class ReceiptAndIssueFlowTests(ApiFixture fixture)
     public async Task A_missing_document_is_404_for_every_action()
     {
         var s = await StockScenario.CreateAsync(fixture);
-        const int missing = 9_999_999;
+        var missing = Guid.NewGuid();
 
         (await s.Admin.Documents.GetAsync(missing)).ShouldBeProblem(HttpStatusCode.NotFound);
         (await s.Admin.Documents.SubmitAsync(missing)).ShouldBeProblem(HttpStatusCode.NotFound);

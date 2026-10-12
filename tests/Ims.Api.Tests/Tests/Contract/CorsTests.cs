@@ -54,7 +54,7 @@ public class CorsTests(ApiFixture fixture)
     {
         var admin = await fixture.AsAsync(Roles.Admin);
 
-        var response = await admin.SendAsync(HttpMethod.Get, "/api/documents/9999999", customize: From(AllowedOrigin));
+        var response = await admin.SendAsync(HttpMethod.Get, $"/api/documents/{Guid.NewGuid()}", customize: From(AllowedOrigin));
 
         response.ShouldBe(HttpStatusCode.NotFound);
         Assert.Equal(AllowedOrigin, response.Header(AllowOriginHeader));

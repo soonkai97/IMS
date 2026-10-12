@@ -118,7 +118,7 @@ public class SignedStockEffectTests(ApiFixture fixture)
         var receipt = await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 5, 1m));
         (await s.Admin.Documents.ReverseAsync(receipt.Id, Reason)).ShouldBeOk();
         // The receipt was posted three days ago and reversed today.
-        await fixture.Database.ExecuteAsync("UPDATE StockDocument SET PostedAt = @at WHERE Id = @id", ("@at", DateTime.UtcNow.AddDays(-3)), ("@id", receipt.Id));
+        await fixture.Database.ExecuteAsync("UPDATE StockDocument SET PostedAt = @at WHERE PublicId = @id", ("@at", DateTime.UtcNow.AddDays(-3)), ("@id", receipt.Id));
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(8));
 
         var thisPeriod = await RowsAsync(s, product.Id, extraQuery: $"&from={today:yyyy-MM-dd}");

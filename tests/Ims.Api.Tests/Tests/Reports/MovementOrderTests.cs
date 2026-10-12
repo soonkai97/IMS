@@ -35,7 +35,7 @@ public class MovementOrderTests(ApiFixture fixture)
 
         await s.CompleteAsync(await s.SubmitAsync(s.Admin, firstTied));
         await s.CompleteAsync(await s.SubmitAsync(s.Admin, secondTied));
-        await fixture.Database.ExecuteAsync("UPDATE StockDocument SET PostedAt = @at WHERE Id IN (@first, @second)",
+        await fixture.Database.ExecuteAsync("UPDATE StockDocument SET PostedAt = @at WHERE PublicId IN (@first, @second)",
             ("@at", DateTime.UtcNow.AddHours(1)), ("@first", firstTied.Id), ("@second", secondTied.Id));
 
         return new Scenario(warehouse.Id, earlier.No, firstTied.No, secondTied.No, a.Sku, b.Sku);

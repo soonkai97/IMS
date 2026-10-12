@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Stock;
 
 public class QueryLedgerHandler(IReadRepository<StockLedgerEntry> ledger, IWarehouseScope scope, ICursorProtector cursors, IIdMap<Warehouse> warehouseIds,
-    IIdMap<Product> productIds) : IQueryHandler<QueryLedgerQuery, PagedResult<LedgerRow>>
+    IIdMap<Product> productIds, IIdMap<StockDocument> documentIds) : IQueryHandler<QueryLedgerQuery, PagedResult<LedgerRow>>
 {
     public async Task<PagedResult<LedgerRow>> HandleAsync(QueryLedgerQuery q, CancellationToken ct)
     {
@@ -10,8 +10,9 @@ public class QueryLedgerHandler(IReadRepository<StockLedgerEntry> ledger, IWareh
         var ids = scope.Ids();
         var warehouseId = await warehouseIds.ToInternalOrNoRowAsync(q.Filter.WarehouseId, ct);
         var productId = await productIds.ToInternalOrNoRowAsync(q.Filter.ProductId, ct);
-        var total = q.Filter.IncludeTotal ? await ledger.CountAsync(new LedgerCountSpec(q.Filter, warehouseId, productId, ids), ct) : Paging.TotalNotCounted;
-        var items = await ledger.ListAsync(new LedgerRowsSpec(q.Filter, warehouseId, productId, ids, after: after), ct);
+        var sourceDocId = await documentIds.ToInternalOrNoRowAsync(q.Filter.SourceDocId, ct);
+        var total = q.Filter.IncludeTotal ? await ledger.CountAsync(new LedgerCountSpec(q.Filter, warehouseId, productId, sourceDocId, ids), ct) : Paging.TotalNotCounted;
+        var items = await ledger.ListAsync(new LedgerRowsSpec(q.Filter, warehouseId, productId, sourceDocId, ids, after: after), ct);
         var (page, size) = Paging.Normalize(q.Filter.Page, q.Filter.PageSize, Limits.MaxStockPageSize);
         return new PagedResult<LedgerRow>(items, total, page, size, Paging.NextCursor(items, size, r => r.Id, cursors, CursorLists.Ledger));
     }

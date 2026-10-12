@@ -14,8 +14,10 @@ public class UploadAttachmentHandler(IAttachmentOwners owners, IFileStorage stor
 {
     public async Task<AttachmentDto> HandleAsync(UploadAttachmentCommand cmd, CancellationToken ct)
     {
-        await owners.For(cmd.OwnerType).EnsureCanWriteAsync(cmd.OwnerId, ct);
-        if (await attachments.CountAsync(new AttachmentsCountSpec(cmd.OwnerType, cmd.OwnerId), ct) >= Limits.MaxAttachmentsPerOwner)
+        var policy = owners.For(cmd.OwnerType);
+        var ownerId = await policy.ResolveAsync(cmd.OwnerId, ct); // the owner is looked up among the owners of the type asked for: a wrong-type id is simply not found
+        await policy.EnsureCanWriteAsync(ownerId, ct);
+        if (await attachments.CountAsync(new AttachmentsCountSpec(cmd.OwnerType, ownerId), ct) >= Limits.MaxAttachmentsPerOwner)
             throw new ConflictException(Messages.TooManyAttachments(Limits.MaxAttachmentsPerOwner));
 
         var upload = await ReadBoundedAsync(cmd.Content, ct);
@@ -27,14 +29,14 @@ public class UploadAttachmentHandler(IAttachmentOwners owners, IFileStorage stor
         var stored = await storage.SaveAsync(stream, AttachmentRules.ExtensionOf(kind), Limits.MaxAttachmentBytes, ct);
         try
         {
-            var attachment = Attachment.Create(cmd.OwnerType, cmd.OwnerId, cmd.FileName, kind, stored.StoragePath, stored.SizeBytes, stored.Sha256,
+            var attachment = Attachment.Create(cmd.OwnerType, ownerId, cmd.FileName, kind, stored.StoragePath, stored.SizeBytes, stored.Sha256,
                 current.UserId, clock.UtcNow);
             attachments.Add(attachment);
             await uow.SaveChangesAsync(ct);
-            audit.Record(AuditActions.AttachmentUploaded, AuditEntities.Attachment, attachment.Id.ToString(),
+            audit.Record(AuditActions.AttachmentUploaded, AuditEntities.Attachment, attachment.PublicId.ToString(),
                 after: new { cmd.OwnerType, cmd.OwnerId, attachment.FileName, attachment.SizeBytes, attachment.Sha256 });
             await uow.SaveChangesAsync(ct);
-            return new AttachmentDto(attachment.Id, attachment.OwnerType, attachment.OwnerId, attachment.FileName, attachment.ContentType,
+            return new AttachmentDto(attachment.PublicId, attachment.OwnerType, cmd.OwnerId, attachment.FileName, attachment.ContentType,
                 attachment.SizeBytes, current.Username, attachment.UploadedAt);
         }
         catch
