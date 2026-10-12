@@ -103,20 +103,20 @@ describe('StockListPageComponent (valuation.view, docs/design/mvp-ux.md 1.4)', (
   it('Warehouse staff: no Value column, no value in the row, nothing to sort by value', () => {
     render(false, PERMISSION.StockRead, PERMISSION.DocumentCreate);
 
-    expect(headers()).not.toContain('Value');
+    expect(headers()).not.toContain('Value (RM)');
     expect(headers()).toContain('On hand');
     expect(bodyText()).toContain('12 PCS');
     expect(bodyText()).not.toMatch(/\d\.\d{2}/);
     expect(spectator.queryAll('tbody tr:first-child td')).toHaveLength(headers().length);
     expect(spectator.queryAll('th button').map(button => button.textContent?.trim())).not.toContain(
-      'Value'
+      'Value (RM)'
     );
   });
 
   it('Clerk: cost.view is not valuation.view, so still no Value column', () => {
     render(false, PERMISSION.StockRead, PERMISSION.DocumentCreate, PERMISSION.CostView);
 
-    expect(headers()).not.toContain('Value');
+    expect(headers()).not.toContain('Value (RM)');
   });
 
   it('Supervisor: the Value column shows the value and can be sorted', () => {
@@ -128,10 +128,10 @@ describe('StockListPageComponent (valuation.view, docs/design/mvp-ux.md 1.4)', (
       PERMISSION.ReportsRead
     );
 
-    expect(headers()).toContain('Value');
+    expect(headers()).toContain('Value (RM)');
     expect(bodyText()).toContain('30.00');
     expect(spectator.queryAll('th button').map(button => button.textContent?.trim())).toContain(
-      'Value'
+      'Value (RM)'
     );
 
     spectator.component.onSortChange({ sortBy: StockSort.Value, desc: true });

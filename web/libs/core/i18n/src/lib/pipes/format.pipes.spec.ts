@@ -1,5 +1,13 @@
 import { TestBed } from '@angular/core/testing';
-import { AppDatePipe, AppMoneyPipe, AppSignedQtyPipe, AppUnitPricePipe } from './format.pipes';
+import { LanguageCode } from '../constants/languages.const';
+import { I18nService } from '../services/i18n.service';
+import {
+  AppDatePipe,
+  AppMoneyPipe,
+  AppQtyPipe,
+  AppSignedQtyPipe,
+  AppUnitPricePipe
+} from './format.pipes';
 
 describe('AppUnitPricePipe', () => {
   let pipe: AppUnitPricePipe;
@@ -24,9 +32,9 @@ describe('AppUnitPricePipe', () => {
     expect(pipe.transform(-0)).toBe('0.00');
   });
 
-  it('shows a dash for nothing', () => {
-    expect(pipe.transform(undefined)).toBe('-');
-    expect(pipe.transform(null)).toBe('-');
+  it('renders nothing for a missing price (no dash, no 0.00)', () => {
+    expect(pipe.transform(undefined)).toBe('');
+    expect(pipe.transform(null)).toBe('');
   });
 });
 
@@ -47,6 +55,51 @@ describe('AppMoneyPipe', () => {
     expect(pipe.transform(-12.5)).toBe('-12.50');
     expect(pipe.transform(-0.004)).toBe('0.00');
     expect(pipe.transform(-0)).toBe('0.00');
+  });
+
+  it('renders nothing for a missing amount: a cost the user may not see leaves no dash and no 0.00', () => {
+    expect(pipe.transform(undefined)).toBe('');
+    expect(pipe.transform(null)).toBe('');
+  });
+
+  it('D1: rounds half away from zero, never abbreviates and never shows a sub-cent value', () => {
+    expect(pipe.transform(0.005)).toBe('0.01');
+    expect(pipe.transform(-0.005)).toBe('-0.01');
+    expect(pipe.transform(1234567890.126)).toBe('1,234,567,890.13');
+  });
+});
+
+describe.each<[LanguageCode, string]>([
+  ['en', 'English'],
+  ['zh', 'Chinese'],
+  ['ms', 'Malay']
+])('money and quantity in %s (%s)', language => {
+  let money: AppMoneyPipe;
+  let unitPrice: AppUnitPricePipe;
+  let qty: AppQtyPipe;
+
+  beforeEach(async () => {
+    await TestBed.inject(I18nService).setLanguage(language);
+    money = TestBed.runInInjectionContext(() => new AppMoneyPipe());
+    unitPrice = TestBed.runInInjectionContext(() => new AppUnitPricePipe());
+    qty = TestBed.runInInjectionContext(() => new AppQtyPipe());
+  });
+
+  it.each([
+    [0, '0.00'],
+    [12400, '12,400.00'],
+    [119371.9, '119,371.90'],
+    [1000000, '1,000,000.00']
+  ])('shows money %s as %s', (value, expected) => {
+    expect(money.transform(value)).toBe(expected);
+  });
+
+  it('shows a unit price with 2 to 4 decimals and a quantity with its own precision', () => {
+    expect(unitPrice.transform(3.3333)).toBe('3.3333');
+    expect(unitPrice.transform(10)).toBe('10.00');
+    expect(qty.transform(1.2345)).toBe('1.2345');
+    expect(qty.transform(2.5)).toBe('2.5');
+    expect(qty.transform(0.0001)).toBe('0.0001');
   });
 });
 
