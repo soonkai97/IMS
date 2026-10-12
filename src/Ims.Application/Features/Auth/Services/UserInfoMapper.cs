@@ -8,6 +8,6 @@ public static class UserInfoMapper
     public static async Task<UserInfo> ToInfoAsync(User u, IIdMap<Warehouse> warehouses, CancellationToken ct)
     {
         var publicIds = await warehouses.ToPublicAsync(u.Warehouses.Select(w => w.WarehouseId), ct);
-        return new(u.Id, u.Username, u.DisplayName, u.Role, Permissions.For(u.Role).ToList(), u.Warehouses.Select(w => publicIds[w.WarehouseId]).ToList());
+        return new(u.PublicId, u.Username, u.DisplayName, u.Role, Permissions.For(u.Role).ToList(), u.Warehouses.Select(w => publicIds[w.WarehouseId]).ToList());
     }
 }

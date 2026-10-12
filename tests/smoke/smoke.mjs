@@ -256,7 +256,7 @@ r = await api('POST', '/api/documents/receipts', { token: staff, body: doc(suppl
 const tokenDoc = r.body;
 check('instants are UTC with a Z', /^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(tokenDoc.createdAt), tokenDoc.createdAt);
 check('the document carries a concurrency token equal to its ETag', typeof tokenDoc.concurrencyToken === 'string' && r.headers.get('etag') === `"${tokenDoc.concurrencyToken}"`, String(r.headers.get('etag')));
-check('creator is id, user name and display name', tokenDoc.createdById > 0 && tokenDoc.createdBy && tokenDoc.createdByName);
+check('creator is id, user name and display name', typeof tokenDoc.createdById === 'string' && tokenDoc.createdById.length === 36 && tokenDoc.createdBy && tokenDoc.createdByName);
 check('lines show the stock on hand', typeof tokenDoc.lines[0].available === 'number', JSON.stringify(tokenDoc.lines[0]));
 r = await api('PUT', `/api/documents/${tokenDoc.id}`, { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 3, unitCost: 1 }]), headers: { 'If-Match': `"${tokenDoc.concurrencyToken}"` } });
 check('a save with the current token works and moves the token', r.status === 200 && r.body.concurrencyToken !== tokenDoc.concurrencyToken, String(r.status));

@@ -7,8 +7,8 @@ public class UpdateUserHandler(IRepository<User> users, IIdMap<Warehouse> wareho
     public async Task<UserDto> HandleAsync(UpdateUserCommand cmd, CancellationToken ct)
     {
         var r = cmd.Data;
-        var user = await users.FirstOrDefaultAsync(new Auth.UserWithWarehousesSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.UserNotFound);
-        if (await users.AnyAsync(new UserTakenSpec(r.Username, r.Email, cmd.Id), ct)) throw new ConflictException(Messages.UserExists);
+        var user = await users.FirstOrDefaultAsync(new UserWithWarehousesByPublicIdSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.UserNotFound);
+        if (await users.AnyAsync(new UserTakenSpec(r.Username, r.Email, user.Id), ct)) throw new ConflictException(Messages.UserExists);
         var wanted = await UserWarehouses.ResolveAsync(warehouseIds, r.WarehouseIds, ct);
 
         // Nobody may lock the system out of administration: not themselves, and not the last active administrator.
@@ -35,7 +35,7 @@ public class UpdateUserHandler(IRepository<User> users, IIdMap<Warehouse> wareho
             foreach (var token in await tokens.ListAsync(new ActiveRefreshTokensOfUserSpec(user.Id, now), ct)) token.Revoke(now);
         }
 
-        audit.Record(AuditActions.UserUpdated, AuditEntities.User, cmd.Id.ToString(), before, new { user.Username, user.Role, user.IsActive, Warehouses = wanted });
+        audit.Record(AuditActions.UserUpdated, AuditEntities.User, user.PublicId.ToString(), before, new { user.Username, user.Role, user.IsActive, Warehouses = wanted });
         await uow.SaveChangesAsync(ct);
         return await UserMapping.ToDtoAsync(user, warehouseIds, ct);
     }
