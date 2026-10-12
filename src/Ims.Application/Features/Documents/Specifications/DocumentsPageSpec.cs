@@ -9,7 +9,11 @@ public sealed class DocumentsPageSpec : Specification<StockDocument, DocumentLis
         DocumentFilters.Apply(Query, f, scope, userId, search);
         var (page, size) = Paging.Normalize(f.Page, f.PageSize);
         Query.OrderByDescending(d => d.Id);
-        if (f.AfterId is { } after) Query.Where(d => d.Id < after).Take(size);
+        if (CursorToken.Decode(f.Cursor) is { } position)
+        {
+            var after = (int)Math.Min(position, int.MaxValue); // a position past the largest document id means "everything is older"
+            Query.Where(d => d.Id < after).Take(size);
+        }
         else Query.Skip((page - 1) * size).Take(size);
         Query
             .Select(d => new DocumentListItem(d.Id, d.Type, d.No, d.Status, d.Warehouse.Name, d.Partner != null ? d.Partner.Name : null,

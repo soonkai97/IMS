@@ -12,6 +12,7 @@
 // or are split; 401s are counted (http_401) so an expiry is visible instead of silent.
 import http from 'k6/http';
 import { check, fail } from 'k6';
+import encoding from 'k6/encoding';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
 export const BASE = __ENV.BASE_URL || 'http://localhost:5109';
@@ -123,6 +124,14 @@ export function post(token, path, body, name, kind = 'write') {
 // --- random helpers ----------------------------------------------------------------------------------------------
 export function rnd(n) { return Math.floor(Math.random() * n); }
 export function pick(a) { return a[rnd(a.length)]; }
+// A list cursor is opaque to clients; the load test only needs one at a random depth, so it makes one the way the server does (version 1, then the 8-byte position, base64url).
+// PR-2b (GUID plan) replaces the id arithmetic around it by ids sampled in setup().
+function cursorAt(position) {
+  const bytes = new Uint8Array(9);
+  bytes[0] = 1;
+  for (let i = 8, p = position; i >= 1; i--, p = Math.floor(p / 256)) bytes[i] = p % 256;
+  return encoding.b64encode(bytes.buffer, 'rawurl');
+}
 export function zipf(n) { return 1 + Math.floor(n * Math.pow(Math.random(), 2)); }   // same skew as the seed
 
 // --- READ operations (weights roughly follow a stock-clerk day) ----------------------------------------------------
@@ -145,14 +154,14 @@ export function readOp(d) {
     if (f === 0) return get(t, `/api/stock/ledger?productId=${pid}`, 'ledger?product');
     if (f === 1) return get(t, `/api/stock/ledger?productId=${pid}&warehouseId=${1 + rnd(WAREHOUSES)}`, 'ledger?product+wh');
     if (f === 2) return get(t, '/api/stock/ledger?includeTotal=false', 'ledger?p1');
-    return get(t, `/api/stock/ledger?afterId=${1 + rnd(d.ledgerTotal)}&includeTotal=false`, 'ledger?afterId');
+    return get(t, `/api/stock/ledger?cursor=${cursorAt(1 + rnd(d.ledgerTotal))}&includeTotal=false`, 'ledger?cursor');
   }
   if (x < 60) {                         // document lists
     const f = rnd(5);
     if (f === 0) return get(t, '/api/documents', 'documents');
     if (f === 1) return get(t, '/api/documents?type=2&status=3', 'documents?type+status');
     if (f === 2) return get(t, `/api/documents?warehouseId=${1 + rnd(WAREHOUSES)}&type=1`, 'documents?wh+type');
-    if (f === 3) return get(t, `/api/documents?afterId=${1 + rnd(d.maxDocId)}&includeTotal=false`, 'documents?afterId');
+    if (f === 3) return get(t, `/api/documents?cursor=${cursorAt(1 + rnd(d.maxDocId))}&includeTotal=false`, 'documents?cursor');
     return get(t, '/api/documents?status=0', 'documents?draft');
   }
   if (x < 75) return get(t, `/api/documents/${1 + rnd(d.maxDocId)}`, 'documents/{id}');

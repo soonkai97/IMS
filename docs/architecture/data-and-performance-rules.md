@@ -43,7 +43,7 @@ persistence layer on save, never by use cases.
 | Current stock of a product | one row in `StockBalance` (read model kept by posting), not a sum over the ledger |
 | Next document number | one sequence row per type/warehouse/month |
 | Lookup by SKU / barcode / document number / id | unique or primary-key index seek |
-| Deep paging of ledger, documents, audit | seek (cursor) paging: `afterId`, constant cost at any depth |
+| Deep paging of ledger, documents, audit | seek (cursor) paging: `cursor` / `nextCursor`, constant cost at any depth |
 | Page numbers (OFFSET) | refused beyond 10,000 rows; use a cursor or a narrower filter |
 | Row count | skippable (`includeTotal=false`); the count is the only O(n) part of a list |
 | Summaries and totals | aggregated by SQL Server into one row (`IStockSummaryReader`) |
@@ -86,6 +86,12 @@ No N+1 queries: a use case issues a fixed number of queries regardless of how ma
 
 Every list that can grow returns `{ items, total, page, pageSize, nextCursor }`. Sort keys are enums. Small lookup lists (units, categories,
 warehouses, approval rules) return plain arrays with a hard cap.
+
+`nextCursor` is an opaque string (`CursorToken`: base64url of a version byte and the 8-byte internal `Id` of the last row; it is `null` on the last page).
+A client passes it back unchanged as the `cursor` query parameter of the same list and never parses it. The documents, ledger and audit lists seek on it
+(`Id < position`, newest first), so the plan is the one the integer `afterId` used. A value the server did not make (garbage, truncated, another version,
+over `Limits.CursorMaxLength`) is a 400 on the `cursor` field. It is not signed: a forged value only moves the start of a page inside the filter and
+warehouse scope that still apply.
 
 The order of a list is part of its contract: it is total (it ends in unique keys), so a walk through the pages never skips or repeats a row,
 and the export of a list uses the very same order as its pages. The receipt/issue detail (`/api/reports/movements` and its export) is

@@ -10,7 +10,7 @@ public sealed class AuditLogsPageSpec : Specification<AuditLog, AuditLogDto>
         AuditLogFilters.Apply(Query, q);
         var (page, size) = Paging.Normalize(q.Page, q.PageSize);
         Query.OrderByDescending(a => a.Id);
-        if (q.AfterId is { } after) Query.Where(a => a.Id < after).Take(size);
+        if (CursorToken.Decode(q.Cursor) is { } after) Query.Where(a => a.Id < after).Take(size);
         else Query.Skip((page - 1) * size).Take(size);
         Query.Select(a => new AuditLogDto(a.Id, a.Actor, a.Action, a.EntityType, a.EntityId, a.Before, a.After, a.At));
     }
