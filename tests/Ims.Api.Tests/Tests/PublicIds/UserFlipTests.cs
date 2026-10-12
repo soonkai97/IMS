@@ -9,6 +9,7 @@ using Ims.Application.Features.Auth;
 using Ims.Application.Features.Documents;
 using Ims.Application.Features.Users;
 using Ims.Domain;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Ims.Api.Tests.Tests.PublicIds;
 
@@ -101,6 +102,33 @@ public class UserFlipTests(ApiFixture fixture)
         var mine = (await bobClient.Documents.ListAsync(mine: true)).Data<PagedResult<DocumentListItem>>();
         Assert.DoesNotContain(mine.Items, i => i.Id == aliceDraft.Id);
         Assert.Equal(DocumentStatus.Draft, (await s.GetAsync(aliceDraft.Id)).Status);
+    }
+
+    [Fact]
+    public async Task The_document_projections_carry_the_integer_keys_of_the_creator_and_the_submitter_in_the_right_places()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var accounts = new AccountFactory(fixture);
+        var creator = await accounts.CreateAsync(Roles.Clerk);
+        var (creatorClient, _) = await accounts.SignInAsync(creator);
+        var submitter = await accounts.CreateAsync(Roles.Supervisor);
+        var (submitterClient, _) = await accounts.SignInAsync(submitter);
+        var product = await s.NewProductAsync();
+        var draft = await s.DraftReceiptAsync(creatorClient, Warehouse, new Line(product.Id, 1, 1m));
+        var submitted = await s.SubmitAsync(submitterClient, draft);
+        var creatorKey = await fixture.Database.ScalarAsync<int>("SELECT Id FROM [User] WHERE Username = @v", ("@v", creator.Username));
+        var submitterKey = await fixture.Database.ScalarAsync<int>("SELECT Id FROM [User] WHERE Username = @v", ("@v", submitter.Username));
+        Assert.NotEqual(creatorKey, submitterKey);
+
+        // The keys are not part of the JSON, so they are read from the projections themselves (the specifications the handlers run).
+        using var scope = fixture.Host.Services.CreateScope();
+        var documents = scope.ServiceProvider.GetRequiredService<IReadRepository<StockDocument>>();
+        var dto = (await documents.FirstOrDefaultAsync(new DocumentDtoSpec(submitted.Id, null)))!;
+        var listFilter = new DocumentFilter(null, null, null, null, null, null);
+        var item = (await documents.ListAsync(new DocumentsPageSpec(listFilter, null, null, 0, null, null))).Single(i => i.Id == submitted.Id);
+
+        Assert.Equal((creatorKey, (int?)submitterKey, creator.Id, (Guid?)submitter.Id), (dto.CreatedByKey, dto.SubmittedByKey, dto.CreatedById, dto.SubmittedById));
+        Assert.Equal((creatorKey, (int?)submitterKey, creator.Id, (Guid?)submitter.Id), (item.CreatedByKey, item.SubmittedByKey, item.CreatedById, item.SubmittedById));
     }
 
     [Fact]
