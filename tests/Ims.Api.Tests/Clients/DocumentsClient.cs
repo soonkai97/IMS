@@ -6,7 +6,7 @@ namespace Ims.Api.Tests.Clients;
 
 public sealed class DocumentsClient(ApiClient api)
 {
-    public Task<ApiResponse> ListAsync(DocumentType? type = null, DocumentStatus? status = null, int? warehouseId = null, string? search = null, int pageSize = 50,
+    public Task<ApiResponse> ListAsync(DocumentType? type = null, DocumentStatus? status = null, Guid? warehouseId = null, string? search = null, int pageSize = 50,
         bool? mine = null, bool? requiresApproval = null)
     {
         var query = $"?pageSize={pageSize}";

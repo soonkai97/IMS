@@ -14,12 +14,12 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class DocumentSearchTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private static async Task<List<DocumentListItem>> FoundAsync(ApiClient who, string search, string extra = "") =>
         (await who.GetAsync($"/api/documents?search={Uri.EscapeDataString(search)}{extra}&pageSize=100")).Data<PagedResult<DocumentListItem>>().Items.ToList();
 
-    private async Task<DocumentDto> DraftWithRemarkAsync(StockScenario s, ApiClient by, int productId, string remark, int? partnerId = null, DocumentType type = DocumentType.Receipt)
+    private async Task<DocumentDto> DraftWithRemarkAsync(StockScenario s, ApiClient by, int productId, string remark, Guid? partnerId = null, DocumentType type = DocumentType.Receipt)
     {
         var request = new DocumentBuilder(Warehouse).WithPartner(partnerId ?? (type == DocumentType.Receipt ? s.Reference.SupplierId : s.Reference.CustomerId)).WithRemark(remark)
             .WithLines(new Line(productId, 1, type == DocumentType.Receipt ? 1m : null)).Build();
@@ -73,7 +73,7 @@ public class DocumentSearchTests(ApiFixture fixture)
         await fixture.Database.ExecuteAsync(
             "INSERT Partner (Type, Name, Contact, IsActive) SELECT TOP (@n) 1, CONCAT(@m, N' ', ROW_NUMBER() OVER (ORDER BY (SELECT NULL)), N' Sdn Bhd'), NULL, 1 FROM sys.all_objects a CROSS JOIN sys.all_objects b",
             ("@m", marker), ("@n", partners - 1));
-        var firstId = await fixture.Database.ScalarAsync<int>("SELECT MIN(Id) FROM Partner WHERE Name LIKE @m + N'%'", ("@m", marker));
+        var firstId = await fixture.Database.ScalarAsync<Guid>("SELECT TOP 1 PublicId FROM Partner WHERE Name LIKE @m + N'%' ORDER BY Id", ("@m", marker));
         var last = (await s.Admin.Partners.CreateAsync(new PartnerSaveRequest(PartnerType.Supplier, $"{marker} {partners} Sdn Bhd", null, true))).Data<PartnerDto>();
         var ofFirst = await DraftWithRemarkAsync(s, s.Admin, product.Id, "from the first partner", firstId);
         var ofLast = await DraftWithRemarkAsync(s, s.Admin, product.Id, "from the last partner", last.Id);

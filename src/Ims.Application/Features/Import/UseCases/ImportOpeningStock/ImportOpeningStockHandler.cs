@@ -18,7 +18,9 @@ public class ImportOpeningStockHandler(IExcelReader excel, IReadRepository<Produ
 
         var fileSkus = sheet.Rows.Select(r => r.Get(ImportColumns.Sku)).Where(s => s.Length > 0).Distinct().ToList();
         var skus = (await products.ListAsync(new ProductSkusBySkusSpec(fileSkus), ct)).Where(p => p.IsActive).ToDictionary(p => p.Sku.ToLowerInvariant(), p => p.Id);
-        var whs = (await warehouses.ListAsync(new ActiveWarehousesSpec(), ct)).ToDictionary(w => w.Code.ToLowerInvariant(), w => w.Id);
+        var active = await warehouses.ListAsync(new ActiveWarehousesSpec(), ct);
+        var whs = active.ToDictionary(w => w.Code.ToLowerInvariant(), w => w.Id);
+        var publicIds = active.ToDictionary(w => w.Id, w => w.PublicId); // the draft receipts are created through the same command as the API, which names the warehouse by public id
         var allowed = scope.Ids();
 
         var results = new List<ImportRowResult>();
@@ -57,7 +59,7 @@ public class ImportOpeningStockHandler(IExcelReader excel, IReadRepository<Produ
             int? first = null;
             foreach (var g in parsed.GroupBy(x => x.WarehouseId))
             {
-                var request = new DocumentSaveRequest(g.Key, null, null, ImportColumns.OpeningStockRemark,
+                var request = new DocumentSaveRequest(publicIds[g.Key], null, null, ImportColumns.OpeningStockRemark,
                     g.Select(x => new DocumentLineInput(x.ProductId, x.Qty, null, x.Cost, null)).ToList());
                 var doc = await dispatcher.SendAsync(new CreateDocumentCommand(DocumentType.Receipt, request), ct);
                 first ??= doc.Id;

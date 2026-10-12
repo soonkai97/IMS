@@ -11,7 +11,7 @@ public class CreateDocumentHandler(IRepository<StockDocument> documents, IReadRe
         var id = await uow.ExecuteAsync(async () =>
         {
             var r = cmd.Data;
-            var warehouse = await warehouses.GetByIdAsync(r.WarehouseId, ct) ?? throw new ValidationException(Messages.WarehouseMissing);
+            var warehouse = await warehouses.FirstOrDefaultAsync(new ByPublicIdSpec<Warehouse>(r.WarehouseId), ct) ?? throw new ValidationException(Messages.WarehouseMissing);
             access.EnsureWarehouse(warehouse.Id);
             var partner = await LoadPartnerAsync(partners, r.PartnerId, ct);
 
@@ -30,6 +30,6 @@ public class CreateDocumentHandler(IRepository<StockDocument> documents, IReadRe
         return await reader.GetAsync(id, ct);
     }
 
-    internal static async Task<Partner?> LoadPartnerAsync(IReadRepository<Partner> partners, int? partnerId, CancellationToken ct) =>
-        partnerId is { } id ? await partners.GetByIdAsync(id, ct) ?? throw new ValidationException(Messages.PartnerMissing) : null;
+    internal static async Task<Partner?> LoadPartnerAsync(IReadRepository<Partner> partners, Guid? partnerId, CancellationToken ct) =>
+        partnerId is { } id ? await partners.FirstOrDefaultAsync(new ByPublicIdSpec<Partner>(id), ct) ?? throw new ValidationException(Messages.PartnerMissing) : null;
 }

@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Catalog;
 
-public record UpdateUomCommand(int Id, UomSaveRequest Data) : ICommand<UomDto>;
+public record UpdateUomCommand(Guid Id, UomSaveRequest Data) : ICommand<UomDto>;

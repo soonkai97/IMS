@@ -16,7 +16,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class ReviewRoutingTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     /// <summary>100 units at cost 100, so an issue of 60 is worth 6000 (the seeded supervisor rule fires from 5000).</summary>
     private async Task<(StockScenario S, ProductDto Product)> StockAsync()

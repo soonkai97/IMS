@@ -17,7 +17,7 @@ namespace Ims.Api.Tests.Tests.Contract;
 [Collection(ApiCollection.Name)]
 public class InputValidationTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     // ----- search boxes (EA-16) -----
     [Theory]
@@ -75,13 +75,13 @@ public class InputValidationTests(ApiFixture fixture)
     {
         var admin = await fixture.AsAsync(Roles.Admin);
         var username = Unique.Username("wh");
-        var request = new UserSaveRequest(username, Unique.Email(username), username, Roles.WarehouseStaff, true, $"Pw-{Guid.NewGuid():N}-1!", [Warehouse, 999_999]);
+        var request = new UserSaveRequest(username, Unique.Email(username), username, Roles.WarehouseStaff, true, $"Pw-{Guid.NewGuid():N}-1!", [Warehouse, Guid.NewGuid()]);
 
         var created = await admin.Users.CreateAsync(request);
 
         Assert.Equal(Messages.WarehouseMissing, created.ShouldBeProblem(HttpStatusCode.BadRequest).Detail);
         var fine = (await admin.Users.CreateAsync(request with { WarehouseIds = [Warehouse] })).Data<UserDto>();
-        var update = await admin.Users.UpdateAsync(fine.Id, request with { Password = null, WarehouseIds = [999_999] });
+        var update = await admin.Users.UpdateAsync(fine.Id, request with { Password = null, WarehouseIds = [Guid.NewGuid()] });
         Assert.Equal(Messages.WarehouseMissing, update.ShouldBeProblem(HttpStatusCode.BadRequest).Detail);
     }
 

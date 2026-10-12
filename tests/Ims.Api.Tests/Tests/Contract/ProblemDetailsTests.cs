@@ -11,7 +11,7 @@ namespace Ims.Api.Tests.Tests.Contract;
 [Collection(ApiCollection.Name)]
 public class ProblemDetailsTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private static void AssertShape(ApiResponse response, HttpStatusCode status, string title)
     {

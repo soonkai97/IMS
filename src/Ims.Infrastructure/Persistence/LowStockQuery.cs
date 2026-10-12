@@ -13,7 +13,7 @@ internal static class LowStockQuery
         public string Sku { get; init; } = "";
         public string ProductName { get; init; } = "";
         /// <summary>Null on the row of a product that is stocked in no warehouse the caller can see.</summary>
-        public int? WarehouseId { get; init; }
+        public Guid? WarehouseId { get; init; }
         public string? WarehouseCode { get; init; }
         public string? WarehouseName { get; init; }
         public decimal QtyOnHand { get; init; }
@@ -25,7 +25,7 @@ internal static class LowStockQuery
         var stocked = LowStockSets.LowBalances(db, scope, warehouseId)
             .Select(b => new Row
             {
-                ProductId = b.ProductId, Sku = b.Product.Sku, ProductName = b.Product.Name, WarehouseId = b.WarehouseId,
+                ProductId = b.ProductId, Sku = b.Product.Sku, ProductName = b.Product.Name, WarehouseId = b.Warehouse.PublicId,
                 WarehouseCode = b.Warehouse.Code, WarehouseName = b.Warehouse.Name, QtyOnHand = b.QtyOnHand, SafetyStock = b.Product.SafetyStock
             });
 

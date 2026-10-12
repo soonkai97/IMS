@@ -14,7 +14,7 @@ namespace Ims.Api.Tests.Tests.Audit;
 [Collection(ApiCollection.Name)]
 public class AuditSearchTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private async Task<List<AuditEntry>> QueryAsync(string? actor = null, string? entityType = null, string? entityId = null, string? action = null, string? search = null)
     {

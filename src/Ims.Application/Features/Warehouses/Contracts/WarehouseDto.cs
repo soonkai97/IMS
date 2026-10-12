@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Warehouses;
 
-public record WarehouseDto(int Id, string Code, string Name, string? Contact, string? Notes, bool IsActive);
+public record WarehouseDto(Guid Id, string Code, string Name, string? Contact, string? Notes, bool IsActive);

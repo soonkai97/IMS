@@ -13,7 +13,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class IfMatchRequiredTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private async Task<(StockScenario S, DocumentDto Draft, int ProductId)> DraftAsync()
     {

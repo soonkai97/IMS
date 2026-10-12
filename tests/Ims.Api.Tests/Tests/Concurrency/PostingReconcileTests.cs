@@ -22,10 +22,14 @@ public class PostingReconcileTests(ApiFixture fixture)
     private const decimal ReceiptCostBase = 3m;
     private const int ReceiptCostSteps = 3;
 
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
-    private Task<T> Sql<T>(string sql, int productId, int warehouseId) =>
-        fixture.Database.ScalarAsync<T>(sql, ("@p", productId), ("@w", warehouseId));
+    /// <summary>The ledger and the balances are keyed by the integer id; the test names the warehouse by the id the API gives.</summary>
+    private async Task<T> Sql<T>(string sql, int productId, Guid warehouse)
+    {
+        var warehouseId = await fixture.Database.ScalarAsync<int>("SELECT Id FROM Warehouse WHERE PublicId = @w", ("@w", warehouse));
+        return await fixture.Database.ScalarAsync<T>(sql, ("@p", productId), ("@w", warehouseId));
+    }
 
     [Fact]
     public async Task Parallel_receipts_and_issues_of_one_product_leave_the_balance_equal_to_the_ledger_and_every_balance_after_correct()

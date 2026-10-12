@@ -22,4 +22,7 @@ public static class ApiRoutes
     public const string Health = "/health";
 
     public const string Id = "{id:int}";
+
+    /// <summary>The route of an entity addressed by its public id (a GUID): warehouses, partners, categories and units so far; the others follow in the GUID plan (PR-5 to PR-7).</summary>
+    public const string PublicId = "{id:guid}";
 }

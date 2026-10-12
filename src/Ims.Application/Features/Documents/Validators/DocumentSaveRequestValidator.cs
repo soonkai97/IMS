@@ -6,7 +6,7 @@ public class DocumentSaveRequestValidator : AbstractValidator<DocumentSaveReques
 {
     public DocumentSaveRequestValidator()
     {
-        RuleFor(x => x.WarehouseId).GreaterThan(0).WithMessage(Messages.ChooseWarehouse);
+        RuleFor(x => x.WarehouseId).NotEqual(Guid.Empty).WithMessage(Messages.ChooseWarehouse);
         RuleFor(x => x.Remark).MaximumLength(Limits.RemarkMaxLength);
         RuleFor(x => x.Lines).NotEmpty().WithMessage(Messages.AddLine)
             .Must(l => l is null || l.Count <= Limits.MaxDocumentLines).WithMessage(Messages.TooManyLines(Limits.MaxDocumentLines));

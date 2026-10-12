@@ -10,6 +10,6 @@ public class CreateCategoryHandler(IRepository<Category> categories, IUnitOfWork
         var c = Category.Create(name);
         categories.Add(c);
         await uow.SaveChangesAsync(ct);
-        return new CategoryDto(c.Id, c.Name);
+        return new CategoryDto(c.PublicId, c.Name);
     }
 }

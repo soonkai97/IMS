@@ -16,7 +16,7 @@ public class UnitsController(IDispatcher dispatcher) : ApiControllerBase(dispatc
     [ProducesResponseType<UomDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Create([FromBody] UomSaveRequest body) => SendOk(new CreateUomCommand(body));
 
-    [HttpPut(ApiRoutes.Id), Authorize(Policy = Permissions.MasterDataManage)]
+    [HttpPut(ApiRoutes.PublicId), Authorize(Policy = Permissions.MasterDataManage)]
     [ProducesResponseType<UomDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Update(int id, [FromBody] UomSaveRequest body) => SendOk(new UpdateUomCommand(id, body));
+    public Task<IActionResult> Update(Guid id, [FromBody] UomSaveRequest body) => SendOk(new UpdateUomCommand(id, body));
 }

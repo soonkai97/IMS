@@ -16,7 +16,7 @@ public partial class EndpointCoverageTests
     {
         var inCode = ProtectedEndpointsInCode();
         var inTable = EndpointCatalog.All
-            .Select(c => $"{c.Method} {Normalize(c.Path(new ReferenceData(1, 1, 1, 1, 1, "X", 1, 1, 1, 1)))} -> {c.Permission}")
+            .Select(c => $"{c.Method} {Normalize(c.Path(new ReferenceData(Guid.Empty, Guid.Empty, Guid.Empty, Guid.Empty, Guid.Empty, "X", Guid.Empty, Guid.Empty, 1, 1)))} -> {c.Permission}")
             .Order().ToList();
 
         Assert.Equal(inCode, inTable);
@@ -59,10 +59,13 @@ public partial class EndpointCoverageTests
     private static string Normalize(string path)
     {
         var withoutQuery = path.Split('?')[0];
-        var generic = IdSegment().Replace(withoutQuery, "/{id}");
+        var generic = GuidSegment().Replace(IdSegment().Replace(withoutQuery, "/{id}"), "/{id}");
         generic = TemplateKind().Replace(generic, "/templates/{kind}");
-        return Regex.Replace(generic, @"\{id:int\}", "{id}");
+        return Regex.Replace(generic, @"\{id:(int|guid)\}", "{id}");
     }
+
+    [GeneratedRegex(@"/[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}(?=/|$)")]
+    private static partial Regex GuidSegment();
 
     [GeneratedRegex(@"/\d+(?=/|$)")]
     private static partial Regex IdSegment();

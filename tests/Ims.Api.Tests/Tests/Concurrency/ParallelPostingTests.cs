@@ -15,7 +15,7 @@ namespace Ims.Api.Tests.Tests.Concurrency;
 [Collection(ApiCollection.Name)]
 public class ParallelPostingTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private static string Summary(IEnumerable<ApiResponse> responses) =>
         string.Join(", ", responses.GroupBy(r => (int)r.Status).OrderBy(g => g.Key).Select(g => $"{g.Count()}x{g.Key}"));
@@ -31,7 +31,7 @@ public class ParallelPostingTests(ApiFixture fixture)
         return submitted;
     }
 
-    private static async Task AssertBalanceEqualsLedgerAsync(StockScenario s, ProductDto product, int warehouseId, decimal expected)
+    private static async Task AssertBalanceEqualsLedgerAsync(StockScenario s, ProductDto product, Guid warehouseId, decimal expected)
     {
         Assert.Equal(expected, await s.OnHandAsync(product.Id, warehouseId));
         Assert.Equal(expected, await s.LedgerSumAsync(product.Id, warehouseId));

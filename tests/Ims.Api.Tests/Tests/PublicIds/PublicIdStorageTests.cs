@@ -9,7 +9,7 @@ namespace Ims.Api.Tests.Tests.PublicIds;
 
 /// <summary>
 /// How the public id is stored: the id the object was made with is the one in the table, the unique index covers soft-deleted rows too, a duplicate is a
-/// conflict that says to try again, and the audit trail still names rows by their integer key. All on a real SQL Server database.
+/// conflict that says to try again, and the audit trail names a row by its public id once its API has flipped (units; the others still use the integer key). All on a real SQL Server database.
 /// </summary>
 public class PublicIdStorageTests(PublicIdDatabase fixture) : IClassFixture<PublicIdDatabase>
 {
@@ -139,12 +139,12 @@ public class PublicIdStorageTests(PublicIdDatabase fixture) : IClassFixture<Publ
     }
 
     [Fact]
-    public async Task The_audit_row_of_a_created_row_names_the_integer_key_and_carries_the_public_id()
+    public async Task The_audit_row_of_a_created_unit_names_it_by_public_id_which_the_payload_also_carries()
     {
         var uom = await AddUomAsync();
 
         await using var db = fixture.NewContext();
-        var audit = await db.Set<AuditLog>().SingleAsync(a => a.EntityType == nameof(Uom) && a.EntityId == uom.Id.ToString() && a.Action == AuditActions.RowCreated);
+        var audit = await db.Set<AuditLog>().SingleAsync(a => a.EntityType == nameof(Uom) && a.EntityId == uom.PublicId.ToString() && a.Action == AuditActions.RowCreated);
 
         Assert.Contains(uom.PublicId.ToString(), audit.After);
     }
