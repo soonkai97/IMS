@@ -91,7 +91,13 @@
       [hint]="'rule.thresholdHint' | t"
       [control]="ruleForm.controls.amountThreshold"
     >
-      <app-input type="number" formControlName="amountThreshold" inputMode="decimal" min="0" />
+      <app-input
+        type="number"
+        formControlName="amountThreshold"
+        inputMode="decimal"
+        min="0"
+        step="0.01"
+      />
     </app-form-field>
     <app-form-field [label]="'rule.qtyThreshold' | t" [control]="ruleForm.controls.qtyThreshold">
       <app-input type="number" formControlName="qtyThreshold" inputMode="decimal" min="0" />

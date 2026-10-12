@@ -1,15 +1,15 @@
-import {
-  AbstractControl,
-  FormArray,
-  FormControl,
-  FormGroup,
-  ValidationErrors,
-  ValidatorFn,
-  Validators
-} from '@angular/forms';
+import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import { DocumentLineDto, DocumentLineInput, DocumentType, ProductDto } from '@ims/api';
-import { MAX_QUANTITY, MAX_QUANTITY_DECIMALS } from '@ims/models';
-import { roundQuantity, toNumber } from '@ims/utils';
+import { MAX_QUANTITY, MAX_QUANTITY_DECIMALS, MAX_UNIT_COST } from '@ims/models';
+import {
+  MONEY_DECIMALS,
+  decimalPlaces,
+  maxDecimals,
+  lineAmount,
+  roundMoney,
+  roundQuantity,
+  toNumber
+} from '@ims/utils';
 
 /** One unit a line can be entered in, with the factor that converts it to the product's base unit. */
 export interface UomOption {
@@ -50,21 +50,28 @@ export type LineGroup = FormGroup<{
 
 export type LinesArray = FormArray<LineGroup>;
 
-export const MIN_LINE_QTY = 0.001;
+/** The smallest quantity the API takes: one unit of its last decimal (0.0001). */
+export const MIN_LINE_QTY = 10 ** -MAX_QUANTITY_DECIMALS;
 /** A line starts at one; a worker who never changed it has nothing to lose by removing it. */
 export const DEFAULT_QTY = 1;
 const BASE_FACTOR = 1;
 
-/** The API stores at most 4 decimals; reject more instead of letting the server do it. */
-export function maxDecimals(count: number): ValidatorFn {
-  return (control: AbstractControl): ValidationErrors | null => {
-    const value: unknown = control.value;
-    if (typeof value !== 'number') {
-      return null;
-    }
-    const decimals = (String(value).split('.')[1] ?? '').length;
-    return decimals > count ? { decimals: { max: count } } : null;
-  };
+/** The one quantity rule, the API's: from 0.0001 up to the maximum, at most 4 decimals (ER-12). */
+export function isValidQuantity(qty: number | null): qty is number {
+  return (
+    qty !== null &&
+    qty >= MIN_LINE_QTY &&
+    qty <= MAX_QUANTITY &&
+    decimalPlaces(qty) <= MAX_QUANTITY_DECIMALS
+  );
+}
+
+/** A unit cost is money: from 0 up to the API maximum, at most 2 decimals. Blank is valid (nobody typed a cost). */
+export function isValidUnitCost(unitCost: number | null): boolean {
+  return (
+    unitCost === null ||
+    (unitCost >= 0 && unitCost <= MAX_UNIT_COST && decimalPlaces(unitCost) <= MONEY_DECIMALS)
+  );
 }
 
 export function createLineGroup(value: LineValue): LineGroup {
@@ -75,14 +82,19 @@ export function createLineGroup(value: LineValue): LineGroup {
       { value: value.productName, disabled: true },
       { nonNullable: true }
     ),
+    // The decimals rule comes first: 0.00001 is "at most 4 decimals", not "above 0" (ER-12).
     qty: new FormControl<number | null>(value.qty, [
       Validators.required,
+      maxDecimals(MAX_QUANTITY_DECIMALS),
       Validators.min(MIN_LINE_QTY),
-      Validators.max(MAX_QUANTITY),
-      maxDecimals(MAX_QUANTITY_DECIMALS)
+      Validators.max(MAX_QUANTITY)
     ]),
     uomId: new FormControl(value.uomId, { nonNullable: true }),
-    unitCost: new FormControl<number | null>(value.unitCost, [Validators.min(0)]),
+    unitCost: new FormControl<number | null>(value.unitCost, [
+      maxDecimals(MONEY_DECIMALS),
+      Validators.min(0),
+      Validators.max(MAX_UNIT_COST)
+    ]),
     remark: new FormControl(value.remark, { nonNullable: true }),
     available: new FormControl<number | null>({ value: value.available, disabled: true }),
     baseUomCode: new FormControl(
@@ -181,30 +193,42 @@ export function maxCoveredQuantity(line: LineValue): number {
 }
 
 export interface DocumentTotals {
+  /** Every line in the list, valid or not (the "Items (n)" heading). */
   readonly lineCount: number;
+  /** Lines with a valid quantity: the ones the totals line counts. */
+  readonly validLineCount: number;
   /** Sum of the base-unit quantities. */
   readonly totalQty: number;
-  /** Receipts only: sum of qty * unit cost. */
+  /** Receipts only: sum of the line amounts, each `qty x unit cost` rounded to cents like the API. */
   readonly totalAmount: number;
   /** Issues only: lines the stock does not cover. */
   readonly shortLineCount: number;
 }
 
+/**
+ * Totals of what the user sees. A line the form rejects (empty, zero, negative, more than 4 decimals) is left out of
+ * the quantity, the count and the amount, so the footer never says "-4 units" or counts a value Save will refuse (ER-12).
+ */
 export function computeTotals(lines: readonly LineValue[], type: DocumentType): DocumentTotals {
-  const isReceipt = type === DocumentType.Receipt;
+  const valid = lines.filter(line => isValidQuantity(line.qty));
   return {
     lineCount: lines.length,
-    // A line being typed (empty, 0 or negative) adds nothing: the footer must never say "-4 units".
-    totalQty: roundQuantity(lines.reduce((sum, line) => sum + Math.max(0, baseQuantity(line)), 0)),
-    totalAmount: isReceipt
-      ? roundQuantity(
-          lines.reduce((sum, line) => sum + toNumber(line.qty) * toNumber(line.unitCost), 0),
-          2
-        )
-      : 0,
+    validLineCount: valid.length,
+    totalQty: roundQuantity(valid.reduce((sum, line) => sum + baseQuantity(line), 0)),
+    totalAmount:
+      type === DocumentType.Receipt
+        ? roundMoney(valid.reduce((sum, line) => sum + receiptLineAmount(line), 0))
+        : 0,
     shortLineCount:
-      type === DocumentType.Issue ? lines.filter(line => lineShortfall(line) > 0).length : 0
+      type === DocumentType.Issue ? valid.filter(line => lineShortfall(line) > 0).length : 0
   };
+}
+
+/** Receipt line amount in money. A cost the form rejects (3 decimals, negative, too large) is left out, like a blank one. */
+function receiptLineAmount(line: LineValue): number {
+  return isValidUnitCost(line.unitCost)
+    ? lineAmount(toNumber(line.qty), toNumber(line.unitCost))
+    : 0;
 }
 
 export function toLineInputs(lines: readonly LineValue[], type: DocumentType): DocumentLineInput[] {

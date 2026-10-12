@@ -107,7 +107,7 @@ describe('DocumentListPageComponent Mine / All', () => {
       role.set(ROLE.WarehouseStaff);
       await render();
 
-      expect(headers()).not.toContain('Amount');
+      expect(headers()).not.toContain('Amount (RM)');
       expect(headers()).toContain('Status');
       expect(firstRow()).not.toMatch(/\d\.\d{2}/);
       expect(spectator.queryAll('tbody tr:first-child td')).toHaveLength(headers().length);
@@ -118,7 +118,7 @@ describe('DocumentListPageComponent Mine / All', () => {
       role.set(ROLE.Clerk);
       await render();
 
-      expect(headers()).toContain('Amount');
+      expect(headers()).toContain('Amount (RM)');
     });
 
     it('a supervisor sees the Amount column too', async () => {
@@ -126,7 +126,7 @@ describe('DocumentListPageComponent Mine / All', () => {
       role.set(ROLE.Supervisor);
       await render();
 
-      expect(headers()).toContain('Amount');
+      expect(headers()).toContain('Amount (RM)');
     });
   });
 

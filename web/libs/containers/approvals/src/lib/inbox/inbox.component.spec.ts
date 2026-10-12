@@ -115,7 +115,7 @@ describe('ApprovalsInboxPageComponent', () => {
     spectator = createComponent();
 
     const headers = spectator.queryAll('th').map(header => (header.textContent ?? '').trim());
-    expect(headers).not.toContain('Amount');
+    expect(headers).not.toContain('Amount (RM)');
     expect(rows()[0]).toContain('Large');
     expect(rows()[0]).toContain('Override');
     expect(rows()[0]).not.toMatch(/\d\.\d{2}/);
@@ -125,7 +125,7 @@ describe('ApprovalsInboxPageComponent', () => {
   it('with cost.view the Amount column is there', () => {
     const headers = spectator.queryAll('th').map(header => (header.textContent ?? '').trim());
 
-    expect(headers).toContain('Amount');
+    expect(headers).toContain('Amount (RM)');
   });
 
   it('shows what I submitted on the other tab', () => {

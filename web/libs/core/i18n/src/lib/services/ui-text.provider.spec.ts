@@ -22,6 +22,19 @@ describe('UI text for the kit', () => {
     expect(text().requiredLegend).toBe('* means required');
   });
 
+  it('R04: too many decimals says the limit: money has its own sentence, a quantity says 4', () => {
+    expect(text().validationMessage('decimals', { max: 2 })).toBe(
+      'Enter an amount with at most 2 decimals.'
+    );
+    expect(text().validationMessage('decimals', { max: 4 })).toBe('Use at most 4 decimals.');
+  });
+
+  it('R04: text a number field cannot read says what to type', () => {
+    expect(text().validationMessage('badInput', true)).toBe(
+      'Enter a number such as 1234.50, without commas or spaces.'
+    );
+  });
+
   it('keeps the other validation sentences', () => {
     expect(text().validationMessage('required', true)).toBe('This field is required.');
     expect(text().validationMessage('maxlength', { requiredLength: 100 })).toBe(

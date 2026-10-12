@@ -124,7 +124,7 @@ describe('ReportsPageComponent receipt and issue detail (3.9 signed stock effect
       ...SUPERVISOR
     );
 
-    expect(headers()).toEqual(expect.arrayContaining(['Quantity', 'Stock effect', 'Amount']));
+    expect(headers()).toEqual(expect.arrayContaining(['Quantity', 'Stock effect', 'Amount (RM)']));
     expect(effects()).toEqual(['+24', '-24']);
   });
 
@@ -143,8 +143,8 @@ describe('ReportsPageComponent receipt and issue detail (3.9 signed stock effect
       'Quantity',
       'Unit',
       'Stock effect',
-      'Unit cost (per base unit)',
-      'Amount'
+      'Unit cost (RM per base unit)',
+      'Amount (RM)'
     ]);
     const cells = spectator
       .queryAll('tbody tr:first-child td')
@@ -285,8 +285,8 @@ describe('ReportsPageComponent receipt and issue detail (3.9 signed stock effect
   it('without cost.view there is no Amount column and no number (a role that reaches the report)', () => {
     render([movement({}, false)], PERMISSION.ReportsRead);
 
-    expect(headers()).not.toContain('Amount');
-    expect(headers()).not.toContain('Unit cost (per base unit)');
+    expect(headers()).not.toContain('Amount (RM)');
+    expect(headers()).not.toContain('Unit cost (RM per base unit)');
     expect(headers()).toEqual(expect.arrayContaining(['Product', 'Unit', 'Stock effect']));
     expect(bodyRows()[0]).not.toMatch(/\d\.\d{2}/);
     expect(bodyRows()[0]).toContain('Demo widget');
