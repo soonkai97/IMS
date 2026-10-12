@@ -122,12 +122,17 @@ with 50,045, 10,050 and 3,044 lines to get the plan flip; the Zipf seed alone, h
 
 The wall times of one call are noisy on this shared machine (the same call differs 2-4x between sessions, and a first call includes JIT); the logical reads are exact.
 Server-side, `17-movements-by-product.sql` (`results-1m-movements-by-product-plan.txt`): 0 lines 4.03M reads and 2,550 ms with the shared plan, 12 reads and 53-64 ms with
-`RECOMPILE` (the compile is most of that: 50-130 ms of CPU per statement; a normal plan costs 0-2 ms to run for a cold product).
+`RECOMPILE` (the compile is most of that). Those 50-130 ms were the quietest session; the review of this change (PR 71) measured the real cost on a busier machine:
+**94-300 ms of CPU for a cold product and 350-800 ms for a product with 2-5 thousand lines**; a cold product through the API takes 0.12-0.45 s instead of 0.02-0.03 s when
+the shared plan happens to be good; 24 concurrent requests gave a median of 0.71 s. The trade is right (the worst case goes from 1-9 s to under 1 s), but the extra CPU per
+product-filtered request is real.
 
 Fix: `EfMovementReader` tags the page and both counts with `TagWith(RecompileInterceptor.Tag)` **only when a product filter is present**; `RecompileInterceptor`
 (registered on the context) turns the tag into `OPTION (RECOMPILE)`. No schema change, no migration. The default report and every other filter keep the cached plan. The price
-is one compile (about 50-130 ms of CPU) for the page, and a little for each count, per product-filtered request; that report is a supervisor's drill-down, not a polled
-screen. If it is ever called hundreds of times per second, replace the hint by a plan chosen from the product's line count (two statement texts).
+is one compile (0.1-0.8 s of CPU, see above) for the page, and a little for each count, per product-filtered request; that report is a supervisor's drill-down, not a polled
+screen. If it is ever called often, replace the hint by a plan chosen from the product's line count (two statement texts). `RecompileInterceptor` leaves a command that already
+ends with the hint alone. EF's Command log shows the tag (`-- ims:recompile`) but not the hint (found in the PR 71 review): to see the hint, read the statement in the Query Store or the plan cache. `MovementsByProductPlanTests` sends the report through the real host and asserts the hint on the
+statements that reach the server, so removing the registration in `AddInfrastructure` fails it.
 
 Rejected: an index. `IX_StockDocumentLine_ProductId_Live (ProductId) INCLUDE (DocumentId) WHERE REC_DELETED = 0` (candidate measured on the 1M Zipf database, all products,
 fresh and shared plans): reads within 2 % of the existing foreign-key index for every product, and the shared-plan problem is the same, because the cost is in the plan the

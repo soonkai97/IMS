@@ -8,7 +8,8 @@ namespace Ims.Infrastructure.Persistence;
 /// parameterised statement once, for the first value that arrives, and reuses that plan for every other value. For a filter whose best plan depends
 /// on how many rows the value matches (the movements report for one product) that is wrong for most values: the plan that is right for a product with
 /// thousands of lines walks every document when the product has none (millions of reads). A tagged query gets a plan of its own, for its own value, and
-/// pays a compile (about 50 ms) for it. Untagged queries are not touched.
+/// pays a compile (roughly 0.1 to 0.8 s of CPU for this report, see docs/dba/README.md 4b) for it. Untagged queries are not touched. A command that already
+/// ends with the hint is left alone.
 /// </summary>
 public sealed class RecompileInterceptor : DbCommandInterceptor
 {
@@ -31,6 +32,7 @@ public sealed class RecompileInterceptor : DbCommandInterceptor
 
     private static void Mark(DbCommand command)
     {
-        if (command.CommandText.StartsWith(TagComment, StringComparison.Ordinal)) command.CommandText += Hint;
+        var text = command.CommandText;
+        if (text.StartsWith(TagComment, StringComparison.Ordinal) && !text.EndsWith(Hint, StringComparison.Ordinal)) command.CommandText = text + Hint;
     }
 }
