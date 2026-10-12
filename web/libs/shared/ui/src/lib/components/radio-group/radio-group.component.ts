@@ -16,6 +16,8 @@ export interface RadioOption {
   readonly label: string;
 }
 
+export type RadioVariant = 'default' | 'segmented';
+
 let nextGroupId = 0;
 
 @Component({
@@ -45,6 +47,13 @@ export class UiRadioGroupComponent implements ControlValueAccessor {
   $invalid = input(false, { alias: 'invalid', transform: booleanAttribute });
   $errorId = input<string | undefined>(undefined, { alias: 'errorId' });
 
+  /**
+   * `segmented`: the options share one track and the chosen one is filled (Mine/All, theme). Still a radio group: the
+   * arrow keys move and select, the group is one tab stop.
+   */
+  $variant = input<RadioVariant>('default', { alias: 'variant' });
+
+  $segmented = computed(() => this.$variant() === 'segmented');
   $requiredText = computed(() => this.uiText().required);
 
   readonly groupName = `app-radio-${nextGroupId++}`;

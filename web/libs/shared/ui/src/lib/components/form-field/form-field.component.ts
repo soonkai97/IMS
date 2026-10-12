@@ -11,6 +11,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl } from '@angular/forms';
 import { merge, of, startWith, switchMap } from 'rxjs';
 import { UI_TEXT } from '../../tokens/ui-text.token';
+import { UiIconComponent } from '../icon/icon.component';
 import { FORM_FIELD, FormFieldContext } from './form-field.token';
 
 let nextFieldId = 0;
@@ -23,6 +24,7 @@ let nextFieldId = 0;
  */
 @Component({
   selector: 'app-form-field',
+  imports: [UiIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './form-field.component.html',
   styleUrl: './form-field.component.scss',

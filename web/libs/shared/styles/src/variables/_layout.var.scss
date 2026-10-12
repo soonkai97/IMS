@@ -44,6 +44,11 @@ $easings: (
   'out': cubic-bezier(0, 0, 0.2, 1)
 );
 
+// How far a pressed button shrinks. Emitted as --ims-scale-press by globals/_motion.scss, which sets it to 1 (no movement) under
+// prefers-reduced-motion and <html data-motion="off">: the duration tokens only shorten a transition, they would not stop a jump.
+$press-scale: 0.97;
+$no-press-scale: 1;
+
 // What every duration becomes under prefers-reduced-motion and <html data-motion="off">. 1ms, not 0: a zero duration fires no
 // transitionend / animationend, and code that waits for them would hang.
 $collapsed-duration: 1ms;
@@ -78,6 +83,10 @@ $collapsed-duration: 1ms;
   }
 
   @return var(--ims-ease-#{$name});
+}
+
+@function press-scale() {
+  @return var(--ims-scale-press);
 }
 
 @function duration($name) {

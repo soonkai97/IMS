@@ -45,6 +45,32 @@ describe('motion tokens', () => {
   });
 });
 
+describe('press scale token', () => {
+  const root = block(':root {\n  --ims-dur-fast');
+
+  it('shrinks a pressed button to 0.97 normally', () => {
+    expect(root).toContain('--ims-scale-press: 0.97');
+  });
+
+  it('is 1 (no movement) under prefers-reduced-motion', () => {
+    expect(OS_SETTING).toContain('--ims-scale-press: 1');
+  });
+
+  it('is 1 with the test switch data-motion=off', () => {
+    expect(SWITCH_TOKENS).toContain('--ims-scale-press: 1');
+  });
+
+  it.each([
+    '../../ui/src/lib/components/button/button.component.scss',
+    'globals/_link-button.scss'
+  ])('%s presses through the token, with no scale of its own', file => {
+    const scss = readFileSync(join(SRC, file), 'utf8');
+
+    expect(scss).toContain('scale(press-scale())');
+    expect(scss).not.toMatch(/scale\(\s*0?\.\d+/);
+  });
+});
+
 describe('no infinite animation under reduced motion or in tests', () => {
   it('stops every animation with the OS setting (its own block, not the test switch)', () => {
     expect(OS_SETTING).not.toContain('data-motion');

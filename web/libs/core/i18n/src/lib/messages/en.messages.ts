@@ -50,6 +50,7 @@ export const EN_MESSAGES = {
   'ui.rangeStatus': '{from}-{to} of {total}',
   'ui.required': 'required',
   'ui.retry': 'Retry',
+  'ui.saved': 'Saved',
   'ui.selectPlaceholder': 'Select...',
   'ui.showPassword': 'Show password',
 
