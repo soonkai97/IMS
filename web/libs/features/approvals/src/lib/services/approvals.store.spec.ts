@@ -12,7 +12,7 @@ import {
 import { PermissionService } from '@ims/core/identity';
 import { SystemSettingsStore } from '@ims/core/settings';
 import { DocumentsStore } from '@ims/features/documents';
-import { MAX_PAGE_SIZE, ROLE } from '@ims/models';
+import { MAX_PAGE_SIZE } from '@ims/models';
 import { ApprovalsStore } from './approvals.store';
 
 function item(id: number, overrides: Partial<DocumentListItem> = {}): DocumentListItem {
@@ -67,10 +67,7 @@ describe('ApprovalsStore', () => {
     providers: [
       mockProvider(DocumentsClient),
       mockProvider(DocumentsStore, { counts: { $data: counts, load: jest.fn() } }),
-      mockProvider(PermissionService, {
-        $userId: signal(9),
-        $role: signal<string | undefined>(ROLE.Supervisor)
-      }),
+      mockProvider(PermissionService, { $userId: signal(9) }),
       mockProvider(SystemSettingsStore, {
         $allowSelfApproval: signal(false),
         ensureLoaded: jest.fn()
@@ -116,7 +113,7 @@ describe('ApprovalsStore', () => {
     expect(spectator.service.$submittedByMe().map(d => d.id)).toEqual([2]);
   });
 
-  it("trusts canAct from the API over the role rules (an Owner-level document is not the Supervisor's)", () => {
+  it("waits on the API's canAct alone (a large document is not every reviewer's)", () => {
     const client = spectator.inject(DocumentsClient);
     client.list.mockReturnValue(
       of(page([item(1, { canAct: false }), item(2, { canAct: true, isLarge: true })]))
