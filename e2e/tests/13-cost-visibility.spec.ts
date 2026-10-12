@@ -59,7 +59,7 @@ test.describe('EA-23 Cost and value visibility', () => {
     await expect(page.getByRole('columnheader', { name: 'Amount' })).toHaveCount(0);
     await expectNoMoney(page);
     await editor.open('receipts', posted.id);
-    await expect(page.getByText('Amount', { exact: true })).toHaveCount(0);
+    await expect(page.getByText(/^Amount/)).toHaveCount(0);
     await expectNoMoney(page);
 
     // Issue list and draft issue.
@@ -68,7 +68,7 @@ test.describe('EA-23 Cost and value visibility', () => {
     await expect(page.getByRole('columnheader', { name: 'Amount' })).toHaveCount(0);
     await expectNoMoney(page);
     await editor.open('issues', issue.id);
-    await expect(page.getByText('Amount', { exact: true })).toHaveCount(0);
+    await expect(page.getByText(/^Amount/)).toHaveCount(0);
     await expectNoMoney(page);
 
     // Stock: no Value column, nothing to sort by value, no export; the product page carries no cost either.
@@ -111,6 +111,15 @@ test.describe('EA-23 Cost and value visibility', () => {
     await editor.setQty(product.sku, RECEIPT_QTY);
     await editor.setUnitCost(product.sku, RECEIPT_COST);
     await expect(page.getByRole('main')).toContainText('13.50');
+
+    // R04: a 3rd decimal is refused with a message (never rounded); a valid cost clears it.
+    const tooPrecise = page.getByText('Enter an amount with at most 2 decimals.');
+    await editor.setUnitCost(product.sku, 12.345);
+    await editor.unitCost(product.sku).blur();
+    await expect(tooPrecise).toBeVisible();
+    await editor.setUnitCost(product.sku, RECEIPT_COST);
+    await expect(tooPrecise).toHaveCount(0);
+
     await editor.action('Save draft').click();
     await expect(shell.toast('Draft saved.')).toBeVisible();
     const id = await editor.savedId();
@@ -166,6 +175,10 @@ test.describe('EA-23 Cost and value visibility', () => {
     await expect(page.getByRole('columnheader', { name: 'Quantity' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Stock effect' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Amount' })).toBeVisible();
+    // PR-06: Product, Unit and Unit cost are on the screen for a role with cost.view.
+    for (const name of ['Product', 'Unit', 'Unit cost (RM per base unit)']) {
+      await expect(page.getByRole('columnheader', { name, exact: true })).toBeVisible();
+    }
     const rows = page.getByRole('row').filter({ hasText: no });
     await expect(rows).toHaveCount(2);
     const reversal = rows.filter({ hasText: 'Reversal' });

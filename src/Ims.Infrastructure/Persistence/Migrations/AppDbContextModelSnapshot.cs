@@ -638,7 +638,10 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("AvgCost")
-                        .HasColumnType("decimal(18,6)");
+                        .HasColumnType("decimal(22,10)");
+
+                    b.Property<int?>("LastReceiptLineId")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("QtyInTransit")
                         .HasColumnType("decimal(18,4)");
@@ -779,6 +782,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("ReversedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("ReversedBy")
+                        .HasColumnType("int");
+
                     b.Property<int?>("ReversesDocumentId")
                         .HasColumnType("int");
 
@@ -833,6 +839,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ReversedAt"), new[] { "Status", "Type", "WarehouseId", "PartnerId", "No" });
 
+                    b.HasIndex("ReversedBy")
+                        .HasFilter("[ReversedBy] IS NOT NULL");
+
                     b.HasIndex("SubmittedBy");
 
                     b.HasIndex("WarehouseId");
@@ -854,10 +863,28 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("AvgCostAfter")
+                        .HasColumnType("decimal(22,10)");
+
+                    b.Property<decimal?>("AvgCostBefore")
+                        .HasColumnType("decimal(22,10)");
+
                     b.Property<decimal>("BaseQty")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<bool>("CostFromAverage")
+                        .HasColumnType("bit");
+
                     b.Property<int>("DocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("EnteredUnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("PreviousLineId")
                         .HasColumnType("int");
 
                     b.Property<int>("ProductId")
@@ -902,7 +929,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnName("ROW_VERSION");
 
                     b.Property<decimal>("UnitCost")
-                        .HasColumnType("decimal(18,6)");
+                        .HasColumnType("decimal(22,10)");
 
                     b.Property<int>("UomId")
                         .HasColumnType("int");
@@ -928,6 +955,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("BalanceAfter")
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<int>("CreatedBy")
                         .HasColumnType("int");
@@ -979,7 +1009,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("UnitCost")
-                        .HasColumnType("decimal(18,6)");
+                        .HasColumnType("decimal(22,10)");
 
                     b.Property<int>("WarehouseId")
                         .HasColumnType("int");
@@ -1468,6 +1498,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasForeignKey("RejectedBy")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Ims.Domain.User", "ReversedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReversedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Ims.Domain.User", "SubmittedByUser")
                         .WithMany()
                         .HasForeignKey("SubmittedBy")
@@ -1488,6 +1523,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Navigation("PostedByUser");
 
                     b.Navigation("RejectedByUser");
+
+                    b.Navigation("ReversedByUser");
 
                     b.Navigation("SubmittedByUser");
 

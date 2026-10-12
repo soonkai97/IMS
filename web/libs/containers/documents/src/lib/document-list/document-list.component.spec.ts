@@ -10,7 +10,7 @@ import {
 import { PermissionService } from '@ims/core/identity';
 import { DocumentQuery, DocumentsStore } from '@ims/features/documents';
 import { WarehousesStore } from '@ims/features/warehousing';
-import { PERMISSION, ROLE } from '@ims/models';
+import { PERMISSION, SEARCH_DEBOUNCE_MS } from '@ims/models';
 import { DocumentListPageComponent } from './document-list.component';
 
 const ITEM: DocumentListItem = {
@@ -42,7 +42,7 @@ const ITEM: DocumentListItem = {
 
 describe('DocumentListPageComponent Mine / All', () => {
   let spectator: Spectator<DocumentListPageComponent>;
-  const role = signal<string | undefined>(ROLE.WarehouseStaff);
+  const mineFirst = signal(true);
   const granted = new Set<string>();
   const load = jest.fn<void, [DocumentQuery]>();
   const createComponent = createComponentFactory({
@@ -54,7 +54,7 @@ describe('DocumentListPageComponent Mine / All', () => {
         provide: PermissionService,
         useValue: {
           has: (permission: string) => granted.has(permission),
-          $role: role,
+          $profile: () => ({ mineFirst: mineFirst() }),
           $userId: signal(4)
         }
       },
@@ -104,10 +104,10 @@ describe('DocumentListPageComponent Mine / All', () => {
       (spectator.query('tbody tr')?.textContent ?? '').replace(/\s+/g, ' ');
 
     it('warehouse staff get no Amount column and no number: the API sends null', async () => {
-      role.set(ROLE.WarehouseStaff);
+      mineFirst.set(true);
       await render();
 
-      expect(headers()).not.toContain('Amount');
+      expect(headers()).not.toContain('Amount (RM)');
       expect(headers()).toContain('Status');
       expect(firstRow()).not.toMatch(/\d\.\d{2}/);
       expect(spectator.queryAll('tbody tr:first-child td')).toHaveLength(headers().length);
@@ -115,23 +115,41 @@ describe('DocumentListPageComponent Mine / All', () => {
 
     it('a clerk (cost.view) sees the Amount column', async () => {
       granted.add(PERMISSION.CostView);
-      role.set(ROLE.Clerk);
+      mineFirst.set(true);
       await render();
 
-      expect(headers()).toContain('Amount');
+      expect(headers()).toContain('Amount (RM)');
     });
 
     it('a supervisor sees the Amount column too', async () => {
       granted.add(PERMISSION.CostView).add(PERMISSION.ValuationView);
-      role.set(ROLE.Supervisor);
+      mineFirst.set(false);
       await render();
 
-      expect(headers()).toContain('Amount');
+      expect(headers()).toContain('Amount (RM)');
     });
   });
 
+  it('sends no search under the API minimum (the API answers 400), then sends it', async () => {
+    mineFirst.set(false);
+    await render();
+    const typeAndWait = async (text: string): Promise<void> => {
+      spectator.component.$searchInput.set(text);
+      await new Promise(resolve => setTimeout(resolve, SEARCH_DEBOUNCE_MS + 50));
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+    };
+
+    await typeAndWait('ab');
+    expect(lastQuery().search).toBeUndefined();
+    expect(load.mock.calls.every(([query]) => query.search === undefined)).toBe(true);
+
+    await typeAndWait(' abc ');
+    expect(lastQuery().search).toBe('abc');
+  });
+
   it('warehouse staff start on Mine: the list asks the server for mine=true', async () => {
-    role.set(ROLE.WarehouseStaff);
+    mineFirst.set(true);
 
     await render();
 
@@ -139,7 +157,7 @@ describe('DocumentListPageComponent Mine / All', () => {
   });
 
   it('a supervisor starts on All', async () => {
-    role.set(ROLE.Supervisor);
+    mineFirst.set(false);
 
     await render();
 
@@ -147,7 +165,7 @@ describe('DocumentListPageComponent Mine / All', () => {
   });
 
   it('switching to All reloads without the filter and remembers the choice for next time', async () => {
-    role.set(ROLE.WarehouseStaff);
+    mineFirst.set(true);
     await render();
 
     spectator.component.onScopeChange('all');

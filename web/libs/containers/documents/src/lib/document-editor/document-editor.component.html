@@ -85,6 +85,8 @@
 
   @if ($editable()) {
     <form class="document-editor-form" [formGroup]="view.header" novalidate>
+      <!-- Warehouse (and Purpose on an issue) are required: one legend for the header, none in the line editor. -->
+      <app-form-legend />
       <div class="document-editor-header-fields">
         <app-form-field
           [label]="'doc.warehouse' | t"
@@ -294,7 +296,7 @@
     <footer class="document-editor-bar">
       @if ($editable()) {
         <p class="document-editor-totals" aria-live="polite">
-          {{ 'doc.totals' | t: { lines: $totals().lineCount, qty: $totals().totalQty } }}
+          {{ 'doc.totals' | t: { lines: $totals().validLineCount, qty: $totals().totalQty } }}
           <ng-container *appCan="'cost.view'">
             @if (!$isIssue() && $totals().totalAmount > 0) {
               · {{ $totals().totalAmount | appMoney }}

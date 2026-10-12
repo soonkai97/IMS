@@ -15,6 +15,7 @@ public class PostingContext(StockDocument document, SystemSettings settings, int
     public List<StockLedgerEntry> Entries { get; } = [];
     public bool OverrideUsed { get; set; }
 
-    public void AddEntry(StockDocumentLine line, decimal qtyDelta, decimal unitCost, LedgerReason reason) =>
-        Entries.Add(StockLedgerEntry.Create(Document, line.ProductId, qtyDelta, unitCost, reason, UserId, Now));
+    /// <param name="balanceAfter">What the product holds in the warehouse right after this movement: the balance AFTER the strategy applied the line. It is loaded under the (warehouse, product) lock and saved in the same transaction as the entry, so no other posting can slip in between.</param>
+    public void AddEntry(StockDocumentLine line, decimal qtyDelta, decimal balanceAfter, decimal unitCost, LedgerReason reason) =>
+        Entries.Add(StockLedgerEntry.Create(Document, line.ProductId, qtyDelta, balanceAfter, unitCost, reason, UserId, Now));
 }

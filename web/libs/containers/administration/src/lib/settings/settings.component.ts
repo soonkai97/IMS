@@ -34,6 +34,7 @@ import {
   UiDialogComponent,
   UiEmptyStateComponent,
   UiFormFieldComponent,
+  UiFormLegendComponent,
   UiIconComponent,
   UiInputComponent,
   UiPageHeaderComponent,
@@ -42,7 +43,7 @@ import {
   UiStatusChipComponent,
   UiTableComponent
 } from '@ims/ui';
-import { applyFieldErrors } from '@ims/utils';
+import { MONEY_DECIMALS, applyFieldErrors, maxDecimals } from '@ims/utils';
 
 const MAX_COOLDOWN_HOURS = 24 * 30;
 
@@ -70,6 +71,7 @@ interface RuleFormValue {
     UiDialogComponent,
     UiEmptyStateComponent,
     UiFormFieldComponent,
+    UiFormLegendComponent,
     UiIconComponent,
     UiInputComponent,
     UiPageHeaderComponent,
@@ -99,7 +101,10 @@ export class SettingsPageComponent implements OnInit {
   });
   readonly ruleForm = new FormGroup({
     docType: new FormControl<DocumentType>(DocumentType.Issue, { nonNullable: true }),
-    amountThreshold: new FormControl<number | null>(null, [Validators.min(0)]),
+    amountThreshold: new FormControl<number | null>(null, [
+      maxDecimals(MONEY_DECIMALS),
+      Validators.min(0)
+    ]),
     qtyThreshold: new FormControl<number | null>(null, [Validators.min(0)]),
     roleRequired: new FormControl<string>(ROLE.Supervisor, { nonNullable: true }),
     isActive: new FormControl(true, { nonNullable: true })

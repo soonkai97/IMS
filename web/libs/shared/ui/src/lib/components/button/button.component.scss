@@ -55,7 +55,7 @@
   border: border-width('thin') solid var(--button-border);
   border-radius: border-radius('md');
   cursor: pointer;
-  transition: background-color duration('fast') easing('smooth');
+  transition: background-color duration('fast') easing('standard');
 
   &:hover:not(:disabled, [aria-disabled='true']) {
     background: var(--button-bg-hover);

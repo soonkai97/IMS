@@ -92,7 +92,7 @@ public class PagingContractTests(ApiFixture fixture)
 
         var problem = (await admin.GetAsync($"{url}?page={int.MaxValue}")).ShouldBeProblem(System.Net.HttpStatusCode.BadRequest);
 
-        Assert.Contains("afterId", problem.Detail);
+        Assert.Contains("cursor", problem.Detail);
     }
 
     // ---------- cursor (seek) paging ----------
@@ -105,11 +105,11 @@ public class PagingContractTests(ApiFixture fixture)
         for (var i = 0; i < 5; i++) await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 1, 1m));
 
         var ids = new List<long>();
-        long? cursor = null;
+        string? cursor = null;
         var pages = 0;
         do
         {
-            var page = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=2" + (cursor is null ? "" : $"&afterId={cursor}"))).Data<PagedResult<LedgerRow>>();
+            var page = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=2" + (cursor is null ? "" : $"&cursor={Uri.EscapeDataString(cursor)}"))).Data<PagedResult<LedgerRow>>();
             ids.AddRange(page.Items.Select(r => r.Id));
             cursor = page.NextCursor;
             pages++;
@@ -121,18 +121,57 @@ public class PagingContractTests(ApiFixture fixture)
         Assert.Equal(ids.OrderByDescending(i => i), ids); // newest first, strictly decreasing
     }
 
+    /// <summary>What a cursor for this id would look like without encryption: base64url of a version byte and the 8-byte id.</summary>
+    private static string PlainCursorOf(long id)
+    {
+        var bytes = new byte[9];
+        bytes[0] = 1;
+        System.Buffers.Binary.BinaryPrimitives.WriteInt64BigEndian(bytes.AsSpan(1), id);
+        return System.Buffers.Text.Base64Url.EncodeToString(bytes);
+    }
+
     [Fact]
-    public async Task The_next_cursor_is_the_last_id_of_a_full_page_and_absent_on_a_short_page()
+    public async Task The_next_cursor_continues_after_the_last_row_of_a_full_page_hides_its_id_and_is_absent_on_a_short_page()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
         for (var i = 0; i < 3; i++) await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 1, 1m));
 
+        var whole = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=10")).Data<PagedResult<LedgerRow>>();
         var full = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=2")).Data<PagedResult<LedgerRow>>();
-        var short_ = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=10")).Data<PagedResult<LedgerRow>>();
+        var rest = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=2&cursor={Uri.EscapeDataString(full.NextCursor!)}")).Data<PagedResult<LedgerRow>>();
 
-        Assert.Equal(full.Items[^1].Id, full.NextCursor);
-        Assert.Null(short_.NextCursor);
+        Assert.NotNull(full.NextCursor);
+        Assert.DoesNotContain(PlainCursorOf(full.Items[^1].Id), full.NextCursor); // the key is not in plain sight (a decimal id would match a random token by chance, so compare the plain encoding)
+        Assert.Equal(whole.Items.Skip(2).Select(r => r.Id), rest.Items.Select(r => r.Id));
+        Assert.Null(whole.NextCursor);
+    }
+
+    [Fact]
+    public async Task A_cursor_of_one_list_is_a_400_on_another()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        for (var i = 0; i < 3; i++) await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 1, 1m));
+        var ledgerCursor = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=2")).Data<PagedResult<LedgerRow>>().NextCursor!;
+
+        foreach (var url in new[] { "/api/documents", "/api/audit" })
+            Assert.Equal([Messages.CursorInvalid], (await s.Admin.GetAsync($"{url}?pageSize=2&cursor={Uri.EscapeDataString(ledgerCursor)}")).ShouldBeProblem(System.Net.HttpStatusCode.BadRequest).ErrorsFor("cursor"));
+    }
+
+    [Theory]
+    [InlineData("12345")]            // the old integer cursor is not a cursor any more
+    [InlineData("not-a-cursor!!")]
+    [InlineData("AQAA")]             // truncated
+    public async Task A_cursor_the_server_did_not_make_is_a_400_on_the_cursor_field_never_a_500(string cursor)
+    {
+        var admin = await fixture.AsAsync(Roles.Admin);
+
+        foreach (var url in new[] { "/api/stock/ledger", "/api/documents", "/api/audit" })
+        {
+            var problem = (await admin.GetAsync($"{url}?pageSize=2&cursor={cursor}")).ShouldBeProblem(System.Net.HttpStatusCode.BadRequest);
+            Assert.Equal([Messages.CursorInvalid], problem.ErrorsFor("cursor"));
+        }
     }
 
     [Fact]
@@ -164,11 +203,11 @@ public class PagingContractTests(ApiFixture fixture)
         for (var i = 0; i < 5; i++) await s.DraftReceiptAsync(s.Admin, warehouse.Id, new Line(product.Id, 1, 1m));
 
         var ids = new List<int>();
-        long? cursor = null;
+        string? cursor = null;
         var pages = 0;
         do
         {
-            var url = $"/api/documents?warehouseId={warehouse.Id}&pageSize=2&includeTotal=false" + (cursor is null ? "" : $"&afterId={cursor}");
+            var url = $"/api/documents?warehouseId={warehouse.Id}&pageSize=2&includeTotal=false" + (cursor is null ? "" : $"&cursor={Uri.EscapeDataString(cursor)}");
             var page = (await s.Admin.GetAsync(url)).Data<PagedResult<DocumentListItem>>();
             ids.AddRange(page.Items.Select(d => d.Id));
             cursor = page.NextCursor;
@@ -189,11 +228,11 @@ public class PagingContractTests(ApiFixture fixture)
         for (var i = 0; i < 4; i++) await new ProductBuilder(fixture.Reference).CreateAsync(client);
 
         var seen = new List<long>();
-        long? cursor = null;
+        string? cursor = null;
         var pages = 0;
         do
         {
-            var url = $"/api/audit?actor={Uri.EscapeDataString(account.Username)}&entityType=Product&pageSize=3" + (cursor is null ? "" : $"&afterId={cursor}");
+            var url = $"/api/audit?actor={Uri.EscapeDataString(account.Username)}&entityType=Product&pageSize=3" + (cursor is null ? "" : $"&cursor={Uri.EscapeDataString(cursor)}");
             var page = (await client.GetAsync(url)).Data<PagedResult<AuditEntry>>();
             seen.AddRange(page.Items.Select(e => e.Id));
             cursor = page.NextCursor;

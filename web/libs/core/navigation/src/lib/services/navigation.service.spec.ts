@@ -1,29 +1,27 @@
 import { signal } from '@angular/core';
 import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
-import { PermissionService } from '@ims/core/identity';
-import { PERMISSION, ROLE } from '@ims/models';
+import { PermissionService, profileOf } from '@ims/core/identity';
+import { PERMISSION } from '@ims/models';
 import { NAV_BADGE_SOURCES, NavigationService } from './navigation.service';
 
-const PERMISSIONS_BY_ROLE: Record<string, string[]> = {
-  [ROLE.Admin]: Object.values(PERMISSION),
-  [ROLE.Owner]: [
-    PERMISSION.UsersRead,
-    PERMISSION.MasterDataRead,
-    PERMISSION.DocumentApprove,
-    PERMISSION.StockRead,
-    PERMISSION.ReportsRead,
-    PERMISSION.AuditRead
-  ],
-  [ROLE.WarehouseStaff]: [
-    PERMISSION.MasterDataRead,
-    PERMISSION.DocumentCreate,
-    PERMISSION.DocumentPost,
-    PERMISSION.StockRead
-  ]
-};
+const ADMIN: string[] = Object.values(PERMISSION);
+const OWNER: string[] = [
+  PERMISSION.UsersRead,
+  PERMISSION.MasterDataRead,
+  PERMISSION.DocumentApprove,
+  PERMISSION.StockRead,
+  PERMISSION.ReportsRead,
+  PERMISSION.AuditRead
+];
+const WAREHOUSE_STAFF: string[] = [
+  PERMISSION.MasterDataRead,
+  PERMISSION.DocumentCreate,
+  PERMISSION.DocumentPost,
+  PERMISSION.StockRead
+];
 
-describe('NavigationService (menus follow the role)', () => {
-  const role = signal<string>(ROLE.Admin);
+describe('NavigationService (menus follow the permissions)', () => {
+  const granted = signal<string[]>(ADMIN);
   const waiting = signal(0);
   let spectator: SpectatorService<NavigationService>;
   const createService = createServiceFactory({
@@ -32,10 +30,9 @@ describe('NavigationService (menus follow the role)', () => {
       {
         provide: PermissionService,
         useValue: {
-          $role: role.asReadonly(),
+          $profile: () => profileOf(new Set(granted())),
           hasAny: (permissions: string[]) =>
-            permissions.length === 0 ||
-            permissions.some(p => PERMISSIONS_BY_ROLE[role()].includes(p))
+            permissions.length === 0 || permissions.some(p => granted().includes(p))
         }
       },
       {
@@ -48,13 +45,13 @@ describe('NavigationService (menus follow the role)', () => {
   const ids = () => spectator.service.$entries().map(entry => entry.id);
 
   beforeEach(() => {
-    role.set(ROLE.Admin);
+    granted.set(ADMIN);
     waiting.set(0);
     spectator = createService();
   });
 
   it('warehouse staff do not see approvals, reports, users, settings or audit', () => {
-    role.set(ROLE.WarehouseStaff);
+    granted.set(WAREHOUSE_STAFF);
 
     expect(ids()).toEqual(
       expect.arrayContaining(['home', 'receipts', 'issues', 'stock', 'low-stock', 'products'])
@@ -65,19 +62,31 @@ describe('NavigationService (menus follow the role)', () => {
   });
 
   it('owner sees approvals, reports and audit but not users or settings', () => {
-    role.set(ROLE.Owner);
+    granted.set(OWNER);
 
     expect(ids()).toEqual(expect.arrayContaining(['approvals', 'reports', 'audit']));
     expect(ids()).not.toContain('users');
     expect(ids()).not.toContain('settings');
   });
 
+  it('a reviewer who holds only the large-document tier still sees approvals', () => {
+    granted.set([PERMISSION.DocumentApproveLarge, PERMISSION.StockRead, PERMISSION.ReportsRead]);
+
+    expect(ids()).toContain('approvals');
+    expect(spectator.service.$phoneTabs().map(entry => entry.id)).toEqual([
+      'home',
+      'approvals',
+      'stock',
+      'reports'
+    ]);
+  });
+
   it('admin sees everything', () => {
     expect(ids()).toEqual(expect.arrayContaining(['users', 'settings', 'audit', 'approvals']));
   });
 
-  it('phone tabs are four per role and the rest moves under More', () => {
-    role.set(ROLE.WarehouseStaff);
+  it('phone tabs come from the permissions and the rest moves under More', () => {
+    granted.set(WAREHOUSE_STAFF);
 
     expect(spectator.service.$phoneTabs().map(entry => entry.id)).toEqual([
       'home',

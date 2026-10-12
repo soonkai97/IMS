@@ -1,15 +1,14 @@
 import { signal } from '@angular/core';
 import { createServiceFactory, mockProvider, SpectatorService } from '@ngneat/spectator/jest';
-import { PermissionService } from '@ims/core/identity';
-import { ROLE } from '@ims/models';
+import { PermissionProfile, PermissionService } from '@ims/core/identity';
 import { LIST_SCOPE, ListScopePreference } from './list-scope.preference';
 
 describe('ListScopePreference', () => {
-  const role = signal<string | undefined>(ROLE.Clerk);
+  const profile = signal<Pick<PermissionProfile, 'mineFirst'>>({ mineFirst: true });
   let spectator: SpectatorService<ListScopePreference>;
   const createService = createServiceFactory({
     service: ListScopePreference,
-    providers: [mockProvider(PermissionService, { $role: role, $userId: signal(7) })]
+    providers: [mockProvider(PermissionService, { $profile: profile, $userId: signal(7) })]
   });
 
   beforeEach(() => {
@@ -17,17 +16,15 @@ describe('ListScopePreference', () => {
     spectator = createService();
   });
 
-  it('starts warehouse staff and clerks on Mine, everyone else on All', () => {
-    role.set(ROLE.WarehouseStaff);
+  it('starts people who create but do not review on Mine, everyone else on All', () => {
+    profile.set({ mineFirst: true });
     expect(spectator.service.initial()).toBe(LIST_SCOPE.Mine);
-    role.set(ROLE.Clerk);
-    expect(spectator.service.initial()).toBe(LIST_SCOPE.Mine);
-    role.set(ROLE.Supervisor);
+    profile.set({ mineFirst: false });
     expect(spectator.service.initial()).toBe(LIST_SCOPE.All);
   });
 
-  it('remembers the choice per user, whatever the role default is', () => {
-    role.set(ROLE.Clerk);
+  it('remembers the choice per user, whatever the default is', () => {
+    profile.set({ mineFirst: true });
 
     spectator.service.remember(LIST_SCOPE.All);
 
@@ -36,7 +33,7 @@ describe('ListScopePreference', () => {
   });
 
   it('ignores a stored value it does not know and survives unavailable storage', () => {
-    role.set(ROLE.Supervisor);
+    profile.set({ mineFirst: false });
     localStorage.setItem('ims.documents.scope.7', 'everything');
     expect(spectator.service.initial()).toBe(LIST_SCOPE.All);
 

@@ -11,6 +11,7 @@ import {
   IssuePurpose,
   ProductDto
 } from '@ims/api';
+import { provideUiText } from '@ims/core/i18n';
 import { PermissionService } from '@ims/core/identity';
 import { PageTitleService, unsavedChangesGuard } from '@ims/core/navigation';
 import { ConfirmService } from '@ims/core/notification';
@@ -65,6 +66,9 @@ function document(overrides: Partial<DocumentDto> = {}): DocumentDto {
     postedBy: undefined,
     postedByName: undefined,
     postedAt: undefined,
+    reversedBy: undefined,
+    reversedByName: undefined,
+    reversedAt: undefined,
     returnedById: undefined,
     returnedBy: undefined,
     returnedByName: undefined,
@@ -82,6 +86,9 @@ function document(overrides: Partial<DocumentDto> = {}): DocumentDto {
         uomCode: 'PCS',
         baseQty: 15,
         unitCost: 0,
+        baseUnitCost: undefined,
+        amount: undefined,
+        costFromAverage: false,
         remark: undefined,
         available: 10
       }
@@ -138,6 +145,7 @@ describe('DocumentEditorPageComponent', () => {
     detectChanges: false,
     providers: [
       provideRouter([]),
+      provideUiText(),
       {
         provide: CatalogStore,
         useValue: { ensureLoaded: jest.fn(), $unitCodes: signal(new Map()) }
@@ -202,9 +210,9 @@ describe('DocumentEditorPageComponent', () => {
     spectator.detectChanges();
   }
 
-  async function openNew(): Promise<void> {
+  async function openNew(type = DocumentType.Issue): Promise<void> {
     opened.set(undefined);
-    spectator = createComponent({ props: { type: DocumentType.Issue, id: 'new' } as never });
+    spectator = createComponent({ props: { type, id: 'new' } as never });
     spectator.detectChanges();
     await spectator.fixture.whenStable();
     spectator.detectChanges();
@@ -411,7 +419,13 @@ describe('DocumentEditorPageComponent', () => {
       spectator.component.view.header.controls.purpose.markAsTouched();
       spectator.detectChanges();
 
-      expect(spectator.query('legend')?.textContent).toContain('(required)');
+      // D4: a red asterisk and the word "required" for screen readers, not the text "(required)".
+      expect(spectator.query('legend .ui-radio-group-asterisk')?.getAttribute('aria-hidden')).toBe(
+        'true'
+      );
+      expect(spectator.query('legend .ui-radio-group-sr')?.textContent).toBe('required');
+      expect(spectator.query('legend')?.textContent).not.toContain('(required)');
+      expect(spectator.queryAll('app-form-legend')).toHaveLength(1);
       expect(spectator.query('#document-purpose-error')?.textContent).toContain(
         'Choose a purpose.'
       );
@@ -427,6 +441,24 @@ describe('DocumentEditorPageComponent', () => {
       spectator.detectChanges();
 
       expect(text()).toContain('Enter a quantity above 0.');
+    });
+
+    it('ER-12: 0.0001 is accepted, 0.00001 says "Use at most 4 decimals." and is left out of the totals line', async () => {
+      await openNew();
+      fillNewIssue();
+      const quantity = spectator.component.view.lines.at(0).controls.qty;
+
+      quantity.setValue(0.0001);
+      quantity.markAsTouched();
+      spectator.detectChanges();
+      expect(text()).not.toContain('Enter a quantity above 0.');
+      expect(text()).toContain('1 line | 0.0001 units');
+
+      quantity.setValue(0.00001);
+      spectator.detectChanges();
+      expect(text()).toContain('Use at most 4 decimals.');
+      expect(text()).not.toContain('Enter a quantity above 0.');
+      expect(text()).toContain('0 lines | 0 units');
     });
 
     it('EA-27: every control of a line names its product', async () => {
@@ -462,6 +494,31 @@ describe('DocumentEditorPageComponent', () => {
       spectator.component.onRemoveLine(0);
       confirm().confirm('');
       expect(spectator.component.view.lines.length).toBe(0);
+    });
+
+    it('NR-09: the remove dialog says "cost" only on a receipt and only with cost.view', async () => {
+      const removeBody = (): string => {
+        spectator.component.onRemoveLine(0);
+        const body = confirm().$pending()?.request.body ?? '';
+        confirm().cancel();
+        return body;
+      };
+      await openNew(DocumentType.Receipt);
+      spectator.component.onProductPicked({ product: WIDGET, available: 10 });
+      spectator.component.view.lines.at(0).controls.qty.setValue(7);
+
+      const staff = removeBody();
+      granted.add(PERMISSION.CostView);
+      const clerk = removeBody();
+
+      await openNew();
+      spectator.component.onProductPicked({ product: WIDGET, available: 10 });
+      spectator.component.view.lines.at(0).controls.qty.setValue(7);
+      const issue = removeBody();
+
+      expect(staff).toBe('Its quantity will be lost.');
+      expect(clerk).toBe('Its quantity and cost will be lost.');
+      expect(issue).toBe('Its quantity will be lost.');
     });
 
     it('NV-18: a line nobody changed goes at once', async () => {
@@ -935,6 +992,9 @@ describe('DocumentEditorPageComponent', () => {
             uomCode: 'PCS',
             baseQty: 10,
             unitCost: withCost ? 12.55 : (null as unknown as undefined),
+            baseUnitCost: undefined,
+            amount: undefined,
+            costFromAverage: false,
             remark: undefined,
             available: undefined
           }
@@ -963,6 +1023,54 @@ describe('DocumentEditorPageComponent', () => {
       expect(costInput()).not.toBeNull();
       expect(text()).toContain('Unit cost');
       expect(text()).toContain('10.00');
+    });
+
+    it('R04: a unit cost with a 3rd decimal is blocked with a message, not rounded', async () => {
+      await openNewReceipt(...CLERK);
+      const line = spectator.component.view.lines.at(0);
+      line.controls.qty.setValue(4);
+
+      line.controls.unitCost.setValue(12.345);
+      line.controls.unitCost.markAsTouched();
+      spectator.detectChanges();
+
+      expect(text()).toContain('Enter an amount with at most 2 decimals.');
+      expect(line.controls.unitCost.value).toBe(12.345);
+      expect(spectator.component.view.lines.invalid).toBe(true);
+      // The amount is left out until the cost is valid.
+      expect(text()).not.toContain('49.38');
+
+      for (const accepted of [10, 10.5, 10.55]) {
+        line.controls.unitCost.setValue(accepted);
+        expect(line.controls.unitCost.valid).toBe(true);
+      }
+    });
+
+    it('R04: pasted text the browser cannot read ("1,234.50") is an error that blocks Save, not an empty cost', async () => {
+      await openNewReceipt(...CLERK);
+      const line = spectator.component.view.lines.at(0);
+      line.controls.qty.setValue(4);
+      spectator.detectChanges();
+      const input = costInput() as HTMLInputElement;
+      Object.defineProperty(input, 'validity', { configurable: true, value: { badInput: true } });
+
+      input.dispatchEvent(new Event('input'));
+      line.controls.unitCost.markAsTouched();
+      spectator.detectChanges();
+
+      expect(line.controls.unitCost.errors).toEqual({ badInput: true });
+      expect(spectator.component.view.isValid()).toBe(false);
+      expect(text()).toContain('Enter a number such as 1234.50, without commas or spaces.');
+    });
+
+    it('R04: a negative unit cost is refused and an empty one is allowed', async () => {
+      await openNewReceipt(...CLERK);
+      const cost = spectator.component.view.lines.at(0).controls.unitCost;
+
+      cost.setValue(-1);
+      expect(cost.errors).toHaveProperty('min');
+      cost.setValue(null);
+      expect(cost.valid).toBe(true);
     });
 
     it('Warehouse staff: what is sent for a saved receipt line carries no unit cost', async () => {

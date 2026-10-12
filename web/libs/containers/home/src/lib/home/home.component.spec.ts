@@ -116,7 +116,7 @@ describe('HomePageComponent', () => {
         PERMISSION.ValuationView
       );
 
-      expect(text).toContain('Stock value 40.00');
+      expect(text).toContain('Stock value (RM) 40.00');
       expect(text).toContain('Low stock 4');
     });
 

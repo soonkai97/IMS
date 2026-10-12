@@ -11,6 +11,7 @@ public static class Messages
         minutes == 1 ? "Too many failed attempts. Try again in 1 minute." : $"Too many failed attempts. Try again in {minutes} minutes.";
     public static string TooManyRequests(int seconds) =>
         seconds <= 1 ? "Too many requests. Try again in a moment." : $"Too many requests. Try again in {seconds} seconds.";
+    public static readonly string SearchTooShort = $"Type at least {Limits.SearchMinTextLength} characters.";
     public static readonly string SearchTooLong = $"Search text can be at most {Limits.SearchMaxLength} characters.";
     public const string DateRangeInvalid = "The 'from' date is after the 'to' date.";
     public const string IfMatchRequired = "Send the document's version in the If-Match header (the ETag you last received), so a change made by someone else is not overwritten.";
@@ -82,6 +83,8 @@ public static class Messages
     public const string RuleNotFound = "Rule not found.";
     public static string NumberAlreadyAssigned(string no) => $"Document number {no} is already assigned and cannot change.";
     public const string ThresholdNegative = "Thresholds cannot be negative.";
+    public const string AmountTooPrecise = "An amount can have at most 2 decimal places.";
+    public const string LineAmountTooLarge = "The amount of a line cannot be more than 999,999,999,999,999.";
     public const string ThresholdRequired = "Set an amount threshold, a quantity threshold, or both.";
 
     // ----- Documents -----
@@ -90,7 +93,10 @@ public static class Messages
     public const string AddLine = "Add at least one line.";
     public const string ChooseProduct = "Choose a product on every line.";
     public const string QtyPositive = "Quantity must be greater than zero.";
+    public const string CostTooLarge = "Unit cost cannot be more than 1,000,000,000.";
+    public const string CostTooLargeForUnit = "Unit cost is too large for this unit of measure.";
     public const string CostNegative = "Unit cost cannot be negative.";
+    public const string CostTooPrecise = "Unit cost can have at most 2 decimal places.";
     public static string RestrictedSortKey(string key) => $"Sorting by {key.ToLowerInvariant()} is not available to your role.";
     public const string OnlyReceiptAndIssue = "Only receipts and issues are available in this version.";
     public const string RejectReasonRequired = "A rejection reason is required.";
@@ -154,7 +160,8 @@ public static class Messages
 
     // ----- Import -----
     public const string WorkbookTooLarge = "The workbook is too large once unpacked.";
-    public const string PageTooDeep = "That page is too deep to list. Narrow the filter, or continue from the last row with afterId.";
+    public const string PageTooDeep = "That page is too deep to list. Narrow the filter, or continue from the last row with the cursor.";
+    public const string CursorInvalid = "The cursor is not valid. Send the nextCursor of the previous page unchanged.";
     public const string FileHasActiveContent = "PDF files with scripts, launch actions or embedded files are not accepted.";
     public const string FileNotAValidImage = "The image is damaged or not a supported image. Choose another file.";
     public const string FileRejectedByScanner = "The file was rejected by the security check and was not stored.";

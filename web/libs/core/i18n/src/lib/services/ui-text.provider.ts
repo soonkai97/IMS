@@ -1,5 +1,6 @@
 import { EnvironmentProviders, inject, makeEnvironmentProviders } from '@angular/core';
 import { UI_TEXT, UiText } from '@ims/ui';
+import { MONEY_DECIMALS } from '@ims/utils';
 import { I18nService } from './i18n.service';
 
 /** Feeds the UI kit (shared/ui) its words from the active language. */
@@ -13,6 +14,7 @@ export function provideUiText(): EnvironmentProviders {
           close: i18n.t('ui.close'),
           loading: i18n.t('ui.loading'),
           required: i18n.t('ui.required'),
+          requiredLegend: i18n.t('form.requiredLegend'),
           showPassword: i18n.t('ui.showPassword'),
           hidePassword: i18n.t('ui.hidePassword'),
           previousPage: i18n.t('ui.previousPage'),
@@ -60,8 +62,15 @@ function validationMessage(i18n: I18nService, key: string, error: unknown): stri
       return i18n.t('validation.min', { min: boundOf(error, 'min') });
     case 'max':
       return i18n.t('validation.max', { max: boundOf(error, 'max') });
-    case 'decimals':
-      return i18n.t('validation.decimals');
+    case 'decimals': {
+      // Money has its own sentence (D1); any other limit, a quantity's 4, names the limit.
+      const max = boundOf(error, 'max');
+      return max === MONEY_DECIMALS
+        ? i18n.t('validation.maxDecimals', { max })
+        : i18n.t('validation.decimals', { max });
+    }
+    case 'badInput':
+      return i18n.t('validation.badInput');
     case 'email':
       return i18n.t('validation.email');
     case 'server':

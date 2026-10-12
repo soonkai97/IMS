@@ -70,7 +70,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         b.Entity<UomConversion>(e =>
         {
             e.HasIndex(x => new { x.ProductId, x.FromUomId, x.ToUomId }).IsUnique();
-            e.Property(x => x.Factor).HasColumnType(SqlTypes.Cost);
+            e.Property(x => x.Factor).HasColumnType(SqlTypes.Factor);
             e.HasOne<Uom>().WithMany().HasForeignKey(x => x.FromUomId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<Uom>().WithMany().HasForeignKey(x => x.ToUomId).OnDelete(DeleteBehavior.Restrict);
         });
@@ -130,6 +130,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             // The reversal rows of the movements report, newest reversal first: a seek on the (few) reversed documents. Written only when a document is reversed.
             e.HasIndex(x => x.ReversedAt).IncludeProperties(x => new { x.Status, x.Type, x.WarehouseId, x.PartnerId, x.No })
                 .HasFilter($"{LiveRows} AND [ReversedAt] IS NOT NULL");
+            // No index for the document search box on purpose: its contains-match must read every row, so its cost is the CPU of the comparison (see EfDocumentTextMatcher),
+            // and a narrow covering index (number, partner, remark, warehouse) only cut the logical reads 2.4 times for 86 MB and a wider write on 1M documents
+            // (docs/architecture/data-and-performance-rules.md section 9).
             e.Property(x => x.No).HasMaxLength(Limits.DocumentNoMaxLength);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
             e.Property(x => x.RowVersion).IsRowVersion();
@@ -141,6 +144,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedBy).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.PostedByUser).WithMany().HasForeignKey(x => x.PostedBy).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.RejectedByUser).WithMany().HasForeignKey(x => x.RejectedBy).OnDelete(DeleteBehavior.Restrict);
+            // Only reversed documents carry the column, so the index holds only those rows (the foreign key still finds them).
+            e.HasIndex(x => x.ReversedBy).HasFilter("[ReversedBy] IS NOT NULL");
+            e.HasOne(x => x.ReversedByUser).WithMany().HasForeignKey(x => x.ReversedBy).OnDelete(DeleteBehavior.Restrict);
             e.HasMany(x => x.Lines).WithOne(x => x.Document).HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
@@ -149,7 +155,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.Qty).HasColumnType(SqlTypes.Quantity);
             e.Property(x => x.BaseQty).HasColumnType(SqlTypes.Quantity);
             e.Property(x => x.UnitCost).HasColumnType(SqlTypes.Cost);
+            e.Property(x => x.AvgCostBefore).HasColumnType(SqlTypes.Cost);
+            e.Property(x => x.AvgCostAfter).HasColumnType(SqlTypes.Cost);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
+            e.Property(x => x.EnteredUnitCost).HasColumnType(SqlTypes.Money);
+            e.Property(x => x.Amount).HasColumnType(SqlTypes.Money);
             // The movements report counts and pages lines through their document; the filtered index answers EF's REC_DELETED predicate without reading the table.
             // The unfiltered foreign-key index stays (declared here, or EF would drop it as redundant): a physical delete of a document must find its soft-deleted lines too.
             e.HasIndex(x => x.DocumentId, "IX_StockDocumentLine_DocumentId");
@@ -160,6 +170,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         b.Entity<StockLedgerEntry>(e =>
         {
             e.Property(x => x.QtyDelta).HasColumnType(SqlTypes.Quantity);
+            e.Property(x => x.BalanceAfter).HasColumnType(SqlTypes.Quantity);
             e.Property(x => x.UnitCost).HasColumnType(SqlTypes.Cost);
             e.HasIndex(x => new { x.ProductId, x.WarehouseId, x.OccurredAt });
             e.HasIndex(x => x.SourceDocId);
@@ -234,11 +245,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } // enum names, not numbers, in the audit details
     };
 
-    /// <summary>Row-level audit applies to master data and security data; documents and stock are audited by explicit business events.</summary>
+    /// <summary>
+    /// Row-level audit applies to master data and security data; documents and stock are audited by explicit business events. Settings too: a save writes ONE
+    /// <c>settings.updated</c> event with the old and the new values of all of them, not one row per changed key (PS-12).
+    /// </summary>
     private static readonly HashSet<Type> Audited =
     [
         typeof(Product), typeof(ProductBarcode), typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom),
-        typeof(ApprovalRule), typeof(SystemSetting), typeof(User), typeof(UomConversion)
+        typeof(ApprovalRule), typeof(User), typeof(UomConversion)
     ];
 
     /// <summary>Secrets and login-attempt counters stay out of the audit payload (logins have their own events).</summary>

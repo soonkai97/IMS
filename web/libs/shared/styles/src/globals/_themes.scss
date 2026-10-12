@@ -1,8 +1,13 @@
 @use '../variables/palette.var' as palette;
+@use '../variables/shape.var' as shape;
 
-@mixin emit($tokens) {
+@mixin emit($tokens, $shadows) {
   @each $name, $value in $tokens {
     --ims-color-#{$name}: #{$value};
+  }
+
+  @each $level, $value in $shadows {
+    --ims-shadow-#{$level}: #{$value};
   }
 }
 
@@ -10,19 +15,19 @@
 :root {
   color-scheme: light;
 
-  @include emit(palette.$light);
+  @include emit(palette.$light, shape.$shadows-light);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
 
-    @include emit(palette.$dark);
+    @include emit(palette.$dark, shape.$shadows-dark);
   }
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  @include emit(palette.$dark);
+  @include emit(palette.$dark, shape.$shadows-dark);
 }

@@ -8,6 +8,8 @@ export const PERMISSION = {
   PartnersCreate: 'partners.create',
   DocumentCreate: 'document.create',
   DocumentApprove: 'document.approve',
+  /** Approve large documents (second approval tier; the API adds it with the configurable roles, see the roles ADR). */
+  DocumentApproveLarge: 'document.approve.large',
   DocumentPost: 'document.post',
   DocumentReverse: 'document.reverse',
   StockRead: 'stock.read',

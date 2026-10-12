@@ -41,6 +41,50 @@ describe('ApiCommand', () => {
     expect(command.$operation().status).toBe(API_STATUS.Failure);
     expect(command.$operation().error?.detail).toBe('Stock moved.');
   });
+
+  describe('exclusive (NR-07)', () => {
+    it('sends one request for two calls in the same tick and for a second call while the first runs', () => {
+      const gate = new Subject<number>();
+      const execute = jest.fn(() => gate);
+      const command = new ApiCommand<void, number>(execute, true);
+      const values: number[] = [];
+
+      command.run().subscribe(value => values.push(value));
+      command.run().subscribe(value => values.push(value));
+      command.run().subscribe(value => values.push(value));
+      gate.next(1);
+      gate.complete();
+
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(values).toEqual([1]);
+    });
+
+    it('accepts the next call once the first finished, failed, or was unsubscribed', () => {
+      const execute = jest
+        .fn<Observable<number>, []>()
+        .mockReturnValueOnce(throwError(() => API_ERROR))
+        .mockReturnValueOnce(new Subject<number>())
+        .mockReturnValue(of(3));
+      const command = new ApiCommand<void, number>(execute, true);
+
+      command.run().subscribe();
+      const abandoned = command.run().subscribe();
+      abandoned.unsubscribe();
+      command.run().subscribe();
+
+      expect(execute).toHaveBeenCalledTimes(3);
+    });
+
+    it('a command that is not exclusive still runs every call', () => {
+      const execute = jest.fn(() => new Subject<number>());
+      const command = new ApiCommand<void, number>(execute);
+
+      command.run().subscribe();
+      command.run().subscribe();
+
+      expect(execute).toHaveBeenCalledTimes(2);
+    });
+  });
 });
 
 describe('QueryLoader', () => {

@@ -13,4 +13,10 @@ public sealed class VisibleWithAttribute(string permission) : Attribute
 
     /// <summary>Name of a <c>bool</c> property of the same object: the value is withheld only while it is true (an approval trigger's numbers are money for an amount rule only).</summary>
     public string? OnlyWhen { get; init; }
+
+    /// <summary>
+    /// The tagged value is a derived cost per base unit (a unit price): what stays visible is rounded to <see cref="Money.UnitPriceDecimals"/> places instead of the 2
+    /// of money, so 0.003 a piece is not shown as 0.00.
+    /// </summary>
+    public bool UnitPrice { get; init; }
 }

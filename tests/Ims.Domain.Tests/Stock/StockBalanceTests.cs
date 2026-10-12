@@ -57,8 +57,8 @@ public class StockBalanceTests
 
         balance.Receive(4m, 11m); // (30 + 44) / 7 = 10.571428571...
 
-        Assert.Equal(Math.Round(74m / 7m, Limits.RoundingDecimals), balance.AvgCost);
-        Assert.Equal(10.571429m, balance.AvgCost);
+        Assert.Equal(Math.Round(74m / 7m, Limits.CostDecimals), balance.AvgCost);
+        Assert.Equal(10.5714285714m, balance.AvgCost);
     }
 
     [Fact]

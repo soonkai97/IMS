@@ -15,16 +15,41 @@ sizes or radii in component styles.**
 }
 ```
 
-| Function / mixin                                                                                                         | Examples                                                                                                                                                                                |
-| ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ------------------------------ | ------------- | -------------------- | --------------------- | -------- | --------- | ------------------------------ |
-| `color('name')`                                                                                                          | `surface`, `surface-2`, `text`, `text-muted`, `border`, `primary`, `on-primary`, `danger`, `status-posted`, `on-status-posted`. Returns a CSS variable, so light/dark switch at runtime |
-| `space(0..9)`                                                                                                            | 4px, 8px, 16px, 24px ... (8px grid)                                                                                                                                                     |
-| `font-size(1..6)`, `font-weight('medium')`, `font-family('sans')`                                                        | 16px body is `font-size(3)` (inputs must stay >= 16px)                                                                                                                                  |
-| `border-radius('sm'                                                                                                      | 'md'                                                                                                                                                                                    | 'lg'  | 'pill')`, `border-width('thin' | 'thick'       | 'focus')`, `shadow(1 | 2)`                   |          |
-| `height('touch'                                                                                                          | 'touch-min'                                                                                                                                                                             | 'bar' | 'tabbar')`, `width('nav'       | 'content-max' | 'dialog'             | ...)`, `z-index('nav' | 'dialog' | 'toast')` | touch = 48px, touch-min = 44px |
-| `easing('smooth')`, `duration('fast')`                                                                                   |                                                                                                                                                                                         |
-| `@include media-phone / media-tablet / media-below-desktop / media-desktop`                                              | breakpoints 600px and 1024px                                                                                                                                                            |
-| `@include focus-ring`, `visually-hidden`, `reset-button`, `control-base`, `truncate-line`, `clamp-lines($n)`, `disabled` |                                                                                                                                                                                         |
+| Function / mixin                                                                                                         | Examples                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `color('name')`                                                                                                          | `surface`, `text`, `text-muted`, `border`, `accent`, `danger`. A CSS variable (light/dark)  |
+| `space(0..9)`                                                                                                            | 4px, 8px, 16px, 24px ... (8px grid); `space(1.5)` is 12px                                   |
+| `font-size(1..6)`, `font-weight('medium')`, `font-family('sans')`                                                        | 16px body is `font-size(3)` (inputs must stay >= 16px)                                      |
+| `border-radius('sm' \| 'md' \| 'lg' \| 'sheet' \| 'pill')`                                                               | 6, 8, 12, 16 (sheet top corners), pill                                                      |
+| `border-width('thin' \| 'thick' \| 'ring' \| 'edge')`                                                                    | 1, 2, 2 (focus ring), 3 (accent edge of banner, toast, line). `'focus'` is the old `'edge'` |
+| `shadow(1 \| 2 \| 3)`                                                                                                    | `--ims-shadow-n`, per theme: 1 sticky bars, 2 menus and toasts, 3 dialogs and sheets        |
+| `height('touch' \| 'touch-min' \| 'bar' \| 'tabbar')`                                                                    | touch = 48px, touch-min = 44px; `width('nav' \| 'dialog' ...)`, `z-index('nav' \| 'toast')` |
+| `duration('fast' \| 'base' \| 'slow')`, `easing('standard' \| 'out')`                                                    | motion tokens, see Motion below                                                             |
+| `@include media-phone / media-tablet / media-below-desktop / media-desktop`                                              | breakpoints 600px and 1024px                                                                |
+| `@include focus-ring`, `visually-hidden`, `reset-button`, `control-base`, `truncate-line`, `clamp-lines($n)`, `disabled` |                                                                                             |
+
+## Icons
+
+`app-icon` draws the in-house 24x24 path set in `icon.paths.ts` (no icon library). Sizes are 16, 20, 24 (default) and 40 px
+(`<app-icon name="check" [size]="20" />`); nothing else. The stroke is fixed in screen pixels (`vector-effect: non-scaling-stroke`):
+1.5px at 16, 1.75px at 20 and above. An icon is decorative (`aria-hidden`): the meaning is in the text or the button's
+`aria-label`. A new icon is appended to `icon.paths.ts` in alphabetical order by the slice that needs it.
+
+## Motion
+
+Three durations (`fast` 120ms: hover, exits, fades; `base` 200ms: entrances; `slow` 280ms: sheet and dialog travel) and two easings
+(`standard` for moves, `out` for arrivals), emitted as `--ims-dur-*` and `--ims-ease-*` by `globals/_motion.scss`. Components use
+`duration()` and `easing()`, never a literal. Animate only `opacity` and `transform`; colours change instantly (except the existing
+button fade, until the button slice).
+
+- Reduced motion: `prefers-reduced-motion: reduce` sets every duration to 1ms and runs every animation once for 0.01ms, so no loop
+  keeps going (an infinite animation with a shortened duration used to flicker). There is no in-app switch.
+- Tests: `<html data-motion="off">` gives the same result for Playwright. `page.emulateMedia({ reducedMotion: 'reduce' })` works too.
+- A loop is finite wherever possible: the skeleton shimmer sweeps 6 times (9s) and stops. Only the busy spinner and progress bars
+  loop, and only while loading. Name loop keyframes `ims-loop-*`.
+- Loading indicators appear through `delayedLoading(loading)` (`@ims/utils`): shown after 300ms of waiting, kept at least 400ms.
+- `@angular/animations` is not used (deprecated in Angular 22); ESLint rejects the import. Use CSS transitions, `animate.enter`
+  and `animate.leave`.
 
 ## Naming: flat BEM, component specific
 
@@ -33,7 +58,7 @@ sizes or radii in component styles.**
 - Element = block + `-name` (`line-editor-row`). Modifier = `&.--name` on the same selector.
 - **No class nesting.** If a child depends on a parent modifier, set a CSS custom property on the parent and read it in the child.
 - Property order: `@include`, custom properties, normal properties, pseudo-classes, modifiers.
-- `declaration-no-important` is on; the two exceptions in `globals/_base.scss` are commented.
+- `declaration-no-important` is on; the exceptions (`[hidden]` in `globals/_base.scss`, the reduced-motion rules in `globals/_motion.scss`) are commented.
 
 ## Dark mode and contrast
 
@@ -61,5 +86,5 @@ page scroll at any width.
 - `app-table` columns have a `type` (`name`, `text`, `code`, `number`, `status`, `date`, `action`) that sets the width and the cut
   (see `table.types.ts`). Plain-text cells are one line with an ellipsis; chips, numbers, dates and buttons are never cut.
 - Only a deliberate scroll region may scroll sideways: give it `role="region"`, `tabindex="0"`, an accessible name and
-  `data-scroll-region`. `e2e/tests/14-containment.spec.ts` fails on any other sideways scroller.
+  `data-scroll-region`. `e2e/tests/15-containment.spec.ts` fails on any other sideways scroller.
 - A new list, card, chip, dialog, toast or header adds its screen to that test (long names in the data it creates).

@@ -5,7 +5,27 @@
   height: 1.5rem;
 }
 
+:host([data-size='16']) {
+  width: 1rem;
+  height: 1rem;
+}
+
+:host([data-size='20']) {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+:host([data-size='40']) {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
 .ui-icon {
   width: 100%;
   height: 100%;
+
+  // The stroke is fixed in screen pixels, so it keeps its weight at every size (see $stroke in the component).
+  path {
+    vector-effect: non-scaling-stroke;
+  }
 }

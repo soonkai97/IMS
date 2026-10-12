@@ -85,11 +85,14 @@ export class DocumentsStore {
   /** Home numbers and the approvals badge: four indexed counts for the signed-in user. */
   readonly counts = new QueryLoader<void, DocumentCounts>(() => this.client.counts());
 
-  readonly save: ApiCommand<SaveDocumentArgs, DocumentDto> = new ApiCommand(args =>
-    this.accept(this.saveRequest(args), this.save)
+  /** Save, submit and post are exclusive: a second tap while one runs sends nothing (NR-07). */
+  readonly save: ApiCommand<SaveDocumentArgs, DocumentDto> = new ApiCommand(
+    args => this.accept(this.saveRequest(args), this.save),
+    true
   );
-  readonly submit: ApiCommand<DocumentRef, DocumentDto> = new ApiCommand(ref =>
-    this.accept(this.client.submit(ref.id, withIfMatch(ref.concurrencyToken)), this.submit)
+  readonly submit: ApiCommand<DocumentRef, DocumentDto> = new ApiCommand(
+    ref => this.accept(this.client.submit(ref.id, withIfMatch(ref.concurrencyToken)), this.submit),
+    true
   );
   readonly approve: ApiCommand<ApproveArgs, DocumentDto> = new ApiCommand(args =>
     this.accept(
@@ -118,8 +121,9 @@ export class DocumentsStore {
     )
   );
   /** Posting takes no body: an override reason was given when the document was approved. */
-  readonly post: ApiCommand<DocumentRef, DocumentDto> = new ApiCommand(ref =>
-    this.accept(this.client.post(ref.id, withIfMatch(ref.concurrencyToken)), this.post)
+  readonly post: ApiCommand<DocumentRef, DocumentDto> = new ApiCommand(
+    ref => this.accept(this.client.post(ref.id, withIfMatch(ref.concurrencyToken)), this.post),
+    true
   );
   readonly reverse: ApiCommand<ReasonArgs, DocumentDto> = new ApiCommand(args =>
     this.accept(

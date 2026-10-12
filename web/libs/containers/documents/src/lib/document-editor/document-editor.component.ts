@@ -79,6 +79,7 @@ import {
   UiDialogComponent,
   UiEmptyStateComponent,
   UiFormFieldComponent,
+  UiFormLegendComponent,
   UiIconComponent,
   UiPageHeaderComponent,
   UiRadioGroupComponent,
@@ -144,6 +145,7 @@ interface HistoryEvent {
     UiDialogComponent,
     UiEmptyStateComponent,
     UiFormFieldComponent,
+    UiFormLegendComponent,
     UiIconComponent,
     UiPageHeaderComponent,
     UiRadioGroupComponent,
@@ -175,6 +177,9 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   private readonly partners = inject(PartnersStore);
   private readonly permissions = inject(PermissionService);
   private readonly products = inject(ProductsStore);
+  /** The same formatting as the templates (D1): money has 2 decimals, a quantity keeps its own. */
+  private readonly moneyPipe = new AppMoneyPipe();
+  private readonly qtyPipe = new AppQtyPipe();
   private readonly router = inject(Router);
   private readonly settings = inject(SystemSettingsStore);
   private readonly stock = inject(StockStore);
@@ -504,21 +509,15 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   });
   /** Why an approval rule held the document back, in words (PS-03): the value or quantity that reached a limit. */
   readonly $approvalTriggers = computed(() => {
-    const locale = this.i18n.$locale();
-    const amount = new Intl.NumberFormat(locale, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-    const quantity = new Intl.NumberFormat(locale, { maximumFractionDigits: 3 });
     return (this.$document()?.approvalTriggers ?? []).map(trigger => {
       const isAmount = trigger.metric === ApprovalMetric.Amount;
-      const format = isAmount ? amount : quantity;
+      const format = isAmount ? this.moneyPipe : this.qtyPipe;
       // A caller without cost.view gets the kind of rule and the approver, but null numbers for an amount rule.
       const known = isDefined(trigger.actual) && isDefined(trigger.threshold);
       return {
         key: this.triggerKey(isAmount, known),
-        actual: known ? format.format(trigger.actual ?? 0) : '',
-        threshold: known ? format.format(trigger.threshold ?? 0) : '',
+        actual: known ? format.transform(trigger.actual ?? 0) : '',
+        threshold: known ? format.transform(trigger.threshold ?? 0) : '',
         role: this.i18n.enumLabel(ROLE_LABELS, trigger.roleRequired)
       };
     });
@@ -704,7 +703,12 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     this.confirm
       .ask({
         heading: this.i18n.t('dialog.removeLine.title', { sku: line.sku }),
-        body: this.i18n.t('dialog.removeLine.body'),
+        // Only a receipt line has a cost, and warehouse staff may not see it: the word stays out otherwise (NR-09).
+        body: this.i18n.t(
+          this.$type() === DocumentType.Receipt && this.permissions.has(PERMISSION.CostView)
+            ? 'dialog.removeLine.bodyWithCost'
+            : 'dialog.removeLine.body'
+        ),
         confirmLabel: this.i18n.t('common.remove'),
         cancelLabel: this.i18n.t('dialog.removeLine.keep'),
         destructive: true

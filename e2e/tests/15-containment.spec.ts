@@ -165,6 +165,16 @@ test.describe('L00 Content containment', () => {
       await expect(page.getByText(mark).first()).toBeVisible();
       await expectContained(page, at('Stock'));
 
+      // The movements report is the one table that scrolls sideways, inside its own named region.
+      await goTo(page, '/reports');
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      await expect(page.getByRole('region', { name: /detail/ })).toBeVisible();
+      await expectContained(page, at('Reports'));
+      if (width < 1024) {
+        // Cards, not a table: nothing to scroll sideways, not even inside the region.
+        await expectFits(page.getByRole('region', { name: /detail/ }), at('Reports cards'));
+      }
+
       const editor = new DocumentEditor(page);
       await editor.open('receipts', draft.id);
       await expectContained(page, at('Receipt editor (draft)'));

@@ -1,0 +1,56 @@
+@use '../variables/layout.var' as layout;
+
+// Motion contract (docs/design/lean-scope.md 2.5, 2026-refresh-motion.md 2.2, lean subset):
+//  1. Durations and easings are custom properties (--ims-dur-*, --ims-ease-*). Components read them through duration() / easing().
+//  2. Reduced motion collapses every duration to ~0 and stops every animation after one 0.01ms pass, so nothing loops and nothing
+//     waits. Two triggers: the OS setting (prefers-reduced-motion) and, for tests, <html data-motion="off">. There is no
+//     in-app setting and no intermediate level.
+//  3. Only opacity and transform are animated. A loop is finite (the skeleton stops after 6 sweeps); the one exception is the busy
+//     spinner / progress bar, which is infinite while loading and is stopped by the rules below.
+
+@mixin emit-durations($value: null) {
+  @each $name, $default in layout.$durations {
+    @if $value {
+      --ims-dur-#{$name}: #{$value};
+    } @else {
+      --ims-dur-#{$name}: #{$default};
+    }
+  }
+}
+
+// The safety net for animations written with a literal duration or an infinite count. Without the iteration count, a duration of
+// 0.01ms on an infinite animation restarts it every frame and flickers (the bug this replaces).
+/* stylelint-disable declaration-no-important -- reduced motion must win over every component animation */
+@mixin stop-animations {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+/* stylelint-enable declaration-no-important */
+
+:root {
+  @include emit-durations;
+
+  @each $name, $curve in layout.$easings {
+    --ims-ease-#{$name}: #{$curve};
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    @include emit-durations(layout.$collapsed-duration);
+  }
+
+  @include stop-animations;
+}
+
+// Test switch: Playwright sets <html data-motion="off"> to get the same result as an OS with reduced motion.
+:root[data-motion='off'] {
+  @include emit-durations(layout.$collapsed-duration);
+  @include stop-animations;
+}

@@ -7,6 +7,7 @@ import {
   LanguageCode,
   isLanguageCode
 } from '../constants/languages.const';
+import { DEFAULT_CURRENCY_LABEL } from '@ims/utils';
 import { EN_MESSAGES } from '../messages/en.messages';
 import { MessageParams, formatMessage } from '../messages/message-format';
 import { MessageKey, Messages } from '../messages/message.types';
@@ -78,6 +79,6 @@ export class I18nService {
   /** Reactive: reading it inside computed()/templates re-evaluates when the language changes. */
   t(key: MessageKey, params?: MessageParams): string {
     const template = this.$messages()[key] ?? EN_MESSAGES[key];
-    return formatMessage(template, params, this.$locale());
+    return formatMessage(template, { currency: DEFAULT_CURRENCY_LABEL, ...params }, this.$locale());
   }
 }

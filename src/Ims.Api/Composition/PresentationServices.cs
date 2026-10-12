@@ -15,6 +15,7 @@ public static class PresentationServices
     {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, CurrentUser>();
+        services.AddCursorProtection(cfg, env);
 
         services.AddJwtAuthentication()
                 .AddPermissionPolicies()

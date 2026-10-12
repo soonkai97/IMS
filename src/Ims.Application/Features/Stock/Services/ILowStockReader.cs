@@ -6,8 +6,9 @@ namespace Ims.Application.Features.Stock;
 /// always agree.
 /// <para>
 /// A product is low in a warehouse when it is active and either its on-hand quantity is below zero, or it has a safety level above zero and the
-/// on-hand quantity is below it. An active product with a safety level that has never been stocked in any warehouse is low in every active warehouse
-/// in the caller's scope, with an on-hand quantity of zero (it has no balance row, so a table of balances cannot show it).
+/// on-hand quantity is at or below it (design 3.8: "on-hand &lt;= safety stock"). An active product with a safety level that has no balance row in ANY active
+/// warehouse the caller can see is never stocked: it is listed once, with no warehouse and an on-hand quantity of zero (it has no balance row, so a table of balances
+/// cannot show it). Only the caller's warehouses count, so a scoped caller learns nothing about stock elsewhere. A warehouse filter leaves those products out.
 /// </para>
 /// </summary>
 public interface ILowStockReader
@@ -16,7 +17,7 @@ public interface ILowStockReader
     /// <param name="warehouseId">Optional single warehouse (still inside the scope).</param>
     Task<int> CountAsync(IReadOnlyCollection<int>? warehouseScope, int? warehouseId, CancellationToken ct);
 
-    /// <summary>One page, the biggest shortfall first, then SKU and warehouse code.</summary>
+    /// <summary>One page, worst first (largest shortfall as a share of the safety level, then in units), then SKU and warehouse code.</summary>
     Task<IReadOnlyList<LowStockAlert>> PageAsync(IReadOnlyCollection<int>? warehouseScope, int? warehouseId, int page, int pageSize, CancellationToken ct);
 
     /// <summary>The same order without paging, capped at <paramref name="limit"/> rows (exports).</summary>

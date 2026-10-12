@@ -77,15 +77,3 @@ table {
 .sr-only {
   @include visually-hidden;
 }
-
-/* stylelint-disable declaration-no-important -- reduced motion must win over every component animation */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-/* stylelint-enable declaration-no-important */

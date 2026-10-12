@@ -63,6 +63,35 @@ describe('LowStockPageComponent Create receipt shortcut (NV-13)', () => {
     expect(link?.getAttribute('href')).toBe('/receipts/new?sku=DEMO-002&warehouseId=3');
   });
 
+  it('a never-stocked product has no warehouse: the row is blank there and the shortcut sends only the SKU', () => {
+    const rowData = (
+      spectator.inject(StockStore) as unknown as {
+        lowStock: { $data: ReturnType<typeof signal<PagedResultOfLowStockAlert>> };
+      }
+    ).lowStock.$data;
+    rowData.set({
+      items: [
+        {
+          ...ROW,
+          warehouseId: undefined,
+          warehouseCode: undefined,
+          warehouseName: undefined,
+          qtyOnHand: 0,
+          shortfall: 10
+        }
+      ],
+      page: 1,
+      pageSize: 25,
+      total: 1
+    } as PagedResultOfLowStockAlert);
+    spectator.detectChanges();
+
+    expect(spectator.query('a.low-stock-page-create')?.getAttribute('href')).toBe(
+      '/receipts/new?sku=DEMO-002'
+    );
+    expect(spectator.element.textContent).not.toContain('undefined');
+  });
+
   it('PS-04: a negative balance carries its own chip', () => {
     expect(spectator.query('app-status-chip')).toBeNull();
 

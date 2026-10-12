@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Stock;
 
-/// <summary>STK-03: products below safety stock, never stocked, or negative, paged. Computed live (see <see cref="ILowStockReader"/>) so it is never stale.</summary>
+/// <summary>STK-03: products at or below safety stock, stocked in no visible warehouse, or negative, paged. Computed live (see <see cref="ILowStockReader"/>) so it is never stale.</summary>
 public class ListLowStockHandler(ILowStockReader lowStock, IWarehouseScope scope) : IQueryHandler<ListLowStockQuery, PagedResult<LowStockAlert>>
 {
     public async Task<PagedResult<LowStockAlert>> HandleAsync(ListLowStockQuery q, CancellationToken ct)

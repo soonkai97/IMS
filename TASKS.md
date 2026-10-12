@@ -2,7 +2,7 @@
 
 Stack: Angular 22 (PWA) · .NET 10 (Clean Architecture, CQRS) · SQL Server.
 Scope of this pass: **Phase 0 (Foundation) + Phase 1 (MVP)**. Phases 2–4 are backlog at the bottom.
-Legend: [x] done and verified · [~] in progress · [ ] not started
+Legend: [x] done and verified · [~] in progress · [ ] not started · [-] deferred or dropped (lean scope)
 
 ## Phase 0 — Foundation
 - [x] T01 Solution scaffold: Domain / Application / Infrastructure / Api / Tests
@@ -51,20 +51,20 @@ Legend: [x] done and verified · [~] in progress · [ ] not started
 - [x] T22 Repository https://github.com/soonkai97/IMS (public, `main` protected by ruleset: PR + 4 required checks, squash only)
 - [~] T23 Reusable base: rename script + `docs/TEMPLATE.md` done; framework extraction (Framework.* packages, npm lib) after a second project exists
 
-## Roadmap epics (order, estimates, migration and client rules: [docs/pm/ROADMAP.md](docs/pm/ROADMAP.md))
-Working days (WD) count from Monday 12 Oct 2026 and include a 25% rework allowance; total about 72 WD (14 weeks), range 55-96 WD. Phases P0-P6 and the milestones M1-M7 are in the roadmap, sections 0 and 6.
-- [~] EP01 Money and QA backend fixes (P0, M1, ends WD 3): PR #44 average cost on reversal (changes required, being fixed), #45 money with exactly 2 decimals (being fixed), replacement for #46 (search, one low-stock rule, ledger balance). Merge in that order; #46's migration is re-created after #44 (migrations MG1, MG2). About 16 agent-hours left
-- [ ] EP02 Backend hardening and limits (P1-P3): ER-06, ER-07, ER-08, ER-14, ER-21, B20 text limits (owner question P12), login/refresh limiter split (SEC-08), then B1-B3 after the id switch, B18 unlock with the Users screen. About 1,750 lines / 27 h
-- [ ] EP03 Document corrections: recall, send back, cancel on Approved (closes NR-02, PR-02). DC-BE1, DC-BE2, DC-FE1, DC-FE2, DC-E2E; no migration expected. [design](docs/design/document-corrections.md). About 3,150 lines / 30 h; needs 3 owner confirmations (defaults exist). R28 and B19 of the refresh plan are superseded
-- [ ] EP04 Public GUID ids, hybrid (P1-P2, M3): ADR accepted. PR-0..PR-3 on main (migrations MG3 `AddPublicIds`, MG4 `AddPartnerCode`), PR-4..PR-8 on `feature/public-ids` (no migration there), PR-9 one merge with the `large-change` label, PR-10 verification. [ADR](docs/architecture/adr-guid-keys.md). About 6,250 lines / 85 h
-- [~] EP05 UI refresh, 73 slices R/A/Q/L (P1-P5, M2, M4, M6): R01 and R02 being built. Slices that carry ids (R17-R20, A07, A09, A11, A16, A18, Q06) wait for the id switch; R27 replaces R17 in the early waves; R28 dropped. [plan v2](docs/design/2026-refresh-plan.md), [sign-in](docs/design/2026-refresh-login.md). 49,260 lines / about 365 h
-- [ ] EP06 Configurable roles and permissions, backend RP-0..RP-8 (RP-9 optional): RP-0..RP-2 may merge before the id switch (migration MG5 `AddRolesAndPermissions`), RP-3 onward only after PR-9. [ADR](docs/architecture/adr-roles-permissions.md) is Proposed; needs owner answers. About 10,200 lines / 137 h + 30 h review and QA
-- [ ] EP07 Roles and permissions screens RP01..RP10 plus a small profile helper built early (P3-P4, M5): needs RP-5..RP-7, R14, R26, A16. [UX](docs/design/roles-permissions-ux.md). About 9,500 lines / 80 h
-- [ ] EP08 Motion language: [spec](docs/design/2026-refresh-motion.md) landed 2026-10-11: new slices M01-M08 (M08 optional) plus growth of 20 slices, 6,680 lines / about 56 h, about +6 WD. Owner answers M1-M8 before R08 (about WD 4). Plan v2 not yet updated (fe-architect applies its section 7). With it the refresh is 81 slices / 55,940 lines
-- [ ] EP09 Deployment and security follow-ups (P6, M7): hosting decision (owner), `deploy.yml`, Q14 (web on the refresh cookie, headers, AV hook, DAST triage). Demo environment after M3. 24-40 h depending on the hosting route
-- [ ] EP10 Release gate (every milestone): five QA rounds (three personas, one at a time, about 2.5 h each), gates G1-G7, native review of zh and ms, device checklist, R24 after soak. Folds in T20
+## Roadmap epics (lean scope, approved 2026-10-12)
+Scope: [docs/design/lean-scope.md](docs/design/lean-scope.md) (32 frontend slices, about 17,600 lines, 16 waves, backend track in its section 3.4; deferred items with triggers in its section 4, dropped items in section 5). Schedule, migration order, client batches, risks and decisions: [docs/pm/ROADMAP.md](docs/pm/ROADMAP.md) version 2. Totals: about 415 agent-hours (about 520 with 25% rework), about 38 working days (range 30-50) counted from Monday 12 Oct 2026; M6 about Wed 2 Dec 2026. Review checklist on every PR: "Which stated requirement needs this?" ([PR-REVIEW section 8](docs/team/PR-REVIEW.md)). A deferred item is built only after the project-manager records its trigger in HANDOFFS.
+- [~] EP01 Money and QA backend fixes (M1): #44 average cost on reversal (merging), #45 money with exactly 2 decimals (fix and review), #51 replacement for #46 (per-warehouse low stock, uncapped search, ledger balance; fix and review; #46 to be closed as superseded). Merge in that order; migrations MG1, MG2 (ROADMAP 3.2). About 16 h left
+- [ ] EP02 Backend hardening: lean = bug and security items only (ER-06, ER-07, ER-08, ER-14, ER-21, SEC-08), 12 h. [-] deferred: B1-B3 Home filters, B18 unlock, B20 text limits
+- [ ] EP03 Document corrections (M3): lean = recall (Edit button) and cancel on Approved with a reason; B21, B22 lean, R28, R31; no migration expected. [design](docs/design/document-corrections.md), lean-scope 6.3. About 20 h. [-] deferred: send back. Needs the 3 owner confirmations (defaults exist)
+- [ ] EP04 Public GUID ids, hybrid (M3): ADR accepted. PR-0..PR-3 on main (migration MG3 `AddPublicIds`), PR-4..PR-8 on `feature/public-ids` (no migration there), PR-9 one merge with the `large-change` label, PR-10 IDOR retest. Includes web slices G01, G02. [ADR](docs/architecture/adr-guid-keys.md), lean-scope 6.2. About 74 h. [-] deferred: `Partner.Code` and migration MG4
+- [~] EP05 UI refresh, lean (M1, M2, M4, M6): 25 slices R (18, incl. HOME), F1, L00/L02, Q1, A02/TB/A07 (lean-scope 3.1), about 13,400 lines, about 90 h with the lean motion set. [x] R01 palette (#49 merged), [x] R02 required marker (#50 merged); next L00, R27, R03, R33. [-] deferred or dropped: lean-scope 4 and 5 (R12, R16, R18-R20, R22, R23, A01, A03 resize/reorder, A04, A06, A08-A22, Q02-Q12, L01, L03-L09). [plan v2](docs/design/2026-refresh-plan.md) is the full reference only; [sign-in](docs/design/2026-refresh-login.md)
+- [ ] EP06 Configurable roles and permissions, backend (M5): lean = RP-0..RP-6 and RP-8, simplified (lean-scope 6.1; migration MG5 `AddRolesAndPermissions`). RP-0..RP-2 may merge before the id switch, RP-3 onward only after PR-9. [ADR](docs/architecture/adr-roles-permissions.md) defaults taken by the lean approval. About 120 h with review. [-] deferred: RP-7 per-user exceptions. [-] dropped: RP-9 impact preview
+- [ ] EP07 Roles screens (M4, M5): RP00 profile helper, RP01, RP02, RP03, RP05+RP11 (about 3,000 lines, 22 h). [-] deferred or dropped: RP04, RP06-RP10. [UX](docs/design/roles-permissions-ux.md) is the full reference
+- [-] EP08 Motion language: replaced by the lean motion set inside F1, R08, R10, R13, R25 (lean-scope 2.5); M02, M04, M06, M07, M08 dropped. [spec](docs/design/2026-refresh-motion.md) is the full reference
+- [ ] EP09 Deployment and security follow-ups (M7, spare slot): hosting decision (owner), `deploy.yml`, Q14 (web on the refresh cookie, headers, AV hook, DAST triage). About 30 h
+- [ ] EP10 Release gate: 4 QA rounds (three personas, one at a time), 3 gates, native review of zh and ms (stays `TODO-review` until named), R24 after soak. Folds in T20. About 30 h
 
-Milestones: [ ] M1 money and QA backend fixes merged (WD 3) · [ ] M2 sign-in page and new palette visible (WD 10) · [ ] M3 public ids and the correction workflow (WD 24) · [ ] M4 advanced table and Home screens (WD 38) · [ ] M5 configurable roles (WD 50) · [ ] M6 full 2026 refresh and the quality gate (WD 68) · [ ] M7 deployment (WD 72). Acceptance checks: roadmap section 6.
+Milestones (lean, roadmap section 6): [ ] M1 calm palette, money and quantity basics (WD 6, 19 Oct) · [ ] M2 new look and tables (WD 12, 27 Oct) · [ ] M3 corrections and public ids (WD 20, 6 Nov) · [ ] M4 Home, filters, phone (WD 25, 13 Nov) · [ ] M5 configurable roles (WD 33, 25 Nov) · [ ] M6 lean refresh complete (WD 38, 2 Dec) · [ ] M7 deployment (about WD 40, depends on hosting). Acceptance checks: roadmap section 6.
 
 ## Team (agents in `.claude/agents/`, protocol in `docs/team/PROTOCOL.md`, PR review in `docs/team/PR-REVIEW.md`)
 19 roles: security-engineer, product-manager, business-analyst, project-manager, ui-ux-designer, fe-designer, fe-architect, fe-framework,
@@ -78,7 +78,17 @@ session routes. New agent types register after a session reload; until then they
 - Phase 3: accounting export, API keys/webhooks, e-commerce, OCR drafts, reorder suggestions
 - Phase 4: batch/expiry, serial, multi-company, BOM/FIFO, RFID, NL queries, owner dashboard
 
+## Review follow-ups (minor, none blocking; found 2026-10-12)
+- #57: typing "abc" then deleting to "ab" shows the unfiltered list while the box still reads "ab" (fix the comment or add a 3-to-2 spec); `API_MIN_SEARCH_LENGTH` sits under the wrong comment in `pagination.const.ts`.
+- #57: the ledger "balance after" column and the document "Reversed by" line have no screen yet (client fields exist); needs a designer look, about 100 lines.
+- #55 accepted gap: no horizontal scroll at 1280 and the `15-reports-range` e2e are deferred to slice L04 (table column priorities).
+- #55 minors not done: cancel an in-flight request when the range turns invalid; `format.pipes.ts` holds five pipes (one type per file).
+- #52: `docs/dba/08-reconcile-drill.sql` check 3 uses `ISNULL` sentinels (-1, -2); two practically impossible cases are missed.
+- Run the full e2e suite once after F1 and R04 merge (it runs only manually and weekly); watch `12-low-stock` ("New receipt line never appeared" once).
+- Deferred: backend text limits (partner 120, product 80); `includeTotal=false` once a screen shows no total; Dependabot retries for stylelint 17 (needs `stylelint-config-standard-scss` support) and the .NET group (Microsoft.CodeAnalysis 5.9.0 conflict).
+- Owner spot-check: on a phone, tap a quantity field on a receipt and type; the value should be replaced (R27, untested on real iOS and Android).
+
 ## Open questions for the user (from PRD 14.3 and delivery)
-Defaults and deadlines for all owner decisions: [roadmap section 8.2](docs/pm/ROADMAP.md). Answer first (about 30 minutes): O1 corrections confirmations, O2 roles ADR answers, O3 hosting direction, O7 motion questions M1-M8.
+Defaults and deadlines for all owner decisions: [roadmap section 8.2](docs/pm/ROADMAP.md). Still open: O1 corrections confirmations (by WD 5), O3 hosting direction (by WD 10), O4 `large-change` label for the id-switch merge (by WD 15), O10 native speakers for zh and ms. Closed by the lean approval: roles defaults, tables, motion, date field and `Partner.Code` (not now).
 - Hosting model for deploy.yml: customer-owned servers, our cloud, or hybrid? Recommended default: one small VM (about US$6-24 a month) with Docker Compose; free-tier only for a data-free demo; managed always-on cloud is about US$100-200 a month
 - Default negative-stock policy and approval thresholds (currently: off; issues of 5,000 or more need a Supervisor).

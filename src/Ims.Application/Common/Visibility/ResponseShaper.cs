@@ -8,11 +8,13 @@ namespace Ims.Application;
 /// The single rule for cost and value (see <see cref="VisibleWithAttribute"/>): a tagged value is <c>null</c> in the response of a caller who lacks the permission,
 /// wherever it sits (nested objects, lists, pages). Run by <see cref="CostVisibilityBehavior"/> on the result of every request. Handlers see the full
 /// values; only what leaves the Application layer is shaped, so a tagged property is nullable and settable (<c>init</c>).
+/// A tagged value is money (or a unit price, <c>UnitPrice = true</c>), so the same step also rounds the ones that stay visible to <see cref="Money"/> precision (2 decimals, 4 for a unit price): whatever query or
+/// reader produced the number, no fraction of a cent reaches the wire.
 /// Strings tagged <see cref="ScrubsRestrictedKeysAttribute"/> are JSON: the restricted keys are removed from them.
 /// </summary>
 public static class ResponseShaper
 {
-    private sealed record Hidden(PropertyInfo Property, string Permission, PropertyInfo? OnlyWhen);
+    private sealed record Hidden(PropertyInfo Property, string Permission, PropertyInfo? OnlyWhen, int Places);
 
     private sealed record Plan(Hidden[] Hidden, PropertyInfo[] Json, PropertyInfo[] Children);
 
@@ -34,11 +36,11 @@ public static class ResponseShaper
         if (!type.Assembly.GetName().Name!.StartsWith(nameof(Ims), StringComparison.Ordinal)) return;
 
         var plan = Plans.GetOrAdd(type, Build);
-        foreach (var hidden in plan.Hidden)
+        foreach (var tagged in plan.Hidden)
         {
-            if (has(hidden.Permission)) continue;
-            if (hidden.OnlyWhen is not null && hidden.OnlyWhen.GetValue(value) is not true) continue;
-            hidden.Property.SetValue(value, null);
+            if (tagged.OnlyWhen is not null && tagged.OnlyWhen.GetValue(value) is not true) continue; // not money in this case (the numbers of a quantity rule)
+            if (!has(tagged.Permission)) tagged.Property.SetValue(value, null);
+            else if (tagged.Property.GetValue(value) is decimal amount) tagged.Property.SetValue(value, Money.Round(amount, tagged.Places)); // a tagged value is money (2 decimals) or a unit price (4)
         }
         foreach (var json in plan.Json)
             json.SetValue(value, AuditPayloadScrubber.Scrub((string?)json.GetValue(value), has));
@@ -55,7 +57,7 @@ public static class ResponseShaper
             if (!property.CanWrite || !IsNullable(property))
                 throw new InvalidOperationException($"{type.Name}.{property.Name} is tagged {nameof(VisibleWithAttribute)}, so it must be nullable and settable to be withheld.");
             var onlyWhen = tag.OnlyWhen is null ? null : type.GetProperty(tag.OnlyWhen) ?? throw new InvalidOperationException($"{type.Name} has no property {tag.OnlyWhen}.");
-            hidden.Add(new Hidden(property, tag.Permission, onlyWhen));
+            hidden.Add(new Hidden(property, tag.Permission, onlyWhen, tag.UnitPrice ? Money.UnitPriceDecimals : Money.Decimals));
         }
         var json = properties.Where(p => p.GetCustomAttribute<ScrubsRestrictedKeysAttribute>() is not null && p.PropertyType == typeof(string) && p.CanWrite).ToArray();
         var children = properties.Where(p => !IsLeaf(p.PropertyType) && p.GetCustomAttribute<VisibleWithAttribute>() is null).ToArray();

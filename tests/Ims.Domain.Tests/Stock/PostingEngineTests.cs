@@ -204,7 +204,7 @@ public class PostingEngineTests
         var balances = Balances(StockBalance.OpenFor(1, 1), StockBalance.OpenFor(2, 1));
         var post = NewContext(doc);
         _engine.Post(doc, balances, post);
-        doc.MarkReversed("wrong supplier", Now);
+        doc.MarkReversed("wrong supplier", Now, Reverser);
         var reversal = NewContext(doc);
 
         _engine.Reverse(doc, balances, reversal);
@@ -227,7 +227,7 @@ public class PostingEngineTests
         var doc = NewIssue(2, (P(1), 4m)).Submitted();
         var balances = Balances(NewBalance(1, 10m, 5m));
         _engine.Post(doc, balances, NewContext(doc));
-        doc.MarkReversed("customer returned goods", Now);
+        doc.MarkReversed("customer returned goods", Now, Reverser);
         var reversal = NewContext(doc);
 
         _engine.Reverse(doc, balances, reversal);
@@ -246,7 +246,7 @@ public class PostingEngineTests
         var balances = Balances(StockBalance.OpenFor(1, 1), StockBalance.OpenFor(2, 1));
         var post = NewContext(doc);
         _engine.Post(doc, balances, post);
-        doc.MarkReversed("duplicate", Now);
+        doc.MarkReversed("duplicate", Now, Reverser);
         var reversal = NewContext(doc);
 
         _engine.Reverse(doc, balances, reversal);

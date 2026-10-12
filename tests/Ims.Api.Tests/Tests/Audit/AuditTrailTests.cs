@@ -212,7 +212,7 @@ public class AuditTrailTests(ApiFixture fixture)
             var change = Assert.Single(entries, e => e.Action == AuditActions.SettingsUpdated);
             Assert.Contains(original.AllowSelfApproval.ToString(), change.Before, StringComparison.OrdinalIgnoreCase);
             Assert.Contains((!original.AllowSelfApproval).ToString(), change.After, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains(entries, e => e.EntityType == nameof(SystemSetting) && e.Action == AuditActions.RowUpdated);
+            Assert.DoesNotContain(entries, e => e.EntityType == nameof(SystemSetting) && e.Action == AuditActions.RowUpdated); // PS-12: one event per save, not one row per changed key
         }
         finally
         {

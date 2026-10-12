@@ -16,7 +16,7 @@ public class StockDocumentStateMachineTests
             case DocumentStatus.Submitted: doc.Submit(Submitter, true, Now); break;
             case DocumentStatus.Approved: doc.Submit(Submitter, true, Now); doc.Approve(Approver, false, Now); break;
             case DocumentStatus.Posted: doc.Submit(Submitter, false, Now); doc.MarkPosted(Approver, Now); break;
-            case DocumentStatus.Reversed: doc.Submit(Submitter, false, Now); doc.MarkPosted(Approver, Now); doc.MarkReversed("wrong supplier", Now); break;
+            case DocumentStatus.Reversed: doc.Submit(Submitter, false, Now); doc.MarkPosted(Approver, Now); doc.MarkReversed("wrong supplier", Now, Reverser); break;
             case DocumentStatus.Cancelled: doc.Cancel("not needed"); break;
         }
         Assert.Equal(status, doc.Status);
@@ -468,11 +468,25 @@ public class StockDocumentStateMachineTests
     {
         var doc = InStatus(DocumentStatus.Posted);
 
-        doc.MarkReversed("wrong supplier", Later);
+        doc.MarkReversed("wrong supplier", Later, Reverser);
 
         Assert.Equal(DocumentStatus.Reversed, doc.Status);
         Assert.Equal("wrong supplier", doc.ReversalReason);
         Assert.Equal(Later, doc.ReversedAt);
+        Assert.Equal(Reverser, doc.ReversedBy);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void MarkReversed_WithoutARealUser_Throws_AndLeavesTheDocumentPosted(int reversedBy)
+    {
+        var doc = InStatus(DocumentStatus.Posted);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => doc.MarkReversed("wrong supplier", Later, reversedBy));
+
+        Assert.Equal(DocumentStatus.Posted, doc.Status);
+        Assert.Null(doc.ReversedBy);
     }
 
     [Fact]
@@ -480,9 +494,10 @@ public class StockDocumentStateMachineTests
     {
         var doc = InStatus(DocumentStatus.Posted);
 
-        Assert.Throws<DomainException>(() => doc.MarkReversed(" ", Later));
+        Assert.Throws<DomainException>(() => doc.MarkReversed(" ", Later, Reverser));
 
         Assert.Null(doc.ReversedAt);
+        Assert.Null(doc.ReversedBy);
     }
 
     [Theory]
@@ -493,7 +508,7 @@ public class StockDocumentStateMachineTests
     {
         var doc = InStatus(DocumentStatus.Posted);
 
-        var ex = Assert.Throws<DomainException>(() => doc.MarkReversed(reason!, Now));
+        var ex = Assert.Throws<DomainException>(() => doc.MarkReversed(reason!, Now, Reverser));
 
         Assert.Equal(Messages.ReverseReasonRequired, ex.Message);
         Assert.Equal(DocumentStatus.Posted, doc.Status);
@@ -509,7 +524,7 @@ public class StockDocumentStateMachineTests
     {
         var doc = InStatus(status);
 
-        var ex = Assert.Throws<DomainException>(() => doc.MarkReversed("reason", Now));
+        var ex = Assert.Throws<DomainException>(() => doc.MarkReversed("reason", Now, Reverser));
 
         Assert.Equal(Messages.OnlyPostedCanReverse, ex.Message);
         Assert.Equal(status, doc.Status);
@@ -543,7 +558,7 @@ public class StockDocumentStateMachineTests
     {
         var doc = InStatus(DocumentStatus.Reversed);
 
-        Assert.Throws<DomainException>(() => doc.MarkReversed("again", Now));
+        Assert.Throws<DomainException>(() => doc.MarkReversed("again", Now, Reverser));
         Assert.Throws<DomainException>(() => doc.MarkPosted(Approver, Later));
         Assert.Throws<DomainException>(() => doc.Cancel("x"));
         Assert.Equal(DocumentStatus.Reversed, doc.Status);
@@ -567,7 +582,7 @@ public class StockDocumentStateMachineTests
         doc.Submit(Submitter, true, Now);
         doc.Approve(Approver, false, Now);
         doc.MarkPosted(Approver, Now);
-        doc.MarkReversed("mistake", Now);
+        doc.MarkReversed("mistake", Now, Reverser);
 
         Assert.Equal(DocumentStatus.Reversed, doc.Status);
     }

@@ -22,8 +22,12 @@ test.describe('T16 Low stock (PS-04, NV-13)', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'New receipt' })).toBeVisible();
     await expect(editor.line(product.sku)).toBeVisible();
     await expect(editor.qty(product.sku)).toBeFocused();
+    // Wait for the initial value so a late write cannot drop the selection before the keys arrive.
+    await expect(editor.qty(product.sku)).toHaveValue('1');
 
-    await editor.setQty(product.sku, 25);
+    // NR-01: the shortcut focuses the quantity with 1 in it; typing 25 replaces it (it used to make 125).
+    await page.keyboard.type('25');
+    await expect(editor.qty(product.sku)).toHaveValue('25');
     await editor.action('Submit & post').click();
     await editor.confirm(/^Post /, 'Post');
     await expect(shell.toast('Posted. Stock updated.')).toBeVisible();

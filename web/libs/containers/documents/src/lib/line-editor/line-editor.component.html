@@ -32,6 +32,7 @@
         <app-form-field
           class="line-editor-qty-field"
           [label]="'doc.qty' | t"
+          [required]="true"
           [control]="row.group.controls.qty"
           [messages]="{ min: 'line.qtyMin' | t }"
         >
@@ -74,6 +75,7 @@
               formControlName="unitCost"
               inputMode="decimal"
               min="0"
+              step="0.01"
               [ariaLabel]="'line.costFor' | t: { sku: row.value.sku }"
             />
           </app-form-field>

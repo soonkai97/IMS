@@ -1,4 +1,4 @@
-import { PERMISSION, ROLE } from '@ims/models';
+import { PERMISSION } from '@ims/models';
 import { MenuGroup, MenuItem } from '../types/menu.types';
 
 export const MENU_GROUPS: readonly MenuGroup[] = [
@@ -34,7 +34,7 @@ export const MENU_ITEMS: readonly MenuItem[] = [
     labelKey: 'nav.approvals',
     icon: 'check-double',
     route: '/approvals',
-    permissions: [PERMISSION.DocumentApprove],
+    permissions: [PERMISSION.DocumentApprove, PERMISSION.DocumentApproveLarge],
     group: 'documents'
   },
   {
@@ -118,14 +118,3 @@ export const MENU_ITEMS: readonly MenuItem[] = [
     group: 'admin'
   }
 ];
-
-/** Bottom tab bar on phones: four tabs per role, everything else lives under "More". */
-export const PHONE_TABS_BY_ROLE: Readonly<Record<string, readonly string[]>> = {
-  [ROLE.WarehouseStaff]: ['home', 'receipts', 'issues', 'stock'],
-  [ROLE.Clerk]: ['home', 'receipts', 'issues', 'stock'],
-  [ROLE.Supervisor]: ['home', 'approvals', 'receipts', 'stock'],
-  [ROLE.Admin]: ['home', 'approvals', 'receipts', 'stock'],
-  [ROLE.Owner]: ['home', 'approvals', 'stock', 'reports']
-};
-
-export const DEFAULT_PHONE_TABS: readonly string[] = ['home', 'stock'];

@@ -49,8 +49,14 @@ Append one entry per finished piece of work to `docs/team/HANDOFFS.md` (newest a
 
 ## Definition of done (any role)
 1. Output is in a file, not only in chat.
-2. Anything buildable was built and any test was run; the result is stated plainly.
+2. Anything buildable was built (`-c Release -warnaserror --no-incremental`) and the tests for what changed were run; the result is stated plainly.
 3. A HANDOFFS.md entry exists naming the next role.
+
+## Test runs (lean)
+CI (`.github/workflows/ci.yml`) runs the full suites on every pull request and is the merge gate. So:
+1. Run only the tests for the code you changed (filtered), plus the warnings-as-errors build.
+2. Do not run the full suites locally, except for migrations, money, posting or reversal, permissions and cost visibility, or auth and security changes: run those once on the final code before the push.
+3. Never merge on a red CI check; a failure CI finds is fixed by the author and re-checked, not waved through.
 
 ## Orchestrator rules
 - Run roles in parallel only when their lanes and inputs are independent.

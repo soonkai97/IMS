@@ -8,6 +8,8 @@ export * from './lib/components/empty-state/empty-state.component';
 export * from './lib/components/file-input/file-input.component';
 export * from './lib/components/form-field/form-field.component';
 export * from './lib/components/form-field/form-field.token';
+export * from './lib/components/form-legend/form-legend.component';
+export * from './lib/components/icon/icon-size';
 export * from './lib/components/icon/icon.component';
 export * from './lib/components/icon/icon.paths';
 export * from './lib/components/input/input.component';
