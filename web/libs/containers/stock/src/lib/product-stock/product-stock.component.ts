@@ -65,11 +65,12 @@ export class ProductStockPageComponent implements OnInit {
   $columns = computed<readonly TableColumn<LedgerRow>[]>(() => [
     {
       key: 'document',
+      type: 'code',
       header: this.i18n.t('ledger.document'),
       value: row => row.sourceDocNo,
       primary: true
     },
-    { key: 'date', header: this.i18n.t('ledger.date') },
+    { key: 'date', type: 'date', header: this.i18n.t('ledger.date') },
     {
       key: 'reason',
       header: this.i18n.t('ledger.reason'),

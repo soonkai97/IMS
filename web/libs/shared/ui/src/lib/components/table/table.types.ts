@@ -1,11 +1,21 @@
 import { TemplateRef } from '@angular/core';
 
+/**
+ * What a column holds, which decides its width and how a long value is cut (L00). Default: `number` when aligned to
+ * the end, `name` for the primary column, otherwise `text`.
+ * - `name` and `text`: share the remaining width (minimum `column-min`), two lines, then "Show more" (app-clamped-text).
+ * - `code` (SKU, document number): as wide as the value up to 14rem, then it wraps inside that box; an ordinary code stays whole.
+ * - `number`, `status` (chips), `date`, `action` (buttons): as wide as the value, never broken or cut.
+ */
+export type TableColumnType = 'name' | 'text' | 'code' | 'number' | 'status' | 'date' | 'action';
+
 export interface TableColumn<Row> {
   readonly key: string;
   readonly header: string;
   /** Plain text of the cell. Omit when a `appCell` template renders it. */
   readonly value?: (row: Row) => string;
   readonly align?: 'start' | 'end';
+  readonly type?: TableColumnType;
   /** The primary cell is the card title on phones and carries the row link. */
   readonly primary?: boolean;
   /** Hidden when the table collapses to cards. */
@@ -28,6 +38,7 @@ export interface TableSort {
 
 export interface TableCell {
   readonly key: string;
+  readonly type: TableColumnType;
   readonly header: string;
   readonly text: string;
   readonly template: TemplateRef<unknown> | null;
@@ -42,6 +53,7 @@ export interface TableCell {
 
 export interface TableHeader {
   readonly key: string;
+  readonly type: TableColumnType;
   readonly header: string;
   readonly alignEnd: boolean;
   readonly hideOnPhone: boolean;
@@ -54,6 +66,17 @@ export interface TableItem<Row> {
   readonly row: Row;
   readonly link: readonly unknown[] | null;
   readonly cells: readonly TableCell[];
+}
+
+/** The column type to use: the declared one, else derived from `align` and `primary`. */
+export function columnTypeOf<Row>(column: TableColumn<Row>): TableColumnType {
+  if (column.type) {
+    return column.type;
+  }
+  if (column.align === 'end') {
+    return 'number';
+  }
+  return column.primary === true ? 'name' : 'text';
 }
 
 /** Spread into a column list: the column exists only when `condition` holds (a cost or value the user may not see). */

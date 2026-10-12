@@ -50,16 +50,11 @@
   align-items: flex-start;
 }
 
-// A SKU and a date are one token each in the table: never broken at a hyphen or a space (PR-06). On a phone card they
-// may wrap, so a long SKU can never push the card wider than the screen.
+// A SKU and a date are one token each in the table: never broken at a hyphen or a space (PR-06) and never cut (L00); a
+// long SKU makes the table scroll in its box. On a phone card they may wrap, so a long SKU can never push the card wider
+// than the screen.
 .reports-page-nowrap {
   @include media-desktop {
-    white-space: nowrap;
+    @include keep-whole;
   }
-}
-
-// A wide table scrolls here, not the page (WCAG 1.4.10 allows two-dimensional data tables); the region is focusable.
-.reports-page-table {
-  max-width: 100%;
-  overflow-x: auto;
 }

@@ -15,73 +15,78 @@
     <ng-content select="[empty]" />
   </div>
 } @else {
-  <table class="ui-table-grid" [attr.aria-busy]="$loading()">
-    <caption class="sr-only">
-      {{
-        $caption()
-      }}
-    </caption>
-    <thead class="ui-table-head">
-      <tr>
-        @for (column of $headers(); track column.key) {
-          <th
-            scope="col"
-            class="ui-table-header"
-            [class.--end]="column.alignEnd"
-            [class.--phone-hidden]="column.hideOnPhone"
-            [attr.aria-sort]="column.ariaSort"
-          >
-            @if (column.sortKey) {
-              <button type="button" class="ui-table-sort" (click)="onSort(column)">
-                {{ column.header }}
-                <app-icon
-                  [name]="column.ariaSort === 'descending' ? 'chevron-down' : 'chevron-up'"
-                />
-              </button>
-            } @else {
-              {{ column.header }}
-            }
-          </th>
-        }
-      </tr>
-    </thead>
-    <tbody>
-      @for (item of $items(); track $index) {
-        <tr
-          class="ui-table-row"
-          [class.--linked]="item.link !== null"
-          [class.--compact]="$compact()"
-        >
-          @for (cell of item.cells; track cell.key) {
-            <td
-              class="ui-table-cell"
-              [attr.data-label]="cell.header"
-              [class.--primary]="cell.primary"
-              [class.--end]="cell.alignEnd"
-              [class.--phone-hidden]="cell.hideOnPhone"
-              [class.--phone-end]="cell.phoneEnd"
-              [class.--phone-inline]="cell.phoneInline"
-              [class.--empty]="cell.empty"
+  <!-- A table wider than its box scrolls here, never the page (L00); only then is this a focusable, named region. -->
+  <div class="ui-table-scroll" [appScrollRegion]="$caption()">
+    <table class="ui-table-grid" [attr.aria-busy]="$loading()">
+      <caption class="sr-only">
+        {{
+          $caption()
+        }}
+      </caption>
+      <thead class="ui-table-head">
+        <tr>
+          @for (column of $headers(); track column.key) {
+            <th
+              scope="col"
+              class="ui-table-header"
+              [class]="'--' + column.type"
+              [class.--end]="column.alignEnd"
+              [class.--phone-hidden]="column.hideOnPhone"
+              [attr.aria-sort]="column.ariaSort"
             >
-              @if (cell.primary && item.link) {
-                <a class="ui-table-link" [routerLink]="item.link">
+              @if (column.sortKey) {
+                <button type="button" class="ui-table-sort" (click)="onSort(column)">
+                  {{ column.header }}
+                  <app-icon
+                    [name]="column.ariaSort === 'descending' ? 'chevron-down' : 'chevron-up'"
+                  />
+                </button>
+              } @else {
+                {{ column.header }}
+              }
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of $items(); track $index) {
+          <tr
+            class="ui-table-row"
+            [class.--linked]="item.link !== null"
+            [class.--compact]="$compact()"
+          >
+            @for (cell of item.cells; track cell.key) {
+              <td
+                class="ui-table-cell"
+                [class]="'--' + cell.type"
+                [attr.data-label]="cell.header"
+                [class.--primary]="cell.primary"
+                [class.--end]="cell.alignEnd"
+                [class.--phone-hidden]="cell.hideOnPhone"
+                [class.--phone-end]="cell.phoneEnd"
+                [class.--phone-inline]="cell.phoneInline"
+                [class.--empty]="cell.empty"
+              >
+                @if (cell.primary && item.link) {
+                  <a class="ui-table-link" [routerLink]="item.link">
+                    <ng-container
+                      [ngTemplateOutlet]="content"
+                      [ngTemplateOutletContext]="{ $implicit: item, cell: cell }"
+                    />
+                  </a>
+                } @else {
                   <ng-container
                     [ngTemplateOutlet]="content"
                     [ngTemplateOutletContext]="{ $implicit: item, cell: cell }"
                   />
-                </a>
-              } @else {
-                <ng-container
-                  [ngTemplateOutlet]="content"
-                  [ngTemplateOutletContext]="{ $implicit: item, cell: cell }"
-                />
-              }
-            </td>
-          }
-        </tr>
-      }
-    </tbody>
-  </table>
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 }
 
 <ng-template #content let-item let-cell="cell">
@@ -91,6 +96,13 @@
       [ngTemplateOutletContext]="{ $implicit: item.row }"
     />
   } @else {
-    {{ cell.text }}
+    @if (cell.type === 'name' || cell.type === 'text') {
+      <!-- A linked title is read in full on the detail page; any other text can be expanded in place. -->
+      <app-clamped-text [text]="cell.text" [expandable]="!(cell.primary && item.link)" />
+    } @else if (cell.type === 'code') {
+      <span class="ui-table-code">{{ cell.text }}</span>
+    } @else {
+      {{ cell.text }}
+    }
   }
 </ng-template>
