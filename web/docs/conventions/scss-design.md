@@ -130,13 +130,14 @@ page scroll at any width, and a short one (a number, a date, a code, a chip) mus
   less" button with `aria-expanded` and `aria-describedby` pointing at the text, shown only when the text overflows), so it is
   readable by keyboard and by touch. The
   button is left out where the full value is one click away (a row's title that links to its detail page). `title` is not a
-  way to read a value: it needs a mouse.
+  way to read a value: it needs a mouse. A toast shows its whole message, wrapped; past half the window height it scrolls inside
+  itself.
 - `app-table`: columns have a `type` (`name`, `text`, `code`, `number`, `status`, `date`, `action`, see `table.types.ts`). From 1024px
   the table is as wide as its columns need. Cells of type `number`, `date`, `code`, `status` and `action` are `keep-whole` and size to
   their content (the header has `width: 1%` and may wrap at a space, never inside a word); a plain-text code is as wide as its
   value up to `width('code-max')` and wraps inside that box beyond it, so one 64-character SKU cannot push the other columns out
   of view. `name` and `text` cells have a minimum width (`width('column-min')`) and are clamped to two lines by
-  `app-clamped-text`. A low-priority column can set `hideOnNarrow` (hidden from 1024 to 1279px). When the columns still need
+  `app-clamped-text`. When the columns still need
   more than the page leaves, the table scrolls inside its own box, which shows a soft shadow on the side with more to see and,
   only while it really scrolls, is a labelled, focusable region (`appScrollRegion`: `role="region"`, `tabindex="0"`,
   `data-scroll-region`), so a table that fits has no extra tab stop. The page never scrolls. Chips are never cut: they hold

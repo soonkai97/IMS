@@ -159,14 +159,6 @@
   }
 }
 
-// A low-priority column (a category) leaves the table from 1024 to 1279px, so the others keep their room (L00).
-@include media-desktop-narrow {
-  .ui-table-header.--narrow-hidden,
-  .ui-table-cell.--narrow-hidden {
-    display: none;
-  }
-}
-
 .ui-table-link {
   display: inline-flex;
   align-items: center;

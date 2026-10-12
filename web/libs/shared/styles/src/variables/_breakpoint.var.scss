@@ -1,5 +1,3 @@
 /// Phone < 600, tablet 600-1023 (icon rail), desktop >= 1024 (sidebar, tables). Mirrors docs/design/mvp-ux.md D1.
 $breakpoint-tablet: 600px;
 $breakpoint-desktop: 1024px;
-/// Below this a desktop table is still tight beside the sidebar (L00).
-$breakpoint-wide: 1280px;

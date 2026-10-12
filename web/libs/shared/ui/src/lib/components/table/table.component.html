@@ -32,7 +32,6 @@
               [class]="'--' + column.type"
               [class.--end]="column.alignEnd"
               [class.--phone-hidden]="column.hideOnPhone"
-              [class.--narrow-hidden]="column.hideOnNarrow"
               [attr.aria-sort]="column.ariaSort"
             >
               @if (column.sortKey) {
@@ -64,7 +63,6 @@
                 [class.--primary]="cell.primary"
                 [class.--end]="cell.alignEnd"
                 [class.--phone-hidden]="cell.hideOnPhone"
-                [class.--narrow-hidden]="cell.hideOnNarrow"
                 [class.--phone-end]="cell.phoneEnd"
                 [class.--phone-inline]="cell.phoneInline"
                 [class.--empty]="cell.empty"

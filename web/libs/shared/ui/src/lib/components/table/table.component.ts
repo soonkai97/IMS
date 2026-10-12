@@ -78,7 +78,6 @@ export class UiTableComponent<Row extends object> {
       header: column.header,
       alignEnd: column.align === 'end',
       hideOnPhone: column.hideOnPhone === true,
-      hideOnNarrow: column.hideOnNarrow === true,
       sortKey: column.sortKey,
       ariaSort: this.ariaSortOf(column.sortKey, sort)
     }));
@@ -104,7 +103,6 @@ export class UiTableComponent<Row extends object> {
           primary: column.primary === true,
           alignEnd: column.align === 'end',
           hideOnPhone: column.hideOnPhone === true,
-          hideOnNarrow: column.hideOnNarrow === true,
           phoneEnd: column.phoneEnd === true,
           phoneInline: column.phoneInline === true,
           empty: template === null && text.trim() === ''
