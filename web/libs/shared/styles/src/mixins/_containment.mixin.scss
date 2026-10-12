@@ -1,17 +1,31 @@
-// Content containment (L00): a long value never widens the page. `html` already breaks any word anywhere
-// (globals/_containment.scss); these two mixins are for text that must stay short instead.
+// Content containment (L00). A long value must never widen the page, and a short one (a number, a date, a code, a chip)
+// must never be broken or cut. `html` breaks long words at the end of the line (`overflow-wrap: break-word`); these
+// mixins decide the rest. They hold the only literal `white-space: nowrap` the stylelint rule allows.
 
-/// One line, cut with an ellipsis. Pair it with a `title` or a detail page that shows the full value.
-/// This is the only place a literal `white-space: nowrap` may appear (stylelint bans it elsewhere).
-@mixin truncate-line {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- the ellipsis above is the point */
+/// Never broken, never cut: money, quantities, dates, codes, chip and button labels. The element sizes to its content, so
+/// put it inside a region that can scroll (app-table does) when the value can be long.
+@mixin keep-whole {
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- the one sanctioned no-break helper */
   white-space: nowrap;
 }
 
-/// At most `$lines` lines, then an ellipsis.
+/// One line, cut with an ellipsis. Only for text that is also shown in full somewhere else (a menu label, a title).
+@mixin truncate-line {
+  @include keep-whole;
+
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/// Free text that may hold a long unbroken run (a name, a remark, an e-mail address, a URL): break it anywhere, and let
+/// it shrink inside a flex or grid row (`anywhere`, unlike `break-word`, lowers the min-content width).
+@mixin wrap-anywhere {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/// At most `$lines` lines, then an ellipsis. Pair it with a way to read the rest (app-clamped-text).
 @mixin clamp-lines($lines) {
   display: -webkit-box;
   min-width: 0;

@@ -7,7 +7,7 @@ import { goTo } from '../src/pages/shell';
 
 // L00 (N15): content never causes horizontal page scroll, whatever the length or script of a value the API accepts
 // (names 300 characters, remarks 500). Only a deliberate scroll region may scroll sideways, and it is focusable and named.
-const WIDTHS = [320, 360, 768, 1440];
+const WIDTHS = [320, 360, 768, 1024, 1280, 1440];
 const NAME = 300;
 const REMARK = 500;
 
@@ -39,17 +39,88 @@ async function expectContained(page: Page, label: string): Promise<void> {
         strays.push(element.tagName.toLowerCase() + '.' + element.className);
       }
     }
+    // When the page is too wide, name the widest elements so the failure says where.
+    const wide = Array.from(document.querySelectorAll<HTMLElement>('body *'))
+      .filter(element => element.getBoundingClientRect().right > doc.clientWidth + 1)
+      .slice(0, 6)
+      .map(element => `${element.tagName.toLowerCase()}.${element.className}`);
     return {
       page: doc.scrollWidth - doc.clientWidth,
       body: document.body.scrollWidth - doc.clientWidth,
-      strays
+      strays,
+      wide
     };
   });
-  expect(result.page, `${label}: page is wider than the window`).toBeLessThanOrEqual(0);
+  expect(
+    result.page,
+    `${label}: page is wider than the window (${result.wide.join(' | ')})`
+  ).toBeLessThanOrEqual(0);
   expect(result.body, `${label}: body is wider than the window`).toBeLessThanOrEqual(0);
   expect(result.strays, `${label}: sideways scrollers that are not named scroll regions`).toEqual(
     []
   );
+  if (page.viewportSize()!.width >= 1024) {
+    await expectCellsWhole(page, label);
+  }
+}
+
+/**
+ * On a table (1024 px and up) a number, date, code, status or action cell is never broken across lines or clipped, and a
+ * chip is never cut: those values size their column, they are not squeezed by it (L00, reviewer findings 1 and 2).
+ */
+async function expectCellsWhole(page: Page, label: string): Promise<void> {
+  const broken = await page.evaluate(() => {
+    const problems: string[] = [];
+    const selector = ['number', 'date', 'code', 'status', 'action']
+      .flatMap(type => [`app-table th.--${type}`, `app-table td.--${type}`])
+      .join(',');
+    for (const cell of Array.from(document.querySelectorAll<HTMLElement>(selector))) {
+      if (cell.getClientRects().length === 0) {
+        continue;
+      }
+      const isChipCell = cell.classList.contains('--status');
+      const range = document.createRange();
+      const parts = isChipCell
+        ? Array.from(cell.querySelectorAll<HTMLElement>('.ui-status-chip-label'))
+        : [cell];
+      for (const part of parts) {
+        // The line boxes of the text itself (not of an icon or a button around it).
+        const lines = new Set<number>();
+        const walker = document.createTreeWalker(part, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          // A chip beside a number (the Reversal badge under a document number) has its own line, and its own check below.
+          if (
+            (node.textContent ?? '').trim() === '' ||
+            node.parentElement?.closest('.ui-status-chip')
+          ) {
+            continue;
+          }
+          range.selectNodeContents(node);
+          for (const rect of Array.from(range.getClientRects())) {
+            if (rect.width > 0) {
+              lines.add(Math.round(rect.top));
+            }
+          }
+        }
+        const clipped = part.scrollWidth - part.clientWidth > 1;
+        if (lines.size > 1 || clipped) {
+          problems.push(
+            `${cell.tagName.toLowerCase()}.${cell.className.replace(/\s+/g, '.')} "${(part.textContent ?? '').trim().slice(0, 30)}" lines=${lines.size} clipped=${clipped}`
+          );
+        }
+      }
+    }
+    // No chip in a table is cut, wherever it sits.
+    for (const label of Array.from(
+      document.querySelectorAll<HTMLElement>('app-table .ui-status-chip-label')
+    )) {
+      if (label.getClientRects().length > 0 && label.scrollWidth - label.clientWidth > 1) {
+        problems.push(`chip "${(label.textContent ?? '').trim()}" clipped`);
+      }
+    }
+    return problems;
+  });
+  expect(broken, `${label}: number, date, code or chip cells broken or cut`).toEqual([]);
 }
 
 /** A dialog or toast stays inside the window and does not scroll sideways itself. */
@@ -71,7 +142,7 @@ async function expectFits(locator: Locator, label: string): Promise<void> {
 test.describe('L00 Content containment', () => {
   test.setTimeout(300_000);
 
-  test('given 300-character names and 500-character remarks in four shapes, then no screen scrolls sideways at 320, 360, 768 and 1440', async ({
+  test('given 300-character names and 500-character remarks in four shapes, then no screen scrolls sideways and no number or chip is broken from 320 to 1440', async ({
     page,
     signIn,
     shell
@@ -100,6 +171,9 @@ test.describe('L00 Content containment', () => {
       );
       await admin.createUser({ displayName: longValue(variant, 200, `${prefix}-${variant}-`) });
     }
+    // A line worth 1.2 billion, so the number columns meet a wide amount.
+    const big = await admin.createProduct({ name: `${mark} big` });
+    await admin.post('receipts', [{ productId: big.id, qty: 1000, unitCost: 1234567.89 }]);
     const lines = products.map(product => ({ productId: product.id, qty: 3, unitCost: 1 }));
     const posted = await admin.post('receipts', lines);
     const draft = await admin.createDocument('receipts', lines, {
@@ -130,6 +204,17 @@ test.describe('L00 Content containment', () => {
       await search(/^Search/, mark);
       await expect(page.getByText(mark).first()).toBeVisible();
       await expectContained(page, at('Partners'));
+
+      // L00.3: a cut name is readable in full without a pointer: a real button, reachable by keyboard.
+      const more = page.getByRole('button', { name: 'Show more' }).first();
+      await expect(more).toBeVisible();
+      await more.focus();
+      await page.keyboard.press('Enter');
+      await expect(page.getByRole('button', { name: 'Show less' }).first()).toHaveAttribute(
+        'aria-expanded',
+        'true'
+      );
+      await expectContained(page, at('Partners, name expanded'));
 
       // A dialog that holds the long values.
       await page.getByRole('button', { name: 'Edit' }).first().click();

@@ -2,6 +2,7 @@ export * from './lib/components/banner/banner.component';
 export * from './lib/components/button/button.component';
 export * from './lib/components/card/card.component';
 export * from './lib/components/checkbox/checkbox.component';
+export * from './lib/components/clamped-text/clamped-text.component';
 export * from './lib/components/confirm-dialog/confirm-dialog.component';
 export * from './lib/components/dialog/dialog.component';
 export * from './lib/components/empty-state/empty-state.component';

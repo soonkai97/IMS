@@ -25,6 +25,8 @@ export function provideUiText(): EnvironmentProviders {
           dropFile: i18n.t('ui.dropFile'),
           selectPlaceholder: i18n.t('ui.selectPlaceholder'),
           dismiss: i18n.t('ui.dismiss'),
+          showMore: i18n.t('ui.showMore'),
+          showLess: i18n.t('ui.showLess'),
           errorTitle: i18n.t('ui.errorTitle'),
           reasonTooShort: length => i18n.t('validation.reasonMinLength', { length }),
           pageStatus: (page, pages) => i18n.t('ui.pageStatus', { page, pages }),

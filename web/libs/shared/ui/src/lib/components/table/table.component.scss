@@ -33,9 +33,21 @@
   border-radius: border-radius('md');
 }
 
+// A wide screen: the table is as wide as its columns need and scrolls inside this box when that is more than the page
+// leaves it (L00). The page itself never scrolls sideways.
+.ui-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+
+  &:focus-visible {
+    @include focus-ring;
+
+    outline-offset: -3px;
+  }
+}
+
 .ui-table-grid {
   width: 100%;
-  table-layout: fixed;
   background: color('surface');
   border: border-width('thin') solid color('border');
   border-radius: border-radius('md');
@@ -48,7 +60,6 @@
   color: color('text-muted');
   text-align: start;
   text-transform: uppercase;
-  overflow-wrap: break-word;
   background: color('surface-2');
 
   &.--end {
@@ -91,42 +102,34 @@
   }
 }
 
-// Long values (L00): plain-text cells are one line with an ellipsis and the full value in the title; the same text
-// is on the detail page, in the edit dialog or one tap away on the card. Chips, numbers, dates and buttons are not cut.
-.ui-table-text {
-  min-width: 0;
-}
-
+// Long values (L00). Numbers, dates, codes, chips and buttons are never broken or cut: they size to their content (width
+// 1% shrinks the column to it) and a long one makes the table scroll in its box. Names and remarks share the rest, with
+// a minimum width, clamped to two lines by app-clamped-text (which can expand them).
 @include media-desktop {
-  .ui-table-header {
-    &.--code {
-      width: 12rem;
-    }
-
-    &.--number {
-      width: 5.5rem;
-    }
-
-    &.--date {
-      width: 7.5rem;
-    }
-
+  .ui-table-header,
+  .ui-table-cell {
+    &.--number,
+    &.--date,
+    &.--code,
     &.--status,
     &.--action {
-      width: 7.5rem;
+      @include keep-whole;
+    }
+
+    &.--name,
+    &.--text {
+      min-width: width('column-min');
     }
   }
 
-  .ui-table-cell.--name,
-  .ui-table-cell.--text,
-  .ui-table-cell.--code {
-    overflow: hidden;
-  }
-
-  .ui-table-text {
-    @include truncate-line;
-
-    display: block;
+  .ui-table-header {
+    &.--number,
+    &.--date,
+    &.--code,
+    &.--status,
+    &.--action {
+      width: 1%;
+    }
   }
 }
 
@@ -176,9 +179,10 @@
   }
 
   .ui-table-cell {
+    @include wrap-anywhere;
+
     display: flex;
     gap: space(2);
-    min-width: 0;
     max-width: 100%;
     justify-content: space-between;
     padding: space(0) 0;
@@ -197,22 +201,11 @@
       &::before {
         display: none;
       }
-
-      // A card title may take two lines, every other fact one.
-      .ui-table-text {
-        @include clamp-lines(2);
-
-        white-space: normal;
-      }
     }
 
     &.--phone-hidden,
     &.--empty {
       display: none;
-    }
-
-    .ui-table-text {
-      @include truncate-line;
     }
 
     &.--end {

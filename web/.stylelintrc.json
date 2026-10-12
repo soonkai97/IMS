@@ -3,7 +3,7 @@
   "rules": {
     "declaration-no-important": true,
     "declaration-property-value-disallowed-list": {
-      "white-space": ["nowrap"]
+      "/^(white-space|text-wrap|text-wrap-mode)$/": ["/nowrap/i"]
     },
     "color-no-hex": true,
     "color-named": "never",

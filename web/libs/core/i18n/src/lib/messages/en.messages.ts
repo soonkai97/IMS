@@ -40,6 +40,8 @@ export const EN_MESSAGES = {
   'ui.clear': 'Clear',
   'ui.close': 'Close',
   'ui.dismiss': 'Dismiss',
+  'ui.showMore': 'Show more',
+  'ui.showLess': 'Show less',
   'ui.dropFile': 'or drop a file here',
   'ui.errorTitle': 'Something went wrong.',
   'ui.hidePassword': 'Hide password',

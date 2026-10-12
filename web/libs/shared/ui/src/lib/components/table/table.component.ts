@@ -13,6 +13,7 @@ import { RouterLink } from '@angular/router';
 import { toClassStr } from '@ims/utils';
 import { UI_TEXT } from '../../tokens/ui-text.token';
 import { UiButtonComponent } from '../button/button.component';
+import { UiClampedTextComponent } from '../clamped-text/clamped-text.component';
 import { UiIconComponent } from '../icon/icon.component';
 import { UiSkeletonComponent } from '../skeleton/skeleton.component';
 import { UiCellDirective } from './cell.directive';
@@ -31,7 +32,14 @@ import {
  */
 @Component({
   selector: 'app-table',
-  imports: [NgTemplateOutlet, RouterLink, UiButtonComponent, UiIconComponent, UiSkeletonComponent],
+  imports: [
+    NgTemplateOutlet,
+    RouterLink,
+    UiButtonComponent,
+    UiClampedTextComponent,
+    UiIconComponent,
+    UiSkeletonComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './table.component.html',
   styleUrl: './table.component.scss',

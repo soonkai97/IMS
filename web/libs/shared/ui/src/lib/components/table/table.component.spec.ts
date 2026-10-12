@@ -89,13 +89,41 @@ describe('UiTableComponent long values (L00)', () => {
     expect(spectator.query('td.--code')).toBeTruthy();
   });
 
-  it('shows plain text in a span that carries the full value as its title, so it can be cut with an ellipsis', () => {
+  it('puts name and text cells in app-clamped-text, which holds the full value, and leaves codes as plain text', () => {
     const spectator = render([
-      { key: 'partner', header: 'Partner', value: row => row.partner, primary: true }
+      { key: 'no', header: 'No.', value: row => row.no, type: 'code' },
+      { key: 'partner', header: 'Partner', value: row => row.partner }
     ]);
 
-    const text = spectator.query('td .ui-table-text');
-    expect(text?.textContent?.trim()).toBe(long);
-    expect(text?.getAttribute('title')).toBe(long);
+    expect(spectator.query('td.--code app-clamped-text')).toBeNull();
+    expect(spectator.query('td.--code')?.textContent?.trim()).toBe('RCV-1');
+    expect(spectator.query('td.--text app-clamped-text')?.textContent?.trim()).toBe(long);
+  });
+
+  it('only a title that links to its detail page is not expandable in place', () => {
+    const spectator = createComponent({
+      props: {
+        columns: [
+          { key: 'partner', header: 'Partner', value: (row: Row) => row.partner, primary: true }
+        ],
+        rows,
+        caption: 'Receipts',
+        rowLink: () => ['/receipts', 1]
+      } as never
+    });
+    spectator.detectChanges();
+
+    expect(spectator.query('a.ui-table-link app-clamped-text')).toBeTruthy();
+    expect(spectator.query('app-clamped-text button')).toBeNull();
+  });
+
+  it('is a labelled, focusable scroll region so a wide table scrolls in its box and not the page', () => {
+    const spectator = render([{ key: 'no', header: 'No.', value: row => row.no, type: 'code' }]);
+
+    const region = spectator.query('.ui-table-scroll');
+    expect(region?.getAttribute('role')).toBe('region');
+    expect(region?.getAttribute('tabindex')).toBe('0');
+    expect(region?.getAttribute('aria-label')).toBe('Receipts');
+    expect(region?.hasAttribute('data-scroll-region')).toBe(true);
   });
 });

@@ -20,6 +20,9 @@ export interface UiText {
   readonly dropFile: string;
   readonly selectPlaceholder: string;
   readonly dismiss: string;
+  /** The control under a clamped text that reveals the rest, and the one that folds it again. */
+  readonly showMore: string;
+  readonly showLess: string;
   readonly errorTitle: string;
   /** "Enter a reason of at least {length} characters." for a reason box that is empty or too short. */
   reasonTooShort(length: number): string;
@@ -43,6 +46,8 @@ const DEFAULT_UI_TEXT: UiText = {
   dropFile: 'or drop a file here',
   selectPlaceholder: 'Select...',
   dismiss: 'Dismiss',
+  showMore: 'Show more',
+  showLess: 'Show less',
   errorTitle: 'Something went wrong',
   reasonTooShort: length => `Enter a reason of at least ${length} characters.`,
   pageStatus: (page, pages) => `Page ${page} of ${pages}`,

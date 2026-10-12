@@ -75,16 +75,32 @@ Token names are roles (`canvas`, `surface-sunken`, `accent`, `success`, ...). Th
 ## Long values never widen the page (L00)
 
 Names, remarks and codes can be hundreds of characters, unbroken, in any script. A long value must never cause horizontal
-page scroll at any width.
+page scroll at any width, and a short one (a number, a date, a code, a chip) must never be broken or cut.
 
-- `html` sets `overflow-wrap: anywhere` (`globals/_containment.scss`), so any text breaks anywhere and flex or grid children
-  holding it shrink. Do not undo it, and never hide a symptom with `overflow-x: hidden` or `clip` on `html` or `body`.
-- A flex or grid child that holds user text needs `min-width: 0` when it also sets its own width, wraps or truncates.
-- Text that must stay short uses `@include truncate-line` (one line, ellipsis) or `clamp-lines($n)`, plus a `title` with the full value
-  and a way to see it in full without a pointer (the detail page, the edit dialog). A literal `white-space: nowrap` fails
-  `npm run lint:styles`; `truncate-line` is the one place it is allowed.
-- `app-table` columns have a `type` (`name`, `text`, `code`, `number`, `status`, `date`, `action`) that sets the width and the cut
-  (see `table.types.ts`). Plain-text cells are one line with an ellipsis; chips, numbers, dates and buttons are never cut.
+- `html` sets `overflow-wrap: break-word` (`globals/_containment.scss`): a word that does not fit is broken at the line end, so
+  min-content widths stay honest. Free text that really holds long unbroken runs (names, remarks, e-mail addresses, URLs)
+  opts in with `@include wrap-anywhere` (`overflow-wrap: anywhere` and `min-width: 0`, so it also shrinks inside a flex or
+  grid row). Never put `anywhere` on numbers, headings or whole pages. Never hide a symptom with `overflow-x: hidden` or
+  `clip` on `html` or `body`.
+- Numbers, money, quantities, dates, codes, chip and tab labels: `@include keep-whole` (`white-space: nowrap`, no cut). A long
+  one makes its container scroll, not the page. Text that is shown in full somewhere else (a menu label) may use
+  `truncate-line` (one line, ellipsis). `keep-whole` is the only place a literal `white-space: nowrap` is allowed (also
+  `text-wrap: nowrap` and `text-wrap-mode: nowrap`, any case): everywhere else `npm run lint:styles` fails, and so does a
+  copy of it in another file. `visually-hidden` keeps its own commented exception. Inline styles in templates are not
+  linted: do not write `nowrap` there.
+- A user's text that is cut after a few lines goes through `app-clamped-text` (`clamp-lines` plus a real "Show more" / "Show
+  less" button with `aria-expanded`, shown only when the text overflows), so it is readable by keyboard and by touch. The
+  button is left out where the full value is one click away (a row's title that links to its detail page). `title` is not a
+  way to read a value: it needs a mouse.
+- `app-table`: columns have a `type` (`name`, `text`, `code`, `number`, `status`, `date`, `action`, see `table.types.ts`). From 1024px
+  the table is as wide as its columns need: `number`, `date`, `code`, `status` and `action` cells and headers are `keep-whole` and
+  size to their content (`width: 1%`); `name` and `text` cells have a minimum width (`width('column-min')`) and are clamped to
+  two lines by `app-clamped-text`. When the columns need more than the page leaves, the table scrolls inside its own labelled,
+  focusable `ui-table-scroll` region (`role="region"`, `data-scroll-region`), never the page. Chips are never cut: they hold short
+  enumerated labels, never user text. Below 1024px a row is a card and every value may wrap.
 - Only a deliberate scroll region may scroll sideways: give it `role="region"`, `tabindex="0"`, an accessible name and
-  `data-scroll-region`. `e2e/tests/15-containment.spec.ts` fails on any other sideways scroller.
-- A new list, card, chip, dialog, toast or header adds its screen to that test (long names in the data it creates).
+  `data-scroll-region`. `e2e/tests/15-containment.spec.ts` fails on any other sideways scroller; its one exemption is the tab
+  strip of `app-tabs` (focusable tabs, scrolls on a narrow screen).
+- `e2e/tests/15-containment.spec.ts` also fails when, at 1024px and wider, a number, date, code, action or chip cell is broken
+  across lines or clipped. A new list, card, chip, dialog, toast or header adds its screen to that test (long names and a large
+  amount in the data it creates).

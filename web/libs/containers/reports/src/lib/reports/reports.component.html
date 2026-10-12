@@ -51,52 +51,44 @@
   </div>
 
   @if (!$blocked()) {
-    <!-- Thirteen columns are wider than a 1024px window: the table scrolls inside its own focusable region, not the page. -->
-    <div
-      class="reports-page-table"
-      role="region"
-      data-scroll-region
-      tabindex="0"
-      [attr.aria-label]="'reports.tab.movements' | t"
+    <!-- Thirteen columns are wider than a 1024px window: app-table scrolls them inside its own focusable region, not the page. -->
+    <app-table
+      [columns]="$columns()"
+      [rows]="$page()?.items ?? []"
+      [caption]="'reports.tab.movements' | t"
+      [loading]="$isLoading()"
+      [failed]="$failed()"
+      (retried)="onRetry()"
     >
-      <app-table
-        [columns]="$columns()"
-        [rows]="$page()?.items ?? []"
-        [caption]="'reports.tab.movements' | t"
-        [loading]="$isLoading()"
-        [failed]="$failed()"
-        (retried)="onRetry()"
-      >
-        <ng-template appCell="docNo" let-row>
-          <span class="reports-page-docno">
-            {{ row.docNo }}
-            @if (row.isReversal) {
-              <app-status-chip flag="warning" [label]="'reports.reversal' | t" />
-            }
-          </span>
-        </ng-template>
-        <ng-template appCell="date" let-row>
-          <span class="reports-page-nowrap">{{ row.postedAt | appDate }}</span>
-        </ng-template>
-        <ng-template appCell="sku" let-row>
-          <span class="reports-page-nowrap" [attr.title]="row.sku">{{ row.sku }}</span>
-        </ng-template>
-        <ng-template appCell="qty" let-row>{{ row.qty | appQty }}</ng-template>
-        <!-- Signed, in base units: the sign is the text, the colour only reinforces it (mvp-ux 3.9). -->
-        <ng-template appCell="effect" let-row>
-          <span
-            class="reports-page-effect"
-            [class.--in]="row.stockEffect > 0"
-            [class.--out]="row.stockEffect < 0"
-            >{{ row.stockEffect | appSignedQty }}</span
-          >
-        </ng-template>
-        <!-- A cost per base unit is a unit price (up to 4 decimals); the line amount is money (exactly 2). -->
-        <ng-template appCell="unitCost" let-row>{{ row.unitCost | appUnitPrice }}</ng-template>
-        <ng-template appCell="amount" let-row>{{ row.amount | appMoney }}</ng-template>
-        <app-empty-state empty icon="reports" [message]="'reports.empty' | t" />
-      </app-table>
-    </div>
+      <ng-template appCell="docNo" let-row>
+        <span class="reports-page-docno">
+          {{ row.docNo }}
+          @if (row.isReversal) {
+            <app-status-chip flag="warning" [label]="'reports.reversal' | t" />
+          }
+        </span>
+      </ng-template>
+      <ng-template appCell="date" let-row>
+        <span class="reports-page-nowrap">{{ row.postedAt | appDate }}</span>
+      </ng-template>
+      <ng-template appCell="sku" let-row>
+        <span class="reports-page-nowrap">{{ row.sku }}</span>
+      </ng-template>
+      <ng-template appCell="qty" let-row>{{ row.qty | appQty }}</ng-template>
+      <!-- Signed, in base units: the sign is the text, the colour only reinforces it (mvp-ux 3.9). -->
+      <ng-template appCell="effect" let-row>
+        <span
+          class="reports-page-effect"
+          [class.--in]="row.stockEffect > 0"
+          [class.--out]="row.stockEffect < 0"
+          >{{ row.stockEffect | appSignedQty }}</span
+        >
+      </ng-template>
+      <!-- A cost per base unit is a unit price (up to 4 decimals); the line amount is money (exactly 2). -->
+      <ng-template appCell="unitCost" let-row>{{ row.unitCost | appUnitPrice }}</ng-template>
+      <ng-template appCell="amount" let-row>{{ row.amount | appMoney }}</ng-template>
+      <app-empty-state empty icon="reports" [message]="'reports.empty' | t" />
+    </app-table>
   }
 
   @if ($page(); as page) {

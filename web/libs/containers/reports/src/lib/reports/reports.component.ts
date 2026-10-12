@@ -159,7 +159,7 @@ export class ReportsPageComponent implements OnInit {
   $columns = computed<readonly TableColumn<MovementRow>[]>(() => [
     // The reversal badge sits next to the number so it also shows on the phone card, where Status is hidden.
     { key: 'docNo', type: 'code', header: this.i18n.t('doc.no'), primary: true },
-    { key: 'date', type: 'code', header: this.i18n.t('reports.postedAt') },
+    { key: 'date', type: 'date', header: this.i18n.t('reports.postedAt') },
     {
       key: 'type',
       header: this.i18n.t('doc.type'),
