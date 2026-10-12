@@ -10,7 +10,9 @@ import {
 import { IF_MATCH } from '@ims/core/http';
 import { DocumentsStore, toDocumentRef } from './documents.store';
 
-const DOCUMENT = { id: 7, concurrencyToken: 'AAAA' } as DocumentDto;
+const DOCUMENT_ID = '00000000-0000-4000-8000-000000000007';
+const OTHER_ID = '00000000-0000-4000-8000-000000000070';
+const DOCUMENT = { id: DOCUMENT_ID, concurrencyToken: 'AAAA' } as DocumentDto;
 
 /** The context the store hands to the generated client; the If-Match interceptor turns it into the header. */
 function tokenOf(context: unknown): string | undefined {
@@ -63,7 +65,7 @@ describe('DocumentsStore', () => {
   it('posts without a request body: the override reason is given at approval', async () => {
     await firstValueFrom(spectator.service.post.run(toDocumentRef(DOCUMENT)));
 
-    expect(client().post).toHaveBeenCalledWith(7, expect.anything());
+    expect(client().post).toHaveBeenCalledWith(DOCUMENT_ID, expect.anything());
     expect(client().post.mock.calls[0]).toHaveLength(2);
   });
 
@@ -76,7 +78,7 @@ describe('DocumentsStore', () => {
     );
 
     const [id, body, context] = client().approve.mock.calls[0];
-    expect(id).toBe(7);
+    expect(id).toBe(DOCUMENT_ID);
     expect(body).toEqual({ negativeStockOverrideReason: 'Customer pre-paid' });
     expect(tokenOf(context)).toBe('AAAA');
   });
@@ -91,7 +93,7 @@ describe('DocumentsStore', () => {
 
   it('saves an existing draft with its version and a new one without', async () => {
     client().createReceipt.mockReturnValue(of(DOCUMENT));
-    const body = { warehouseId: 1, lines: [] } as never;
+    const body = { warehouseId: OTHER_ID, lines: [] } as never;
 
     await firstValueFrom(
       spectator.service.save.run({ type: DocumentType.Receipt, ref: toDocumentRef(DOCUMENT), body })
@@ -106,8 +108,8 @@ describe('DocumentsStore', () => {
     client().list.mockReturnValue(
       of({
         items: [
-          { id: 70, concurrencyToken: 'OTHER' },
-          { id: 7, concurrencyToken: 'BBBB' }
+          { id: OTHER_ID, concurrencyToken: 'OTHER' },
+          { id: DOCUMENT_ID, concurrencyToken: 'BBBB' }
         ],
         page: 1,
         pageSize: 5,
@@ -116,7 +118,7 @@ describe('DocumentsStore', () => {
     );
 
     const token = await firstValueFrom(
-      spectator.service.currentToken({ id: 7, no: 'RCV-7', type: DocumentType.Receipt })
+      spectator.service.currentToken({ id: DOCUMENT_ID, no: 'RCV-7', type: DocumentType.Receipt })
     );
 
     expect(token).toBe('BBBB');

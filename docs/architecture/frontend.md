@@ -43,7 +43,7 @@ Page (container)  ->  feature store (signals)  ->  NSwag client (@ims/api)  ->  
   number whenever a filter changes; `debouncedSignal()` debounces search boxes (300 ms). No `subscribe()` callbacks with logic:
   side effects go in `tap`.
 - Paging is server-side everywhere a list can grow (`PagedQuery { page, pageSize, sortBy?, desc? }`); `app-table` shows server
-  sort, `app-pager` the range. Seek paging (`afterId`) exists for ledger / documents / audit and is not needed for the current grids.
+  sort, `app-pager` the range. Seek paging (opaque `cursor` / `nextCursor`, never parsed) exists for ledger / documents / audit and is not needed for the current grids.
 - Documents: the server sends `allowedActions[]`; `app-document-actions` renders **only** those buttons (D3). The UI never
   re-implements who may do what. `DocumentEditorViewService` holds the typed reactive form (header + `FormArray` of line groups),
   totals and shortfall maths (`features-documents/lines`). Insufficient stock: E1 inline per line (blocked) or E2 (override needed when the
@@ -107,6 +107,7 @@ Contract features the screens rely on:
 13. Sticky and fixed bars become part of the page flow on windows shorter than 500px (`media-short`), and `html` has `scroll-padding` for the top bar and the bottom bars (WCAG 1.4.10, 2.4.11).
 14. No UI component library, no bake-off (product owner, 2026-10-11). Angular CDK may be used for behaviour only (overlay, listbox, scrolling, drag-drop, a11y, clipboard), only inside `libs/shared/ui`, never exposed through our public API, never with its styles. Rules and slices: `docs/design/2026-refresh-plan.md` (N1, N2, programme A).
 15. Components adapt to their container, not the window; viewport media queries are for the shell, the page frame and user-environment features (N5, programme L). Ids are opaque strings in new code (N13). Every slice passes an independent review before merge (`docs/team/PR-REVIEW.md` section 8).
+16. Every entity id on the wire is a GUID string (`PublicId` in `@ims/models`; ADR guid-keys): never parsed, compared numerically or sorted for meaning, and an id that comes from outside the API (a link, a value saved on the device) is checked with `isPublicId` before use. `LedgerRow.id` and `AuditLogDto.id` stay numbers and are only row keys. Document lines have no id (`track $index`). The audit `entityId` of a document is its NUMBER. Device state keyed by a user id (`ims.documents.scope.<userId>`) simply starts fresh after the flip. The service-worker `master-data` group carries a `version`: raise it whenever the shape of cached responses changes.
 
 ## 6. Testing
 

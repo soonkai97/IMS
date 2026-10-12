@@ -65,6 +65,7 @@ import {
   DocumentAction,
   MIN_REASON_LENGTH,
   PERMISSION,
+  PublicId,
   toDocumentActions
 } from '@ims/models';
 import { PickedProduct, ProductPickerComponent } from '@ims/containers/catalog-shared';
@@ -92,7 +93,7 @@ import {
   UiTabsComponent,
   UiTextareaComponent
 } from '@ims/ui';
-import { applyFieldErrors, controlSignal, isDefined } from '@ims/utils';
+import { applyFieldErrors, controlSignal, isDefined, isPublicId } from '@ims/utils';
 import { DocumentActionsComponent } from '../document-actions/document-actions.component';
 import { DocumentLineEditorComponent } from '../line-editor/line-editor.component';
 import { DocumentEditorViewService } from './document-editor.view-service';
@@ -200,23 +201,23 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   $warehouseParam = input<string | undefined>(undefined, { alias: 'warehouseId' });
 
   /** Id of the document this editor just created: the store already holds it, so the route change needs no reload. */
-  private justCreatedId: number | undefined;
+  private justCreatedId: PublicId | undefined;
 
   $tab = signal<string>(TAB_ITEMS);
   $addItemOpen = signal(false);
   $lastAdded = signal<string | undefined>(undefined);
   $showLineError = signal(false);
 
-  /** The id in the URL; undefined on `/new`. */
+  /** The id in the URL (the API sends GUIDs in lower case, a typed link may not); undefined on `/new`. */
   private readonly $routeDocumentId = computed(() => {
     const id = this.$id();
-    return id === undefined || id === NEW_DOCUMENT_ID ? undefined : Number(id);
+    return id === undefined || id === NEW_DOCUMENT_ID ? undefined : id.toLowerCase();
   });
   /**
    * Set the moment a new document is created. The editor is bound to the saved document from then on (so a repeated
    * Save or Submit updates it instead of creating a second one) even before the router has moved `/new` to `/<id>`.
    */
-  private readonly $createdId = signal<number | undefined>(undefined);
+  private readonly $createdId = signal<PublicId | undefined>(undefined);
   readonly $documentId = computed(() => this.$routeDocumentId() ?? this.$createdId());
   readonly $isNew = computed(() => this.$documentId() === undefined);
   readonly $isIssue = computed(() => this.$type() === DocumentType.Issue);
@@ -588,13 +589,13 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   });
 
   private readonly preselectWarehouse = effect(() => {
-    const options = this.$warehouseOptions();
+    const warehouses = this.warehouses.$activeWarehouses();
     if (
       this.$isNew() &&
-      options.length === 1 &&
+      warehouses.length === 1 &&
       this.view.header.controls.warehouseId.value === null
     ) {
-      untracked(() => this.view.header.controls.warehouseId.setValue(Number(options[0].value)));
+      untracked(() => this.view.header.controls.warehouseId.setValue(warehouses[0].id));
     }
   });
 
@@ -792,8 +793,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
 
   /** From Low stock: the warehouse and the product are chosen already and the cursor lands on the quantity (NV-13). */
   private prefillFromLink(): void {
-    const warehouseId = Number(this.$warehouseParam());
-    if (Number.isInteger(warehouseId) && warehouseId > 0) {
+    const warehouseId = this.$warehouseParam();
+    if (isPublicId(warehouseId)) {
       this.view.header.controls.warehouseId.setValue(warehouseId);
     }
     const sku = this.$sku();
@@ -852,7 +853,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     if (!isStockConflictError(error) || !error) {
       return undefined;
     }
-    const productId = Number(error.extensions['productId']);
+    const productId = error.extensions['productId'];
     const line = this.$values().find(value => value.productId === productId);
     return {
       sku: line?.sku ?? String(productId),

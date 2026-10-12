@@ -25,7 +25,7 @@ import { ProductDto, ProductLookupResult } from '@ims/api';
 import { AppQtyPipe, I18nService, TranslatePipe } from '@ims/core/i18n';
 import { ProductsStore } from '@ims/features/catalog';
 import { StockAvailabilityService } from '@ims/features/documents';
-import { MIN_SEARCH_LENGTH, SEARCH_DEBOUNCE_MS } from '@ims/models';
+import { MIN_SEARCH_LENGTH, PublicId, SEARCH_DEBOUNCE_MS } from '@ims/models';
 import { UiSearchInputComponent, UiSkeletonComponent } from '@ims/ui';
 
 export interface PickedProduct {
@@ -57,7 +57,7 @@ export class ProductPickerComponent {
   private readonly products = inject(ProductsStore);
 
   /** When set, results show how much of each product is on hand there (issues). */
-  $warehouseId = input<number | null>(null, { alias: 'warehouseId' });
+  $warehouseId = input<PublicId | null>(null, { alias: 'warehouseId' });
 
   /** What the page wants to say about the last pick ("DEMO-001: now 2"); the picker shows it under the search box. */
   $notice = input<string | undefined>(undefined, { alias: 'notice' });

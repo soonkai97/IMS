@@ -20,7 +20,7 @@ import { HasUnsavedChanges } from '@ims/core/navigation';
 import { ToastService } from '@ims/core/notification';
 import { I18nService } from '@ims/core/i18n';
 import { CatalogStore, ProductsStore } from '@ims/features/catalog';
-import { PERMISSION } from '@ims/models';
+import { NO_PUBLIC_ID, PERMISSION, PublicId } from '@ims/models';
 import {
   SelectOption,
   UiBannerComponent,
@@ -38,7 +38,7 @@ import {
 import { applyFieldErrors } from '@ims/utils';
 
 type ConversionGroup = FormGroup<{
-  fromUomId: FormControl<number | null>;
+  fromUomId: FormControl<PublicId | null>;
   factor: FormControl<number | null>;
 }>;
 
@@ -87,8 +87,8 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
       nonNullable: true,
       validators: [Validators.required, Validators.maxLength(256)]
     }),
-    categoryId: new FormControl<number | null>(null),
-    baseUomId: new FormControl<number | null>(null, [Validators.required]),
+    categoryId: new FormControl<PublicId | null>(null),
+    baseUomId: new FormControl<PublicId | null>(null, [Validators.required]),
     safetyStock: new FormControl<number | null>(0, [
       Validators.required,
       Validators.min(0),
@@ -99,11 +99,7 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
     conversions: new FormArray<ConversionGroup>([])
   });
 
-  $productId = computed(() => {
-    const id = this.$id();
-    return id === undefined ? undefined : Number(id);
-  });
-  $isNew = computed(() => this.$productId() === undefined);
+  $isNew = computed(() => this.$id() === undefined);
   $canManage = computed(() => this.permissions.has(PERMISSION.MasterDataManage));
   $isLoading = this.store.detail.$isLoading;
   $isSaving = this.store.save.$isRunning;
@@ -133,7 +129,7 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
    * between two products): reading the id once left the form on the previous product (EA-20).
    */
   private readonly openProduct = effect(() => {
-    const id = this.$productId();
+    const id = this.$id();
     untracked(() => {
       if (id === undefined) {
         this.store.detail.reset();
@@ -145,7 +141,7 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
 
   private readonly populateForm = effect(() => {
     const product = this.store.detail.$data();
-    if (product && product.id === this.$productId()) {
+    if (product && product.id === this.$id()?.toLowerCase()) {
       this.patch(product);
     }
   });
@@ -200,7 +196,7 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
       return;
     }
     this.store.save
-      .run({ id: this.$productId(), body: this.toRequest() })
+      .run({ id: this.$id(), body: this.toRequest() })
       .pipe(
         tap(product => {
           this.form.markAsPristine();
@@ -236,16 +232,16 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
     }
   }
 
-  private createConversion(fromUomId: number | null, factor: number | null): ConversionGroup {
+  private createConversion(fromUomId: PublicId | null, factor: number | null): ConversionGroup {
     return new FormGroup({
-      fromUomId: new FormControl<number | null>(fromUomId, [Validators.required]),
+      fromUomId: new FormControl<PublicId | null>(fromUomId, [Validators.required]),
       factor: new FormControl<number | null>(factor, [Validators.required, Validators.min(0.0001)])
     });
   }
 
   private toRequest(): ProductSaveRequest {
     const value = this.form.getRawValue();
-    const baseUomId = value.baseUomId ?? 0;
+    const baseUomId = value.baseUomId ?? NO_PUBLIC_ID;
     return {
       sku: value.sku.trim(),
       name: value.name.trim(),
@@ -255,7 +251,7 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
       isActive: value.isActive,
       barcodes: [...value.barcodes],
       conversions: value.conversions.map(conversion => ({
-        fromUomId: conversion.fromUomId ?? 0,
+        fromUomId: conversion.fromUomId ?? NO_PUBLIC_ID,
         toUomId: baseUomId,
         factor: conversion.factor ?? 0
       }))

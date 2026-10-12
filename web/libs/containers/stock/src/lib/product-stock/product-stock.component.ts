@@ -48,11 +48,10 @@ export class ProductStockPageComponent implements OnInit {
   /** Route parameter :productId */
   $productId = input.required<string>({ alias: 'productId' });
 
-  private readonly $id = computed(() => Number(this.$productId()));
-  private readonly pageState = createPageState(computed(() => String(this.$id())));
+  private readonly pageState = createPageState(this.$productId);
 
   readonly $query = computed<LedgerQuery>(() => ({
-    productId: this.$id(),
+    productId: this.$productId(),
     page: this.pageState.$page(),
     pageSize: DEFAULT_PAGE_SIZE
   }));
@@ -92,8 +91,8 @@ export class ProductStockPageComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.products.detail.load(this.$id());
-    this.store.productStock.load(this.$id());
+    this.products.detail.load(this.$productId());
+    this.store.productStock.load(this.$productId());
   }
 
   onPageChange(page: number): void {

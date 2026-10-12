@@ -13,11 +13,11 @@ import { StockListPageComponent } from './stock-list.component';
 /** A stock row as the API sends it: avgCost and value are null without valuation.view. */
 function row(withValue: boolean): StockRow {
   return {
-    productId: 5,
+    productId: '00000000-0000-4000-8000-000000000005',
     sku: 'DEMO-002',
     productName: 'Demo bolt',
     categoryName: undefined,
-    warehouseId: 3,
+    warehouseId: '00000000-0000-4000-8000-000000000003',
     warehouseCode: 'WH03',
     warehouseName: 'Store B',
     qtyOnHand: 12,

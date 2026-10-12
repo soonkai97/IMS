@@ -7,6 +7,8 @@ import {
   staleDetails
 } from './stale-document';
 
+const PRODUCT_ID = '00000000-0000-4000-8000-000000000005';
+
 function conflict(extensions: Record<string, unknown> = {}): ApiError {
   return {
     isApiError: true,
@@ -26,7 +28,7 @@ describe('stale document detection', () => {
   });
 
   it('treats a 409 with a product as the insufficient-stock answer, not as stale', () => {
-    const stock = conflict({ productId: 5, available: 2, requested: 9 });
+    const stock = conflict({ productId: PRODUCT_ID, available: 2, requested: 9 });
 
     expect(isStaleDocumentError(stock)).toBe(false);
     expect(isStockConflictError(stock)).toBe(true);
@@ -34,17 +36,19 @@ describe('stale document detection', () => {
 
   it('reads the code of newer APIs first: document_changed is stale, insufficient_stock is E5', () => {
     expect(isStaleDocumentError(conflict({ code: 'document_changed' }))).toBe(true);
-    expect(isStaleDocumentError(conflict({ code: 'insufficient_stock', productId: 5 }))).toBe(
-      false
-    );
-    expect(isStockConflictError(conflict({ code: 'insufficient_stock', productId: 5 }))).toBe(true);
+    expect(
+      isStaleDocumentError(conflict({ code: 'insufficient_stock', productId: PRODUCT_ID }))
+    ).toBe(false);
+    expect(
+      isStockConflictError(conflict({ code: 'insufficient_stock', productId: PRODUCT_ID }))
+    ).toBe(true);
     expect(isStockConflictError(conflict({ code: 'document_changed' }))).toBe(false);
   });
 
   it('a blocked reversal is neither a stale copy nor the post-time stock conflict', () => {
     const blocked = conflict({
       code: 'reversal_blocked',
-      shortages: [{ productId: 1, sku: 'A', uomCode: 'PCS', balance: -3 }]
+      shortages: [{ productId: PRODUCT_ID, sku: 'A', uomCode: 'PCS', balance: -3 }]
     });
 
     expect(isReversalBlockedError(blocked)).toBe(true);
@@ -57,7 +61,7 @@ describe('stale document detection', () => {
     const blocked = conflict({
       code: 'reversal_blocked',
       shortages: [
-        { productId: 1, sku: 'A', uomCode: 'PCS', balance: -3 },
+        { productId: PRODUCT_ID, sku: 'A', uomCode: 'PCS', balance: -3 },
         { sku: 'B', uomCode: 'BOX', balance: -6 },
         { sku: '', balance: 1 },
         'nonsense'
