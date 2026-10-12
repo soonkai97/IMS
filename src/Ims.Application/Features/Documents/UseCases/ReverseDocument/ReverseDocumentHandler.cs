@@ -37,7 +37,7 @@ public class ReverseDocumentHandler(IRepository<StockDocument> documents, IRepos
     private async Task<ReversalBlockedException> BlockedAsync(StockDocument doc, IReadOnlyDictionary<int, decimal> deficits, CancellationToken ct)
     {
         var labels = (await products.ListAsync(new ProductLabelsSpec(deficits.Keys.ToList()), ct)).ToDictionary(p => p.Id);
-        var shortages = deficits.Select(d => new ReversalShortage(d.Key, labels[d.Key].Sku, labels[d.Key].UomCode, d.Value)).ToList();
+        var shortages = deficits.Select(d => new ReversalShortage(labels[d.Key].PublicId, labels[d.Key].Sku, labels[d.Key].UomCode, d.Value)).ToList();
         return new ReversalBlockedException(doc.No, shortages);
     }
 }

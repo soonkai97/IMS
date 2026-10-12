@@ -127,7 +127,7 @@ public class ProblemDetailsTests(ApiFixture fixture)
         var admin = await fixture.AsAsync(Roles.Admin);
 
         AssertShape(await admin.Documents.GetAsync(9_999_999), HttpStatusCode.NotFound, "Not found");
-        AssertShape(await admin.Products.GetAsync(9_999_999), HttpStatusCode.NotFound, "Not found");
+        AssertShape(await admin.Products.GetAsync(Guid.NewGuid()), HttpStatusCode.NotFound, "Not found");
     }
 
     [Fact]

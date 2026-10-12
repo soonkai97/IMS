@@ -16,7 +16,7 @@ public partial class EndpointCoverageTests
     {
         var inCode = ProtectedEndpointsInCode();
         var inTable = EndpointCatalog.All
-            .Select(c => $"{c.Method} {Normalize(c.Path(new ReferenceData(Guid.Empty, Guid.Empty, Guid.Empty, Guid.Empty, Guid.Empty, "X", Guid.Empty, Guid.Empty, 1, 1)))} -> {c.Permission}")
+            .Select(c => $"{c.Method} {Normalize(c.Path(new ReferenceData(Guid.Empty, Guid.Empty, Guid.Empty, Guid.Empty, Guid.Empty, "X", Guid.Empty, Guid.Empty, Guid.Empty, Guid.Empty)))} -> {c.Permission}")
             .Order().ToList();
 
         Assert.Equal(inCode, inTable);

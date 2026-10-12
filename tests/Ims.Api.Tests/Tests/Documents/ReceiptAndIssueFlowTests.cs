@@ -213,7 +213,7 @@ public class ReceiptAndIssueFlowTests(ApiFixture fixture)
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
 
-        var unknownProduct = new DocumentBuilder(Warehouse).WithLines(new Line(9_999_999, 1, 1m)).Build();
+        var unknownProduct = new DocumentBuilder(Warehouse).WithLines(new Line(Guid.NewGuid(), 1, 1m)).Build();
         var unknownWarehouse = new DocumentBuilder(Guid.NewGuid()).WithLines(new Line(product.Id, 1, 1m)).Build();
         var noWarehouse = new DocumentBuilder(Guid.Empty).WithLines(new Line(product.Id, 1, 1m)).Build();
 

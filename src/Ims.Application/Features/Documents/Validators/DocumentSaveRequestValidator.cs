@@ -13,7 +13,7 @@ public class DocumentSaveRequestValidator : AbstractValidator<DocumentSaveReques
         RuleFor(x => x.Purpose).IsInEnum().When(x => x.Purpose is not null);
         RuleForEach(x => x.Lines).ChildRules(line =>
         {
-            line.RuleFor(l => l.ProductId).GreaterThan(0).WithMessage(Messages.ChooseProduct);
+            line.RuleFor(l => l.ProductId).NotEqual(Guid.Empty).WithMessage(Messages.ChooseProduct);
             line.RuleFor(l => l.Qty).GreaterThan(0).WithMessage(Messages.QtyPositive)
                 .LessThanOrEqualTo(Limits.MaxQuantity).WithMessage(Messages.QtyTooLarge)
                 .PrecisionScale(Limits.QuantityPrecision, Limits.QuantityScale, ignoreTrailingZeros: true).WithMessage(Messages.QtyTooLarge);

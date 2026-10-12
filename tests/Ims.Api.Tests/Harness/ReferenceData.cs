@@ -9,7 +9,7 @@ namespace Ims.Api.Tests.Harness;
 /// <summary>Ids of the seeded reference data every test builds on (units, the default warehouse, demo partners and products).</summary>
 public sealed record ReferenceData(
     Guid PieceUnitId, Guid CartonUnitId, Guid KilogramUnitId, Guid DefaultCategoryId,
-    Guid DefaultWarehouseId, string DefaultWarehouseCode, Guid SupplierId, Guid CustomerId, int DemoProductId, int DemoProduct2Id)
+    Guid DefaultWarehouseId, string DefaultWarehouseCode, Guid SupplierId, Guid CustomerId, Guid DemoProductId, Guid DemoProduct2Id)
 {
     public static async Task<ReferenceData> LoadAsync(ApiClient admin)
     {

@@ -56,7 +56,7 @@ public static class Messages
     public const string UomNotFound = "Unit not found.";
     public static string SkuExists(string sku) => $"SKU '{sku}' already exists.";
     public static string BarcodeTaken(string code) => $"Barcode '{code}' already belongs to another product.";
-    public static string ProductMissing(int id) => $"Product {id} does not exist.";
+    public static string ProductMissing(Guid id) => $"Product {id} does not exist.";
     public static string ProductInactive(string sku) => $"Product {sku} is inactive and cannot be used on new documents.";
     public const string BarcodeInvalid = "Barcodes cannot be empty.";
     public const string ConversionMissing = "No unit conversion is defined for this product and unit.";

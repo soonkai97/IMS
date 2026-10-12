@@ -12,7 +12,7 @@ public class OwnDocumentsTests(ApiFixture fixture)
 {
     private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
-    private DocumentSaveRequest Edit(int productId) =>
+    private DocumentSaveRequest Edit(Guid productId) =>
         new DocumentBuilder(Warehouse).WithPartner(fixture.Reference.SupplierId).WithLines(new Line(productId, 7, 1m)).Build();
 
     [Theory]

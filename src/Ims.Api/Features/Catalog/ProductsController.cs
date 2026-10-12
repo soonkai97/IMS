@@ -12,9 +12,9 @@ public class ProductsController(IDispatcher dispatcher) : ApiControllerBase(disp
     [ProducesResponseType<PagedResult<ProductDto>>(StatusCodes.Status200OK)]
     public Task<IActionResult> List([FromQuery] ProductFilter filter) => SendOk(new ListProductsQuery(filter));
 
-    [HttpGet(ApiRoutes.Id), Authorize(Policy = Permissions.MasterDataRead)]
+    [HttpGet(ApiRoutes.PublicId), Authorize(Policy = Permissions.MasterDataRead)]
     [ProducesResponseType<ProductDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Get(int id) => SendOk(new GetProductQuery(id));
+    public Task<IActionResult> Get(Guid id) => SendOk(new GetProductQuery(id));
 
     /// <summary>
     /// Barcode or SKU lookup for the line picker and scanning. Always 200: <c>found</c> says whether a product owns the code
@@ -28,7 +28,7 @@ public class ProductsController(IDispatcher dispatcher) : ApiControllerBase(disp
     [ProducesResponseType<ProductDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Create([FromBody] ProductSaveRequest body) => SendOk(new CreateProductCommand(body));
 
-    [HttpPut(ApiRoutes.Id), Authorize(Policy = Permissions.MasterDataManage)]
+    [HttpPut(ApiRoutes.PublicId), Authorize(Policy = Permissions.MasterDataManage)]
     [ProducesResponseType<ProductDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Update(int id, [FromBody] ProductSaveRequest body) => SendOk(new UpdateProductCommand(id, body));
+    public Task<IActionResult> Update(Guid id, [FromBody] ProductSaveRequest body) => SendOk(new UpdateProductCommand(id, body));
 }

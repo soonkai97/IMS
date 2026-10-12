@@ -1,13 +1,14 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Reports;
 
-public class ExportMovementsHandler(IMovementReader movements, IWarehouseScope scope, IReportWriter report, IIdMap<Warehouse> warehouseIds)
-    : IQueryHandler<ExportMovementsQuery, ExportFile>
+public class ExportMovementsHandler(IMovementReader movements, IWarehouseScope scope, IReportWriter report, IIdMap<Warehouse> warehouseIds,
+    IIdMap<Product> productIds) : IQueryHandler<ExportMovementsQuery, ExportFile>
 {
     public async Task<ExportFile> HandleAsync(ExportMovementsQuery q, CancellationToken ct)
     {
         var warehouseId = await warehouseIds.ToInternalOrNoRowAsync(q.Filter.WarehouseId, ct);
-        var rows = await movements.ListAsync(q.Filter, warehouseId, scope.Ids(), Limits.MaxExportRows, ct);
+        var productId = await productIds.ToInternalOrNoRowAsync(q.Filter.ProductId, ct);
+        var rows = await movements.ListAsync(q.Filter, warehouseId, productId, scope.Ids(), Limits.MaxExportRows, ct);
         var bytes = report.Write(ReportSheets.Movements, ReportHeaders.MovementColumns, rows.Select(r => new object?[]
         {
             r.PostedAt.AddHours(Limits.MalaysiaUtcOffsetHours), r.DocNo, r.Type.ToString(), r.Status.ToString(), r.WarehouseCode, r.Partner,

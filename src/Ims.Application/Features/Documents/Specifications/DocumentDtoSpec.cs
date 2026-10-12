@@ -22,8 +22,8 @@ public sealed class DocumentDtoSpec : Specification<StockDocument, DocumentDto>
             d.RejectedByUser != null ? d.RejectedByUser.PublicId : (Guid?)null, d.RejectedByUser != null ? d.RejectedByUser.Username : null,
             d.RejectedByUser != null ? d.RejectedByUser.DisplayName : null, d.RejectedAt,
             d.Lines.Sum(l => l.BaseQty), d.Lines.Sum(l => l.Amount),
-            d.Lines.OrderBy(l => l.Id).Select(l => new DocumentLineDto(l.Id, l.ProductId, l.Product.Sku, l.Product.Name, l.Qty, l.Uom.PublicId,
-                l.Uom.Code, l.BaseQty, l.CostFromAverage ? null : l.EnteredUnitCost, Math.Round(l.UnitCost, Money.UnitPriceDecimals), l.Amount, l.CostFromAverage, l.Remark, null)).ToList(),
+            d.Lines.OrderBy(l => l.Id).Select(l => new DocumentLineDto(l.Id, l.Product.PublicId, l.Product.Sku, l.Product.Name, l.Qty, l.Uom.PublicId,
+                l.Uom.Code, l.BaseQty, l.CostFromAverage ? null : l.EnteredUnitCost, Math.Round(l.UnitCost, Money.UnitPriceDecimals), l.Amount, l.CostFromAverage, l.Remark, l.ProductId, null)).ToList(),
             new List<string>(), new List<ApprovalTriggerDto>(), d.RowVersion, d.WarehouseId, d.CreatedBy, d.SubmittedBy));
     }
 }

@@ -6,7 +6,7 @@ namespace Ims.Application.Features.Stock;
 /// <param name="WarehouseId">Null (with the code and the name) only on the low-only row of a product that has no stock in any warehouse the caller can see: it is listed once, belongs to no warehouse and has quantity 0.</param>
 /// <param name="IsLow">Low by the one definition (<see cref="LowStockRule"/>): the product is active and its quantity is below zero, or at or below its safety stock (when it has one; design 3.8, "on-hand &lt;= safety stock"). The low-stock list, its count, the Home tile and the badge use the same rule.</param>
 /// <param name="IsNegative">On hand is below zero: show a warning, not just a "Low" chip (also true when the product has no safety stock).</param>
-public record StockRow(int ProductId, string Sku, string ProductName, string? CategoryName, string UomCode, Guid? WarehouseId,
+public record StockRow(Guid ProductId, string Sku, string ProductName, string? CategoryName, string UomCode, Guid? WarehouseId,
     string? WarehouseCode, string? WarehouseName, decimal QtyOnHand, decimal QtyInTransit, [property: VisibleWith(Permissions.ValuationView, UnitPrice = true)] decimal? AvgCost,
     [property: VisibleWith(Permissions.ValuationView)] decimal? Value, decimal SafetyStock, bool IsLow,
     bool IsNegative);

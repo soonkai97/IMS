@@ -110,15 +110,15 @@ public sealed class StockScenario
 
     // ---------- stock ----------
 
-    public async Task<StockRow?> BalanceAsync(int productId, Guid warehouseId)
+    public async Task<StockRow?> BalanceAsync(Guid productId, Guid warehouseId)
     {
         var page = (await Admin.Stock.QueryAsync(productId, warehouseId)).Data<PagedResult<StockRow>>();
         return page.Items.SingleOrDefault();
     }
 
-    public async Task<decimal> OnHandAsync(int productId, Guid warehouseId) => (await BalanceAsync(productId, warehouseId))?.QtyOnHand ?? 0m;
+    public async Task<decimal> OnHandAsync(Guid productId, Guid warehouseId) => (await BalanceAsync(productId, warehouseId))?.QtyOnHand ?? 0m;
 
-    public async Task<List<LedgerRow>> LedgerAsync(int? productId = null, Guid? warehouseId = null, int? sourceDocId = null)
+    public async Task<List<LedgerRow>> LedgerAsync(Guid? productId = null, Guid? warehouseId = null, int? sourceDocId = null)
     {
         var rows = new List<LedgerRow>();
         for (var page = 1; ; page++)
@@ -129,6 +129,6 @@ public sealed class StockScenario
         }
     }
 
-    public async Task<decimal> LedgerSumAsync(int productId, Guid warehouseId) =>
+    public async Task<decimal> LedgerSumAsync(Guid productId, Guid warehouseId) =>
         (await LedgerAsync(productId, warehouseId)).Sum(r => r.QtyDelta);
 }

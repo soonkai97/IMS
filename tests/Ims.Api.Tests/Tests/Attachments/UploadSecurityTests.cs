@@ -21,7 +21,8 @@ public class UploadSecurityTests(ApiFixture fixture)
     {
         var admin = await fixture.AsAsync(Roles.Admin);
         var product = await new ProductBuilder(fixture.Reference).CreateAsync(admin);
-        return (admin, product.Id);
+        // An attachment names its owner by the integer key until the attachment flip (GUID plan PR-7); the product itself is already addressed by its public id.
+        return (admin, await fixture.Database.ScalarAsync<int>("SELECT Id FROM Product WHERE PublicId = @p", ("@p", product.Id)));
     }
 
     private static AttachmentsClient Files(ApiClient client) => new(client);

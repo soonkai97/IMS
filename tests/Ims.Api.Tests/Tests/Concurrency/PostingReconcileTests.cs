@@ -24,9 +24,10 @@ public class PostingReconcileTests(ApiFixture fixture)
 
     private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
-    /// <summary>The ledger and the balances are keyed by the integer id; the test names the warehouse by the id the API gives.</summary>
-    private async Task<T> Sql<T>(string sql, int productId, Guid warehouse)
+    /// <summary>The ledger and the balances are keyed by the integer ids; the test names the product and the warehouse by the ids the API gives.</summary>
+    private async Task<T> Sql<T>(string sql, Guid product, Guid warehouse)
     {
+        var productId = await fixture.Database.ScalarAsync<int>("SELECT Id FROM Product WHERE PublicId = @p", ("@p", product));
         var warehouseId = await fixture.Database.ScalarAsync<int>("SELECT Id FROM Warehouse WHERE PublicId = @w", ("@w", warehouse));
         return await fixture.Database.ScalarAsync<T>(sql, ("@p", productId), ("@w", warehouseId));
     }

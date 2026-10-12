@@ -38,8 +38,8 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         }
     }
 
-    private static HashSet<(int Product, Guid? Warehouse)> Keys(IEnumerable<StockRow> rows) => rows.Select(r => (r.ProductId, r.WarehouseId)).ToHashSet();
-    private static HashSet<(int Product, Guid? Warehouse)> Keys(IEnumerable<LowStockAlert> rows) => rows.Select(r => (r.ProductId, r.WarehouseId)).ToHashSet();
+    private static HashSet<(Guid Product, Guid? Warehouse)> Keys(IEnumerable<StockRow> rows) => rows.Select(r => (r.ProductId, r.WarehouseId)).ToHashSet();
+    private static HashSet<(Guid Product, Guid? Warehouse)> Keys(IEnumerable<LowStockAlert> rows) => rows.Select(r => (r.ProductId, r.WarehouseId)).ToHashSet();
 
     /// <summary>
     /// Issues more than is on hand: negative stock on, an Admin who may approve their own document (nobody else sees a brand-new warehouse), the override reason an
@@ -54,7 +54,7 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
     }
 
     /// <summary>A fresh warehouse with one product of every kind: low, stocked nowhere (never stocked), exactly at the safety level, inactive, no safety level, fine, negative.</summary>
-    private sealed record Kinds(WarehouseDto Warehouse, int Low, int Never, int AtLevel, int Inactive, int NoSafety, int Fine, int Negative);
+    private sealed record Kinds(WarehouseDto Warehouse, Guid Low, Guid Never, Guid AtLevel, Guid Inactive, Guid NoSafety, Guid Fine, Guid Negative);
 
     private async Task<(StockScenario S, Kinds K)> SetUpAsync()
     {

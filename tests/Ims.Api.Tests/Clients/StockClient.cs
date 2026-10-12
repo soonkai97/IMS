@@ -4,7 +4,7 @@ namespace Ims.Api.Tests.Clients;
 
 public sealed class StockClient(ApiClient api)
 {
-    public Task<ApiResponse> QueryAsync(int? productId = null, Guid? warehouseId = null, string? search = null, bool lowOnly = false, int pageSize = 100)
+    public Task<ApiResponse> QueryAsync(Guid? productId = null, Guid? warehouseId = null, string? search = null, bool lowOnly = false, int pageSize = 100)
     {
         var query = $"?pageSize={pageSize}&lowOnly={lowOnly.ToString().ToLowerInvariant()}";
         if (productId is not null) query += $"&productId={productId}";
@@ -13,7 +13,7 @@ public sealed class StockClient(ApiClient api)
         return api.GetAsync("/api/stock" + query);
     }
 
-    public Task<ApiResponse> LedgerAsync(int? productId = null, Guid? warehouseId = null, int? sourceDocId = null, int page = 1, int pageSize = 500)
+    public Task<ApiResponse> LedgerAsync(Guid? productId = null, Guid? warehouseId = null, int? sourceDocId = null, int page = 1, int pageSize = 500)
     {
         var query = $"?page={page}&pageSize={pageSize}";
         if (productId is not null) query += $"&productId={productId}";

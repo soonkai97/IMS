@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
@@ -5,7 +6,8 @@ namespace Ims.Application.Features.Documents;
 /// <param name="BaseUnitCost">The cost per BASE unit, for stock valuation, shown as a UNIT PRICE with 4 decimals (not money): a carton price spread over the pieces in it (1 carton of 3 at 10.00 is 3.3333; a carton of 1,000 at 3.00 is 0.0030), or the average for a line at the average. Amounts computed from it are money (2 decimals). Never send it back as <c>unitCost</c>. Null for a caller without <c>cost.view</c>.</param>
 /// <param name="Amount">The value of the line, in money, stored when the line was saved: <c>round(qty x unitCost, 2)</c> for a typed cost, <c>round(baseQty x average, 2)</c> for a line at the average. It is the only figure to add up: a document total is the sum of the line <c>amount</c>s (never <c>qty x unitCost</c> of the lines: that is wrong for a line at the average). Null for a caller without <c>cost.view</c>.</param>
 /// <param name="CostFromAverage">Nobody typed this line's cost: it is valued at the average cost of the product (every issue line; a receipt line saved by someone who may not enter cost, such as the Warehouse staff). It has no editable cost (<c>unitCost</c> is null), and saving the draft without a cost for it keeps it at the average; typing a cost makes it a typed cost. Show its <c>amount</c> and <c>baseUnitCost</c> read-only. On a draft its amount is re-valued at the current average on every save and at post, so a draft read earlier can be stale.</param>
+/// <param name="ProductKey">The integer key of the product, for the stock look-up of an open document; not part of the JSON.</param>
 /// <param name="Available">On hand in the document's warehouse right now, in base units (compare with <c>BaseQty</c>; lines of one product add up). Null once the document is Posted, Reversed or Cancelled, when the figure no longer says anything about this document.</param>
-public record DocumentLineDto(int Id, int ProductId, string Sku, string ProductName, decimal Qty, Guid UomId, string UomCode,
+public record DocumentLineDto(int Id, Guid ProductId, string Sku, string ProductName, decimal Qty, Guid UomId, string UomCode,
     decimal BaseQty, [property: VisibleWith(Permissions.CostView)] decimal? UnitCost, [property: VisibleWith(Permissions.CostView, UnitPrice = true)] decimal? BaseUnitCost,
-    [property: VisibleWith(Permissions.CostView)] decimal? Amount, bool CostFromAverage, string? Remark, decimal? Available = null);
+    [property: VisibleWith(Permissions.CostView)] decimal? Amount, bool CostFromAverage, string? Remark, [property: JsonIgnore] int ProductKey, decimal? Available = null);

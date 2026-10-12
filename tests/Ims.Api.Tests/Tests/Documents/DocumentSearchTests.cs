@@ -19,7 +19,7 @@ public class DocumentSearchTests(ApiFixture fixture)
     private static async Task<List<DocumentListItem>> FoundAsync(ApiClient who, string search, string extra = "") =>
         (await who.GetAsync($"/api/documents?search={Uri.EscapeDataString(search)}{extra}&pageSize=100")).Data<PagedResult<DocumentListItem>>().Items.ToList();
 
-    private async Task<DocumentDto> DraftWithRemarkAsync(StockScenario s, ApiClient by, int productId, string remark, Guid? partnerId = null, DocumentType type = DocumentType.Receipt)
+    private async Task<DocumentDto> DraftWithRemarkAsync(StockScenario s, ApiClient by, Guid productId, string remark, Guid? partnerId = null, DocumentType type = DocumentType.Receipt)
     {
         var request = new DocumentBuilder(Warehouse).WithPartner(partnerId ?? (type == DocumentType.Receipt ? s.Reference.SupplierId : s.Reference.CustomerId)).WithRemark(remark)
             .WithLines(new Line(productId, 1, type == DocumentType.Receipt ? 1m : null)).Build();

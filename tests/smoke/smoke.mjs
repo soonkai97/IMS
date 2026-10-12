@@ -46,7 +46,7 @@ const mkProduct = async (n) => (await api('POST', '/api/products', { token: admi
 const p1 = await mkProduct(1), p2 = await mkProduct(2);
 const supplier = (await api('GET', '/api/partners?type=Supplier', { token: admin })).body.items[0];
 const customer = (await api('GET', '/api/partners?type=Customer', { token: admin })).body.items[0];
-check('products created', p1?.id && p2?.id);
+check('products created, each named by a 36-character public id', typeof p1?.id === 'string' && p1.id.length === 36 && typeof p2?.id === 'string' && p2.id.length === 36);
 
 const stockOf = async (pid) => {
   const r = (await api('GET', `/api/stock?productId=${pid}`, { token: admin })).body.items[0];

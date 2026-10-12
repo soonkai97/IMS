@@ -66,7 +66,7 @@ public static class EndpointCatalog
         // ----- writes whose result depends on data: only "access was not denied" is checked -----
         new("PUT users/{id}", Put, Permissions.UsersManage, _ => $"/api/users/{MissingPublicId}",
             r => new UserSaveRequest("ghost", "ghost@example.test", "Ghost", Roles.Clerk, true, null, [r.DefaultWarehouseId]), OkWhenAllowed: false),
-        new("PUT products/{id}", Put, Permissions.MasterDataManage, _ => $"/api/products/{MissingId}", r => new ProductBuilder(r).Build(), OkWhenAllowed: false),
+        new("PUT products/{id}", Put, Permissions.MasterDataManage, _ => $"/api/products/{MissingPublicId}", r => new ProductBuilder(r).Build(), OkWhenAllowed: false),
         new("PUT categories/{id}", Put, Permissions.MasterDataManage, _ => $"/api/categories/{MissingPublicId}", _ => new CategorySaveRequest("x"), OkWhenAllowed: false),
         new("PUT units/{id}", Put, Permissions.MasterDataManage, _ => $"/api/units/{MissingPublicId}", _ => new UomSaveRequest("X", "x"), OkWhenAllowed: false),
         new("PUT warehouses/{id}", Put, Permissions.MasterDataManage, r => $"/api/warehouses/{r.DefaultWarehouseId}",

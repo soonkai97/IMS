@@ -9,10 +9,13 @@ namespace Ims.Application.Features.Catalog;
 public class ProductWriter(IRepository<Product> products, IReadRepository<Uom> uoms, IReadRepository<Category> categories,
     IReadRepository<ProductBarcode> barcodes, IReadRepository<StockLedgerEntry> ledger, IIdMap<Uom> uomIds, IUnitOfWork uow) : IProductWriter, IAppService
 {
-    public async Task<int> SaveAsync(int? id, ProductSaveRequest r, CancellationToken ct)
+    public async Task<int> SaveAsync(Guid? id, ProductSaveRequest r, CancellationToken ct)
     {
         var sku = r.Sku.Trim();
-        var exceptId = id ?? 0;
+        var existing = id is { } publicId
+            ? await products.FirstOrDefaultAsync(new ProductForEditSpec(publicId), ct) ?? throw new NotFoundException(Messages.ProductNotFound)
+            : null;
+        var exceptId = existing?.Id ?? 0;
         var baseUom = await uoms.FirstOrDefaultAsync(new ByPublicIdSpec<Uom>(r.BaseUomId), ct) ?? throw new ValidationException(Messages.BaseUomMissing);
         Category? category = null;
         if (r.CategoryId is { } cid)
@@ -24,14 +27,14 @@ public class ProductWriter(IRepository<Product> products, IReadRepository<Uom> u
         if (clash is not null) throw new ConflictException(Messages.BarcodeTaken(clash.Barcode));
 
         Product product;
-        if (id is null)
+        if (existing is null)
         {
             product = Product.Create(sku, r.Name, category, baseUom, r.SafetyStock, r.IsActive);
             products.Add(product);
         }
         else
         {
-            product = await products.FirstOrDefaultAsync(new ProductForEditSpec(id.Value), ct) ?? throw new NotFoundException(Messages.ProductNotFound);
+            product = existing;
             product.Update(sku, r.Name, category, r.SafetyStock, r.IsActive);
             if (product.BaseUomId != baseUom.Id)
                 product.ChangeBaseUnit(baseUom, await ledger.AnyAsync(new ProductHasMovementsSpec(product.Id), ct));

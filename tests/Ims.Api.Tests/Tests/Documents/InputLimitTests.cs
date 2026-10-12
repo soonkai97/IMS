@@ -102,7 +102,7 @@ public class InputLimitTests(ApiFixture fixture)
     }
 
     /// <summary>Quantity is passed as text so the test controls every digit.</summary>
-    private object RawRequest(int productId, string quantity) => new
+    private object RawRequest(Guid productId, string quantity) => new
     {
         warehouseId = Warehouse,
         lines = new[] { new { productId, qty = decimal.Parse(quantity, System.Globalization.CultureInfo.InvariantCulture), unitCost = 1 } }
