@@ -1,6 +1,7 @@
 @use '../libs' as *;
 
 // Anchors that look like <app-button>: navigation actions ("New product", "Import") must be real links.
+// Same rest, hover and pressed colours and the same press scale as the secondary and primary button.
 .ui-link-button {
   display: inline-flex;
   gap: space(1);
@@ -15,18 +16,33 @@
   background: color('surface');
   border: border-width('thin') solid color('border-strong');
   border-radius: border-radius('md');
+  transition: transform duration('fast') easing('standard');
 
-  &:hover {
-    background: color('surface-2');
+  @media (hover: hover) {
+    &:hover {
+      background: color('surface-sunken');
+    }
+  }
+
+  &:active {
+    background: color('surface-strong');
+    transform: scale(0.97);
   }
 
   &.--primary {
-    color: color('on-primary');
-    background: color('primary');
-    border-color: color('primary');
+    color: color('on-accent');
+    background: color('accent');
+    border-color: color('accent');
 
-    &:hover {
-      background: color('primary-hover');
+    @media (hover: hover) {
+      &:hover {
+        background: color('accent-hover');
+      }
+    }
+
+    &:active {
+      background: color('accent-pressed');
+      border-color: color('accent-pressed');
     }
   }
 }

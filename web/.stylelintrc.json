@@ -5,6 +5,11 @@
     "color-no-hex": true,
     "color-named": "never",
     "function-disallowed-list": ["rgb", "rgba", "hsl", "hsla"],
+    "declaration-property-value-disallowed-list": {
+      "/^transition(-property)?$/": [
+        "/\\b(all|color|background|border|outline|box-shadow|shadow|filter|width|height|margin|padding)\\b/"
+      ]
+    },
     "selector-class-pattern": null,
     "scss/dollar-variable-pattern": null,
     "scss/at-mixin-pattern": null,

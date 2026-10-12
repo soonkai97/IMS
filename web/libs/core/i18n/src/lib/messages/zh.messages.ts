@@ -45,6 +45,7 @@ export const ZH_MESSAGES: Messages = {
   'ui.rangeStatus': '第 {from}-{to} 条，共 {total} 条',
   'ui.required': '必填',
   'ui.retry': '重试',
+  'ui.saved': '已保存',
   'ui.selectPlaceholder': '请选择...',
   'ui.showPassword': '显示密码',
 

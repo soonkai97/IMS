@@ -45,6 +45,7 @@ export const MS_MESSAGES: Messages = {
   'ui.rangeStatus': '{from}-{to} daripada {total}',
   'ui.required': 'wajib',
   'ui.retry': 'Cuba lagi',
+  'ui.saved': 'Disimpan',
   'ui.selectPlaceholder': 'Pilih...',
   'ui.showPassword': 'Tunjuk kata laluan',
 

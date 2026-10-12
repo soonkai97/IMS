@@ -1,4 +1,10 @@
-import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
+import {
+  createComponentFactory,
+  createHostFactory,
+  Spectator,
+  SpectatorHost
+} from '@ngneat/spectator/jest';
+import { UiIconComponent } from '../icon/icon.component';
 import { UiButtonComponent } from './button.component';
 
 describe('UiButtonComponent states', () => {
@@ -64,5 +70,108 @@ describe('UiButtonComponent states', () => {
     expect(button.getAttribute('aria-expanded')).toBe('true');
     expect(button.getAttribute('aria-controls')).toBe('panel');
     expect(button.getAttribute('aria-haspopup')).toBe('dialog');
+  });
+
+  it.each(['primary', 'secondary', 'danger', 'danger-outline', 'ghost'])(
+    'the %s variant is a modifier on the host',
+    variant => {
+      render({ variant });
+
+      expect(spectator.element.classList.contains(`--${variant}`)).toBe(true);
+    }
+  );
+});
+
+describe('UiButtonComponent busy and saved states', () => {
+  let spectator: Spectator<UiButtonComponent>;
+  const createComponent = createComponentFactory({
+    component: UiButtonComponent,
+    detectChanges: false
+  });
+
+  const button = (): HTMLButtonElement => spectator.query('button') as HTMLButtonElement;
+  const spinner = (): Element | null => spectator.query('app-spinner');
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    spectator = createComponent();
+    spectator.detectChanges();
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  function setInput(name: string, value: boolean): void {
+    spectator.setInput(name, value);
+    spectator.detectChanges();
+  }
+
+  it('is busy for assistive technology at once but shows no spinner for a quick answer', () => {
+    setInput('loading', true);
+
+    expect(button().getAttribute('aria-busy')).toBe('true');
+    expect(button().getAttribute('aria-disabled')).toBe('true');
+    jest.advanceTimersByTime(100);
+    spectator.detectChanges();
+    expect(spinner()).toBeNull();
+
+    setInput('loading', false);
+    jest.advanceTimersByTime(1000);
+    spectator.detectChanges();
+    expect(spinner()).toBeNull();
+  });
+
+  it('the busy button keeps its colours: no class changes the fill while it works', () => {
+    setInput('loading', true);
+    jest.advanceTimersByTime(150);
+    spectator.detectChanges();
+
+    expect(spinner()).not.toBeNull();
+    expect(spectator.query('.ui-button-face')?.classList.contains('--busy')).toBe(true);
+    expect(button().className).toBe('ui-button-control');
+  });
+
+  it('shows a tick and "Saved" for 1.5s, then returns to the label', () => {
+    setInput('saved', true);
+
+    expect(button().classList.contains('--saved')).toBe(true);
+    expect(spectator.query('.ui-button-saved')?.textContent).toContain('Saved');
+    expect(spectator.query('.ui-button-saved app-icon')).not.toBeNull();
+    // The label keeps its room (the face is hidden, not removed), so the button does not change size.
+    expect(spectator.query('.ui-button-face')?.classList.contains('--covered')).toBe(true);
+
+    jest.advanceTimersByTime(1499);
+    spectator.detectChanges();
+    expect(spectator.query('.ui-button-saved')).not.toBeNull();
+
+    jest.advanceTimersByTime(1);
+    spectator.detectChanges();
+    expect(spectator.query('.ui-button-saved')).toBeNull();
+    expect(button().classList.contains('--saved')).toBe(false);
+    expect(spectator.query('.ui-button-face')?.classList.contains('--covered')).toBe(false);
+  });
+});
+
+describe('UiButtonComponent label and icon slots', () => {
+  let spectator: SpectatorHost<UiButtonComponent>;
+  const createHost = createHostFactory({
+    component: UiButtonComponent,
+    imports: [UiIconComponent]
+  });
+
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  it('keeps the label while busy, and the spinner takes the place of the leading icon', () => {
+    spectator = createHost(
+      `<app-button [loading]="true"><app-icon name="plus" />Save draft</app-button>`
+    );
+    jest.advanceTimersByTime(150);
+    spectator.detectChanges();
+
+    expect(spectator.query('button')?.textContent).toContain('Save draft');
+    expect(spectator.query('.ui-button-face app-spinner')).not.toBeNull();
+    // The projected icon sits in its own slot, which the busy modifier removes from the layout.
+    expect(spectator.query('.ui-button-icon app-icon')).not.toBeNull();
+    expect(spectator.query('.ui-button-face')?.classList.contains('--busy')).toBe(true);
   });
 });
