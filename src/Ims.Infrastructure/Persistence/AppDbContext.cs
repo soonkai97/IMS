@@ -202,8 +202,27 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        ConfigurePublicIds(b);
         ConfigureAuditColumns(b);
     }
+
+    /// <summary>
+    /// The public id of every <see cref="PublicEntity"/>: a column with a random default (so a raw INSERT stays valid; the application always supplies its own value) and
+    /// a unique index <c>UX_&lt;Table&gt;_PublicId</c>. The index is NOT filtered by REC_DELETED, unlike the other unique indexes (<see cref="ConfigureAuditColumns"/> skips
+    /// it): a soft-deleted row keeps its id, so an id is never handed out twice. It is a plain non-clustered index; the integer key stays the clustered one.
+    /// </summary>
+    private static void ConfigurePublicIds(ModelBuilder b)
+    {
+        foreach (var entityType in b.Model.GetEntityTypes().Where(t => typeof(PublicEntity).IsAssignableFrom(t.ClrType)).ToList())
+        {
+            var e = b.Entity(entityType.ClrType);
+            e.Property(nameof(PublicEntity.PublicId)).HasDefaultValueSql(PublicIdColumn.DefaultSql);
+            e.HasIndex(nameof(PublicEntity.PublicId)).IsUnique().HasDatabaseName(PublicIdColumn.IndexNameOf(entityType.GetTableName()!)).HasFillFactor(PublicIdColumn.FillFactor);
+        }
+    }
+
+    private static bool IsPublicIdIndex(Microsoft.EntityFrameworkCore.Metadata.IReadOnlyIndex index) =>
+        index.Properties is [{ Name: nameof(PublicEntity.PublicId) }];
 
     /// <summary>Filter of every index that only needs live rows: the global query filter adds this predicate to every query, so the index answers it for free.</summary>
     private const string LiveRows = "[REC_DELETED] = 0";
@@ -233,7 +252,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             var row = Expression.Parameter(entityType.ClrType, "e");
             e.HasQueryFilter(Expression.Lambda(Expression.Not(Expression.Property(row, nameof(AuditableEntity.RecDeleted))), row));
 
-            foreach (var index in entityType.GetIndexes().Where(i => i.IsUnique))
+            foreach (var index in entityType.GetIndexes().Where(i => i.IsUnique && !IsPublicIdIndex(i)))
                 index.SetFilter(string.IsNullOrEmpty(index.GetFilter()) ? LiveRows : $"({index.GetFilter()}) AND {LiveRows}");
         }
     }
@@ -383,6 +402,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             ? null
             : JsonSerializer.Serialize(p.Changed.ToDictionary(name => name, name => p.Entry.Property(name).CurrentValue), Json);
 
+    /// <summary>
+    /// The audit id of a row is its primary key, the integer, for every entity including the <see cref="PublicEntity"/> ones: the API, its filters and the business events
+    /// (user updated, document posted) still speak integers, and a row event must name the same id. The payload of a created or deleted row carries the PublicId, so the
+    /// two ids can be matched. When an entity's API flips to the public id, its row events and business events flip with it (docs/architecture/adr-guid-keys.md section 6).
+    /// </summary>
     private static string KeyOf(EntityEntry e) =>
         string.Join(DocumentNumberFormat.Separator, e.Metadata.FindPrimaryKey()!.Properties.Select(p => e.Property(p.Name).CurrentValue?.ToString()));
 }

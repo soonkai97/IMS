@@ -1,7 +1,7 @@
 namespace Ims.Domain;
 
 /// <summary>A supplier (receipts) or customer (issues).</summary>
-public class Partner : Entity
+public class Partner : PublicEntity
 {
     private Partner() { }
 

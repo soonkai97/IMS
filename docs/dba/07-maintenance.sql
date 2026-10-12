@@ -38,7 +38,8 @@ OPEN c; FETCH NEXT FROM c INTO @id;
 WHILE @@FETCH_STATUS = 0
 BEGIN
     SELECT @obj = QUOTENAME(sch) + N'.' + QUOTENAME(tbl), @idx = QUOTENAME(idx), @frag = frag, @dens = density, @pages = pages,
-           @ff = CASE WHEN tbl IN (N'StockLedgerEntry', N'AuditLogs', N'StockDocumentLine', N'StockDocument') AND idx LIKE N'PK[_]%' THEN 100
+           @ff = CASE WHEN idx LIKE N'UX[_]%[_]PublicId' THEN 90   -- random GUID keys (public ids): leave room for the inserts, even on the append-only tables
+                      WHEN tbl IN (N'StockLedgerEntry', N'AuditLogs', N'StockDocumentLine', N'StockDocument') AND idx LIKE N'PK[_]%' THEN 100
                       WHEN tbl IN (N'StockLedgerEntry', N'AuditLogs', N'StockDocumentLine', N'StockDocument') THEN 100 ELSE 90 END
     FROM #w WHERE id = @id;
     SET @action = CASE WHEN @frag > 30 OR @dens < 70 THEN 'REBUILD' ELSE 'REORGANIZE' END;

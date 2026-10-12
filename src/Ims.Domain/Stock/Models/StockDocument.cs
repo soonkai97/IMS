@@ -5,7 +5,7 @@ namespace Ims.Domain;
 /// Posting is the irreversible step: a posted document is never edited, only reversed.
 /// All state changes go through the methods below, so an illegal transition cannot happen.
 /// </summary>
-public class StockDocument : Entity
+public class StockDocument : PublicEntity
 {
     private StockDocument() { }
 
