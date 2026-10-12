@@ -29,6 +29,13 @@
   }
 }
 
+/// Desktop that is not wide yet (1024 to 1279px).
+@mixin media-desktop-narrow {
+  @media (min-width: #{bp.$breakpoint-desktop}) and (max-width: #{bp.$breakpoint-wide - 1px}) {
+    @content;
+  }
+}
+
 /// Desktop and wider (>= 1024px).
 @mixin media-desktop {
   @media (min-width: #{bp.$breakpoint-desktop}) {

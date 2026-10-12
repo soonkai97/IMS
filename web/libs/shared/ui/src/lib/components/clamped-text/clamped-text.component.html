@@ -12,6 +12,7 @@
     class="ui-clamped-text-more"
     [attr.aria-expanded]="$expanded()"
     [attr.aria-controls]="textId"
+    [attr.aria-describedby]="textId"
     (click)="toggle()"
   >
     {{ $label() }}

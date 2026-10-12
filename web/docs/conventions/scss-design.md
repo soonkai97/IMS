@@ -39,8 +39,9 @@ sizes or radii in component styles.**
 
 Three durations (`fast` 120ms: hover, exits, fades; `base` 200ms: entrances; `slow` 280ms: sheet and dialog travel) and two easings
 (`standard` for moves, `out` for arrivals), emitted as `--ims-dur-*` and `--ims-ease-*` by `globals/_motion.scss`. Components use
-`duration()` and `easing()`, never a literal. Animate only `opacity` and `transform`; colours change instantly (except the existing
-button fade, until the button slice).
+`duration()` and `easing()`, never a literal. Animate only `opacity` and `transform`; colours change instantly. Stylelint rejects a
+`transition` or `transition-property` that names colour, background, border, outline, shadow, filter, width, height, margin, padding
+or `all`.
 
 - Reduced motion: `prefers-reduced-motion: reduce` sets every duration to 1ms and runs every animation once for 0.01ms, so no loop
   keeps going (an infinite animation with a shortened duration used to flicker). There is no in-app switch.
@@ -50,6 +51,43 @@ button fade, until the button slice).
 - Loading indicators appear through `delayedLoading(loading)` (`@ims/utils`): shown after 300ms of waiting, kept at least 400ms.
 - `@angular/animations` is not used (deprecated in Angular 22); ESLint rejects the import. Use CSS transitions, `animate.enter`
   and `animate.leave`.
+
+## Buttons and form controls
+
+- `app-button` variants: `primary` (the one main action), `secondary` (default), `danger`, `danger-outline` (a destructive action
+  beside a primary one), `ghost` (quiet, toolbars and rows). Rest, hover and pressed colours change at once; pressed also scales to
+  `press-scale()` (a `transform` transition of `fast`); the token is 0.97 and 1 under reduced motion and `data-motion="off"`. Hover is
+  guarded by `@media (hover: hover)` so a touch screen never shows a stuck hover.
+- Busy: `loading` sets `aria-busy` and `aria-disabled` at once and ignores clicks, focus stays. The spinner appears after 150ms
+  (`delayedLoading`, no minimum time: it leaves with the answer), replaces the leading `app-icon`, and the button keeps the width it
+  had (`min-width`/`max-width` in px). The grid column is `minmax(0, 1fr)`, so a text-only label plus spinner spills evenly into the
+  padding instead of out of one edge. Colours do not change while busy.
+- `[saved]` shows a check and "Saved" for 1.5s (an action that finishes on the same screen); the button does not shrink while it
+  shows and ignores clicks. A label shorter than "Saved" grows the box just enough to fit it. Announcing the result (a live region)
+  is the caller's job.
+- Windows high contrast: the checked checkbox, radio and segment opt out of forced colours and use `Highlight`/`HighlightText`.
+- Disabled: `disabled` for an action that does not exist for this user's state; `ariaDisabled` + `describedBy` when the reason
+  matters (the button stays focusable).
+- Text-like controls share the `control-base` mixin: hover border `text-muted`, focus border `accent` plus the ring, error border
+  `danger` plus a 1px inset ring (and the icon and sentence from `app-form-field`), disabled and read-only on `surface-sunken`.
+- `app-checkbox` and `app-radio-group` draw their own 24px box (`border-strong` edge, `accent` fill, tick or dot); the row is the
+  44px target. `app-radio-group variant="segmented"` is one track with equal options, still native radios.
+
+## Shell, tab bar, action bar, tabs
+
+- Phone: top bar, bottom tab bar (`$profile().phoneTabs` plus "More"; links with `aria-current`, not a tablist), content. Tablet: icon
+  rail. Desktop: sidebar. The current page is shown by shape (a 3px pill above the tab icon, a 3px edge in the sidebar), not colour only.
+- Safe areas: `viewport-fit=cover`; `--ims-safe-*` are the insets and `tabbar-offset()` is the tab bar height plus the bottom inset.
+  Components never write `env()`.
+- Sticky action bar (`.document-editor-bar`): phone = full-width strip directly above the tab bar; tablet and up = floating card. It
+  publishes its real height as `--ims-action-bar-height` (`appPublishHeight`; it grows when the buttons wrap at 320px) and the `html`
+  scroll padding reserves tab bar + that height, so a focused field is scrolled clear of it (e2e `16-shell`). Toasts: R11.
+- Route fade: `withViewTransitions(ROUTE_FADE)`, one `fast` crossfade; top bar, sidebar and tab bar have a `view-transition-name` and
+  stay still; query-only navigations skip it; 1ms under reduced motion. Never name content elements (a named element becomes the
+  containing block of fixed descendants).
+- Top progress bar: behind `delayedLoading`, `role="progressbar"` without a value, named "Loading".
+- Tabs: `<app-tabs panel="id">` plus `<div appTabPanel="id" [labelledByTab]="active">` around what it controls (`aria-controls`,
+  `role="tabpanel"`, `aria-labelledby`). Arrows, Home and End move.
 
 ## Naming: flat BEM, component specific
 
@@ -89,17 +127,22 @@ page scroll at any width, and a short one (a number, a date, a code, a chip) mus
   copy of it in another file. `visually-hidden` keeps its own commented exception. Inline styles in templates are not
   linted: do not write `nowrap` there.
 - A user's text that is cut after a few lines goes through `app-clamped-text` (`clamp-lines` plus a real "Show more" / "Show
-  less" button with `aria-expanded`, shown only when the text overflows), so it is readable by keyboard and by touch. The
+  less" button with `aria-expanded` and `aria-describedby` pointing at the text, shown only when the text overflows), so it is
+  readable by keyboard and by touch. The
   button is left out where the full value is one click away (a row's title that links to its detail page). `title` is not a
   way to read a value: it needs a mouse.
 - `app-table`: columns have a `type` (`name`, `text`, `code`, `number`, `status`, `date`, `action`, see `table.types.ts`). From 1024px
-  the table is as wide as its columns need: `number`, `date`, `code`, `status` and `action` cells and headers are `keep-whole` and
-  size to their content (`width: 1%`); `name` and `text` cells have a minimum width (`width('column-min')`) and are clamped to
-  two lines by `app-clamped-text`. When the columns need more than the page leaves, the table scrolls inside its own labelled,
-  focusable `ui-table-scroll` region (`role="region"`, `data-scroll-region`), never the page. Chips are never cut: they hold short
-  enumerated labels, never user text. Below 1024px a row is a card and every value may wrap.
-- Only a deliberate scroll region may scroll sideways: give it `role="region"`, `tabindex="0"`, an accessible name and
-  `data-scroll-region`. `e2e/tests/15-containment.spec.ts` fails on any other sideways scroller; its one exemption is the tab
+  the table is as wide as its columns need. Cells of type `number`, `date`, `code`, `status` and `action` are `keep-whole` and size to
+  their content (the header has `width: 1%` and may wrap at a space, never inside a word); a plain-text code is as wide as its
+  value up to `width('code-max')` and wraps inside that box beyond it, so one 64-character SKU cannot push the other columns out
+  of view. `name` and `text` cells have a minimum width (`width('column-min')`) and are clamped to two lines by
+  `app-clamped-text`. A low-priority column can set `hideOnNarrow` (hidden from 1024 to 1279px). When the columns still need
+  more than the page leaves, the table scrolls inside its own box, which shows a soft shadow on the side with more to see and,
+  only while it really scrolls, is a labelled, focusable region (`appScrollRegion`: `role="region"`, `tabindex="0"`,
+  `data-scroll-region`), so a table that fits has no extra tab stop. The page never scrolls. Chips are never cut: they hold
+  short enumerated labels, never user text. Below 1024px a row is a card and every value may wrap.
+- Only a deliberate scroll region may scroll sideways, and it is focusable and named (`appScrollRegion` does this for a box that
+  scrolls only sometimes). `e2e/tests/15-containment.spec.ts` fails on any other sideways scroller; its one exemption is the tab
   strip of `app-tabs` (focusable tabs, scrolls on a narrow screen).
 - `e2e/tests/15-containment.spec.ts` also fails when, at 1024px and wider, a number, date, code, action or chip cell is broken
   across lines or clipped. A new list, card, chip, dialog, toast or header adds its screen to that test (long names and a large

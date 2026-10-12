@@ -6,6 +6,13 @@
   gap: space(2);
 }
 
+// The tab panel holds the cards; it lays them out the way the page did before they moved into it.
+.product-import-page-panel {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
 .product-import-page-card {
   max-width: width('content-max');
 }

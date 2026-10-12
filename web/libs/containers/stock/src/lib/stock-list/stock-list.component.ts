@@ -153,7 +153,8 @@ export class StockListPageComponent implements OnInit {
       key: 'category',
       header: this.i18n.t('product.category'),
       value: row => row.categoryName ?? '',
-      hideOnPhone: true
+      hideOnPhone: true,
+      hideOnNarrow: true
     },
     {
       key: 'warehouse',

@@ -27,6 +27,7 @@
 
 <app-tabs
   [label]="'reports.title' | t"
+  panel="reports-panel"
   [tabs]="$tabs()"
   [active]="$tab()"
   (activeChange)="onTabChange($event)"
@@ -37,95 +38,97 @@
   <p class="sr-only" [id]="rangeHintId">{{ 'filter.rangeInvalid' | t }}</p>
 }
 
-@if ($isMovementsTab()) {
-  <div class="reports-page-toolbar">
-    <app-button
-      [loading]="$exportingMovements()"
-      [ariaDisabled]="$rangeInvalid()"
-      [describedBy]="$rangeInvalid() ? rangeHintId : undefined"
-      (clicked)="onExportMovements()"
-    >
-      <app-icon name="download" />
-      {{ 'common.exportExcel' | t }}
-    </app-button>
-  </div>
-
-  @if (!$blocked()) {
-    <!-- Thirteen columns are wider than a 1024px window: app-table scrolls them inside its own focusable region, not the page. -->
-    <app-table
-      [columns]="$columns()"
-      [rows]="$page()?.items ?? []"
-      [caption]="'reports.tab.movements' | t"
-      [loading]="$isLoading()"
-      [failed]="$failed()"
-      (retried)="onRetry()"
-    >
-      <ng-template appCell="docNo" let-row>
-        <span class="reports-page-docno">
-          {{ row.docNo }}
-          @if (row.isReversal) {
-            <app-status-chip flag="warning" [label]="'reports.reversal' | t" />
-          }
-        </span>
-      </ng-template>
-      <ng-template appCell="date" let-row>
-        <span class="reports-page-nowrap">{{ row.postedAt | appDate }}</span>
-      </ng-template>
-      <ng-template appCell="sku" let-row>
-        <span class="reports-page-nowrap">{{ row.sku }}</span>
-      </ng-template>
-      <ng-template appCell="qty" let-row>{{ row.qty | appQty }}</ng-template>
-      <!-- Signed, in base units: the sign is the text, the colour only reinforces it (mvp-ux 3.9). -->
-      <ng-template appCell="effect" let-row>
-        <span
-          class="reports-page-effect"
-          [class.--in]="row.stockEffect > 0"
-          [class.--out]="row.stockEffect < 0"
-          >{{ row.stockEffect | appSignedQty }}</span
-        >
-      </ng-template>
-      <!-- A cost per base unit is a unit price (up to 4 decimals); the line amount is money (exactly 2). -->
-      <ng-template appCell="unitCost" let-row>{{ row.unitCost | appUnitPrice }}</ng-template>
-      <ng-template appCell="amount" let-row>{{ row.amount | appMoney }}</ng-template>
-      <app-empty-state empty icon="reports" [message]="'reports.empty' | t" />
-    </app-table>
-  }
-
-  @if ($page(); as page) {
-    <app-pager
-      [page]="page.page"
-      [pageSize]="page.pageSize"
-      [total]="page.total"
-      (pageChange)="onPageChange($event)"
-    />
-  }
-} @else {
-  <div class="reports-page-exports">
-    <app-card [heading]="'reports.export.stock' | t">
-      <p>{{ 'reports.export.stockHint' | t }}</p>
-      <app-button [loading]="$exportingStock()" (clicked)="onExportStock()">
-        <app-icon name="download" />
-        {{ 'common.exportExcel' | t }}
-      </app-button>
-    </app-card>
-    <app-card [heading]="'reports.export.ledger' | t">
-      <p>{{ 'reports.export.ledgerHint' | t }}</p>
+<div appTabPanel="reports-panel" [labelledByTab]="$tab()">
+  @if ($isMovementsTab()) {
+    <div class="reports-page-toolbar">
       <app-button
-        [loading]="$exportingLedger()"
+        [loading]="$exportingMovements()"
         [ariaDisabled]="$rangeInvalid()"
         [describedBy]="$rangeInvalid() ? rangeHintId : undefined"
-        (clicked)="onExportLedger()"
+        (clicked)="onExportMovements()"
       >
         <app-icon name="download" />
         {{ 'common.exportExcel' | t }}
       </app-button>
-    </app-card>
-    <app-card [heading]="'reports.export.lowStock' | t">
-      <p>{{ 'reports.export.lowStockHint' | t }}</p>
-      <app-button [loading]="$exportingLow()" (clicked)="onExportLowStock()">
-        <app-icon name="download" />
-        {{ 'common.exportExcel' | t }}
-      </app-button>
-    </app-card>
-  </div>
-}
+    </div>
+
+    @if (!$blocked()) {
+      <!-- Thirteen columns are wider than a 1024px window: app-table scrolls them inside its own focusable region, not the page. -->
+      <app-table
+        [columns]="$columns()"
+        [rows]="$page()?.items ?? []"
+        [caption]="'reports.tab.movements' | t"
+        [loading]="$isLoading()"
+        [failed]="$failed()"
+        (retried)="onRetry()"
+      >
+        <ng-template appCell="docNo" let-row>
+          <span class="reports-page-docno">
+            {{ row.docNo }}
+            @if (row.isReversal) {
+              <app-status-chip flag="warning" [label]="'reports.reversal' | t" />
+            }
+          </span>
+        </ng-template>
+        <ng-template appCell="date" let-row>
+          <span class="reports-page-nowrap">{{ row.postedAt | appDate }}</span>
+        </ng-template>
+        <ng-template appCell="sku" let-row>
+          <span class="reports-page-nowrap">{{ row.sku }}</span>
+        </ng-template>
+        <ng-template appCell="qty" let-row>{{ row.qty | appQty }}</ng-template>
+        <!-- Signed, in base units: the sign is the text, the colour only reinforces it (mvp-ux 3.9). -->
+        <ng-template appCell="effect" let-row>
+          <span
+            class="reports-page-effect"
+            [class.--in]="row.stockEffect > 0"
+            [class.--out]="row.stockEffect < 0"
+            >{{ row.stockEffect | appSignedQty }}</span
+          >
+        </ng-template>
+        <!-- A cost per base unit is a unit price (up to 4 decimals); the line amount is money (exactly 2). -->
+        <ng-template appCell="unitCost" let-row>{{ row.unitCost | appUnitPrice }}</ng-template>
+        <ng-template appCell="amount" let-row>{{ row.amount | appMoney }}</ng-template>
+        <app-empty-state empty icon="reports" [message]="'reports.empty' | t" />
+      </app-table>
+    }
+
+    @if ($page(); as page) {
+      <app-pager
+        [page]="page.page"
+        [pageSize]="page.pageSize"
+        [total]="page.total"
+        (pageChange)="onPageChange($event)"
+      />
+    }
+  } @else {
+    <div class="reports-page-exports">
+      <app-card [heading]="'reports.export.stock' | t">
+        <p>{{ 'reports.export.stockHint' | t }}</p>
+        <app-button [loading]="$exportingStock()" (clicked)="onExportStock()">
+          <app-icon name="download" />
+          {{ 'common.exportExcel' | t }}
+        </app-button>
+      </app-card>
+      <app-card [heading]="'reports.export.ledger' | t">
+        <p>{{ 'reports.export.ledgerHint' | t }}</p>
+        <app-button
+          [loading]="$exportingLedger()"
+          [ariaDisabled]="$rangeInvalid()"
+          [describedBy]="$rangeInvalid() ? rangeHintId : undefined"
+          (clicked)="onExportLedger()"
+        >
+          <app-icon name="download" />
+          {{ 'common.exportExcel' | t }}
+        </app-button>
+      </app-card>
+      <app-card [heading]="'reports.export.lowStock' | t">
+        <p>{{ 'reports.export.lowStockHint' | t }}</p>
+        <app-button [loading]="$exportingLow()" (clicked)="onExportLowStock()">
+          <app-icon name="download" />
+          {{ 'common.exportExcel' | t }}
+        </app-button>
+      </app-card>
+    </div>
+  }
+</div>

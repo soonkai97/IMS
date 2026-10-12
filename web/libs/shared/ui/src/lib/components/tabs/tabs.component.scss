@@ -1,5 +1,6 @@
 @use 'libs' as *;
 
+// The strip scrolls sideways, which would clip a focus ring drawn outside a tab: the ring is inset.
 :host {
   display: block;
   overflow-x: auto;
@@ -15,6 +16,7 @@
   @include reset-button;
   @include keep-whole;
 
+  position: relative;
   display: inline-flex;
   gap: space(1);
   align-items: center;
@@ -22,24 +24,52 @@
   padding: 0 space(2);
   font-weight: font-weight('medium');
   color: color('text-muted');
-  border-bottom: border-width('thick') solid transparent;
+
+  // The current tab's underline grows from the middle (a shape cue, not colour alone).
+  &::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: border-width('thick');
+    content: '';
+    background: color('accent');
+    transform: scaleX(0);
+    transition: transform duration('fast') easing('out');
+  }
 
   &:hover {
     color: color('text');
   }
 
+  &:focus-visible {
+    outline-offset: -#{border-width('ring')};
+  }
+
   &.--active {
-    color: color('primary');
-    border-bottom-color: color('primary');
+    color: color('accent');
+  }
+
+  &.--active::after {
+    transform: scaleX(1);
+  }
+}
+
+// Forced colours repaint backgrounds to Canvas: the current tab's underline keeps a system colour.
+@media (forced-colors: active) {
+  .ui-tabs-tab::after {
+    forced-color-adjust: none;
+    background: Highlight;
   }
 }
 
 .ui-tabs-badge {
-  min-width: 1.5rem;
+  min-width: width('badge');
   padding: 0 space(0);
   font-size: font-size(1);
-  color: color('on-primary-soft');
+  font-variant-numeric: tabular-nums;
+  color: color('on-accent-soft');
   text-align: center;
-  background: color('primary-soft');
+  background: color('accent-soft');
   border-radius: border-radius('pill');
 }

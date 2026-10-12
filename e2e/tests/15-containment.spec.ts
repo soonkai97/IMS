@@ -65,8 +65,8 @@ async function expectContained(page: Page, label: string): Promise<void> {
 }
 
 /**
- * On a table (1024 px and up) a number, date, code, status or action cell is never broken across lines or clipped, and a
- * chip is never cut: those values size their column, they are not squeezed by it (L00, reviewer findings 1 and 2).
+ * On a table (1024 px and up) a number, date, ordinary code, status or action cell is never broken across lines or clipped,
+ * and a chip is never cut: those values size their column, they are not squeezed by it (L00, reviewer findings 1 and 2).
  */
 async function expectCellsWhole(page: Page, label: string): Promise<void> {
   const broken = await page.evaluate(() => {
@@ -79,6 +79,10 @@ async function expectCellsWhole(page: Page, label: string): Promise<void> {
         continue;
       }
       const isChipCell = cell.classList.contains('--status');
+      // An ordinary code stays whole; a 64-character SKU wraps inside its bounded box (it must not push the other columns away).
+      if (cell.classList.contains('--code') && (cell.textContent ?? '').trim().length > 24) {
+        continue;
+      }
       const range = document.createRange();
       const parts = isChipCell
         ? Array.from(cell.querySelectorAll<HTMLElement>('.ui-status-chip-label'))
@@ -103,7 +107,10 @@ async function expectCellsWhole(page: Page, label: string): Promise<void> {
           }
         }
         const clipped = part.scrollWidth - part.clientWidth > 1;
-        if (lines.size > 1 || clipped) {
+        // A header may wrap at a space, never inside a word: at most one line per word.
+        const words = (part.textContent ?? '').trim().split(/\s+/).length;
+        const allowed = cell.tagName === 'TH' ? words : 1;
+        if (lines.size > allowed || clipped) {
           problems.push(
             `${cell.tagName.toLowerCase()}.${cell.className.replace(/\s+/g, '.')} "${(part.textContent ?? '').trim().slice(0, 30)}" lines=${lines.size} clipped=${clipped}`
           );
@@ -250,14 +257,15 @@ test.describe('L00 Content containment', () => {
       await expect(page.getByText(mark).first()).toBeVisible();
       await expectContained(page, at('Stock'));
 
-      // The movements report is the one table that scrolls sideways, inside its own named region.
+      // The movements report has the widest table (13 columns). Below 1024 px it is cards: nothing scrolls and the table
+      // box is no region and no tab stop. From 1024 px it scrolls inside its own named, focusable region when it must.
       await goTo(page, '/reports');
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-      await expect(page.getByRole('region', { name: /detail/ })).toBeVisible();
+      await expect(page.locator('.ui-table-scroll')).toBeVisible();
       await expectContained(page, at('Reports'));
       if (width < 1024) {
-        // Cards, not a table: nothing to scroll sideways, not even inside the region.
-        await expectFits(page.getByRole('region', { name: /detail/ }), at('Reports cards'));
+        await expectFits(page.locator('.ui-table-scroll'), at('Reports cards'));
+        await expect(page.locator('.ui-table-scroll')).not.toHaveAttribute('tabindex', /.*/);
       }
 
       const editor = new DocumentEditor(page);

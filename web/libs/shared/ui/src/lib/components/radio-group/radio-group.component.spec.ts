@@ -61,6 +61,39 @@ describe('UiRadioGroupComponent accessibility (NV-09, EA-06)', () => {
     expect(set?.getAttribute('aria-describedby')).toBe('purpose-error');
   });
 
+  it('the default group is not segmented', () => {
+    render();
+
+    expect(spectator.query('.ui-radio-group-options')?.classList.contains('--segmented')).toBe(
+      false
+    );
+  });
+
+  it('a segmented group is still radios in one fieldset, so the arrow keys and Space work natively', () => {
+    render({ variant: 'segmented' });
+
+    expect(spectator.query('.ui-radio-group-options')?.classList.contains('--segmented')).toBe(
+      true
+    );
+    const radios = spectator.queryAll('input[type=radio]') as HTMLInputElement[];
+    expect(radios).toHaveLength(2);
+    expect(new Set(radios.map(radio => radio.name)).size).toBe(1);
+    expect(radios.every(radio => radio.classList.contains('--segmented'))).toBe(true);
+  });
+
+  it('choosing an option reports its value and marks it checked', () => {
+    render({ variant: 'segmented' });
+    const seen: (string | number)[] = [];
+    spectator.component.registerOnChange(value => seen.push(value));
+
+    spectator.click(spectator.queryAll('input[type=radio]')[1]);
+
+    expect(seen).toEqual(['Use']);
+    expect(spectator.queryAll('.ui-radio-group-option')[1].classList.contains('--checked')).toBe(
+      true
+    );
+  });
+
   it('a valid group carries neither attribute', () => {
     render({ errorId: 'purpose-error' });
 

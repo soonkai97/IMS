@@ -8,7 +8,7 @@ describe('UiToastComponent long messages (L00)', () => {
     detectChanges: false
   });
 
-  it('keeps the whole message in the live region and in the title, whatever the clamp shows', () => {
+  it('shows the whole message in the live region, wrapped and never clamped', () => {
     const message = 'Server said '.repeat(60);
     spectator = createComponent({ props: { kind: 'error', message } as never });
     spectator.detectChanges();
@@ -16,6 +16,6 @@ describe('UiToastComponent long messages (L00)', () => {
     const text = spectator.query('.ui-toast-message');
     expect(spectator.element.getAttribute('role')).toBe('alert');
     expect(text?.textContent?.trim()).toBe(message.trim());
-    expect(text?.getAttribute('title')).toBe(message);
+    expect(text?.hasAttribute('title')).toBe(false);
   });
 });

@@ -31,9 +31,9 @@
   color: var(--toast-accent);
 }
 
-// Three lines at most (L00); the whole message stays in the live region and in the title.
+// The whole message is shown, wrapped (L00): a toast cannot expand, and an error stays until it is dismissed.
 .ui-toast-message {
-  @include clamp-lines(3);
+  @include wrap-anywhere;
 
   flex: 1;
 }

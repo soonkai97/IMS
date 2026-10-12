@@ -125,7 +125,8 @@ export class ProductsPageComponent implements OnInit {
       key: 'category',
       header: this.i18n.t('product.category'),
       value: row => row.categoryName ?? '',
-      hideOnPhone: true
+      hideOnPhone: true,
+      hideOnNarrow: true
     },
     { key: 'unit', header: this.i18n.t('product.baseUnit'), value: row => row.baseUomCode },
     { key: 'safety', header: this.i18n.t('product.safetyStock'), align: 'end', hideOnPhone: true },

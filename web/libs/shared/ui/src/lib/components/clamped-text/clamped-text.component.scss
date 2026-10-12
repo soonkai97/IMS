@@ -17,6 +17,7 @@
 // Above the row's whole-card link overlay of app-table, so it can be pressed.
 .ui-clamped-text-more {
   @include reset-button;
+  @include keep-whole;
 
   position: relative;
   z-index: 1;

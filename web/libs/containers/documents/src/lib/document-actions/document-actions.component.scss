@@ -6,6 +6,17 @@
   gap: space(1);
   align-items: center;
   justify-content: flex-end;
+
+  @include media-phone {
+    flex: 1 1 100%;
+  }
+}
+
+// Phone: the buttons share the row equally (48px high, the primary last = right); they wrap at 320px when the labels do not fit.
+app-button:not(.document-actions-more) {
+  @include media-phone {
+    flex: 1 1 7rem;
+  }
 }
 
 // On a phone Cancel lives in the "more" sheet when other actions exist; elsewhere the button is inline.

@@ -11,12 +11,15 @@
 
 <app-tabs
   [label]="'catalog.title' | t"
+  panel="catalog-panel"
   [tabs]="$tabs()"
   [active]="$tab()"
   (activeChange)="onTabChange($event)"
 />
 
 <app-table
+  appTabPanel="catalog-panel"
+  [labelledByTab]="$tab()"
   [columns]="$columns()"
   [rows]="$rows()"
   [caption]="'catalog.title' | t"

@@ -82,11 +82,13 @@ import {
   UiFormLegendComponent,
   UiIconComponent,
   UiPageHeaderComponent,
+  UiPublishHeightDirective,
   UiRadioGroupComponent,
   UiSelectComponent,
   UiSkeletonComponent,
   UiStatusChipComponent,
   UiTableComponent,
+  UiTabPanelDirective,
   UiTabsComponent,
   UiTextareaComponent
 } from '@ims/ui';
@@ -148,11 +150,13 @@ interface HistoryEvent {
     UiFormLegendComponent,
     UiIconComponent,
     UiPageHeaderComponent,
+    UiPublishHeightDirective,
     UiRadioGroupComponent,
     UiSelectComponent,
     UiSkeletonComponent,
     UiStatusChipComponent,
     UiTableComponent,
+    UiTabPanelDirective,
     UiTabsComponent,
     UiTextareaComponent
   ],

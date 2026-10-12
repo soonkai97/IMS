@@ -3,9 +3,9 @@ import { TemplateRef } from '@angular/core';
 /**
  * What a column holds, which decides its width and how a long value is cut (L00). Default: `number` when aligned to
  * the end, `name` for the primary column, otherwise `text`.
- * - `name` and `text`: share the remaining width, one line with an ellipsis (a card title may take two lines).
- * - `code` (SKU, document number): fixed width, one line, ellipsis.
- * - `number`, `status` (chips), `date`, `action` (buttons): fixed width, never cut.
+ * - `name` and `text`: share the remaining width (minimum `column-min`), two lines, then "Show more" (app-clamped-text).
+ * - `code` (SKU, document number): as wide as the value up to 14rem, then it wraps inside that box; an ordinary code stays whole.
+ * - `number`, `status` (chips), `date`, `action` (buttons): as wide as the value, never broken or cut.
  */
 export type TableColumnType = 'name' | 'text' | 'code' | 'number' | 'status' | 'date' | 'action';
 
@@ -20,6 +20,8 @@ export interface TableColumn<Row> {
   readonly primary?: boolean;
   /** Hidden when the table collapses to cards. */
   readonly hideOnPhone?: boolean;
+  /** Hidden from 1024 to 1279px, where the sidebar leaves a table little room; shown in the cards and from 1280px. */
+  readonly hideOnNarrow?: boolean;
   /**
    * Compact card: the cell sits at the end of the title line (a status chip). Any column with this flag or
    * `phoneInline` turns the cards of this table into two lines: title + end cell, then the other cells side by side.
@@ -45,6 +47,7 @@ export interface TableCell {
   readonly primary: boolean;
   readonly alignEnd: boolean;
   readonly hideOnPhone: boolean;
+  readonly hideOnNarrow: boolean;
   readonly phoneEnd: boolean;
   readonly phoneInline: boolean;
   /** Nothing to show: dropped from the card instead of leaving a blank row. */
@@ -57,6 +60,7 @@ export interface TableHeader {
   readonly header: string;
   readonly alignEnd: boolean;
   readonly hideOnPhone: boolean;
+  readonly hideOnNarrow: boolean;
   readonly sortKey: string | undefined;
   /** aria-sort value for the header cell. */
   readonly ariaSort: 'ascending' | 'descending' | 'none' | undefined;

@@ -117,13 +117,13 @@ describe('UiTableComponent long values (L00)', () => {
     expect(spectator.query('app-clamped-text button')).toBeNull();
   });
 
-  it('is a labelled, focusable scroll region so a wide table scrolls in its box and not the page', () => {
+  it('sits in a scroll box that is a region and a tab stop only while it really scrolls', () => {
     const spectator = render([{ key: 'no', header: 'No.', value: row => row.no, type: 'code' }]);
 
-    const region = spectator.query('.ui-table-scroll');
-    expect(region?.getAttribute('role')).toBe('region');
-    expect(region?.getAttribute('tabindex')).toBe('0');
-    expect(region?.getAttribute('aria-label')).toBe('Receipts');
-    expect(region?.hasAttribute('data-scroll-region')).toBe(true);
+    // jsdom lays nothing out, so the table fits: no landmark and no extra tab stop.
+    const box = spectator.query('.ui-table-scroll');
+    expect(box).toBeTruthy();
+    expect(box?.hasAttribute('role')).toBe(false);
+    expect(box?.hasAttribute('tabindex')).toBe(false);
   });
 });

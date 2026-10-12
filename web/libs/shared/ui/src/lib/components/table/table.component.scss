@@ -44,11 +44,23 @@
 
     outline-offset: -3px;
   }
+
+  // A soft shadow on the side that has more to scroll to, so a table that does not fit says so.
+  @include media-desktop {
+    background:
+      linear-gradient(to right, color('surface') 30%, transparent) left / 2rem 100% no-repeat local,
+      linear-gradient(to left, color('surface') 30%, transparent) right / 2rem 100% no-repeat local,
+      linear-gradient(to right, color-alpha('text', 25%), transparent) left / 0.75rem 100% no-repeat
+        scroll,
+      linear-gradient(to left, color-alpha('text', 25%), transparent) right / 0.75rem 100% no-repeat
+        scroll;
+    background-color: color('surface');
+    border-radius: border-radius('md');
+  }
 }
 
 .ui-table-grid {
   width: 100%;
-  background: color('surface');
   border: border-width('thin') solid color('border');
   border-radius: border-radius('md');
 }
@@ -102,11 +114,12 @@
   }
 }
 
-// Long values (L00). Numbers, dates, codes, chips and buttons are never broken or cut: they size to their content (width
-// 1% shrinks the column to it) and a long one makes the table scroll in its box. Names and remarks share the rest, with
-// a minimum width, clamped to two lines by app-clamped-text (which can expand them).
+// Long values (L00). Numbers, dates, chips and buttons are never broken or cut: they size to their content (width 1%
+// shrinks the column to it) and a long one makes the table scroll in its box. A code is as wide as its value up to a
+// bounded box and wraps beyond it, so one 64-character SKU cannot push the other columns out of view. Names and remarks
+// share the rest, with a minimum width, clamped to two lines by app-clamped-text (which can expand them).
 @include media-desktop {
-  .ui-table-header,
+  // Headers may wrap at a space ("Safety stock") but never inside a word; the cells under them are never broken.
   .ui-table-cell {
     &.--number,
     &.--date,
@@ -115,21 +128,42 @@
     &.--action {
       @include keep-whole;
     }
+  }
 
+  .ui-table-header,
+  .ui-table-cell {
     &.--name,
     &.--text {
       min-width: width('column-min');
     }
   }
 
+  // A code in plain text is as wide as its value up to a bounded box (a definite width, so the column does not collapse),
+  // and wraps beyond it. A code a template draws (a document number with its badge) stays whole.
+  .ui-table-code {
+    @include wrap-anywhere;
+
+    display: inline-block;
+    width: max-content;
+    max-width: width('code-max');
+    white-space: normal;
+  }
+
   .ui-table-header {
     &.--number,
     &.--date,
-    &.--code,
     &.--status,
     &.--action {
       width: 1%;
     }
+  }
+}
+
+// A low-priority column (a category) leaves the table from 1024 to 1279px, so the others keep their room (L00).
+@include media-desktop-narrow {
+  .ui-table-header.--narrow-hidden,
+  .ui-table-cell.--narrow-hidden {
+    display: none;
   }
 }
 

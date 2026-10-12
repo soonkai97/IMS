@@ -12,6 +12,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { toClassStr } from '@ims/utils';
 import { UI_TEXT } from '../../tokens/ui-text.token';
+import { UiScrollRegionDirective } from '../../directives/scroll-region.directive';
 import { UiButtonComponent } from '../button/button.component';
 import { UiClampedTextComponent } from '../clamped-text/clamped-text.component';
 import { UiIconComponent } from '../icon/icon.component';
@@ -38,6 +39,7 @@ import {
     UiButtonComponent,
     UiClampedTextComponent,
     UiIconComponent,
+    UiScrollRegionDirective,
     UiSkeletonComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -76,6 +78,7 @@ export class UiTableComponent<Row extends object> {
       header: column.header,
       alignEnd: column.align === 'end',
       hideOnPhone: column.hideOnPhone === true,
+      hideOnNarrow: column.hideOnNarrow === true,
       sortKey: column.sortKey,
       ariaSort: this.ariaSortOf(column.sortKey, sort)
     }));
@@ -101,6 +104,7 @@ export class UiTableComponent<Row extends object> {
           primary: column.primary === true,
           alignEnd: column.align === 'end',
           hideOnPhone: column.hideOnPhone === true,
+          hideOnNarrow: column.hideOnNarrow === true,
           phoneEnd: column.phoneEnd === true,
           phoneInline: column.phoneInline === true,
           empty: template === null && text.trim() === ''

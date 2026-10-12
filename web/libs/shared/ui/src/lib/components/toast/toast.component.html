@@ -1,5 +1,5 @@
 <app-icon class="ui-toast-icon" [name]="$icon()" />
-<p class="ui-toast-message" [attr.title]="$message()">{{ $message() }}</p>
+<p class="ui-toast-message">{{ $message() }}</p>
 @if ($actionLabel(); as actionLabel) {
   <button type="button" class="ui-toast-action" (click)="onAction()">{{ actionLabel }}</button>
 }
