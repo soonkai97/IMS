@@ -1,6 +1,8 @@
 @use 'libs' as *;
 
-// Phones: top bar, content, bottom tab bar. Tablets: icon rail on the left. Desktop: full sidebar.
+$progress-sweep: 1.2s;
+
+// Phones: top bar, content, bottom tab bar. Tablets: icon rail. Desktop: sidebar. Side insets keep it out of a landscape notch.
 :host {
   --shell-nav-width: 0px;
 
@@ -11,6 +13,7 @@
     'tabbar';
   grid-template-rows: auto 1fr auto;
   min-height: 100dvh;
+  padding-inline: var(--ims-safe-left) var(--ims-safe-right);
 
   @include media-tablet {
     --shell-nav-width: #{width('rail')};
@@ -36,11 +39,14 @@
     z-index: z-index('toast');
     width: auto;
     height: auto;
+    min-height: height('touch-min');
     margin: 0;
-    padding: space(1) space(2);
+    padding: space(1.5) space(2);
     clip: auto;
+    font-weight: font-weight('medium');
     background: color('surface');
     border-radius: border-radius('md');
+    box-shadow: shadow(2);
   }
 }
 
@@ -48,6 +54,8 @@
   @include visually-hidden;
 }
 
+// Thin top bar while calls are pending: a 3px track with a 40% segment sweeping across it. Under reduced motion the sweep runs once
+// for 0.01ms and leaves the segment at the left: a static bar.
 .shell-progress {
   position: fixed;
   top: 0;
@@ -55,12 +63,22 @@
   left: 0;
   z-index: z-index('toast');
   height: height('progress');
-  background: linear-gradient(90deg, transparent, color('primary'), transparent);
-  background-size: 50% 100%;
-  animation: shell-progress 1s linear infinite;
+  overflow: hidden;
+  background: color('surface-strong');
+
+  &::after {
+    display: block;
+    width: 40%;
+    height: 100%;
+    content: '';
+    background: color('accent');
+    animation: ims-loop-shell-progress $progress-sweep linear infinite;
+  }
 }
 
 .shell-bar {
+  // The top bar, sidebar and tab bar are named so the route fade (_route-fade.scss) leaves them out of the page snapshot.
+  view-transition-name: shell-bar;
   position: sticky;
   top: 0;
   z-index: z-index('nav');
@@ -68,8 +86,8 @@
   grid-area: bar;
   align-items: center;
   justify-content: space-between;
-  min-height: height('bar');
-  padding: 0 space(2);
+  min-height: calc(#{height('bar')} + var(--ims-safe-top));
+  padding: var(--ims-safe-top) space(2) 0;
   background: color('surface');
   border-bottom: border-width('thin') solid color('border');
 
@@ -82,6 +100,7 @@
   display: inline-flex;
   gap: space(1);
   align-items: center;
+  min-height: height('touch-min');
   font-weight: font-weight('bold');
   color: color('text');
   text-decoration: none;
@@ -101,6 +120,7 @@
 }
 
 .shell-nav {
+  view-transition-name: shell-nav;
   display: none;
   grid-area: nav;
   overflow-y: auto;
@@ -119,9 +139,8 @@
 .shell-nav-group-title {
   margin: space(2) space(1) space(0);
   font-size: font-size(1);
-  font-weight: font-weight('bold');
+  font-weight: font-weight('medium');
   color: color('text-muted');
-  text-transform: uppercase;
 
   @include media-below-desktop {
     @include visually-hidden;
@@ -138,21 +157,40 @@
 .shell-nav-link {
   position: relative;
   display: flex;
-  gap: space(1);
+  gap: space(1.5);
   align-items: center;
   min-height: height('touch-min');
-  padding: 0 space(1);
+  padding: 0 space(1.5);
   color: color('text');
   text-decoration: none;
   border-radius: border-radius('md');
 
+  // The current page: tinted row plus a 3px accent edge that grows in (the edge is the cue that does not depend on colour).
+  &::before {
+    position: absolute;
+    top: space(1);
+    bottom: space(1);
+    left: 0;
+    width: border-width('edge');
+    content: '';
+    background: color('accent');
+    border-radius: border-radius('pill');
+    transform: scaleY(0);
+    transition: transform duration('fast') easing('out');
+  }
+
   &:hover {
-    background: color('surface-2');
+    background: color('surface-sunken');
   }
 
   &.--active {
-    color: color('on-primary-soft');
-    background: color('primary-soft');
+    font-weight: font-weight('medium');
+    color: color('on-accent-soft');
+    background: color('accent-soft');
+  }
+
+  &.--active::before {
+    transform: scaleY(1);
   }
 
   @include media-below-desktop {
@@ -166,12 +204,14 @@
   }
 }
 
+// The count is the cue (not the colour), so it stays readable in grayscale.
 .shell-badge {
-  min-width: 1.5rem;
+  min-width: width('badge');
   margin-left: auto;
   padding: 0 space(0);
   font-size: font-size(1);
   font-weight: font-weight('bold');
+  font-variant-numeric: tabular-nums;
   color: color('on-danger');
   text-align: center;
   background: color('danger');
@@ -179,8 +219,8 @@
 
   @include media-below-desktop {
     position: absolute;
-    top: 2px;
-    right: 2px;
+    top: space(0);
+    right: space(0);
     margin: 0;
   }
 }
@@ -191,7 +231,7 @@
   max-width: width('content-max');
   min-width: 0;
   margin: 0 auto;
-  padding: space(2) space(2) calc(#{height('tabbar')} + #{space(3)});
+  padding: space(2) space(2) calc(#{tabbar-offset()} + #{space(3)});
 
   @include media-tablet {
     padding-bottom: space(4);
@@ -207,14 +247,17 @@
   }
 }
 
+// Five equal cells of links (navigation, not a tablist); the home-indicator inset is padding below them.
 .shell-tabbar {
+  view-transition-name: shell-tabbar;
   position: fixed;
   right: 0;
   bottom: 0;
   left: 0;
   z-index: z-index('nav');
   display: flex;
-  height: height('tabbar');
+  height: tabbar-offset();
+  padding: 0 var(--ims-safe-right) var(--ims-safe-bottom) var(--ims-safe-left);
   background: color('surface');
   border-top: border-width('thin') solid color('border');
 
@@ -236,7 +279,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 2px;
+  gap: space(0);
   align-items: center;
   justify-content: center;
   min-width: 0;
@@ -244,9 +287,29 @@
   color: color('text-muted');
   text-decoration: none;
 
+  // The shape cue of the current tab: a 3px pill above the icon that widens in.
+  &::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    width: width('tab-cue');
+    height: border-width('edge');
+    margin: 0 auto;
+    content: '';
+    background: color('accent');
+    border-radius: border-radius('pill');
+    transform: scaleX(0);
+    transition: transform duration('fast') easing('out');
+  }
+
   &.--active {
     font-weight: font-weight('bold');
-    color: color('primary');
+    color: color('accent');
+  }
+
+  &.--active::before {
+    transform: scaleX(1);
   }
 
   & .shell-badge {
@@ -257,6 +320,7 @@
 
 .shell-tab-label {
   max-width: 100%;
+  padding: 0 space(0);
   @include nowrap-text;
 }
 
@@ -283,12 +347,31 @@
   color: color('text-muted');
 }
 
-@keyframes shell-progress {
+// Forced colours repaint backgrounds to Canvas: the current cues and the progress bar use outlines and system colours.
+@media (forced-colors: active) {
+  .shell-nav-link.--active {
+    outline: border-width('thin') solid Highlight;
+    outline-offset: -#{border-width('thin')};
+  }
+
+  .shell-nav-link::before,
+  .shell-tab::before,
+  .shell-progress::after {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+
+  .shell-progress {
+    border-bottom: border-width('thin') solid CanvasText;
+  }
+}
+
+@keyframes ims-loop-shell-progress {
   from {
-    background-position: -100% 0;
+    transform: translateX(-100%);
   }
 
   to {
-    background-position: 200% 0;
+    transform: translateX(250%);
   }
 }

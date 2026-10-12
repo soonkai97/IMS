@@ -49,6 +49,7 @@ import {
   UiSelectComponent,
   UiStatusChipComponent,
   UiTableComponent,
+  UiTabPanelDirective,
   UiTabsComponent
 } from '@ims/ui';
 import { controlSignal, createPageState, debouncedSignal, loadOnChange } from '@ims/utils';
@@ -76,6 +77,7 @@ import { controlSignal, createPageState, debouncedSignal, loadOnChange } from '@
     UiSelectComponent,
     UiStatusChipComponent,
     UiTableComponent,
+    UiTabPanelDirective,
     UiTabsComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

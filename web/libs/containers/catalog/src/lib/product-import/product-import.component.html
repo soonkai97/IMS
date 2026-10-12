@@ -6,127 +6,130 @@
 
 <app-tabs
   [label]="'import.title' | t"
+  panel="import-panel"
   [tabs]="$tabs()"
   [active]="$kind()"
   (activeChange)="onKindChange($event)"
 />
 
-@if ($isCommitted()) {
-  <app-card class="product-import-page-card">
-    <app-banner kind="success" [heading]="'import.done.title' | t">{{
-      $createdSummary()
-    }}</app-banner>
-    @if ($result()?.documentId; as documentId) {
-      <p>{{ 'import.done.openingStock' | t }}</p>
-      <a class="ui-link-button --primary" [routerLink]="['/receipts', documentId]">{{
-        'import.done.openDraft' | t
-      }}</a>
-    } @else {
-      <a class="ui-link-button --primary" routerLink="/products">{{
-        'import.done.viewProducts' | t
-      }}</a>
-    }
-    <app-button (clicked)="onReset()">{{ 'import.another' | t }}</app-button>
-  </app-card>
-} @else {
-  <app-card class="product-import-page-card" [heading]="'import.step1' | t">
-    <p>{{ ($isProducts() ? 'import.rules.products' : 'import.rules.openingStock') | t }}</p>
-    <app-button [loading]="$isDownloading()" (clicked)="onDownloadTemplate()">
-      <app-icon name="download" />
-      {{ 'import.downloadTemplate' | t }}
-    </app-button>
-  </app-card>
-
-  @if (!$isPreview()) {
-    <app-card class="product-import-page-card" [heading]="'import.step2' | t">
-      <app-file-input
-        [accept]="accept"
-        [label]="'import.chooseFile' | t"
-        (fileSelected)="onFileSelected($event)"
-      />
-      <p class="product-import-page-hint">{{ 'import.fileHint' | t }}</p>
-      @if ($fileError(); as fileError) {
-        <app-banner kind="danger">{{ fileError }}</app-banner>
+<div class="product-import-page-panel" appTabPanel="import-panel" [labelledByTab]="$kind()">
+  @if ($isCommitted()) {
+    <app-card class="product-import-page-card">
+      <app-banner kind="success" [heading]="'import.done.title' | t">{{
+        $createdSummary()
+      }}</app-banner>
+      @if ($result()?.documentId; as documentId) {
+        <p>{{ 'import.done.openingStock' | t }}</p>
+        <a class="ui-link-button --primary" [routerLink]="['/receipts', documentId]">{{
+          'import.done.openDraft' | t
+        }}</a>
+      } @else {
+        <a class="ui-link-button --primary" routerLink="/products">{{
+          'import.done.viewProducts' | t
+        }}</a>
       }
-      @if ($isRunning()) {
-        <p role="status">{{ 'import.checking' | t }}</p>
-      }
+      <app-button (clicked)="onReset()">{{ 'import.another' | t }}</app-button>
     </app-card>
   } @else {
-    <app-card class="product-import-page-card" [heading]="'import.step3' | t">
-      @if ($result(); as result) {
-        <p class="product-import-page-summary" role="status">
-          {{
-            'import.summary'
-              | t
-                : {
-                    total: result.total,
-                    created: result.created,
-                    updated: result.updated,
-                    invalid: result.invalid
-                  }
-          }}
-        </p>
-        @if ($hasErrors()) {
-          <app-banner kind="danger">{{
-            'import.hasErrors' | t: { count: result.invalid }
-          }}</app-banner>
-        }
-      }
-
-      <app-checkbox [formControl]="errorsOnlyControl">
-        {{ 'import.errorsOnly' | t }}
-      </app-checkbox>
-
-      <app-table [columns]="$columns()" [rows]="$pageRows()" [caption]="'import.step3' | t">
-        <ng-template appCell="status" let-row>
-          @switch (row.status) {
-            @case (rowStatus.New) {
-              <app-status-chip status="posted" [label]="'import.status.new' | t" />
-            }
-            @case (rowStatus.Update) {
-              <app-status-chip flag="info" [label]="'import.status.update' | t" />
-            }
-            @default {
-              <app-status-chip
-                status="cancelled"
-                flag="danger"
-                [label]="'import.status.error' | t"
-              />
-            }
-          }
-        </ng-template>
-        <app-empty-state empty icon="check" [message]="'import.noErrors' | t" />
-      </app-table>
-      <app-pager
-        [page]="$page()"
-        [pageSize]="pageSize"
-        [total]="$rows().length"
-        (pageChange)="onPageChange($event)"
-      />
-
-      <div class="product-import-page-actions">
-        @if ($hasErrors()) {
-          <app-button (clicked)="onDownloadErrors()">
-            <app-icon name="download" />
-            {{ 'import.downloadErrors' | t }}
-          </app-button>
-        }
-        <app-button (clicked)="onReset()">{{ 'import.uploadOther' | t }}</app-button>
-        <app-button
-          variant="primary"
-          [disabled]="!$canConfirm()"
-          [loading]="$isRunning()"
-          (clicked)="onConfirm()"
-        >
-          {{ 'import.confirm' | t: { count: $result()?.valid ?? 0 } }}
-        </app-button>
-      </div>
-      @if ($hasErrors()) {
-        <p class="product-import-page-hint">
-          {{ 'import.fixErrors' | t: { count: $result()?.invalid ?? 0 } }}
-        </p>
-      }
+    <app-card class="product-import-page-card" [heading]="'import.step1' | t">
+      <p>{{ ($isProducts() ? 'import.rules.products' : 'import.rules.openingStock') | t }}</p>
+      <app-button [loading]="$isDownloading()" (clicked)="onDownloadTemplate()">
+        <app-icon name="download" />
+        {{ 'import.downloadTemplate' | t }}
+      </app-button>
     </app-card>
+
+    @if (!$isPreview()) {
+      <app-card class="product-import-page-card" [heading]="'import.step2' | t">
+        <app-file-input
+          [accept]="accept"
+          [label]="'import.chooseFile' | t"
+          (fileSelected)="onFileSelected($event)"
+        />
+        <p class="product-import-page-hint">{{ 'import.fileHint' | t }}</p>
+        @if ($fileError(); as fileError) {
+          <app-banner kind="danger">{{ fileError }}</app-banner>
+        }
+        @if ($isRunning()) {
+          <p role="status">{{ 'import.checking' | t }}</p>
+        }
+      </app-card>
+    } @else {
+      <app-card class="product-import-page-card" [heading]="'import.step3' | t">
+        @if ($result(); as result) {
+          <p class="product-import-page-summary" role="status">
+            {{
+              'import.summary'
+                | t
+                  : {
+                      total: result.total,
+                      created: result.created,
+                      updated: result.updated,
+                      invalid: result.invalid
+                    }
+            }}
+          </p>
+          @if ($hasErrors()) {
+            <app-banner kind="danger">{{
+              'import.hasErrors' | t: { count: result.invalid }
+            }}</app-banner>
+          }
+        }
+
+        <app-checkbox [formControl]="errorsOnlyControl">
+          {{ 'import.errorsOnly' | t }}
+        </app-checkbox>
+
+        <app-table [columns]="$columns()" [rows]="$pageRows()" [caption]="'import.step3' | t">
+          <ng-template appCell="status" let-row>
+            @switch (row.status) {
+              @case (rowStatus.New) {
+                <app-status-chip status="posted" [label]="'import.status.new' | t" />
+              }
+              @case (rowStatus.Update) {
+                <app-status-chip flag="info" [label]="'import.status.update' | t" />
+              }
+              @default {
+                <app-status-chip
+                  status="cancelled"
+                  flag="danger"
+                  [label]="'import.status.error' | t"
+                />
+              }
+            }
+          </ng-template>
+          <app-empty-state empty icon="check" [message]="'import.noErrors' | t" />
+        </app-table>
+        <app-pager
+          [page]="$page()"
+          [pageSize]="pageSize"
+          [total]="$rows().length"
+          (pageChange)="onPageChange($event)"
+        />
+
+        <div class="product-import-page-actions">
+          @if ($hasErrors()) {
+            <app-button (clicked)="onDownloadErrors()">
+              <app-icon name="download" />
+              {{ 'import.downloadErrors' | t }}
+            </app-button>
+          }
+          <app-button (clicked)="onReset()">{{ 'import.uploadOther' | t }}</app-button>
+          <app-button
+            variant="primary"
+            [disabled]="!$canConfirm()"
+            [loading]="$isRunning()"
+            (clicked)="onConfirm()"
+          >
+            {{ 'import.confirm' | t: { count: $result()?.valid ?? 0 } }}
+          </app-button>
+        </div>
+        @if ($hasErrors()) {
+          <p class="product-import-page-hint">
+            {{ 'import.fixErrors' | t: { count: $result()?.invalid ?? 0 } }}
+          </p>
+        }
+      </app-card>
+    }
   }
-}
+</div>

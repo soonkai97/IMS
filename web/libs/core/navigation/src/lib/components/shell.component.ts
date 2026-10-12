@@ -22,6 +22,7 @@ import {
   UiIconComponent,
   UiRadioGroupComponent
 } from '@ims/ui';
+import { delayedLoading } from '@ims/utils';
 import { NavigationService } from '../services/navigation.service';
 import { PageTitleService } from '../services/page-title.service';
 
@@ -62,7 +63,7 @@ export class ShellComponent implements OnInit {
   $groups = this.navigation.$groups;
   $phoneTabs = this.navigation.$phoneTabs;
   $moreEntries = this.navigation.$moreEntries;
-  $isLoading = this.loading.$isLoading;
+  $showProgress = delayedLoading(this.loading.$isLoading);
   $announcement = this.pageTitle.$announcement;
   $displayName = this.permissions.$displayName;
   $role = this.permissions.$role;
@@ -75,6 +76,8 @@ export class ShellComponent implements OnInit {
     { value: THEME_MODE.Light, label: this.i18n.t('theme.light') },
     { value: THEME_MODE.Dark, label: this.i18n.t('theme.dark') }
   ]);
+  /** The visible text is the user's name (hidden on a phone): the accessible name starts with "Account" and contains it (WCAG 2.5.3). */
+  $accountLabel = computed(() => `${this.i18n.t('shell.account')}, ${this.$displayName()}`);
   $roleLabel = computed(() => this.i18n.enumLabel(ROLE_LABELS, this.$role()));
 
   ngOnInit(): void {
@@ -88,6 +91,11 @@ export class ShellComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();
+  }
+
+  onSkipToContent(event: Event, main: HTMLElement): void {
+    event.preventDefault();
+    main.focus();
   }
 
   onOpenMore(): void {
