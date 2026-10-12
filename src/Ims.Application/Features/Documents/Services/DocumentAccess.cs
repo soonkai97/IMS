@@ -7,7 +7,7 @@ public class DocumentAccess(ICurrentUser current) : IDocumentAccess, IAppService
     public void EnsureWarehouse(int warehouseId)
     {
         if (!current.CanAccessWarehouse(warehouseId))
-            throw new ForbiddenException(Messages.NoWarehouseAccess);
+            throw new ValidationException(Messages.WarehouseMissing);
     }
 
     public void EnsureDocumentInScope(int warehouseId)

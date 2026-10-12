@@ -91,6 +91,46 @@ public partial class OpenApiDocumentTests(ApiFixture fixture)
         Assert.DoesNotContain(Everything(doc.RootElement), e => e.ValueKind == JsonValueKind.Object && e.TryGetProperty("pattern", out var p) && p.GetString()!.Contains(@"\d"));
     }
 
+    // ----- public ids (GUID plan PR-4) -----
+
+    /// <summary>Property and parameter names that carry the id of a warehouse, partner, category or unit. They are public ids (GUIDs) on the wire, never integers.</summary>
+    private static readonly string[] LeafIdNames = ["warehouseId", "warehouseIds", "partnerId", "categoryId", "uomId", "baseUomId", "fromUomId", "toUomId"];
+
+    /// <summary>The schema is a string with format uuid, possibly nullable (a type list, or a oneOf/anyOf with a null) or the item of a list of them.</summary>
+    private static bool IsUuid(JsonElement schema)
+    {
+        if (schema.TryGetProperty("items", out var items)) return IsUuid(items);
+        foreach (var key in new[] { "oneOf", "anyOf" })
+            if (schema.TryGetProperty(key, out var options)) return options.EnumerateArray().Where(o => !o.TryGetProperty("type", out var t) || t.ToString() != "null").All(IsUuid);
+        return schema.TryGetProperty("format", out var format) && format.GetString() == "uuid"
+               && (!schema.TryGetProperty("type", out var type) || !type.ToString().Contains("integer"));
+    }
+
+    [Fact]
+    public async Task The_ids_of_warehouses_partners_categories_and_units_are_uuids_wherever_the_contract_names_them()
+    {
+        using var doc = await DocumentAsync();
+        var root = doc.RootElement;
+        var schemas = root.GetProperty("components").GetProperty("schemas");
+
+        foreach (var dto in new[] { "WarehouseDto", "PartnerDto", "CategoryDto", "UomDto" })
+            Assert.True(IsUuid(schemas.GetProperty(dto).GetProperty("properties").GetProperty("id")), $"{dto}.id is not a uuid.");
+
+        var properties = schemas.EnumerateObject()
+            .SelectMany(s => s.Value.TryGetProperty("properties", out var p) ? p.EnumerateObject().Select(x => (Where: $"{s.Name}.{x.Name}", x.Name, Schema: x.Value)) : [])
+            .Where(x => LeafIdNames.Contains(x.Name)).ToList();
+        Assert.True(properties.Count >= 15, "the request and response fields that name these entities are expected");
+        Assert.True(properties.All(x => IsUuid(x.Schema)), "Not uuid: " + string.Join(", ", properties.Where(x => !IsUuid(x.Schema)).Select(x => x.Where)));
+
+        var parameters = Operations(root).SelectMany(o => o.Operation.TryGetProperty("parameters", out var p) ? p.EnumerateArray().Select(x => (Where: $"{o.Verb} {o.Path} {x.GetProperty("name").GetString()}", Parameter: x)) : [])
+            .Where(x => LeafIdNames.Contains(x.Parameter.GetProperty("name").GetString()!, StringComparer.OrdinalIgnoreCase) || IsLeafRouteId(x.Where)).ToList();
+        Assert.True(parameters.Count >= 8, "the filters and the id routes of these entities are expected");
+        Assert.True(parameters.All(x => IsUuid(x.Parameter.GetProperty("schema"))), "Not uuid: " + string.Join(", ", parameters.Where(x => !IsUuid(x.Parameter.GetProperty("schema"))).Select(x => x.Where)));
+    }
+
+    private static bool IsLeafRouteId(string where) =>
+        where.StartsWith("put /api/warehouses/{id} ") || where.StartsWith("put /api/partners/{id} ") || where.StartsWith("put /api/categories/{id} ") || where.StartsWith("put /api/units/{id} ");
+
     // ----- operation ids -----
     [Fact]
     public async Task Every_operation_has_a_unique_id_of_the_form_Tag_action()

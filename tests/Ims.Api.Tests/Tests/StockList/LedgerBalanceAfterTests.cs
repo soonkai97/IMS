@@ -12,7 +12,7 @@ namespace Ims.Api.Tests.Tests.StockList;
 [Collection(ApiCollection.Name)]
 public class LedgerBalanceAfterTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private static async Task<List<LedgerRow>> RowsAsync(ApiClient who, string query)
     {

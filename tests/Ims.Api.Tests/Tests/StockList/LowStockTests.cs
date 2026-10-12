@@ -15,10 +15,10 @@ namespace Ims.Api.Tests.Tests.StockList;
 [Collection(ApiCollection.Name)]
 public class LowStockTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     /// <summary>Every row of the list (all pages, 500 at a time): the list is long, and a row on page 2 is still on the list.</summary>
-    private static async Task<List<LowStockAlert>> AlertsAsync(ApiClient who, int? warehouseId = null)
+    private static async Task<List<LowStockAlert>> AlertsAsync(ApiClient who, Guid? warehouseId = null)
     {
         var rows = new List<LowStockAlert>();
         for (var page = 1; ; page++)

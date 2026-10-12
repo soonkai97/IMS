@@ -21,7 +21,7 @@ namespace Ims.Api.Tests.Tests.Money;
 [Collection(ApiCollection.Name)]
 public class MoneyPrecisionTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private static string CostField(ProblemBody problem) => Assert.Single(problem.ErrorsFor("UnitCost"));
 
@@ -364,7 +364,7 @@ public class MoneyPrecisionTests(ApiFixture fixture)
         return (s, product.Id, (await s.Supervisor.Documents.GetAsync(draft.Id)).Data<DocumentDto>());
     }
 
-    private static DocumentSaveRequest SaveBack(StockScenario s, int warehouse, DocumentDto read) =>
+    private static DocumentSaveRequest SaveBack(StockScenario s, Guid warehouse, DocumentDto read) =>
         new DocumentBuilder(warehouse).WithPartner(s.Reference.SupplierId).WithLines(read.Lines.Select(l => new Line(l.ProductId, l.Qty, l.UnitCost, l.UomId)).ToArray()).Build();
 
     [Fact]

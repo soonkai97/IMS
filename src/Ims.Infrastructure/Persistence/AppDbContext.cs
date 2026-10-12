@@ -34,7 +34,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         b.Entity<UserWarehouse>(e =>
         {
             e.HasIndex(x => new { x.UserId, x.WarehouseId }).IsUnique();
-            e.HasOne<Warehouse>().WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
         });
         b.Entity<RefreshToken>(e =>
         {
@@ -71,8 +71,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         {
             e.HasIndex(x => new { x.ProductId, x.FromUomId, x.ToUomId }).IsUnique();
             e.Property(x => x.Factor).HasColumnType(SqlTypes.Factor);
-            e.HasOne<Uom>().WithMany().HasForeignKey(x => x.FromUomId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne<Uom>().WithMany().HasForeignKey(x => x.ToUomId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.FromUom).WithMany().HasForeignKey(x => x.FromUomId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ToUom).WithMany().HasForeignKey(x => x.ToUomId).OnDelete(DeleteBehavior.Restrict);
         });
         b.Entity<Warehouse>(e =>
         {
@@ -403,10 +403,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             : JsonSerializer.Serialize(p.Changed.ToDictionary(name => name, name => p.Entry.Property(name).CurrentValue), Json);
 
     /// <summary>
-    /// The audit id of a row is its primary key, the integer, for every entity including the <see cref="PublicEntity"/> ones: the API, its filters and the business events
-    /// (user updated, document posted) still speak integers, and a row event must name the same id. The payload of a created or deleted row carries the PublicId, so the
-    /// two ids can be matched. When an entity's API flips to the public id, its row events and business events flip with it (docs/architecture/adr-guid-keys.md section 6).
+    /// The entities whose API speaks the public id (PR-4 of docs/architecture/adr-guid-keys.md): their audit rows name them by <see cref="PublicEntity.PublicId"/>, the id the
+    /// client has. Every other entity is still audited by its integer key, as are the business events of its API, until its own flip PR (PR-5 to PR-7) adds it here together
+    /// with those events. Rows written before a flip keep the integer; the audit page and its entity-id filter are plain text and show and match both.
     /// </summary>
+    private static readonly HashSet<Type> AuditedByPublicId = [typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom)];
+
     private static string KeyOf(EntityEntry e) =>
-        string.Join(DocumentNumberFormat.Separator, e.Metadata.FindPrimaryKey()!.Properties.Select(p => e.Property(p.Name).CurrentValue?.ToString()));
+        e.Entity is PublicEntity row && AuditedByPublicId.Contains(e.Metadata.ClrType)
+            ? row.PublicId.ToString()
+            : string.Join(DocumentNumberFormat.Separator, e.Metadata.FindPrimaryKey()!.Properties.Select(p => e.Property(p.Name).CurrentValue?.ToString()));
 }

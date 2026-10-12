@@ -10,8 +10,8 @@ public sealed class ProductBuilder
 {
     private string _sku = Unique.Sku("P");
     private string _name = Unique.Name("Product");
-    private int? _categoryId;
-    private int _baseUomId;
+    private Guid? _categoryId;
+    private Guid _baseUomId;
     private decimal _safetyStock;
     private bool _isActive = true;
     private List<string> _barcodes = [];
@@ -32,15 +32,15 @@ public sealed class ProductBuilder
 
     public ProductBuilder WithSku(string sku) { _sku = sku; return this; }
     public ProductBuilder WithName(string name) { _name = name; return this; }
-    public ProductBuilder WithCategory(int? categoryId) { _categoryId = categoryId; return this; }
-    public ProductBuilder WithBaseUnit(int uomId) { _baseUomId = uomId; return this; }
+    public ProductBuilder WithCategory(Guid? categoryId) { _categoryId = categoryId; return this; }
+    public ProductBuilder WithBaseUnit(Guid uomId) { _baseUomId = uomId; return this; }
     public ProductBuilder WithSafetyStock(decimal safetyStock) { _safetyStock = safetyStock; return this; }
     public ProductBuilder WithBarcodes(params string[] barcodes) { _barcodes = [.. barcodes]; return this; }
     public ProductBuilder Inactive() { _isActive = false; return this; }
     public ProductBuilder Active(bool isActive) { _isActive = isActive; return this; }
 
     /// <summary>"1 <paramref name="fromUomId"/> = <paramref name="factor"/> base units".</summary>
-    public ProductBuilder WithConversion(int fromUomId, decimal factor)
+    public ProductBuilder WithConversion(Guid fromUomId, decimal factor)
     {
         _conversions.Add(new UomConversionDto(fromUomId, _baseUomId, factor));
         return this;

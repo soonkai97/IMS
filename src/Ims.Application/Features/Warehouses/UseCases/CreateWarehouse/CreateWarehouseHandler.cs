@@ -10,6 +10,6 @@ public class CreateWarehouseHandler(IRepository<Warehouse> warehouses, IUnitOfWo
         var w = Warehouse.Create(code, cmd.Data.Name, cmd.Data.Contact, cmd.Data.Notes, cmd.Data.IsActive);
         warehouses.Add(w);
         await uow.SaveChangesAsync(ct);
-        return new WarehouseDto(w.Id, w.Code, w.Name, w.Contact, w.Notes, w.IsActive);
+        return new WarehouseDto(w.PublicId, w.Code, w.Name, w.Contact, w.Notes, w.IsActive);
     }
 }

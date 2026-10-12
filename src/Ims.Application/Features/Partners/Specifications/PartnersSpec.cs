@@ -10,6 +10,6 @@ public sealed class PartnersSpec : Specification<Partner, PartnerDto>
         PartnerFilters.Apply(Query, f);
         var (page, size) = Paging.Normalize(f.Page, f.PageSize);
         Query.OrderBy(p => p.Name).ThenBy(p => p.Id).Skip((page - 1) * size).Take(size)
-            .Select(p => new PartnerDto(p.Id, p.Type, p.Name, p.Contact, p.IsActive));
+            .Select(p => new PartnerDto(p.PublicId, p.Type, p.Name, p.Contact, p.IsActive));
     }
 }

@@ -4,14 +4,14 @@ using Ims.Domain;
 namespace Ims.Api.Tests.Builders;
 
 /// <summary>Builds a document request for a warehouse from simple <see cref="Line"/> values.</summary>
-public sealed class DocumentBuilder(int warehouseId)
+public sealed class DocumentBuilder(Guid warehouseId)
 {
     private readonly List<Line> _lines = [];
-    private int? _partnerId;
+    private Guid? _partnerId;
     private IssuePurpose? _purpose = IssuePurpose.Sale; // required for an issue, ignored for a receipt
     private string? _remark;
 
-    public DocumentBuilder WithPartner(int? partnerId) { _partnerId = partnerId; return this; }
+    public DocumentBuilder WithPartner(Guid? partnerId) { _partnerId = partnerId; return this; }
     public DocumentBuilder WithPurpose(IssuePurpose purpose) { _purpose = purpose; return this; }
     public DocumentBuilder WithRemark(string remark) { _remark = remark; return this; }
 

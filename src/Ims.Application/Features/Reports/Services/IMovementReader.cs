@@ -7,11 +7,12 @@ namespace Ims.Application.Features.Reports;
 /// </summary>
 public interface IMovementReader
 {
-    Task<int> CountAsync(MovementFilter filter, IReadOnlyCollection<int>? warehouseScope, CancellationToken ct);
+    /// <remarks>Every method takes the filter's warehouse as the integer id the handler translated from the public id (see <c>IdMapExtensions</c>); null = no warehouse filter.</remarks>
+    Task<int> CountAsync(MovementFilter filter, int? warehouseId, IReadOnlyCollection<int>? warehouseScope, CancellationToken ct);
 
     /// <summary>The page the filter asks for (<c>Page</c> and <c>PageSize</c>).</summary>
-    Task<IReadOnlyList<MovementRow>> PageAsync(MovementFilter filter, IReadOnlyCollection<int>? warehouseScope, CancellationToken ct);
+    Task<IReadOnlyList<MovementRow>> PageAsync(MovementFilter filter, int? warehouseId, IReadOnlyCollection<int>? warehouseScope, CancellationToken ct);
 
     /// <summary>The first <paramref name="limit"/> rows in the same order, ignoring paging (exports).</summary>
-    Task<IReadOnlyList<MovementRow>> ListAsync(MovementFilter filter, IReadOnlyCollection<int>? warehouseScope, int limit, CancellationToken ct);
+    Task<IReadOnlyList<MovementRow>> ListAsync(MovementFilter filter, int? warehouseId, IReadOnlyCollection<int>? warehouseScope, int limit, CancellationToken ct);
 }

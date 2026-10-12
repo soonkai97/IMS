@@ -4,6 +4,10 @@ namespace Ims.Application.Features.Users;
 
 internal static class UserMapping
 {
-    public static UserDto ToDto(User u) =>
-        new(u.Id, u.Username, u.Email, u.DisplayName, u.Role, u.IsActive, u.Warehouses.Select(w => w.WarehouseId).ToList());
+    /// <summary>The user's warehouses leave as public ids (one query for the list, see <see cref="IIdMap{T}"/>).</summary>
+    public static async Task<UserDto> ToDtoAsync(User u, IIdMap<Warehouse> warehouses, CancellationToken ct)
+    {
+        var publicIds = await warehouses.ToPublicAsync(u.Warehouses.Select(w => w.WarehouseId), ct);
+        return new(u.Id, u.Username, u.Email, u.DisplayName, u.Role, u.IsActive, u.Warehouses.Select(w => publicIds[w.WarehouseId]).ToList());
+    }
 }

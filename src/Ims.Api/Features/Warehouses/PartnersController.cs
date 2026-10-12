@@ -16,7 +16,7 @@ public class PartnersController(IDispatcher dispatcher) : ApiControllerBase(disp
     [ProducesResponseType<PartnerDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Create([FromBody] PartnerSaveRequest body) => SendOk(new CreatePartnerCommand(body));
 
-    [HttpPut(ApiRoutes.Id), Authorize(Policy = Permissions.MasterDataManage)]
+    [HttpPut(ApiRoutes.PublicId), Authorize(Policy = Permissions.MasterDataManage)]
     [ProducesResponseType<PartnerDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Update(int id, [FromBody] PartnerSaveRequest body) => SendOk(new UpdatePartnerCommand(id, body));
+    public Task<IActionResult> Update(Guid id, [FromBody] PartnerSaveRequest body) => SendOk(new UpdatePartnerCommand(id, body));
 }

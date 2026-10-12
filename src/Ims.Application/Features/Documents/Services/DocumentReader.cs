@@ -6,8 +6,8 @@ public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentA
 {
     public async Task<DocumentDto> GetAsync(int id, CancellationToken ct)
     {
-        var dto = await documents.FirstOrDefaultAsync(new DocumentDtoSpec(id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
-        access.EnsureDocumentInScope(dto.WarehouseId);
+        // The caller's warehouses are part of the query: a document elsewhere is simply not found (404, like an unknown id).
+        var dto = await documents.FirstOrDefaultAsync(new DocumentDtoSpec(id, access.WarehouseScope()), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
         dto = await WithStockAsync(dto, ct);
 
         // A document held for approval: say why (the thresholds it reaches) and whether the caller's role can satisfy the rules in force.
@@ -26,7 +26,7 @@ public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentA
     private async Task<DocumentDto> WithStockAsync(DocumentDto dto, CancellationToken ct)
     {
         if (!DocumentStatuses.IsOpen(dto.Status) || dto.Lines.Count == 0) return dto;
-        var onHand = await availability.OnHandAsync(dto.WarehouseId, dto.Lines.Select(l => l.ProductId).Distinct().ToList(), ct);
+        var onHand = await availability.OnHandAsync(dto.WarehouseKey, dto.Lines.Select(l => l.ProductId).Distinct().ToList(), ct);
         return dto with { Lines = dto.Lines.Select(l => l with { Available = onHand.GetValueOrDefault(l.ProductId) }).ToList() };
     }
 }

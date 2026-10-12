@@ -7,10 +7,10 @@ public sealed class ReportsClient(ApiClient api)
     public Task<ApiResponse> MovementsAsync(int? productId = null) =>
         api.GetAsync("/api/reports/movements" + ProductQuery(productId));
 
-    public Task<ApiResponse> MovementsInWarehouseAsync(int warehouseId, int page = 1, int pageSize = 50) =>
+    public Task<ApiResponse> MovementsInWarehouseAsync(Guid warehouseId, int page = 1, int pageSize = 50) =>
         api.GetAsync($"/api/reports/movements?warehouseId={warehouseId}&page={page}&pageSize={pageSize}");
 
-    public Task<ApiResponse> MovementsExportInWarehouseAsync(int warehouseId) =>
+    public Task<ApiResponse> MovementsExportInWarehouseAsync(Guid warehouseId) =>
         api.GetAsync($"/api/reports/movements/export?warehouseId={warehouseId}");
 
     public Task<ApiResponse> StockSummaryExportAsync(int? productId = null) =>

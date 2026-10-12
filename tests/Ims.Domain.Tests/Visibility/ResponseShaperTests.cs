@@ -80,7 +80,7 @@ public class ResponseShaperTests
     public void TheStockTotalTheRowsAndTheMovements_NeedTheirPermission()
     {
         var summary = new StockSummary(1234m, 5, 2);
-        var row = new StockRow(1, "S", "P", null, "PCS", 1, "W", "W", 3m, 0m, 2m, 6m, 0m, false, false);
+        var row = new StockRow(1, "S", "P", null, "PCS", Guid.NewGuid(), "W", "W", 3m, 0m, 2m, 6m, 0m, false, false);
         var ledger = new LedgerRow(1, DateTime.UtcNow, "S", "P", "W", "W", 3m, 2m, LedgerReason.Receipt, 1, "RCV", "u");
         var movement = new MovementRow(DateTime.UtcNow, "RCV", DocumentType.Receipt, DocumentStatus.Posted, "W", null, "S", "P", 3m, "PCS", 3m, 3m, 2m, 6m, false);
 

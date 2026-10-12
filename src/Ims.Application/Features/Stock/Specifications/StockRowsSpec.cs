@@ -5,9 +5,9 @@ namespace Ims.Application.Features.Stock;
 /// <summary>Stock rows ordered by SKU. <c>paged</c> false returns every row (exports, summaries).</summary>
 public sealed class StockRowsSpec : Specification<StockBalance, StockRow>
 {
-    public StockRowsSpec(StockFilter f, IReadOnlyCollection<int>? scope, ProductSearch? search, bool paged)
+    public StockRowsSpec(StockFilter f, int? warehouseId, int? categoryId, IReadOnlyCollection<int>? scope, ProductSearch? search, bool paged)
     {
-        StockFilters.Apply(Query, f, scope, search);
+        StockFilters.Apply(Query, f, warehouseId, categoryId, scope, search);
         switch (f.SortBy, f.Desc)
         {
             case (StockSort.QtyOnHand, false): Query.OrderBy(b => b.QtyOnHand).ThenBy(b => b.Product.Sku).ThenBy(b => b.Warehouse.Code); break;
@@ -31,7 +31,7 @@ public sealed class StockRowsSpec : Specification<StockBalance, StockRow>
         }
         // IsLow is the verdict of the one rule (LowStockRule), not a second copy of its condition.
         Query.Select(LowStockRule.Project((b, isLow) => new StockRow(b.ProductId, b.Product.Sku, b.Product.Name, b.Product.Category != null ? b.Product.Category.Name : null,
-            b.Product.BaseUom.Code, b.WarehouseId, b.Warehouse.Code, b.Warehouse.Name, b.QtyOnHand, b.QtyInTransit, b.AvgCost, b.QtyOnHand * b.AvgCost,
+            b.Product.BaseUom.Code, b.Warehouse.PublicId, b.Warehouse.Code, b.Warehouse.Name, b.QtyOnHand, b.QtyInTransit, b.AvgCost, b.QtyOnHand * b.AvgCost,
             b.Product.SafetyStock, isLow, b.QtyOnHand < 0)));
     }
 }

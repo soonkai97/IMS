@@ -10,6 +10,6 @@ public class CreatePartnerHandler(IRepository<Partner> partners, IUnitOfWork uow
         var p = Partner.Create(cmd.Data.Type, name, cmd.Data.Contact, cmd.Data.IsActive);
         partners.Add(p);
         await uow.SaveChangesAsync(ct);
-        return new PartnerDto(p.Id, p.Type, p.Name, p.Contact, p.IsActive);
+        return new PartnerDto(p.PublicId, p.Type, p.Name, p.Contact, p.IsActive);
     }
 }

@@ -5,7 +5,7 @@ namespace Ims.Api.Tests.Clients;
 
 public sealed class ProductsClient(ApiClient api)
 {
-    public Task<ApiResponse> ListAsync(string? search = null, bool? active = null, int? categoryId = null, int page = 1, int pageSize = 50)
+    public Task<ApiResponse> ListAsync(string? search = null, bool? active = null, Guid? categoryId = null, int page = 1, int pageSize = 50)
     {
         var query = $"?page={page}&pageSize={pageSize}";
         if (search is not null) query += $"&search={Uri.EscapeDataString(search)}";

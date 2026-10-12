@@ -11,7 +11,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class DocumentCountsTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private static async Task<DocumentCounts> CountsAsync(ApiClient client) => (await client.Documents.CountsAsync()).Data<DocumentCounts>();
 

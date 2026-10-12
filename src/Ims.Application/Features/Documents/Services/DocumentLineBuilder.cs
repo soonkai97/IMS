@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 /// <summary>Loads the products a document refers to; the lines themselves (unit conversion, costing, product checks) are built by the domain.</summary>
-public class DocumentLineBuilder(IReadRepository<Product> products, ICallerPermissions caller) : IDocumentLineBuilder, IAppService
+public class DocumentLineBuilder(IReadRepository<Product> products, IIdMap<Uom> uomIds, ICallerPermissions caller) : IDocumentLineBuilder, IAppService
 {
     public async Task<List<StockDocumentLine>> BuildAsync(DocumentType type, IReadOnlyList<DocumentLineInput> inputs, CancellationToken ct,
         IEnumerable<StockDocumentLine>? existing = null)
@@ -21,13 +21,17 @@ public class DocumentLineBuilder(IReadRepository<Product> products, ICallerPermi
         var ids = inputs.Select(i => i.ProductId).Distinct().ToList();
         var byId = (await products.ListAsync(new ProductsForLinesSpec(ids), ct)).ToDictionary(p => p.Id);
 
+        // The units a client names are public ids; a unit that does not exist becomes the id of no row, which the domain refuses like any unit the product cannot convert.
+        var units = await uomIds.ToInternalAsync(inputs.Where(i => i.UomId is not null).Select(i => i.UomId!.Value), ct);
+
         return inputs.Select(i =>
         {
             if (!byId.TryGetValue(i.ProductId, out var product)) throw new ValidationException(Messages.ProductMissing(i.ProductId));
-            var key = (product.Id, i.UomId ?? product.BaseUomId);
+            int? uomId = i.UomId is { } unit ? units.GetValueOrDefault(unit, IdMapExtensions.NoRow) : null;
+            var key = (product.Id, uomId ?? product.BaseUomId);
             var keptAtAverage = costIsUsed && i.UnitCost is null && atAverage.GetValueOrDefault(key) > 0;
             if (keptAtAverage) atAverage[key]--;
-            return StockDocumentLine.Create(product, type, i.Qty, i.UomId, costIsUsed ? i.UnitCost : null, i.Remark, costFromAverage: !costIsUsed || keptAtAverage);
+            return StockDocumentLine.Create(product, type, i.Qty, uomId, costIsUsed ? i.UnitCost : null, i.Remark, costFromAverage: !costIsUsed || keptAtAverage);
         }).ToList();
     }
 

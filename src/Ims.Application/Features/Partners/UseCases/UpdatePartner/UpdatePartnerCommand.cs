@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Partners;
 
-public record UpdatePartnerCommand(int Id, PartnerSaveRequest Data) : ICommand<PartnerDto>;
+public record UpdatePartnerCommand(Guid Id, PartnerSaveRequest Data) : ICommand<PartnerDto>;

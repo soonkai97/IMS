@@ -16,7 +16,7 @@ namespace Ims.Api.Tests.Tests.StockList;
 [Collection(ApiCollection.Name)]
 public class LowStockNeverStockedTests(ApiFixture fixture)
 {
-    private static async Task<List<LowStockAlert>> AlertsAsync(ApiClient who, int? warehouseId = null)
+    private static async Task<List<LowStockAlert>> AlertsAsync(ApiClient who, Guid? warehouseId = null)
     {
         var rows = new List<LowStockAlert>();
         for (var page = 1; ; page++)

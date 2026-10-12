@@ -20,7 +20,7 @@ public class SignedStockEffectTests(ApiFixture fixture)
 
     private static decimal Number(string text) => decimal.Parse(text, NumberStyles.Any, CultureInfo.InvariantCulture);
 
-    private async Task<List<MovementRow>> RowsAsync(StockScenario s, int productId, int? warehouseId = null, string? extraQuery = null)
+    private async Task<List<MovementRow>> RowsAsync(StockScenario s, int productId, Guid? warehouseId = null, string? extraQuery = null)
     {
         var query = $"/api/reports/movements?productId={productId}&pageSize=200" + (warehouseId is { } w ? $"&warehouseId={w}" : "") + extraQuery;
         return (await s.Admin.GetAsync(query)).Data<PagedResult<MovementRow>>().Items.ToList();

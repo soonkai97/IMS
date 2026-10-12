@@ -5,9 +5,9 @@ namespace Ims.Application.Features.Stock;
 public sealed class LedgerRowsSpec : Specification<StockLedgerEntry, LedgerRow>
 {
     /// <summary>Newest first. <paramref name="limit"/> caps exports; otherwise the page is selected by the cursor position (<paramref name="after"/>) or by Page.</summary>
-    public LedgerRowsSpec(LedgerFilter f, IReadOnlyCollection<int>? scope, int? limit = null, long? after = null)
+    public LedgerRowsSpec(LedgerFilter f, int? warehouseId, IReadOnlyCollection<int>? scope, int? limit = null, long? after = null)
     {
-        LedgerFilters.Apply(Query, f, scope);
+        LedgerFilters.Apply(Query, f, warehouseId, scope);
         Query.OrderByDescending(l => l.Id);
         if (limit is { } n) Query.Take(n);
         else

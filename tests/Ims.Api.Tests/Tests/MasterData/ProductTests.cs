@@ -223,8 +223,8 @@ public class ProductTests(ApiFixture fixture)
     {
         var admin = await fixture.AsAsync("Admin");
 
-        (await admin.Products.CreateAsync(new ProductBuilder(Ref).WithBaseUnit(9_999_999).Build())).ShouldBeProblem(HttpStatusCode.BadRequest);
-        (await admin.Products.CreateAsync(new ProductBuilder(Ref).WithCategory(9_999_999).Build())).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await admin.Products.CreateAsync(new ProductBuilder(Ref).WithBaseUnit(Guid.NewGuid()).Build())).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await admin.Products.CreateAsync(new ProductBuilder(Ref).WithCategory(Guid.NewGuid()).Build())).ShouldBeProblem(HttpStatusCode.BadRequest);
     }
 
     [Fact]

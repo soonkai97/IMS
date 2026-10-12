@@ -41,7 +41,7 @@ public class CategoryAndUnitTests(ApiFixture fixture)
         var admin = await fixture.AsAsync("Admin");
 
         Assert.NotEmpty((await admin.Categories.CreateAsync("")).ShouldBeProblem(HttpStatusCode.BadRequest).ErrorsFor("Name"));
-        (await admin.Categories.UpdateAsync(9_999_999, "x")).ShouldBeProblem(HttpStatusCode.NotFound);
+        (await admin.Categories.UpdateAsync(Guid.NewGuid(), "x")).ShouldBeProblem(HttpStatusCode.NotFound);
     }
 
     // ---------- units ----------
@@ -78,7 +78,7 @@ public class CategoryAndUnitTests(ApiFixture fixture)
 
         Assert.NotEmpty((await admin.Units.CreateAsync("", "No code")).ShouldBeProblem(HttpStatusCode.BadRequest).ErrorsFor("Code"));
         Assert.NotEmpty((await admin.Units.CreateAsync(new string('X', 21), "Too long")).ShouldBeProblem(HttpStatusCode.BadRequest).ErrorsFor("Code"));
-        (await admin.Units.UpdateAsync(9_999_999, "X", "x")).ShouldBeProblem(HttpStatusCode.NotFound);
+        (await admin.Units.UpdateAsync(Guid.NewGuid(), "X", "x")).ShouldBeProblem(HttpStatusCode.NotFound);
     }
 
     [Fact]

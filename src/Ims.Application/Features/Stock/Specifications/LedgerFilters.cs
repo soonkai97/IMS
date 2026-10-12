@@ -4,11 +4,11 @@ namespace Ims.Application.Features.Stock;
 
 internal static class LedgerFilters
 {
-    public static void Apply(ISpecificationBuilder<StockLedgerEntry> query, LedgerFilter f, IReadOnlyCollection<int>? scope)
+    public static void Apply(ISpecificationBuilder<StockLedgerEntry> query, LedgerFilter f, int? warehouseId, IReadOnlyCollection<int>? scope)
     {
         query.AsNoTracking();
         if (scope is not null) query.Where(l => scope.Contains(l.WarehouseId));
-        if (f.WarehouseId is { } w) query.Where(l => l.WarehouseId == w);
+        if (warehouseId is { } w) query.Where(l => l.WarehouseId == w);
         if (f.ProductId is { } p) query.Where(l => l.ProductId == p);
         if (f.SourceDocId is { } d) query.Where(l => l.SourceDocId == d);
         if (f.From is { } from) { var start = Paging.StartOfDayUtc(from); query.Where(l => l.OccurredAt >= start); }

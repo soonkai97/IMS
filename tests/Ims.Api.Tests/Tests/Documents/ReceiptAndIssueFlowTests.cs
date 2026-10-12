@@ -13,7 +13,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class ReceiptAndIssueFlowTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     [Fact]
     public async Task A_receipt_goes_from_draft_to_posted_and_adds_stock_with_one_ledger_entry()
@@ -214,8 +214,8 @@ public class ReceiptAndIssueFlowTests(ApiFixture fixture)
         var product = await s.NewProductAsync();
 
         var unknownProduct = new DocumentBuilder(Warehouse).WithLines(new Line(9_999_999, 1, 1m)).Build();
-        var unknownWarehouse = new DocumentBuilder(9_999_999).WithLines(new Line(product.Id, 1, 1m)).Build();
-        var noWarehouse = new DocumentBuilder(0).WithLines(new Line(product.Id, 1, 1m)).Build();
+        var unknownWarehouse = new DocumentBuilder(Guid.NewGuid()).WithLines(new Line(product.Id, 1, 1m)).Build();
+        var noWarehouse = new DocumentBuilder(Guid.Empty).WithLines(new Line(product.Id, 1, 1m)).Build();
 
         (await s.Admin.Documents.CreateReceiptAsync(unknownProduct)).ShouldBeProblem(HttpStatusCode.BadRequest);
         (await s.Admin.Documents.CreateReceiptAsync(unknownWarehouse)).ShouldBeProblem(HttpStatusCode.BadRequest);

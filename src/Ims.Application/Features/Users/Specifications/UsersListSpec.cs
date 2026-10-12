@@ -10,6 +10,6 @@ public sealed class UsersListSpec : Specification<User, UserDto>
         UserFilters.Apply(Query, f);
         var (page, size) = Paging.Normalize(f.Page, f.PageSize);
         Query.OrderBy(u => u.Username).Skip((page - 1) * size).Take(size)
-            .Select(u => new UserDto(u.Id, u.Username, u.Email, u.DisplayName, u.Role, u.IsActive, u.Warehouses.Select(w => w.WarehouseId).ToList()));
+            .Select(u => new UserDto(u.Id, u.Username, u.Email, u.DisplayName, u.Role, u.IsActive, u.Warehouses.Select(w => w.Warehouse.PublicId).ToList()));
     }
 }

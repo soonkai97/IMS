@@ -66,13 +66,13 @@ public sealed class StockScenario
 
     // ---------- documents ----------
 
-    public async Task<DocumentDto> DraftReceiptAsync(ApiClient by, int warehouseId, params Line[] lines)
+    public async Task<DocumentDto> DraftReceiptAsync(ApiClient by, Guid warehouseId, params Line[] lines)
     {
         var request = new DocumentBuilder(warehouseId).WithPartner(Reference.SupplierId).WithLines(lines).Build();
         return (await by.Documents.CreateReceiptAsync(request)).Data<DocumentDto>();
     }
 
-    public async Task<DocumentDto> DraftIssueAsync(ApiClient by, int warehouseId, params Line[] lines)
+    public async Task<DocumentDto> DraftIssueAsync(ApiClient by, Guid warehouseId, params Line[] lines)
     {
         var request = new DocumentBuilder(warehouseId).WithPartner(Reference.CustomerId).WithLines(lines).Build();
         return (await by.Documents.CreateIssueAsync(request)).Data<DocumentDto>();
@@ -96,13 +96,13 @@ public sealed class StockScenario
         return (await Admin.Documents.PostAsync(submitted.Id)).Data<DocumentDto>();
     }
 
-    public async Task<DocumentDto> ReceiveAsync(int warehouseId, params Line[] lines)
+    public async Task<DocumentDto> ReceiveAsync(Guid warehouseId, params Line[] lines)
     {
         var draft = await DraftReceiptAsync(Admin, warehouseId, lines);
         return await CompleteAsync(await SubmitAsync(Admin, draft));
     }
 
-    public async Task<DocumentDto> IssueAsync(int warehouseId, params Line[] lines)
+    public async Task<DocumentDto> IssueAsync(Guid warehouseId, params Line[] lines)
     {
         var draft = await DraftIssueAsync(Admin, warehouseId, lines);
         return await CompleteAsync(await SubmitAsync(Admin, draft));
@@ -110,15 +110,15 @@ public sealed class StockScenario
 
     // ---------- stock ----------
 
-    public async Task<StockRow?> BalanceAsync(int productId, int warehouseId)
+    public async Task<StockRow?> BalanceAsync(int productId, Guid warehouseId)
     {
         var page = (await Admin.Stock.QueryAsync(productId, warehouseId)).Data<PagedResult<StockRow>>();
         return page.Items.SingleOrDefault();
     }
 
-    public async Task<decimal> OnHandAsync(int productId, int warehouseId) => (await BalanceAsync(productId, warehouseId))?.QtyOnHand ?? 0m;
+    public async Task<decimal> OnHandAsync(int productId, Guid warehouseId) => (await BalanceAsync(productId, warehouseId))?.QtyOnHand ?? 0m;
 
-    public async Task<List<LedgerRow>> LedgerAsync(int? productId = null, int? warehouseId = null, int? sourceDocId = null)
+    public async Task<List<LedgerRow>> LedgerAsync(int? productId = null, Guid? warehouseId = null, int? sourceDocId = null)
     {
         var rows = new List<LedgerRow>();
         for (var page = 1; ; page++)
@@ -129,6 +129,6 @@ public sealed class StockScenario
         }
     }
 
-    public async Task<decimal> LedgerSumAsync(int productId, int warehouseId) =>
+    public async Task<decimal> LedgerSumAsync(int productId, Guid warehouseId) =>
         (await LedgerAsync(productId, warehouseId)).Sum(r => r.QtyDelta);
 }
