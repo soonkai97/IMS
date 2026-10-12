@@ -52,6 +52,10 @@ Rules that span entities are domain services, not handler code: `PostingEngine` 
 `DocumentActionPolicy` (the `allowedActions` the UI shows AND the ownership guards the commands enforce, so a listed action is one the API accepts),
 `StockAvailabilityPolicy`, `CostingPolicy`. They are pure and unit-tested without a database.
 
+## Public ids
+
+An entity a client addresses derives from `PublicEntity` (itself an `Entity`): besides the integer key it has a `PublicId`, a random GUID made when the object is created and never set from outside. The integer key stays the clustered key and the key of every foreign key; the public id is what leaves the system (decision and plan: [adr-guid-keys.md](adr-guid-keys.md)). Application code looks rows up with `ByPublicIdSpec` / `PublicIdsSpec` and translates lists with the scoped `IIdMap<T>` (one query per list). Until an entity's API flips (PR-4 to PR-7) nothing public carries the new id: audit row events keep naming rows by the integer key (the payload of a created or deleted row carries the `PublicId`), and flip with the entity's API. Storage details and the migration measurements are in [data-and-performance-rules.md](data-and-performance-rules.md) section 9.
+
 ## Persistence
 
 `IRepository<T>` stages changes; `IUnitOfWork.SaveChangesAsync` commits them together with audit rows;

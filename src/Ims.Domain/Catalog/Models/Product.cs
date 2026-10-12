@@ -4,7 +4,7 @@ namespace Ims.Domain;
 /// A stocked item. The aggregate owns its barcodes and unit conversions and guards its own invariants:
 /// every change goes through a method, so an invalid product cannot exist.
 /// </summary>
-public class Product : Entity
+public class Product : PublicEntity
 {
     private Product() { }
 

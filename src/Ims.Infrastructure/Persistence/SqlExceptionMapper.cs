@@ -6,7 +6,8 @@ namespace Ims.Infrastructure.Persistence;
 
 /// <summary>
 /// Translates SQL Server failures into client-safe problems. A command timeout is a 504, an unreachable or overloaded server a 503
-/// (retry later), an exhausted deadlock/key-race retry a 409. Anything else is left to the generic 500 handler.
+/// (retry later), an exhausted deadlock/key-race retry a 409. A duplicate public id (a random GUID met an existing one: practically unreachable) is a 409 that
+/// says to try again, because the next attempt makes a new id. Anything else is left to the generic 500 handler.
 /// </summary>
 public sealed class SqlExceptionMapper : IExceptionMapper
 {
@@ -18,6 +19,8 @@ public sealed class SqlExceptionMapper : IExceptionMapper
 
         return sql.Number switch
         {
+            SqlErrors.UniqueIndex when PublicIdColumn.IsViolation(sql.Message) =>
+                new ProblemMapping(StatusCodes.Conflict, Messages.ConflictTitle, Messages.PublicIdInUse),
             SqlErrors.CommandTimeout => new ProblemMapping(StatusCodes.GatewayTimeout, Messages.RequestTimedOutTitle, Messages.RequestTimedOut),
             SqlErrors.Deadlock or SqlErrors.LockTimeout or SqlErrors.UniqueIndex or SqlErrors.UniqueConstraint =>
                 new ProblemMapping(StatusCodes.Conflict, Messages.ConflictTitle, Messages.ConcurrencyConflict),
