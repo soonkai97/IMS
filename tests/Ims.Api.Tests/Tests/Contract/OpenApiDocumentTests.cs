@@ -91,10 +91,11 @@ public partial class OpenApiDocumentTests(ApiFixture fixture)
         Assert.DoesNotContain(Everything(doc.RootElement), e => e.ValueKind == JsonValueKind.Object && e.TryGetProperty("pattern", out var p) && p.GetString()!.Contains(@"\d"));
     }
 
-    // ----- public ids (GUID plan PR-4) -----
+    // ----- public ids (GUID plan PR-4, PR-5) -----
 
-    /// <summary>Property and parameter names that carry the id of a warehouse, partner, category or unit. They are public ids (GUIDs) on the wire, never integers.</summary>
-    private static readonly string[] LeafIdNames = ["warehouseId", "warehouseIds", "partnerId", "categoryId", "uomId", "baseUomId", "fromUomId", "toUomId"];
+    /// <summary>Property and parameter names that carry the id of a warehouse, partner, category, unit or user. They are public ids (GUIDs) on the wire, never integers.</summary>
+    private static readonly string[] LeafIdNames = ["warehouseId", "warehouseIds", "partnerId", "categoryId", "uomId", "baseUomId", "fromUomId", "toUomId",
+        "createdById", "submittedById", "returnedById"];
 
     /// <summary>The schema is a string with format uuid, possibly nullable (a type list, or a oneOf/anyOf with a null) or the item of a list of them.</summary>
     private static bool IsUuid(JsonElement schema)
@@ -107,13 +108,13 @@ public partial class OpenApiDocumentTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task The_ids_of_warehouses_partners_categories_and_units_are_uuids_wherever_the_contract_names_them()
+    public async Task The_ids_of_warehouses_partners_categories_units_and_users_are_uuids_wherever_the_contract_names_them()
     {
         using var doc = await DocumentAsync();
         var root = doc.RootElement;
         var schemas = root.GetProperty("components").GetProperty("schemas");
 
-        foreach (var dto in new[] { "WarehouseDto", "PartnerDto", "CategoryDto", "UomDto" })
+        foreach (var dto in new[] { "WarehouseDto", "PartnerDto", "CategoryDto", "UomDto", "UserDto", "UserInfo" })
             Assert.True(IsUuid(schemas.GetProperty(dto).GetProperty("properties").GetProperty("id")), $"{dto}.id is not a uuid.");
 
         var properties = schemas.EnumerateObject()
@@ -129,7 +130,8 @@ public partial class OpenApiDocumentTests(ApiFixture fixture)
     }
 
     private static bool IsLeafRouteId(string where) =>
-        where.StartsWith("put /api/warehouses/{id} ") || where.StartsWith("put /api/partners/{id} ") || where.StartsWith("put /api/categories/{id} ") || where.StartsWith("put /api/units/{id} ");
+        where.StartsWith("put /api/warehouses/{id} ") || where.StartsWith("put /api/partners/{id} ") || where.StartsWith("put /api/categories/{id} ") || where.StartsWith("put /api/units/{id} ")
+        || where.StartsWith("put /api/users/{id} ");
 
     // ----- operation ids -----
     [Fact]
