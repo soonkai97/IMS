@@ -6,11 +6,11 @@ import { SystemSettingsStore } from '@ims/core/settings';
 import { DocumentsStore } from '@ims/features/documents';
 import { MAX_PAGE_SIZE } from '@ims/models';
 import { QueryLoader } from '@ims/utils';
-import { isWaitingForReviewer } from '../rules/approval-visibility';
 
 /**
  * Approvals inbox: ONE list call (`status=Submitted&requiresApproval=true`), no per-document reads. The list items
- * carry the flags and the submitter, so the tabs are built from them. The number for badges and Home comes from
+ * carry the flags and the submitter, so the tabs are built from them; "waiting for me" is the server's `canAct`
+ * (the same rule as the menu badge), never a role check in the browser. The number for badges and Home comes from
  * `GET /api/documents/counts`, which is what the server says I can act on. Oldest first, because the list endpoint
  * sorts newest first.
  */
@@ -41,16 +41,9 @@ export class ApprovalsStore {
   );
 
   /** Documents the current user can approve or reject right now. */
-  readonly $waitingForMe = computed(() => {
-    const reviewer = {
-      userId: this.permissions.$userId(),
-      role: this.permissions.$role(),
-      allowSelfApproval: this.settings.$allowSelfApproval()
-    };
-    return (this.submitted.$data() ?? []).filter(document =>
-      isWaitingForReviewer(document, reviewer)
-    );
-  });
+  readonly $waitingForMe = computed(() =>
+    (this.submitted.$data() ?? []).filter(document => document.canAct)
+  );
   /** Documents the current user submitted and that still wait for someone else. */
   readonly $submittedByMe = computed(() => {
     const userId = this.permissions.$userId();

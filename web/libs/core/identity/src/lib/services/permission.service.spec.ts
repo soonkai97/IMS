@@ -38,6 +38,7 @@ describe('PermissionService', () => {
     expect(spectator.service.$role()).toBe('Supervisor');
     expect(spectator.service.$warehouseIds()).toEqual([3]);
     expect(spectator.service.$seesAllWarehouses()).toBe(false);
+    expect(spectator.service.$profile().canApprove).toBe(true);
   });
 
   it('treats an empty requirement as everybody and Admin/Owner as seeing all warehouses', () => {
