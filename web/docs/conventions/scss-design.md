@@ -61,7 +61,8 @@ or `all`.
 - Busy: `loading` sets `aria-busy` and `aria-disabled` at once and ignores clicks, focus stays. The spinner appears after 150ms
   (`delayedLoading`, no minimum time: it leaves with the answer), replaces the leading `app-icon`, and the button keeps the width it
   had (`min-width`/`max-width` in px). The grid column is `minmax(0, 1fr)`, so a text-only label plus spinner spills evenly into the
-  padding instead of out of one edge. Colours do not change while busy.
+  padding instead of out of one edge. While busy the label stays on one line (the face is `max-content`, capped at the padding), so
+  "Sign in" does not wrap and make the button taller. Colours do not change while busy.
 - `[saved]` shows a check and "Saved" for 1.5s (an action that finishes on the same screen); the button does not shrink while it
   shows and ignores clicks. A label shorter than "Saved" grows the box just enough to fit it. Announcing the result (a live region)
   is the caller's job.
