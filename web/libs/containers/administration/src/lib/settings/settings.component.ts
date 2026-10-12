@@ -142,8 +142,8 @@ export class SettingsPageComponent implements OnInit {
       header: this.i18n.t('rule.roleRequired'),
       value: row => this.i18n.enumLabel(ROLE_LABELS, row.roleRequired)
     },
-    { key: 'status', header: this.i18n.t('product.status') },
-    { key: 'actions', header: this.i18n.t('common.actions'), align: 'end' }
+    { key: 'status', type: 'status', header: this.i18n.t('product.status') },
+    { key: 'actions', type: 'action', header: this.i18n.t('common.actions'), align: 'end' }
   ]);
   $ruleHeading = computed(() =>
     this.i18n.t(this.$editingRuleId() === undefined ? 'rule.new' : 'rule.edit')

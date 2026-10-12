@@ -114,7 +114,7 @@ export class AuditLogPageComponent implements OnInit {
   $before = computed(() => prettyJson(this.$detail()?.before));
   $after = computed(() => prettyJson(this.$detail()?.after));
   $columns = computed<readonly TableColumn<AuditLogDto>[]>(() => [
-    { key: 'at', header: this.i18n.t('audit.at'), primary: true },
+    { key: 'at', type: 'date', header: this.i18n.t('audit.at'), primary: true },
     { key: 'actor', header: this.i18n.t('audit.actor'), value: row => row.actor ?? '' },
     { key: 'action', header: this.i18n.t('audit.action'), value: row => row.action ?? '' },
     {

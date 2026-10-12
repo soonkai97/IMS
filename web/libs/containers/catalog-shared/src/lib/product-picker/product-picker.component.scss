@@ -42,7 +42,7 @@
 }
 
 .product-picker-name {
-  @include nowrap-text;
+  @include truncate-line;
 }
 
 .product-picker-available {

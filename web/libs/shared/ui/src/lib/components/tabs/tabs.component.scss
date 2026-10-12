@@ -14,6 +14,7 @@
 
 .ui-tabs-tab {
   @include reset-button;
+  @include keep-whole;
 
   position: relative;
   display: inline-flex;
@@ -23,7 +24,6 @@
   padding: 0 space(2);
   font-weight: font-weight('medium');
   color: color('text-muted');
-  white-space: nowrap;
 
   // The current tab's underline grows from the middle (a shape cue, not colour alone).
   &::after {

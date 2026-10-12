@@ -109,6 +109,7 @@ export class CatalogListsPageComponent implements OnInit {
     if (this.$isUnits()) {
       columns.push({
         key: 'code',
+        type: 'code',
         header: this.i18n.t('catalog.code'),
         value: row => row.code,
         primary: true
@@ -121,7 +122,12 @@ export class CatalogListsPageComponent implements OnInit {
       primary: !this.$isUnits()
     });
     if (this.$canManage()) {
-      columns.push({ key: 'actions', header: this.i18n.t('common.actions'), align: 'end' });
+      columns.push({
+        key: 'actions',
+        type: 'action',
+        header: this.i18n.t('common.actions'),
+        align: 'end'
+      });
     }
     return columns;
   });
