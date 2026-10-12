@@ -10,7 +10,13 @@ import {
   signal,
   viewChild
 } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import {
+  ControlValueAccessor,
+  NG_VALIDATORS,
+  NG_VALUE_ACCESSOR,
+  ValidationErrors,
+  Validator
+} from '@angular/forms';
 import { toClassStr } from '@ims/utils';
 import { UI_TEXT } from '../../tokens/ui-text.token';
 import { UiIconComponent } from '../icon/icon.component';
@@ -18,7 +24,10 @@ import { FORM_FIELD } from '../form-field/form-field.token';
 
 export type InputType = 'text' | 'password' | 'email' | 'number' | 'date' | 'tel';
 
-/** Text-like input. `type="number"` writes `number | null` to the form; every other type writes a string. */
+/**
+ * Text-like input. `type="number"` writes `number | null` to the form; every other type writes a string. Text a number
+ * field cannot read ("1,234.50", "12 5", a lone "-") is the error `badInput`, not a silent empty value.
+ */
 @Component({
   selector: 'app-input',
   imports: [UiIconComponent],
@@ -26,10 +35,11 @@ export type InputType = 'text' | 'password' | 'email' | 'number' | 'date' | 'tel
   templateUrl: './input.component.html',
   styleUrl: './input.component.scss',
   providers: [
-    { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => UiInputComponent), multi: true }
+    { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => UiInputComponent), multi: true },
+    { provide: NG_VALIDATORS, useExisting: forwardRef(() => UiInputComponent), multi: true }
   ]
 })
-export class UiInputComponent implements ControlValueAccessor {
+export class UiInputComponent implements ControlValueAccessor, Validator {
   private readonly field = inject(FORM_FIELD, { optional: true });
   private readonly uiText = inject(UI_TEXT);
 
@@ -96,6 +106,12 @@ export class UiInputComponent implements ControlValueAccessor {
     this.onTouched = fn;
   }
 
+  validate(): ValidationErrors | null {
+    const unreadable =
+      this.$type() === 'number' && this.$control()?.nativeElement.validity.badInput;
+    return unreadable ? { badInput: true } : null;
+  }
+
   setDisabledState(isDisabled: boolean): void {
     this.$disabled.set(isDisabled);
   }
@@ -136,7 +152,12 @@ export class UiInputComponent implements ControlValueAccessor {
 
   onBlur(event: FocusEvent): void {
     this.tapFocuses = false;
-    if (this.$type() === 'number' && event.target instanceof HTMLInputElement) {
+    // Text the browser cannot read stays on screen with its error; clearing it would drop it without a word.
+    if (
+      this.$type() === 'number' &&
+      event.target instanceof HTMLInputElement &&
+      !event.target.validity.badInput
+    ) {
       // Normalise on leaving: "1." becomes 1 and a lone "-" is cleared; text the browser accepts (1.50) stays as typed.
       const accepted = event.target.value;
       event.target.value = accepted;
