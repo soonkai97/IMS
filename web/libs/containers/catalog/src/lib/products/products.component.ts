@@ -109,6 +109,7 @@ export class ProductsPageComponent implements OnInit {
   $columns = computed<readonly TableColumn<ProductDto>[]>(() => [
     {
       key: 'sku',
+      type: 'code',
       header: this.i18n.t('product.sku'),
       value: row => row.sku,
       primary: true,

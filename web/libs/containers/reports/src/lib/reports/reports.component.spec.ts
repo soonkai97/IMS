@@ -179,7 +179,7 @@ describe('ReportsPageComponent receipt and issue detail (3.9 signed stock effect
     expect(spectator.queryAll('tbody tr')).toHaveLength(0);
     expect(spectator.query('app-pager')).toBeNull();
     expect(spectator.query('.ui-table-state button')).toBeNull();
-    expect(spectator.query('.reports-page-table')).toBeNull();
+    expect(spectator.query('.ui-table-scroll')).toBeNull();
     expect(spectator.element.textContent).not.toContain('No data for these filters.');
 
     // The sentence is tied to the To input, which is marked invalid.

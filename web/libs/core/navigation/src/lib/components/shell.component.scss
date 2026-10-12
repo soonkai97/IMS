@@ -112,7 +112,7 @@ $progress-sweep: 1.2s;
 
 .shell-user-name {
   max-width: 10rem;
-  @include nowrap-text;
+  @include truncate-line;
 
   @include media-phone {
     display: none;
@@ -321,7 +321,7 @@ $progress-sweep: 1.2s;
 .shell-tab-label {
   max-width: 100%;
   padding: 0 space(0);
-  @include nowrap-text;
+  @include truncate-line;
 }
 
 .shell-more-link {

@@ -178,8 +178,8 @@ export class DocumentListPageComponent implements OnInit {
   /** The amount column exists only for a caller with cost.view; the server sends null to the others (mvp-ux 1.4). */
   private readonly $canViewCost = computed(() => this.permissions.has(PERMISSION.CostView));
   $columns = computed<readonly TableColumn<DocumentListItem>[]>(() => [
-    { key: 'no', header: this.i18n.t('doc.no'), value: row => row.no, primary: true },
-    { key: 'date', header: this.i18n.t('doc.date'), phoneInline: true },
+    { key: 'no', type: 'code', header: this.i18n.t('doc.no'), value: row => row.no, primary: true },
+    { key: 'date', type: 'date', header: this.i18n.t('doc.date'), phoneInline: true },
     {
       key: 'warehouse',
       header: this.i18n.t('doc.warehouse'),
@@ -199,7 +199,7 @@ export class DocumentListPageComponent implements OnInit {
       align: 'end',
       hideOnPhone: true
     }),
-    { key: 'status', header: this.i18n.t('product.status'), phoneEnd: true }
+    { key: 'status', type: 'status', header: this.i18n.t('product.status'), phoneEnd: true }
   ]);
   $heading = computed(() => this.i18n.t(this.$isIssue() ? 'issues.title' : 'receipts.title'));
   $emptyKey = computed<MessageKey>(() => {

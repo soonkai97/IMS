@@ -35,6 +35,8 @@ export const MS_MESSAGES: Messages = {
   'ui.clear': 'Kosongkan',
   'ui.close': 'Tutup',
   'ui.dismiss': 'Tolak',
+  'ui.showMore': 'Papar lagi',
+  'ui.showLess': 'Papar kurang',
   'ui.dropFile': 'atau seret fail ke sini',
   'ui.errorTitle': 'Sesuatu tidak kena.',
   'ui.hidePassword': 'Sembunyikan kata laluan',

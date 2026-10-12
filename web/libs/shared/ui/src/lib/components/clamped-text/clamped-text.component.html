@@ -1,0 +1,20 @@
+<span
+  #body
+  class="ui-clamped-text-body"
+  [id]="textId"
+  [class.--clamped]="!$expanded()"
+  [style.--ui-clamp-lines]="$lines()"
+  >{{ $text() }}</span
+>
+@if ($showButton()) {
+  <button
+    type="button"
+    class="ui-clamped-text-more"
+    [attr.aria-expanded]="$expanded()"
+    [attr.aria-controls]="textId"
+    [attr.aria-describedby]="textId"
+    (click)="toggle()"
+  >
+    {{ $label() }}
+  </button>
+}

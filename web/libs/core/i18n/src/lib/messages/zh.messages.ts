@@ -35,6 +35,8 @@ export const ZH_MESSAGES: Messages = {
   'ui.clear': '清除',
   'ui.close': '关闭',
   'ui.dismiss': '忽略',
+  'ui.showMore': '显示更多',
+  'ui.showLess': '收起',
   'ui.dropFile': '或将文件拖到此处',
   'ui.errorTitle': '出了点问题。',
   'ui.hidePassword': '隐藏密码',

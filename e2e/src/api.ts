@@ -167,13 +167,13 @@ export class ImsApi {
   // Master data and stock ----------------------------------------------------------------------------------------
 
   async createProduct(
-    options: { safetyStock?: number; isActive?: boolean } = {}
+    options: { safetyStock?: number; isActive?: boolean; name?: string; sku?: string } = {}
   ): Promise<ApiProduct> {
     const token = unique();
     const units = await this.call<{ id: number; code: string }[]>('GET', '/api/units');
     return this.call<ApiProduct>('POST', '/api/products', {
-      sku: `E2E-${token}`,
-      name: `E2E Widget ${token}`,
+      sku: options.sku ?? `E2E-${token}`,
+      name: options.name ?? `E2E Widget ${token}`,
       categoryId: null,
       baseUomId: (units.find(u => u.code === 'PCS') ?? units[0])!.id,
       safetyStock: options.safetyStock ?? 0,
@@ -183,23 +183,28 @@ export class ImsApi {
     });
   }
 
-  async createPartner(type: 'Supplier' | 'Customer'): Promise<ApiPartner> {
+  async createPartner(
+    type: 'Supplier' | 'Customer',
+    options: { name?: string; contact?: string } = {}
+  ): Promise<ApiPartner> {
     return this.call<ApiPartner>('POST', '/api/partners', {
       type,
-      name: `E2E ${type} ${unique()}`,
-      contact: null,
+      name: options.name ?? `E2E ${type} ${unique()}`,
+      contact: options.contact ?? null,
       isActive: true
     });
   }
 
   /** A throw-away Clerk with a made-up password, so a wrong-password test never touches a demo account. */
-  async createUser(): Promise<{ username: string; password: string }> {
+  async createUser(
+    options: { displayName?: string } = {}
+  ): Promise<{ username: string; password: string }> {
     const token = unique().toLowerCase();
     const user = { username: `e2e-${token}`, password: `Aa1!${randomBytes(9).toString('base64url')}-xYz` };
     await this.call('POST', '/api/users', {
       username: user.username,
       email: `${user.username}@example.test`,
-      displayName: `E2E ${token}`,
+      displayName: options.displayName ?? `E2E ${token}`,
       role: 'Clerk',
       isActive: true,
       password: user.password,
