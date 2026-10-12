@@ -48,7 +48,8 @@ $ledgerTotal = [int]$lt.total; $docTotal = [int]$dt.total
 $modern = ($ModernApi -eq 'yes') -or ($ModernApi -eq 'auto' -and ($lt.PSObject.Properties.Name -contains 'nextCursor'))
 $ledgerDeep = 20; $docDeep = 400     # the last OFFSET pages the API accepts (Limits.MaxOffsetRows = 10,000 rows): ledger page 20 x500, documents page 400 x25
 "ledger rows $ledgerTotal, documents $docTotal, modern api: $modern, last OFFSET pages: ledger p$ledgerDeep (x500), docs p$docDeep (x25)"
-$ledgerMidId = [long]($lt.items[0].id) / 2; $docMidId = [int]($dt.items[0].id) / 2
+# A cursor is opaque (encrypted), so it cannot be computed from an id: take the nextCursor of the deepest OFFSET page the API accepts (row 10,000; the seek that follows costs the same at any depth).
+$ledgerCursor = [string](Get-Json "/api/stock/ledger?page=$ledgerDeep&pageSize=500&includeTotal=false").nextCursor; $docCursor = [string](Get-Json "/api/documents?page=$docDeep&pageSize=25&includeTotal=false").nextCursor
 $d30 = (Get-Date).AddDays(-30).ToString('yyyy-MM-dd'); $d0 = (Get-Date).ToString('yyyy-MM-dd'); $d7 = (Get-Date).AddDays(-7).ToString('yyyy-MM-dd')
 
 $e = [ordered]@{}
@@ -80,7 +81,7 @@ $e['ledger: by source doc']                  = '/api/stock/ledger?sourceDocId=59
 $e['ledger: last OFFSET page (x500)']          = "/api/stock/ledger?page=$ledgerDeep&pageSize=500"
 $e['ledger: OFFSET beyond the limit (400)']   = '/api/stock/ledger?page=1000&pageSize=500'
 if ($modern) {
-$e['ledger: deep afterId (50% in, x500)']    = "/api/stock/ledger?afterId=$([long]$ledgerMidId)&pageSize=500&includeTotal=false"
+$e['ledger: deep cursor (after row 10,000, x500)'] = "/api/stock/ledger?cursor=$ledgerCursor&pageSize=500&includeTotal=false"
 $e['ledger: p1 includeTotal=false']          = '/api/stock/ledger?includeTotal=false'
 $e['ledger: hot product includeTotal=false'] = "/api/stock/ledger?productId=$HotProduct&includeTotal=false"
 $e['ledger: 30d includeTotal=false']         = "/api/stock/ledger?from=$d30&to=$d0&includeTotal=false"
@@ -96,7 +97,7 @@ $e['documents: search=RCV-WH02-2610']        = '/api/documents?search=RCV-WH02-2
 $e['documents: search=0076 (middle)']        = '/api/documents?search=0076'
 $e['documents: last OFFSET page (x25)']        = "/api/documents?page=$docDeep&pageSize=25"
 if ($modern) {
-$e['documents: deep afterId (x25)']          = "/api/documents?afterId=$([int]$docMidId)&includeTotal=false"
+$e['documents: deep cursor (after row 10,000, x25)'] = "/api/documents?cursor=$docCursor&pageSize=25&includeTotal=false"
 $e['documents: p1 includeTotal=false']       = '/api/documents?includeTotal=false'
 }
 $e['documents/{id} (11 lines)']              = '/api/documents/59'

@@ -27,6 +27,7 @@ services:
       Seed__AdminPassword: ${IMS_ADMIN_PASSWORD:?set IMS_ADMIN_PASSWORD}
       Cors__Origins: ${IMS_CORS_ORIGINS:?set IMS_CORS_ORIGINS}
       Storage__RootPath: /app/storage
+      DataProtection__KeysPath: /app/keys
       Database__MigrateOnStartup: "true"
     # Put a TLS-terminating reverse proxy in front; set ForwardedHeaders__Enabled and ForwardedHeaders__KnownProxies to its address.
     ports: ["127.0.0.1:8080:8080"]
@@ -34,10 +35,12 @@ services:
     cap_drop: ["ALL"]
     read_only: true
     tmpfs: ["/tmp"]
-    volumes: [files:/app/storage, applogs:/app/logs]
+    # keys: the Data Protection key ring that encrypts list cursors; a named volume is writable under read_only and keeps the keys across redeploys.
+    volumes: [files:/app/storage, applogs:/app/logs, keys:/app/keys]
     mem_limit: 1g
 
 volumes:
   dbdata:
   files:
   applogs:
+  keys:

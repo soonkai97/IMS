@@ -160,7 +160,8 @@ public static class Messages
 
     // ----- Import -----
     public const string WorkbookTooLarge = "The workbook is too large once unpacked.";
-    public const string PageTooDeep = "That page is too deep to list. Narrow the filter, or continue from the last row with afterId.";
+    public const string PageTooDeep = "That page is too deep to list. Narrow the filter, or continue from the last row with the cursor.";
+    public const string CursorInvalid = "The cursor is not valid. Send the nextCursor of the previous page unchanged.";
     public const string FileHasActiveContent = "PDF files with scripts, launch actions or embedded files are not accepted.";
     public const string FileNotAValidImage = "The image is damaged or not a supported image. Choose another file.";
     public const string FileRejectedByScanner = "The file was rejected by the security check and was not stored.";

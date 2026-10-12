@@ -55,6 +55,18 @@ function getJson(path, token) {
   return r.json();
 }
 
+// The nextCursor of up to 10 OFFSET pages spread over the first 10,000 rows (the OFFSET limit): a seek costs the same at any depth, so these are deep enough.
+function cursorsOf(path, size, token) {
+  const lastPage = Math.floor(10000 / size);
+  const step = Math.ceil(lastPage / 10);
+  const cursors = [];
+  for (let page = 1; page <= lastPage; page += step) {
+    const next = getJson(`${path}?page=${page}&pageSize=${size}&includeTotal=false`, token).nextCursor;
+    if (next) cursors.push(next);
+  }
+  return cursors;
+}
+
 export function setupData() {
   const tokens = {
     admin: login('admin', ADMIN_PW),
@@ -87,7 +99,10 @@ export function setupData() {
   const ledger = getJson('/api/stock/ledger?pageSize=1', tokens.admin);
   const docs = getJson('/api/documents?pageSize=1', tokens.admin);
   const sku = getJson('/api/stock?pageSize=1', tokens.admin);
+  const ledgerCursors = cursorsOf('/api/stock/ledger', 500, tokens.admin);
+  const docCursors = cursorsOf('/api/documents', 200, tokens.admin);
   return {
+    ledgerCursors, docCursors,
     tokens, offset, hot, stocked, stockedHot, inactive, maxDocId: docs.items[0].id, ledgerTotal: ledger.total, docTotal: docs.total,
     stockTotal: sku.total, products: 50000,
   };
@@ -123,6 +138,8 @@ export function post(token, path, body, name, kind = 'write') {
 // --- random helpers ----------------------------------------------------------------------------------------------
 export function rnd(n) { return Math.floor(Math.random() * n); }
 export function pick(a) { return a[rnd(a.length)]; }
+// A cursor is opaque and encrypted: it is collected from the API in setup(), never computed from an id.
+function cursorQuery(cursors) { return cursors.length ? `cursor=${pick(cursors)}&` : ''; }
 export function zipf(n) { return 1 + Math.floor(n * Math.pow(Math.random(), 2)); }   // same skew as the seed
 
 // --- READ operations (weights roughly follow a stock-clerk day) ----------------------------------------------------
@@ -145,14 +162,14 @@ export function readOp(d) {
     if (f === 0) return get(t, `/api/stock/ledger?productId=${pid}`, 'ledger?product');
     if (f === 1) return get(t, `/api/stock/ledger?productId=${pid}&warehouseId=${1 + rnd(WAREHOUSES)}`, 'ledger?product+wh');
     if (f === 2) return get(t, '/api/stock/ledger?includeTotal=false', 'ledger?p1');
-    return get(t, `/api/stock/ledger?afterId=${1 + rnd(d.ledgerTotal)}&includeTotal=false`, 'ledger?afterId');
+    return get(t, `/api/stock/ledger?${cursorQuery(d.ledgerCursors)}includeTotal=false`, 'ledger?cursor');
   }
   if (x < 60) {                         // document lists
     const f = rnd(5);
     if (f === 0) return get(t, '/api/documents', 'documents');
     if (f === 1) return get(t, '/api/documents?type=2&status=3', 'documents?type+status');
     if (f === 2) return get(t, `/api/documents?warehouseId=${1 + rnd(WAREHOUSES)}&type=1`, 'documents?wh+type');
-    if (f === 3) return get(t, `/api/documents?afterId=${1 + rnd(d.maxDocId)}&includeTotal=false`, 'documents?afterId');
+    if (f === 3) return get(t, `/api/documents?${cursorQuery(d.docCursors)}includeTotal=false`, 'documents?cursor');
     return get(t, '/api/documents?status=0', 'documents?draft');
   }
   if (x < 75) return get(t, `/api/documents/${1 + rnd(d.maxDocId)}`, 'documents/{id}');

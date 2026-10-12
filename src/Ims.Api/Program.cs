@@ -23,6 +23,7 @@ try
         .AddPresentation(builder.Configuration, builder.Environment);
 
     var app = builder.Build().UsePresentation();
+    app.Services.VerifyCursorProtection();
 
     // Migrate and seed on start-up in Development only by default; elsewhere it is opt-in (it races when several instances start at once).
     var isDevelopment = app.Environment.IsDevelopment();
