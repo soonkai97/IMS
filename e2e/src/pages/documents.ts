@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import type { ApiProduct } from '../api';
+import type { ApiProduct, PublicId } from '../api';
 import { Shell, goTo } from './shell';
 
 export type Kind = 'receipts' | 'issues';
@@ -57,15 +57,15 @@ export class DocumentEditor {
     await expect(this.page.getByRole('heading', { level: 1, name: /^New / })).toBeVisible();
   }
 
-  async open(kind: Kind, id: number): Promise<void> {
+  async open(kind: Kind, id: PublicId): Promise<void> {
     await goTo(this.page, `/${kind}/${id}`);
     await expect(this.status).toBeVisible();
   }
 
   /** The id of the saved document, read from the address once the first save moved /new to /<id>. */
-  async savedId(): Promise<number> {
-    await expect(this.page).toHaveURL(/\/(receipts|issues)\/\d+$/);
-    return Number(new URL(this.page.url()).pathname.split('/').pop());
+  async savedId(): Promise<PublicId> {
+    await expect(this.page).toHaveURL(/\/(receipts|issues)\/[0-9a-f-]{36}$/);
+    return new URL(this.page.url()).pathname.split('/').pop() ?? '';
   }
 
   async chooseWarehouse(name: string): Promise<void> {
