@@ -14,15 +14,31 @@
   --ims-safe-right: env(safe-area-inset-right, 0px);
   --ims-safe-bottom: env(safe-area-inset-bottom, 0px);
   --ims-safe-left: env(safe-area-inset-left, 0px);
+  // The sticky document action bar publishes its real height here (appPublishHeight); 0 on a page without one.
+  --ims-action-bar-height: 0px;
   /* stylelint-enable length-zero-no-unit */
 }
 
 html {
-  // A focused control is scrolled clear of the sticky top bar and of the bottom bars (tab bar + action bar),
-  // so Tab never lands under them (WCAG 2.4.11 Focus Not Obscured).
-  scroll-padding-block: height('bar') calc(#{tabbar-offset()} + 8rem);
+  // A focused control is scrolled clear of the sticky top bar and of the bottom bars, so Tab never lands under them (WCAG 2.4.11
+  // Focus Not Obscured). Bottom = what is stuck there: the tab bar (phone only), the action bar at its REAL height (it wraps to
+  // two rows on a narrow phone), and a little air. On a short window both bars flow with the page and nothing is reserved.
+  --ims-scroll-reserve-bottom: calc(
+    #{tabbar-offset()} + var(--ims-action-bar-height) + #{space(1)}
+  );
+
+  scroll-padding-block: calc(#{height('bar')} + var(--ims-safe-top))
+    var(--ims-scroll-reserve-bottom);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+
+  @include media-tablet {
+    --ims-scroll-reserve-bottom: calc(var(--ims-action-bar-height) + #{space(2)});
+  }
+
+  @include media-short {
+    --ims-scroll-reserve-bottom: #{space(2)};
+  }
 }
 
 body {

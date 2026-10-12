@@ -82,8 +82,10 @@ or `all`.
   `tabbar-offset()` is the tab bar height plus the bottom inset. The tab bar, the room the page leaves for it and the sticky action bar
   read that one function; never write `env()` in a component.
 - Sticky action bar (`.document-editor-bar`): phone = full-width strip stuck directly above the tab bar, summary on its own line,
-  buttons equal width; tablet and up = floating card at the bottom of the content. It is the last thing in the page, so it never hides
-  a field, and `scroll-padding-block` on `html` scrolls a focused field clear of it. Toasts are not positioned here (R11).
+  buttons equal width; tablet and up = floating card at the bottom of the content. It publishes its real height as
+  `--ims-action-bar-height` on `html` (`appPublishHeight`, it grows when the buttons wrap at 320px), and `scroll-padding-block` on
+  `html` reserves tab bar + that height, so a focused field is scrolled clear of the bar (e2e `16-shell` at 320px with 8 lines).
+  Toasts are not positioned here (R11).
 - Route fade: `withViewTransitions(ROUTE_FADE)` plus `globals/_route-fade.scss`. One crossfade of the `fast` token for the page; the
   top bar, sidebar and tab bar carry a `view-transition-name`, so they stay still. Same-page navigations (a new query string) do not
   fade. Under reduced motion or `data-motion="off"` the token is 1ms, so it is instant. Never give content elements a

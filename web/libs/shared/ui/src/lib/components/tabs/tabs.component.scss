@@ -55,8 +55,16 @@
   }
 }
 
+// Forced colours repaint backgrounds to Canvas: the current tab's underline keeps a system colour.
+@media (forced-colors: active) {
+  .ui-tabs-tab::after {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+}
+
 .ui-tabs-badge {
-  min-width: 1.25rem;
+  min-width: width('badge');
   padding: 0 space(0);
   font-size: font-size(1);
   font-variant-numeric: tabular-nums;

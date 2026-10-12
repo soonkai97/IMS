@@ -1,5 +1,8 @@
 @use 'libs' as *;
 
+// One sweep of the progress segment; the loop is stopped by the reduced-motion rule in globals/_motion.scss.
+$progress-sweep: 1.2s;
+
 // Phones: top bar, content, bottom tab bar. Tablets: icon rail on the left. Desktop: full sidebar.
 // The side insets keep the chrome out of a landscape phone's notch; they are 0 elsewhere (index.html: viewport-fit=cover).
 :host {
@@ -72,7 +75,7 @@
     height: 100%;
     content: '';
     background: color('accent');
-    animation: ims-loop-shell-progress 1.2s linear infinite;
+    animation: ims-loop-shell-progress $progress-sweep linear infinite;
   }
 }
 
@@ -206,7 +209,7 @@
 
 // The count is the cue (not the colour), so it stays readable in grayscale.
 .shell-badge {
-  min-width: 1.25rem;
+  min-width: width('badge');
   margin-left: auto;
   padding: 0 space(0);
   font-size: font-size(1);
@@ -219,8 +222,8 @@
 
   @include media-below-desktop {
     position: absolute;
-    top: 2px;
-    right: 2px;
+    top: space(0);
+    right: space(0);
     margin: 0;
   }
 }
@@ -280,7 +283,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 2px;
+  gap: space(0);
   align-items: center;
   justify-content: center;
   min-width: 0;
@@ -294,7 +297,7 @@
     top: 0;
     right: 0;
     left: 0;
-    width: 1.5rem;
+    width: width('tab-cue');
     height: border-width('edge');
     margin: 0 auto;
     content: '';
@@ -321,7 +324,7 @@
 
 .shell-tab-label {
   max-width: 100%;
-  padding: 0 2px;
+  padding: 0 space(0);
   @include nowrap-text;
 }
 
@@ -346,6 +349,26 @@
 
 .shell-account-role {
   color: color('text-muted');
+}
+
+// Forced colours repaint backgrounds to Canvas, so the cues of the current page and the progress bar must be borders or system
+// colours: the current sidebar row gets an outline, the pills, the edge and the sweeping segment use Highlight, the track an edge.
+@media (forced-colors: active) {
+  .shell-nav-link.--active {
+    outline: border-width('thin') solid Highlight;
+    outline-offset: -#{border-width('thin')};
+  }
+
+  .shell-nav-link::before,
+  .shell-tab::before,
+  .shell-progress::after {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+
+  .shell-progress {
+    border-bottom: border-width('thin') solid CanvasText;
+  }
 }
 
 @keyframes ims-loop-shell-progress {

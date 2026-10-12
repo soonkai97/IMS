@@ -5,6 +5,8 @@ import { goTo } from '../src/pages/shell';
 // R10 (docs/design/2026-refresh-plan.md): the app shell. Phone tab bar and the sticky action bar above it, the skip link, the thin
 // progress bar that waits 300ms before it shows, and the tab strip's ARIA. Layout is measured because a unit test cannot.
 
+// Enough lines that the page scrolls and the action bar is stuck above the tab bar.
+const LINES = 8;
 const emptyPage = { items: [], total: 0, page: 1, pageSize: 25, nextCursor: null };
 
 /** Answers every documents list at once, so a "fast call" does not depend on the API's speed. */
@@ -43,16 +45,69 @@ test.describe('R10 Phone shell at 360x740', () => {
     const actionBar = await page.locator('.document-editor-bar').boundingBox();
     expect((actionBar?.y ?? 0) + (actionBar?.height ?? 0)).toBeCloseTo(barBox?.y ?? 0, 0);
     const submit = page.getByRole('button', { name: /Submit/ });
-    const box = await submit.boundingBox();
-    const topmost = await page.evaluate(
-      ([x, y]: [number, number]) =>
-        document.elementFromPoint(x, y)?.closest('button')?.textContent?.trim(),
-      [(box?.x ?? 0) + (box?.width ?? 0) / 2, (box?.y ?? 0) + (box?.height ?? 0) / 2] as [
-        number,
-        number
-      ]
+    await expect(async () => {
+      const reached = await submit.evaluate(button => {
+        const box = button.getBoundingClientRect();
+        const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+        return hit?.closest('button') === button;
+      });
+      expect(reached).toBe(true);
+    }).toPass();
+  });
+});
+
+test.describe('R10 Action bar at 320x560', () => {
+  test.use({ viewport: { width: 320, height: 560 }, hasTouch: true, isMobile: true });
+
+  test('given a filled draft on a 320px phone where the action bar wraps to two rows, when Tab reaches the last line, then its Remove button is fully above the bar', async ({
+    page,
+    signIn,
+    api
+  }) => {
+    const products = [];
+    for (let index = 0; index < LINES; index++) {
+      products.push(await api().createProduct());
+    }
+    const draft = await api('staff').createDocument(
+      'receipts',
+      products.map(product => ({ productId: product.id, qty: 2, unitCost: 1 }))
     );
-    expect(topmost).toMatch(/Submit/);
+    await signIn('staff');
+    await goTo(page, `/receipts/${draft.id}`);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+
+    await expect(page.getByRole('button', { name: /^Remove / })).toHaveCount(LINES);
+    const bar = page.locator('.document-editor-bar');
+    // Two rows of buttons: taller than the old fixed 8rem reserve could cover.
+    expect((await bar.boundingBox())?.height).toBeGreaterThan(128);
+
+    // For each line: scroll so that its Remove button is half under the bar, stand on the previous control, press Tab. The page
+    // must scroll the button fully above the bar (a fixed reserve smaller than the bar leaves part of it underneath).
+    for (let index = 0; index < LINES; index++) {
+      await page.evaluate(line => {
+        const buttons = document.querySelectorAll<HTMLElement>('button[aria-label^="Remove "]');
+        const target = buttons[line] as HTMLElement;
+        const barTop = document.querySelector('.document-editor-bar')!.getBoundingClientRect().top;
+        window.scrollBy(0, target.getBoundingClientRect().bottom - (barTop + 25));
+        const all = document.querySelectorAll<HTMLElement>(
+          'a[href], button, input, select, textarea'
+        );
+        const stops = Array.from(all).filter(element => !element.hasAttribute('disabled'));
+        stops[stops.indexOf(target) - 1]?.focus({ preventScroll: true });
+      }, index);
+      await page.keyboard.press('Tab');
+      await expect(page.getByRole('button', { name: /^Remove / }).nth(index)).toBeFocused();
+      await page.waitForTimeout(300); // the scroll that brings a focused control into view may be smooth
+
+      const barTop = (await bar.boundingBox())?.y ?? 0;
+      const bottom = await page.evaluate(() => {
+        const box = document.activeElement?.getBoundingClientRect();
+        return (box?.y ?? 0) + (box?.height ?? 0);
+      });
+      expect(bottom, `Remove button ${index + 1} is under the action bar`).toBeLessThanOrEqual(
+        barTop
+      );
+    }
   });
 });
 

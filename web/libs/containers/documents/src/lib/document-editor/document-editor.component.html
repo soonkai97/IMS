@@ -296,7 +296,7 @@
   }
 
   @if ($showBar()) {
-    <footer class="document-editor-bar">
+    <footer class="document-editor-bar" appPublishHeight="--ims-action-bar-height">
       @if ($editable()) {
         <p class="document-editor-totals" aria-live="polite">
           {{ 'doc.totals' | t: { lines: $totals().validLineCount, qty: $totals().totalQty } }}
