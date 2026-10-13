@@ -7,28 +7,28 @@ import {
   StockSort,
   StockSummary
 } from '@ims/api';
-import { PagedQuery } from '@ims/models';
+import { PagedQuery, PublicId } from '@ims/models';
 import { QueryLoader } from '@ims/utils';
 
 export interface StockQuery extends PagedQuery {
-  readonly warehouseId?: number;
-  readonly productId?: number;
-  readonly categoryId?: number;
+  readonly warehouseId?: PublicId;
+  readonly productId?: PublicId;
+  readonly categoryId?: PublicId;
   readonly search?: string;
   readonly lowOnly?: boolean;
   readonly sortBy?: StockSort;
 }
 
 export interface LedgerQuery extends PagedQuery {
-  readonly warehouseId?: number;
-  readonly productId?: number;
+  readonly warehouseId?: PublicId;
+  readonly productId?: PublicId;
   readonly from?: string;
   readonly to?: string;
-  readonly sourceDocId?: number;
+  readonly sourceDocId?: PublicId;
 }
 
 export interface LowStockQuery extends PagedQuery {
-  readonly warehouseId?: number;
+  readonly warehouseId?: PublicId;
 }
 
 const PRODUCT_STOCK_PAGE_SIZE = 100;
@@ -52,7 +52,7 @@ export class StockStore {
     )
   );
   /** Stock rows of one product across warehouses (header of the ledger screen). */
-  readonly productStock = new QueryLoader<number, PagedResultOfStockRow>(productId =>
+  readonly productStock = new QueryLoader<PublicId, PagedResultOfStockRow>(productId =>
     this.client.list(
       undefined,
       productId,
@@ -77,7 +77,10 @@ export class StockStore {
   readonly lowStock = new QueryLoader<LowStockQuery, PagedResultOfLowStockAlert>(query =>
     this.client.lowStock(query.warehouseId, query.page, query.pageSize)
   );
-  readonly summary = new QueryLoader<void, StockSummary>(() => this.client.summary());
+  /** Home loads it with `handledInline()` (its banner shows a failure); the editor and Low stock refresh it quietly and toast. */
+  readonly summary = new QueryLoader<void, StockSummary>((_, context) =>
+    this.client.summary(context)
+  );
 
   /** Number on the "Low stock" menu badge. */
   readonly $lowStockCount = computed(() => this.summary.$data()?.lowCount ?? 0);

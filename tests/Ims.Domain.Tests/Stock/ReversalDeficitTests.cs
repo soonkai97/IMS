@@ -67,7 +67,7 @@ public class ReversalDeficitTests
     [Fact]
     public void TheMessage_NamesOneProductWithItsBalanceAndUnit()
     {
-        var message = Messages.ReversalBlocked("RCV-WH01-2610-0001", [new ReversalShortage(1, "DEMO-001", "PCS", -3m)]);
+        var message = Messages.ReversalBlocked("RCV-WH01-2610-0001", [new ReversalShortage(Guid.NewGuid(), "DEMO-001", "PCS", -3m)]);
 
         Assert.Equal("Can't reverse RCV-WH01-2610-0001. It would make DEMO-001 negative (-3 PCS). Reverse or adjust the later issues first, or ask an Admin.", message);
     }
@@ -75,7 +75,7 @@ public class ReversalDeficitTests
     [Fact]
     public void TheMessage_ListsEveryProduct_WhenSeveralWouldGoNegative()
     {
-        var message = Messages.ReversalBlocked("RCV-1", [new ReversalShortage(1, "A-1", "PCS", -3m), new ReversalShortage(2, "B-2", "BOX", -12.5m)]);
+        var message = Messages.ReversalBlocked("RCV-1", [new ReversalShortage(Guid.NewGuid(), "A-1", "PCS", -3m), new ReversalShortage(Guid.NewGuid(), "B-2", "BOX", -12.5m)]);
 
         Assert.Equal("Can't reverse RCV-1. It would make 2 products negative: A-1 (-3 PCS), B-2 (-12.5 BOX). Reverse or adjust the later issues first, or ask an Admin.", message);
     }
@@ -83,7 +83,7 @@ public class ReversalDeficitTests
     [Fact]
     public void TheException_CarriesTheShortagesAndIsADomainException()
     {
-        var shortage = new ReversalShortage(1, "A-1", "PCS", -3m);
+        var shortage = new ReversalShortage(Guid.NewGuid(), "A-1", "PCS", -3m);
 
         var ex = new ReversalBlockedException("RCV-1", [shortage]);
 

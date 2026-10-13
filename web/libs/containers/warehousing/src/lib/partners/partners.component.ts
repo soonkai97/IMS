@@ -15,7 +15,7 @@ import { I18nService, PARTNER_TYPE_LABELS, TranslatePipe } from '@ims/core/i18n'
 import { PermissionService } from '@ims/core/identity';
 import { ToastService } from '@ims/core/notification';
 import { PartnerQuery, PartnersStore } from '@ims/features/warehousing';
-import { API_ERROR_KIND, DEFAULT_PAGE_SIZE, PERMISSION } from '@ims/models';
+import { API_ERROR_KIND, DEFAULT_PAGE_SIZE, PERMISSION, PublicId } from '@ims/models';
 import {
   SelectOption,
   TableColumn,
@@ -99,7 +99,7 @@ export class PartnersPageComponent {
 
   $searchInput = signal('');
   $dialogOpen = signal(false);
-  $editingId = signal<number | undefined>(undefined);
+  $editingId = signal<PublicId | undefined>(undefined);
 
   private readonly $search = debouncedSignal(this.$searchInput);
   private readonly $type = controlSignal(this.typeFilter);
@@ -171,9 +171,10 @@ export class PartnersPageComponent {
     const error = this.store.save.$operation().error;
     if (error) {
       applyFieldErrors(this.form, error);
-      if (error.kind === API_ERROR_KIND.Conflict && error.detail) {
+      if (error.kind === API_ERROR_KIND.Conflict) {
         // 409: a partner of this type already has this name. The server's sentence says which one.
-        this.form.controls.name.setErrors({ [SERVER_ERROR_KEY]: error.detail });
+        const sentence = error.detail || (error.message ?? this.i18n.t('error.generic'));
+        this.form.controls.name.setErrors({ [SERVER_ERROR_KEY]: sentence });
         this.form.controls.name.markAsTouched();
       }
     }
@@ -235,7 +236,7 @@ export class PartnersPageComponent {
       .subscribe();
   }
 
-  private open(id: number | undefined, value: PartnerFormValue): void {
+  private open(id: PublicId | undefined, value: PartnerFormValue): void {
     this.store.save.reset();
     this.form.reset(value);
     this.$editingId.set(id);

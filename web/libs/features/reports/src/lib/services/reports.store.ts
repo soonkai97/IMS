@@ -1,13 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { DocumentType, FileResponse, PagedResultOfMovementRow, ReportsClient } from '@ims/api';
-import { PagedQuery } from '@ims/models';
+import { PagedQuery, PublicId } from '@ims/models';
 import { ApiCommand, QueryLoader, saveFile } from '@ims/utils';
 
 export interface MovementFilter {
   readonly type?: DocumentType;
-  readonly warehouseId?: number;
-  readonly productId?: number;
+  readonly warehouseId?: PublicId;
+  readonly productId?: PublicId;
   readonly from?: string;
   readonly to?: string;
 }
@@ -15,16 +15,16 @@ export interface MovementFilter {
 export type MovementQuery = MovementFilter & PagedQuery;
 
 export interface StockExportQuery {
-  readonly warehouseId?: number;
-  readonly productId?: number;
-  readonly categoryId?: number;
+  readonly warehouseId?: PublicId;
+  readonly productId?: PublicId;
+  readonly categoryId?: PublicId;
   readonly search?: string;
   readonly lowOnly?: boolean;
 }
 
 export interface LedgerExportQuery {
-  readonly warehouseId?: number;
-  readonly productId?: number;
+  readonly warehouseId?: PublicId;
+  readonly productId?: PublicId;
   readonly from?: string;
   readonly to?: string;
 }

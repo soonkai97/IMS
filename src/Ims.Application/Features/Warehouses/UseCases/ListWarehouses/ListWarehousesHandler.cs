@@ -10,5 +10,5 @@ public class ListWarehousesHandler(IReadRepository<Warehouse> warehouses, ICurre
     public async Task<IReadOnlyList<WarehouseDto>> HandleAsync(ListWarehousesQuery q, CancellationToken ct) =>
         (await warehouses.ListAsync(new WarehousesSpec(q.IncludeInactive), ct))
         .Where(w => current.CanAccessWarehouse(w.Id))
-        .Select(w => new WarehouseDto(w.Id, w.Code, w.Name, w.Contact, w.Notes, w.IsActive)).ToList();
+        .Select(w => new WarehouseDto(w.PublicId, w.Code, w.Name, w.Contact, w.Notes, w.IsActive)).ToList();
 }

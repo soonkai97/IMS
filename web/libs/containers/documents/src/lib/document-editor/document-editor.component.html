@@ -27,12 +27,15 @@
 @if ($isLoading()) {
   <app-skeleton [count]="4" />
 } @else if ($notFound()) {
-  <app-empty-state icon="file" [message]="'notFound.body' | t">
-    <a class="ui-link-button --primary" routerLink="/">{{ 'system.goHome' | t }}</a>
-  </app-empty-state>
+  <!-- The load call is flagged handledInline (no toast), so this page is the one announcement. -->
+  <div role="alert">
+    <app-empty-state icon="file" [message]="'notFound.body' | t">
+      <a class="ui-link-button --primary" routerLink="/">{{ 'system.goHome' | t }}</a>
+    </app-empty-state>
+  </div>
 } @else if ($loadFailed()) {
   <app-banner kind="danger">
-    {{ 'error.generic' | t }}
+    {{ $loadErrorMessage() || ('error.generic' | t) }}
     <app-button bannerActions (clicked)="onRetryLoad()">{{ 'ui.retry' | t }}</app-button>
   </app-banner>
 } @else {
@@ -222,7 +225,7 @@
     <div appTabPanel="document-panel" [labelledByTab]="$tab()">
       @if ($isItemsTab()) {
         <ul class="document-editor-readonly-lines">
-          @for (line of document.lines; track line.id) {
+          @for (line of document.lines; track $index) {
             <li class="document-editor-readonly-line">
               <span>
                 <strong>{{ line.sku }}</strong>
@@ -296,7 +299,11 @@
   }
 
   @if ($showBar()) {
-    <footer class="document-editor-bar" appPublishHeight="--ims-action-bar-height">
+    <footer
+      class="document-editor-bar"
+      appPublishHeight="--ims-action-bar-height"
+      appPublishClearance="--ims-action-bar-clearance"
+    >
       @if ($editable()) {
         <p class="document-editor-totals" aria-live="polite">
           {{ 'doc.totals' | t: { lines: $totals().validLineCount, qty: $totals().totalQty } }}

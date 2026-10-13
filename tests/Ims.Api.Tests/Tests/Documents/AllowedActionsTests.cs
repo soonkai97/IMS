@@ -12,11 +12,11 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class AllowedActionsTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private static string[] Actions(params string[] actions) => actions.Order().ToArray();
 
-    private async Task AssertActionsAsync(StockScenario s, int documentId, (string Role, string[] Expected)[] expectations)
+    private async Task AssertActionsAsync(StockScenario s, Guid documentId, (string Role, string[] Expected)[] expectations)
     {
         foreach (var (role, expected) in expectations)
         {
@@ -26,7 +26,7 @@ public class AllowedActionsTests(ApiFixture fixture)
         }
     }
 
-    private async Task<(StockScenario S, int ProductId)> ScenarioWithStockAsync()
+    private async Task<(StockScenario S, Guid ProductId)> ScenarioWithStockAsync()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();

@@ -4,25 +4,25 @@ namespace Ims.Api.Tests.Clients;
 
 public sealed class ReportsClient(ApiClient api)
 {
-    public Task<ApiResponse> MovementsAsync(int? productId = null) =>
+    public Task<ApiResponse> MovementsAsync(Guid? productId = null) =>
         api.GetAsync("/api/reports/movements" + ProductQuery(productId));
 
-    public Task<ApiResponse> MovementsInWarehouseAsync(int warehouseId, int page = 1, int pageSize = 50) =>
+    public Task<ApiResponse> MovementsInWarehouseAsync(Guid warehouseId, int page = 1, int pageSize = 50) =>
         api.GetAsync($"/api/reports/movements?warehouseId={warehouseId}&page={page}&pageSize={pageSize}");
 
-    public Task<ApiResponse> MovementsExportInWarehouseAsync(int warehouseId) =>
+    public Task<ApiResponse> MovementsExportInWarehouseAsync(Guid warehouseId) =>
         api.GetAsync($"/api/reports/movements/export?warehouseId={warehouseId}");
 
-    public Task<ApiResponse> StockSummaryExportAsync(int? productId = null) =>
+    public Task<ApiResponse> StockSummaryExportAsync(Guid? productId = null) =>
         api.GetAsync("/api/reports/stock-summary/export" + ProductQuery(productId));
 
-    public Task<ApiResponse> MovementsExportAsync(int? productId = null) =>
+    public Task<ApiResponse> MovementsExportAsync(Guid? productId = null) =>
         api.GetAsync("/api/reports/movements/export" + ProductQuery(productId));
 
-    public Task<ApiResponse> LedgerExportAsync(int? productId = null) =>
+    public Task<ApiResponse> LedgerExportAsync(Guid? productId = null) =>
         api.GetAsync("/api/reports/ledger/export" + ProductQuery(productId));
 
     public Task<ApiResponse> LowStockExportAsync() => api.GetAsync("/api/reports/low-stock/export");
 
-    private static string ProductQuery(int? productId) => productId is null ? "" : $"?productId={productId}";
+    private static string ProductQuery(Guid? productId) => productId is null ? "" : $"?productId={productId}";
 }

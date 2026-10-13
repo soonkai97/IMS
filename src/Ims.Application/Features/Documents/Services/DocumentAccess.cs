@@ -7,7 +7,7 @@ public class DocumentAccess(ICurrentUser current) : IDocumentAccess, IAppService
     public void EnsureWarehouse(int warehouseId)
     {
         if (!current.CanAccessWarehouse(warehouseId))
-            throw new ForbiddenException(Messages.NoWarehouseAccess);
+            throw new ValidationException(Messages.WarehouseMissing);
     }
 
     public void EnsureDocumentInScope(int warehouseId)
@@ -32,9 +32,9 @@ public class DocumentAccess(ICurrentUser current) : IDocumentAccess, IAppService
 
     public IReadOnlyList<string> AllowedActions(DocumentDto d, SystemSettings settings, bool withinApprovalLimit) =>
         DocumentActionPolicy.AllowedActions(current.Role, current.UserId,
-            new DocumentActionContext(d.Status, d.RequiresApproval, d.IsLarge, d.CreatedById, d.SubmittedById), settings.AllowSelfApproval, withinApprovalLimit);
+            new DocumentActionContext(d.Status, d.RequiresApproval, d.IsLarge, d.CreatedByKey, d.SubmittedByKey), settings.AllowSelfApproval, withinApprovalLimit);
 
     public bool CanAct(DocumentListItem item, SystemSettings settings) =>
         DocumentActionPolicy.MayReview(current.Role, current.UserId,
-            new DocumentActionContext(item.Status, item.RequiresApproval, item.IsLarge, item.CreatedById, item.SubmittedById), settings.AllowSelfApproval);
+            new DocumentActionContext(item.Status, item.RequiresApproval, item.IsLarge, item.CreatedByKey, item.SubmittedByKey), settings.AllowSelfApproval);
 }

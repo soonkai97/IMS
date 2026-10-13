@@ -66,7 +66,7 @@ public class PartnerTests(ApiFixture fixture)
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
-        var request = new DocumentBuilder(fixture.Reference.DefaultWarehouseId).WithPartner(9_999_999).WithLines(new Line(product.Id, 1, 1m)).Build();
+        var request = new DocumentBuilder(fixture.Reference.DefaultWarehouseId).WithPartner(Guid.NewGuid()).WithLines(new Line(product.Id, 1, 1m)).Build();
 
         (await s.Admin.Documents.CreateReceiptAsync(request)).ShouldBeProblem(HttpStatusCode.BadRequest);
     }
@@ -79,7 +79,7 @@ public class PartnerTests(ApiFixture fixture)
         var noName = await admin.Partners.CreateAsync(new PartnerSaveRequest(PartnerType.Supplier, "", null, true));
         Assert.NotEmpty(noName.ShouldBeProblem(HttpStatusCode.BadRequest).ErrorsFor("Name"));
         (await admin.PostAsync("/api/partners", new { type = 99, name = "Bad type", isActive = true })).ShouldBeProblem(HttpStatusCode.BadRequest);
-        (await admin.Partners.UpdateAsync(9_999_999, Request(PartnerType.Supplier))).ShouldBeProblem(HttpStatusCode.NotFound);
+        (await admin.Partners.UpdateAsync(Guid.NewGuid(), Request(PartnerType.Supplier))).ShouldBeProblem(HttpStatusCode.NotFound);
     }
 
     // ---------- who may create, who may change ----------

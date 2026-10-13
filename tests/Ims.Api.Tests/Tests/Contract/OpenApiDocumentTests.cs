@@ -91,6 +91,87 @@ public partial class OpenApiDocumentTests(ApiFixture fixture)
         Assert.DoesNotContain(Everything(doc.RootElement), e => e.ValueKind == JsonValueKind.Object && e.TryGetProperty("pattern", out var p) && p.GetString()!.Contains(@"\d"));
     }
 
+    // ----- public ids (GUID plan: no integer id on the wire) -----
+
+    /// <summary>
+    /// The only properties and parameters named like an id that are NOT a public id: the audit entity id, which is text (a public id, a document number or an old integer).
+    /// No integer id is allowed: a ledger or audit row has no id on the wire (PID-01), so a scoped user cannot count what other warehouses write.
+    /// Everything else that is called <c>id</c> or ends in <c>Id</c> or <c>Ids</c> is a GUID.
+    /// </summary>
+    private static readonly string[] TextIds = ["AuditLogDto.entityId", "get /api/audit entityId"];
+
+    /// <summary>Query parameters of a bound filter record keep the C# casing (<c>WarehouseId</c>), properties and route values are camel case: positions are compared without case.</summary>
+    private static bool Same(string left, string right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsIdName(string name) => name.Equals("id", StringComparison.OrdinalIgnoreCase) || name.EndsWith("Id", StringComparison.Ordinal) || name.EndsWith("Ids", StringComparison.Ordinal);
+
+    /// <summary>The schema is a string with format uuid, possibly nullable (a type list, or a oneOf/anyOf with a null) or the item of a list of them.</summary>
+    private static bool IsUuid(JsonElement schema)
+    {
+        if (schema.TryGetProperty("items", out var items)) return IsUuid(items);
+        foreach (var key in new[] { "oneOf", "anyOf" })
+            if (schema.TryGetProperty(key, out var options)) return options.EnumerateArray().Where(o => !o.TryGetProperty("type", out var t) || t.ToString() != "null").All(IsUuid);
+        return schema.TryGetProperty("format", out var format) && format.GetString() == "uuid"
+               && (!schema.TryGetProperty("type", out var type) || !type.ToString().Contains("integer"));
+    }
+
+    /// <summary>Every property of every schema in the document, named or inline (the multipart form of an upload is inline), with where it was found.</summary>
+    private static IEnumerable<(string Where, string Name, JsonElement Schema)> Properties(JsonElement root)
+    {
+        foreach (var schema in root.GetProperty("components").GetProperty("schemas").EnumerateObject())
+            if (schema.Value.TryGetProperty("properties", out var named))
+                foreach (var property in named.EnumerateObject()) yield return ($"{schema.Name}.{property.Name}", property.Name, property.Value);
+
+        foreach (var (path, verb, operation) in Operations(root))
+            if (operation.TryGetProperty("requestBody", out var body) && body.GetProperty("content").TryGetProperty("multipart/form-data", out var form)
+                && form.GetProperty("schema").TryGetProperty("properties", out var fields))
+                foreach (var field in fields.EnumerateObject()) yield return ($"{verb} {path} form {field.Name}", field.Name, field.Value);
+    }
+
+    private static IEnumerable<(string Where, string Name, JsonElement Schema)> Parameters(JsonElement root) =>
+        Operations(root).SelectMany(o => o.Operation.TryGetProperty("parameters", out var p)
+            ? p.EnumerateArray().Select(x => ($"{o.Verb} {o.Path} {x.GetProperty("name").GetString()}", x.GetProperty("name").GetString()!, x.GetProperty("schema")))
+            : []);
+
+    [Fact]
+    public async Task Every_id_on_the_wire_is_a_uuid_except_the_text_audit_entity_id()
+    {
+        using var doc = await DocumentAsync();
+        var root = doc.RootElement;
+
+        var properties = Properties(root).Where(x => IsIdName(x.Name)).ToList();
+        var parameters = Parameters(root).Where(x => IsIdName(x.Name)).ToList();
+
+        // The test cannot pass by finding nothing: the ids of every entity a client addresses are in the set it checks.
+        string[] expected = ["WarehouseDto.id", "PartnerDto.id", "CategoryDto.id", "UomDto.id", "UserDto.id", "UserInfo.id", "ProductDto.id", "ApprovalRuleDto.id", "DocumentDto.id",
+            "DocumentListItem.id", "AttachmentDto.id", "AttachmentDto.ownerId", "LedgerRow.sourceDocId", "ImportResult.documentId", "DocumentLineDto.productId", "StockRow.productId"];
+        Assert.All(expected, name => Assert.Contains(properties, x => Same(x.Where, name)));
+        Assert.Contains(properties, x => Same(x.Where, "post /api/attachments form ownerId"));
+        Assert.Contains(parameters, x => Same(x.Where, "get /api/documents/{id} id"));
+        Assert.Contains(parameters, x => Same(x.Where, "get /api/attachments ownerId"));
+        Assert.Contains(parameters, x => Same(x.Where, "get /api/stock/ledger sourceDocId"));
+        Assert.Contains(parameters, x => Same(x.Where, "put /api/approval-rules/{id} id"));
+        Assert.DoesNotContain(properties, x => Same(x.Where, "LedgerRow.id") || Same(x.Where, "AuditLogDto.id"));   // PID-01: no row counter on the wire
+        Assert.True(properties.Count >= 38 && parameters.Count >= 30, $"{properties.Count} properties and {parameters.Count} parameters named like an id");
+
+        // The allow-list holds only positions that exist (a rename must not leave a stale entry that hides a new integer id).
+        Assert.All(TextIds, name => Assert.True(properties.Concat(parameters).Any(x => Same(x.Where, name)), $"{name} is not in the document any more"));
+
+        var notUuid = properties.Concat(parameters).Where(x => !TextIds.Any(p => Same(x.Where, p)) && !IsUuid(x.Schema)).Select(x => x.Where).ToList();
+        Assert.True(notUuid.Count == 0, "Ids that are not a uuid: " + string.Join(", ", notUuid));
+    }
+
+    [Fact]
+    public async Task A_document_line_has_no_id_of_its_own()
+    {
+        using var doc = await DocumentAsync();
+
+        var line = doc.RootElement.GetProperty("components").GetProperty("schemas").GetProperty("DocumentLineDto").GetProperty("properties");
+
+        Assert.False(line.TryGetProperty("id", out _));
+        Assert.True(line.TryGetProperty("productId", out _));
+    }
+
     // ----- operation ids -----
     [Fact]
     public async Task Every_operation_has_a_unique_id_of_the_form_Tag_action()

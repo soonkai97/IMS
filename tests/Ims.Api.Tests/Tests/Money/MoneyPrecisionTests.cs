@@ -21,7 +21,7 @@ namespace Ims.Api.Tests.Tests.Money;
 [Collection(ApiCollection.Name)]
 public class MoneyPrecisionTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private static string CostField(ProblemBody problem) => Assert.Single(problem.ErrorsFor("UnitCost"));
 
@@ -141,7 +141,7 @@ public class MoneyPrecisionTests(ApiFixture fixture)
 
     // ----- the average has more places than a person sees -----
     /// <summary>One piece left at an average of 10.005 (10.00 and 10.01 blended): the half-cent boundary of an average cost and a stock value.</summary>
-    private async Task<(StockScenario S, int ProductId)> OnePieceAtAHalfCentAsync()
+    private async Task<(StockScenario S, Guid ProductId)> OnePieceAtAHalfCentAsync()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
@@ -355,7 +355,7 @@ public class MoneyPrecisionTests(ApiFixture fixture)
 
     // ----- review MA1: a line at the average is not re-priced by opening the draft and saving it -----
     /// <summary>1,000 pieces at 0.0030 (a carton of 1,000 at 3.00 in stock), then a Warehouse staff receipt of 1,000 pieces: valued at the average, 3.00.</summary>
-    private async Task<(StockScenario S, int ProductId, DocumentDto StaffDraft)> StaffReceiptAtASubCentAverageAsync()
+    private async Task<(StockScenario S, Guid ProductId, DocumentDto StaffDraft)> StaffReceiptAtASubCentAverageAsync()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync(customize: b => b.WithConversion(fixture.Reference.CartonUnitId, 1000));
@@ -364,7 +364,7 @@ public class MoneyPrecisionTests(ApiFixture fixture)
         return (s, product.Id, (await s.Supervisor.Documents.GetAsync(draft.Id)).Data<DocumentDto>());
     }
 
-    private static DocumentSaveRequest SaveBack(StockScenario s, int warehouse, DocumentDto read) =>
+    private static DocumentSaveRequest SaveBack(StockScenario s, Guid warehouse, DocumentDto read) =>
         new DocumentBuilder(warehouse).WithPartner(s.Reference.SupplierId).WithLines(read.Lines.Select(l => new Line(l.ProductId, l.Qty, l.UnitCost, l.UomId)).ToArray()).Build();
 
     [Fact]

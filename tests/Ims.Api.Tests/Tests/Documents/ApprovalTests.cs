@@ -12,7 +12,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class ApprovalTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     /// <summary>A product with 100 units on hand at cost 100, so an issue of 60 is worth 6000 (above the seeded 5000 limit).</summary>
     private async Task<(StockScenario Scenario, ProductDto Product)> ExpensiveStockAsync()

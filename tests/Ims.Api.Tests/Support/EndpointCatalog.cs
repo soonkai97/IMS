@@ -11,7 +11,7 @@ namespace Ims.Api.Tests.Support;
 /// <summary>Every business endpoint with the permission that guards it. Adding an endpoint without adding it here is caught by the coverage test.</summary>
 public static class EndpointCatalog
 {
-    private const int MissingId = 999_999;
+    private static readonly Guid MissingPublicId = new("5e8c1a4e-0000-4000-8000-000000000999"); // the entities addressed by a public id: well formed, names no row
     private static readonly HttpMethod Get = HttpMethod.Get;
     private static readonly HttpMethod Post = HttpMethod.Post;
     private static readonly HttpMethod Put = HttpMethod.Put;
@@ -63,26 +63,26 @@ public static class EndpointCatalog
             r => new DocumentBuilder(r.DefaultWarehouseId).WithPartner(r.CustomerId).WithLines(new Line(r.DemoProductId, 1)).Build()),
 
         // ----- writes whose result depends on data: only "access was not denied" is checked -----
-        new("PUT users/{id}", Put, Permissions.UsersManage, _ => $"/api/users/{MissingId}",
+        new("PUT users/{id}", Put, Permissions.UsersManage, _ => $"/api/users/{MissingPublicId}",
             r => new UserSaveRequest("ghost", "ghost@example.test", "Ghost", Roles.Clerk, true, null, [r.DefaultWarehouseId]), OkWhenAllowed: false),
-        new("PUT products/{id}", Put, Permissions.MasterDataManage, _ => $"/api/products/{MissingId}", r => new ProductBuilder(r).Build(), OkWhenAllowed: false),
-        new("PUT categories/{id}", Put, Permissions.MasterDataManage, _ => $"/api/categories/{MissingId}", _ => new CategorySaveRequest("x"), OkWhenAllowed: false),
-        new("PUT units/{id}", Put, Permissions.MasterDataManage, _ => $"/api/units/{MissingId}", _ => new UomSaveRequest("X", "x"), OkWhenAllowed: false),
+        new("PUT products/{id}", Put, Permissions.MasterDataManage, _ => $"/api/products/{MissingPublicId}", r => new ProductBuilder(r).Build(), OkWhenAllowed: false),
+        new("PUT categories/{id}", Put, Permissions.MasterDataManage, _ => $"/api/categories/{MissingPublicId}", _ => new CategorySaveRequest("x"), OkWhenAllowed: false),
+        new("PUT units/{id}", Put, Permissions.MasterDataManage, _ => $"/api/units/{MissingPublicId}", _ => new UomSaveRequest("X", "x"), OkWhenAllowed: false),
         new("PUT warehouses/{id}", Put, Permissions.MasterDataManage, r => $"/api/warehouses/{r.DefaultWarehouseId}",
             r => new WarehouseSaveRequest(r.DefaultWarehouseCode, "Main warehouse", null, null, true)), // unchanged values: harmless, and inside every scoped supervisor's scope
-        new("PUT partners/{id}", Put, Permissions.MasterDataManage, _ => $"/api/partners/{MissingId}",
+        new("PUT partners/{id}", Put, Permissions.MasterDataManage, _ => $"/api/partners/{MissingPublicId}",
             _ => new PartnerSaveRequest(PartnerType.Supplier, "x", null, true), OkWhenAllowed: false),
-        new("PUT approval-rules/{id}", Put, Permissions.SettingsManage, _ => $"/api/approval-rules/{MissingId}",
+        new("PUT approval-rules/{id}", Put, Permissions.SettingsManage, _ => $"/api/approval-rules/{MissingPublicId}",
             _ => new ApprovalRuleSaveRequest(DocumentType.Issue, 1m, null, Roles.Supervisor, false), OkWhenAllowed: false),
-        new("PUT documents/{id}", Put, Permissions.DocumentCreate, _ => $"/api/documents/{MissingId}",
+        new("PUT documents/{id}", Put, Permissions.DocumentCreate, _ => $"/api/documents/{MissingPublicId}",
             r => new DocumentBuilder(r.DefaultWarehouseId).WithLines(new Line(r.DemoProductId, 1)).Build(), OkWhenAllowed: false),
-        new("POST documents/{id}/submit", Post, Permissions.DocumentCreate, _ => $"/api/documents/{MissingId}/submit", OkWhenAllowed: false),
-        new("POST documents/{id}/cancel", Post, Permissions.DocumentCreate, _ => $"/api/documents/{MissingId}/cancel", _ => new { reason = "x" }, OkWhenAllowed: false),
-        new("POST documents/{id}/approve", Post, Permissions.DocumentApprove, _ => $"/api/documents/{MissingId}/approve", OkWhenAllowed: false),
-        new("POST documents/{id}/reject", Post, Permissions.DocumentApprove, _ => $"/api/documents/{MissingId}/reject", _ => new { reason = "x" }, OkWhenAllowed: false),
-        new("POST documents/{id}/post", Post, Permissions.DocumentPost, _ => $"/api/documents/{MissingId}/post", _ => new { }, OkWhenAllowed: false),
-        new("POST documents/{id}/reverse", Post, Permissions.DocumentReverse, _ => $"/api/documents/{MissingId}/reverse", _ => new { reason = "x" }, OkWhenAllowed: false),
-        new("GET documents/{id}", Get, Permissions.StockRead, _ => $"/api/documents/{MissingId}", OkWhenAllowed: false),
+        new("POST documents/{id}/submit", Post, Permissions.DocumentCreate, _ => $"/api/documents/{MissingPublicId}/submit", OkWhenAllowed: false),
+        new("POST documents/{id}/cancel", Post, Permissions.DocumentCreate, _ => $"/api/documents/{MissingPublicId}/cancel", _ => new { reason = "x" }, OkWhenAllowed: false),
+        new("POST documents/{id}/approve", Post, Permissions.DocumentApprove, _ => $"/api/documents/{MissingPublicId}/approve", OkWhenAllowed: false),
+        new("POST documents/{id}/reject", Post, Permissions.DocumentApprove, _ => $"/api/documents/{MissingPublicId}/reject", _ => new { reason = "x" }, OkWhenAllowed: false),
+        new("POST documents/{id}/post", Post, Permissions.DocumentPost, _ => $"/api/documents/{MissingPublicId}/post", _ => new { }, OkWhenAllowed: false),
+        new("POST documents/{id}/reverse", Post, Permissions.DocumentReverse, _ => $"/api/documents/{MissingPublicId}/reverse", _ => new { reason = "x" }, OkWhenAllowed: false),
+        new("GET documents/{id}", Get, Permissions.StockRead, _ => $"/api/documents/{MissingPublicId}", OkWhenAllowed: false),
         new("POST import products", Post, Permissions.MasterDataManage, _ => "/api/import/products", OkWhenAllowed: false),
         new("POST import opening-stock", Post, Permissions.MasterDataManage, _ => "/api/import/opening-stock", OkWhenAllowed: false),
     ];

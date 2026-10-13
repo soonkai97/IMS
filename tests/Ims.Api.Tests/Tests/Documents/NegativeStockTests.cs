@@ -14,7 +14,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class NegativeStockTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     /// <summary>A product with 5 on hand and an issue of 8 submitted by the clerk while negative stock is allowed. Disposing restores the setting.</summary>
     private sealed class ShortIssue(StockScenario scenario, ProductDto product, DocumentDto submitted, IAsyncDisposable setting) : IAsyncDisposable

@@ -5,13 +5,13 @@ public class UpdateWarehouseHandler(IRepository<Warehouse> warehouses, ICurrentU
 {
     public async Task<WarehouseDto> HandleAsync(UpdateWarehouseCommand cmd, CancellationToken ct)
     {
-        // A supervisor assigned to one warehouse must not rename or deactivate another site's warehouse.
-        if (!current.CanAccessWarehouse(cmd.Id)) throw new ForbiddenException(Messages.NoWarehouseAccess);
         var code = cmd.Data.Code.Trim().ToUpperInvariant();
-        var w = await warehouses.GetByIdAsync(cmd.Id, ct) ?? throw new NotFoundException(Messages.WarehouseNotFound);
-        if (await warehouses.AnyAsync(new WarehouseCodeTakenSpec(code, cmd.Id), ct)) throw new ConflictException(Messages.WarehouseCodeExists);
+        // A supervisor assigned to one warehouse must not rename or deactivate another site's warehouse: it does not exist as far as they can tell (404, like an unknown id).
+        var w = await warehouses.FirstOrDefaultAsync(new ByPublicIdSpec<Warehouse>(cmd.Id), ct);
+        if (w is null || !current.CanAccessWarehouse(w.Id)) throw new NotFoundException(Messages.WarehouseNotFound);
+        if (await warehouses.AnyAsync(new WarehouseCodeTakenSpec(code, w.Id), ct)) throw new ConflictException(Messages.WarehouseCodeExists);
         w.Update(code, cmd.Data.Name, cmd.Data.Contact, cmd.Data.Notes, cmd.Data.IsActive);
         await uow.SaveChangesAsync(ct);
-        return new WarehouseDto(w.Id, w.Code, w.Name, w.Contact, w.Notes, w.IsActive);
+        return new WarehouseDto(w.PublicId, w.Code, w.Name, w.Contact, w.Notes, w.IsActive);
     }
 }

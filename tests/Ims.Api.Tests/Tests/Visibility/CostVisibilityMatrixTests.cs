@@ -28,7 +28,7 @@ public class CostVisibilityMatrixTests(ApiFixture fixture) : IAsyncLifetime
     private DocumentDto _held = null!;
     private ApprovalRuleScope _rule = null!;
 
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     /// <summary>A product with stock at average cost 4, a posted receipt and issue, an amount rule from 1, and an issue the Warehouse staff submitted that the rule holds for approval.</summary>
     public async Task InitializeAsync()

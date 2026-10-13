@@ -15,5 +15,5 @@ public sealed class PartnersClient(ApiClient api)
     }
 
     public Task<ApiResponse> CreateAsync(PartnerSaveRequest request) => api.PostAsync("/api/partners", request);
-    public Task<ApiResponse> UpdateAsync(int id, PartnerSaveRequest request) => api.PutAsync($"/api/partners/{id}", request);
+    public Task<ApiResponse> UpdateAsync(Guid id, PartnerSaveRequest request) => api.PutAsync($"/api/partners/{id}", request);
 }

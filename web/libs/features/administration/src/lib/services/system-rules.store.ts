@@ -9,9 +9,10 @@ import {
 } from '@ims/api';
 import { SystemSettingsStore } from '@ims/core/settings';
 import { ApiCommand, QueryLoader } from '@ims/utils';
+import { PublicId } from '@ims/models';
 
 export interface SaveRuleArgs {
-  readonly id?: number;
+  readonly id?: PublicId;
   readonly body: ApprovalRuleSaveRequest;
 }
 

@@ -5,7 +5,7 @@ namespace Ims.Api.Tests.Clients;
 
 public sealed class ProductsClient(ApiClient api)
 {
-    public Task<ApiResponse> ListAsync(string? search = null, bool? active = null, int? categoryId = null, int page = 1, int pageSize = 50)
+    public Task<ApiResponse> ListAsync(string? search = null, bool? active = null, Guid? categoryId = null, int page = 1, int pageSize = 50)
     {
         var query = $"?page={page}&pageSize={pageSize}";
         if (search is not null) query += $"&search={Uri.EscapeDataString(search)}";
@@ -14,7 +14,7 @@ public sealed class ProductsClient(ApiClient api)
         return api.GetAsync("/api/products" + query);
     }
 
-    public Task<ApiResponse> GetAsync(int id) => api.GetAsync($"/api/products/{id}");
+    public Task<ApiResponse> GetAsync(Guid id) => api.GetAsync($"/api/products/{id}");
     public Task<ApiResponse> LookupAsync(string code) => api.GetAsync($"/api/products/lookup?code={Uri.EscapeDataString(code)}");
 
     /// <summary>Looks a code up and returns the product; fails the test when no product owns it.</summary>
@@ -25,5 +25,5 @@ public sealed class ProductsClient(ApiClient api)
         return result.Product!;
     }
     public Task<ApiResponse> CreateAsync(ProductSaveRequest request) => api.PostAsync("/api/products", request);
-    public Task<ApiResponse> UpdateAsync(int id, ProductSaveRequest request) => api.PutAsync($"/api/products/{id}", request);
+    public Task<ApiResponse> UpdateAsync(Guid id, ProductSaveRequest request) => api.PutAsync($"/api/products/{id}", request);
 }

@@ -162,7 +162,7 @@ public class ReportExportTests(ApiFixture fixture)
     {
         var s = await StockScenario.CreateAsync(fixture);
 
-        var content = Xlsx.Read((await s.Admin.Reports.StockSummaryExportAsync(productId: 9_999_999)).Bytes);
+        var content = Xlsx.Read((await s.Admin.Reports.StockSummaryExportAsync(productId: Guid.NewGuid())).Bytes);
 
         Assert.Equal(ReportHeaders.StockSummary, content.Headers);
         Assert.Empty(content.Rows);

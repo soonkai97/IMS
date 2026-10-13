@@ -1,6 +1,6 @@
 import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import { DocumentLineDto, DocumentLineInput, DocumentType, ProductDto } from '@ims/api';
-import { MAX_QUANTITY, MAX_QUANTITY_DECIMALS, MAX_UNIT_COST } from '@ims/models';
+import { MAX_QUANTITY, MAX_QUANTITY_DECIMALS, MAX_UNIT_COST, PublicId } from '@ims/models';
 import {
   MONEY_DECIMALS,
   decimalPlaces,
@@ -13,19 +13,19 @@ import {
 
 /** One unit a line can be entered in, with the factor that converts it to the product's base unit. */
 export interface UomOption {
-  readonly uomId: number;
+  readonly uomId: PublicId;
   readonly code: string;
   readonly factorToBase: number;
 }
 
-export type UomCodes = ReadonlyMap<number, string>;
+export type UomCodes = ReadonlyMap<PublicId, string>;
 
 export interface LineValue {
-  readonly productId: number;
+  readonly productId: PublicId;
   readonly sku: string;
   readonly productName: string;
   readonly qty: number | null;
-  readonly uomId: number;
+  readonly uomId: PublicId;
   readonly unitCost: number | null;
   readonly remark: string;
   /** Stock on hand in the base unit; null when unknown (receipts, or not loaded yet). */
@@ -36,11 +36,11 @@ export interface LineValue {
 
 /** Typed form of one document line. The display-only members (sku, name, available...) are disabled controls. */
 export type LineGroup = FormGroup<{
-  productId: FormControl<number>;
+  productId: FormControl<PublicId>;
   sku: FormControl<string>;
   productName: FormControl<string>;
   qty: FormControl<number | null>;
-  uomId: FormControl<number>;
+  uomId: FormControl<PublicId>;
   unitCost: FormControl<number | null>;
   remark: FormControl<string>;
   available: FormControl<number | null>;

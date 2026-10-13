@@ -56,7 +56,7 @@ public static class Messages
     public const string UomNotFound = "Unit not found.";
     public static string SkuExists(string sku) => $"SKU '{sku}' already exists.";
     public static string BarcodeTaken(string code) => $"Barcode '{code}' already belongs to another product.";
-    public static string ProductMissing(int id) => $"Product {id} does not exist.";
+    public static string ProductMissing(Guid id) => $"Product {id} does not exist.";
     public static string ProductInactive(string sku) => $"Product {sku} is inactive and cannot be used on new documents.";
     public const string BarcodeInvalid = "Barcodes cannot be empty.";
     public const string ConversionMissing = "No unit conversion is defined for this product and unit.";
@@ -69,7 +69,6 @@ public static class Messages
     public const string WarehouseCodeRequired = "Warehouse code is required (up to 20 characters).";
     public const string WarehouseNameRequired = "Warehouse name is required.";
     public const string WarehouseCodeExists = "Warehouse code already exists.";
-    public const string NoWarehouseAccess = "You do not have access to this warehouse.";
     public const string WarehouseCannotChange = "The warehouse of an existing document cannot change.";
     public const string PartnerNotFound = "Partner not found.";
     public const string PartnerMissing = "Partner does not exist.";
@@ -142,12 +141,17 @@ public static class Messages
     public static string InsufficientStock(int productId, int warehouseId, decimal available, decimal requested) =>
         $"Insufficient stock for product {productId} in warehouse {warehouseId}: available {available}, requested {requested}.";
 
+    /// <summary>The conflict for a product or warehouse that cannot be named (it was soft-deleted): by public id, never by the integer keys.</summary>
+    public static string InsufficientStockUnnamed(Guid productPublicId, Guid warehousePublicId, decimal available, decimal requested) =>
+        $"Insufficient stock for product {productPublicId} in warehouse {warehousePublicId}: available {Quantity(available)}, requested {Quantity(requested)}.";
+
     /// <summary>The same conflict in words a person recognises: SKU, warehouse name and unit instead of ids (NV-06 / PS-01).</summary>
     public static string InsufficientStockNamed(string sku, string warehouseName, string uomCode, decimal available, decimal requested) =>
         $"Not enough stock for {sku} in {warehouseName}: {Quantity(available)} {uomCode} available, {Quantity(requested)} needed.";
 
     // ----- Attachments (files stored on disk, metadata in the database) -----
     public const string AttachmentNotFound = "File not found.";
+    public const string AttachmentOwnerRequired = "Choose what the file belongs to.";
     public const string FileEmpty = "The file is empty.";
     public const string FileTypeNotAllowed = "Only JPEG, PNG, WebP images and PDF documents can be uploaded.";
     public const string NotAllowed = "You do not have permission to do this.";

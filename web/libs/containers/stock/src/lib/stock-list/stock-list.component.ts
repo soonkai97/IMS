@@ -17,7 +17,7 @@ import { CatalogStore } from '@ims/features/catalog';
 import { ReportsStore } from '@ims/features/reports';
 import { StockQuery, StockStore } from '@ims/features/stock';
 import { WarehousesStore } from '@ims/features/warehousing';
-import { DEFAULT_PAGE_SIZE, PERMISSION } from '@ims/models';
+import { DEFAULT_PAGE_SIZE, PERMISSION, PublicId } from '@ims/models';
 import {
   SelectOption,
   TableColumn,
@@ -80,8 +80,8 @@ export class StockListPageComponent implements OnInit {
   private readonly store = inject(StockStore);
   private readonly warehouses = inject(WarehousesStore);
 
-  readonly warehouseControl = new FormControl<number | null>(null);
-  readonly categoryControl = new FormControl<number | null>(null);
+  readonly warehouseControl = new FormControl<PublicId | null>(null);
+  readonly categoryControl = new FormControl<PublicId | null>(null);
   readonly lowOnlyControl = new FormControl(false, { nonNullable: true });
 
   $searchInput = signal('');

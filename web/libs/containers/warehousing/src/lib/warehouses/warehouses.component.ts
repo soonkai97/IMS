@@ -16,7 +16,7 @@ import { I18nService, TranslatePipe } from '@ims/core/i18n';
 import { PermissionService } from '@ims/core/identity';
 import { ToastService } from '@ims/core/notification';
 import { WarehousesStore } from '@ims/features/warehousing';
-import { PERMISSION } from '@ims/models';
+import { PERMISSION, PublicId } from '@ims/models';
 import {
   TableColumn,
   UiBannerComponent,
@@ -90,7 +90,7 @@ export class WarehousesPageComponent implements OnInit {
   });
 
   $dialogOpen = signal(false);
-  $editingId = signal<number | undefined>(undefined);
+  $editingId = signal<PublicId | undefined>(undefined);
 
   $rows = this.store.$warehouses;
   $isLoading = this.store.list.$isLoading;
@@ -194,7 +194,7 @@ export class WarehousesPageComponent implements OnInit {
       .subscribe();
   }
 
-  private open(id: number | undefined, value: WarehouseFormValue): void {
+  private open(id: PublicId | undefined, value: WarehouseFormValue): void {
     this.store.save.reset();
     this.form.reset(value);
     this.$editingId.set(id);

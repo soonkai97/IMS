@@ -8,6 +8,10 @@ public class UomConversion : Entity
     public int ProductId { get; private set; }
     public int FromUomId { get; private set; }
     public int ToUomId { get; private set; }
+
+    // Navigation properties used by read-side projections.
+    public Uom FromUom { get; private set; } = null!;
+    public Uom ToUom { get; private set; } = null!;
     public decimal Factor { get; private set; }
 
     public static UomConversion Create(int fromUomId, int toUomId, decimal factor)

@@ -12,16 +12,19 @@ import {
   toLineInputs
 } from './document-lines';
 
-const PCS = { uomId: 1, code: 'PCS', factorToBase: 1 };
-const CARTON = { uomId: 2, code: 'CTN', factorToBase: 12 };
+/** A GUID for a small number, so the cases stay readable. */
+const id = (n: number): string => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
+const PCS = { uomId: id(1), code: 'PCS', factorToBase: 1 };
+const CARTON = { uomId: id(2), code: 'CTN', factorToBase: 12 };
 
 function line(overrides: Partial<LineValue> = {}): LineValue {
   return {
-    productId: 1,
+    productId: id(1),
     sku: 'WIDGET-A',
     productName: 'Widget A',
     qty: 1,
-    uomId: 1,
+    uomId: id(1),
     unitCost: null,
     remark: '',
     available: null,
@@ -33,7 +36,7 @@ function line(overrides: Partial<LineValue> = {}): LineValue {
 
 describe('document line totals', () => {
   it('sums quantities in the base unit (a carton counts as 12 pieces)', () => {
-    const lines = [line({ qty: 3 }), line({ productId: 2, qty: 2, uomId: 2 })];
+    const lines = [line({ qty: 3 }), line({ productId: id(2), qty: 2, uomId: id(2) })];
 
     expect(computeTotals(lines, DocumentType.Receipt).totalQty).toBe(27);
     expect(baseQuantity(lines[1])).toBe(24);
@@ -42,8 +45,8 @@ describe('document line totals', () => {
   it('computes the receipt amount from quantity and unit cost, ignoring blank costs', () => {
     const lines = [
       line({ qty: 10, unitCost: 2.5 }),
-      line({ productId: 2, qty: 4, unitCost: null }),
-      line({ productId: 3, qty: 2, unitCost: 0.1 })
+      line({ productId: id(2), qty: 4, unitCost: null }),
+      line({ productId: id(3), qty: 2, unitCost: 0.1 })
     ];
 
     const totals = computeTotals(lines, DocumentType.Receipt);
@@ -56,8 +59,8 @@ describe('document line totals', () => {
   it('NV-22: a line being typed (negative or empty quantity) adds nothing: never "-4 units"', () => {
     const lines = [
       line({ qty: -5 }),
-      line({ productId: 2, qty: null }),
-      line({ productId: 3, qty: 1 })
+      line({ productId: id(2), qty: null }),
+      line({ productId: id(3), qty: 1 })
     ];
 
     expect(computeTotals(lines, DocumentType.Receipt).totalQty).toBe(1);
@@ -66,10 +69,10 @@ describe('document line totals', () => {
   it('ER-12: a line the form rejects is left out of the totals line (count, quantity, amount)', () => {
     const lines = [
       line({ qty: 0.0001, unitCost: 10 }),
-      line({ productId: 2, qty: 0.00001, unitCost: 10 }),
-      line({ productId: 3, qty: 0, unitCost: 10 }),
-      line({ productId: 4, qty: null, unitCost: 10 }),
-      line({ productId: 5, qty: 2, unitCost: 10 })
+      line({ productId: id(2), qty: 0.00001, unitCost: 10 }),
+      line({ productId: id(3), qty: 0, unitCost: 10 }),
+      line({ productId: id(4), qty: null, unitCost: 10 }),
+      line({ productId: id(5), qty: 2, unitCost: 10 })
     ];
 
     const totals = computeTotals(lines, DocumentType.Receipt);
@@ -83,11 +86,11 @@ describe('document line totals', () => {
   it('R04: the amount is the sum of line amounts rounded to cents, and skips a rejected unit cost', () => {
     const half = [
       line({ qty: 0.5, unitCost: 0.01 }),
-      line({ productId: 2, qty: 0.5, unitCost: 0.01 })
+      line({ productId: id(2), qty: 0.5, unitCost: 0.01 })
     ];
     const badCost = [
       line({ qty: 2, unitCost: 1.005 }),
-      line({ productId: 2, qty: 3, unitCost: 1.1 })
+      line({ productId: id(2), qty: 3, unitCost: 1.1 })
     ];
 
     expect(computeTotals(half, DocumentType.Receipt).totalAmount).toBe(0.02);
@@ -97,8 +100,8 @@ describe('document line totals', () => {
   it('R04: the amount matches the API at the half cent (2.5 x 0.87 and 1.5 x 1.45 are 2.18 each, not 2.17)', () => {
     const lines = [
       line({ qty: 2.5, unitCost: 0.87 }),
-      line({ productId: 2, qty: 1.5, unitCost: 1.45 }),
-      line({ productId: 3, qty: 9.75, unitCost: 624.18 })
+      line({ productId: id(2), qty: 1.5, unitCost: 1.45 }),
+      line({ productId: id(3), qty: 9.75, unitCost: 624.18 })
     ];
 
     expect(computeTotals(lines, DocumentType.Receipt).totalAmount).toBe(6090.12);
@@ -118,7 +121,7 @@ describe('document line totals', () => {
 
   it('removes float noise (0.1 + 0.2 shows as 0.3)', () => {
     const totals = computeTotals(
-      [line({ qty: 0.1 }), line({ productId: 2, qty: 0.2 })],
+      [line({ qty: 0.1 }), line({ productId: id(2), qty: 0.2 })],
       DocumentType.Receipt
     );
 
@@ -128,8 +131,8 @@ describe('document line totals', () => {
   it('counts the issue lines the stock does not cover', () => {
     const lines = [
       line({ qty: 30, available: 12 }),
-      line({ productId: 2, qty: 100, available: 540 }),
-      line({ productId: 3, qty: 5, available: null })
+      line({ productId: id(2), qty: 100, available: 540 }),
+      line({ productId: id(3), qty: 5, available: null })
     ];
 
     expect(computeTotals(lines, DocumentType.Issue).shortLineCount).toBe(1);
@@ -144,23 +147,22 @@ describe('shortfall', () => {
   });
 
   it('converts the entered unit before comparing (2 cartons need 24 pieces)', () => {
-    expect(lineShortfall(line({ qty: 2, uomId: 2, available: 20 }))).toBe(4);
+    expect(lineShortfall(line({ qty: 2, uomId: id(2), available: 20 }))).toBe(4);
   });
 
   it('offers the quantity the stock covers, in the unit of the line', () => {
-    expect(maxCoveredQuantity(line({ qty: 5, uomId: 2, available: 30 }))).toBe(2.5);
+    expect(maxCoveredQuantity(line({ qty: 5, uomId: id(2), available: 30 }))).toBe(2.5);
     expect(maxCoveredQuantity(line({ qty: 30, available: 12 }))).toBe(12);
   });
 });
 
 describe('lines of a saved document', () => {
   const dto: DocumentLineDto = {
-    id: 9,
-    productId: 1,
+    productId: id(1),
     sku: 'WIDGET-A',
     productName: 'Widget A',
     qty: 2,
-    uomId: 2,
+    uomId: id(2),
     uomCode: 'CTN',
     baseQty: 24,
     unitCost: 0,
@@ -198,12 +200,12 @@ describe('lines of a saved document', () => {
 describe('unit options', () => {
   it('lists the base unit and every conversion that reaches it', () => {
     const product = {
-      baseUomId: 1,
+      baseUomId: id(1),
       baseUomCode: 'PCS',
-      conversions: [{ fromUomId: 2, toUomId: 1, factor: 12 }]
+      conversions: [{ fromUomId: id(2), toUomId: id(1), factor: 12 }]
     } as ProductDto;
 
-    const options = buildUomOptions(product, new Map([[2, 'CTN']]));
+    const options = buildUomOptions(product, new Map([[id(2), 'CTN']]));
 
     expect(options).toEqual([PCS, CARTON]);
   });

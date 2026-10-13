@@ -77,7 +77,7 @@ public class DocumentNumberingTests(ApiFixture fixture)
         var warehouse = await s.NewWarehouseAsync();
         var product = await s.NewProductAsync();
         var good = new DocumentBuilder(warehouse.Id).WithLines(new Line(product.Id, 1, 1m)).Build();
-        var bad = new DocumentBuilder(warehouse.Id).WithLines(new Line(9_999_999, 1, 1m)).Build();
+        var bad = new DocumentBuilder(warehouse.Id).WithLines(new Line(Guid.NewGuid(), 1, 1m)).Build();
         (await s.Admin.Documents.CreateReceiptAsync(good)).ShouldBeOk();
 
         (await s.Admin.Documents.CreateReceiptAsync(bad)).ShouldBeProblem(HttpStatusCode.BadRequest);

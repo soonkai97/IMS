@@ -15,9 +15,11 @@ import { DocumentsStore } from '@ims/features/documents';
 import { MAX_PAGE_SIZE } from '@ims/models';
 import { ApprovalsStore } from './approvals.store';
 
+const guid = (n: number): string => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
 function item(id: number, overrides: Partial<DocumentListItem> = {}): DocumentListItem {
   return {
-    id,
+    id: guid(id),
     type: DocumentType.Issue,
     no: `ISS-${id}`,
     status: DocumentStatus.Submitted,
@@ -28,9 +30,9 @@ function item(id: number, overrides: Partial<DocumentListItem> = {}): DocumentLi
     totalQty: 5,
     totalAmount: 0,
     createdBy: 'staff',
-    createdById: 3,
+    createdById: guid(3),
     createdByName: 'Staff',
-    submittedById: 3,
+    submittedById: guid(3),
     submittedBy: 'staff',
     submittedByName: 'Staff',
     submittedAt: '2026-10-09T02:00:00Z',
@@ -67,7 +69,7 @@ describe('ApprovalsStore', () => {
     providers: [
       mockProvider(DocumentsClient),
       mockProvider(DocumentsStore, { counts: { $data: counts, load: jest.fn() } }),
-      mockProvider(PermissionService, { $userId: signal(9) }),
+      mockProvider(PermissionService, { $userId: signal(guid(9)) }),
       mockProvider(SystemSettingsStore, {
         $allowSelfApproval: signal(false),
         ensureLoaded: jest.fn()
@@ -99,7 +101,7 @@ describe('ApprovalsStore', () => {
       of(
         page([
           item(3, { submittedAt: '2026-10-09T05:00:00Z' }),
-          item(2, { submittedAt: '2026-10-09T03:00:00Z', submittedById: 9, canAct: false }),
+          item(2, { submittedAt: '2026-10-09T03:00:00Z', submittedById: guid(9), canAct: false }),
           item(1, { submittedAt: '2026-10-09T01:00:00Z' }),
           item(4, { submittedAt: '2026-10-09T04:00:00Z', isLarge: true, canAct: false })
         ])
@@ -108,9 +110,9 @@ describe('ApprovalsStore', () => {
 
     spectator.service.refresh();
 
-    expect(spectator.service.submitted.$data()?.map(d => d.id)).toEqual([1, 2, 4, 3]);
-    expect(spectator.service.$waitingForMe().map(d => d.id)).toEqual([1, 3]);
-    expect(spectator.service.$submittedByMe().map(d => d.id)).toEqual([2]);
+    expect(spectator.service.submitted.$data()?.map(d => d.id)).toEqual([1, 2, 4, 3].map(guid));
+    expect(spectator.service.$waitingForMe().map(d => d.id)).toEqual([guid(1), guid(3)]);
+    expect(spectator.service.$submittedByMe().map(d => d.id)).toEqual([guid(2)]);
   });
 
   it("waits on the API's canAct alone (a large document is not every reviewer's)", () => {
@@ -121,7 +123,7 @@ describe('ApprovalsStore', () => {
 
     spectator.service.refresh();
 
-    expect(spectator.service.$waitingForMe().map(d => d.id)).toEqual([2]);
+    expect(spectator.service.$waitingForMe().map(d => d.id)).toEqual([guid(2)]);
   });
 
   it('takes the badge number from the server counts', () => {

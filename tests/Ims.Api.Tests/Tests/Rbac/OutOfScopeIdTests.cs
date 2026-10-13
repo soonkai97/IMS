@@ -16,7 +16,7 @@ namespace Ims.Api.Tests.Tests.Rbac;
 [Collection(ApiCollection.Name)]
 public class OutOfScopeIdTests(ApiFixture fixture)
 {
-    private const int MissingId = int.MaxValue;
+    private static readonly Guid MissingId = Guid.NewGuid();
 
     private const string GetDocument = "get a document";
     private const string UpdateDocument = "update a document";
@@ -31,7 +31,7 @@ public class OutOfScopeIdTests(ApiFixture fixture)
     private const string DownloadFile = "download a file";
     private const string DeleteFile = "delete a file";
 
-    private sealed record Setup(StockScenario Scenario, int DocumentId, int FileId, DocumentSaveRequest Edit);
+    private sealed record Setup(StockScenario Scenario, Guid DocumentId, Guid FileId, DocumentSaveRequest Edit);
 
     private static AttachmentsClient Files(ApiClient client) => new(client);
 
@@ -54,7 +54,7 @@ public class OutOfScopeIdTests(ApiFixture fixture)
     }
 
     /// <summary>The id a route is given when it is real but out of scope, and the call itself.</summary>
-    private static (int KnownId, Func<int, Task<ApiResponse>> Call) Route(string route, Setup setup)
+    private static (Guid KnownId, Func<Guid, Task<ApiResponse>> Call) Route(string route, Setup setup)
     {
         var s = setup.Scenario;
         return route switch

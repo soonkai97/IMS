@@ -1,11 +1,12 @@
-import { signal } from '@angular/core';
+import { computed, signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { DocumentCounts, StockSummary } from '@ims/api';
+import { isHandledInline } from '@ims/core/http';
 import { PermissionService } from '@ims/core/identity';
 import { DocumentsStore } from '@ims/features/documents';
 import { StockStore } from '@ims/features/stock';
-import { PERMISSION } from '@ims/models';
+import { ApiError, ApiOperation, IDLE_OPERATION, PERMISSION, failureOperation } from '@ims/models';
 import { HomePageComponent } from './home.component';
 
 const COUNTS: DocumentCounts = {
@@ -21,6 +22,7 @@ describe('HomePageComponent', () => {
   const counts = signal<DocumentCounts | undefined>(COUNTS);
   const granted = new Set<string>();
   const countsLoad = jest.fn();
+  const countsOperation = signal<ApiOperation>(IDLE_OPERATION);
   const createComponent = createComponentFactory({
     component: HomePageComponent,
     detectChanges: false,
@@ -28,7 +30,15 @@ describe('HomePageComponent', () => {
       provideRouter([]),
       {
         provide: DocumentsStore,
-        useValue: { counts: { $data: counts, load: countsLoad, reload: jest.fn() } }
+        useValue: {
+          counts: {
+            $data: counts,
+            $operation: countsOperation,
+            $isFailed: computed(() => countsOperation().status === 'failure'),
+            load: countsLoad,
+            reload: jest.fn()
+          }
+        }
       },
       {
         provide: StockStore,
@@ -37,6 +47,7 @@ describe('HomePageComponent', () => {
             $data: signal(SUMMARY),
             $isLoading: signal(false),
             $isFailed: signal(false),
+            $operation: signal<ApiOperation>(IDLE_OPERATION),
             load: jest.fn(),
             reload: jest.fn()
           }
@@ -73,7 +84,10 @@ describe('HomePageComponent', () => {
       );
   }
 
-  beforeEach(() => countsLoad.mockClear());
+  beforeEach(() => {
+    countsLoad.mockClear();
+    countsOperation.set(IDLE_OPERATION);
+  });
 
   it('warehouse staff and clerks see returned documents and their drafts, nothing about approvals', () => {
     const text = render(PERMISSION.StockRead, PERMISSION.DocumentCreate);
@@ -140,5 +154,16 @@ describe('HomePageComponent', () => {
     render();
 
     expect(countsLoad).not.toHaveBeenCalled();
+  });
+
+  it('flags both loads handledInline, and a failed counts call alone is one alert with the mapped sentence (R11)', () => {
+    const error = { status: 503, message: 'The database is not available.' } as ApiError;
+    countsOperation.set(failureOperation(error));
+    render(PERMISSION.StockRead);
+
+    expect(isHandledInline(countsLoad.mock.calls[0][1], 503)).toBe(true);
+    const alerts = spectator.queryAll('[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].textContent).toContain('The database is not available.');
   });
 });

@@ -39,6 +39,7 @@ import {
 } from '@ims/core/i18n';
 import { CanDirective, PermissionService } from '@ims/core/identity';
 import { HasUnsavedChanges, PageTitleService } from '@ims/core/navigation';
+import { handledInline } from '@ims/core/http';
 import { ConfirmService, ToastService } from '@ims/core/notification';
 import { SystemSettingsStore } from '@ims/core/settings';
 import { CatalogStore, ProductsStore } from '@ims/features/catalog';
@@ -65,6 +66,7 @@ import {
   DocumentAction,
   MIN_REASON_LENGTH,
   PERMISSION,
+  PublicId,
   toDocumentActions
 } from '@ims/models';
 import { PickedProduct, ProductPickerComponent } from '@ims/containers/catalog-shared';
@@ -92,7 +94,7 @@ import {
   UiTabsComponent,
   UiTextareaComponent
 } from '@ims/ui';
-import { applyFieldErrors, controlSignal, isDefined } from '@ims/utils';
+import { applyFieldErrors, controlSignal, isDefined, normalizePublicId } from '@ims/utils';
 import { DocumentActionsComponent } from '../document-actions/document-actions.component';
 import { DocumentLineEditorComponent } from '../line-editor/line-editor.component';
 import { DocumentEditorViewService } from './document-editor.view-service';
@@ -200,25 +202,30 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   $warehouseParam = input<string | undefined>(undefined, { alias: 'warehouseId' });
 
   /** Id of the document this editor just created: the store already holds it, so the route change needs no reload. */
-  private justCreatedId: number | undefined;
+  private justCreatedId: PublicId | undefined;
 
   $tab = signal<string>(TAB_ITEMS);
   $addItemOpen = signal(false);
   $lastAdded = signal<string | undefined>(undefined);
   $showLineError = signal(false);
 
-  /** The id in the URL; undefined on `/new`. */
+  /** The id in the URL; undefined on `/new` and when it is not a GUID. */
   private readonly $routeDocumentId = computed(() => {
     const id = this.$id();
-    return id === undefined || id === NEW_DOCUMENT_ID ? undefined : Number(id);
+    return id === undefined || id === NEW_DOCUMENT_ID ? undefined : normalizePublicId(id);
+  });
+  /** An old bookmark (`/receipts/123`): not a document, so it is a not-found page and no request is made. */
+  private readonly $unusableRouteId = computed(() => {
+    const id = this.$id();
+    return id !== undefined && id !== NEW_DOCUMENT_ID && this.$routeDocumentId() === undefined;
   });
   /**
    * Set the moment a new document is created. The editor is bound to the saved document from then on (so a repeated
    * Save or Submit updates it instead of creating a second one) even before the router has moved `/new` to `/<id>`.
    */
-  private readonly $createdId = signal<number | undefined>(undefined);
+  private readonly $createdId = signal<PublicId | undefined>(undefined);
   readonly $documentId = computed(() => this.$routeDocumentId() ?? this.$createdId());
-  readonly $isNew = computed(() => this.$documentId() === undefined);
+  readonly $isNew = computed(() => this.$documentId() === undefined && !this.$unusableRouteId());
   readonly $isIssue = computed(() => this.$type() === DocumentType.Issue);
   readonly $document = computed<DocumentDto | undefined>(() => {
     const document = this.documents.detail.$data();
@@ -241,9 +248,13 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     () => this.documents.detail.$isLoading() && this.$document() === undefined
   );
   readonly $loadFailed = this.documents.detail.$isFailed;
+  /** The load call raises no toast; this banner is the one announcement, with the sentence the interceptor mapped. */
+  readonly $loadErrorMessage = computed(() => this.documents.detail.$operation().error?.message);
   /** The id in the URL belongs to no document (an old bookmark): a page of its own, and retrying cannot help. */
   readonly $notFound = computed(
-    () => this.documents.detail.$operation().error?.kind === API_ERROR_KIND.NotFound
+    () =>
+      this.$unusableRouteId() ||
+      this.documents.detail.$operation().error?.kind === API_ERROR_KIND.NotFound
   );
   readonly $canPost = computed(() => this.permissions.has(PERMISSION.DocumentPost));
   /** The button that was tapped shows the spinner, not whichever button is primary (NV-21). */
@@ -557,15 +568,18 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   /** Opens what the route names; also when the same page is reused for another document (EA-20). */
   private readonly openDocument = effect(() => {
     const id = this.$documentId();
+    const unusable = this.$unusableRouteId();
     untracked(() => {
-      if (id === undefined) {
+      if (unusable) {
+        this.documents.detail.reset();
+      } else if (id === undefined) {
         this.documents.detail.reset();
         this.view.startNew(null);
         this.prefillFromLink();
       } else if (id === this.justCreatedId) {
         this.justCreatedId = undefined;
       } else {
-        this.documents.detail.load(id);
+        this.documents.detail.load(id, handledInline());
       }
     });
   });
@@ -588,13 +602,21 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   });
 
   private readonly preselectWarehouse = effect(() => {
-    const options = this.$warehouseOptions();
+    const warehouses = this.warehouses.$activeWarehouses();
     if (
       this.$isNew() &&
-      options.length === 1 &&
+      warehouses.length === 1 &&
       this.view.header.controls.warehouseId.value === null
     ) {
-      untracked(() => this.view.header.controls.warehouseId.setValue(Number(options[0].value)));
+      untracked(() => this.view.header.controls.warehouseId.setValue(warehouses[0].id));
+    }
+  });
+
+  private supportLoaded = false;
+
+  private readonly loadSupportWhenOpened = effect(() => {
+    if (this.$document()) {
+      untracked(() => this.loadSupport());
     }
   });
 
@@ -618,12 +640,26 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     this.destroyRef.onDestroy(() => this.pageTitle.setDetail(undefined));
   }
 
-  ngOnInit(): void {
-    this.view.configure(this.$type());
+  /**
+   * Categories, warehouses, settings and partners for the form. A saved document asks for them once it has opened: with the
+   * API down, its one banner covers the failure and these calls would only add a toast saying the same thing.
+   */
+  private loadSupport(): void {
+    if (this.supportLoaded) {
+      return;
+    }
+    this.supportLoaded = true;
     this.catalog.ensureLoaded();
     this.warehouses.ensureLoaded();
     this.settings.ensureLoaded();
     this.partners.loadActive(this.$isIssue() ? PartnerType.Customer : PartnerType.Supplier);
+  }
+
+  ngOnInit(): void {
+    this.view.configure(this.$type());
+    if (this.$isNew()) {
+      this.loadSupport();
+    }
 
     this.view.header.controls.warehouseId.valueChanges
       .pipe(
@@ -792,8 +828,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
 
   /** From Low stock: the warehouse and the product are chosen already and the cursor lands on the quantity (NV-13). */
   private prefillFromLink(): void {
-    const warehouseId = Number(this.$warehouseParam());
-    if (Number.isInteger(warehouseId) && warehouseId > 0) {
+    const warehouseId = normalizePublicId(this.$warehouseParam());
+    if (warehouseId) {
       this.view.header.controls.warehouseId.setValue(warehouseId);
     }
     const sku = this.$sku();
@@ -852,7 +888,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     if (!isStockConflictError(error) || !error) {
       return undefined;
     }
-    const productId = Number(error.extensions['productId']);
+    const productId = error.extensions['productId'];
     const line = this.$values().find(value => value.productId === productId);
     return {
       sku: line?.sku ?? String(productId),

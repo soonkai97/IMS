@@ -2,9 +2,10 @@ import { Injectable, computed, inject } from '@angular/core';
 import { tap } from 'rxjs';
 import { WarehouseDto, WarehouseSaveRequest, WarehousesClient } from '@ims/api';
 import { ApiCommand, QueryLoader } from '@ims/utils';
+import { PublicId } from '@ims/models';
 
 export interface SaveWarehouseArgs {
-  readonly id?: number;
+  readonly id?: PublicId;
   readonly body: WarehouseSaveRequest;
 }
 

@@ -5,7 +5,7 @@ public class UpdateApprovalRuleHandler(IRepository<ApprovalRule> rules, IUnitOfW
 {
     public async Task<ApprovalRuleDto> HandleAsync(UpdateApprovalRuleCommand cmd, CancellationToken ct)
     {
-        var rule = await rules.GetByIdAsync(cmd.Id, ct) ?? throw new NotFoundException(Messages.RuleNotFound);
+        var rule = await rules.FirstOrDefaultAsync(new ByPublicIdSpec<ApprovalRule>(cmd.Id), ct) ?? throw new NotFoundException(Messages.RuleNotFound);
         rule.Update(cmd.Data.DocType, cmd.Data.AmountThreshold, cmd.Data.QtyThreshold, cmd.Data.RoleRequired, cmd.Data.IsActive);
         await uow.SaveChangesAsync(ct);
         return CreateApprovalRuleHandler.ToDto(rule);

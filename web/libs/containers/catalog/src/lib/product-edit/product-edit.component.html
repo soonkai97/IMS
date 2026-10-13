@@ -4,7 +4,7 @@
   [backLabel]="'products.title' | t"
 >
   <div actions>
-    @if ($canManage()) {
+    @if ($canManage() && !$notFound()) {
       <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
         'common.save' | t
       }}</app-button>
@@ -12,7 +12,9 @@
   </div>
 </app-page-header>
 
-@if ($isLoading() && !$isNew()) {
+@if ($notFound()) {
+  <app-empty-state icon="file" [message]="'notFound.body' | t" />
+} @else if ($isLoading() && !$isNew()) {
   <app-skeleton [count]="4" />
 } @else {
   <form class="product-edit-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>

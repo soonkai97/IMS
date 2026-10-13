@@ -1,4 +1,4 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Attachments;
 
-public record ListAttachmentsQuery(AttachmentOwnerType OwnerType, int OwnerId) : IQuery<IReadOnlyList<AttachmentDto>>;
+public record ListAttachmentsQuery(AttachmentOwnerType OwnerType, Guid OwnerId) : IQuery<IReadOnlyList<AttachmentDto>>;

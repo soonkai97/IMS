@@ -9,14 +9,15 @@ import {
   UomSaveRequest
 } from '@ims/api';
 import { ApiCommand, QueryLoader } from '@ims/utils';
+import { PublicId } from '@ims/models';
 
 export interface SaveCategoryArgs {
-  readonly id?: number;
+  readonly id?: PublicId;
   readonly body: CategorySaveRequest;
 }
 
 export interface SaveUnitArgs {
-  readonly id?: number;
+  readonly id?: PublicId;
   readonly body: UomSaveRequest;
 }
 
@@ -45,7 +46,7 @@ export class CatalogStore {
   readonly $categories = computed(() => this.categories.$data() ?? []);
   readonly $units = computed(() => this.units.$data() ?? []);
   /** uomId -> code, for line editors that only know ids. */
-  readonly $unitCodes = computed<ReadonlyMap<number, string>>(
+  readonly $unitCodes = computed<ReadonlyMap<PublicId, string>>(
     () => new Map(this.$units().map(unit => [unit.id, unit.code]))
   );
 

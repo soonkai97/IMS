@@ -10,10 +10,10 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class UnpostedAmountTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     /// <summary>100 units at cost 2.5: an issue of 4,000 would be worth 10,000; the seeded rule fires from 5,000.</summary>
-    private async Task<(StockScenario S, int ProductId)> StockAsync(decimal qty = 5000, decimal cost = 2.5m)
+    private async Task<(StockScenario S, Guid ProductId)> StockAsync(decimal qty = 5000, decimal cost = 2.5m)
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();

@@ -7,6 +7,9 @@ import { CatalogStore, ProductsStore } from '@ims/features/catalog';
 import { IDLE_OPERATION } from '@ims/models';
 import { ProductEditPageComponent } from './product-edit.component';
 
+const NINE = '00000000-0000-4000-8000-000000000009';
+const EIGHT = '00000000-0000-4000-8000-000000000008';
+
 describe('ProductEditPageComponent follows the URL (EA-20)', () => {
   let spectator: Spectator<ProductEditPageComponent>;
   const load = jest.fn();
@@ -43,21 +46,31 @@ describe('ProductEditPageComponent follows the URL (EA-20)', () => {
   });
 
   it('loads the product named in the URL', async () => {
-    spectator = createComponent({ props: { id: '9' } as never });
+    spectator = createComponent({ props: { id: NINE } as never });
     await settle();
 
-    expect(load).toHaveBeenCalledWith(9);
+    expect(load).toHaveBeenCalledWith(NINE);
   });
 
   it('loads the other product when the page is reused for a new id (Back/Forward between products)', async () => {
-    spectator = createComponent({ props: { id: '9' } as never });
+    spectator = createComponent({ props: { id: NINE } as never });
     await settle();
 
-    spectator.fixture.componentRef.setInput('id', '8');
+    spectator.fixture.componentRef.setInput('id', EIGHT);
     await settle();
 
-    expect(load).toHaveBeenLastCalledWith(8);
+    expect(load).toHaveBeenLastCalledWith(EIGHT);
     expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('an old numeric bookmark is a not-found page: no request, no form, nothing to save', async () => {
+    spectator = createComponent({ props: { id: '123' } as never });
+    await settle();
+
+    expect(load).not.toHaveBeenCalled();
+    expect(spectator.query('h1')?.textContent).toContain('Page not found');
+    expect(spectator.query('form')).toBeNull();
+    expect(spectator.queryAll('button').length).toBe(0);
   });
 
   it('a new product starts empty instead of loading anything', async () => {

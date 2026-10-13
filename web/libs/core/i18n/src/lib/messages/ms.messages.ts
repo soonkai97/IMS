@@ -524,6 +524,6 @@ export const MS_MESSAGES: Messages = {
   'audit.searchLabel': 'Cari log audit',
   'audit.searchPlaceholder': 'No. dokumen atau nama objek',
   'audit.show': 'Papar',
-  'audit.showFor': 'Papar butiran {action} pada {entity} pada {when}, entri {id}',
+  'audit.showFor': 'Papar butiran {action} pada {entity} pada {when}, entri {number}',
   'audit.title': 'Log audit'
 };

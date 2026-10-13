@@ -17,6 +17,7 @@ import { Router } from '@angular/router';
 import { tap } from 'rxjs';
 import { I18nService, LanguageSelectComponent, TranslatePipe } from '@ims/core/i18n';
 import { AuthService, HOME_ROUTE, SESSION_EXPIRED_REASON } from '@ims/core/identity';
+import { ToastHostComponent } from '@ims/core/notification';
 import { API_ERROR_KIND, HTTP_STATUS, MAX_PASSWORD_LENGTH, MAX_USERNAME_LENGTH } from '@ims/models';
 import {
   UiBannerComponent,
@@ -41,6 +42,7 @@ function safeReturnUrl(url: string | undefined): string {
   imports: [
     ReactiveFormsModule,
     LanguageSelectComponent,
+    ToastHostComponent,
     TranslatePipe,
     UiBannerComponent,
     UiButtonComponent,
@@ -93,7 +95,7 @@ export class LoginPageComponent implements OnInit {
     }
     return error.kind === API_ERROR_KIND.Unauthorized
       ? this.i18n.t('login.error.invalid')
-      : error.detail;
+      : error.detail || (error.message ?? this.i18n.t('error.generic'));
   });
   readonly isDev = isDevMode();
 

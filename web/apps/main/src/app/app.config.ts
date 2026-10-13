@@ -28,6 +28,7 @@ import {
 import { I18nService, provideUiText } from '@ims/core/i18n';
 import { AuthService, authInterceptor } from '@ims/core/identity';
 import { NAV_BADGE_SOURCES, PageTitleStrategy, ROUTE_FADE } from '@ims/core/navigation';
+import { provideDialogFeedback } from '@ims/core/notification';
 import { PwaService, providePwa } from '@ims/core/pwa';
 import { ApprovalsStore } from '@ims/features/approvals';
 import { StockStore } from '@ims/features/stock';
@@ -70,6 +71,7 @@ export const appConfig: ApplicationConfig = {
     ),
     provideApi(),
     provideUiText(),
+    provideDialogFeedback(),
     providePwa(),
     provideAppInitializer(startUp),
     {

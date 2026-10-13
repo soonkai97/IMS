@@ -13,9 +13,9 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class IfMatchRequiredTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
-    private async Task<(StockScenario S, DocumentDto Draft, int ProductId)> DraftAsync()
+    private async Task<(StockScenario S, DocumentDto Draft, Guid ProductId)> DraftAsync()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var productId = (await s.NewProductAsync()).Id;
@@ -49,6 +49,35 @@ public class IfMatchRequiredTests(ApiFixture fixture)
         Assert.Equal("if_match_required", response.Json().RootElement.GetProperty("code").GetString());
         var after = await s.GetAsync(draft.Id);
         Assert.Equal((DocumentStatus.Draft, draft.ConcurrencyToken), (after.Status, after.ConcurrencyToken));
+    }
+
+    /// <summary>A header that names no version (empty quotes, only commas, only blanks) is a missing header, not the "*" opt-out: it must not skip the check.</summary>
+    [Theory]
+    [InlineData("\"\"")]
+    [InlineData("W/\"\"")]
+    [InlineData(",")]
+    [InlineData(" , ,")]
+    [InlineData(",\"\"")]
+    [InlineData("\" \"")]
+    [InlineData(" ")]
+    public async Task An_If_Match_that_names_no_version_is_428_and_changes_nothing(string raw)
+    {
+        var (s, draft, _) = await DraftAsync();
+
+        var response = await s.Clerk.Documents.WithRawIfMatchAsync(HttpMethod.Post, $"/api/documents/{draft.Id}/submit", raw);
+
+        response.ShouldBeProblem((HttpStatusCode)428, "Precondition required");
+        Assert.Equal(DocumentStatus.Draft, (await s.GetAsync(draft.Id)).Status);
+    }
+
+    [Fact]
+    public async Task The_star_is_still_the_explicit_any_version()
+    {
+        var (s, draft, _) = await DraftAsync();
+
+        var submitted = await s.Clerk.Documents.WithRawIfMatchAsync(HttpMethod.Post, $"/api/documents/{draft.Id}/submit", "*");
+
+        Assert.Equal(DocumentStatus.Submitted, submitted.Data<DocumentDto>().Status);
     }
 
     [Fact]

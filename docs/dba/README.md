@@ -127,10 +127,10 @@ Server-side, `17-movements-by-product.sql` (`results-1m-movements-by-product-pla
 the shared plan happens to be good; 24 concurrent requests gave a median of 0.71 s. The trade is right (the worst case goes from 1-9 s to under 1 s), but the extra CPU per
 product-filtered request is real.
 
-Fix: `EfMovementReader` tags the page and both counts with `TagWith(RecompileInterceptor.Tag)` **only when a product filter is present**; `RecompileInterceptor`
+Fix: `EfMovementReader` tags the page and both counts with `TagWith(QueryHint.Recompile)` **only when a product filter is present**; `QueryHintInterceptor`
 (registered on the context) turns the tag into `OPTION (RECOMPILE)`. No schema change, no migration. The default report and every other filter keep the cached plan. The price
 is one compile (0.1-0.8 s of CPU, see above) for the page, and a little for each count, per product-filtered request; that report is a supervisor's drill-down, not a polled
-screen. If it is ever called often, replace the hint by a plan chosen from the product's line count (two statement texts). `RecompileInterceptor` leaves a command that already
+screen. If it is ever called often, replace the hint by a plan chosen from the product's line count (two statement texts). `QueryHintInterceptor` (renamed from `RecompileInterceptor` in 4d, it now knows two hints) leaves a command that already
 ends with the hint alone. EF's Command log shows the tag (`-- ims:recompile`) but not the hint (found in the PR 71 review): to see the hint, read the statement in the Query Store or the plan cache. `MovementsByProductPlanTests` sends the report through the real host and asserts the hint on the
 statements that reach the server, so removing the registration in `AddInfrastructure` fails it.
 
@@ -187,6 +187,48 @@ Items 1 and 2 should be fixed before the 1M tier is called green.
 Scripts added for this section: `19-reads-by-endpoint.ps1` (reads per call from a `02` result file), `20-publicid-write-bench.sql`, `21-by-id-reads.ps1`, `22-interleaved-ab.ps1`.
 Caveat: the k6 A/B rounds (`write-mix`, `mixed`) used `PRODUCT_DRAWS=60 DOC_PAGES=30`: the default setup walks 100 document pages and about 250 product look-ups, which hit items 1 and 2 and exceeded k6's 300 s `setupTimeout` on a slow day
 (the first attempts timed out). `write-hot` and `read-mix` ran only on the pre-switch code, before the migration, and the ramp, spike and soak scenarios were not run (`results-1m-public-ids-k6.csv`).
+
+**4d. Documents list and product lookup at the 1M tier** (two P95 > 1 s defects found by the verification of the public id switch, PR 81; present on main; raw numbers in
+`results-1m-documents-lookup.txt`, scripts `23-measure-documents-list.ps1` and `24-measure-product-lookup.ps1`). No schema change, no migration: the indexes the lookup needs
+(`IX_Product_Sku`, `IX_ProductBarcode_Barcode`, both unique and filtered on `REC_DELETED = 0`, matching the filter the global query filter adds) already exist.
+
+*Documents list.* Root cause: parameter sniffing on `TOP(@p)`. The page statement has two correlated `SUM` subqueries over `StockDocumentLine`. For a small page the plan is a nested loop
+(about 26 reads per document: 1,318 reads for 25 rows, 9,590 for 200); once `@p` is large enough the optimizer prefers a hash plan that scans the 43,070-page line table (703 ms of CPU, 43,070
+reads). The plan is cached per statement text, so the page size that happens to be compiled first decides the plan of every later page size: after a hash compile, size 25 takes 0.6-0.8 s
+here (3.3-5.2 s in the PR 81 run) until the plan leaves the cache. On a fresh 1M database the flip is between 1,000 and 1,500 rows, above the 200-row limit of the API, so it needs a
+poisoned cache to show (the "poisoned" order of `23-measure-documents-list.ps1`: the cached statements are executed once from sqlcmd with `TOP(@p) = 2000`); in the PR 81 run it flipped at about 150 rows. The
+threshold moves with the statistics and the machine, which is why the fix does not depend on where it is. Hints compared on the page statement (cache cleared, poison at 2,000, then sizes 25 and 200):
+
+| Hint | page 25 after the poison | page 200 after the poison | the 2,000-row compile itself | CPU of the compile |
+|---|---|---|---|---|
+| none (before) | 547-610 ms, 43,070 reads | 578 ms | 625 ms (hash plan) | 27 ms, once |
+| `DISABLE_PARAMETER_SNIFFING` | 0 ms, 1,318 reads | 0 ms, 9,590 reads | 94 ms (nested loop) | 25 ms, once |
+| `OPTIMIZE FOR UNKNOWN` | same | same | 62 ms | 15 ms, once |
+| `RECOMPILE` | 31 ms, 1,318 reads | 31 ms, 9,590 reads | 656 ms (hash plan: it does not help the large page) | **15-26 ms per request** |
+
+Fix: `DocumentsPageSpec` tags the page statement with `TagWith(QueryHint.NoSniffing)`; `QueryHintInterceptor` (the renamed `RecompileInterceptor`, one interceptor, two hints, tags
+in `Ims.Application/Common/QueryHint.cs`) adds `OPTION (USE HINT('DISABLE_PARAMETER_SNIFFING'))`: one plan, compiled from the average statistics, for every value. It is the same plan as
+`OPTIMIZE FOR UNKNOWN` but names no parameter, so it serves every shape of the statement (first page, filters, cursor, offset). **Compile cost: one compile of 15-34 ms of CPU per cached
+statement shape (after a restart or an eviction), and nothing per request**; `RECOMPILE` would have cost 15-26 ms of CPU on every request and still compiled the hash plan for a large page. The count is
+not tagged: it has no `TOP` and did not flip. Rare values stay fine (status Draft, about 300 rows: 1,352 reads and 0-16 ms with and without the hint; a status with no rows: 0 reads). Through the
+API, poisoned cache, ms for sizes 25 / 50 / 150 / 500 (= 200): no filter 655 681 703 640 -> 66 18 32 47; warehouse 736 712 684 684 -> 68 36 58 38; status posted 659 633 630 684 -> 64 18 40 53;
+cursor 628 741 715 775 -> 61 21 50 55; warehouse + cursor 764 795 712 799 -> 69 35 44 50 (all other variants and both clean orders, small-first and large-first, were 10-220 ms before and after).
+`DocumentsListPlanTests` sends every shape (first page, filters, text search, cursor, offset page, no total) through the real host and asserts the hint on the page and its absence on the count.
+
+*Product lookup.* Root cause: `Sku = @code OR EXISTS (barcode = @code)` with `TOP(1)` makes the optimizer walk the `Product` clustered index and probe the barcode table per product until the
+first match (79,000 reads per statement, three statements per call: the product and its two collections), so the cost grows with the position of the product: SKU-00042 5 ms, SKU-49999 380 ms,
+an unknown code 130-170 ms (the whole table). Fix: `FindProductByCodeHandler` asks for the SKU first (`ProductBySkuSpec`, one seek on the unique filtered index: 6 reads, 0.1 ms of CPU),
+and only when no product has it for the barcode (`ProductIdByBarcodeSpec`, one seek: 4 reads, then `ProductDtoSpec` by key). Measured on 40 products spread over the catalog, ms avg / P95 / max:
+SKU 204 / 372 / 433 -> 3 / 4 / 12; barcode 291 / 549 / 616 -> 4 / 4 / 27; lower-case SKU 190 / 398 / 411 -> 2 / 3 / 3; unknown code 130 / 156 / 168 -> 3 / 5 / 20. The 160 answers were identical to
+those of the old statement (0 differ). The comparison is the same column comparison, so it stays case-insensitive (`SQL_Latin1_General_CP1_CI_AS`) and the code is still trimmed. One behaviour is now
+defined: a code that is one product's SKU and another's barcode (nothing forbids it) belongs to the SKU's product; the old statement returned whichever of the two the scan met first (the lower id).
+`ProductLookupTests`: case and spaces, several barcodes, inactive products, a barcode taken off a product, the SKU-wins rule with the barcode owner created first, and a guard that no statement compares
+the SKU and the barcode in one predicate (a shape check, not a plan check).
+
+*Watch items (not changed, numbers in `results-1m-documents-lookup.txt` section 5).* `audit?actor=supervisor`: the default plan (actor index range seek, key lookups, sort) reads 462,438 pages (300-400 ms
+of CPU) for an actor with half of the table; a backward clustered scan reads 16. The same scan reads the whole table (9,063 pages) for a rare or absent actor, where the seek reads 3-156, and
+`RECOMPILE` and `DISABLE_PARAMETER_SNIFFING` each fix one end: it needs a product decision (an exact user name could use the ordered `(Actor, Id)` seek), not a hint. The unfiltered stock list costs 272 ms of CPU
+and 3,576 reads per call (median 300 ms through the API on a quiet machine); P95 above 1 s only when the machine is slow.
 
 ## 5. Rejected proposals (the previous investigation proposed 13 index changes; evidence decides)
 
@@ -273,6 +315,7 @@ Use a throw-away database whose name starts with `Ims_Perf` (the scripts refuse 
 | `12-movements-order.sql`, `13-movements-order-diff.sql`, `14-write-path-bench.sql` | R3: old versus new order against five index sets, page, count and export (reads, CPU); which report rows change position; what the two indexes cost per posting transaction |
 | `17-movements-by-product.sql`, `18-measure-movements-by-product.ps1`, `results-1m-movements-by-product-*` | section 4b: the report for one product with a shared plan versus a plan per call (statement-level reads and times; the API with Query Store reads) |
 | `19-reads-by-endpoint.ps1`, `20-publicid-write-bench.sql`, `21-by-id-reads.ps1`, `22-interleaved-ab.ps1`, `results-1m-public-ids*`, `results-1m-main*`, `results-1m-ab*`, `results-1m-by-id.csv` | section 4c: logical reads per HTTP call, the write cost and fragmentation of `UX_StockDocument_PublicId`, by-id reads of two builds on the same rows, an interleaved latency comparison of two builds on one database; `results-1m-public-ids.txt` has the raw numbers, `results-1m-public-ids-k6.csv` the load runs |
+| `23-measure-documents-list.ps1`, `24-measure-product-lookup.ps1`, `results-1m-documents-list-*`, `results-1m-lookup-*`, `results-1m-documents-lookup.txt` | section 4d: the documents list in three call orders (small-first, large-first, poisoned plan cache) and the product lookup by SKU, barcode and unknown code, before and after; the txt has the hint comparison and the watch items |
 | `10-filtered-vs-unfiltered.sql` | why the indexes are filtered on `REC_DELETED = 0` |
 | `11-snapshot.sql`, `11b-snapshot-diff.sql` | deadlock and lock-wait counters around a load test (used by `tests/load/run-scenario.ps1`) |
 | `results-1m-before.csv`, `results-1m-after.csv` | the comparison in section 3 (`-before-run1` = first, colder baseline; `-full-proposal` = all 13 proposed index changes applied) |

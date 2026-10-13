@@ -10,7 +10,9 @@
   One untimed warm-up call per endpoint is made first (plan compile, JIT), then -Runs timed calls on one keep-alive
   connection (-ExportRuns for the xlsx exports, which take seconds). p95 = nearest rank (29th of 30).
   Results go to docs/dba/results-<Label>.csv.  Deep-page positions are derived from the row totals the API reports, so the
-  same script works at every volume tier.  Hot/mid product ids are read from the ledger through the API (/api/stock/ledger).
+  same script works at every volume tier.  Ids are opaque public ids (GUIDs) and cursors are encrypted, so nothing is computed from a
+  number: the hot and mid product (-HotSku, -MidSku), the second warehouse, category 07 and a posted document are looked up through
+  the API first, and the deep cursors are the nextCursor of the deepest OFFSET page.
 #>
 param(
     [string]$BaseUrl = 'http://localhost:5109',
@@ -20,8 +22,8 @@ param(
     [string]$Only = '.',
     [string]$User = $(if ($env:IMS_PERF_USER) { $env:IMS_PERF_USER } else { 'admin' }),
     [string]$Password = $env:IMS_PERF_PASSWORD,
-    [int]$HotProduct = 3,                     # most ledger rows in the seed (Zipf head)
-    [int]$MidProduct = 161,                   # ~25 ledger rows at the 100k tier
+    [string]$HotSku = 'SKU-00001',            # most ledger rows in the seed (Zipf head)
+    [string]$MidSku = 'SKU-00159',            # ~25 ledger rows at the 100k tier
     [string]$ModernApi = 'auto'               # 'auto' | 'yes' | 'no': does the API support afterId/includeTotal/sortBy and paged low-stock?
 )
 if (-not $Password) {
@@ -51,18 +53,26 @@ $ledgerDeep = 20; $docDeep = 400     # the last OFFSET pages the API accepts (Li
 # A cursor is opaque (encrypted), so it cannot be computed from an id: take the nextCursor of the deepest OFFSET page the API accepts (row 10,000; the seek that follows costs the same at any depth).
 $ledgerCursor = [string](Get-Json "/api/stock/ledger?page=$ledgerDeep&pageSize=500&includeTotal=false").nextCursor; $docCursor = [string](Get-Json "/api/documents?page=$docDeep&pageSize=25&includeTotal=false").nextCursor
 $d30 = (Get-Date).AddDays(-30).ToString('yyyy-MM-dd'); $d0 = (Get-Date).ToString('yyyy-MM-dd'); $d7 = (Get-Date).AddDays(-7).ToString('yyyy-MM-dd')
+# Real public ids, read through the API (never computed): the products by SKU, the main warehouse (the first one by code) and the second one, category 07, and a posted document.
+$hotId = (Get-Json "/api/products/lookup?code=$HotSku").product.id
+$midId = (Get-Json "/api/products/lookup?code=$MidSku").product.id
+$warehouses = @(Get-Json '/api/warehouses' | ForEach-Object { $_ } | Sort-Object code)   # ForEach-Object { $_ }: Windows PowerShell 5.1 returns a JSON array as one object
+$wh1 = $warehouses[0].id; $wh2 = $warehouses[1].id
+$cat7 = (Get-Json '/api/categories' | ForEach-Object { $_ } | Where-Object { $_.name -eq 'Category 07' } | Select-Object -First 1).id
+$postedDocId = (Get-Json '/api/stock/ledger?pageSize=1').items[0].sourceDocId
+if (-not ($hotId -and $midId -and $wh1 -and $wh2 -and $cat7 -and $postedDocId)) { throw 'Could not look up the ids the probe needs: is this the perf seed (SKU-00001, SKU-00159, two warehouses, Category 07, posted documents)?' }
 
 $e = [ordered]@{}
 $e['stock: no filter (p1 x50)']              = '/api/stock'
-$e['stock: warehouse=2']                     = '/api/stock?warehouseId=2'
-$e['stock: warehouse=1 pageSize=500']        = '/api/stock?warehouseId=1&pageSize=500'
+$e['stock: warehouse=2']                     = "/api/stock?warehouseId=$wh2"
+$e['stock: warehouse=1 pageSize=500']        = "/api/stock?warehouseId=$wh1&pageSize=500"
 $e['stock: search=bolt (common)']            = '/api/stock?search=bolt'
 $e['stock: search=SKU-00042 (sku)']          = '/api/stock?search=SKU-00042'
 $e['stock: search=9557000000042 (barcode)']  = '/api/stock?search=9557000000042'
 $e['stock: lowOnly']                         = '/api/stock?lowOnly=true'
 $e['stock: lowOnly pageSize=500 p3']         = '/api/stock?lowOnly=true&pageSize=500&page=3'
-$e['stock: category=7']                      = '/api/stock?categoryId=7'
-$e['stock: product (hot)']                   = "/api/stock?productId=$HotProduct"
+$e['stock: category=7']                      = "/api/stock?categoryId=$cat7"
+$e['stock: product (hot)']                   = "/api/stock?productId=$hotId"
 $e['stock: last OFFSET page 20 x500']           = '/api/stock?page=20&pageSize=500'
 if ($modern) {
 $e['stock: sort QtyOnHand desc']             = '/api/stock?sortBy=QtyOnHand&desc=true'
@@ -70,20 +80,20 @@ $e['stock: sort Value desc']                 = '/api/stock?sortBy=Value&desc=tru
 $e['stock: sort Warehouse']                  = '/api/stock?sortBy=Warehouse'
 $e['stock: sort Sku desc']                   = '/api/stock?sortBy=Sku&desc=true'
 }
-$e['ledger: product hot']                    = "/api/stock/ledger?productId=$HotProduct"
-$e['ledger: product mid']                    = "/api/stock/ledger?productId=$MidProduct"
-$e['ledger: product+warehouse']              = "/api/stock/ledger?productId=$HotProduct&warehouseId=1"
+$e['ledger: product hot']                    = "/api/stock/ledger?productId=$hotId"
+$e['ledger: product mid']                    = "/api/stock/ledger?productId=$midId"
+$e['ledger: product+warehouse']              = "/api/stock/ledger?productId=$hotId&warehouseId=$wh1"
 $e['ledger: no filter p1']                   = '/api/stock/ledger'
 $e['ledger: date range 30d']                 = "/api/stock/ledger?from=$d30&to=$d0"
 $e['ledger: date range 7d']                  = "/api/stock/ledger?from=$d7&to=$d0"
-$e['ledger: warehouse=2']                    = '/api/stock/ledger?warehouseId=2'
-$e['ledger: by source doc']                  = '/api/stock/ledger?sourceDocId=59'
+$e['ledger: warehouse=2']                    = "/api/stock/ledger?warehouseId=$wh2"
+$e['ledger: by source doc']                  = "/api/stock/ledger?sourceDocId=$postedDocId"
 $e['ledger: last OFFSET page (x500)']          = "/api/stock/ledger?page=$ledgerDeep&pageSize=500"
 $e['ledger: OFFSET beyond the limit (400)']   = '/api/stock/ledger?page=1000&pageSize=500'
 if ($modern) {
 $e['ledger: deep cursor (after row 10,000, x500)'] = "/api/stock/ledger?cursor=$ledgerCursor&pageSize=500&includeTotal=false"
 $e['ledger: p1 includeTotal=false']          = '/api/stock/ledger?includeTotal=false'
-$e['ledger: hot product includeTotal=false'] = "/api/stock/ledger?productId=$HotProduct&includeTotal=false"
+$e['ledger: hot product includeTotal=false'] = "/api/stock/ledger?productId=$hotId&includeTotal=false"
 $e['ledger: 30d includeTotal=false']         = "/api/stock/ledger?from=$d30&to=$d0&includeTotal=false"
 }
 $e['stock/low-stock']                        = '/api/stock/low-stock'
@@ -91,7 +101,7 @@ $e['stock/summary']                          = '/api/stock/summary'
 $e['documents: no filter']                   = '/api/documents'
 $e['documents: type=2 status=3']             = '/api/documents?type=2&status=3'
 $e['documents: status=0 (draft)']            = '/api/documents?status=0'
-$e['documents: warehouse=2 type=1']          = '/api/documents?warehouseId=2&type=1'
+$e['documents: warehouse=2 type=1']          = "/api/documents?warehouseId=$wh2&type=1"
 $e['documents: date range 30d']              = "/api/documents?from=$d30&to=$d0"
 $e['documents: search=RCV-WH02-2610']        = '/api/documents?search=RCV-WH02-2610'
 $e['documents: search=0076 (middle)']        = '/api/documents?search=0076'
@@ -100,11 +110,11 @@ if ($modern) {
 $e['documents: deep cursor (after row 10,000, x25)'] = "/api/documents?cursor=$docCursor&pageSize=25&includeTotal=false"
 $e['documents: p1 includeTotal=false']       = '/api/documents?includeTotal=false'
 }
-$e['documents/{id} (11 lines)']              = '/api/documents/59'
-$e['documents/{id} (recent)']                = "/api/documents/$([int]$dt.items[0].id)"
+$e['documents/{id} (11 lines)']              = "/api/documents/$postedDocId"      # name kept so compare-results.ps1 still pairs it; the document is now the newest posted one, not "id 59"
+$e['documents/{id} (recent)']                = "/api/documents/$($dt.items[0].id)"
 $e['reports/movements: 7d']                  = "/api/reports/movements?from=$d7&to=$d0"
 $e['reports/movements: 30d']                 = "/api/reports/movements?from=$d30&to=$d0"
-$e['reports/movements: product hot']         = "/api/reports/movements?productId=$HotProduct"
+$e['reports/movements: product hot']         = "/api/reports/movements?productId=$hotId"
 $e['reports/movements: no filter']           = '/api/reports/movements'
 $e['export: stock-summary xlsx']             = '/api/reports/stock-summary/export'
 $e['export: movements xlsx (30d)']           = "/api/reports/movements/export?from=$d30&to=$d0"
