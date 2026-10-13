@@ -36,11 +36,11 @@ public sealed class EfMovementReader(AppDbContext db) : IMovementReader
     }
 
     /// <summary>
-    /// A product filter gets a plan of its own (see <see cref="RecompileInterceptor"/>): the plan for a product with thousands of lines walks all
+    /// A product filter gets a plan of its own (see <see cref="QueryHintInterceptor"/>): the plan for a product with thousands of lines walks all
     /// documents when the product has few or none, and the plan cache would otherwise hand the first product's plan to every other product.
     /// </summary>
     private static IQueryable<T> PerProduct<T>(IQueryable<T> query, int? productId) =>
-        productId is null ? query : query.TagWith(RecompileInterceptor.Tag);
+        productId is null ? query : query.TagWith(QueryHint.Recompile);
 
     private IQueryable<T> Evaluate<T>(ISpecification<StockDocumentLine, T> spec) => SpecificationEvaluator.Default.GetQuery(db.Set<StockDocumentLine>(), spec);
 

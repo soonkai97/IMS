@@ -19,10 +19,18 @@ export const isGeneratedMessage = (subject) => /^(Merge |Revert "|fixup! |squash
 /** The project rule: no AI co-author trailers in commit messages. Human co-authors are fine. */
 export const AI_COAUTHOR = /^co-authored-by:.*(claude|anthropic|noreply@anthropic\.com)/im;
 
-export function checkCommitMessage(message) {
+/** GitHub's squash-merge appends " (#123)" to the PR title; the author does not control it. */
+const SQUASH_SUFFIX = / \(#\d{1,7}\)$/;
+
+/**
+ * `fromTargetHistory`: the commit was squash-merged on GitHub, so one trailing " (#123)" does not count towards the
+ * subject limit. Only for commits that arrive through a PR range; the PR title and local commits are checked in full.
+ */
+export function checkCommitMessage(message, { fromTargetHistory = false } = {}) {
   const problems = [];
   const lines = message.replace(/\r/g, '').split('\n');
-  const subject = (lines[0] ?? '').trim();
+  const trimmed = (lines[0] ?? '').trim();
+  const subject = fromTargetHistory ? trimmed.replace(SQUASH_SUFFIX, '') : trimmed;
   if (isGeneratedMessage(subject)) return problems;
   if (!CONVENTIONAL.test(subject))
     problems.push(`Subject must follow Conventional Commits: "type(scope): summary" with type one of ${COMMIT_TYPES.join(', ')} (max ${MAX_SUBJECT} chars). Got: "${subject}"`);
