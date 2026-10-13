@@ -178,7 +178,8 @@ export class ImsApi {
       baseUomId: (units.find(u => u.code === 'PCS') ?? units[0])!.id,
       safetyStock: options.safetyStock ?? 0,
       isActive: options.isActive ?? true,
-      barcodes: [`9${Date.now()}${counter}`.slice(0, 13)],
+      // 13 digits: the counter is in them (cut off before, so two products made within 10 ms shared a barcode).
+      barcodes: [`9${String(Date.now()).slice(-8)}${String(counter).padStart(4, '0')}`],
       conversions: []
     });
   }
@@ -200,7 +201,10 @@ export class ImsApi {
     options: { displayName?: string } = {}
   ): Promise<{ username: string; password: string }> {
     const token = unique().toLowerCase();
-    const user = { username: `e2e-${token}`, password: `Aa1!${randomBytes(9).toString('base64url')}-xYz` };
+    const user = {
+      username: `e2e-${token}`,
+      password: `Aa1!${randomBytes(9).toString('base64url')}-xYz`
+    };
     await this.call('POST', '/api/users', {
       username: user.username,
       email: `${user.username}@example.test`,

@@ -81,3 +81,44 @@ describe('UiPublishHeightDirective', () => {
     expect(disconnect).toHaveBeenCalled();
   });
 });
+
+@Component({
+  imports: [UiPublishHeightDirective],
+  template: `<section class="test-box">
+    <header appPublishHeight="--test-head-height" publishScope=".test-box">head</header>
+  </section>`
+})
+class ScopedHostComponent {}
+
+describe('UiPublishHeightDirective with a scope (the header of an app-table)', () => {
+  const createComponent = createComponentFactory(ScopedHostComponent);
+
+  beforeEach(() => {
+    (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
+      constructor(private readonly callback: () => void) {}
+      observe(): void {
+        this.callback();
+      }
+      disconnect(): void {
+        // nothing to release
+      }
+    };
+    jest
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(() => ({ height: 76 }) as DOMRect);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    delete (globalThis as unknown as { ResizeObserver?: unknown }).ResizeObserver;
+  });
+
+  it('puts the property on the closest matching ancestor and leaves <html> alone', () => {
+    const spectator = createComponent();
+
+    expect(
+      (spectator.query('.test-box') as HTMLElement).style.getPropertyValue('--test-head-height')
+    ).toBe('76px');
+    expect(document.documentElement.style.getPropertyValue('--test-head-height')).toBe('');
+  });
+});

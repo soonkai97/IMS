@@ -61,7 +61,8 @@ or `all`.
 - Busy: `loading` sets `aria-busy` and `aria-disabled` at once and ignores clicks, focus stays. The spinner appears after 150ms
   (`delayedLoading`, no minimum time: it leaves with the answer), replaces the leading `app-icon`, and the button keeps the width it
   had (`min-width`/`max-width` in px). The grid column is `minmax(0, 1fr)`, so a text-only label plus spinner spills evenly into the
-  padding instead of out of one edge. Colours do not change while busy.
+  padding instead of out of one edge. While busy the label stays on one line (the face is `max-content`, capped at the padding), so
+  "Sign in" does not wrap and make the button taller. Colours do not change while busy.
 - `[saved]` shows a check and "Saved" for 1.5s (an action that finishes on the same screen); the button does not shrink while it
   shows and ignores clicks. A label shorter than "Saved" grows the box just enough to fit it. Announcing the result (a live region)
   is the caller's job.
@@ -154,19 +155,37 @@ page scroll at any width, and a short one (a number, a date, a code, a chip) mus
   button is left out where the full value is one click away (a row's title that links to its detail page). `title` is not a
   way to read a value: it needs a mouse. A toast shows its whole message, wrapped; past half the window height it scrolls inside
   itself.
-- `app-table`: columns have a `type` (`name`, `text`, `code`, `number`, `status`, `date`, `action`, see `table.types.ts`). From 1024px
-  the table is as wide as its columns need. Cells of type `number`, `date`, `code`, `status` and `action` are `keep-whole` and size to
+- `app-table`: columns have a `type` (`name`, `text`, `code`, `number`, `status`, `date`, `action`, see `table.types.ts`). A table
+  whose own box is at least `width('table-wide')` (45rem; a 1024px window gives it 752px) is as wide as its columns need. Table or
+  cards is decided by that box (`container: ims-table / inline-size` on the host, `@container` rules), never by the window: a
+  new rule for the table goes in the wide or the narrow block, not in a `@media (width)` query. Cells of type `number`, `date`, `code`, `status` and `action` are `keep-whole` and size to
   their content (the header has `width: 1%` and may wrap at a space, never inside a word); a plain-text code is as wide as its
   value up to `width('code-max')` and wraps inside that box beyond it, so one 64-character SKU cannot push the other columns out
   of view. `name` and `text` cells have a minimum width (`width('column-min')`) and are clamped to two lines by
   `app-clamped-text`. When the columns still need
-  more than the page leaves, the table scrolls inside its own box, which shows a soft shadow on the side with more to see and,
+  more than the box leaves, the table scrolls inside its own box, which shows a soft shadow on the side with more to see and,
   only while it really scrolls, is a labelled, focusable region (`appScrollRegion`: `role="region"`, `tabindex="0"`,
-  `data-scroll-region`), so a table that fits has no extra tab stop. The page never scrolls. Chips are never cut: they hold
-  short enumerated labels, never user text. Below 1024px a row is a card and every value may wrap.
+  `data-scroll-region`), so a table that fits has no extra tab stop. The page never scrolls sideways. Chips are never cut: they
+  hold short enumerated labels, never user text. In a narrower box a row is a card and every value may wrap.
+- Sticky parts of `app-table` (A02): the header row always sticks. While the table fits, its box is `overflow: clip` (not a scroll
+  container), so the header sticks to the page under the top bar (`--ims-table-head-top`). While it scrolls
+  (`data-scroll-region`) the box becomes a scroll container, as tall as the window leaves, and the header sticks to the top of
+  it, and the first column is pinned (`sticky`, capped at `width('pin-max')`) with an opaque cell and an edge line. A focused
+  control is kept clear of the header at its real height (a label that wraps makes it taller than `height('table-head')`):
+  the thead publishes it as `--ims-table-head-height` on the box (`appPublishHeight` with `publishScope`), `scroll-padding` on
+  the scroll box and `scroll-margin` (in `globals/_base.scss`, because the table's stylesheet cannot reach a button inside
+  `app-button`) on the page read it. Header labels wrap at spaces only (`word-break: keep-all`, so a Chinese label stays on one
+  line).
+- Stacking inside a table box: the box is `isolation: isolate`, so nothing in a cell can paint over the page bars. Inside it the
+  order is the local z-index scale `raised` (a control in a cell, e.g. Show more) < `pinned` (first column) < `head` <
+  `corner`. A control in a cell uses `raised` at most and never `sticky` or higher: it would paint over the header (a Low stock
+  button once did). To be pressable above the row's link cover a button is positioned, later in the row; it needs no z-index.
+- A button or link in a table row says which row it acts on: `aria-label` on the button, containing its visible text
+  ("Edit qa1", "New receipt for SKU-1"), and different in every row (ER-10). `e2e/tests/15-containment.spec.ts` checks the five
+  screens that have one.
 - Only a deliberate scroll region may scroll sideways, and it is focusable and named (`appScrollRegion` does this for a box that
   scrolls only sometimes). `e2e/tests/15-containment.spec.ts` fails on any other sideways scroller; its one exemption is the tab
   strip of `app-tabs` (focusable tabs, scrolls on a narrow screen).
-- `e2e/tests/15-containment.spec.ts` also fails when, at 1024px and wider, a number, date, code, action or chip cell is broken
-  across lines or clipped. A new list, card, chip, dialog, toast or header adds its screen to that test (long names and a large
+- `e2e/tests/15-containment.spec.ts` also fails when, in a table (a box of 45rem and wider), a number, date, code, action or chip
+  cell is broken across lines or clipped. A new list, card, chip, dialog, toast or header adds its screen to that test (long names and a large
   amount in the data it creates).

@@ -1,8 +1,23 @@
 @use 'libs' as *;
 
+// One definition, two renderings, chosen by the width of the table's OWN box (A02), not by the window: a table that has
+// room is a table, one that has not (a phone, a narrow column, a dialog) is a list of cards. The host is the container.
+@mixin table-wide {
+  @container ims-table (min-width: #{width('table-wide')}) {
+    @content;
+  }
+}
+
+@mixin table-narrow {
+  @container ims-table (width < #{width('table-wide')}) {
+    @content;
+  }
+}
+
 :host {
   position: relative;
   display: block;
+  container: ims-table / inline-size;
 
   &.--refreshing .ui-table-grid {
     opacity: 0.6;
@@ -33,8 +48,8 @@
   border-radius: border-radius('md');
 }
 
-// A wide screen: the table is as wide as its columns need and scrolls inside this box when that is more than the page
-// leaves it (L00). The page itself never scrolls sideways.
+// The box a table wider than its room scrolls in, never the page (L00). Only then is it a focusable, named region
+// (appScrollRegion sets `data-scroll-region`).
 .ui-table-scroll {
   max-width: 100%;
   overflow-x: auto;
@@ -44,35 +59,16 @@
 
     outline-offset: -3px;
   }
-
-  // A soft shadow on the side that has more to scroll to, so a table that does not fit says so.
-  @include media-desktop {
-    background:
-      linear-gradient(to right, color('surface') 30%, transparent) left / 2rem 100% no-repeat local,
-      linear-gradient(to left, color('surface') 30%, transparent) right / 2rem 100% no-repeat local,
-      linear-gradient(to right, color-alpha('text', 25%), transparent) left / 0.75rem 100% no-repeat
-        scroll,
-      linear-gradient(to left, color-alpha('text', 25%), transparent) right / 0.75rem 100% no-repeat
-        scroll;
-    background-color: color('surface');
-    border-radius: border-radius('md');
-  }
 }
 
 .ui-table-grid {
   width: 100%;
-  border: border-width('thin') solid color('border');
-  border-radius: border-radius('md');
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .ui-table-header {
-  padding: space(1) space(2);
-  font-size: font-size(1);
-  font-weight: font-weight('bold');
-  color: color('text-muted');
   text-align: start;
-  text-transform: uppercase;
-  background: color('surface-2');
 
   &.--end {
     text-align: end;
@@ -88,15 +84,13 @@
   min-height: height('touch-min');
   font-size: inherit;
   font-weight: inherit;
-  text-transform: inherit;
 }
 
 .ui-table-row {
   position: relative;
-  border-top: border-width('thin') solid color('border');
 
   &.--linked:hover {
-    background: color('surface-2');
+    background: color('surface-sunken');
   }
 }
 
@@ -111,51 +105,6 @@
 
   &.--primary {
     font-weight: font-weight('medium');
-  }
-}
-
-// Long values (L00). Numbers, dates, chips and buttons are never broken or cut: they size to their content (width 1%
-// shrinks the column to it) and a long one makes the table scroll in its box. A code is as wide as its value up to a
-// bounded box and wraps beyond it, so one 64-character SKU cannot push the other columns out of view. Names and remarks
-// share the rest, with a minimum width, clamped to two lines by app-clamped-text (which can expand them).
-@include media-desktop {
-  // Headers may wrap at a space ("Safety stock") but never inside a word; the cells under them are never broken.
-  .ui-table-cell {
-    &.--number,
-    &.--date,
-    &.--code,
-    &.--status,
-    &.--action {
-      @include keep-whole;
-    }
-  }
-
-  .ui-table-header,
-  .ui-table-cell {
-    &.--name,
-    &.--text {
-      min-width: width('column-min');
-    }
-  }
-
-  // A code in plain text is as wide as its value up to a bounded box (a definite width, so the column does not collapse),
-  // and wraps beyond it. A code a template draws (a document number with its badge) stays whole.
-  .ui-table-code {
-    @include wrap-anywhere;
-
-    display: inline-block;
-    width: max-content;
-    max-width: width('code-max');
-    white-space: normal;
-  }
-
-  .ui-table-header {
-    &.--number,
-    &.--date,
-    &.--status,
-    &.--action {
-      width: 1%;
-    }
   }
 }
 
@@ -180,8 +129,147 @@
   }
 }
 
-// Phones and tablets: one card per row.
-@include media-below-desktop {
+// Table: the box has room.
+@include table-wide {
+  // Frame and rounded corners. `clip` hides what does not fit without making a scroll box, so the header below sticks to
+  // the page (under the top bar). When the columns need more than the box, appScrollRegion turns it into a scroll box
+  // (`data-scroll-region`): it scrolls both ways inside the window height and the header and first column stick in it.
+  // A soft shadow on the side with more to see says so.
+  .ui-table-scroll {
+    --ims-table-head-top: calc(#{height('bar')} + var(--ims-safe-top));
+
+    // Its own stacking context: nothing in a cell can paint over the header or the pinned column, whatever z-index it has.
+    isolation: isolate;
+    overflow: clip;
+    background:
+      linear-gradient(to right, color('surface') 30%, transparent) left / 2rem 100% no-repeat local,
+      linear-gradient(to left, color('surface') 30%, transparent) right / 2rem 100% no-repeat local,
+      linear-gradient(to right, color-alpha('text', 25%), transparent) left / 0.75rem 100% no-repeat
+        scroll,
+      linear-gradient(to left, color-alpha('text', 25%), transparent) right / 0.75rem 100% no-repeat
+        scroll;
+    background-color: color('surface');
+    border: border-width('thin') solid color('border');
+    border-radius: border-radius('md');
+
+    // A short window (400% zoom, a landscape phone): the top bar flows with the page, nothing sticks to it.
+    @include media-short {
+      --ims-table-head-top: 0;
+    }
+
+    &[data-scroll-region] {
+      --ims-table-head-top: 0;
+
+      max-height: calc(100dvh - #{height('bar')} - var(--ims-safe-top) - #{space(4)});
+      overflow: auto;
+      // A focused cell is scrolled clear of the sticky header (its real height: a label that wraps makes it taller, see
+      // appPublishHeight on the thead) and the pinned first column.
+      scroll-padding-block-start: var(--ims-table-head-height, #{height('table-head')});
+      scroll-padding-inline-start: width('pin-max');
+
+      @include media-short {
+        max-height: none;
+      }
+
+      // The first column stays in view while the others scroll under it (only a table that scrolls sideways needs it).
+      // Its width is capped so it can never cover the rest. A linked row's click area then shrinks to this cell: the link
+      // cover is positioned against the nearest positioned ancestor, which is now the cell.
+      .ui-table-header:first-child,
+      .ui-table-cell:first-child {
+        position: sticky;
+        inset-inline-start: 0;
+        max-width: width('pin-max');
+        border-inline-end: border-width('thin') solid color('border');
+        box-shadow: shadow('edge');
+      }
+
+      .ui-table-header:first-child {
+        z-index: z-index('corner');
+      }
+
+      // Above the controls of the other cells (a Show more button is 'raised'), which scroll under it.
+      .ui-table-cell:first-child {
+        z-index: z-index('pinned');
+        background: color('surface');
+      }
+
+      .ui-table-row.--linked:hover .ui-table-cell:first-child {
+        background: color('surface-sunken');
+      }
+    }
+  }
+
+  // Header: always visible while the rows scroll under it. Its bottom line is its own border: a collapsed border of the
+  // table would scroll away.
+  .ui-table-header {
+    position: sticky;
+    top: var(--ims-table-head-top);
+    z-index: z-index('head');
+    height: height('table-head');
+    padding: 0 space(2);
+    font-size: font-size(1);
+    font-weight: font-weight('medium');
+    // A header wraps at a space, never inside a word: a Chinese label stays on one line (L00).
+    word-break: keep-all;
+    line-break: strict;
+    color: color('text-muted');
+    background: color('surface-sunken');
+    border-bottom: border-width('thin') solid color('border');
+
+    // Long values (L00). Numbers, dates, chips and buttons are never broken or cut: they size to their content (width 1%
+    // shrinks the column to it) and a long one makes the table scroll in its box. Headers may wrap at a space ('Safety
+    // stock') but never inside a word.
+    &.--number,
+    &.--date,
+    &.--status,
+    &.--action {
+      width: 1%;
+    }
+  }
+
+  .ui-table-cell {
+    height: height('touch');
+    border-top: border-width('thin') solid color('border');
+
+    // The cells under them are never broken.
+    &.--number,
+    &.--date,
+    &.--code,
+    &.--status,
+    &.--action {
+      @include keep-whole;
+    }
+  }
+
+  .ui-table-row:first-child .ui-table-cell {
+    border-top: 0;
+  }
+
+  // A code is as wide as its value up to a bounded box and wraps beyond it, so one 64-character SKU cannot push the other
+  // columns out of view. Names and remarks share the rest, with a minimum width, clamped to two lines by app-clamped-text
+  // (which can expand them).
+  .ui-table-header,
+  .ui-table-cell {
+    &.--name,
+    &.--text {
+      min-width: width('column-min');
+    }
+  }
+
+  // A code in plain text is as wide as its value up to a bounded box (a definite width, so the column does not collapse),
+  // and wraps beyond it. A code a template draws (a document number with its badge) stays whole.
+  .ui-table-code {
+    @include wrap-anywhere;
+
+    display: inline-block;
+    width: max-content;
+    max-width: width('code-max');
+    white-space: normal;
+  }
+}
+
+// Cards: one per row, every value may wrap.
+@include table-narrow {
   .ui-table-grid,
   .ui-table-grid tbody {
     display: block;
