@@ -27,14 +27,10 @@ const MAX_VISIBLE_TOASTS = 2;
 const MIN_REMAINING_MS = 1000;
 
 /**
- * Non-blocking feedback, and the one place a failure nobody shows in place becomes visible (error interceptor).
- *
- * - Success and info disappear after 4 s (the timer pauses while the pointer or focus is on the toast). An error stays until
- *   it is dismissed or the user starts the next action (`dismissErrors`).
- * - The same text twice within 2 s shows once. After that, an error that is still up is replaced by the new one (one node,
- *   and a screen reader hears it again: the user tried again and it failed again).
- * - At most two success or info toasts: a newer one replaces the oldest. An error is never pushed out by another toast, so
- *   errors are not capped (a burst of different failures shows each).
+ * Non-blocking feedback, and where a failure nobody shows in place becomes visible (error interceptor).
+ * - Success and info leave after 4 s (the timer pauses on hover or focus). An error stays until dismissed or the next action.
+ * - The same text within 2 s shows once; later, a repeated error replaces the old node (one node, announced again).
+ * - At most two success or info toasts, a newer one replaces the oldest. Errors are never pushed out, so they are not capped.
  */
 @Injectable({ providedIn: 'root' })
 export class ToastService {

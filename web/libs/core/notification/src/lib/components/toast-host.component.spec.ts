@@ -65,22 +65,33 @@ describe('ToastHostComponent', () => {
     expect(toast.$toasts()).toHaveLength(0);
   });
 
-  it('shows nothing while a modal dialog is open (the dialog shows its own copy), and again after', () => {
+  it('shows nothing while a modal is open, and a closing dialog takes its errors with it (no second announcement)', () => {
     toast.error('Could not save.');
     spectator.detectChanges();
     const modal = spectator.inject(UiModalState);
 
     modal.enter();
     spectator.detectChanges();
-
     expect(spectator.element.hidden).toBe(true);
     expect(spectator.queryAll('[role="alert"]')).toHaveLength(0);
 
     modal.leave();
     spectator.detectChanges();
-
     expect(spectator.element.hidden).toBe(false);
-    expect(spectator.queryAll('[role="alert"]')).toHaveLength(1);
+    expect(toast.$toasts()).toHaveLength(0);
+  });
+
+  it('brings a new error into view without moving focus, and does so for no success', () => {
+    const scroll = jest.fn();
+    Element.prototype.scrollIntoView = scroll;
+
+    toast.success('Saved.');
+    spectator.detectChanges();
+    expect(scroll).not.toHaveBeenCalled();
+
+    toast.error('Could not save.');
+    spectator.detectChanges();
+    expect(scroll).toHaveBeenCalledWith({ block: 'nearest', behavior: 'smooth' });
   });
 
   it('removes an error when the user goes to another page', async () => {

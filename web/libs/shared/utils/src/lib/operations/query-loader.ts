@@ -13,9 +13,7 @@ interface LoadRequest<Query> {
 /**
  * Latest-wins loader for a read call: `load(query)` cancels the previous request, records the operation status and
  * keeps the last successful result in `$data`. Create it in an injection context (field initializer).
- *
- * `load(query, context)` hands an HttpContext to the call (`fetch` forwards it to the generated client): the screen that shows
- * a failure in place passes `handledInline()`, so no toast repeats it. `reload()` repeats the last query with its context.
+ * `load(query, handledInline())` forwards an HttpContext to the call; `reload()` repeats it with the same context.
  */
 export class QueryLoader<Query, Result> {
   readonly $data = signal<Result | undefined>(undefined);

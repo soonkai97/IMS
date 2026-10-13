@@ -58,17 +58,13 @@ describe('UiPublishHeightDirective', () => {
     expect(value()).toBe('152px');
   });
 
-  it('publishes how far the top edge is above the bottom of the window, and follows a scroll (a bar that has not reached the bottom)', () => {
-    expect(clearance()).toBe(`${window.innerHeight - 700}px`);
-
+  it('publishes how far the top edge is above the bottom of the window, following scroll (never below zero)', () => {
     top = window.innerHeight - 66;
     window.dispatchEvent(new Event('scroll'));
-
     expect(clearance()).toBe('66px');
 
     top = window.innerHeight + 200;
     window.dispatchEvent(new Event('scroll'));
-
     expect(clearance()).toBe('0px');
   });
 

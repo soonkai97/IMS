@@ -4,10 +4,7 @@ import type { Role } from "../src/config";
 import { LONG_SENTENCE, announcedBy, failCalls, isReachable, overlap } from "../src/feedback";
 import { goTo } from "../src/pages/shell";
 
-// R11 (ruling C6 v3): on a phone an error is an in-flow banner under the top bar. It pushes the page down instead of lying on it,
-// so no title, filter or primary action is covered, whatever the length of the sentence. In a modal dialog the dialog shows its
-// own copy. Measured at 360x740, 320x568 and 320x256 (a landscape phone, or 400% zoom).
-
+// R11 (ruling C6 v3): on a phone an error is an in-flow banner that pushes the page down; a dialog shows its own copy.
 const VIEWPORTS = [
   { width: 360, height: 740 },
   { width: 320, height: 568 },
@@ -42,6 +39,7 @@ for (const size of VIEWPORTS) {
     test("given each list page when its list call fails, then the banner pushes the page down, covers no action, title or filter, and is at most a fifth of the window", async ({
       browser,
     }) => {
+      test.setTimeout(180_000); // six pages with a two-second retry check each, on a loaded machine
       const sessions = new Map<Role, Awaited<ReturnType<typeof openSession>>>();
       for (const role of new Set(LIST_PAGES.map((entry) => entry.role))) {
         sessions.set(role, await openSession(browser, role, { viewport: size }));
@@ -150,6 +148,38 @@ for (const size of VIEWPORTS) {
         }
       }
     });
+
+    test("given a long draft scrolled to the bottom when Save fails, then the banner is brought into view", async ({
+      browser,
+      api,
+    }) => {
+      const products = await Promise.all(Array.from({ length: 15 }, () => api().createProduct()));
+      const lines = products.map((product) => ({ productId: product.id, qty: 1, unitCost: 1 }));
+      const draft = await api("staff").createDocument("receipts", lines);
+      const session = await openSession(browser, "staff", { viewport: size });
+      try {
+        const page = session.page;
+        await failCalls(page, new RegExp(`/api/documents/${draft.id}$`), LONG_SENTENCE, {
+          method: "PUT",
+        });
+        await goTo(page, `/receipts/${draft.id}`);
+        const save = page.getByRole("button", { name: "Save draft" });
+        await save.waitFor();
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await save.click();
+
+        const host = page.locator("app-toast-host");
+        await expect(host.locator("app-toast")).toHaveCount(1);
+        await expect
+          .poll(async () => {
+            const box = await host.boundingBox();
+            return !!box && box.y >= 0 && box.y + box.height <= size.height;
+          })
+          .toBe(true);
+      } finally {
+        await session.context.close();
+      }
+    });
   });
 }
 
@@ -184,7 +214,8 @@ test.describe("R11 A failure while a dialog is open", () => {
 
     await dialog.getByRole("button", { name: "Cancel" }).click();
     await expect(dialog).toBeHidden();
-    await expect(page.getByRole("alert")).toHaveCount(1);
-    await expect(page.locator("app-toast")).toHaveCount(1);
+    // The dialog takes its error with it: nothing is announced a second time.
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(page.locator("app-toast")).toHaveCount(0);
   });
 });

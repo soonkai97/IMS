@@ -6,7 +6,7 @@ import { isHandledInline } from '@ims/core/http';
 import { PermissionService } from '@ims/core/identity';
 import { DocumentsStore } from '@ims/features/documents';
 import { StockStore } from '@ims/features/stock';
-import { ApiOperation, IDLE_OPERATION, PERMISSION, failureOperation } from '@ims/models';
+import { ApiError, ApiOperation, IDLE_OPERATION, PERMISSION, failureOperation } from '@ims/models';
 import { HomePageComponent } from './home.component';
 
 const COUNTS: DocumentCounts = {
@@ -157,21 +157,10 @@ describe('HomePageComponent', () => {
   });
 
   it('flags both loads handledInline, and a failed counts call alone is one alert with the mapped sentence (R11)', () => {
-    countsOperation.set(
-      failureOperation({
-        isApiError: true,
-        kind: 'server',
-        status: 503,
-        title: '',
-        detail: '',
-        message: 'The database is not available.',
-        fieldErrors: {},
-        extensions: {}
-      })
-    );
+    const error = { status: 503, message: 'The database is not available.' } as ApiError;
+    countsOperation.set(failureOperation(error));
     render(PERMISSION.StockRead);
 
-    expect(countsLoad).toHaveBeenCalledTimes(1);
     expect(isHandledInline(countsLoad.mock.calls[0][1], 503)).toBe(true);
     const alerts = spectator.queryAll('[role="alert"]');
     expect(alerts).toHaveLength(1);

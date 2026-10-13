@@ -161,17 +161,13 @@ describe('errorInterceptor', () => {
       return result;
     }
 
-    it('a call the screen shows in place raises no toast, but its error carries the sentence to show', async () => {
+    it('a flagged call raises no toast but its error carries the sentence; with statuses only those are silent', async () => {
       const error = await failWithContext(500, handledInline(), 'The report broke.');
-
       expect(toast.$toasts()).toHaveLength(0);
       expect(error.message).toBe('The report broke.');
-    });
 
-    it('a call flagged with statuses is silent only for those statuses', async () => {
       await failWithContext(409, handledInline(409), 'A supplier named X already exists.');
       expect(toast.$toasts()).toHaveLength(0);
-
       await failWithContext(500, handledInline(409), 'Down.');
       expect(toast.$toasts().map(item => item.message)).toEqual(['Down.']);
     });

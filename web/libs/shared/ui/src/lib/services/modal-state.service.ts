@@ -1,9 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 
-/**
- * How many modal dialogs are open. A modal makes everything outside it inert, so a message that must stay readable and
- * clickable (the toast host) moves into the dialog while one is open and leaves the page's own copy empty.
- */
+/** How many modal dialogs are open: the toast host moves into the dialog meanwhile (a modal makes the page behind it inert). */
 @Injectable({ providedIn: 'root' })
 export class UiModalState {
   private readonly $count = signal(0);

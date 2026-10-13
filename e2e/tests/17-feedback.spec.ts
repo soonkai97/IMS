@@ -4,9 +4,8 @@ import { SENTENCE, announcedBy, failCalls, isReachable, overlap } from "../src/f
 import { DocumentEditor } from "../src/pages/documents";
 import { goTo } from "../src/pages/shell";
 
-// R11 (docs/design/2026-refresh-plan.md): one failure, one announcement; a toast never covers the main action.
-// The API is made to fail with route stubs, so the sentence is known. "Announced" means: a live region holds the sentence.
-// The phone banner and the dialog case are in 18-feedback-layout.
+// R11: one failure, one announcement (a live region holds the sentence once); a toast never covers the main action.
+// The API fails through route stubs. The phone banner and the dialog case are in 18-feedback-layout.
 
 for (const viewport of [
   { name: "a 1280px desktop", width: 1280, height: 800 },

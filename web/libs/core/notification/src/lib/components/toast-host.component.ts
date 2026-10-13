@@ -1,11 +1,16 @@
 import { NgTemplateOutlet } from '@angular/common';
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
+  effect,
+  ElementRef,
   inject,
-  input
+  Injector,
+  input,
+  untracked
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationStart, Router } from '@angular/router';
@@ -14,9 +19,8 @@ import { UiModalState, UiToastComponent } from '@ims/ui';
 import { Toast, ToastService } from '../services/toast.service';
 
 /**
- * Place once in the shell (and on pages without one). It never takes focus; Escape dismisses the focused toast. Below the desktop
- * width it is an in-flow banner at the top of the page (see the styles). While a modal dialog is open the dialog renders its own
- * copy (`inDialog`) and this one renders nothing, so there is one live node at a time.
+ * In the shell and on the sign-in page. Never takes focus; Escape dismisses the focused toast. While a modal dialog is open the
+ * dialog renders its own copy (`inDialog`) and this one renders nothing: one live node at a time.
  */
 @Component({
   selector: 'app-toast-host',
@@ -29,12 +33,34 @@ import { Toast, ToastService } from '../services/toast.service';
 export class ToastHostComponent {
   private readonly toastService = inject(ToastService);
   private readonly modalState = inject(UiModalState);
+  private readonly element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly injector = inject(Injector);
+  private newestError = 0;
+  private wasModal = false;
 
   $inDialog = input(false, { alias: 'inDialog' });
   $hidden = computed(() => !this.$inDialog() && this.modalState.$isOpen());
 
   $errors = computed(() => this.toastService.$toasts().filter(toast => toast.kind === 'error'));
   $messages = computed(() => this.toastService.$toasts().filter(toast => toast.kind !== 'error'));
+
+  /** A new error on a scrolled page: bring the in-flow banner into view (never the focus), or a sighted user sees nothing. */
+  private readonly revealNewError = effect(() => {
+    const newest = Math.max(0, ...this.$errors().map(toast => toast.id));
+    if (newest > this.newestError) {
+      this.newestError = newest;
+      afterNextRender(() => this.reveal(), { injector: this.injector });
+    }
+  });
+
+  /** A dialog that closes takes the errors it showed with it, so the page copy does not announce them a second time. */
+  private readonly clearOnModalClose = effect(() => {
+    const open = this.modalState.$isOpen();
+    if (this.wasModal && !open && !this.$inDialog()) {
+      untracked(() => this.toastService.dismissErrors());
+    }
+    this.wasModal = open;
+  });
 
   constructor() {
     inject(Router)
@@ -43,6 +69,17 @@ export class ToastHostComponent {
         takeUntilDestroyed(inject(DestroyRef))
       )
       .subscribe(() => this.toastService.dismissErrors());
+  }
+
+  private reveal(): void {
+    const element = this.element;
+    if (element.hidden || getComputedStyle(element).position === 'fixed') {
+      return;
+    }
+    const still =
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ||
+      document.documentElement.dataset['motion'] === 'off';
+    element.scrollIntoView?.({ block: 'nearest', behavior: still ? 'auto' : 'smooth' });
   }
 
   onDismiss(toast: Toast): void {

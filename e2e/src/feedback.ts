@@ -1,10 +1,9 @@
 import type { Locator, Page } from "@playwright/test";
 
-// Helpers for the R11 specs: a stubbed outage with a known sentence, and the measurements that prove nothing is covered.
-
+// Helpers for the R11 specs: a stubbed outage with a known sentence, and measurements that prove nothing is covered.
 export const SENTENCE = "The database is not available.";
 
-/** Three lines on a 320px phone: the case where the old toast hid the filters as well as the title. */
+/** Three lines on a 320px phone. */
 export const LONG_SENTENCE =
   "The database is not available. The report could not be loaded because the server is busy right now. " +
   "Wait a few minutes and try again, or ask an administrator to check the service.";
