@@ -1,0 +1,7 @@
+﻿"Label","Endpoint","StatusOld","StatusNew","Runs","P50Old","P50New","P95Old","P95New"
+"1m-ab-exports","export: stock-summary xlsx","200","200","8","4765.4","3725","5782.3","9295.4"
+"1m-ab-exports","export: movements xlsx (30d)","200","200","8","6319.5","6838.8","10707.2","9292.4"
+"1m-ab-exports","export: movements xlsx (no filter)","200","200","8","7493.6","7726","9907.9","10045"
+"1m-ab-exports","export: ledger xlsx (30d)","200","200","8","4786.4","4649","10887.7","8858"
+"1m-ab-exports","export: ledger xlsx (no filter)","200","200","8","2934.6","2650.4","9045.8","4447.4"
+"1m-ab-exports","export: low-stock xlsx","200","200","8","2560.5","3039.4","3916.9","3549.6"

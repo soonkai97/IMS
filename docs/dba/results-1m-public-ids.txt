@@ -1,0 +1,95 @@
+PR-10 DBA verification of the public id switch, 1M tier. Raw numbers behind docs/dba/README.md section 4c.
+Machine: Intel Core i7-1355U, 64 GB, SSD, SQL Server 2025 LocalDB (instance ImsDev), API and SQL Server on the same laptop, shared with other agents' test runs.
+Database: throw-away Ims_PerfPr10K7 (dropped at the end), seeded with 01-seed-perf.sql -v Products=50000 Docs=161500 Days=1080 Warehouses=5 on the schema BEFORE AddPublicIds.
+Code under test: origin/feature/public-ids-integration (2f266ee + merge 36669eb). Baselines: 420b55c (before PR-3, for the migration) and origin/main 48f58c2 (after PR-3 and #71, int ids on the wire) run on the SAME migrated database.
+
+== 1. Seed (before the migration) ==
+products 50,002; warehouses 5; documents 161,800 (153,810 posted); document lines 1,052,679; ledger rows 1,000,682; balance rows 173,460; audit rows 315,628; seed 99 s.
+Fragmentation straight after the seed (random-key secondary indexes): IX_StockLedgerEntry_ProductId_WarehouseId_OccurredAt 88.4 % / density 55.1 %, IX_StockDocumentLine_ProductId 84.8 % / 50.0 %.
+07-maintenance.sql Execute=1 fixed both (2.8 s and 3.0 s) before the baseline measurement (same practice as the previous baselines).
+
+== 2. Migration AddPublicIds on that database (RECOVERY FULL, full backup first) ==
+dotnet ef database update, Release build, LocalDB:   7.6 s wall for the nine tables (StockDocument 161,800 rows, Product 50,002 rows are the big ones).
+Transaction log: 0.06 MB used before, 157 MB used since the last log backup after (file 712 MB, did not grow); data file 1,032 MB, did not grow (free space inside).
+All PublicId values unique and not null (StockDocument 173,907 = 173,907 distinct after the first load; Product 50,008; User 5).
+Indexes straight after the migration: UX_StockDocument_PublicId 619 pages (4.8 MB) 0.0 % fragmented, density 90.2 %; UX_Product_PublicId 178 pages (1.4 MB) 0.0 %; the other seven are one page.
+Clustered keys after the rebuild step: PK_StockDocument 0.0 % / 98.7 %, PK_Product 0.0 % / 99.0 %.
+The ADR measured 20 s for 1,000,000 StockDocument rows; this tier has 162k, so the 7.6 s is consistent (the backfill is the part that scales with rows).
+The ledger, the document lines and the audit log are not touched by the migration (no row grew).
+
+== 3. Reconcile drill (08-reconcile-drill.sql) ==
+before the migration, after ~8,700 flows of the k6 baseline (write-mix, mixed, write-hot):   1. 0 mismatches (1,443 ms)  3. 0 (1,197 ms)  4. 0 (4,833 ms)
+at the end, after the migration and ~14,000 more flows (k6 write-mix and mixed, 7 runs, new code and main code alternately):
+   1. verify SUM(ledger) vs balance: 0 mismatches, 1,079 ms
+   2. rebuild into temp table: 174,888 balance rows, 1,124 ms
+   3. last BalanceAfter vs balance: 0 mismatches, 853 ms
+   4. every BalanceAfter vs the running sum: 0 mismatches, 2,838 ms
+   (1,059,012 ledger rows, 187,796 documents)
+
+== 4. Fragmentation after the load ==
+frag-post-load (after the migration, the A/B k6 runs and ~14,000 new documents, +8 % rows):
+   UX_StockDocument_PublicId   187,796 rows   1,054 pages (was 619)   fragmentation 81.7 %   density 59.5 %
+   UX_Product_PublicId           50,008 rows     178 pages            0.0 %                   90.2 %   (no product was created)
+   the other seven UX indexes: one page each (no inserts, or tens of rows), 0.0 %
+   PK_StockDocument 0.3 %, PK_StockDocumentLine 0.2 %, PK_StockLedgerEntry 0.3 %, PK_AuditLogs 0.5 %, PK_Product 0.0 %  (clustered keys unchanged, were 0.0-0.2 %)
+   IX_StockLedgerEntry_ProductId_WarehouseId_OccurredAt 49.7 %, IX_StockDocumentLine_ProductId 64.9 %, IX_StockBalance_WarehouseId 86.1 % (not new: random secondary keys of the old schema)
+20-publicid-write-bench.sql (100,000 single-row document inserts, one transaction each, into a table that has the index; the index was rebuilt first):
+   rows added   UX_StockDocument_PublicId pages / fragmentation / density      PK_StockDocument fragmentation      IX_StockDocument_No fragmentation
+        0       733 /  0.0 % / 90.2 %                                           0.4 %                               10.8 %
+   10,000       775 / 10.8 % / 91.7 %                                           0.4 %                               12.1 %
+   20,000     1,413 / 95.5 % / 53.8 %                                           0.4 %                               13.4 %
+   30,000     1,464 / 99.1 % / 55.3 %                                           0.4 %                               14.7 %
+   50,000     1,466 / 99.2 % / 61.9 %                                           0.4 %                               16.1 %
+  100,000     1,468 / 99.2 % / 78.7 %                                           0.4 %                               18.9 %
+   (the index doubles in size once, when the first +10-20 % of random keys have split every page, then fills up to ~80 %; the clustered key stays at 0.4 %)
+   100,000 inserts took 57 s (1,754 tx/s, single connection, includes the fragmentation probes).
+   Rebuild of the index afterwards (done by the script, 1,468 pages): 733 -> 669 pages, 0.0 % / 90.1 %, well under a second.
+07-maintenance.sql Execute=0 after the load lists UX_StockDocument_PublicId (frag 81.7 %, density 59.5 %, 1,054 pages -> REBUILD, FILLFACTOR 90); indexes under 1,000 pages are skipped by design, which is every UX index except StockDocument's at this size.
+   Rebuild timings of comparable indexes in the same run: IX_StockBalance_WarehouseId (1,060 pages) 83 ms, IX_StockDocumentLine_ProductId (2,806 pages) 642 ms.
+
+== 5. Write path cost of the index ==
+20-publicid-write-bench.sql, 3 rounds x 3,000 transactions (document + 5 lines + post), alternating without / with UX_StockDocument_PublicId:
+   with the index    best 0.646 ms/tx   average 0.790 ms/tx
+   without           best 0.733 ms/tx   average 0.844 ms/tx      -> no measurable cost (the "with" side is not slower; run noise is +-15 %)
+k6 write-mix, 10 VUs, 60 s, same migrated database, main code and new code alternately (results-1m-public-ids-k6.csv):
+   main: 2,106 and 2,983 flows, write P95 104 and 38 ms     new: 2,738 and 2,697 flows, write P95 64 and 72 ms     0 failed flows, 0 x 409, 0 x 5xx, 0 deadlocks
+   pre-switch code on the schema before the migration: 2,705 flows, write P95 72 ms.
+k6 mixed, 10 VUs, 60 s: main 214 flows, read P95 2,179 ms, write P95 270 ms; new 239 flows, read P95 1,528 ms, write P95 148 ms (closed loop at saturation: a capacity figure, equal on both sides).
+
+== 6. Reads and latency, 72 endpoints ==
+results-1m-main.csv / results-1m-public-ids.csv: 02-measure-api.ps1 on the same database (main code, new code). results-1m-main-reads.csv / results-1m-public-ids-reads.csv: logical reads per HTTP call (19-reads-by-endpoint.ps1).
+results-1m-ab.csv: 22-interleaved-ab.ps1, both builds called alternately, 20 runs each (exports 3, results-1m-ab-exports.csv 8). results-1m-by-id.csv: 21-by-id-reads.ps1, same rows addressed by int key and by GUID.
+Reads, main -> new, differences of more than 1 %:
+   documents/{id}                      47 -> 53      (+6: one seek on UX_StockDocument_PublicId)
+   stock?productId (hot)               53 -> 58      (+5)
+   ledger by source doc                19 -> 25      (+6)
+   users: list                         19 -> 25      (+6)
+   ledger: product+warehouse          1,223 -> 1,232 (+9), ledger: product hot 885 -> 891 (+6), stock: warehouse=2 3,038 -> 3,042 (+4)
+   unchanged (+-0.5 %): all other lists, search, reports, audit; fewer reads: products deep page 90 44,029 -> 29,655, products sortBy=Name desc p20 3,767 -> 2,828, documents deep cursor 1,183 -> 789, audit entityType=User 228 -> 180
+   (the exports' reads are not attributable per call through the Query Store: a 3-7 s call spans several intervals; use the timing)
+By-id (same database, same rows, 15 alternating calls, Query Store reads per call): documents/{id} most lines 191 -> 197, products/{id} 25 -> 31, stock?productId 53 -> 58, ledger?productId (hot) 885 -> 890, (mid) 3,491 -> 3,496,
+   ledger?sourceDocId 59 -> 65, movements?productId (hot) 35,562 -> 35,567, (mid) 3,537 -> 3,542, attachments?product 9 -> 14, attachments?document 9 -> 15, documents?warehouseId 1,783 -> 1,787; median wall time equal within 10 % on all.
+   (attachments/{id} download: 404 on main only because main's API process has another storage root than the one that stored the file: not a defect)
+
+== 7. Movements by product (#71) on the integration branch (18-measure-movements-by-product.ps1, 1M tier, cache cleared before each order) ==
+   hot-first:  SKU-00001 4,500 rows 206 ms 35,655 reads; SKU-00002 5,075 rows 233 ms 40,723; SKU-00003 4,243 rows 154 ms 34,787;
+               cold SKU-16959 10 rows 43 ms 187 reads; SKU-00041 458 rows 59 ms 6,829; SKU-19999 13 rows 50 ms 245
+   cold-first: cold 187 / 6,829 / 245 reads (40-53 ms); hot 35,655 / 40,723 / 34,787 reads (135-175 ms)  -> a cold product is small whichever plan came first; the PublicId lookup adds 5 reads (Product seek).
+   default report, no filter: 5,489-5,591 reads, 309-979 ms (the first call after the cache clear is the slow one).
+   SQL per call: page 104 ms + count 61 ms (+ 12 ms and 97 ms of compile each call, the price of OPTION (RECOMPILE) agreed in #71); equal on main.
+
+== 8. Defects and risks found, all present on main as well (not caused by the switch) ==
+D1. GET /api/documents: parameter sniffing on TOP(@p). The page statement (with or without the cursor predicate) compiled for @p >= ~150 gets a hash plan that scans StockDocumentLine twice (44,624 reads, 3.3 s CPU, tempdb spill)
+    instead of 590-4,812 reads / 20-120 ms; the plan is then cached and EVERY page size, 25 included, takes 3.3-5.2 s until the plan leaves the cache (restart, statistics update, DBCC FREEPROCCACHE).
+    Fresh compile at @p = 25/50/75/100: 95-152 ms; at 150/200/500: 4,370-4,421 ms. After the plan for 200 is cached: size 25 = 5,233 ms (same plan).
+    Same on main (documents big-first: 3,935 ms then 4,176 ms for size 25). It hit this run: after the first write-mix run the statistics update recompiled the statement for the k6 setup (pageSize=200) and every later setup walked 100 pages at 3.7 s.
+    Hints tried on the statement text (sp_executesql, fresh compile for @p = 200 then 25): OPTION (USE HINT('DISABLE_PARAMETER_SNIFFING')) 137 ms then 2 ms, also 500: 181 ms then 3 ms;
+    OPTION (OPTIMIZE FOR (@p = 25)) 130 / 3 ms, 500: 152 / 3 ms; OPTION (LOOP JOIN) 184 / 5 ms but 13.8 s at 500; OPTION (RECOMPILE) does not help the large page itself (its own plan is the hash plan).
+D2. GET /api/products/lookup?code=<sku> (document line picker): ProductByCodeSpec is `Sku == code || Barcodes.Any(...)` with TOP(1); the optimizer walks the Product clustered index until the first match, so the cost grows with the position:
+    SKU-00042 673 reads / 5-9 ms (what 02 measures), 40 random SKUs: average 963 ms, slowest 2,002 ms (SKU-43564), 79,000 reads per statement x 3 statements per call (Query Store: 1,635 executions of the main-code statement averaged 187 ms and 79,119 reads).
+    Same on main. P95 over the catalog is above 1 s on this machine.
+D3. GET /api/audit?actor=supervisor: `Actor LIKE @p ORDER BY Id DESC TOP(@p)`: 497,471 reads, 305-330 ms quiet, 0.9-1.0 s P95 in a noisy session, because the 164,176 supervisor rows are far from the newest ones on this database. Equal on main (the stored 2026-10-10 baseline had 9 ms: other data distribution).
+D4. Machine sensitivity: GET /api/stock (no filter) scans and sorts all 174,527 balance rows per page (6,068 reads, 195-200 ms P50 in a quiet session); when the laptop slowed down (the same plan, 969 ms CPU instead of ~150 ms) every call took 1.2-1.4 s. Same on main.
+
+== 9. Cleanup ==
+Dropped: Ims_PerfPr10K7 (mine). Not mine and left alone: Ims_PidRetest10, Ims_PerfPid1M, Ims_R74_Review_Scratch (created 08:47-08:52 today by earlier or parallel runs; an API process was still reading Ims_PerfPid1M during this run).
