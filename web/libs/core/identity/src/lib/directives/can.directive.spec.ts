@@ -7,7 +7,7 @@ import { CanDirective } from './can.directive';
 
 function userWith(permissions: string[]): UserInfo {
   return {
-    id: 1,
+    id: '00000000-0000-4000-8000-000000000001',
     username: 'u',
     displayName: 'U',
     role: 'Clerk',

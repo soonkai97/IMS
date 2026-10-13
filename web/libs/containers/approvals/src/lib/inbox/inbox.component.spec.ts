@@ -7,9 +7,11 @@ import { ApprovalsStore } from '@ims/features/approvals';
 import { PERMISSION } from '@ims/models';
 import { ApprovalsInboxPageComponent } from './inbox.component';
 
+const guid = (n: number): string => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
 function item(id: number, overrides: Partial<DocumentListItem> = {}): DocumentListItem {
   return {
-    id,
+    id: guid(id),
     type: DocumentType.Issue,
     no: `ISS-${id}`,
     status: DocumentStatus.Submitted,
@@ -20,9 +22,9 @@ function item(id: number, overrides: Partial<DocumentListItem> = {}): DocumentLi
     totalQty: 5,
     totalAmount: 0,
     createdBy: 'staff',
-    createdById: 3,
+    createdById: guid(3),
     createdByName: 'Staff',
-    submittedById: 3,
+    submittedById: guid(3),
     submittedBy: 'staff',
     submittedByName: 'Staff Member',
     submittedAt: new Date(Date.now() - 5 * 60_000).toISOString(),

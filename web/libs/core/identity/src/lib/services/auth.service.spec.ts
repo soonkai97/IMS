@@ -6,12 +6,12 @@ import { LEGACY_REFRESH_TOKEN_STORAGE_KEY } from '../constants/identity.const';
 import { AuthService } from './auth.service';
 
 const USER: UserInfo = {
-  id: 7,
+  id: '00000000-0000-4000-8000-000000000007',
   username: 'staff',
   displayName: 'Staff',
   role: 'WarehouseStaff',
   permissions: ['stock.read'],
-  warehouseIds: [1]
+  warehouseIds: ['00000000-0000-4000-8000-000000000001']
 };
 
 /** The cookie flow: the body never carries a refresh token. */

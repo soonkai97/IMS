@@ -16,7 +16,7 @@ import {
   maxCoveredQuantity,
   toLineInputs
 } from '@ims/features/documents';
-import { MAX_DOCUMENT_LINES } from '@ims/models';
+import { MAX_DOCUMENT_LINES, NO_PUBLIC_ID, PublicId } from '@ims/models';
 import { Observable } from 'rxjs';
 
 /** The API refuses a longer remark; the form must not offer more than it accepts (EA-18). */
@@ -41,8 +41,8 @@ export class DocumentEditorViewService {
   private readonly catalog = inject(CatalogStore);
 
   readonly header = new FormGroup({
-    warehouseId: new FormControl<number | null>(null, [Validators.required]),
-    partnerId: new FormControl<number | null>(null),
+    warehouseId: new FormControl<PublicId | null>(null, [Validators.required]),
+    partnerId: new FormControl<PublicId | null>(null),
     purpose: new FormControl<IssuePurpose | null>(null),
     remark: new FormControl('', {
       nonNullable: true,
@@ -52,7 +52,7 @@ export class DocumentEditorViewService {
   readonly lines: LinesArray = new FormArray<LineGroup>([]);
 
   /** Warehouse the `available` figures of the lines belong to; null = not known. */
-  private availabilityWarehouseId: number | null = null;
+  private availabilityWarehouseId: PublicId | null = null;
 
   readonly $type = signal<DocumentType>(DocumentType.Receipt);
   readonly $values = toSignal(
@@ -75,7 +75,7 @@ export class DocumentEditorViewService {
   }
 
   /** Empty form for a new document; a single warehouse is pre-selected. */
-  startNew(defaultWarehouseId: number | null): void {
+  startNew(defaultWarehouseId: PublicId | null): void {
     this.header.reset({
       warehouseId: defaultWarehouseId,
       partnerId: null,
@@ -159,12 +159,12 @@ export class DocumentEditorViewService {
    * True when the `available` figures of the lines do not belong to this warehouse. A loaded document brings its own
    * figures (they are those of its warehouse), so only a changed warehouse with lines on the form needs a stock query.
    */
-  needsAvailability(warehouseId: number): boolean {
+  needsAvailability(warehouseId: PublicId): boolean {
     return this.lines.length > 0 && warehouseId !== this.availabilityWarehouseId;
   }
 
   /** Re-reads on-hand quantities of an issue's lines after the warehouse changed. */
-  refreshAvailability(warehouseId: number): Observable<ReadonlyMap<number, number>> {
+  refreshAvailability(warehouseId: PublicId): Observable<ReadonlyMap<PublicId, number>> {
     return this.availability.bySearch(warehouseId, '').pipe(
       tap(stock => {
         for (const group of this.lines.controls) {
@@ -198,7 +198,7 @@ export class DocumentEditorViewService {
     const header = this.header.getRawValue();
     const type = this.$type();
     return {
-      warehouseId: header.warehouseId ?? 0,
+      warehouseId: header.warehouseId ?? NO_PUBLIC_ID,
       partnerId: header.partnerId ?? undefined,
       purpose: type === DocumentType.Issue ? (header.purpose ?? undefined) : undefined,
       remark: header.remark.trim().length > 0 ? header.remark.trim() : undefined,

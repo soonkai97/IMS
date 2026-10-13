@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { tap } from 'rxjs';
 import { PagedResultOfUserDto, UserDto, UserSaveRequest, UsersClient } from '@ims/api';
-import { PagedQuery } from '@ims/models';
+import { PagedQuery, PublicId } from '@ims/models';
 import { ApiCommand, QueryLoader } from '@ims/utils';
 
 export interface UserQuery extends PagedQuery {
@@ -11,7 +11,7 @@ export interface UserQuery extends PagedQuery {
 }
 
 export interface SaveUserArgs {
-  readonly id?: number;
+  readonly id?: PublicId;
   readonly body: UserSaveRequest;
 }
 
