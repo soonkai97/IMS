@@ -20,7 +20,7 @@ export const isGeneratedMessage = (subject) => /^(Merge |Revert "|fixup! |squash
 export const AI_COAUTHOR = /^co-authored-by:.*(claude|anthropic|noreply@anthropic\.com)/im;
 
 /** GitHub's squash-merge appends " (#123)" to the PR title; the author does not control it. */
-const SQUASH_SUFFIX = / \(#\d+\)$/;
+const SQUASH_SUFFIX = / \(#\d{1,7}\)$/;
 
 /**
  * `fromTargetHistory`: the commit was squash-merged on GitHub, so one trailing " (#123)" does not count towards the

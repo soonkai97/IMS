@@ -29,6 +29,11 @@ test('the same subject fails without the merged-commit option (local hook, PR ti
   assert.deepEqual(checkCommitMessage(subjectOf(72)), []);
 });
 
+test('a suffix with 20 digits is not a GitHub reference and is not stripped', () => {
+  assert.notDeepEqual(checkCommitMessage(`${subjectOf(60)} (#${'1'.repeat(20)})`, merged), []);
+  assert.deepEqual(checkCommitMessage(`${subjectOf(60)} (#1234567)`, merged), []);
+});
+
 test('a " (#80)" in the middle of the subject is not stripped', () => {
   assert.notDeepEqual(checkCommitMessage(`fix: ${'a'.repeat(40)} (#80) ${'b'.repeat(30)}`, merged), []);
 });
