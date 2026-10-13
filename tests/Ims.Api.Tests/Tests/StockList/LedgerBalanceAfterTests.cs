@@ -62,8 +62,8 @@ public class LedgerBalanceAfterTests(ApiFixture fixture)
         var firstPage = (await s.Admin.GetAsync($"/api/stock/ledger?productId={productId}&pageSize=2")).Data<PagedResult<LedgerRow>>();   // its nextCursor points after whole[1]
         var byCursor = (await s.Admin.GetAsync($"/api/stock/ledger?productId={productId}&cursor={Uri.EscapeDataString(firstPage.NextCursor!)}&pageSize=2")).Data<PagedResult<LedgerRow>>().Items;
 
-        Assert.Equal(whole.Select(r => (r.Id, r.BalanceAfter)), walked.Select(r => (r.Id, r.BalanceAfter)));
-        Assert.Equal(whole.Skip(2).Take(2).Select(r => (r.Id, r.BalanceAfter)), byCursor.Select(r => (r.Id, r.BalanceAfter)));
+        Assert.Equal(whole.Select(r => (r.SourceDocNo, r.Reason, r.QtyDelta, r.BalanceAfter)), walked.Select(r => (r.SourceDocNo, r.Reason, r.QtyDelta, r.BalanceAfter)));
+        Assert.Equal(whole.Skip(2).Take(2).Select(r => (r.SourceDocNo, r.Reason, r.QtyDelta, r.BalanceAfter)), byCursor.Select(r => (r.SourceDocNo, r.Reason, r.QtyDelta, r.BalanceAfter)));
     }
 
     [Fact]

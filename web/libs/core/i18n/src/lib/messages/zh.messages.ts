@@ -504,6 +504,6 @@ export const ZH_MESSAGES: Messages = {
   'audit.searchLabel': '搜索审计日志',
   'audit.searchPlaceholder': '单号或对象名称',
   'audit.show': '查看',
-  'audit.showFor': '查看 {when} 对 {entity} 的 {action} 详情，记录 {id}',
+  'audit.showFor': '查看 {when} 对 {entity} 的 {action} 详情，记录 {number}',
   'audit.title': '审计日志'
 };

@@ -143,6 +143,6 @@ public class ReversalTests(ApiFixture fixture)
         var after = await s.LedgerAsync(sourceDocId: receipt.Id);
         Assert.Equal(before.Count * 2, after.Count);
         foreach (var original in before)
-            Assert.Contains(after, e => e.Id == original.Id && e.QtyDelta == original.QtyDelta && e.UnitCost == original.UnitCost);
+            Assert.Contains(after, e => e.OccurredAt == original.OccurredAt && e.Sku == original.Sku && e.Reason == original.Reason && e.QtyDelta == original.QtyDelta && e.UnitCost == original.UnitCost);
     }
 }

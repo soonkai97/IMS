@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 public class SubmitDocumentHandler(IRepository<StockDocument> documents, IApprovalEvaluator approvals, IIssueValuation valuation,
-    IStockAvailability availability, ISystemSettings settings, IDocumentAccess access, IDocumentReader reader,
+    IStockAvailability availability, ISystemSettings settings, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version,
     ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<SubmitDocumentCommand, DocumentDto>
 {
     public async Task<DocumentDto> HandleAsync(SubmitDocumentCommand cmd, CancellationToken ct)
@@ -10,7 +10,7 @@ public class SubmitDocumentHandler(IRepository<StockDocument> documents, IApprov
         var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
         access.EnsureDocumentInScope(doc.WarehouseId);
         access.EnsureMayEditOrSubmit(doc);
-        DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
+        version.EnsureCurrent(doc, cmd.IfMatch);
 
         // Submission is blocked up front when stock is short, unless negative stock is allowed (OUT-02); then the shortfall is flagged
         // so it is sent to an approver, who gives the override reason when approving.

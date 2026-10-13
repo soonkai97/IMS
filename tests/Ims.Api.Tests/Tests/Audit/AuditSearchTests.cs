@@ -78,7 +78,7 @@ public class AuditSearchTests(ApiFixture fixture)
         Assert.NotEmpty(byId);
         Assert.All(byId, e => Assert.Equal(receipt.No, e.EntityId));
         Assert.Contains(byId, e => e.Action == AuditActions.DocumentPosted);
-        Assert.Equal(byId.Select(e => e.Id), bySearch.Where(e => e.EntityId == receipt.No).Select(e => e.Id));
+        Assert.Equal(byId.Select(e => (e.At, e.Action)), bySearch.Where(e => e.EntityId == receipt.No).Select(e => (e.At, e.Action)));
     }
 
     [Fact]
@@ -216,7 +216,7 @@ public class AuditSearchTests(ApiFixture fixture)
             var entries = (await admin.GetAsync("/api/audit?entityType=SystemSetting&pageSize=200")).Data<AuditPage>();
 
             Assert.Equal(before + 1, entries.Total); // two keys changed, one row written
-            var newest = entries.Items.OrderByDescending(e => e.Id).First();
+            var newest = entries.Items.First();   // newest first
             Assert.Equal(AuditActions.SettingsUpdated, newest.Action);
             Assert.Contains("AllowNegativeStock", newest.Before);
             Assert.Contains("AllowSelfApproval", newest.After);

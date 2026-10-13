@@ -3,7 +3,7 @@ namespace Ims.Application.Features.Documents;
 
 /// <summary>Posting: writes the ledger and updates balances in one transaction, retried on concurrent changes (BR-01, BR-12).</summary>
 public class PostDocumentHandler(IRepository<StockDocument> documents, IRepository<StockLedgerEntry> ledger, IBalanceLoader balances,
-    IPostingEngine engine, ISystemSettings settings, IDocumentAccess access, IDocumentReader reader,
+    IPostingEngine engine, ISystemSettings settings, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version,
     ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<PostDocumentCommand, DocumentDto>
 {
     public async Task<DocumentDto> HandleAsync(PostDocumentCommand cmd, CancellationToken ct)
@@ -12,7 +12,7 @@ public class PostDocumentHandler(IRepository<StockDocument> documents, IReposito
         {
             var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
             access.EnsureDocumentInScope(doc.WarehouseId);
-            DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
+            version.EnsureCurrent(doc, cmd.IfMatch);
             if (doc.RequiresApproval && !PostingAuthority.MayPostApprovalRequiredDocument(current.Role))
                 throw new ForbiddenException(Messages.NeedsApprovalNotForStaff);
             doc.EnsureCanPost();

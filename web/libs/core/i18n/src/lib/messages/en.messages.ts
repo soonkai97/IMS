@@ -541,6 +541,6 @@ export const EN_MESSAGES = {
   'audit.searchLabel': 'Search the audit log',
   'audit.searchPlaceholder': 'Document number or object name',
   'audit.show': 'Show',
-  'audit.showFor': 'Show details of {action} on {entity} at {when}, entry {id}',
+  'audit.showFor': 'Show details of {action} on {entity} at {when}, entry {number}',
   'audit.title': 'Audit log'
 } as const;

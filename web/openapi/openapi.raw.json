@@ -3671,7 +3671,6 @@
       },
       "AuditLogDto": {
         "required": [
-          "id",
           "actor",
           "action",
           "entityType",
@@ -3682,10 +3681,6 @@
         ],
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
           "actor": {
             "type": "string"
           },
@@ -4139,7 +4134,7 @@
           },
           "concurrencyToken": {
             "type": "string",
-            "description": "Changes whenever the document (header, status or lines) changes. Also sent as the ETag header; send it back as If-Match to refuse a stale save."
+            "description": "Changes whenever the document (header, status or lines) changes; opaque (a keyed hash bound to this document, not a counter): compare it only for equality. Also sent as the ETag header; send it back as If-Match to refuse a stale save."
           }
         }
       },
@@ -4591,7 +4586,6 @@
       },
       "LedgerRow": {
         "required": [
-          "id",
           "occurredAt",
           "sku",
           "productName",
@@ -4606,10 +4600,6 @@
         ],
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
           "occurredAt": {
             "type": "string",
             "format": "date-time"

@@ -4082,7 +4082,6 @@ export interface AuditFilterOptions {
 }
 
 export interface AuditLogDto {
-    id: number;
     actor: string;
     action: string;
     entityType: string;
@@ -4189,7 +4188,7 @@ export interface DocumentDto {
     approvalTriggers: ApprovalTriggerDto[];
     /** True for an issue that has not posted yet: its lines carry the average cost seen when it was last saved or submitted, and posting books the real cost. Label the amount "estimated". */
     amountIsEstimate: boolean;
-    /** Changes whenever the document (header, status or lines) changes. Also sent as the ETag header; send it back as If-Match to refuse a stale save. */
+    /** Changes whenever the document (header, status or lines) changes; opaque (a keyed hash bound to this document, not a counter): compare it only for equality. Also sent as the ETag header; send it back as If-Match to refuse a stale save. */
     concurrencyToken: string;
 }
 
@@ -4330,7 +4329,6 @@ export enum LedgerReason {
 }
 
 export interface LedgerRow {
-    id: number;
     occurredAt: string;
     sku: string;
     productName: string;

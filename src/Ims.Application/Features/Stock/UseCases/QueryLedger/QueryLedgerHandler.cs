@@ -14,6 +14,6 @@ public class QueryLedgerHandler(IReadRepository<StockLedgerEntry> ledger, IWareh
         var total = q.Filter.IncludeTotal ? await ledger.CountAsync(new LedgerCountSpec(q.Filter, warehouseId, productId, sourceDocId, ids), ct) : Paging.TotalNotCounted;
         var items = await ledger.ListAsync(new LedgerRowsSpec(q.Filter, warehouseId, productId, sourceDocId, ids, after: after), ct);
         var (page, size) = Paging.Normalize(q.Filter.Page, q.Filter.PageSize, Limits.MaxStockPageSize);
-        return new PagedResult<LedgerRow>(items, total, page, size, Paging.NextCursor(items, size, r => r.Id, cursors, CursorLists.Ledger));
+        return new PagedResult<LedgerRow>(items, total, page, size, Paging.NextCursor(items, size, r => r.Key, cursors, CursorLists.Ledger));
     }
 }

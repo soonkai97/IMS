@@ -237,7 +237,8 @@ r = await api('GET', '/api/stock/ledger?productId=' + p1.id + '&pageSize=2', { t
 check('ledger page has items, total and a cursor', r.body.items.length === 2 && r.body.total >= 2 && typeof r.body.nextCursor === 'string' && r.body.nextCursor.length > 0, JSON.stringify(r.body).slice(0, 200));
 const page1 = r.body;
 r = await api('GET', '/api/stock/ledger?productId=' + p1.id + '&pageSize=2&cursor=' + encodeURIComponent(page1.nextCursor) + '&includeTotal=false', { token: admin });
-check('seek page continues after the cursor without a count', r.body.items.every(i => i.id < page1.items[page1.items.length - 1].id) && r.body.total === -1 && !page1.items.some(i => r.body.items.some(j => j.id === i.id)), JSON.stringify(r.body).slice(0, 200));
+check('ledger rows carry no id', page1.items.every(i => !('id' in i)), JSON.stringify(page1.items[0]));
+check('seek page continues after the cursor without a count', r.body.items.length > 0 && r.body.total === -1 && !page1.items.some(i => r.body.items.some(j => JSON.stringify(j) === JSON.stringify(i))), JSON.stringify(r.body).slice(0, 200));
 r = await api('GET', '/api/stock/ledger?pageSize=2&cursor=garbage', { token: admin });
 check('a cursor the server did not make is a 400, not a 500', r.status === 400 && Array.isArray(r.body.errors?.cursor), JSON.stringify(r.body).slice(0, 200));
 const cursor = page1.nextCursor, mid = Math.floor(cursor.length / 2);

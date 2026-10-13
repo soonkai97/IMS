@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class ListDocumentsHandler(IReadRepository<StockDocument> documents, IDocumentTextMatcher matcher, IDocumentAccess access, ICurrentUser current, ISystemSettings settings, ICursorProtector cursors, IIdMap<Warehouse> warehouseIds)
+public class ListDocumentsHandler(IReadRepository<StockDocument> documents, IDocumentTextMatcher matcher, IDocumentAccess access, ICurrentUser current, ISystemSettings settings, ICursorProtector cursors, IIdMap<Warehouse> warehouseIds, IDocumentVersion version)
     : IQueryHandler<ListDocumentsQuery, PagedResult<DocumentListItem>>
 {
     public async Task<PagedResult<DocumentListItem>> HandleAsync(ListDocumentsQuery q, CancellationToken ct)
@@ -16,7 +16,7 @@ public class ListDocumentsHandler(IReadRepository<StockDocument> documents, IDoc
 
         // The caller's review right is decided by the policy, not by SQL, so a row says whether this caller may act on it.
         var system = await settings.GetAsync(ct);
-        var items = rows.Select(r => r with { CanAct = access.CanAct(r, system) }).ToList();
+        var items = rows.Select(r => r with { CanAct = access.CanAct(r, system), ConcurrencyToken = version.Token(r.Id, r.RowVersion) }).ToList();
         return new PagedResult<DocumentListItem>(items, total, page, size, Paging.NextCursor(items, size, d => d.Key, cursors, CursorLists.Documents));
     }
 }

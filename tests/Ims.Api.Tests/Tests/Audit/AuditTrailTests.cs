@@ -26,7 +26,7 @@ public class AuditTrailTests(ApiFixture fixture)
     {
         var admin = await fixture.AsAsync(Roles.Admin);
         var page = (await admin.Audit.QueryAsync(actor, entityType)).Data<AuditPage>();
-        return page.Items.OrderBy(e => e.Id).ToList();
+        return page.Items.AsEnumerable().Reverse().ToList();   // the page is newest first; the history reads oldest first
     }
 
     /// <summary>The status inside an audit payload. Enums are written as names, so the Details view reads "Submitted", not 3.</summary>
@@ -268,6 +268,6 @@ public class AuditTrailTests(ApiFixture fixture)
         Assert.Equal(2, firstPage.Items.Count);
         Assert.True(firstPage.Total >= 3);
         Assert.All(firstPage.Items, e => Assert.Equal((account.Username, nameof(Product)), (e.Actor, e.EntityType)));
-        Assert.True(firstPage.Items[0].Id > firstPage.Items[1].Id, "Newest entry should come first.");
+        Assert.True(firstPage.Items[0].At >= firstPage.Items[1].At, "Newest entry should come first.");
     }
 }
