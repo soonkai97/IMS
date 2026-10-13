@@ -120,10 +120,15 @@ export class AuditLogPageComponent implements OnInit {
     {
       key: 'entity',
       header: this.i18n.t('audit.entity'),
-      value: row => [row.entityType, row.entityId].filter(Boolean).join(' #')
+      value: row => this.entityOf(row)
     },
     { key: 'details', header: this.i18n.t('audit.details'), align: 'end' }
   ]);
+
+  /** "Product #12": what the entry is about. */
+  entityOf(row: AuditLogDto): string {
+    return [row.entityType, row.entityId].filter(Boolean).join(' #');
+  }
 
   constructor() {
     loadOnChange(this.$query, query => this.store.list.load(query));

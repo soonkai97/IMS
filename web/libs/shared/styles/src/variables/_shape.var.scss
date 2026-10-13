@@ -37,13 +37,16 @@ $shadows-light: (
   3: (
     0 12px 32px rgb(16 24 40 / 16%),
     0 2px 6px rgb(16 24 40 / 8%)
-  )
+  ),
+  // The side of a pinned table column: a sliver of shadow towards the columns that scroll under it.
+  'edge': 0.25rem 0 0.375rem -0.25rem rgb(16 24 40 / 20%)
 );
 
 $shadows-dark: (
   1: 0 1px 2px rgb(0 0 0 / 40%),
   2: 0 4px 12px rgb(0 0 0 / 45%),
-  3: 0 12px 32px rgb(0 0 0 / 55%)
+  3: 0 12px 32px rgb(0 0 0 / 55%),
+  'edge': 0.25rem 0 0.375rem -0.25rem rgb(0 0 0 / 45%)
 );
 
 @function border-radius($name) {

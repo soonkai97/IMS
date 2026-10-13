@@ -23,7 +23,11 @@
           $caption()
         }}
       </caption>
-      <thead class="ui-table-head">
+      <thead
+        class="ui-table-head"
+        appPublishHeight="--ims-table-head-height"
+        publishScope=".ui-table-scroll"
+      >
         <tr>
           @for (column of $headers(); track column.key) {
             <th

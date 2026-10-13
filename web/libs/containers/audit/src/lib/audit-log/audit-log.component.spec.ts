@@ -72,6 +72,43 @@ describe('AuditLogPageComponent search (PS-06)', () => {
     expect(lastQuery().search).toBe('ISS-WH01-2610-0017');
   });
 
+  it('ER-10: each Show button names its entry (action, object, time), so 25 of them are told apart', async () => {
+    const at = '2026-10-12T08:30:00Z';
+    page.set({
+      items: [
+        {
+          id: 1,
+          at,
+          actor: 'admin',
+          action: 'product.updated',
+          entityType: 'Product',
+          entityId: '7'
+        },
+        {
+          id: 2,
+          at,
+          actor: 'admin',
+          action: 'product.updated',
+          entityType: 'Product',
+          entityId: '8'
+        }
+      ],
+      page: 1,
+      pageSize: 25,
+      total: 2
+    } as unknown as PagedResultOfAuditLogDto);
+    await render();
+
+    const names = spectator
+      .queryAll('app-button button')
+      .map(button => button.getAttribute('aria-label') ?? '')
+      .filter(label => label.startsWith('Show details'));
+    expect(names).toHaveLength(2);
+    expect(new Set(names).size).toBe(2);
+    expect(names[0]).toContain('product.updated on Product #7 at');
+    page.set({ items: [], page: 1, pageSize: 25, total: 0 } as PagedResultOfAuditLogDto);
+  });
+
   it('an empty result with filters set offers Clear filters', async () => {
     await render();
     spectator.component.$searchInput.set('nothing');
