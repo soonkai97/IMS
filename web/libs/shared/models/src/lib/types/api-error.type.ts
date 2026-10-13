@@ -10,6 +10,8 @@ export interface ApiError {
   readonly title: string;
   /** Human sentence from the server (shown to the user as is). */
   readonly detail: string;
+  /** The one sentence to show for this failure (mapped and translated by the error interceptor). */
+  readonly message?: string;
   readonly correlationId?: string;
   /** Field name (camelCase) -> messages, from the `errors` extension of a 400 response. */
   readonly fieldErrors: Readonly<Record<string, readonly string[]>>;

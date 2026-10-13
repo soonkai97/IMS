@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
@@ -27,7 +27,8 @@ import {
   DOCUMENT_ACTION,
   IDLE_OPERATION,
   PERMISSION,
-  failureOperation
+  failureOperation,
+  isFailure
 } from '@ims/models';
 import { ApiCommand } from '@ims/utils';
 import { DocumentEditorPageComponent } from './document-editor.component';
@@ -160,7 +161,7 @@ describe('DocumentEditorPageComponent', () => {
           detail: {
             $data: opened,
             $isLoading: signal(false),
-            $isFailed: signal(false),
+            $isFailed: computed(() => isFailure(detailOperation())),
             $operation: detailOperation,
             load: jest.fn(),
             reload: detailReload,
@@ -694,6 +695,29 @@ describe('DocumentEditorPageComponent', () => {
         expect(text()).not.toContain('Retry');
       }
     );
+
+    it('a failed load is one alert with the mapped sentence and a Retry, and no toast says it again (R11)', async () => {
+      opened.set(undefined);
+      detailOperation.set(
+        failureOperation({
+          ...STALE,
+          kind: API_ERROR_KIND.Network,
+          status: 0,
+          detail: '',
+          message: "Can't reach the server. Check your connection and try again."
+        })
+      );
+      jest.clearAllMocks();
+      spectator = createComponent({ props: { type: DocumentType.Receipt, id: guid(5) } as never });
+      spectator.detectChanges();
+
+      const alerts = spectator.queryAll('[role="alert"]');
+      expect(alerts).toHaveLength(1);
+      expect(alerts[0].textContent).toContain("Can't reach the server.");
+      expect(alerts[0].textContent).toContain('Retry');
+      // A saved document asks for its form support data once it opened, so no sibling call adds a toast.
+      expect(spectator.inject(PartnersStore).loadActive).not.toHaveBeenCalled();
+    });
 
     it('while a saved document loads the title is not "New receipt"', async () => {
       opened.set(undefined);

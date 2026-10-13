@@ -1,4 +1,5 @@
 import { createHostFactory, SpectatorHost } from '@ngneat/spectator/jest';
+import { UiModalState } from '../../services/modal-state.service';
 import { UiDialogComponent } from './dialog.component';
 
 describe('UiDialogComponent focus', () => {
@@ -34,5 +35,25 @@ describe('UiDialogComponent focus', () => {
     await open(`<app-dialog [(open)]="open" heading="Info"><p>Hello</p></app-dialog>`);
 
     expect(document.activeElement?.tagName).not.toBe('INPUT');
+  });
+});
+
+describe('UiDialogComponent modal state', () => {
+  let spectator: SpectatorHost<UiDialogComponent, { open: boolean }>;
+  const createHost = createHostFactory({ component: UiDialogComponent });
+
+  it('counts as an open modal only while it is open, so the page copy of the toast host steps aside', () => {
+    spectator = createHost(`<app-dialog [(open)]="open" heading="Info"><p>Hello</p></app-dialog>`, {
+      hostProps: { open: true }
+    });
+    const modal = spectator.inject(UiModalState);
+    spectator.detectChanges();
+
+    expect(modal.$isOpen()).toBe(true);
+
+    spectator.component.$open.set(false);
+    spectator.detectChanges();
+
+    expect(modal.$isOpen()).toBe(false);
   });
 });

@@ -18,7 +18,7 @@
       <app-skeleton [count]="2" />
     } @else if ($failed()) {
       <app-banner kind="danger">
-        {{ 'error.generic' | t }}
+        {{ $errorMessage() || ('error.generic' | t) }}
         <app-button bannerActions (clicked)="onRetry()">{{ 'ui.retry' | t }}</app-button>
       </app-banner>
     } @else {

@@ -30,6 +30,8 @@ export * from './lib/components/tabs/tab-panel.directive';
 export * from './lib/components/tabs/tabs.component';
 export * from './lib/components/textarea/textarea.component';
 export * from './lib/components/toast/toast.component';
+export * from './lib/services/modal-state.service';
+export * from './lib/tokens/dialog-feedback.token';
 export * from './lib/tokens/ui-text.token';
 export * from './lib/directives/publish-height.directive';
 export * from './lib/directives/scroll-region.directive';

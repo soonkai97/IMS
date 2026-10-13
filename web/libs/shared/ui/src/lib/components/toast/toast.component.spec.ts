@@ -8,7 +8,7 @@ describe('UiToastComponent long messages (L00)', () => {
     detectChanges: false
   });
 
-  it('shows the whole message in the live region, wrapped, never clamped or cut', () => {
+  it('shows the whole message, wrapped, never clamped or cut', () => {
     const message = 'Server said '.repeat(60);
     spectator = createComponent({ props: { kind: 'error', message } as never });
     spectator.detectChanges();

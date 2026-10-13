@@ -1,3 +1,4 @@
+import { NgComponentOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,6 +12,8 @@ import {
   model,
   viewChild
 } from '@angular/core';
+import { UiModalState } from '../../services/modal-state.service';
+import { UI_DIALOG_FEEDBACK } from '../../tokens/dialog-feedback.token';
 import { UI_TEXT } from '../../tokens/ui-text.token';
 import { UiButtonComponent } from '../button/button.component';
 import { UiIconComponent } from '../icon/icon.component';
@@ -32,7 +35,7 @@ const AUTOFOCUS_SELECTOR =
  */
 @Component({
   selector: 'app-dialog',
-  imports: [UiButtonComponent, UiIconComponent],
+  imports: [NgComponentOutlet, UiButtonComponent, UiIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dialog.component.html',
   styleUrl: './dialog.component.scss'
@@ -40,6 +43,11 @@ const AUTOFOCUS_SELECTOR =
 export class UiDialogComponent {
   private readonly injector = inject(Injector);
   private readonly uiText = inject(UI_TEXT);
+  private readonly modalState = inject(UiModalState);
+
+  /** Rendered above the content while open: failures raised meanwhile are shown here, not behind the backdrop. */
+  readonly feedback = inject(UI_DIALOG_FEEDBACK);
+  readonly feedbackInputs = { inDialog: true };
 
   $open = model(false, { alias: 'open' });
   $heading = input.required<string>({ alias: 'heading' });
@@ -57,6 +65,13 @@ export class UiDialogComponent {
     }
     if (!this.$open() && dialog.open) {
       this.hide(dialog);
+    }
+  });
+
+  private readonly trackModal = effect(onCleanup => {
+    if (this.$open()) {
+      this.modalState.enter();
+      onCleanup(() => this.modalState.leave());
     }
   });
 

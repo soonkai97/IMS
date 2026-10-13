@@ -7,6 +7,9 @@
           <app-icon name="x" />
         </app-button>
       </header>
+      @if (feedback; as component) {
+        <ng-container [ngComponentOutlet]="component" [ngComponentOutletInputs]="feedbackInputs" />
+      }
       <div class="ui-dialog-body">
         <ng-content />
       </div>

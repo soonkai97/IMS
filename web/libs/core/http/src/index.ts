@@ -3,6 +3,7 @@ export * from './lib/config/api-request';
 export * from './lib/config/app-config';
 export * from './lib/config/provide-api';
 export * from './lib/constants/cookie-session.const';
+export * from './lib/errors/handled-inline';
 export * from './lib/errors/problem-details';
 export * from './lib/interceptors/correlation.interceptor';
 export * from './lib/interceptors/credentials.interceptor';
