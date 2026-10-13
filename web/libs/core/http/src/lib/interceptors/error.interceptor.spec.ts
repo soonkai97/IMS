@@ -176,32 +176,19 @@ describe('errorInterceptor', () => {
       expect(toast.$toasts().map(item => item.message)).toEqual(['Down.']);
     });
 
-    it('the sentence on the error is the one the toast shows', async () => {
+    it('an error toast goes when the user starts a write, not on a read or the silent token refresh', async () => {
       const error = await failWith(504, null);
-
       expect(error.message).toBe(toast.$toasts()[0].message);
-    });
-
-    it('an error toast from the last failure goes when the user starts something new (a write), not on a read', async () => {
-      await failWith(500, null);
-      expect(toast.$toasts()).toHaveLength(1);
 
       http.get(URL).subscribe();
       backend.expectOne(URL).flush(null);
+      http.post('http://api.test/api/auth/refresh', null).subscribe();
+      backend.expectOne('http://api.test/api/auth/refresh').flush(null);
       expect(toast.$toasts()).toHaveLength(1);
 
       http.post(URL, null).subscribe();
       expect(toast.$toasts()).toHaveLength(0);
       backend.expectOne(URL).flush(null);
-    });
-
-    it('the silent token refresh and logout are not the user starting something: an unread error stays', async () => {
-      await failWith(500, null);
-
-      http.post('http://api.test/api/auth/refresh', null).subscribe();
-      backend.expectOne('http://api.test/api/auth/refresh').flush(null);
-
-      expect(toast.$toasts()).toHaveLength(1);
     });
   });
 });

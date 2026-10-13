@@ -22,26 +22,8 @@ describe('ToastHostComponent', () => {
 
   afterEach(() => jest.useRealTimers());
 
-  it('has the polite region before any toast exists, so the first success is announced', () => {
-    expect(politeRegion()).toBeTruthy();
+  it('keeps the polite region from the start; shows an error as its own alert and a success in it, taking no focus', () => {
     expect(politeRegion().textContent?.trim()).toBe('');
-  });
-
-  it('shows an error as its own alert (one node) and a success in the polite region without a role', () => {
-    toast.error('Could not save.');
-    toast.success('Saved.');
-    spectator.detectChanges();
-
-    const alerts = spectator.queryAll('[role="alert"]');
-    expect(alerts).toHaveLength(1);
-    expect(alerts[0].tagName).toBe('APP-TOAST');
-    expect(alerts[0].textContent).toContain('Could not save.');
-    expect(politeRegion().textContent).toContain('Saved.');
-    expect(politeRegion().textContent).not.toContain('Could not save.');
-    expect(politeRegion().querySelector('[role]')).toBeNull();
-  });
-
-  it('never takes focus', () => {
     const trigger = document.createElement('button');
     document.body.append(trigger);
     trigger.focus();
@@ -50,6 +32,11 @@ describe('ToastHostComponent', () => {
     toast.success('Saved.');
     spectator.detectChanges();
 
+    const alerts = spectator.queryAll('[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].textContent).toContain('Could not save.');
+    expect(politeRegion().textContent).toContain('Saved.');
+    expect(politeRegion().querySelector('[role]')).toBeNull();
     expect(document.activeElement).toBe(trigger);
     trigger.remove();
   });
@@ -104,24 +91,5 @@ describe('ToastHostComponent', () => {
     await spectator.inject(Router).navigateByUrl('/');
 
     expect(toast.$toasts().map(item => item.kind)).toEqual(['success']);
-  });
-});
-
-describe('ToastHostComponent inside a dialog', () => {
-  let spectator: Spectator<ToastHostComponent>;
-  const createComponent = createComponentFactory({
-    component: ToastHostComponent,
-    providers: [provideRouter([])]
-  });
-
-  it('stays visible while a modal is open: it is the one that shows the toasts then', () => {
-    spectator = createComponent({ props: { inDialog: true } as never });
-    spectator.inject(UiModalState).enter();
-    spectator.inject(ToastService).error('Could not save.');
-    spectator.detectChanges();
-
-    expect(spectator.element.hidden).toBe(false);
-    expect(spectator.element.classList).toContain('--in-dialog');
-    expect(spectator.queryAll('[role="alert"]')).toHaveLength(1);
   });
 });

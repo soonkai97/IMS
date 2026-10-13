@@ -1,15 +1,11 @@
 @use 'libs' as *;
 
-// A toast never covers the primary action (ER-02, NV-21). Ruling C6 v2 (ui-ux-designer, R11 review):
-//  - Below the desktop width (phone and tablet) the host is an IN-FLOW banner: the first child of the page's main region, under the
-//    top bar, not sticky. It pushes the title, the filters and the page actions down instead of lying on them, and it scrolls away
-//    with the page. It is at most 20% of the window high and scrolls inside (a long sentence stays readable, L00). Success toasts
-//    use the same host and stay compact.
-//  - From 1024px (ruling C14) it floats bottom right above the sticky action bar, which publishes how far its top edge is above the
-//    bottom of the window (--ims-action-bar-clearance, kept current on scroll): on a short page the bar has not reached the bottom
-//    and sits higher than its height suggests. The page-header Save at the top right is not covered.
-//  - Inside a modal dialog (--in-dialog) it is the same in-flow banner above the dialog's content: a modal makes the page behind it
-//    inert, so a floating toast there could be neither seen nor clicked.
+// A toast never covers the primary action (ER-02, NV-21). Ruling C6 v3:
+//  - Below 1024px the host is an IN-FLOW banner, first in the main region under the top bar, not sticky: it pushes the title,
+//    filters and actions down. At most 20% of the window high, scrolls inside (the whole sentence stays readable, L00).
+//  - From 1024px (ruling C14) it floats bottom right above the sticky action bar, which publishes how far its top edge is above
+//    the bottom of the window (--ims-action-bar-clearance); on a short page the bar sits higher than its height suggests.
+//  - In a modal dialog (--in-dialog) it is the same in-flow banner above the content: the page behind a modal is inert.
 :host {
   display: block;
   max-height: 20dvh;

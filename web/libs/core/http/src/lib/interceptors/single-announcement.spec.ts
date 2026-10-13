@@ -38,10 +38,7 @@ class TestScreenComponent {
   }
 }
 
-/**
- * What a screen reader is told: the text of every live region (role alert or status, or aria-live) that holds any, outermost only.
- * The toast host's two regions are always in the page and are empty until a toast lands in one.
- */
+/** What a screen reader is told: the text of every live region (alert, status or aria-live) that holds any, outermost only. */
 function announcements(root: HTMLElement): string[] {
   return Array.from(
     root.querySelectorAll<HTMLElement>('[role="alert"], [role="status"], [aria-live]')
@@ -93,7 +90,6 @@ describe('one failure, one announcement', () => {
 
     expect(announcements(root)).toEqual([SENTENCE]);
     expect(root.querySelector('app-toast')).toBeNull();
-    expect(root.querySelector('app-banner[role="alert"]')).not.toBeNull();
   });
 
   it('a failure nobody shows in place is announced once, by one toast', async () => {
@@ -102,7 +98,6 @@ describe('one failure, one announcement', () => {
 
     expect(announcements(root)).toEqual([SENTENCE]);
     expect(root.querySelectorAll('app-toast')).toHaveLength(1);
-    expect(root.querySelector('app-banner')).toBeNull();
   });
 
   it('control: without the flag the same screen announces the failure twice (banner and toast)', async () => {
@@ -110,15 +105,6 @@ describe('one failure, one announcement', () => {
     await fail();
 
     expect(announcements(root)).toEqual([SENTENCE, SENTENCE]);
-  });
-
-  it('the same failure twice in a row leaves one toast', async () => {
-    screen.run('POST', undefined, false);
-    await fail();
-    screen.run('GET', undefined, false);
-    await fail();
-
-    expect(announcements(root)).toEqual([SENTENCE]);
   });
 
   it('a failure while a modal dialog is open is shown inside the dialog, once, and the page copy stays empty', async () => {

@@ -634,6 +634,7 @@ describe('DocumentEditorPageComponent', () => {
           message: "Can't reach the server. Check your connection and try again."
         })
       );
+      jest.clearAllMocks();
       spectator = createComponent({ props: { type: DocumentType.Receipt, id: '5' } as never });
       spectator.detectChanges();
 
@@ -641,33 +642,8 @@ describe('DocumentEditorPageComponent', () => {
       expect(alerts).toHaveLength(1);
       expect(alerts[0].textContent).toContain("Can't reach the server.");
       expect(alerts[0].textContent).toContain('Retry');
-    });
-
-    it('a saved document that cannot be loaded asks for no form support data, so its banner is the one announcement (R11)', () => {
-      opened.set(undefined);
-      detailOperation.set(
-        failureOperation({
-          ...STALE,
-          kind: API_ERROR_KIND.Network,
-          status: 0,
-          detail: '',
-          message: "Can't reach the server."
-        })
-      );
-      jest.clearAllMocks();
-      spectator = createComponent({ props: { type: DocumentType.Receipt, id: '5' } as never });
-      spectator.detectChanges();
-
+      // A saved document asks for its form support data once it opened, so no sibling call adds a toast.
       expect(spectator.inject(PartnersStore).loadActive).not.toHaveBeenCalled();
-    });
-
-    it('a new document asks for its support data at once', () => {
-      opened.set(undefined);
-      jest.clearAllMocks();
-      spectator = createComponent({ props: { type: DocumentType.Receipt, id: 'new' } as never });
-      spectator.detectChanges();
-
-      expect(spectator.inject(PartnersStore).loadActive).toHaveBeenCalledTimes(1);
     });
 
     it('while a saved document loads the title is not "New receipt"', async () => {

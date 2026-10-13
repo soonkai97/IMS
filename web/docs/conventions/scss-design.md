@@ -93,24 +93,19 @@ or `all`.
 
 ## Feedback: one failure, one announcement
 
-- A failed call is announced once. Field validation (400 with field errors) shows at the field and raises no toast. A call whose
-  screen shows the failure in place (a banner, a message at a field) is flagged `handledInline()` (`@ims/core/http`; pass statuses to
-  flag only those, `handledInline(HTTP_STATUS.Conflict)`) and raises no toast; the screen shows `error.message`, the one sentence the
-  error interceptor mapped (network, timeout, gateway, 403, 429, the API's own `detail`). Every other failure raises one error toast.
-  Pass the context per load: `loader.load(query, handledInline())` (reload keeps it), so a screen flags only its own load and a
-  background refresh of the same loader still toasts. A screen that flags several calls shows a failure of any of them (Home: one
-  banner for the summary and the counts). Never flag a call whose failure the screen does not show. A table error panel stays
-  silent (the toast announces it, EA-26).
-- Toasts: success and info leave after 4s (paused while the pointer or focus is on one); an error stays until it is dismissed (button
-  or Escape), the user starts a write (not the silent token refresh) or goes to another page. The same text within 2s shows once; a
-  repeat of an error later replaces the old node (one node, announced again). Success and info: at most two, a newer one replaces the
-  oldest. Errors are not capped. A toast never takes focus.
-- An error is its own `role="alert"` node; success and info sit in a polite live region and have no role. One toast, one announcement.
-- Position (ruling C6 v3): below `media-desktop` the host is an in-flow banner, the first child of `<main>` in the shell (and of the sign-in
-  page), not sticky, `max-height: 20dvh` with inner scroll, so it pushes the title, filters and actions down and covers nothing. From
-  1024px it floats bottom right above the action bar through `--ims-action-bar-clearance`. While a modal dialog is open (`UiModalState`)
-  the dialog renders its own host copy (`UI_DIALOG_FEEDBACK`, `provideDialogFeedback()`) and the page copy renders nothing. Enter is a
-  fade with a small rise (`base`), leave a fade (`fast`).
+- Field validation (400 with field errors) shows at the field, no toast. A call whose screen shows the failure in place (banner or
+  field message) is flagged `handledInline()` (`@ims/core/http`; `handledInline(HTTP_STATUS.Conflict)` flags only that status),
+  passed per load: `loader.load(query, handledInline())` (reload keeps it), so a background refresh of the same loader still toasts.
+  The screen shows `error.message`, the one sentence the interceptor mapped. Never flag a call whose failure the screen does not
+  show (Home flags the summary and the counts and has one banner for either). A table error panel stays silent (EA-26).
+- Toasts: success and info leave after 4s (paused on hover or focus), at most two, a newer one replaces the oldest. An error stays
+  until dismissed (button or Escape), the user starts a write (not the token refresh) or leaves the page; the same text within 2s
+  shows once, a later repeat replaces the old node. Never takes focus. An error is its own `role="alert"` node; success and info
+  sit in one polite live region without roles.
+- Position (ruling C6 v3): below `media-desktop` an in-flow banner, first child of `<main>` (and of the sign-in page), not sticky,
+  `max-height: 20dvh` with inner scroll. From 1024px bottom right above the action bar (`--ims-action-bar-clearance`). While a modal
+  is open (`UiModalState`) the dialog renders the host itself (`UI_DIALOG_FEEDBACK`, `provideDialogFeedback()`) and the page copy
+  renders nothing.
 
 ## Naming: flat BEM, component specific
 
