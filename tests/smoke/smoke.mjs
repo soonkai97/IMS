@@ -240,6 +240,15 @@ r = await api('GET', '/api/stock/ledger?productId=' + p1.id + '&pageSize=2&curso
 check('seek page continues after the cursor without a count', r.body.items.every(i => i.id < page1.items[page1.items.length - 1].id) && r.body.total === -1 && !page1.items.some(i => r.body.items.some(j => j.id === i.id)), JSON.stringify(r.body).slice(0, 200));
 r = await api('GET', '/api/stock/ledger?pageSize=2&cursor=garbage', { token: admin });
 check('a cursor the server did not make is a 400, not a 500', r.status === 400 && Array.isArray(r.body.errors?.cursor), JSON.stringify(r.body).slice(0, 200));
+const cursor = page1.nextCursor, mid = Math.floor(cursor.length / 2);
+r = await api('GET', '/api/stock/ledger?pageSize=2&cursor=' + encodeURIComponent(cursor.slice(0, mid) + (cursor[mid] === 'A' ? 'B' : 'A') + cursor.slice(mid + 1)), { token: admin });
+check('a real cursor with one character changed is a 400 on the cursor field', r.status === 400 && Array.isArray(r.body.errors?.cursor), JSON.stringify(r.body).slice(0, 200));
+r = await api('GET', '/api/documents?pageSize=2&cursor=' + encodeURIComponent(cursor), { token: admin });
+check('a cursor of the ledger is a 400 on the document list', r.status === 400 && Array.isArray(r.body.errors?.cursor), JSON.stringify(r.body).slice(0, 200));
+for (const [what, path] of [['a product id on the document route', `/api/documents/${p1.id}`], ['a document id on the product route', `/api/products/${rcv.id}`],
+  ['an unknown id on the document route', `/api/documents/${crypto.randomUUID()}`], ['an integer id on the product route', '/api/products/1']]) {
+  check(`${what} is a 404`, (await api('GET', path, { token: admin })).status === 404);
+}
 for (const path of ['/api/users?pageSize=2', '/api/partners?pageSize=1', '/api/stock/low-stock?pageSize=1', '/api/reports/movements?pageSize=1', '/api/documents?pageSize=1', '/api/audit?pageSize=1']) {
   r = await api('GET', path, { token: admin });
   check(path + ' is server-side paged', r.status === 200 && Array.isArray(r.body.items) && r.body.items.length <= 2 && typeof r.body.total === 'number' && r.body.pageSize >= 1, String(r.status));

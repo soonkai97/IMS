@@ -4,7 +4,8 @@
 
   Usage (API running against a perf database, see docs/dba/README.md section 9; it must be the only user of the database):
     powershell -File docs/dba/18-measure-movements-by-product.ps1 -Label after -BaseUrl http://localhost:5187 -Database Ims_Perf_Mov
-        -Hot 3,4,5 -Cold 16961,43,20001
+        -Hot SKU-00001,SKU-00002,SKU-00003 -Cold SKU-16959,SKU-00041,SKU-19999
+  Products are named by SKU (the seed numbers them SKU-00001...); their public ids (GUIDs) are looked up through the API first.
   Order matters while the statement has one cached plan: "hot-first" clears the plan cache, then asks for the hot products, then the cold ones;
   "cold-first" clears it and asks for the cold ones first. "default" is the report with no filter (page 1). Output: one line per call, and
   docs/dba/results-<Label>.csv. Credentials as in 02-measure-api.ps1 (Seed:AdminPassword of appsettings.Development.json).
@@ -14,8 +15,8 @@ param(
     [string]$Label = 'movements-by-product',
     [string]$Database = 'Ims_Perf',
     [string]$Server = '(localdb)\ImsDev',
-    [int[]]$Hot = @(3, 4, 5),
-    [int[]]$Cold = @(16961, 43, 20001),
+    [string[]]$Hot = @('SKU-00001', 'SKU-00002', 'SKU-00003'),
+    [string[]]$Cold = @('SKU-16959', 'SKU-00041', 'SKU-19999'),
     [int]$Repeat = 3
 )
 if ($Database -notlike 'Ims_Perf*') { throw 'A perf database only.' }
@@ -38,11 +39,18 @@ function Measure-Call([string]$scenario, [string]$name, [string]$path) {
     '{0,-11} {1,-22} total {2,6}  {3,6} ms  {4,10} reads' -f $scenario, $name, $r.total, $sw.ElapsedMilliseconds, $reads
 }
 
-Invoke-RestMethod -Uri "$BaseUrl/api/reports/movements?productId=$($Cold[-1])" -Headers $headers | Out-Null   # warm-up: JIT and the connection pool, not timed
+$Hot = @($Hot | ForEach-Object { $_ -split ',' }); $Cold = @($Cold | ForEach-Object { $_ -split ',' })   # powershell -File passes "a,b,c" as one string
+$ids = @{}   # SKU -> public id, looked up once (the ids are opaque, never computed)
+foreach ($sku in (@($Hot) + @($Cold))) {
+    $found = Invoke-RestMethod -Uri "$BaseUrl/api/products/lookup?code=$sku" -Headers $headers
+    if (-not $found.found) { throw "No product with SKU ${sku}: is this the perf seed?" }
+    $ids[$sku] = $found.product.id
+}
+Invoke-RestMethod -Uri "$BaseUrl/api/reports/movements?productId=$($ids[$Cold[-1]])" -Headers $headers | Out-Null   # warm-up: JIT and the connection pool, not timed
 foreach ($scenario in 'hot-first', 'cold-first') {
     Invoke-Sql 'ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE' | Out-Null
     $order = if ($scenario -eq 'hot-first') { @($Hot) + @($Cold) } else { @($Cold) + @($Hot) }
-    foreach ($id in $order) { Measure-Call $scenario "product $id" "/api/reports/movements?productId=$id" }
+    foreach ($sku in $order) { Measure-Call $scenario "product $sku" "/api/reports/movements?productId=$($ids[$sku])" }
 }
 for ($i = 1; $i -le $Repeat; $i++) { Measure-Call 'default' "no filter #$i" '/api/reports/movements' }
 $rows | Export-Csv (Join-Path $PSScriptRoot "results-$Label.csv") -NoTypeInformation
