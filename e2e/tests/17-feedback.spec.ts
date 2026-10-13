@@ -61,7 +61,7 @@ test.describe("R11 A failure the screen shows in place", () => {
       name: "a saved document when every call fails (Retry offered)",
       role: "staff" as const,
       url: /\/api\/(?!auth\/)/,
-      open: async (page: Page, id: number) =>
+      open: async (page: Page, id: string) =>
         goTo(page, `/receipts/${id}`),
     },
     {

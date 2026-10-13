@@ -30,7 +30,7 @@ import {
   STATUS_TONE
 } from '@ims/features/documents';
 import { WarehousesStore } from '@ims/features/warehousing';
-import { API_MIN_SEARCH_LENGTH, DEFAULT_PAGE_SIZE, PERMISSION } from '@ims/models';
+import { API_MIN_SEARCH_LENGTH, DEFAULT_PAGE_SIZE, PERMISSION, PublicId } from '@ims/models';
 import {
   SelectOption,
   StatusTone,
@@ -95,7 +95,7 @@ export class DocumentListPageComponent implements OnInit {
   $type = input.required<DocumentType>({ alias: 'type' });
 
   readonly statusControl = new FormControl<DocumentStatus | null>(null);
-  readonly warehouseControl = new FormControl<number | null>(null);
+  readonly warehouseControl = new FormControl<PublicId | null>(null);
   readonly fromControl = new FormControl('', { nonNullable: true });
   readonly toControl = new FormControl('', { nonNullable: true });
 

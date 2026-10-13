@@ -16,7 +16,7 @@ public class AttachmentsController(IDispatcher dispatcher) : ApiControllerBase(d
 {
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<AttachmentDto>>(StatusCodes.Status200OK)]
-    public Task<IActionResult> List([FromQuery] AttachmentOwnerType ownerType, [FromQuery] int ownerId) => SendOk(new ListAttachmentsQuery(ownerType, ownerId));
+    public Task<IActionResult> List([FromQuery] AttachmentOwnerType ownerType, [FromQuery] Guid ownerId) => SendOk(new ListAttachmentsQuery(ownerType, ownerId));
 
     [HttpPost, Consumes("multipart/form-data")]
     [RequestSizeLimit(Limits.MaxRequestBodyBytes), RequestTimeout(RequestTimeoutPolicies.Long)]
@@ -28,8 +28,8 @@ public class AttachmentsController(IDispatcher dispatcher) : ApiControllerBase(d
     }
 
     /// <summary>Downloads the file. Images can be shown inline with <c>inline=true</c>; everything else is a download.</summary>
-    [ProducesFile, HttpGet(ApiRoutes.Id), RequestTimeout(RequestTimeoutPolicies.Long)]
-    public async Task<IActionResult> Download(int id, [FromQuery] bool inline = false)
+    [ProducesFile, HttpGet(ApiRoutes.PublicId), RequestTimeout(RequestTimeoutPolicies.Long)]
+    public async Task<IActionResult> Download(Guid id, [FromQuery] bool inline = false)
     {
         var file = await Send(new DownloadAttachmentQuery(id));
         // The file is untrusted content: never let a browser sniff or run it.
@@ -39,8 +39,8 @@ public class AttachmentsController(IDispatcher dispatcher) : ApiControllerBase(d
         return inline && file.IsImage ? File(file.Content, file.ContentType) : File(file.Content, file.ContentType, file.FileName);
     }
 
-    [HttpDelete(ApiRoutes.Id)]
-    public async Task<IActionResult> Delete(int id)
+    [HttpDelete(ApiRoutes.PublicId)]
+    public async Task<IActionResult> Delete(Guid id)
     {
         await Send(new DeleteAttachmentCommand(id));
         return NoContent();

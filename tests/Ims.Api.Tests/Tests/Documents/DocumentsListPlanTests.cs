@@ -67,14 +67,16 @@ public class DocumentsListPlanTests(ApiFixture fixture)
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
         var warehouse = fixture.Reference.DefaultWarehouseId;
-        for (var i = 0; i < 3; i++) await s.ReceiveAsync(warehouse, new Line(product.Id, 1 + i, 2m));
+        var created = new List<Guid>();
+        for (var i = 0; i < 3; i++) created.Add((await s.ReceiveAsync(warehouse, new Line(product.Id, 1 + i, 2m))).Id);
 
         var large = (await s.Admin.Documents.ListAsync(warehouseId: warehouse, pageSize: 200)).Data<PagedResult<DocumentListItem>>();
         var small = (await s.Admin.Documents.ListAsync(warehouseId: warehouse, pageSize: 2)).Data<PagedResult<DocumentListItem>>();
 
         Assert.Equal(large.Items.Take(2).Select(d => d.Id), small.Items.Select(d => d.Id));
         Assert.Equal(large.Total, small.Total);
-        Assert.True(large.Items.Select(d => d.Id).SequenceEqual(large.Items.Select(d => d.Id).OrderDescending()));
+        // Newest first: public ids are random, so the order is read from the order of creation.
+        Assert.Equal(Enumerable.Reverse(created), large.Items.Select(d => d.Id).Where(created.Contains));
     }
 
     private static void AssertPageCarriesHint(CommandTextLog log)

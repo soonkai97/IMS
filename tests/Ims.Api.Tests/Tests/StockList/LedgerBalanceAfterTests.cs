@@ -12,7 +12,7 @@ namespace Ims.Api.Tests.Tests.StockList;
 [Collection(ApiCollection.Name)]
 public class LedgerBalanceAfterTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private static async Task<List<LedgerRow>> RowsAsync(ApiClient who, string query)
     {
@@ -26,7 +26,7 @@ public class LedgerBalanceAfterTests(ApiFixture fixture)
     }
 
     /// <summary>10, then +5 = 15, then -7 = 8, then +3 = 11, then -2 = 9.</summary>
-    private async Task<(StockScenario S, int ProductId)> MovementsAsync()
+    private async Task<(StockScenario S, Guid ProductId)> MovementsAsync()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
@@ -62,8 +62,8 @@ public class LedgerBalanceAfterTests(ApiFixture fixture)
         var firstPage = (await s.Admin.GetAsync($"/api/stock/ledger?productId={productId}&pageSize=2")).Data<PagedResult<LedgerRow>>();   // its nextCursor points after whole[1]
         var byCursor = (await s.Admin.GetAsync($"/api/stock/ledger?productId={productId}&cursor={Uri.EscapeDataString(firstPage.NextCursor!)}&pageSize=2")).Data<PagedResult<LedgerRow>>().Items;
 
-        Assert.Equal(whole.Select(r => (r.Id, r.BalanceAfter)), walked.Select(r => (r.Id, r.BalanceAfter)));
-        Assert.Equal(whole.Skip(2).Take(2).Select(r => (r.Id, r.BalanceAfter)), byCursor.Select(r => (r.Id, r.BalanceAfter)));
+        Assert.Equal(whole.Select(r => (r.SourceDocNo, r.Reason, r.QtyDelta, r.BalanceAfter)), walked.Select(r => (r.SourceDocNo, r.Reason, r.QtyDelta, r.BalanceAfter)));
+        Assert.Equal(whole.Skip(2).Take(2).Select(r => (r.SourceDocNo, r.Reason, r.QtyDelta, r.BalanceAfter)), byCursor.Select(r => (r.SourceDocNo, r.Reason, r.QtyDelta, r.BalanceAfter)));
     }
 
     [Fact]
@@ -159,7 +159,7 @@ WHERE x.BalanceAfter <> x.Running";
         var rows = await RowsAsync(s.Admin, $"productId={product.Id}");
 
         Assert.Equal([14m, 8m, 14m, 10m], rows.Select(r => r.BalanceAfter!.Value)); // newest first: the reversal 14, the issue 8, the second receipt line 14, the first 10
-        Assert.Equal(0, await fixture.Database.ScalarAsync<int>(string.Format(MismatchSql, "WHERE l.ProductId = @p"), ("@p", product.Id)));
+        Assert.Equal(0, await fixture.Database.ScalarAsync<int>(string.Format(MismatchSql, "WHERE l.ProductId = (SELECT Id FROM Product WHERE PublicId = @p)"), ("@p", product.Id)));
         Assert.Equal(await s.OnHandAsync(product.Id, Warehouse), rows[0].BalanceAfter);
     }
 
@@ -180,7 +180,7 @@ WHERE x.BalanceAfter <> x.Running";
         var responses = await Support.Concurrently.RunAsync(drafts.Select(d => (Func<Task<ApiResponse>>)(() => s.Admin.Documents.PostAsync(d.Id))));
 
         Assert.All(responses, r => Assert.True(r.IsSuccess, $"{(int)r.Status} {r.Body}"));
-        Assert.Equal(0, await fixture.Database.ScalarAsync<int>(string.Format(MismatchSql, "WHERE l.ProductId = @p"), ("@p", product.Id)));
+        Assert.Equal(0, await fixture.Database.ScalarAsync<int>(string.Format(MismatchSql, "WHERE l.ProductId = (SELECT Id FROM Product WHERE PublicId = @p)"), ("@p", product.Id)));
         var newest = (await RowsAsync(s.Admin, $"productId={product.Id}")).First();
         Assert.Equal(await s.OnHandAsync(product.Id, Warehouse), newest.BalanceAfter);
     }

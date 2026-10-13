@@ -16,7 +16,7 @@ public class CategoriesController(IDispatcher dispatcher) : ApiControllerBase(di
     [ProducesResponseType<CategoryDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Create([FromBody] CategorySaveRequest body) => SendOk(new CreateCategoryCommand(body));
 
-    [HttpPut(ApiRoutes.Id), Authorize(Policy = Permissions.MasterDataManage)]
+    [HttpPut(ApiRoutes.PublicId), Authorize(Policy = Permissions.MasterDataManage)]
     [ProducesResponseType<CategoryDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Update(int id, [FromBody] CategorySaveRequest body) => SendOk(new UpdateCategoryCommand(id, body));
+    public Task<IActionResult> Update(Guid id, [FromBody] CategorySaveRequest body) => SendOk(new UpdateCategoryCommand(id, body));
 }

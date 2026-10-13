@@ -9,7 +9,7 @@ namespace Ims.Application.Features.Import;
 public class ImportOpeningStockHandler(IExcelReader excel, IReadRepository<Product> products, IReadRepository<Warehouse> warehouses,
     IWarehouseScope scope, IDispatcher dispatcher, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<ImportOpeningStockCommand, ImportResult>
 {
-    private record Parsed(int Row, int ProductId, int WarehouseId, decimal Qty, decimal Cost);
+    private record Parsed(int Row, Guid ProductId, int WarehouseId, decimal Qty, decimal Cost);
 
     public async Task<ImportResult> HandleAsync(ImportOpeningStockCommand cmd, CancellationToken ct)
     {
@@ -17,8 +17,10 @@ public class ImportOpeningStockHandler(IExcelReader excel, IReadRepository<Produ
         ImportSheet.RequireColumns(sheet, ImportColumns.Sku, ImportColumns.Warehouse, ImportColumns.Qty);
 
         var fileSkus = sheet.Rows.Select(r => r.Get(ImportColumns.Sku)).Where(s => s.Length > 0).Distinct().ToList();
-        var skus = (await products.ListAsync(new ProductSkusBySkusSpec(fileSkus), ct)).Where(p => p.IsActive).ToDictionary(p => p.Sku.ToLowerInvariant(), p => p.Id);
-        var whs = (await warehouses.ListAsync(new ActiveWarehousesSpec(), ct)).ToDictionary(w => w.Code.ToLowerInvariant(), w => w.Id);
+        var skus = (await products.ListAsync(new ProductSkusBySkusSpec(fileSkus), ct)).Where(p => p.IsActive).ToDictionary(p => p.Sku.ToLowerInvariant(), p => p.PublicId);
+        var active = await warehouses.ListAsync(new ActiveWarehousesSpec(), ct);
+        var whs = active.ToDictionary(w => w.Code.ToLowerInvariant(), w => w.Id);
+        var publicIds = active.ToDictionary(w => w.Id, w => w.PublicId); // the draft receipts are created through the same command as the API, which names the warehouse and the products (resolved by SKU above) by public id
         var allowed = scope.Ids();
 
         var results = new List<ImportRowResult>();
@@ -54,10 +56,10 @@ public class ImportOpeningStockHandler(IExcelReader excel, IReadRepository<Produ
         ImportSheet.EnsureNoErrors(results);
         var firstDoc = await uow.ExecuteAsync(async () =>
         {
-            int? first = null;
+            Guid? first = null;
             foreach (var g in parsed.GroupBy(x => x.WarehouseId))
             {
-                var request = new DocumentSaveRequest(g.Key, null, null, ImportColumns.OpeningStockRemark,
+                var request = new DocumentSaveRequest(publicIds[g.Key], null, null, ImportColumns.OpeningStockRemark,
                     g.Select(x => new DocumentLineInput(x.ProductId, x.Qty, null, x.Cost, null)).ToList());
                 var doc = await dispatcher.SendAsync(new CreateDocumentCommand(DocumentType.Receipt, request), ct);
                 first ??= doc.Id;

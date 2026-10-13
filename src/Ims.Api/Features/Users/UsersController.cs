@@ -17,7 +17,7 @@ public class UsersController(IDispatcher dispatcher) : ApiControllerBase(dispatc
     [ProducesResponseType<UserDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Create([FromBody] UserSaveRequest body) => SendOk(new CreateUserCommand(body));
 
-    [HttpPut(ApiRoutes.Id), Authorize(Policy = Permissions.UsersManage)]
+    [HttpPut(ApiRoutes.PublicId), Authorize(Policy = Permissions.UsersManage)]
     [ProducesResponseType<UserDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Update(int id, [FromBody] UserSaveRequest body) => SendOk(new UpdateUserCommand(id, body));
+    public Task<IActionResult> Update(Guid id, [FromBody] UserSaveRequest body) => SendOk(new UpdateUserCommand(id, body));
 }

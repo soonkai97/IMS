@@ -15,7 +15,7 @@ import { I18nService, TranslatePipe } from '@ims/core/i18n';
 import { PermissionService } from '@ims/core/identity';
 import { ToastService } from '@ims/core/notification';
 import { CatalogStore } from '@ims/features/catalog';
-import { PERMISSION } from '@ims/models';
+import { PERMISSION, PublicId } from '@ims/models';
 import {
   TabItem,
   TableColumn,
@@ -39,7 +39,7 @@ const TAB_CATEGORIES = 'categories';
 const TAB_UNITS = 'units';
 
 interface ListRow {
-  readonly id: number;
+  readonly id: PublicId;
   readonly code: string;
   readonly name: string;
 }
@@ -85,7 +85,7 @@ export class CatalogListsPageComponent implements OnInit {
 
   $tab = signal<string>(TAB_CATEGORIES);
   $dialogOpen = signal(false);
-  $editingId = signal<number | undefined>(undefined);
+  $editingId = signal<PublicId | undefined>(undefined);
 
   $isUnits = computed(() => this.$tab() === TAB_UNITS);
   $canManage = computed(() => this.permissions.has(PERMISSION.MasterDataManage));
@@ -195,7 +195,7 @@ export class CatalogListsPageComponent implements OnInit {
       .subscribe();
   }
 
-  private openDialog(id: number | undefined, code: string, name: string): void {
+  private openDialog(id: PublicId | undefined, code: string, name: string): void {
     this.store.saveCategory.reset();
     this.store.saveUnit.reset();
     this.form.reset({ code, name });

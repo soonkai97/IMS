@@ -90,7 +90,7 @@ public class ProductLookupTests(ApiFixture fixture)
         var barcodeOwner = await new ProductBuilder(Ref).WithBarcodes(shared, Unique.Barcode()).CreateAsync(admin);   // the lower id
         var skuOwner = await new ProductBuilder(Ref).WithSku(shared).CreateAsync(admin);
 
-        Assert.True(barcodeOwner.Id < skuOwner.Id);
+        Assert.NotEqual(barcodeOwner.Id, skuOwner.Id);   // created in this order; the public ids are random, the internal ids (not on the wire) rise
         Assert.Equal(skuOwner.Id, (await LookupAsync(admin, shared)).Product!.Id);
         Assert.Equal(skuOwner.Id, (await LookupAsync(admin, shared.ToLowerInvariant())).Product!.Id);
         Assert.Equal(barcodeOwner.Id, (await LookupAsync(admin, barcodeOwner.Barcodes[1])).Product!.Id);

@@ -102,23 +102,22 @@ public class PagingContractTests(ApiFixture fixture)
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
-        for (var i = 0; i < 5; i++) await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 1, 1m));
+        var made = new List<string>();
+        for (var i = 0; i < 5; i++) made.Add((await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 1, 1m))).No);
 
-        var ids = new List<long>();
+        var walked = new List<string>();
         string? cursor = null;
         var pages = 0;
         do
         {
             var page = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=2" + (cursor is null ? "" : $"&cursor={Uri.EscapeDataString(cursor)}"))).Data<PagedResult<LedgerRow>>();
-            ids.AddRange(page.Items.Select(r => r.Id));
+            walked.AddRange(page.Items.Select(r => r.SourceDocNo));
             cursor = page.NextCursor;
             pages++;
         } while (cursor is not null && pages < 10);
 
         Assert.Equal(3, pages); // 2 + 2 + 1
-        Assert.Equal(5, ids.Count);
-        Assert.Equal(ids.Distinct().Order(), ids.Order());
-        Assert.Equal(ids.OrderByDescending(i => i), ids); // newest first, strictly decreasing
+        Assert.Equal(Enumerable.Reverse(made), walked); // each row once, newest first (a row has no id on the wire: one receipt, one row, is the identity)
     }
 
     /// <summary>What a cursor for this id would look like without encryption: base64url of a version byte and the 8-byte id.</summary>
@@ -142,8 +141,10 @@ public class PagingContractTests(ApiFixture fixture)
         var rest = (await s.Admin.GetAsync($"/api/stock/ledger?productId={product.Id}&pageSize=2&cursor={Uri.EscapeDataString(full.NextCursor!)}")).Data<PagedResult<LedgerRow>>();
 
         Assert.NotNull(full.NextCursor);
-        Assert.DoesNotContain(PlainCursorOf(full.Items[^1].Id), full.NextCursor); // the key is not in plain sight (a decimal id would match a random token by chance, so compare the plain encoding)
-        Assert.Equal(whole.Items.Skip(2).Select(r => r.Id), rest.Items.Select(r => r.Id));
+        var lastKey = await fixture.Database.ScalarAsync<long>("SELECT Id FROM StockLedgerEntry WHERE ProductId = (SELECT Id FROM Product WHERE PublicId = @p) ORDER BY Id DESC OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY",
+            ("@p", product.Id));   // the row the cursor points after: its key is in no response, only (encrypted) in the cursor
+        Assert.DoesNotContain(PlainCursorOf(lastKey), full.NextCursor); // the key is not in plain sight (a decimal id would match a random token by chance, so compare the plain encoding)
+        Assert.Equal(whole.Items.Skip(2).Select(r => r.SourceDocNo), rest.Items.Select(r => r.SourceDocNo));
         Assert.Null(whole.NextCursor);
     }
 
@@ -200,9 +201,10 @@ public class PagingContractTests(ApiFixture fixture)
         var s = await StockScenario.CreateAsync(fixture);
         var warehouse = await s.NewWarehouseAsync();
         var product = await s.NewProductAsync();
-        for (var i = 0; i < 5; i++) await s.DraftReceiptAsync(s.Admin, warehouse.Id, new Line(product.Id, 1, 1m));
+        var created = new List<Guid>();
+        for (var i = 0; i < 5; i++) created.Add((await s.DraftReceiptAsync(s.Admin, warehouse.Id, new Line(product.Id, 1, 1m))).Id);
 
-        var ids = new List<int>();
+        var ids = new List<Guid>();
         string? cursor = null;
         var pages = 0;
         do
@@ -216,7 +218,7 @@ public class PagingContractTests(ApiFixture fixture)
 
         Assert.Equal(5, ids.Count);
         Assert.Equal(ids.Distinct().Count(), ids.Count);
-        Assert.Equal(ids.OrderByDescending(i => i), ids);
+        Assert.Equal(Enumerable.Reverse(created), ids); // newest first: the order of creation, reversed (the public id has no order)
     }
 
     [Fact]
@@ -227,20 +229,21 @@ public class PagingContractTests(ApiFixture fixture)
         var (client, _) = await accounts.SignInAsync(account);
         for (var i = 0; i < 4; i++) await new ProductBuilder(fixture.Reference).CreateAsync(client);
 
-        var seen = new List<long>();
+        var seen = new List<AuditEntry>();
         string? cursor = null;
         var pages = 0;
         do
         {
             var url = $"/api/audit?actor={Uri.EscapeDataString(account.Username)}&entityType=Product&pageSize=3" + (cursor is null ? "" : $"&cursor={Uri.EscapeDataString(cursor)}");
             var page = (await client.GetAsync(url)).Data<PagedResult<AuditEntry>>();
-            seen.AddRange(page.Items.Select(e => e.Id));
+            seen.AddRange(page.Items);
             cursor = page.NextCursor;
             pages++;
         } while (cursor is not null && pages < 10);
 
         Assert.Equal(4, seen.Count);
-        Assert.Equal(seen.OrderByDescending(i => i), seen);
+        Assert.Equal(4, seen.Select(e => e.EntityId).Distinct().Count());   // each entry once (an entry has no id on the wire)
+        Assert.Equal(seen.OrderByDescending(e => e.At), seen);              // newest first
     }
 
     // ---------- sorting ----------
@@ -275,7 +278,7 @@ public class PagingContractTests(ApiFixture fixture)
         // quantity: low < mid < high; value (qty x cost): mid < high < low
         await s.ReceiveAsync(warehouse.Id, new Line(low.Id, 5, 1000m), new Line(mid.Id, 20, 1m), new Line(high.Id, 50, 2m));
 
-        async Task<int[]> ProductsAsync(string sort) =>
+        async Task<Guid[]> ProductsAsync(string sort) =>
             (await s.Admin.GetAsync($"/api/stock?warehouseId={warehouse.Id}&{sort}")).Data<PagedResult<StockRow>>().Items.Select(r => r.ProductId).ToArray();
 
         Assert.Equal([low.Id, mid.Id, high.Id], await ProductsAsync("sortBy=QtyOnHand"));

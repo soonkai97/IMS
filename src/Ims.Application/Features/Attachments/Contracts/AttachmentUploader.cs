@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Attachments;
 
-public record AttachmentUploader(int Id, int UploadedBy);
+public record AttachmentUploader(Guid Id, int UploadedBy);

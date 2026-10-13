@@ -19,7 +19,7 @@ public class WarehouseScopeTests(ApiFixture fixture)
     private sealed record Setup(StockScenario Scenario, WarehouseDto OtherWarehouse, ProductDto Product, DocumentDto DocumentInOther);
 
     /// <summary>Every row of the low-stock list (all pages, 500 at a time).</summary>
-    private static async Task<List<LowStockAlert>> AllLowStockAsync(Clients.ApiClient who, int? warehouseId)
+    private static async Task<List<LowStockAlert>> AllLowStockAsync(Clients.ApiClient who, Guid? warehouseId)
     {
         var rows = new List<LowStockAlert>();
         for (var page = 1; ; page++)
@@ -106,13 +106,19 @@ public class WarehouseScopeTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task Creating_a_document_in_another_warehouse_is_403()
+    public async Task Creating_a_document_in_another_warehouse_is_answered_like_an_unknown_warehouse()
     {
         var setup = await CreateOtherWarehouseAsync();
         var request = new DocumentBuilder(setup.OtherWarehouse.Id).WithLines(new Line(setup.Product.Id, 1, 1m)).Build();
+        var unknown = new DocumentBuilder(Guid.NewGuid()).WithLines(new Line(setup.Product.Id, 1, 1m)).Build();
 
-        (await setup.Scenario.Staff.Documents.CreateReceiptAsync(request)).ShouldBe(HttpStatusCode.Forbidden);
-        (await setup.Scenario.Clerk.Documents.CreateIssueAsync(request)).ShouldBe(HttpStatusCode.Forbidden);
+        // Outside their scope the warehouse does not exist for them: the same 400 as an id that names nothing, so warehouse ids cannot be probed.
+        var expected = (await setup.Scenario.Staff.Documents.CreateReceiptAsync(unknown)).ShouldBeProblem(HttpStatusCode.BadRequest);
+        foreach (var refused in new[] { await setup.Scenario.Staff.Documents.CreateReceiptAsync(request), await setup.Scenario.Clerk.Documents.CreateIssueAsync(request) })
+        {
+            var problem = refused.ShouldBeProblem(HttpStatusCode.BadRequest);
+            Assert.Equal((expected.Title, expected.Detail), (problem.Title, problem.Detail));
+        }
     }
 
     [Fact]
@@ -173,7 +179,10 @@ public class WarehouseScopeTests(ApiFixture fixture)
         var supervisor = setup.Scenario.Supervisor;
         var request = new WarehouseSaveRequest(setup.OtherWarehouse.Code, "Renamed by an outsider", null, null, false);
 
-        (await supervisor.Warehouses.UpdateAsync(setup.OtherWarehouse.Id, request)).ShouldBe(HttpStatusCode.Forbidden);
+        // Outside their scope the warehouse does not exist for them: the answer is the one an unknown id gets, so the id cannot be probed.
+        var outside = (await supervisor.Warehouses.UpdateAsync(setup.OtherWarehouse.Id, request)).ShouldBeProblem(HttpStatusCode.NotFound);
+        var unknown = (await supervisor.Warehouses.UpdateAsync(Guid.NewGuid(), request)).ShouldBeProblem(HttpStatusCode.NotFound);
+        Assert.Equal((unknown.Title, unknown.Detail), (outside.Title, outside.Detail));
 
         var unchanged = (await setup.Scenario.Admin.Warehouses.ListAsync()).Data<List<WarehouseDto>>().Single(w => w.Id == setup.OtherWarehouse.Id);
         Assert.Equal((setup.OtherWarehouse.Name, true), (unchanged.Name, unchanged.IsActive));

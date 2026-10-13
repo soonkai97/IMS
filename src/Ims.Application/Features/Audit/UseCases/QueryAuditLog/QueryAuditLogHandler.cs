@@ -9,6 +9,6 @@ public class QueryAuditLogHandler(IReadRepository<AuditLog> logs, ICursorProtect
         var total = q.Filter.IncludeTotal ? await logs.CountAsync(new AuditLogsSpec(q.Filter), ct) : Paging.TotalNotCounted;
         var items = await logs.ListAsync(new AuditLogsPageSpec(q.Filter, after), ct);
         var (page, size) = Paging.Normalize(q.Filter.Page, q.Filter.PageSize);
-        return new PagedResult<AuditLogDto>(items, total, page, size, Paging.NextCursor(items, size, a => a.Id, cursors, CursorLists.Audit));
+        return new PagedResult<AuditLogDto>(items, total, page, size, Paging.NextCursor(items, size, a => a.Key, cursors, CursorLists.Audit));
     }
 }

@@ -225,7 +225,7 @@
     <div appTabPanel="document-panel" [labelledByTab]="$tab()">
       @if ($isItemsTab()) {
         <ul class="document-editor-readonly-lines">
-          @for (line of document.lines; track line.id) {
+          @for (line of document.lines; track $index) {
             <li class="document-editor-readonly-line">
               <span>
                 <strong>{{ line.sku }}</strong>

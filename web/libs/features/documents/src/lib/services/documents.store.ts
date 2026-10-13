@@ -10,13 +10,13 @@ import {
   PagedResultOfDocumentListItem
 } from '@ims/api';
 import { withIfMatch } from '@ims/core/http';
-import { PagedQuery } from '@ims/models';
+import { PagedQuery, PublicId } from '@ims/models';
 import { ApiCommand, QueryLoader } from '@ims/utils';
 
 export interface DocumentQuery extends PagedQuery {
   readonly type: DocumentType;
   readonly status?: DocumentStatus;
-  readonly warehouseId?: number;
+  readonly warehouseId?: PublicId;
   readonly from?: string;
   readonly to?: string;
   readonly search?: string;
@@ -31,7 +31,7 @@ export interface DocumentQuery extends PagedQuery {
  * document changed since (E4); without a token it acts on whatever is current.
  */
 export interface DocumentRef {
-  readonly id: number;
+  readonly id: PublicId;
   readonly concurrencyToken?: string;
 }
 
@@ -82,7 +82,7 @@ export class DocumentsStore {
     )
   );
   /** The editor loads it with `handledInline()` (its banner shows a failure); the context goes to the call. */
-  readonly detail = new QueryLoader<number, DocumentDto>((id, context) =>
+  readonly detail = new QueryLoader<PublicId, DocumentDto>((id, context) =>
     this.client.get(id, context)
   );
   /** Home numbers and the approvals badge: four indexed counts for the signed-in user. */

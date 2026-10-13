@@ -9,5 +9,5 @@ public sealed class WarehousesClient(ApiClient api)
         api.GetAsync($"/api/warehouses?includeInactive={includeInactive.ToString().ToLowerInvariant()}");
 
     public Task<ApiResponse> CreateAsync(WarehouseSaveRequest request) => api.PostAsync("/api/warehouses", request);
-    public Task<ApiResponse> UpdateAsync(int id, WarehouseSaveRequest request) => api.PutAsync($"/api/warehouses/{id}", request);
+    public Task<ApiResponse> UpdateAsync(Guid id, WarehouseSaveRequest request) => api.PutAsync($"/api/warehouses/{id}", request);
 }

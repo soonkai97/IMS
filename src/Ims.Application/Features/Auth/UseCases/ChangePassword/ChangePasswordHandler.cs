@@ -24,7 +24,7 @@ public class ChangePasswordHandler(IRepository<User> users, IRepository<RefreshT
         user.ChangePasswordHash(hasher.Hash(cmd.Body.NewPassword));
         user.RegisterSuccessfulLogin();
         foreach (var token in await tokens.ListAsync(new ActiveRefreshTokensOfUserSpec(user.Id, now), ct)) token.Revoke(now);
-        audit.Record(AuditActions.PasswordChanged, AuditEntities.User, user.Id.ToString(), actor: user.Username);
+        audit.Record(AuditActions.PasswordChanged, AuditEntities.User, user.PublicId.ToString(), actor: user.Username);
         await uow.SaveChangesAsync(ct);
         return Unit.Value;
     }

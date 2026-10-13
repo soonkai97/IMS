@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Catalog;
 
-public record UpdateProductCommand(int Id, ProductSaveRequest Data) : ICommand<ProductDto>;
+public record UpdateProductCommand(Guid Id, ProductSaveRequest Data) : ICommand<ProductDto>;

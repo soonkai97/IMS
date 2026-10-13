@@ -43,7 +43,7 @@
                 action: row.action ?? '',
                 entity: entityOf(row),
                 when: row.at | appDate,
-                id: row.id
+                number: entryNumber(row)
               }
       "
       (clicked)="onShowDetails(row)"

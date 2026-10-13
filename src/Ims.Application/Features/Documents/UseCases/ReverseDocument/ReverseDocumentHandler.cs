@@ -3,7 +3,7 @@ namespace Ims.Application.Features.Documents;
 
 /// <summary>BR-02: a reversal writes opposite ledger entries linked to the original document; nothing is edited or deleted.</summary>
 public class ReverseDocumentHandler(IRepository<StockDocument> documents, IRepository<StockLedgerEntry> ledger, IReadRepository<Product> products,
-    IBalanceLoader balances, IPostingEngine engine, ISystemSettings settings, IDocumentAccess access, IDocumentReader reader,
+    IBalanceLoader balances, IPostingEngine engine, ISystemSettings settings, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version,
     ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<ReverseDocumentCommand, DocumentDto>
 {
     public async Task<DocumentDto> HandleAsync(ReverseDocumentCommand cmd, CancellationToken ct)
@@ -12,7 +12,7 @@ public class ReverseDocumentHandler(IRepository<StockDocument> documents, IRepos
         {
             var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
             access.EnsureDocumentInScope(doc.WarehouseId);
-            DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
+            version.EnsureCurrent(doc, cmd.IfMatch);
             var now = clock.UtcNow;
             doc.MarkReversed(cmd.Data.Reason, now, current.UserId);
 
@@ -37,7 +37,7 @@ public class ReverseDocumentHandler(IRepository<StockDocument> documents, IRepos
     private async Task<ReversalBlockedException> BlockedAsync(StockDocument doc, IReadOnlyDictionary<int, decimal> deficits, CancellationToken ct)
     {
         var labels = (await products.ListAsync(new ProductLabelsSpec(deficits.Keys.ToList()), ct)).ToDictionary(p => p.Id);
-        var shortages = deficits.Select(d => new ReversalShortage(d.Key, labels[d.Key].Sku, labels[d.Key].UomCode, d.Value)).ToList();
+        var shortages = deficits.Select(d => new ReversalShortage(labels[d.Key].PublicId, labels[d.Key].Sku, labels[d.Key].UomCode, d.Value)).ToList();
         return new ReversalBlockedException(doc.No, shortages);
     }
 }

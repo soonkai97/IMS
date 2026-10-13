@@ -14,7 +14,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class DocumentConcurrencyTokenTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private static string TokenOf(ApiResponse response)
     {
@@ -22,7 +22,7 @@ public class DocumentConcurrencyTokenTests(ApiFixture fixture)
         return json.RootElement.GetProperty("concurrencyToken").GetString()!;
     }
 
-    private async Task<(StockScenario S, DocumentDto Draft, int ProductId)> DraftAsync()
+    private async Task<(StockScenario S, DocumentDto Draft, Guid ProductId)> DraftAsync()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var productId = (await s.NewProductAsync()).Id;
@@ -30,7 +30,7 @@ public class DocumentConcurrencyTokenTests(ApiFixture fixture)
         return (s, draft, productId);
     }
 
-    private static DocumentSaveRequest Edited(DocumentDto draft, int productId, decimal qty) =>
+    private static DocumentSaveRequest Edited(DocumentDto draft, Guid productId, decimal qty) =>
         new(draft.WarehouseId, draft.PartnerId, null, draft.Remark, [new DocumentLineInput(productId, qty, null, 1m, null)]);
 
     [Fact]

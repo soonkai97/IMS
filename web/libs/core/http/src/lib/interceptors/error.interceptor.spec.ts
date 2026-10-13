@@ -7,7 +7,8 @@ import { withIfMatch } from '../concurrency/if-match';
 import { handledInline } from '../errors/handled-inline';
 import { errorInterceptor } from './error.interceptor';
 
-const URL = 'http://api.test/api/documents/1/post';
+const URL = 'http://api.test/api/documents/00000000-0000-4000-8000-000000000001/post';
+const PRODUCT_ID = '00000000-0000-4000-8000-000000000005';
 
 function problem(status: number, body: Record<string, unknown>): Blob {
   return new Blob([JSON.stringify({ status, ...body })], { type: 'application/problem+json' });
@@ -77,7 +78,7 @@ describe('errorInterceptor', () => {
         title: 'Conflict',
         detail: 'Only 12 PCS available.',
         correlationId: 'abc123',
-        productId: 5,
+        productId: PRODUCT_ID,
         available: 12,
         requested: 30
       })
@@ -86,7 +87,7 @@ describe('errorInterceptor', () => {
     expect(error.kind).toBe(API_ERROR_KIND.Conflict);
     expect(error.detail).toBe('Only 12 PCS available.');
     expect(error.correlationId).toBe('abc123');
-    expect(error.extensions['productId']).toBe(5);
+    expect(error.extensions['productId']).toBe(PRODUCT_ID);
     expect(toast.$toasts()[0]).toMatchObject({ kind: 'error', message: 'Only 12 PCS available.' });
   });
 

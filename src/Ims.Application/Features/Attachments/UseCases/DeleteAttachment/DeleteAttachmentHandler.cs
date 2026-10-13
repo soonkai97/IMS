@@ -8,16 +8,16 @@ public class DeleteAttachmentHandler(IRepository<Attachment> attachments, IAttac
 {
     public async Task<Unit> HandleAsync(DeleteAttachmentCommand cmd, CancellationToken ct)
     {
-        var a = await attachments.FirstOrDefaultAsync(new AttachmentByIdSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.AttachmentNotFound);
+        var a = await attachments.FirstOrDefaultAsync(new ByPublicIdSpec<Attachment>(cmd.Id), ct) ?? throw new NotFoundException(Messages.AttachmentNotFound);
         try { await owners.For(a.OwnerType).EnsureCanDeleteAsync(a.OwnerId, ct); }
         catch (NotFoundException) { throw new NotFoundException(Messages.AttachmentNotFound); } // an owner the caller cannot see: same answer as a missing file (SEC-11)
 
         a.Delete();
-        audit.Record(AuditActions.AttachmentDeleted, AuditEntities.Attachment, a.Id.ToString(), before: new { a.OwnerType, a.OwnerId, a.FileName });
+        audit.Record(AuditActions.AttachmentDeleted, AuditEntities.Attachment, a.PublicId.ToString(), before: new { a.OwnerType, a.FileName });
         await uow.SaveChangesAsync(ct);
 
         try { await storage.DeleteAsync(a.StoragePath, CancellationToken.None); }
-        catch (Exception ex) { log.LogWarning(ex, "Attachment {AttachmentId} was removed but its file {StoragePath} could not be deleted", a.Id, a.StoragePath); }
+        catch (Exception ex) { log.LogWarning(ex, "Attachment {AttachmentId} was removed but its file {StoragePath} could not be deleted", a.PublicId, a.StoragePath); }
         return Unit.Value;
     }
 }

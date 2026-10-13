@@ -9,11 +9,11 @@ internal static class LowStockQuery
     /// <summary>Plain properties (not a constructor) so both branches have the same shape and EF can concatenate them.</summary>
     internal sealed class Row
     {
-        public int ProductId { get; init; }
+        public Guid ProductId { get; init; }
         public string Sku { get; init; } = "";
         public string ProductName { get; init; } = "";
         /// <summary>Null on the row of a product that is stocked in no warehouse the caller can see.</summary>
-        public int? WarehouseId { get; init; }
+        public Guid? WarehouseId { get; init; }
         public string? WarehouseCode { get; init; }
         public string? WarehouseName { get; init; }
         public decimal QtyOnHand { get; init; }
@@ -25,14 +25,14 @@ internal static class LowStockQuery
         var stocked = LowStockSets.LowBalances(db, scope, warehouseId)
             .Select(b => new Row
             {
-                ProductId = b.ProductId, Sku = b.Product.Sku, ProductName = b.Product.Name, WarehouseId = b.WarehouseId,
+                ProductId = b.Product.PublicId, Sku = b.Product.Sku, ProductName = b.Product.Name, WarehouseId = b.Warehouse.PublicId,
                 WarehouseCode = b.Warehouse.Code, WarehouseName = b.Warehouse.Name, QtyOnHand = b.QtyOnHand, SafetyStock = b.Product.SafetyStock
             });
 
         // Stocked in no warehouse the caller can see: one row per product, no warehouse. They belong to no warehouse, so a filter on one leaves them out.
         if (warehouseId is not null) return stocked;
         var neverStocked = LowStockSets.NeverStocked(db, scope)
-            .Select(p => new Row { ProductId = p.Id, Sku = p.Sku, ProductName = p.Name, WarehouseId = null, WarehouseCode = null, WarehouseName = null, QtyOnHand = 0m, SafetyStock = p.SafetyStock });
+            .Select(p => new Row { ProductId = p.PublicId, Sku = p.Sku, ProductName = p.Name, WarehouseId = null, WarehouseCode = null, WarehouseName = null, QtyOnHand = 0m, SafetyStock = p.SafetyStock });
 
         return stocked.Concat(neverStocked);
     }

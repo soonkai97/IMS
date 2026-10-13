@@ -10,7 +10,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class PostedDocumentTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     [Fact]
     public async Task A_posted_document_cannot_be_edited()

@@ -16,7 +16,7 @@ public sealed class ApprovalRuleScope : IAsyncDisposable
         _rule = rule;
     }
 
-    public int RuleId => _rule.Id;
+    public Guid RuleId => _rule.Id;
 
     public static async Task<ApprovalRuleScope> AddAsync(ApiClient admin, DocumentType type, decimal? amountThreshold, decimal? qtyThreshold, string roleRequired)
     {

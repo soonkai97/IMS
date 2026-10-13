@@ -8,19 +8,19 @@ import {
   ProductSort,
   ProductsClient
 } from '@ims/api';
-import { PagedQuery } from '@ims/models';
+import { PagedQuery, PublicId } from '@ims/models';
 import { ApiCommand, QueryLoader } from '@ims/utils';
 
 export interface ProductQuery extends PagedQuery {
   readonly search?: string;
-  readonly categoryId?: number;
+  readonly categoryId?: PublicId;
   readonly active?: boolean;
   readonly sortBy?: ProductSort;
 }
 
 export interface SaveProductArgs {
   /** Present when editing. */
-  readonly id?: number;
+  readonly id?: PublicId;
   readonly body: ProductSaveRequest;
 }
 
@@ -41,7 +41,7 @@ export class ProductsStore {
       query.desc
     )
   );
-  readonly detail = new QueryLoader<number, ProductDto>(id => this.client.get(id));
+  readonly detail = new QueryLoader<PublicId, ProductDto>(id => this.client.get(id));
   readonly save = new ApiCommand<SaveProductArgs, ProductDto>(args =>
     (args.id === undefined
       ? this.client.create(args.body)

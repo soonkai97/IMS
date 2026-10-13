@@ -10,7 +10,7 @@ namespace Ims.Api.Tests.Tests.StockList;
 [Collection(ApiCollection.Name)]
 public class StockSearchTests(ApiFixture fixture)
 {
-    private static async Task<IReadOnlyList<StockRow>> SearchAsync(StockScenario s, string term, int? warehouseId = null) =>
+    private static async Task<IReadOnlyList<StockRow>> SearchAsync(StockScenario s, string term, Guid? warehouseId = null) =>
         (await s.Admin.Stock.QueryAsync(warehouseId: warehouseId, search: term)).Data<PagedResult<StockRow>>().Items;
 
     [Fact]
@@ -43,7 +43,7 @@ public class StockSearchTests(ApiFixture fixture)
 
         var rows = await SearchAsync(s, barcode);
 
-        Assert.Equal([first.Id, second.Id], rows.Select(r => r.WarehouseId).Order());
+        Assert.Equal(new[] { first.Id, second.Id }.Order(), rows.Select(r => r.WarehouseId!.Value).Order());
         Assert.All(rows, r => Assert.Equal(product.Id, r.ProductId));
     }
 

@@ -33,13 +33,16 @@ import {
 import { ApiCommand } from '@ims/utils';
 import { DocumentEditorPageComponent } from './document-editor.component';
 
+/** A GUID for a small number, so the cases stay readable. */
+const guid = (n: number): string => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
 function document(overrides: Partial<DocumentDto> = {}): DocumentDto {
   return {
-    id: 2,
+    id: guid(2),
     type: DocumentType.Issue,
     no: 'ISS-WH01-2610-0001',
     status: DocumentStatus.Submitted,
-    warehouseId: 1,
+    warehouseId: guid(1),
     warehouseName: 'Main warehouse',
     partnerId: undefined,
     partnerName: undefined,
@@ -53,11 +56,11 @@ function document(overrides: Partial<DocumentDto> = {}): DocumentDto {
     cancelReason: undefined,
     reversalReason: undefined,
     negativeStockOverrideReason: undefined,
-    createdById: 3,
+    createdById: guid(3),
     createdBy: 'staff',
     createdByName: 'Staff',
     createdAt: '2026-10-09T01:00:00Z',
-    submittedById: 3,
+    submittedById: guid(3),
     submittedBy: 'staff',
     submittedByName: 'Staff',
     submittedAt: '2026-10-09T02:00:00Z',
@@ -78,12 +81,11 @@ function document(overrides: Partial<DocumentDto> = {}): DocumentDto {
     totalAmount: 0,
     lines: [
       {
-        id: 9,
-        productId: 1,
+        productId: guid(1),
         sku: 'DEMO-001',
         productName: 'Demo widget',
         qty: 15,
-        uomId: 1,
+        uomId: guid(1),
         uomCode: 'PCS',
         baseQty: 15,
         unitCost: 0,
@@ -176,7 +178,7 @@ describe('DocumentEditorPageComponent', () => {
         provide: PermissionService,
         useValue: {
           has: (permission: string) => granted.has(permission),
-          $userId: signal(9)
+          $userId: signal(guid(9))
         }
       },
       {
@@ -194,8 +196,8 @@ describe('DocumentEditorPageComponent', () => {
         provide: WarehousesStore,
         useValue: {
           ensureLoaded: jest.fn(),
-          $warehouses: signal([{ id: 1, name: 'Main warehouse', isActive: true }]),
-          $activeWarehouses: signal([{ id: 1, name: 'Main warehouse', isActive: true }])
+          $warehouses: signal([{ id: guid(1), name: 'Main warehouse', isActive: true }]),
+          $activeWarehouses: signal([{ id: guid(1), name: 'Main warehouse', isActive: true }])
         }
       }
     ]
@@ -204,7 +206,7 @@ describe('DocumentEditorPageComponent', () => {
   async function open(doc: DocumentDto, type = DocumentType.Issue): Promise<void> {
     opened.set(doc);
     spectator = createComponent({
-      props: { type, id: String(doc.id) } as never
+      props: { type, id: doc.id } as never
     });
     spectator.detectChanges();
     await spectator.fixture.whenStable();
@@ -220,10 +222,10 @@ describe('DocumentEditorPageComponent', () => {
   }
 
   const WIDGET = {
-    id: 1,
+    id: guid(1),
     sku: 'DEMO-001',
     name: 'Demo widget',
-    baseUomId: 1,
+    baseUomId: guid(1),
     baseUomCode: 'PCS',
     conversions: [],
     isActive: true
@@ -238,9 +240,9 @@ describe('DocumentEditorPageComponent', () => {
     spectator.detectChanges();
   }
 
-  const draftOf = (id: number): DocumentDto =>
+  const draftOf = (n: number): DocumentDto =>
     document({
-      id,
+      id: guid(n),
       status: DocumentStatus.Draft,
       requiresApproval: false,
       allowedActions: [DOCUMENT_ACTION.Edit, DOCUMENT_ACTION.Submit, DOCUMENT_ACTION.Cancel]
@@ -283,7 +285,7 @@ describe('DocumentEditorPageComponent', () => {
 
     confirm().confirm('Customer pre-paid');
     expect(calls['approve']).toEqual([
-      { id: 2, concurrencyToken: 'AAAA', negativeStockOverrideReason: 'Customer pre-paid' }
+      { id: guid(2), concurrencyToken: 'AAAA', negativeStockOverrideReason: 'Customer pre-paid' }
     ]);
   });
 
@@ -295,7 +297,7 @@ describe('DocumentEditorPageComponent', () => {
     expect(confirm().$pending()?.request.reasonLabel).toBeUndefined();
     confirm().confirm('');
     expect(calls['approve']).toEqual([
-      { id: 2, concurrencyToken: 'AAAA', negativeStockOverrideReason: undefined }
+      { id: guid(2), concurrencyToken: 'AAAA', negativeStockOverrideReason: undefined }
     ]);
   });
 
@@ -313,7 +315,7 @@ describe('DocumentEditorPageComponent', () => {
 
     expect(confirm().$pending()?.request.reasonLabel).toBeUndefined();
     confirm().confirm('');
-    expect(calls['post']).toEqual([{ id: 2, concurrencyToken: 'AAAA' }]);
+    expect(calls['post']).toEqual([{ id: guid(2), concurrencyToken: 'AAAA' }]);
   });
 
   it('shows the flags and how short each line is, from the line itself (no stock query)', async () => {
@@ -345,7 +347,7 @@ describe('DocumentEditorPageComponent', () => {
     spectator.component.onVisibilityChange();
     spectator.detectChanges();
 
-    expect(currentToken).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }));
+    expect(currentToken).toHaveBeenCalledWith(expect.objectContaining({ id: guid(2) }));
     expect(text()).toContain('changed since you opened it');
   });
 
@@ -363,7 +365,10 @@ describe('DocumentEditorPageComponent', () => {
     await open(document());
 
     commands['post'].$operation.set(
-      failureOperation({ ...STALE, extensions: { productId: 1, available: 2, requested: 15 } })
+      failureOperation({
+        ...STALE,
+        extensions: { productId: guid(1), available: 2, requested: 15 }
+      })
     );
     spectator.detectChanges();
 
@@ -573,6 +578,23 @@ describe('DocumentEditorPageComponent', () => {
   });
 
   describe('a link that starts a receipt for a product (NV-13)', () => {
+    // Two warehouses, so nothing is preselected and the link is the only thing that can choose one.
+    const LETTERS_ID = 'abcdef01-2345-4678-89ab-cdef01234567';
+    const twoWarehouses = {
+      provide: WarehousesStore,
+      useValue: {
+        ensureLoaded: jest.fn(),
+        $warehouses: signal([
+          { id: guid(1), name: 'Main warehouse', isActive: true },
+          { id: LETTERS_ID, name: 'Second warehouse', isActive: true }
+        ]),
+        $activeWarehouses: signal([
+          { id: guid(1), name: 'Main warehouse', isActive: true },
+          { id: LETTERS_ID, name: 'Second warehouse', isActive: true }
+        ])
+      }
+    };
+
     it('picks the warehouse and the product and focuses the quantity', async () => {
       lookup.mockReturnValue(of({ found: true, product: WIDGET }));
       opened.set(undefined);
@@ -581,7 +603,7 @@ describe('DocumentEditorPageComponent', () => {
           type: DocumentType.Receipt,
           id: 'new',
           sku: 'DEMO-001',
-          warehouseId: '1'
+          warehouseId: guid(1)
         } as never
       });
       spectator.detectChanges();
@@ -590,9 +612,40 @@ describe('DocumentEditorPageComponent', () => {
       await spectator.fixture.whenStable();
 
       expect(lookup).toHaveBeenCalledWith('DEMO-001');
-      expect(spectator.component.$warehouseId()).toBe(1);
+      expect(spectator.component.$warehouseId()).toBe(guid(1));
       expect(spectator.component.view.lines.length).toBe(1);
       expect(window.document.activeElement?.closest('app-document-line-editor')).toBeTruthy();
+    });
+
+    it('ignores a link from before the id change (a number is not a warehouse id)', async () => {
+      lookup.mockReturnValue(of({ found: false, product: undefined }));
+      opened.set(undefined);
+      spectator = createComponent({
+        providers: [twoWarehouses],
+        props: { type: DocumentType.Receipt, id: 'new', sku: 'DEMO-001', warehouseId: '1' } as never
+      });
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(spectator.component.$warehouseId()).toBeNull();
+    });
+
+    it('lower-cases a hand-typed warehouse id so the select shows it', async () => {
+      lookup.mockReturnValue(of({ found: false, product: undefined }));
+      opened.set(undefined);
+      spectator = createComponent({
+        providers: [twoWarehouses],
+        props: {
+          type: DocumentType.Receipt,
+          id: 'new',
+          sku: 'DEMO-001',
+          warehouseId: LETTERS_ID.toUpperCase()
+        } as never
+      });
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(spectator.component.$warehouseId()).toBe(LETTERS_ID);
     });
 
     it('an unknown or deactivated product leaves the form empty', async () => {
@@ -614,7 +667,9 @@ describe('DocumentEditorPageComponent', () => {
       detailOperation.set(
         failureOperation({ ...STALE, kind: API_ERROR_KIND.NotFound, status: 404, detail: '' })
       );
-      spectator = createComponent({ props: { type: DocumentType.Receipt, id: '99999' } as never });
+      spectator = createComponent({
+        props: { type: DocumentType.Receipt, id: guid(99999) } as never
+      });
       spectator.detectChanges();
 
       expect(text()).toContain("This page or document doesn't exist or was removed.");
@@ -622,6 +677,24 @@ describe('DocumentEditorPageComponent', () => {
       expect(spectator.query('a[href="/"]')?.textContent).toContain('Go to Home');
       expect(text()).not.toContain('Retry');
     });
+
+    it.each([DocumentType.Receipt, DocumentType.Issue])(
+      'an old numeric bookmark (%s) is a not-found page and makes no request',
+      async type => {
+        opened.set(undefined);
+        spectator = createComponent({ props: { type, id: '123' } as never });
+        spectator.detectChanges();
+        await spectator.fixture.whenStable();
+        spectator.detectChanges();
+
+        const detail = spectator.inject(DocumentsStore).detail;
+        expect(detail.load).not.toHaveBeenCalled();
+        expect(spectator.component.$isNew()).toBe(false);
+        expect(spectator.query('h1')?.textContent).toContain('Page not found');
+        expect(text()).toContain("This page or document doesn't exist or was removed.");
+        expect(text()).not.toContain('Retry');
+      }
+    );
 
     it('a failed load is one alert with the mapped sentence and a Retry, and no toast says it again (R11)', async () => {
       opened.set(undefined);
@@ -635,7 +708,7 @@ describe('DocumentEditorPageComponent', () => {
         })
       );
       jest.clearAllMocks();
-      spectator = createComponent({ props: { type: DocumentType.Receipt, id: '5' } as never });
+      spectator = createComponent({ props: { type: DocumentType.Receipt, id: guid(5) } as never });
       spectator.detectChanges();
 
       const alerts = spectator.queryAll('[role="alert"]');
@@ -648,7 +721,7 @@ describe('DocumentEditorPageComponent', () => {
 
     it('while a saved document loads the title is not "New receipt"', async () => {
       opened.set(undefined);
-      spectator = createComponent({ props: { type: DocumentType.Receipt, id: '5' } as never });
+      spectator = createComponent({ props: { type: DocumentType.Receipt, id: guid(5) } as never });
       spectator.detectChanges();
 
       expect(spectator.query('h1')?.textContent).not.toContain('New receipt');
@@ -670,7 +743,7 @@ describe('DocumentEditorPageComponent', () => {
       spectator.component.onAction(DOCUMENT_ACTION.Edit);
       spectator.detectChanges();
 
-      expect(navigate).toHaveBeenCalledWith(['/', 'issues', 31], { replaceUrl: true });
+      expect(navigate).toHaveBeenCalledWith(['/', 'issues', guid(31)], { replaceUrl: true });
       expect(dirtyWhenNavigating).toEqual([false]);
       // The real guard of the route lets the move through without asking.
       const guardAnswer = TestBed.runInInjectionContext(() =>
@@ -693,7 +766,7 @@ describe('DocumentEditorPageComponent', () => {
       expect(calls['save']).toHaveLength(2);
       expect(calls['save'][0]).toEqual(expect.objectContaining({ ref: undefined }));
       expect(calls['save'][1]).toEqual(
-        expect.objectContaining({ ref: { id: 31, concurrencyToken: 'AAAA' } })
+        expect.objectContaining({ ref: { id: guid(31), concurrencyToken: 'AAAA' } })
       );
     });
 
@@ -702,7 +775,7 @@ describe('DocumentEditorPageComponent', () => {
       fillNewIssue();
       responses['save'] = draftOf(31);
       responses['submit'] = document({
-        id: 31,
+        id: guid(31),
         status: DocumentStatus.Submitted,
         requiresApproval: false,
         allowedActions: [DOCUMENT_ACTION.Post]
@@ -715,11 +788,11 @@ describe('DocumentEditorPageComponent', () => {
       spectator.detectChanges();
 
       expect(spectator.component.$isNew()).toBe(false);
-      expect(spectator.component.$documentId()).toBe(31);
+      expect(spectator.component.$documentId()).toBe(guid(31));
       expect(calls['save']).toHaveLength(1);
       expect(calls['submit']).toHaveLength(1);
       // The call that follows a create in the same click carries the token of the document just created (428 otherwise).
-      expect(calls['submit'][0]).toEqual({ id: 31, concurrencyToken: 'AAAA' });
+      expect(calls['submit'][0]).toEqual({ id: guid(31), concurrencyToken: 'AAAA' });
       const buttons = spectator
         .queryAll('app-document-actions button')
         .map(button => button.textContent?.trim());
@@ -807,7 +880,10 @@ describe('DocumentEditorPageComponent', () => {
       );
 
       commands['post'].$operation.set(
-        failureOperation({ ...STALE, extensions: { productId: 1, available: 0, requested: 24 } })
+        failureOperation({
+          ...STALE,
+          extensions: { productId: guid(1), available: 0, requested: 24 }
+        })
       );
       spectator.detectChanges();
 
@@ -819,7 +895,10 @@ describe('DocumentEditorPageComponent', () => {
       await open(document({ allowedActions: [DOCUMENT_ACTION.Post] }));
 
       commands['post'].$operation.set(
-        failureOperation({ ...STALE, extensions: { productId: 1, available: 0, requested: 24 } })
+        failureOperation({
+          ...STALE,
+          extensions: { productId: guid(1), available: 0, requested: 24 }
+        })
       );
       spectator.detectChanges();
 
@@ -830,7 +909,10 @@ describe('DocumentEditorPageComponent', () => {
       await open(draftOf(2));
 
       commands['submit'].$operation.set(
-        failureOperation({ ...STALE, extensions: { productId: 1, available: 0, requested: 24 } })
+        failureOperation({
+          ...STALE,
+          extensions: { productId: guid(1), available: 0, requested: 24 }
+        })
       );
       spectator.detectChanges();
 
@@ -849,8 +931,8 @@ describe('DocumentEditorPageComponent', () => {
           extensions: {
             code: 'reversal_blocked',
             shortages: [
-              { productId: 1, sku: 'DEMO-001', uomCode: 'PCS', balance: -3 },
-              { productId: 2, sku: 'QA-002', uomCode: 'PCS', balance: -6 }
+              { productId: guid(1), sku: 'DEMO-001', uomCode: 'PCS', balance: -3 },
+              { productId: guid(2), sku: 'QA-002', uomCode: 'PCS', balance: -6 }
             ]
           }
         })
@@ -871,7 +953,7 @@ describe('DocumentEditorPageComponent', () => {
         ...STALE,
         extensions: {
           code: 'reversal_blocked',
-          shortages: [{ productId: 1, sku: 'DEMO-001', uomCode: 'PCS', balance: -1 }]
+          shortages: [{ productId: guid(1), sku: 'DEMO-001', uomCode: 'PCS', balance: -1 }]
         }
       });
       (window.document.activeElement as HTMLElement | null)?.blur();
@@ -908,7 +990,10 @@ describe('DocumentEditorPageComponent', () => {
       );
 
       commands['reverse'].$operation.set(
-        failureOperation({ ...STALE, extensions: { productId: 1, available: -3, requested: 5 } })
+        failureOperation({
+          ...STALE,
+          extensions: { productId: guid(1), available: -3, requested: 5 }
+        })
       );
       spectator.detectChanges();
 
@@ -1007,12 +1092,11 @@ describe('DocumentEditorPageComponent', () => {
         totalAmount: withCost ? 125.5 : (null as unknown as undefined),
         lines: [
           {
-            id: 9,
-            productId: 1,
+            productId: guid(1),
             sku: 'DEMO-001',
             productName: 'Demo widget',
             qty: 10,
-            uomId: 1,
+            uomId: guid(1),
             uomCode: 'PCS',
             baseQty: 10,
             unitCost: withCost ? 12.55 : (null as unknown as undefined),

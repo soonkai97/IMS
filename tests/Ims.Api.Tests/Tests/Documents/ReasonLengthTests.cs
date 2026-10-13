@@ -10,7 +10,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class ReasonLengthTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private static readonly string TooShort = Messages.ReasonTooShort;
 

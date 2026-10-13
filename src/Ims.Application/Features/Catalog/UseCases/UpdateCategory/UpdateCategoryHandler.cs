@@ -6,10 +6,10 @@ public class UpdateCategoryHandler(IRepository<Category> categories, IUnitOfWork
     public async Task<CategoryDto> HandleAsync(UpdateCategoryCommand cmd, CancellationToken ct)
     {
         var name = cmd.Data.Name.Trim();
-        var c = await categories.GetByIdAsync(cmd.Id, ct) ?? throw new NotFoundException(Messages.CategoryNotFound);
-        if (await categories.AnyAsync(new CategoryNameTakenSpec(name, cmd.Id), ct)) throw new ConflictException(Messages.CategoryExists);
+        var c = await categories.FirstOrDefaultAsync(new ByPublicIdSpec<Category>(cmd.Id), ct) ?? throw new NotFoundException(Messages.CategoryNotFound);
+        if (await categories.AnyAsync(new CategoryNameTakenSpec(name, c.Id), ct)) throw new ConflictException(Messages.CategoryExists);
         c.Rename(name);
         await uow.SaveChangesAsync(ct);
-        return new CategoryDto(c.Id, c.Name);
+        return new CategoryDto(c.PublicId, c.Name);
     }
 }

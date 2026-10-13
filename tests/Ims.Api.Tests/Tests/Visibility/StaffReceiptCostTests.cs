@@ -12,7 +12,7 @@ namespace Ims.Api.Tests.Tests.Visibility;
 [Collection(ApiCollection.Name)]
 public class StaffReceiptCostTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     [Fact]
     public async Task A_receipt_by_the_staff_takes_the_average_cost_and_leaves_the_average_unchanged()

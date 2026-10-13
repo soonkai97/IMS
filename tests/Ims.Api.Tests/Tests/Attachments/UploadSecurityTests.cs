@@ -17,7 +17,7 @@ namespace Ims.Api.Tests.Tests.Attachments;
 [Collection(ApiCollection.Name)]
 public class UploadSecurityTests(ApiFixture fixture)
 {
-    private async Task<(ApiClient Admin, int ProductId)> AdminWithProductAsync()
+    private async Task<(ApiClient Admin, Guid ProductId)> AdminWithProductAsync()
     {
         var admin = await fixture.AsAsync(Roles.Admin);
         var product = await new ProductBuilder(fixture.Reference).CreateAsync(admin);

@@ -16,7 +16,7 @@ public class AppendOnlyTests(ApiFixture fixture)
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
         await s.ReceiveAsync(fixture.Reference.DefaultWarehouseId, new Line(product.Id, 5, 2m));
-        return product.Id;
+        return await fixture.Database.ScalarAsync<int>("SELECT Id FROM Product WHERE PublicId = @p", ("@p", product.Id)); // the ledger is keyed by the integer
     }
 
     [Fact]

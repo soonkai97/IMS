@@ -20,13 +20,14 @@ import { HasUnsavedChanges } from '@ims/core/navigation';
 import { ToastService } from '@ims/core/notification';
 import { I18nService } from '@ims/core/i18n';
 import { CatalogStore, ProductsStore } from '@ims/features/catalog';
-import { PERMISSION } from '@ims/models';
+import { NO_PUBLIC_ID, PERMISSION, PublicId } from '@ims/models';
 import {
   SelectOption,
   UiBannerComponent,
   UiButtonComponent,
   UiCardComponent,
   UiCheckboxComponent,
+  UiEmptyStateComponent,
   UiFormFieldComponent,
   UiFormLegendComponent,
   UiIconComponent,
@@ -35,10 +36,10 @@ import {
   UiSelectComponent,
   UiSkeletonComponent
 } from '@ims/ui';
-import { applyFieldErrors } from '@ims/utils';
+import { applyFieldErrors, normalizePublicId } from '@ims/utils';
 
 type ConversionGroup = FormGroup<{
-  fromUomId: FormControl<number | null>;
+  fromUomId: FormControl<PublicId | null>;
   factor: FormControl<number | null>;
 }>;
 
@@ -53,6 +54,7 @@ const MAX_SAFETY_STOCK = 1_000_000_000;
     UiButtonComponent,
     UiCardComponent,
     UiCheckboxComponent,
+    UiEmptyStateComponent,
     UiFormFieldComponent,
     UiFormLegendComponent,
     UiIconComponent,
@@ -87,8 +89,8 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
       nonNullable: true,
       validators: [Validators.required, Validators.maxLength(256)]
     }),
-    categoryId: new FormControl<number | null>(null),
-    baseUomId: new FormControl<number | null>(null, [Validators.required]),
+    categoryId: new FormControl<PublicId | null>(null),
+    baseUomId: new FormControl<PublicId | null>(null, [Validators.required]),
     safetyStock: new FormControl<number | null>(0, [
       Validators.required,
       Validators.min(0),
@@ -99,11 +101,11 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
     conversions: new FormArray<ConversionGroup>([])
   });
 
-  $productId = computed(() => {
-    const id = this.$id();
-    return id === undefined ? undefined : Number(id);
-  });
-  $isNew = computed(() => this.$productId() === undefined);
+  /** The id in the URL as the API writes it; undefined on `/products/new` and for anything that is not a GUID. */
+  $productId = computed(() => normalizePublicId(this.$id()));
+  $isNew = computed(() => this.$id() === undefined);
+  /** An old bookmark (`/products/123`): no product, no request, and nothing to save. */
+  $notFound = computed(() => !this.$isNew() && this.$productId() === undefined);
   $canManage = computed(() => this.permissions.has(PERMISSION.MasterDataManage));
   $isLoading = this.store.detail.$isLoading;
   $isSaving = this.store.save.$isRunning;
@@ -113,9 +115,14 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
   $categoryOptions = computed<readonly SelectOption[]>(() =>
     this.catalog.$categories().map(category => ({ value: category.id, label: category.name }))
   );
-  $heading = computed(() =>
-    this.$isNew() ? this.i18n.t('product.new') : (this.store.detail.$data()?.sku ?? '')
-  );
+  $heading = computed(() => {
+    if (this.$isNew()) {
+      return this.i18n.t('product.new');
+    }
+    return this.$notFound()
+      ? this.i18n.t('notFound.title')
+      : (this.store.detail.$data()?.sku ?? '');
+  });
 
   /** Messages of a failed save that belong to no field. */
   $generalErrors = computed(() => {
@@ -196,7 +203,7 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
 
   onSave(): void {
     this.form.markAllAsTouched();
-    if (this.form.invalid || !this.$canManage()) {
+    if (this.form.invalid || !this.$canManage() || this.$notFound()) {
       return;
     }
     this.store.save
@@ -236,16 +243,16 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
     }
   }
 
-  private createConversion(fromUomId: number | null, factor: number | null): ConversionGroup {
+  private createConversion(fromUomId: PublicId | null, factor: number | null): ConversionGroup {
     return new FormGroup({
-      fromUomId: new FormControl<number | null>(fromUomId, [Validators.required]),
+      fromUomId: new FormControl<PublicId | null>(fromUomId, [Validators.required]),
       factor: new FormControl<number | null>(factor, [Validators.required, Validators.min(0.0001)])
     });
   }
 
   private toRequest(): ProductSaveRequest {
     const value = this.form.getRawValue();
-    const baseUomId = value.baseUomId ?? 0;
+    const baseUomId = value.baseUomId ?? NO_PUBLIC_ID;
     return {
       sku: value.sku.trim(),
       name: value.name.trim(),
@@ -255,7 +262,7 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
       isActive: value.isActive,
       barcodes: [...value.barcodes],
       conversions: value.conversions.map(conversion => ({
-        fromUomId: conversion.fromUomId ?? 0,
+        fromUomId: conversion.fromUomId ?? NO_PUBLIC_ID,
         toUomId: baseUomId,
         factor: conversion.factor ?? 0
       }))

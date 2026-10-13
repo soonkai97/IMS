@@ -8,7 +8,7 @@ import {
   PartnersClient
 } from '@ims/api';
 import { handledInline } from '@ims/core/http';
-import { HTTP_STATUS, MAX_PAGE_SIZE, PagedQuery } from '@ims/models';
+import { HTTP_STATUS, MAX_PAGE_SIZE, PagedQuery, PublicId } from '@ims/models';
 import { ApiCommand, QueryLoader } from '@ims/utils';
 
 export interface PartnerQuery extends PagedQuery {
@@ -18,7 +18,7 @@ export interface PartnerQuery extends PagedQuery {
 }
 
 export interface SavePartnerArgs {
-  readonly id?: number;
+  readonly id?: PublicId;
   readonly body: PartnerSaveRequest;
 }
 

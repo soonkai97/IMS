@@ -5,9 +5,9 @@ namespace Ims.Application.Features.Stock;
 public sealed class LedgerRowsSpec : Specification<StockLedgerEntry, LedgerRow>
 {
     /// <summary>Newest first. <paramref name="limit"/> caps exports; otherwise the page is selected by the cursor position (<paramref name="after"/>) or by Page.</summary>
-    public LedgerRowsSpec(LedgerFilter f, IReadOnlyCollection<int>? scope, int? limit = null, long? after = null)
+    public LedgerRowsSpec(LedgerFilter f, int? warehouseId, int? productId, int? sourceDocId, IReadOnlyCollection<int>? scope, int? limit = null, long? after = null)
     {
-        LedgerFilters.Apply(Query, f, scope);
+        LedgerFilters.Apply(Query, f, warehouseId, productId, sourceDocId, scope);
         Query.OrderByDescending(l => l.Id);
         if (limit is { } n) Query.Take(n);
         else
@@ -19,6 +19,6 @@ public sealed class LedgerRowsSpec : Specification<StockLedgerEntry, LedgerRow>
         // The running balance is stored with the row; it is only offered when the ledger is read for one product (a mixed list has no single running balance).
         var forOneProduct = f.ProductId is not null;
         Query.Select(l => new LedgerRow(l.Id, l.OccurredAt, l.Product.Sku, l.Product.Name, l.Warehouse.Code, l.Warehouse.Name, l.QtyDelta, Math.Round(l.UnitCost, Money.UnitPriceDecimals),
-            l.Reason, l.SourceDocId, l.SourceDocument.No, l.Creator.Username, forOneProduct ? l.BalanceAfter : (decimal?)null));
+            l.Reason, l.SourceDocument.PublicId, l.SourceDocument.No, l.Creator.Username, forOneProduct ? l.BalanceAfter : (decimal?)null));
     }
 }

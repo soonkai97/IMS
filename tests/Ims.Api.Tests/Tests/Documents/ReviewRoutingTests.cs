@@ -16,7 +16,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class ReviewRoutingTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     /// <summary>100 units at cost 100, so an issue of 60 is worth 6000 (the seeded supervisor rule fires from 5000).</summary>
     private async Task<(StockScenario S, ProductDto Product)> StockAsync()
@@ -142,7 +142,7 @@ public class ReviewRoutingTests(ApiFixture fixture)
         await using var _ = await ApprovalRuleScope.AddAsync(s.Admin, DocumentType.Issue, 6000m, null, Roles.Owner);
         var large = await SubmitIssueAsync(s, product, s.Clerk);
 
-        async Task<Dictionary<int, bool>> CanActAsync(ApiClient who) =>
+        async Task<Dictionary<Guid, bool>> CanActAsync(ApiClient who) =>
             (await who.Documents.ListAsync(status: DocumentStatus.Submitted, requiresApproval: true)).Data<PagedResult<DocumentListItem>>()
                 .Items.Where(i => new[] { ordinary.Id, own.Id, large.Id }.Contains(i.Id)).ToDictionary(i => i.Id, i => i.CanAct);
 
