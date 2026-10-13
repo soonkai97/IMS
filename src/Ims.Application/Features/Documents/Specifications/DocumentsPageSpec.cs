@@ -6,6 +6,8 @@ public sealed class DocumentsPageSpec : Specification<StockDocument, DocumentLis
 {
     public DocumentsPageSpec(DocumentFilter f, IReadOnlyCollection<int>? scope, int userId, DocumentSearch? search, long? after)
     {
+        // The plan flips with TOP(@p): compiled for a large page it scans every document line, and then serves page size 25 (docs/dba/README.md 4d).
+        Query.TagWith(QueryHint.NoSniffing);
         DocumentFilters.Apply(Query, f, scope, userId, search);
         var (page, size) = Paging.Normalize(f.Page, f.PageSize);
         Query.OrderByDescending(d => d.Id);
