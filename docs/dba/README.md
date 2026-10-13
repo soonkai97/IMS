@@ -140,6 +140,54 @@ cache hands out, not in the access path. It would add a write to every document 
 typical product (what `OPTIMIZE FOR UNKNOWN` gives; the "cold-first" scenario of `17-movements-by-product.sql`): cold products are cheap, but a product with 5 % of the lines
 reads 601,236 reads (666 ms) instead of 4,392 for the page, and the cost grows with the table.
 
+**4c. Public id switch (`feature/public-ids-integration`, PR #78), verified at the 1M tier** (GUID plan PR-10, DBA part; raw numbers in `results-1m-public-ids.txt`).
+Throw-away database seeded on the schema **before** `AddPublicIds` (1,000,682 ledger rows, 161,800 documents, 50,002 products), migrated, then loaded. Because the laptop changed speed
+2-5x several times during the run, every comparison is **old build against new build on the same database, the same rows and the same minutes**: `origin/main` (integer ids on the wire,
+with #71) and the integration branch, both pointed at the migrated database, called alternately (`22-interleaved-ab.ps1`), reads from the Query Store (`19-reads-by-endpoint.ps1`).
+
+| Question | Result |
+|---|---|
+| Migration `AddPublicIds` at this tier | **7.6 s** for the nine tables (162k documents, 50k products); log 157 MB used (file did not grow); data file did not grow; no row of the ledger, lines or audit log is touched. Clustered keys after: 0.0 % fragmented. The ADR's 1M-document figure (20 s) scales with the document count, not with the ledger |
+| Reads of the 72 endpoints, main vs new | **No endpoint reads more than +9 rows more than before; none regresses by 20 % except where the base is tiny:** by-id endpoints +5 or +6 reads (the seek on `UX_<Table>_PublicId`): `documents/{id}` 47 -> 53, `stock?productId` 53 -> 58, ledger by source document 19 -> 25, `users` 19 -> 25, product by id 25 -> 31, attachments by owner 9 -> 14. Lists, search, reports, audit, exports: unchanged to 0.5 %. Fewer reads: product deep page 44,029 -> 29,655, documents deep cursor 1,183 -> 789 |
+| By-id reads, same rows by int key and by GUID (`21-by-id-reads.ps1`) | document 191 -> 197, product 25 -> 31, ledger of a hot product 885 -> 890, movements of a hot product 35,562 -> 35,567, movements of a mid product 3,537 -> 3,542; median wall time equal within 10 % |
+| Latency, 72 endpoints, interleaved | p50 ratio new/main 0.7-1.25 everywhere (`results-1m-ab.csv`); the only p95 ratios above 1.2 are endpoints under 5 ms (noise) and xlsx exports measured 3 times (re-measured 8 times: equal) |
+| Write path: k6 `write-mix` 10 VUs 60 s, main and new alternately on one database | main 2,106 and 2,983 flows, write P95 104 and 38 ms; new 2,738 and 2,697 flows, write P95 64 and 72 ms; 0 failed flows, 0 x 409, 0 x 5xx, 0 deadlocks. Before the migration (pre-switch code): 2,705 flows, P95 72 ms. `mixed` (10 VUs): new 239 flows, read P95 1.5 s, write P95 148 ms; main 214 flows, 2.2 s, 270 ms (saturated closed loop) |
+| Cost of `UX_StockDocument_PublicId` on a write (`20-publicid-write-bench.sql`, 3 x 3,000 transactions of document + 5 lines + post) | with the index best 0.646 ms/tx, without 0.733 ms/tx: **not measurable** |
+| Reconcile drill (`08-reconcile-drill.sql`) after about 23,000 flows in all | **0 mismatches** in checks 1, 3 and 4 (1,059,012 ledger rows) |
+| Movements by product (#71) | still holds: cold product 187-245 reads and 40-60 ms whichever plan came first, hot product 34,787-40,723 reads and 135-235 ms |
+
+**Fragmentation of the nine `UX_*_PublicId` indexes (random v4 GUIDs).** Only `UX_StockDocument_PublicId` receives inserts that matter, and it is small (5 MB at 188k documents; the ADR's figure is 28 MB per million).
+Fresh from the migration: 0.0 % fragmented, 90 % full. After +14,000 documents (+8 %): **81.7 % fragmented, 59.5 % full, 1,054 pages instead of 619**. With 100,000 single-row inserts (`20-publicid-write-bench.sql`): 10.8 % after +10k, 95 %
+after +20k, 99 % from +30k on; the page count doubles once (733 -> 1,468) and then the pages fill up (79 % full at +100k). The clustered key `PK_StockDocument` stays at 0.4 % in the same run, and the clustered keys of the ledger,
+the lines and the audit log are at 0.2-0.5 % (were 0.0-0.2 %): the switch did not make any clustered index worse. The other eight UX indexes are one page (tables with few rows) or have no inserts (`Product`: 0.0 %). The only read on these
+indexes is a point seek (+5 or +6 reads per by-id call, measured above on the 82 % fragmented index); nothing scans a range of them, so the fragmentation costs space and some log, not read time. **`07-maintenance.sql` covers it**:
+the script ranks by size, ignores indexes under 1,000 pages (every UX index except `StockDocument`'s at this tier), and for a bigger one rebuilds it at `FILLFACTOR = 90` (its `UX_%_PublicId` rule); the post-load plan lists
+`UX_StockDocument_PublicId` (REBUILD, 1,054 pages), and a rebuild of an index that size takes well under a second. No change needed; keep the weekly run.
+
+**Found on the way, present on `main` before the switch (reported, not fixed here; they need a `be-framework` change):**
+
+1. **`GET /api/documents` plan poisoning (Major).** The page statement is `TOP(@p)` over a correlated sum of the lines. Compiled for a page size of 150 or more (the API accepts 200) the optimizer picks a hash plan that scans
+   `StockDocumentLine` twice (44,624 reads, 3.3 s CPU); the plan is cached and **every** later call, page size 25 included, takes 3.3-5.2 s until it leaves the cache (restart, statistics update). Compiled for 25-100 it takes 590-4,812 reads
+   and 20-120 ms at any size. It happened by itself in this run (a statistics update after the first load; the next k6 setup called with 200) and the web app, which sends 25, would then show 4 s lists. Evidence:
+   `results-1m-public-ids.txt` section 8. **Minimal fix:** one more tag for `RecompileInterceptor` that appends `OPTION (USE HINT('DISABLE_PARAMETER_SNIFFING'))` to the documents page query (tested on the real statement: fresh compile for
+   200 then 25 = 137 ms then 2 ms, for 500 = 181 ms then 3 ms); `OPTION (RECOMPILE)` alone does not help, the large page's own plan is the bad one.
+2. **`GET /api/products/lookup?code=` (document line picker) grows with the product's position (Major).** `Sku == code || Barcodes.Any(...)` with `TOP(1)` is answered by walking the `Product` clustered index: 673 reads and 5-9 ms
+   for `SKU-00042` (the only code `02` asks), **average 963 ms and up to 2.0 s over 40 random SKUs**, 79,000 reads per statement and three statements per call. P95 over the catalog is above 1 s. **Minimal fix:**
+   resolve the SKU first (unique index seek), the barcode only if nothing matched (the same two-seek shape R1 gave the stock search); no schema change.
+3. `GET /api/audit?actor=supervisor`: 497k reads, 0.3 s quiet and 0.9-1.0 s P95 in a noisy session when the actor's rows are old (164k of them here); equal on `main`. Watch item (`IX_AuditLogs_Actor_Id` exists; the plan walks the
+   key backwards through the newest rows until it has a page of that actor).
+4. `GET /api/stock` (no filter) scans and sorts all balance rows for every page: 195-200 ms in a quiet session, 1.2-1.4 s when the CPU slowed down 5x. Equal on `main`; the most sensitive endpoint to a busy machine.
+
+**P95 verdict at 1M ledger rows.** The public id switch does not move any interactive endpoint: reads +0 to +9 per call, latency equal to `main` within the noise of an interleaved comparison, write path unchanged, reconcile 0, the migration takes seconds.
+In the interleaved pass (`results-1m-ab.csv`, both builds in the same minutes) every endpoint except the exports (downloads) is under 1 s P95 on both builds, with one exception: `audit: actor=supervisor` (0.89 s on `main`, 1.02 s new, item 3).
+The single sequential runs of `02` (`results-1m-main.csv`, `results-1m-public-ids.csv`) show P95 above 1 s for both builds during slow stretches of the laptop, always on endpoints that read 50-175k rows per call
+(`main`: stock sorted by warehouse 2.1 s; new: product search 3.0 s): the machine, not the code (the same endpoints are 0.2-0.5 s in the interleaved pass). Over 1 s and **not caused by the switch**: item 1 after a poisoned plan, item 2 for most SKUs.
+Items 1 and 2 should be fixed before the 1M tier is called green.
+
+Scripts added for this section: `19-reads-by-endpoint.ps1` (reads per call from a `02` result file), `20-publicid-write-bench.sql`, `21-by-id-reads.ps1`, `22-interleaved-ab.ps1`.
+Caveat: the k6 A/B rounds (`write-mix`, `mixed`) used `PRODUCT_DRAWS=60 DOC_PAGES=30`: the default setup walks 100 document pages and about 250 product look-ups, which hit items 1 and 2 and exceeded k6's 300 s `setupTimeout` on a slow day
+(the first attempts timed out). `write-hot` and `read-mix` ran only on the pre-switch code, before the migration, and the ramp, spike and soak scenarios were not run (`results-1m-public-ids-k6.csv`).
+
 **4d. Documents list and product lookup at the 1M tier** (two P95 > 1 s defects found by the verification of the public id switch, PR 81; present on main; raw numbers in
 `results-1m-documents-lookup.txt`, scripts `23-measure-documents-list.ps1` and `24-measure-product-lookup.ps1`). No schema change, no migration: the indexes the lookup needs
 (`IX_Product_Sku`, `IX_ProductBarcode_Barcode`, both unique and filtered on `REC_DELETED = 0`, matching the filter the global query filter adds) already exist.
@@ -266,6 +314,7 @@ Use a throw-away database whose name starts with `Ims_Perf` (the scripts refuse 
 | `09-rewrite-candidates.sql`, `summarize-stats.awk` | EF statement versus rewrite (R1, R2, R4) |
 | `12-movements-order.sql`, `13-movements-order-diff.sql`, `14-write-path-bench.sql` | R3: old versus new order against five index sets, page, count and export (reads, CPU); which report rows change position; what the two indexes cost per posting transaction |
 | `17-movements-by-product.sql`, `18-measure-movements-by-product.ps1`, `results-1m-movements-by-product-*` | section 4b: the report for one product with a shared plan versus a plan per call (statement-level reads and times; the API with Query Store reads) |
+| `19-reads-by-endpoint.ps1`, `20-publicid-write-bench.sql`, `21-by-id-reads.ps1`, `22-interleaved-ab.ps1`, `results-1m-public-ids*`, `results-1m-main*`, `results-1m-ab*`, `results-1m-by-id.csv` | section 4c: logical reads per HTTP call, the write cost and fragmentation of `UX_StockDocument_PublicId`, by-id reads of two builds on the same rows, an interleaved latency comparison of two builds on one database; `results-1m-public-ids.txt` has the raw numbers, `results-1m-public-ids-k6.csv` the load runs |
 | `23-measure-documents-list.ps1`, `24-measure-product-lookup.ps1`, `results-1m-documents-list-*`, `results-1m-lookup-*`, `results-1m-documents-lookup.txt` | section 4d: the documents list in three call orders (small-first, large-first, poisoned plan cache) and the product lookup by SKU, barcode and unknown code, before and after; the txt has the hint comparison and the watch items |
 | `10-filtered-vs-unfiltered.sql` | why the indexes are filtered on `REC_DELETED = 0` |
 | `11-snapshot.sql`, `11b-snapshot-diff.sql` | deadlock and lock-wait counters around a load test (used by `tests/load/run-scenario.ps1`) |
