@@ -25,6 +25,8 @@
 
 The rules are written once in `scripts/guard/lib.mjs`; hooks and CI import the same file.
 
+Exemption: GitHub's squash-merge appends ` (#123)` to the PR title, which the author does not control. For commits that come into a PR range (for example an integration branch holding squash-merged work) that one trailing suffix is not counted towards the 72 characters. The PR title and local commits are always checked in full. Tests: `node --test scripts/guard`.
+
 ## Overrides (emergencies only; CI and the ruleset still apply)
 
 - `ALLOW_MAIN_COMMIT=1`, `ALLOW_PUSH_MAIN=1`, `SKIP_PREPUSH_TESTS=1`
