@@ -126,10 +126,10 @@ export class ImsApi {
   async createDocument(
     kind: 'receipts' | 'issues',
     lines: DocumentLine[],
-    options: { partnerId?: PublicId | null; remark?: string } = {}
+    options: { partnerId?: PublicId | null; remark?: string; warehouseId?: PublicId } = {}
   ): Promise<ApiDocument> {
     return this.call<ApiDocument>('POST', `/api/documents/${kind}`, {
-      warehouseId: await this.warehouseId(),
+      warehouseId: options.warehouseId ?? (await this.warehouseId()),
       partnerId: options.partnerId ?? null,
       purpose: kind === 'issues' ? 'Sale' : null,
       remark: options.remark ?? null,
@@ -195,6 +195,18 @@ export class ImsApi {
       type,
       name: options.name ?? `E2E ${type} ${unique()}`,
       contact: options.contact ?? null,
+      isActive: true
+    });
+  }
+
+  /** A warehouse nobody but Admin and Owner is assigned to (the demo staff, supervisor and clerk work in the Main warehouse only). */
+  async createWarehouse(): Promise<{ id: PublicId; name: string }> {
+    const token = unique();
+    return this.call<{ id: PublicId; name: string }>('POST', '/api/warehouses', {
+      code: `E${token}`.slice(0, 20),
+      name: `E2E Warehouse ${token}`,
+      contact: null,
+      notes: null,
       isActive: true
     });
   }

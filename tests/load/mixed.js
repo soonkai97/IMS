@@ -5,6 +5,7 @@ import { THRESHOLDS, setupData, readOp, writeFlow, summaryTo } from './scenarios
 export const options = {
   scenarios: { mixed: { executor: 'constant-vus', vus: parseInt(__ENV.VUS || '50'), duration: __ENV.DURATION || '3m' } },
   thresholds: THRESHOLDS,
+  setupTimeout: '300s',   // setup() samples real ids through the API (about 700 calls, see scenarios.js)
   summaryTrendStats: ['avg', 'min', 'med', 'p(90)', 'p(95)', 'p(99)', 'max', 'count'],
 };
 export function setup() { return setupData(); }
