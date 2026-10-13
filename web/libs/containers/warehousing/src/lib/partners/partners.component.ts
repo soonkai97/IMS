@@ -171,9 +171,10 @@ export class PartnersPageComponent {
     const error = this.store.save.$operation().error;
     if (error) {
       applyFieldErrors(this.form, error);
-      if (error.kind === API_ERROR_KIND.Conflict && error.detail) {
+      if (error.kind === API_ERROR_KIND.Conflict) {
         // 409: a partner of this type already has this name. The server's sentence says which one.
-        this.form.controls.name.setErrors({ [SERVER_ERROR_KEY]: error.detail });
+        const sentence = error.detail || (error.message ?? this.i18n.t('error.generic'));
+        this.form.controls.name.setErrors({ [SERVER_ERROR_KEY]: sentence });
         this.form.controls.name.markAsTouched();
       }
     }

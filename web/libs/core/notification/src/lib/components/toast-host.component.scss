@@ -1,24 +1,82 @@
 @use 'libs' as *;
 
-// Phones: under the top bar, so a toast never covers the sticky action bar or the tab bar (NV-21). Desktop: top right.
+// A toast never covers the primary action (ER-02, NV-21). Ruling C6 v3:
+//  - Below 1024px the host is an IN-FLOW banner, first in the main region under the top bar, not sticky: it pushes the title,
+//    filters and actions down. At most 20% of the window high, scrolls inside (the whole sentence stays readable, L00).
+//  - From 1024px (ruling C14) it floats bottom right above the sticky action bar, which publishes how far its top edge is above
+//    the bottom of the window (--ims-action-bar-clearance); on a short page the bar sits higher than its height suggests.
+//  - In a modal dialog (--in-dialog) it is the same in-flow banner above the content: the page behind a modal is inert.
 :host {
-  position: fixed;
-  top: calc(#{height('bar')} + #{space(1)});
-  right: space(2);
-  left: space(2);
-  z-index: z-index('toast');
+  display: block;
+  max-height: 20dvh;
+  overflow: auto;
+
+  &:has(app-toast) {
+    margin-bottom: space(1);
+  }
+
+  &.--in-dialog {
+    flex: none;
+    margin: 0;
+
+    &:has(app-toast) {
+      padding: space(1) space(2) 0;
+      margin-bottom: 0;
+    }
+  }
+
+  @include media-desktop {
+    &:not(.--in-dialog) {
+      position: fixed;
+      right: calc(#{space(2)} + var(--ims-safe-right));
+      bottom: calc(var(--ims-action-bar-clearance, var(--ims-safe-bottom)) + #{space(2)});
+      z-index: z-index('toast');
+      width: width('toast');
+      max-height: none;
+      margin: 0;
+      overflow: visible;
+      pointer-events: none;
+
+      @include media-short {
+        bottom: calc(var(--ims-safe-bottom) + #{space(1)});
+      }
+    }
+  }
+}
+
+.toast-host-group {
   display: flex;
   flex-direction: column;
   gap: space(1);
-  pointer-events: none;
+
+  &:has(app-toast) + &:has(app-toast) {
+    margin-top: space(1);
+  }
 
   & > * {
     pointer-events: auto;
   }
+}
 
-  @include media-desktop {
-    top: space(2);
-    left: auto;
-    width: width('toast');
+// Fade in with a small rise, fade out (UX 7.6). The leaving toast cannot be clicked; under reduced motion the durations collapse.
+.toast-host-enter {
+  animation: ims-toast-in duration('base') easing('out');
+}
+
+.toast-host-leave {
+  pointer-events: none;
+  animation: ims-toast-out duration('fast') easing('standard') forwards;
+}
+
+@keyframes ims-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(#{space(1)});
+  }
+}
+
+@keyframes ims-toast-out {
+  to {
+    opacity: 0;
   }
 }

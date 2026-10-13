@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AppMoneyPipe, AppQtyPipe, TranslatePipe } from '@ims/core/i18n';
+import { handledInline } from '@ims/core/http';
 import { CanDirective, PermissionService } from '@ims/core/identity';
 import { DocumentsStore } from '@ims/features/documents';
 import { StockStore } from '@ims/features/stock';
@@ -42,7 +43,13 @@ export class HomePageComponent implements OnInit {
   $summary = this.stock.summary.$data;
   $counts = this.documents.counts.$data;
   $isLoading = this.stock.summary.$isLoading;
-  $failed = this.stock.summary.$isFailed;
+  /** Both loads are flagged handledInline: the banner is the one announcement of either failing, with the mapped sentence. */
+  $failed = computed(() => this.stock.summary.$isFailed() || this.documents.counts.$isFailed());
+  $errorMessage = computed(
+    () =>
+      this.stock.summary.$operation().error?.message ??
+      this.documents.counts.$operation().error?.message
+  );
   $displayName = this.permissions.$displayName;
 
   $canViewStock = computed(() => this.permissions.has(PERMISSION.StockRead));
@@ -59,8 +66,8 @@ export class HomePageComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.$canViewStock()) {
-      this.stock.summary.load();
-      this.documents.counts.load();
+      this.stock.summary.load(undefined, handledInline());
+      this.documents.counts.load(undefined, handledInline());
     }
   }
 

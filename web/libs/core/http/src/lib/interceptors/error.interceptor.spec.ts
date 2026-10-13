@@ -1,9 +1,10 @@
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, HttpContext, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { ToastService } from '@ims/core/notification';
 import { API_ERROR_KIND, ApiError } from '@ims/models';
 import { withIfMatch } from '../concurrency/if-match';
+import { handledInline } from '../errors/handled-inline';
 import { errorInterceptor } from './error.interceptor';
 
 const URL = 'http://api.test/api/documents/1/post';
@@ -144,5 +145,46 @@ describe('errorInterceptor', () => {
 
     expect(error.kind).toBe(API_ERROR_KIND.Server);
     expect(toast.$toasts()[0].message).toBe('Something went wrong. Try again.');
+  });
+  describe('one failure, one announcement', () => {
+    function failWithContext(
+      status: number,
+      context: HttpContext,
+      detail: string
+    ): Promise<ApiError> {
+      const result = new Promise<ApiError>(resolve => {
+        http
+          .get(URL, { responseType: 'blob', context })
+          .subscribe({ error: (error: ApiError) => resolve(error) });
+      });
+      backend.expectOne(URL).flush(problem(status, { detail }), { status, statusText: 'x' });
+      return result;
+    }
+
+    it('a flagged call raises no toast but its error carries the sentence; with statuses only those are silent', async () => {
+      const error = await failWithContext(500, handledInline(), 'The report broke.');
+      expect(toast.$toasts()).toHaveLength(0);
+      expect(error.message).toBe('The report broke.');
+
+      await failWithContext(409, handledInline(409), 'A supplier named X already exists.');
+      expect(toast.$toasts()).toHaveLength(0);
+      await failWithContext(500, handledInline(409), 'Down.');
+      expect(toast.$toasts().map(item => item.message)).toEqual(['Down.']);
+    });
+
+    it('an error toast goes when the user starts a write, not on a read or the silent token refresh', async () => {
+      const error = await failWith(504, null);
+      expect(error.message).toBe(toast.$toasts()[0].message);
+
+      http.get(URL).subscribe();
+      backend.expectOne(URL).flush(null);
+      http.post('http://api.test/api/auth/refresh', null).subscribe();
+      backend.expectOne('http://api.test/api/auth/refresh').flush(null);
+      expect(toast.$toasts()).toHaveLength(1);
+
+      http.post(URL, null).subscribe();
+      expect(toast.$toasts()).toHaveLength(0);
+      backend.expectOne(URL).flush(null);
+    });
   });
 });

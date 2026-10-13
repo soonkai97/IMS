@@ -1,9 +1,34 @@
-@for (toast of $toasts(); track toast.id) {
+<!--
+  Exactly one host shows the toasts at a time: while a modal dialog is open the dialog renders its own copy (inDialog) and this
+  page copy renders nothing. An error is its own role=alert node (announced when inserted, one node per error). Success and info
+  sit in a polite live region that exists before they do; they have no role of their own, so one toast is one announcement.
+-->
+@if (!$hidden()) {
+  <div class="toast-host-group">
+    @for (toast of $errors(); track toast.id) {
+      <ng-container [ngTemplateOutlet]="item" [ngTemplateOutletContext]="{ $implicit: toast }" />
+    }
+  </div>
+  <div class="toast-host-group" aria-live="polite" aria-atomic="false">
+    @for (toast of $messages(); track toast.id) {
+      <ng-container [ngTemplateOutlet]="item" [ngTemplateOutletContext]="{ $implicit: toast }" />
+    }
+  </div>
+}
+
+<ng-template #item let-toast>
   <app-toast
+    animate.enter="toast-host-enter"
+    animate.leave="toast-host-leave"
     [kind]="toast.kind"
     [message]="toast.message"
     [actionLabel]="toast.action?.label"
     (dismissed)="onDismiss(toast)"
     (actioned)="onAction(toast)"
+    (mouseenter)="onHold(toast)"
+    (focusin)="onHold(toast)"
+    (mouseleave)="onRelease(toast, $event)"
+    (focusout)="onRelease(toast, $event)"
+    (keydown.escape)="onDismiss(toast)"
   />
-}
+</ng-template>

@@ -14,6 +14,7 @@ import { tap } from 'rxjs';
 import { LoadingService } from '@ims/core/http';
 import { I18nService, LanguageSelectComponent, ROLE_LABELS, TranslatePipe } from '@ims/core/i18n';
 import { AuthService, PermissionService } from '@ims/core/identity';
+import { ToastHostComponent } from '@ims/core/notification';
 import { THEME_MODE, ThemeService, isThemeMode } from '@ims/core/theme';
 import {
   RadioOption,
@@ -38,6 +39,7 @@ import { PageTitleService } from '../services/page-title.service';
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
+    ToastHostComponent,
     TranslatePipe,
     UiButtonComponent,
     UiDialogComponent,

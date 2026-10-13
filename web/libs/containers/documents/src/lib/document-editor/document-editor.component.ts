@@ -39,6 +39,7 @@ import {
 } from '@ims/core/i18n';
 import { CanDirective, PermissionService } from '@ims/core/identity';
 import { HasUnsavedChanges, PageTitleService } from '@ims/core/navigation';
+import { handledInline } from '@ims/core/http';
 import { ConfirmService, ToastService } from '@ims/core/notification';
 import { SystemSettingsStore } from '@ims/core/settings';
 import { CatalogStore, ProductsStore } from '@ims/features/catalog';
@@ -241,6 +242,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     () => this.documents.detail.$isLoading() && this.$document() === undefined
   );
   readonly $loadFailed = this.documents.detail.$isFailed;
+  /** The load call raises no toast; this banner is the one announcement, with the sentence the interceptor mapped. */
+  readonly $loadErrorMessage = computed(() => this.documents.detail.$operation().error?.message);
   /** The id in the URL belongs to no document (an old bookmark): a page of its own, and retrying cannot help. */
   readonly $notFound = computed(
     () => this.documents.detail.$operation().error?.kind === API_ERROR_KIND.NotFound
@@ -565,7 +568,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       } else if (id === this.justCreatedId) {
         this.justCreatedId = undefined;
       } else {
-        this.documents.detail.load(id);
+        this.documents.detail.load(id, handledInline());
       }
     });
   });
@@ -598,6 +601,14 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     }
   });
 
+  private supportLoaded = false;
+
+  private readonly loadSupportWhenOpened = effect(() => {
+    if (this.$document()) {
+      untracked(() => this.loadSupport());
+    }
+  });
+
   private readonly loadLedger = effect(() => {
     const documentId = this.$documentId();
     if (this.$isLedgerTab() && documentId !== undefined) {
@@ -618,12 +629,26 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     this.destroyRef.onDestroy(() => this.pageTitle.setDetail(undefined));
   }
 
-  ngOnInit(): void {
-    this.view.configure(this.$type());
+  /**
+   * Categories, warehouses, settings and partners for the form. A saved document asks for them once it has opened: with the
+   * API down, its one banner covers the failure and these calls would only add a toast saying the same thing.
+   */
+  private loadSupport(): void {
+    if (this.supportLoaded) {
+      return;
+    }
+    this.supportLoaded = true;
     this.catalog.ensureLoaded();
     this.warehouses.ensureLoaded();
     this.settings.ensureLoaded();
     this.partners.loadActive(this.$isIssue() ? PartnerType.Customer : PartnerType.Supplier);
+  }
+
+  ngOnInit(): void {
+    this.view.configure(this.$type());
+    if (this.$isNew()) {
+      this.loadSupport();
+    }
 
     this.view.header.controls.warehouseId.valueChanges
       .pipe(
