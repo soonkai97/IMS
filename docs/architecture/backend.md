@@ -28,7 +28,7 @@ Architecture tests (`tests/Ims.Architecture.Tests`) fail the build if this rots.
 Features/Catalog/
   UseCases/CreateProduct/   CreateProductCommand.cs  CreateProductHandler.cs  CreateProductValidator.cs
   UseCases/ListProducts/    ListProductsQuery.cs     ListProductsHandler.cs
-  Specifications/           ProductByCodeSpec.cs ...  (Ardalis.Specification: queries as named objects)
+  Specifications/           ProductBySkuSpec.cs ...  (Ardalis.Specification: queries as named objects)
   Contracts/                ProductDto.cs ...         (request/response records)
   Services/                 IProductWriter.cs ProductWriter.cs
   Validators/               ProductSaveRequestValidator.cs   (shared DTO rules)

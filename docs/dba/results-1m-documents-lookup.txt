@@ -1,0 +1,76 @@
+Documents list (parameter sniffing on TOP(@p)) and product lookup (OR over two columns), 1M tier. Raw numbers behind docs/dba/README.md section 4d.
+Machine: Intel Core i7-1355U, 64 GB, SSD, SQL Server 2025 LocalDB (instance ImsDev), API and SQL Server on the same laptop, shared with other agents' test runs.
+CPU readings of SET STATISTICS TIME come in steps of about 15.6 ms (the timer resolution): read "15" as "somewhere between 8 and 23".
+Database: throw-away Ims_PerfPr82_a90497 (dropped at the end), schema of origin/main 0b265a4, seeded with 01-seed-perf.sql -v Products=50000 Docs=161500 Days=1080 Warehouses=5
+(69 s), then 07-maintenance.sql Execute=1 and the Query Store on. products 50,002; documents 161,800; document lines 1,051,233; ledger rows 998,910; balance rows 172,616;
+audit rows 315,628. Indexes the lookup needs already exist: IX_Product_Sku (unique, filter [REC_DELETED]=0), IX_ProductBarcode_Barcode (unique, same filter). No migration.
+Column collation SQL_Latin1_General_CP1_CI_AS on both Product.Sku and ProductBarcode.Barcode (case-insensitive, unchanged).
+
+== 1. Documents list: where the plan flips (page statement, no filter, plan compiled fresh for each @p, cache cleared in between; reads of StockDocumentLine) ==
+   @p        25    100    150    200    500     800   1,000   1,500   2,000   10,000
+   reads  1,318  4,988  7,174  9,590 22,726  36,242  45,206  43,070  43,070   43,070
+   CPU ms    16     29     31     47     47      -       -       -     703     719      (compile + execution; 703 ms = the plan that scans the 43,070-page clustered index twice)
+   The nested-loop plan costs about 26 reads per document (two correlated SUM subqueries, each a seek and ~6 key lookups); the hash plan costs 43,070 reads whatever the size.
+   On THIS database the optimizer flips between 1,000 and 1,500 rows (UPDATE STATISTICS with the default sample did not move it). The API cuts a list at 200 rows
+   (Limits.MaxPageSize), so a page the API asks for never compiles to the hash plan here. PR 81 (verification of the public id switch) saw the flip at about 150 rows on a database
+   that had been migrated and had taken 14,000 more documents. The threshold is a cost comparison that moves with statistics, row counts and memory; the defect is the cache
+   serving the large-page plan to every page size, wherever the flip point sits.
+   Reproduction used here ("poisoned"): clear the plan cache of the database, ask the API once for size 25 (the statement is cached), clear again, execute every cached page
+   statement once from sqlcmd with TOP(@p) = 2,000 and the session options of the API (ARITHABORT OFF; usecounts and set_options checked in sys.dm_exec_cached_plans: the API reuses that entry),
+   then ask the API for 25, 50, 150, 500 (= 200). Script: 23-measure-documents-list.ps1.
+
+== 2. Hint candidates on the page statement (sp_executesql, cache cleared before each hint, steps: poison @p=2,000, then 25, 200, 25; "compile" = SQL Server parse and compile CPU) ==
+   no filter                       none                    DISABLE_PARAMETER_SNIFFING     OPTIMIZE FOR UNKNOWN          RECOMPILE
+     poison  @p=2000        compile 27, exec 625 ms,43,070    compile 25, exec  94 ms,89,976    compile 15, exec  62 ms,89,976    compile 15, exec 656 ms,43,070
+     then    @p=25          exec 610 ms, 43,070 reads         exec   0 ms,  1,318 reads         exec   0 ms,  1,318 reads         compile 26, exec 31 ms, 1,318 reads
+     then    @p=200         exec 578 ms, 43,070 reads         exec   0 ms,  9,590 reads         exec   0 ms,  9,590 reads         compile 16, exec 31 ms, 9,590 reads
+     then    @p=25 again    exec 547 ms, 43,070 reads         exec   0 ms,  1,318 reads         exec   0 ms,  1,318 reads         compile 16, exec 32 ms, 1,318 reads
+   Same picture for the shapes with a warehouse (@w=2), a status (@s=3), a cursor (Id < @olderThan), in every case: shared plan after a poison 390-670 ms and 43,070 reads for
+   page size 25 and 200; DISABLE_PARAMETER_SNIFFING and OPTIMIZE FOR UNKNOWN 0-16 ms and 1,130-1,318 reads (25) / 8,660-9,590 reads (200); RECOMPILE 15-32 ms exec, 15-26 ms compile PER CALL.
+   RECOMPILE does not repair the large page itself: its own compile at 2,000 rows is the hash plan (625-656 ms); the two other hints give the nested loop plan (62-94 ms).
+   Rare values (a hint must not hurt them): status Draft (about 300 rows) 16 ms / 1,352 reads with no hint, 0 ms / 1,352 reads with DISABLE_PARAMETER_SNIFFING; status Reversed (0 rows)
+   15 ms / 0 reads either way. The OFFSET shape (page 2 and later: OFFSET @p ROWS FETCH NEXT @p1 ROWS ONLY) stayed on the nested loop plan even for OFFSET 9,800 + 200 (8,942 reads, 31-47 ms),
+   no hint needed there; it carries the hint anyway because one specification builds all shapes.
+   Chosen: DISABLE_PARAMETER_SNIFFING (the same plan as OPTIMIZE FOR UNKNOWN, but it needs no parameter name, so one line serves every shape of the statement).
+   Cost: one compile of 15-34 ms of CPU per cached statement shape (per restart or eviction); 0 ms of compile per request after that. RECOMPILE would cost 15-26 ms of CPU per request for the page.
+
+== 3. Documents list through the API, before and after (23-measure-documents-list.ps1, ms per call, sizes 25 50 150 500(=200) in this order; results-1m-documents-list-before.csv / -after.csv) ==
+   order           variant                    before                    after
+   small-first     no filter                  58 30 35 43               73 33 42 40
+   large-first     no filter                  79 38 29 20               80 48 30 18
+   poisoned        no filter                  655 681 703 640           66 18 32 47
+   poisoned        warehouse                  736 712 684 684           68 36 58 38
+   poisoned        status posted              659 633 630 684           64 18 40 53
+   poisoned        status draft (rare)        644 589 690 723           74 18 27 53
+   poisoned        type + status              700 637 651 668           55 15 38 46
+   poisoned        cursor                     628 741 715 775           61 21 50 55
+   poisoned        warehouse + cursor         764 795 712 799           69 35 44 50
+   small-first / large-first, every variant (filters, text search of 3+ characters, page 2, cursor pages): 11-223 ms before and after (the first call after the cache clear carries the compile);
+   the 'poisoned' order for the two text-search variants and for page 2 is not poisoned by the script (text search has nvarchar parameters, page 2 is the OFFSET shape): 60-134 ms before and after.
+
+== 4. Product lookup, before and after (24-measure-product-lookup.ps1: 40 products evenly spread over the catalog by id; same codes both times; 160 calls, results identical: 0 differing) ==
+   kind          before: avg / P50 / P95 / max ms       after: avg / P50 / P95 / max ms
+   sku           204 / 206 / 372 / 433                  3 / 3 / 4 / 12
+   barcode       291 / 309 / 549 / 616                  4 / 3 / 4 / 27
+   sku lower     190 / 173 / 398 / 411                  2 / 2 / 3 / 3
+   unknown       130 / 131 / 156 / 168                  3 / 2 / 5 / 20
+   (PR 81 measured the old statement at an average of 963 ms and up to 2,002 ms on a busier machine and a database that had been migrated; this run was quiet, the shape is the same:
+   the cost follows the position of the product in the table. Hand probes before: SKU-43564 402 ms, SKU-49999 380 ms, SKU-00042 5 ms, an unknown code 172 ms.)
+   Statements after (sys.dm_exec_query_stats, 160 to 161 calls): SKU statement TOP(1) 6 reads and 104 us CPU; barcode id seek 4 reads and 71 us; collections of the product (barcodes, conversions) 14 and 10 reads.
+   Before: 79,000 reads per statement, three statements per call (the product and its two collections, each repeating the OR).
+
+== 5. Watch items (no change made) ==
+   GET /api/audit?actor=supervisor (statement: TOP(@p) ... WHERE Actor LIKE @actor_startswith ORDER BY Id DESC; 25 rows; 315,628 audit rows; staff 161,800, supervisor 153,810, admin 49):
+     through the API: 430-1,076 ms (actor=staff 440-515 ms, actor=admin and actor=clerk 3-19 ms). The default plan is IX_AuditLogs_Actor_Id range seek + key lookups + sort:
+     462,438 reads, 296-406 ms CPU for supervisor, 486,253 reads for staff, 156 reads for admin.
+     Hints (sp_executesql, cache cleared, 25 rows):               supervisor            staff             admin (49 rows)          nobody (0 rows)
+       none                                                       462,438 reads 406 ms  486,253 reads     156 reads                3 reads
+       WITH (INDEX(PK_AuditLogs)) (backward clustered scan)       16 reads              8 reads           7 reads                  -
+       OPTION (RECOMPILE)                                         462,438 reads 250 ms  8 reads           159 reads                -        (supervisor still gets the bad plan)
+       DISABLE_PARAMETER_SNIFFING / OPTIMIZE FOR UNKNOWN          16 reads              8 reads           7 reads                  9,063 reads (the whole table, 9,063 pages)
+     The backward scan is perfect for an actor who is common among the newest rows and reads the whole table for one who is rare or absent; the seek is the other way round. Neither
+     hint is right for both, so this is a product question (an exact user name could use the equality seek on (Actor, Id), which is already ordered by Id) rather than a trivial change. Not changed.
+   GET /api/stock, no filter, page 1 of 50: 10 calls 208-508 ms (median about 300 ms); page statement 272 ms of CPU and 3,576 reads per call, the count 14 ms and 2,345 reads. Not changed.
+
+== 6. Cleanup ==
+   Dropped at the end: Ims_PerfPr82_a90497 (mine). Nothing else was touched.
