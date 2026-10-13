@@ -153,7 +153,10 @@ for (const size of VIEWPORTS) {
       browser,
       api,
     }) => {
-      const products = await Promise.all(Array.from({ length: 15 }, () => api().createProduct()));
+      const products = [];
+      for (let index = 0; index < 15; index++) {
+        products.push(await api().createProduct()); // one at a time: the API answers 409 to a burst
+      }
       const lines = products.map((product) => ({ productId: product.id, qty: 1, unitCost: 1 }));
       const draft = await api("staff").createDocument("receipts", lines);
       const session = await openSession(browser, "staff", { viewport: size });
