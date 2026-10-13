@@ -44,6 +44,27 @@ public class CounterLeakTests(ApiFixture fixture)
         }
     }
 
+    /// <summary>The exact members of a row: any extra property (an <c>id</c>, a <c>key</c>, an unmarked internal field) fails here, whatever its name.</summary>
+    [Fact]
+    public async Task A_ledger_row_and_an_audit_row_have_exactly_the_documented_members()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        await s.ReceiveAsync(Warehouse, new Line(product.Id, 3, 1m));
+
+        using var ledger = (await s.Admin.Stock.LedgerAsync(product.Id)).ShouldBeOk().Json();
+        using var audit = (await s.Admin.GetAsync("/api/audit?pageSize=5&includeTotal=false")).ShouldBeOk().Json();
+
+        string[] ledgerMembers = ["balanceAfter", "occurredAt", "productName", "qtyDelta", "reason", "sku", "sourceDocId", "sourceDocNo", "unitCost", "user", "warehouseCode", "warehouseName"];
+        string[] auditMembers = ["action", "actor", "after", "at", "before", "entityId", "entityType"];
+        var ledgerRows = ledger.RootElement.GetProperty("items").EnumerateArray().ToList();
+        var auditRows = audit.RootElement.GetProperty("items").EnumerateArray().ToList();
+        Assert.NotEmpty(ledgerRows);
+        Assert.NotEmpty(auditRows);
+        Assert.All(ledgerRows, row => Assert.Equal(ledgerMembers, row.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal)));
+        Assert.All(auditRows, row => Assert.Equal(auditMembers, row.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal)));
+    }
+
     [Fact]
     public async Task A_scoped_user_cannot_count_the_ledger_rows_other_warehouses_write()
     {
