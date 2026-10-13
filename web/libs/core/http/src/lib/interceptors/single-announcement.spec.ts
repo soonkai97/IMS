@@ -5,7 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ToastHostComponent } from '@ims/core/notification';
 import { ApiError } from '@ims/models';
-import { UiBannerComponent } from '@ims/ui';
+import { UI_DIALOG_FEEDBACK, UiBannerComponent, UiDialogComponent } from '@ims/ui';
 import { handledInline } from '../errors/handled-inline';
 import { errorInterceptor } from './error.interceptor';
 
@@ -15,19 +15,21 @@ const SENTENCE = 'The database is not available.';
 /** A screen that, like the document editor, shows a failed load in a banner. */
 @Component({
   selector: 'app-test-screen',
-  imports: [ToastHostComponent, UiBannerComponent],
+  imports: [ToastHostComponent, UiBannerComponent, UiDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-toast-host />
     @if (message(); as text) {
       <app-banner kind="danger">{{ text }}</app-banner>
     }
+    <app-dialog [(open)]="dialogOpen" heading="A dialog"><p>Form</p></app-dialog>
   `
 })
 class TestScreenComponent {
   private readonly http = inject(HttpClient);
 
   readonly message = signal<string | undefined>(undefined);
+  readonly dialogOpen = signal(false);
 
   run(method: 'GET' | 'POST', context?: HttpContext, showInline = true): void {
     this.http
@@ -62,7 +64,8 @@ describe('one failure, one announcement', () => {
       providers: [
         provideHttpClient(withInterceptors([errorInterceptor])),
         provideHttpClientTesting(),
-        provideRouter([])
+        provideRouter([]),
+        { provide: UI_DIALOG_FEEDBACK, useValue: ToastHostComponent }
       ]
     });
     fixture = TestBed.createComponent(TestScreenComponent);
@@ -116,5 +119,27 @@ describe('one failure, one announcement', () => {
     await fail();
 
     expect(announcements(root)).toEqual([SENTENCE]);
+  });
+
+  it('a failure while a modal dialog is open is shown inside the dialog, once, and the page copy stays empty', async () => {
+    screen.dialogOpen.set(true);
+    fixture.detectChanges();
+
+    screen.run('POST', undefined, false);
+    await fail();
+
+    expect(announcements(root)).toEqual([SENTENCE]);
+    const dialog = root.querySelector('dialog') as HTMLElement;
+    expect(dialog.querySelectorAll('app-toast')).toHaveLength(1);
+    expect(root.querySelectorAll('app-toast')).toHaveLength(1);
+    expect(root.querySelector('app-toast-host:not(.--in-dialog)')?.hasAttribute('hidden')).toBe(
+      true
+    );
+
+    screen.dialogOpen.set(false);
+    fixture.detectChanges();
+
+    expect(announcements(root)).toEqual([SENTENCE]);
+    expect(root.querySelectorAll('app-toast')).toHaveLength(1);
   });
 });

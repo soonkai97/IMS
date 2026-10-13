@@ -194,5 +194,14 @@ describe('errorInterceptor', () => {
       expect(toast.$toasts()).toHaveLength(0);
       backend.expectOne(URL).flush(null);
     });
+
+    it('the silent token refresh and logout are not the user starting something: an unread error stays', async () => {
+      await failWith(500, null);
+
+      http.post('http://api.test/api/auth/refresh', null).subscribe();
+      backend.expectOne('http://api.test/api/auth/refresh').flush(null);
+
+      expect(toast.$toasts()).toHaveLength(1);
+    });
   });
 });

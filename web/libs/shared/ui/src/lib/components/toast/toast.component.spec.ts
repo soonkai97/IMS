@@ -14,7 +14,7 @@ describe('UiToastComponent long messages (L00)', () => {
     spectator.detectChanges();
 
     const text = spectator.query('.ui-toast-message');
-    expect(spectator.element.hasAttribute('role')).toBe(false);
+    expect(spectator.element.getAttribute('role')).toBe('alert');
     expect(text?.textContent?.trim()).toBe(message.trim());
     expect(text?.hasAttribute('title')).toBe(false);
   });

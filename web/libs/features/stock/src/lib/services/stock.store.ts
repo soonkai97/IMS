@@ -7,7 +7,6 @@ import {
   StockSort,
   StockSummary
 } from '@ims/api';
-import { handledInline } from '@ims/core/http';
 import { PagedQuery } from '@ims/models';
 import { QueryLoader } from '@ims/utils';
 
@@ -78,9 +77,9 @@ export class StockStore {
   readonly lowStock = new QueryLoader<LowStockQuery, PagedResultOfLowStockAlert>(query =>
     this.client.lowStock(query.warehouseId, query.page, query.pageSize)
   );
-  /** Home shows a failed load in a banner with Retry, so the call raises no toast (one failure, one announcement). */
-  readonly summary = new QueryLoader<void, StockSummary>(() =>
-    this.client.summary(handledInline())
+  /** Home loads it with `handledInline()` (its banner shows a failure); the editor and Low stock refresh it quietly and toast. */
+  readonly summary = new QueryLoader<void, StockSummary>((_, context) =>
+    this.client.summary(context)
   );
 
   /** Number on the "Low stock" menu badge. */

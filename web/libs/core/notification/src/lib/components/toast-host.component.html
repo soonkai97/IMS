@@ -1,19 +1,20 @@
 <!--
-  Two live regions that exist before any toast does (a region inserted together with its text is often not announced): errors
-  are announced at once (assertive), success and info politely. aria-live, not role=alert, so the empty region is not an "alert"
-  on the page. Each toast appears in exactly one of them and carries no role of its own,
-  so one failure is one announcement.
+  Exactly one host shows the toasts at a time: while a modal dialog is open the dialog renders its own copy (inDialog) and this
+  page copy renders nothing. An error is its own role=alert node (announced when inserted, one node per error). Success and info
+  sit in a polite live region that exists before they do; they have no role of their own, so one toast is one announcement.
 -->
-<div class="toast-host-group" aria-live="assertive" aria-atomic="false">
-  @for (toast of $errors(); track toast.id) {
-    <ng-container [ngTemplateOutlet]="item" [ngTemplateOutletContext]="{ $implicit: toast }" />
-  }
-</div>
-<div class="toast-host-group" aria-live="polite" aria-atomic="false">
-  @for (toast of $messages(); track toast.id) {
-    <ng-container [ngTemplateOutlet]="item" [ngTemplateOutletContext]="{ $implicit: toast }" />
-  }
-</div>
+@if (!$hidden()) {
+  <div class="toast-host-group">
+    @for (toast of $errors(); track toast.id) {
+      <ng-container [ngTemplateOutlet]="item" [ngTemplateOutletContext]="{ $implicit: toast }" />
+    }
+  </div>
+  <div class="toast-host-group" aria-live="polite" aria-atomic="false">
+    @for (toast of $messages(); track toast.id) {
+      <ng-container [ngTemplateOutlet]="item" [ngTemplateOutletContext]="{ $implicit: toast }" />
+    }
+  </div>
+}
 
 <ng-template #item let-toast>
   <app-toast
@@ -28,5 +29,6 @@
     (focusin)="onHold(toast)"
     (mouseleave)="onRelease(toast, $event)"
     (focusout)="onRelease(toast, $event)"
+    (keydown.escape)="onDismiss(toast)"
   />
 </ng-template>

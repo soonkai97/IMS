@@ -1,40 +1,59 @@
 @use 'libs' as *;
 
-// A toast never covers the primary action (ER-02, NV-21).
-//  - Phone: directly under the top bar (ruling C6). What a phone keeps at the bottom (tab bar, sticky action bar, the buttons of
-//    a bottom-sheet dialog) stays free; the safe-area inset keeps it clear of the notch.
-//  - From 600px: bottom right (ruling C14), above the sticky action bar. The bar publishes how far its top edge is above the bottom
-//    of the window (--ims-action-bar-clearance, kept current on scroll): on a short page the bar has not reached the bottom and
-//    sits higher than its height suggests, so the height alone would put the toast on top of it. The page-header Save at the top
-//    right is no longer covered.
-//  - Short windows (400% zoom): the bars flow with the page, so only the inset and a gap remain.
+// A toast never covers the primary action (ER-02, NV-21). Ruling C6 v2 (ui-ux-designer, R11 review):
+//  - Below the desktop width (phone and tablet) the host is an IN-FLOW banner: the first child of the page's main region, under the
+//    top bar, not sticky. It pushes the title, the filters and the page actions down instead of lying on them, and it scrolls away
+//    with the page. It is at most 20% of the window high and scrolls inside (a long sentence stays readable, L00). Success toasts
+//    use the same host and stay compact.
+//  - From 1024px (ruling C14) it floats bottom right above the sticky action bar, which publishes how far its top edge is above the
+//    bottom of the window (--ims-action-bar-clearance, kept current on scroll): on a short page the bar has not reached the bottom
+//    and sits higher than its height suggests. The page-header Save at the top right is not covered.
+//  - Inside a modal dialog (--in-dialog) it is the same in-flow banner above the dialog's content: a modal makes the page behind it
+//    inert, so a floating toast there could be neither seen nor clicked.
 :host {
-  position: fixed;
-  top: calc(#{height('bar')} + var(--ims-safe-top) + #{space(1)});
-  right: calc(#{space(2)} + var(--ims-safe-right));
-  left: calc(#{space(2)} + var(--ims-safe-left));
-  z-index: z-index('toast');
-  pointer-events: none;
+  display: block;
+  max-height: 20dvh;
+  overflow: auto;
 
-  @include media-tablet {
-    top: auto;
-    bottom: calc(var(--ims-action-bar-clearance, var(--ims-safe-bottom)) + #{space(2)});
-    left: auto;
-    width: width('toast');
+  &:has(app-toast) {
+    margin-bottom: space(1);
+  }
 
-    @include media-short {
-      bottom: calc(var(--ims-safe-bottom) + #{space(1)});
+  &.--in-dialog {
+    flex: none;
+    margin: 0;
+
+    &:has(app-toast) {
+      padding: space(1) space(2) 0;
+      margin-bottom: 0;
+    }
+  }
+
+  @include media-desktop {
+    &:not(.--in-dialog) {
+      position: fixed;
+      right: calc(#{space(2)} + var(--ims-safe-right));
+      bottom: calc(var(--ims-action-bar-clearance, var(--ims-safe-bottom)) + #{space(2)});
+      z-index: z-index('toast');
+      width: width('toast');
+      max-height: none;
+      margin: 0;
+      overflow: visible;
+      pointer-events: none;
+
+      @include media-short {
+        bottom: calc(var(--ims-safe-bottom) + #{space(1)});
+      }
     }
   }
 }
 
-// The two live regions. Empty ones take no room; the second one is spaced from the first only when both hold toasts.
 .toast-host-group {
   display: flex;
   flex-direction: column;
   gap: space(1);
 
-  &:not(:empty) + &:not(:empty) {
+  &:has(app-toast) + &:has(app-toast) {
     margin-top: space(1);
   }
 

@@ -9,7 +9,7 @@ import {
   DocumentsClient,
   PagedResultOfDocumentListItem
 } from '@ims/api';
-import { handledInline, withIfMatch } from '@ims/core/http';
+import { withIfMatch } from '@ims/core/http';
 import { PagedQuery } from '@ims/models';
 import { ApiCommand, QueryLoader } from '@ims/utils';
 
@@ -81,12 +81,14 @@ export class DocumentsStore {
       query.mine
     )
   );
-  /** The editor shows a failed load in a banner with Retry, so the call raises no toast (one failure, one announcement). */
-  readonly detail = new QueryLoader<number, DocumentDto>(id =>
-    this.client.get(id, handledInline())
+  /** The editor loads it with `handledInline()` (its banner shows a failure); the context goes to the call. */
+  readonly detail = new QueryLoader<number, DocumentDto>((id, context) =>
+    this.client.get(id, context)
   );
   /** Home numbers and the approvals badge: four indexed counts for the signed-in user. */
-  readonly counts = new QueryLoader<void, DocumentCounts>(() => this.client.counts());
+  readonly counts = new QueryLoader<void, DocumentCounts>((_, context) =>
+    this.client.counts(context)
+  );
 
   /** Save, submit and post are exclusive: a second tap while one runs sends nothing (NR-07). */
   readonly save: ApiCommand<SaveDocumentArgs, DocumentDto> = new ApiCommand(

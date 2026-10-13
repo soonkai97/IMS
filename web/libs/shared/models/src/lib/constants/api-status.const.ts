@@ -27,3 +27,8 @@ export const HTTP_STATUS = {
   TooManyRequests: 429,
   ServerError: 500
 } as const;
+
+/** HTTP methods the client tells apart (a read is not the user's next action). */
+export const HTTP_METHOD = {
+  Get: 'GET'
+} as const;

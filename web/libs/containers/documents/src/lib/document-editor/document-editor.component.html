@@ -27,9 +27,12 @@
 @if ($isLoading()) {
   <app-skeleton [count]="4" />
 } @else if ($notFound()) {
-  <app-empty-state icon="file" [message]="'notFound.body' | t">
-    <a class="ui-link-button --primary" routerLink="/">{{ 'system.goHome' | t }}</a>
-  </app-empty-state>
+  <!-- The load call is flagged handledInline (no toast), so this page is the one announcement. -->
+  <div role="alert">
+    <app-empty-state icon="file" [message]="'notFound.body' | t">
+      <a class="ui-link-button --primary" routerLink="/">{{ 'system.goHome' | t }}</a>
+    </app-empty-state>
+  </div>
 } @else if ($loadFailed()) {
   <app-banner kind="danger">
     {{ $loadErrorMessage() || ('error.generic' | t) }}

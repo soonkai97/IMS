@@ -41,15 +41,20 @@ describe('ToastService', () => {
     expect(messages()).toEqual(['Saved.', 'Saved.']);
   });
 
-  it('an error that is still on screen is not shown a second time', () => {
+  it('an error repeated within 2 seconds shows once; later the new one replaces it (one node, announced again)', () => {
     toast.error('Can’t reach the server.');
-    jest.advanceTimersByTime(30_000);
+    const first = toast.$toasts()[0].id;
+    toast.error('Can’t reach the server.');
+    expect(toast.$toasts().map(item => item.id)).toEqual([first]);
+
+    jest.advanceTimersByTime(2000);
     toast.error('Can’t reach the server.');
 
     expect(messages()).toEqual(['Can’t reach the server.']);
+    expect(toast.$toasts()[0].id).not.toBe(first);
   });
 
-  it('shows at most two: a newer toast replaces the oldest success, never an error', () => {
+  it('keeps two success or info toasts at most: a newer one replaces the oldest, an error is never pushed out', () => {
     toast.success('First.');
     toast.success('Second.');
     toast.success('Third.');

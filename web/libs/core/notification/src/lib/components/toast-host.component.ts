@@ -1,24 +1,37 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  input
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationStart, Router } from '@angular/router';
 import { filter } from 'rxjs';
-import { UiToastComponent } from '@ims/ui';
+import { UiModalState, UiToastComponent } from '@ims/ui';
 import { Toast, ToastService } from '../services/toast.service';
 
 /**
- * Place once in the root component. It never takes focus. Errors and messages sit in two live regions that are always
- * present (see the template); an error toast goes when the user moves on to another page.
+ * Place once in the shell (and on pages without one). It never takes focus; Escape dismisses the focused toast. Below the desktop
+ * width it is an in-flow banner at the top of the page (see the styles). While a modal dialog is open the dialog renders its own
+ * copy (`inDialog`) and this one renders nothing, so there is one live node at a time.
  */
 @Component({
   selector: 'app-toast-host',
   imports: [NgTemplateOutlet, UiToastComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './toast-host.component.html',
-  styleUrl: './toast-host.component.scss'
+  styleUrl: './toast-host.component.scss',
+  host: { '[class.--in-dialog]': '$inDialog()', '[hidden]': '$hidden()' }
 })
 export class ToastHostComponent {
   private readonly toastService = inject(ToastService);
+  private readonly modalState = inject(UiModalState);
+
+  $inDialog = input(false, { alias: 'inDialog' });
+  $hidden = computed(() => !this.$inDialog() && this.modalState.$isOpen());
 
   $errors = computed(() => this.toastService.$toasts().filter(toast => toast.kind === 'error'));
   $messages = computed(() => this.toastService.$toasts().filter(toast => toast.kind !== 'error'));

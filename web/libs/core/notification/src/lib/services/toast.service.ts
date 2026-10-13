@@ -31,9 +31,10 @@ const MIN_REMAINING_MS = 1000;
  *
  * - Success and info disappear after 4 s (the timer pauses while the pointer or focus is on the toast). An error stays until
  *   it is dismissed or the user starts the next action (`dismissErrors`).
- * - The same text twice within 2 s shows once; an error already on screen is never shown a second time.
- * - At most two are visible: a newer toast replaces the oldest success or info one. An error is never replaced, so a new
- *   toast may make a third when two errors stay.
+ * - The same text twice within 2 s shows once. After that, an error that is still up is replaced by the new one (one node,
+ *   and a screen reader hears it again: the user tried again and it failed again).
+ * - At most two success or info toasts: a newer one replaces the oldest. An error is never pushed out by another toast, so
+ *   errors are not capped (a burst of different failures shows each).
  */
 @Injectable({ providedIn: 'root' })
 export class ToastService {
@@ -88,14 +89,12 @@ export class ToastService {
 
   private add(kind: ToastKind, message: string, action?: ToastAction): void {
     const now = Date.now();
-    const isDuplicate = this.$all().some(
-      toast =>
-        toast.kind === kind &&
-        toast.message === message &&
-        (kind === 'error' || now - toast.createdAt < DUPLICATE_WINDOW_MS)
-    );
-    if (isDuplicate) {
+    const same = this.$all().find(toast => toast.kind === kind && toast.message === message);
+    if (same && now - same.createdAt < DUPLICATE_WINDOW_MS) {
       return;
+    }
+    if (same && kind === 'error') {
+      this.dismiss(same.id);
     }
     const toast: Toast = { id: this.nextId, kind, message, action, createdAt: now };
     this.nextId += 1;

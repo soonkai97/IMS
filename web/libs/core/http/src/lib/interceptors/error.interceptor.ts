@@ -3,8 +3,9 @@ import { inject } from '@angular/core';
 import { catchError, from, map, switchMap, tap, throwError } from 'rxjs';
 import { I18nService } from '@ims/core/i18n';
 import { ToastService } from '@ims/core/notification';
-import { API_ERROR_KIND, ApiError, HTTP_STATUS } from '@ims/models';
+import { API_ERROR_KIND, ApiError, HTTP_METHOD, HTTP_STATUS } from '@ims/models';
 import { IF_MATCH } from '../concurrency/if-match';
+import { COOKIE_AUTH_ENDPOINTS } from '../constants/cookie-session.const';
 import { isHandledInline } from '../errors/handled-inline';
 import { problemToApiError, readErrorBody } from '../errors/problem-details';
 import { TIMEOUT_STATUS_TEXT } from './timeout.interceptor';
@@ -29,6 +30,14 @@ function shouldToast(error: ApiError, request: HttpRequest<unknown>): boolean {
     return false;
   }
   return !(error.kind === API_ERROR_KIND.Validation && Object.keys(error.fieldErrors).length > 0);
+}
+
+/** A call that changes something is the user's next action; a read and the silent token refresh or logout are not. */
+function isUserAction(request: HttpRequest<unknown>): boolean {
+  return (
+    request.method !== HTTP_METHOD.Get &&
+    !COOKIE_AUTH_ENDPOINTS.some(endpoint => request.url.includes(endpoint))
+  );
 }
 
 /**
@@ -62,7 +71,7 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
     return error.detail.length > 0 ? error.detail : i18n.t('error.generic');
   };
 
-  if (request.method !== 'GET') {
+  if (isUserAction(request)) {
     toast.dismissErrors();
   }
 

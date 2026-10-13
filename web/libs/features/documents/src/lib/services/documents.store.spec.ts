@@ -7,7 +7,7 @@ import {
   DocumentsClient,
   PagedResultOfDocumentListItem
 } from '@ims/api';
-import { IF_MATCH, isHandledInline } from '@ims/core/http';
+import { IF_MATCH, handledInline, isHandledInline } from '@ims/core/http';
 import { DocumentsStore, toDocumentRef } from './documents.store';
 
 const DOCUMENT = { id: 7, concurrencyToken: 'AAAA' } as DocumentDto;
@@ -44,13 +44,18 @@ describe('DocumentsStore', () => {
     expect(args[11]).toBeUndefined();
   });
 
-  it('loads a document with a call the editor shows in a banner, so a failed load raises no toast (R11)', async () => {
+  it('hands the context the screen gave (handledInline) to the call, also when it reloads (R11)', async () => {
     client().get.mockReturnValue(of(DOCUMENT));
 
-    spectator.service.detail.load(7);
+    spectator.service.detail.load(7, handledInline());
     await Promise.resolve();
 
     expect(isHandledInline(client().get.mock.calls[0][1] as HttpContext, 500)).toBe(true);
+
+    spectator.service.detail.reload();
+    await Promise.resolve();
+
+    expect(isHandledInline(client().get.mock.calls[1][1] as HttpContext, 500)).toBe(true);
   });
 
   it('sends the version the user saw with every state change (If-Match)', async () => {

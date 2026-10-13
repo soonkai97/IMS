@@ -666,7 +666,7 @@ Rule: one failure produces one announcement. If an inline message is shown for a
 | Success | Auto-dismiss 4s; the timer pauses while the pointer is over the toast or focus is inside it; polite live region |
 | Error | Stays until dismissed; `role="alert"`; only for failures with no inline home (for example an export that failed) |
 | Count | Max 2 visible; a third success replaces the oldest success; errors are never replaced |
-| Position | Phone: directly under the top bar (never over the action bar, NV-21). Desktop: top right under the header |
+| Position | Below the desktop width: an in-flow banner under the top bar, first in the main region, pushing the page down (at most 20dvh, scrolls inside; ruling C6 v3). Desktop (1024px up): bottom right above the sticky action bar (ruling C14). Inside a modal dialog: a copy above the dialog content |
 | Content | One sentence, what happened (and what to do on error), optional single action "View" or "Retry" (no "Undo": the product does not offer it) |
 | Duplicates | The same text within 2 seconds shows once |
 | Motion | 7.6 |

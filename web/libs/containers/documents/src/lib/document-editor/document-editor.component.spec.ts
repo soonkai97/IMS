@@ -643,6 +643,33 @@ describe('DocumentEditorPageComponent', () => {
       expect(alerts[0].textContent).toContain('Retry');
     });
 
+    it('a saved document that cannot be loaded asks for no form support data, so its banner is the one announcement (R11)', () => {
+      opened.set(undefined);
+      detailOperation.set(
+        failureOperation({
+          ...STALE,
+          kind: API_ERROR_KIND.Network,
+          status: 0,
+          detail: '',
+          message: "Can't reach the server."
+        })
+      );
+      jest.clearAllMocks();
+      spectator = createComponent({ props: { type: DocumentType.Receipt, id: '5' } as never });
+      spectator.detectChanges();
+
+      expect(spectator.inject(PartnersStore).loadActive).not.toHaveBeenCalled();
+    });
+
+    it('a new document asks for its support data at once', () => {
+      opened.set(undefined);
+      jest.clearAllMocks();
+      spectator = createComponent({ props: { type: DocumentType.Receipt, id: 'new' } as never });
+      spectator.detectChanges();
+
+      expect(spectator.inject(PartnersStore).loadActive).toHaveBeenCalledTimes(1);
+    });
+
     it('while a saved document loads the title is not "New receipt"', async () => {
       opened.set(undefined);
       spectator = createComponent({ props: { type: DocumentType.Receipt, id: '5' } as never });

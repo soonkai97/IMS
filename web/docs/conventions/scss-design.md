@@ -96,14 +96,20 @@ or `all`.
   screen shows the failure in place (a banner, a message at a field) is flagged `handledInline()` (`@ims/core/http`; pass statuses to
   flag only those, `handledInline(HTTP_STATUS.Conflict)`) and raises no toast; the screen shows `error.message`, the one sentence the
   error interceptor mapped (network, timeout, gateway, 403, 429, the API's own `detail`). Every other failure raises one error toast.
-  A table error panel stays silent (the toast announces it, EA-26). Never flag a call whose failure the screen does not show.
-- Toasts: success and info leave after 4s (paused while the pointer or focus is on one); an error stays until it is dismissed, the
-  user starts a write or goes to another page. The same text within 2s shows once (an error on screen is never repeated); at most two
-  are visible, a newer one replaces the oldest success or info, never an error. A toast never takes focus.
-- The host holds two live regions that always exist (`aria-live` assertive for errors, polite for the rest; not `role="alert"`, so an
-  empty region is not an alert on the page). A toast has no role of its own, so one toast is one announcement.
-- Position: phone directly under the top bar (ruling C6); from 600px bottom right, above the action bar through
-  `--ims-action-bar-clearance`. Both use the safe-area insets. Enter is a fade with a small rise (`base`), leave a fade (`fast`).
+  Pass the context per load: `loader.load(query, handledInline())` (reload keeps it), so a screen flags only its own load and a
+  background refresh of the same loader still toasts. A screen that flags several calls shows a failure of any of them (Home: one
+  banner for the summary and the counts). Never flag a call whose failure the screen does not show. A table error panel stays
+  silent (the toast announces it, EA-26).
+- Toasts: success and info leave after 4s (paused while the pointer or focus is on one); an error stays until it is dismissed (button
+  or Escape), the user starts a write (not the silent token refresh) or goes to another page. The same text within 2s shows once; a
+  repeat of an error later replaces the old node (one node, announced again). Success and info: at most two, a newer one replaces the
+  oldest. Errors are not capped. A toast never takes focus.
+- An error is its own `role="alert"` node; success and info sit in a polite live region and have no role. One toast, one announcement.
+- Position (ruling C6 v3): below `media-desktop` the host is an in-flow banner, the first child of `<main>` in the shell (and of the sign-in
+  page), not sticky, `max-height: 20dvh` with inner scroll, so it pushes the title, filters and actions down and covers nothing. From
+  1024px it floats bottom right above the action bar through `--ims-action-bar-clearance`. While a modal dialog is open (`UiModalState`)
+  the dialog renders its own host copy (`UI_DIALOG_FEEDBACK`, `provideDialogFeedback()`) and the page copy renders nothing. Enter is a
+  fade with a small rise (`base`), leave a fade (`fast`).
 
 ## Naming: flat BEM, component specific
 
