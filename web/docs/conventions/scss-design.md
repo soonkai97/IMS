@@ -82,13 +82,30 @@ or `all`.
   Components never write `env()`.
 - Sticky action bar (`.document-editor-bar`): phone = full-width strip directly above the tab bar; tablet and up = floating card. It
   publishes its real height as `--ims-action-bar-height` (`appPublishHeight`; it grows when the buttons wrap at 320px) and the `html`
-  scroll padding reserves tab bar + that height, so a focused field is scrolled clear of it (e2e `16-shell`). Toasts: R11.
+  scroll padding reserves tab bar + that height, so a focused field is scrolled clear of it (e2e `16-shell`). It also publishes
+  `--ims-action-bar-clearance` (its top edge above the bottom of the window, kept current on scroll) for the toast host.
 - Route fade: `withViewTransitions(ROUTE_FADE)`, one `fast` crossfade; top bar, sidebar and tab bar have a `view-transition-name` and
   stay still; query-only navigations skip it; 1ms under reduced motion. Never name content elements (a named element becomes the
   containing block of fixed descendants).
 - Top progress bar: behind `delayedLoading`, `role="progressbar"` without a value, named "Loading".
 - Tabs: `<app-tabs panel="id">` plus `<div appTabPanel="id" [labelledByTab]="active">` around what it controls (`aria-controls`,
   `role="tabpanel"`, `aria-labelledby`). Arrows, Home and End move.
+
+## Feedback: one failure, one announcement
+
+- Field validation (400 with field errors) shows at the field, no toast. A call whose screen shows the failure in place (banner or
+  field message) is flagged `handledInline()` (`@ims/core/http`; `handledInline(HTTP_STATUS.Conflict)` flags only that status),
+  passed per load: `loader.load(query, handledInline())` (reload keeps it), so a background refresh of the same loader still toasts.
+  The screen shows `error.message`, the one sentence the interceptor mapped. Never flag a call whose failure the screen does not
+  show (Home flags the summary and the counts and has one banner for either). A table error panel stays silent (EA-26).
+- Toasts: success and info leave after 4s (paused on hover or focus), at most two, a newer one replaces the oldest. An error stays
+  until dismissed (button or Escape), the user starts a write (not the token refresh) or leaves the page; the same text within 2s
+  shows once, a later repeat replaces the old node. Never takes focus. An error is its own `role="alert"` node; success and info
+  sit in one polite live region without roles.
+- Position (ruling C6 v3): below `media-desktop` an in-flow banner, first child of `<main>` (and of the sign-in page), not sticky,
+  `max-height: 20dvh` with inner scroll. From 1024px bottom right above the action bar (`--ims-action-bar-clearance`). While a modal
+  is open (`UiModalState`) the dialog renders the host itself (`UI_DIALOG_FEEDBACK`, `provideDialogFeedback()`) and the page copy
+  renders nothing.
 
 ## Naming: flat BEM, component specific
 

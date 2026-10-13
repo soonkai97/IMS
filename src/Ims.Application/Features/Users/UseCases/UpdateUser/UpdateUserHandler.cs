@@ -1,15 +1,15 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Users;
 
-public class UpdateUserHandler(IRepository<User> users, IReadRepository<Warehouse> warehouses, IRepository<RefreshToken> tokens, IPasswordHasher hasher, ICurrentUser current,
+public class UpdateUserHandler(IRepository<User> users, IIdMap<Warehouse> warehouseIds, IRepository<RefreshToken> tokens, IPasswordHasher hasher, ICurrentUser current,
     IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<UpdateUserCommand, UserDto>
 {
     public async Task<UserDto> HandleAsync(UpdateUserCommand cmd, CancellationToken ct)
     {
         var r = cmd.Data;
-        var user = await users.FirstOrDefaultAsync(new Auth.UserWithWarehousesSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.UserNotFound);
-        if (await users.AnyAsync(new UserTakenSpec(r.Username, r.Email, cmd.Id), ct)) throw new ConflictException(Messages.UserExists);
-        await UserWarehouses.EnsureExistAsync(warehouses, r.WarehouseIds, ct);
+        var user = await users.FirstOrDefaultAsync(new UserWithWarehousesByPublicIdSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.UserNotFound);
+        if (await users.AnyAsync(new UserTakenSpec(r.Username, r.Email, user.Id), ct)) throw new ConflictException(Messages.UserExists);
+        var wanted = await UserWarehouses.ResolveAsync(warehouseIds, r.WarehouseIds, ct);
 
         // Nobody may lock the system out of administration: not themselves, and not the last active administrator.
         var losesAdmin = user.Role == Roles.Admin && user.IsActive && (!r.IsActive || r.Role != Roles.Admin);
@@ -19,7 +19,6 @@ public class UpdateUserHandler(IRepository<User> users, IReadRepository<Warehous
             if (!await users.AnyAsync(new ActiveAdminsSpec(user.Id), ct)) throw new ConflictException(Messages.LastAdminRequired);
         }
 
-        var wanted = (r.WarehouseIds ?? []).Distinct().ToList();
         var before = new { user.Username, user.Role, user.IsActive, Warehouses = user.Warehouses.Select(w => w.WarehouseId).ToList() };
         var accessChanged = user.Role != r.Role || user.IsActive != r.IsActive || !string.IsNullOrEmpty(r.Password) ||
                             !before.Warehouses.Order().SequenceEqual(wanted.Order());
@@ -36,8 +35,8 @@ public class UpdateUserHandler(IRepository<User> users, IReadRepository<Warehous
             foreach (var token in await tokens.ListAsync(new ActiveRefreshTokensOfUserSpec(user.Id, now), ct)) token.Revoke(now);
         }
 
-        audit.Record(AuditActions.UserUpdated, AuditEntities.User, cmd.Id.ToString(), before, new { user.Username, user.Role, user.IsActive, Warehouses = wanted });
+        audit.Record(AuditActions.UserUpdated, AuditEntities.User, user.PublicId.ToString(), before, new { user.Username, user.Role, user.IsActive, Warehouses = wanted });
         await uow.SaveChangesAsync(ct);
-        return UserMapping.ToDto(user);
+        return await UserMapping.ToDtoAsync(user, warehouseIds, ct);
     }
 }

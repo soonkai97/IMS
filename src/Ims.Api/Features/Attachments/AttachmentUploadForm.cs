@@ -7,6 +7,6 @@ namespace Ims.Api.Features.Attachments;
 public class AttachmentUploadForm
 {
     [FromForm(Name = "ownerType")] public AttachmentOwnerType OwnerType { get; set; }
-    [FromForm(Name = "ownerId")] public int OwnerId { get; set; }
+    [FromForm(Name = "ownerId")] public Guid OwnerId { get; set; }
     [FromForm(Name = "file")] public IFormFile File { get; set; } = null!;
 }

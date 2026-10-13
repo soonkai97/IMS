@@ -5,12 +5,12 @@ namespace Ims.Application.Features.Catalog;
 
 public sealed class ProductsPageSpec : Specification<Product, ProductDto>
 {
-    public ProductsPageSpec(ProductFilter q, ProductSearch? search)
+    public ProductsPageSpec(ProductFilter q, int? categoryId, ProductSearch? search)
     {
         var (page, size) = Paging.Normalize(q.Page, q.PageSize);
         Query.AsNoTracking();
         ProductSearchFilter.Apply(Query, search);
-        if (q.CategoryId is { } c) Query.Where(p => p.CategoryId == c);
+        if (categoryId is { } c) Query.Where(p => p.CategoryId == c);
         if (q.Active is { } a) Query.Where(p => p.IsActive == a);
         switch (q.SortBy, q.Desc)
         {

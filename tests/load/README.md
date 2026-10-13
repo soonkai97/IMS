@@ -48,6 +48,12 @@ A threshold that is crossed makes k6 exit non-zero and print `thresholds on metr
 | `soak.js` | 50 VUs, mixed, 10 minutes (tokens last 15 minutes, keep `DURATION` at 12m or less) | `VUS` 50, `DURATION` 10m |
 
 Other knobs: `WAREHOUSES` (5), `HOT_PRODUCTS` (5), `DEBUG=1` prints the first failing responses.
+
+Ids are opaque public ids (GUIDs) and cursors are encrypted, so the scripts never compute one. `setup()` reads real ones from the API and
+hands them to every VU: the warehouses (the main one is the one the demo staff user is assigned to), the categories, about 450 products
+looked up by SKU from `PRODUCT_DRAWS` (600) Zipf-skewed draws (hot products stay hot), 20,000 documents' worth of ids and cursors from
+walking `nextCursor` over `DOC_PAGES` (100) pages of 200, and the ledger cursors from OFFSET pages. That makes `setup()` about 700 calls,
+so keep the rate limit raised (above). The by-id reads cover the newest `DOC_PAGES x 200` documents, not the whole table.
 Thresholds (all scenarios): read P95 < 1 s, write P95 < 2 s, failed requests < 1 %, and no 5xx, 504 or 409.
 Login is rate limited, so each scenario logs in once in `setup()` and shares the tokens; access tokens expire after 15 minutes (401s are counted).
 

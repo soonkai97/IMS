@@ -11,7 +11,7 @@ namespace Ims.Api.Tests.Tests.Contract;
 [Collection(ApiCollection.Name)]
 public class ProblemDetailsTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private static void AssertShape(ApiResponse response, HttpStatusCode status, string title)
     {
@@ -100,14 +100,14 @@ public class ProblemDetailsTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task A_403_for_a_warehouse_outside_the_users_scope_has_the_shape()
+    public async Task A_403_raised_by_a_use_case_has_the_shape()
     {
         var s = await StockScenario.CreateAsync(fixture);
-        var other = await s.NewWarehouseAsync();
         var product = await s.NewProductAsync();
-        var request = new DocumentBuilder(other.Id).WithPartner(fixture.Reference.SupplierId).WithLines(new Line(product.Id, 1, 1m)).Build();
+        var draft = await s.DraftReceiptAsync(s.Admin, fixture.Reference.DefaultWarehouseId, new Line(product.Id, 1, 1m));
 
-        AssertShape(await s.Staff.Documents.CreateReceiptAsync(request), HttpStatusCode.Forbidden, "Forbidden");
+        // Warehouse staff may cancel only their own drafts.
+        AssertShape(await s.Staff.Documents.CancelAsync(draft.Id, "not mine", draft.ConcurrencyToken), HttpStatusCode.Forbidden, "Forbidden");
     }
 
     [Fact]
@@ -126,8 +126,8 @@ public class ProblemDetailsTests(ApiFixture fixture)
     {
         var admin = await fixture.AsAsync(Roles.Admin);
 
-        AssertShape(await admin.Documents.GetAsync(9_999_999), HttpStatusCode.NotFound, "Not found");
-        AssertShape(await admin.Products.GetAsync(9_999_999), HttpStatusCode.NotFound, "Not found");
+        AssertShape(await admin.Documents.GetAsync(Guid.NewGuid()), HttpStatusCode.NotFound, "Not found");
+        AssertShape(await admin.Products.GetAsync(Guid.NewGuid()), HttpStatusCode.NotFound, "Not found");
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public class ProblemDetailsTests(ApiFixture fixture)
         var admin = await fixture.AsAsync(Roles.Admin);
         var product = await new ProductBuilder(fixture.Reference).CreateAsync(admin);
 
-        var notFound = await admin.Documents.GetAsync(9_999_999);
+        var notFound = await admin.Documents.GetAsync(Guid.NewGuid());
         var conflict = await admin.Products.CreateAsync(new ProductBuilder(fixture.Reference).WithSku(product.Sku).Build());
         var badRequest = await admin.Products.CreateAsync(new ProductBuilder(fixture.Reference).WithSku("").Build());
         var unauthorized = await fixture.Anonymous().Auth.LoginAsync("nobody-" + Guid.NewGuid().ToString("N"), "x");
@@ -192,7 +192,7 @@ public class ProblemDetailsTests(ApiFixture fixture)
         const string id = "test-corr_ID-12345";
 
         var ok = await admin.SendAsync(HttpMethod.Get, "/api/warehouses", customize: r => r.Headers.Add("X-Correlation-Id", id));
-        var notFound = await admin.SendAsync(HttpMethod.Get, "/api/documents/9999999", customize: r => r.Headers.Add("X-Correlation-Id", id));
+        var notFound = await admin.SendAsync(HttpMethod.Get, $"/api/documents/{Guid.NewGuid()}", customize: r => r.Headers.Add("X-Correlation-Id", id));
 
         Assert.Equal(id, ok.ShouldBeOk().CorrelationHeader);
         Assert.Equal(id, notFound.CorrelationHeader);

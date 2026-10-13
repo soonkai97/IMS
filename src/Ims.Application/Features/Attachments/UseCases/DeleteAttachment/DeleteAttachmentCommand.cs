@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Attachments;
 
-public record DeleteAttachmentCommand(int Id) : ICommand<Unit>;
+public record DeleteAttachmentCommand(Guid Id) : ICommand<Unit>;

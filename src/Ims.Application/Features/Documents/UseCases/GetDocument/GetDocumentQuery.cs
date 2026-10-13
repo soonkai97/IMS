@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Documents;
 
-public record GetDocumentQuery(int Id) : IQuery<DocumentDto>;
+public record GetDocumentQuery(Guid Id) : IQuery<DocumentDto>;

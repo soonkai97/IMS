@@ -87,6 +87,6 @@ public class WarehouseTests(ApiFixture fixture)
     {
         var admin = await fixture.AsAsync("Admin");
 
-        (await admin.Warehouses.UpdateAsync(9_999_999, Request())).ShouldBeProblem(HttpStatusCode.NotFound);
+        (await admin.Warehouses.UpdateAsync(Guid.NewGuid(), Request())).ShouldBeProblem(HttpStatusCode.NotFound);
     }
 }

@@ -11,7 +11,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class ReceiptReversalCostTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private static async Task<StockSummary> SummaryAsync(StockScenario s) => (await s.Admin.Stock.SummaryAsync()).Data<StockSummary>();
 

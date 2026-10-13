@@ -4,5 +4,5 @@ namespace Ims.Application.Features.Reports;
 
 public sealed class ReversalMovementsCountSpec : Specification<StockDocumentLine>
 {
-    public ReversalMovementsCountSpec(MovementFilter f, IReadOnlyCollection<int>? scope) => MovementFilters.ApplyToReversals(Query, f, scope);
+    public ReversalMovementsCountSpec(MovementFilter f, int? warehouseId, int? productId, IReadOnlyCollection<int>? scope) => MovementFilters.ApplyToReversals(Query, f, warehouseId, productId, scope);
 }

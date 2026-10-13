@@ -16,7 +16,7 @@ const check = (name, ok, detail = '') => {
 };
 
 // Every document command must carry the document version in If-Match (428 otherwise); the smoke test uses the explicit "any version" wildcard.
-const DOCUMENT_COMMAND = /^\/api\/documents\/\d+(\/(submit|approve|reject|cancel|post|reverse))?$/;
+const DOCUMENT_COMMAND = /^\/api\/documents\/[0-9a-fA-F-]{36}(\/(submit|approve|reject|cancel|post|reverse))?$/;
 const needsIfMatch = (method, path) => DOCUMENT_COMMAND.test(path) && (method === 'PUT' || (method === 'POST' && path.split('/').length === 5));
 
 async function api(method, path, { token, body, headers } = {}) {
@@ -46,7 +46,7 @@ const mkProduct = async (n) => (await api('POST', '/api/products', { token: admi
 const p1 = await mkProduct(1), p2 = await mkProduct(2);
 const supplier = (await api('GET', '/api/partners?type=Supplier', { token: admin })).body.items[0];
 const customer = (await api('GET', '/api/partners?type=Customer', { token: admin })).body.items[0];
-check('products created', p1?.id && p2?.id);
+check('products created, each named by a 36-character public id', typeof p1?.id === 'string' && p1.id.length === 36 && typeof p2?.id === 'string' && p2.id.length === 36);
 
 const stockOf = async (pid) => {
   const r = (await api('GET', `/api/stock?productId=${pid}`, { token: admin })).body.items[0];
@@ -60,6 +60,9 @@ let r = await api('POST', '/api/documents/receipts', { token: clerk, body: doc(s
 check('clerk creates receipt (draft)', r.status === 200 && r.body.status === 'Draft', JSON.stringify(r.body));
 const rcv = r.body;
 check('document number has the RCV prefix', /^RCV-/.test(rcv.no), rcv.no);
+check('the document is named by a 36-character public id and its lines carry no id', typeof rcv.id === 'string' && rcv.id.length === 36 && rcv.lines.every(l => !('id' in l)), JSON.stringify(rcv.lines[0]));
+r = await api('GET', '/api/documents/1', { token: admin });
+check('the integer document route is gone (404)', r.status === 404, String(r.status));
 check('draft does not change stock', (await stockOf(p1.id)).qty === 0);
 r = await api('POST', `/api/documents/${rcv.id}/submit`, { token: clerk });
 check('submit -> Submitted, no approval needed', r.body.status === 'Submitted' && r.body.requiresApproval === false);
@@ -68,6 +71,8 @@ check('allowedActions offers the staff post', r.body.allowedActions?.includes('p
 r = await api('POST', `/api/documents/${rcv.id}/post`, { token: staff, body: {} });
 check('staff posts the receipt', r.body.status === 'Posted', JSON.stringify(r.body));
 check('stock increased to 1000', (await stockOf(p1.id)).qty === 1000);
+r = await api('GET', `/api/stock/ledger?productId=${p1.id}&sourceDocId=${rcv.id}`, { token: admin });
+check('the ledger names its source document by public id and filters by it', r.body.items.length === 1 && r.body.items[0].sourceDocId === rcv.id, JSON.stringify(r.body).slice(0, 200));
 r = await api('PUT', `/api/documents/${rcv.id}`, { token: clerk, body: doc(supplier.id, [{ productId: p1.id, qty: 1 }]) });
 check('posted document cannot be edited (400)', r.status === 400);
 
@@ -216,7 +221,7 @@ check('upload without a token is 401', r.status === 401);
 r = await upload(clerk, 'Product', p1.id, png, 'p.png');
 check('clerk cannot attach files to a product (403)', r.status === 403, String(r.status));
 r = await upload(admin, 'Product', p1.id, png, 'p.png');
-check('admin attaches a product image', r.status === 200 && r.body.ownerType === 'Product', JSON.stringify(r.body));
+check('admin attaches a product image, owner named by its public id', r.status === 200 && r.body.ownerType === 'Product' && r.body.ownerId === p1.id && r.body.id.length === 36, JSON.stringify(r.body));
 r = await api('DELETE', '/api/attachments/' + att.id, { token: staff });
 check('a file on a posted document cannot be removed (409)', r.status === 409, String(r.status));
 r = await api('POST', '/api/documents/receipts', { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 1, unitCost: 1 }]) });
@@ -232,9 +237,19 @@ r = await api('GET', '/api/stock/ledger?productId=' + p1.id + '&pageSize=2', { t
 check('ledger page has items, total and a cursor', r.body.items.length === 2 && r.body.total >= 2 && typeof r.body.nextCursor === 'string' && r.body.nextCursor.length > 0, JSON.stringify(r.body).slice(0, 200));
 const page1 = r.body;
 r = await api('GET', '/api/stock/ledger?productId=' + p1.id + '&pageSize=2&cursor=' + encodeURIComponent(page1.nextCursor) + '&includeTotal=false', { token: admin });
-check('seek page continues after the cursor without a count', r.body.items.every(i => i.id < page1.items[page1.items.length - 1].id) && r.body.total === -1 && !page1.items.some(i => r.body.items.some(j => j.id === i.id)), JSON.stringify(r.body).slice(0, 200));
+check('ledger rows carry no id', page1.items.every(i => !('id' in i)), JSON.stringify(page1.items[0]));
+check('seek page continues after the cursor without a count', r.body.items.length > 0 && r.body.total === -1 && !page1.items.some(i => r.body.items.some(j => JSON.stringify(j) === JSON.stringify(i))), JSON.stringify(r.body).slice(0, 200));
 r = await api('GET', '/api/stock/ledger?pageSize=2&cursor=garbage', { token: admin });
 check('a cursor the server did not make is a 400, not a 500', r.status === 400 && Array.isArray(r.body.errors?.cursor), JSON.stringify(r.body).slice(0, 200));
+const cursor = page1.nextCursor, mid = Math.floor(cursor.length / 2);
+r = await api('GET', '/api/stock/ledger?pageSize=2&cursor=' + encodeURIComponent(cursor.slice(0, mid) + (cursor[mid] === 'A' ? 'B' : 'A') + cursor.slice(mid + 1)), { token: admin });
+check('a real cursor with one character changed is a 400 on the cursor field', r.status === 400 && Array.isArray(r.body.errors?.cursor), JSON.stringify(r.body).slice(0, 200));
+r = await api('GET', '/api/documents?pageSize=2&cursor=' + encodeURIComponent(cursor), { token: admin });
+check('a cursor of the ledger is a 400 on the document list', r.status === 400 && Array.isArray(r.body.errors?.cursor), JSON.stringify(r.body).slice(0, 200));
+for (const [what, path] of [['a product id on the document route', `/api/documents/${p1.id}`], ['a document id on the product route', `/api/products/${rcv.id}`],
+  ['an unknown id on the document route', `/api/documents/${crypto.randomUUID()}`], ['an integer id on the product route', '/api/products/1']]) {
+  check(`${what} is a 404`, (await api('GET', path, { token: admin })).status === 404);
+}
 for (const path of ['/api/users?pageSize=2', '/api/partners?pageSize=1', '/api/stock/low-stock?pageSize=1', '/api/reports/movements?pageSize=1', '/api/documents?pageSize=1', '/api/audit?pageSize=1']) {
   r = await api('GET', path, { token: admin });
   check(path + ' is server-side paged', r.status === 200 && Array.isArray(r.body.items) && r.body.items.length <= 2 && typeof r.body.total === 'number' && r.body.pageSize >= 1, String(r.status));
@@ -256,7 +271,7 @@ r = await api('POST', '/api/documents/receipts', { token: staff, body: doc(suppl
 const tokenDoc = r.body;
 check('instants are UTC with a Z', /^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(tokenDoc.createdAt), tokenDoc.createdAt);
 check('the document carries a concurrency token equal to its ETag', typeof tokenDoc.concurrencyToken === 'string' && r.headers.get('etag') === `"${tokenDoc.concurrencyToken}"`, String(r.headers.get('etag')));
-check('creator is id, user name and display name', tokenDoc.createdById > 0 && tokenDoc.createdBy && tokenDoc.createdByName);
+check('creator is id, user name and display name', typeof tokenDoc.createdById === 'string' && tokenDoc.createdById.length === 36 && tokenDoc.createdBy && tokenDoc.createdByName);
 check('lines show the stock on hand', typeof tokenDoc.lines[0].available === 'number', JSON.stringify(tokenDoc.lines[0]));
 r = await api('PUT', `/api/documents/${tokenDoc.id}`, { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 3, unitCost: 1 }]), headers: { 'If-Match': `"${tokenDoc.concurrencyToken}"` } });
 check('a save with the current token works and moves the token', r.status === 200 && r.body.concurrencyToken !== tokenDoc.concurrencyToken, String(r.status));

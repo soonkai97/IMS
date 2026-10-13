@@ -72,12 +72,11 @@ describe('AuditLogPageComponent search (PS-06)', () => {
     expect(lastQuery().search).toBe('ISS-WH01-2610-0017');
   });
 
-  it('ER-10: each Show button names its entry (action, object, time), so 25 of them are told apart', async () => {
+  it('ER-10: each Show button names its entry (action, object, time, place in the list), so 25 of them are told apart, even two that read the same', async () => {
     const at = '2026-10-12T08:30:00Z';
     page.set({
       items: [
         {
-          id: 1,
           at,
           actor: 'admin',
           action: 'product.updated',
@@ -85,7 +84,13 @@ describe('AuditLogPageComponent search (PS-06)', () => {
           entityId: '7'
         },
         {
-          id: 2,
+          at,
+          actor: 'admin',
+          action: 'product.updated',
+          entityType: 'Product',
+          entityId: '8'
+        },
+        {
           at,
           actor: 'admin',
           action: 'product.updated',
@@ -95,7 +100,7 @@ describe('AuditLogPageComponent search (PS-06)', () => {
       ],
       page: 1,
       pageSize: 25,
-      total: 2
+      total: 3
     } as unknown as PagedResultOfAuditLogDto);
     await render();
 
@@ -103,9 +108,11 @@ describe('AuditLogPageComponent search (PS-06)', () => {
       .queryAll('app-button button')
       .map(button => button.getAttribute('aria-label') ?? '')
       .filter(label => label.startsWith('Show details'));
-    expect(names).toHaveLength(2);
-    expect(new Set(names).size).toBe(2);
+    expect(names).toHaveLength(3);
+    expect(new Set(names).size).toBe(3);
     expect(names[0]).toContain('product.updated on Product #7 at');
+    expect(names[0]).toContain('entry 1');
+    expect(names[2]).toContain('entry 3');
     page.set({ items: [], page: 1, pageSize: 25, total: 0 } as PagedResultOfAuditLogDto);
   });
 

@@ -10,11 +10,12 @@ import { StockStore } from '@ims/features/stock';
 import { PERMISSION } from '@ims/models';
 import { LowStockPageComponent } from './low-stock.component';
 
+const WAREHOUSE_ID = '00000000-0000-4000-8000-000000000003';
 const ROW: LowStockAlert = {
-  productId: 5,
+  productId: '00000000-0000-4000-8000-000000000005',
   sku: 'DEMO-002',
   productName: 'Demo bolt',
-  warehouseId: 3,
+  warehouseId: WAREHOUSE_ID,
   warehouseCode: 'WH03',
   warehouseName: 'Store B',
   qtyOnHand: 2,
@@ -62,7 +63,9 @@ describe('LowStockPageComponent Create receipt shortcut (NV-13)', () => {
   it('a row offers Create receipt with the product and the warehouse already chosen', () => {
     const link = spectator.query('a.low-stock-page-create');
 
-    expect(link?.getAttribute('href')).toBe('/receipts/new?sku=DEMO-002&warehouseId=3');
+    expect(link?.getAttribute('href')).toBe(
+      `/receipts/new?sku=DEMO-002&warehouseId=${WAREHOUSE_ID}`
+    );
   });
 
   it('a never-stocked product has no warehouse: the row is blank there and the shortcut sends only the SKU', () => {

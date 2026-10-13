@@ -16,7 +16,7 @@ public class ApprovalRulesController(IDispatcher dispatcher) : ApiControllerBase
     [ProducesResponseType<ApprovalRuleDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Create([FromBody] ApprovalRuleSaveRequest body) => SendOk(new CreateApprovalRuleCommand(body));
 
-    [HttpPut(ApiRoutes.Id), Authorize(Policy = Permissions.SettingsManage)]
+    [HttpPut(ApiRoutes.PublicId), Authorize(Policy = Permissions.SettingsManage)]
     [ProducesResponseType<ApprovalRuleDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Update(int id, [FromBody] ApprovalRuleSaveRequest body) => SendOk(new UpdateApprovalRuleCommand(id, body));
+    public Task<IActionResult> Update(Guid id, [FromBody] ApprovalRuleSaveRequest body) => SendOk(new UpdateApprovalRuleCommand(id, body));
 }

@@ -10,7 +10,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class InsufficientStockTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     [Fact]
     public async Task Submitting_an_issue_for_more_than_is_on_hand_is_409_with_the_numbers()
@@ -152,7 +152,7 @@ public class InsufficientStockTests(ApiFixture fixture)
         Assert.Equal("reversal_blocked", body.GetProperty("code").GetString());
         Assert.False(body.TryGetProperty("productId", out _), "productId marks the post-time stock conflict (E5); a reversal is not one.");
         var shortages = body.GetProperty("shortages").EnumerateArray().ToList();
-        Assert.Equal([first.Id, second.Id], shortages.Select(x => x.GetProperty("productId").GetInt32()));
+        Assert.Equal([first.Id, second.Id], shortages.Select(x => x.GetProperty("productId").GetGuid()));
         Assert.Equal([first.Sku, second.Sku], shortages.Select(x => x.GetProperty("sku").GetString()));
         Assert.Equal([-4m, -6m], shortages.Select(x => x.GetProperty("balance").GetDecimal()));
         Assert.Equal(DocumentStatus.Posted, (await s.GetAsync(receipt.Id)).Status);
@@ -174,6 +174,6 @@ public class InsufficientStockTests(ApiFixture fixture)
         response.ShouldBeProblem(HttpStatusCode.Conflict, "Insufficient stock");
         var body = response.Json().RootElement;
         Assert.Equal("insufficient_stock", body.GetProperty("code").GetString());
-        Assert.Equal(product.Id, body.GetProperty("productId").GetInt32());
+        Assert.Equal(product.Id, body.GetProperty("productId").GetGuid());
     }
 }

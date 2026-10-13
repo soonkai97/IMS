@@ -20,7 +20,8 @@ import {
   ALL_ROLES,
   DEFAULT_PAGE_SIZE,
   MAX_PASSWORD_LENGTH,
-  MAX_USERNAME_LENGTH
+  MAX_USERNAME_LENGTH,
+  PublicId
 } from '@ims/models';
 import {
   SelectOption,
@@ -51,7 +52,7 @@ import {
 } from '@ims/utils';
 
 interface WarehouseChoice {
-  readonly id: number;
+  readonly id: PublicId;
   readonly label: string;
   readonly control: FormControl<boolean>;
 }
@@ -116,7 +117,7 @@ export class UsersPageComponent implements OnInit {
 
   $searchInput = signal('');
   $dialogOpen = signal(false);
-  $editingId = signal<number | undefined>(undefined);
+  $editingId = signal<PublicId | undefined>(undefined);
   $warehouseChoices = signal<readonly WarehouseChoice[]>([]);
 
   private readonly $search = debouncedSignal(this.$searchInput);
@@ -235,7 +236,7 @@ export class UsersPageComponent implements OnInit {
       .subscribe();
   }
 
-  private open(id: number | undefined, user: UserDto | undefined): void {
+  private open(id: PublicId | undefined, user: UserDto | undefined): void {
     this.store.save.reset();
     const selected = new Set(user?.warehouseIds ?? []);
     this.$warehouseChoices.set(

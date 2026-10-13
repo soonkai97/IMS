@@ -23,9 +23,9 @@ public class DocumentsController(IDispatcher dispatcher) : ApiControllerBase(dis
     [ProducesResponseType<DocumentCounts>(StatusCodes.Status200OK)]
     public Task<IActionResult> Counts() => SendOk(new GetDocumentCountsQuery());
 
-    [HttpGet(ApiRoutes.Id), Authorize(Policy = Permissions.StockRead)]
+    [HttpGet(ApiRoutes.PublicId), Authorize(Policy = Permissions.StockRead)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Get(int id) => SendDocument(new GetDocumentQuery(id));
+    public Task<IActionResult> Get(Guid id) => SendDocument(new GetDocumentQuery(id));
 
     [HttpPost(RouteSegments.Receipts), Authorize(Policy = Permissions.DocumentCreate)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
@@ -35,36 +35,36 @@ public class DocumentsController(IDispatcher dispatcher) : ApiControllerBase(dis
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> CreateIssue([FromBody] DocumentSaveRequest body) => SendDocument(new CreateDocumentCommand(DocumentType.Issue, body));
 
-    [HttpPut(ApiRoutes.Id), Authorize(Policy = Permissions.DocumentCreate)]
+    [HttpPut(ApiRoutes.PublicId), Authorize(Policy = Permissions.DocumentCreate)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Update(int id, [FromBody] DocumentSaveRequest body) => SendDocument(new UpdateDocumentCommand(id, body, IfMatch));
+    public Task<IActionResult> Update(Guid id, [FromBody] DocumentSaveRequest body) => SendDocument(new UpdateDocumentCommand(id, body, IfMatch));
 
     [HttpPost(RouteSegments.Submit), Authorize(Policy = Permissions.DocumentCreate)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Submit(int id) => SendDocument(new SubmitDocumentCommand(id, IfMatch));
+    public Task<IActionResult> Submit(Guid id) => SendDocument(new SubmitDocumentCommand(id, IfMatch));
 
     /// <summary>Approves a Submitted document. The body is optional, except that a document with <c>requiresOverride</c> needs <c>negativeStockOverrideReason</c> here: the approver gives the reason, not the person who posts.</summary>
     [HttpPost(RouteSegments.Approve), Authorize(Policy = Permissions.DocumentApprove)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Approve(int id, [FromBody] ApproveRequest? body = null) =>
+    public Task<IActionResult> Approve(Guid id, [FromBody] ApproveRequest? body = null) =>
         SendDocument(new ApproveDocumentCommand(id, body ?? new ApproveRequest(null), IfMatch));
 
     [HttpPost(RouteSegments.Reject), Authorize(Policy = Permissions.DocumentApprove)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Reject(int id, [FromBody] RejectRequest body) => SendDocument(new RejectDocumentCommand(id, body, IfMatch));
+    public Task<IActionResult> Reject(Guid id, [FromBody] RejectRequest body) => SendDocument(new RejectDocumentCommand(id, body, IfMatch));
 
     [HttpPost(RouteSegments.Cancel), Authorize(Policy = Permissions.DocumentCreate)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Cancel(int id, [FromBody] CancelRequest body) => SendDocument(new CancelDocumentCommand(id, body, IfMatch));
+    public Task<IActionResult> Cancel(Guid id, [FromBody] CancelRequest body) => SendDocument(new CancelDocumentCommand(id, body, IfMatch));
 
     /// <summary>Posts an Approved (or approval-free Submitted) document. There is no request body: the override reason was recorded at approval.</summary>
     [HttpPost(RouteSegments.Post), Authorize(Policy = Permissions.DocumentPost)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Post(int id) => SendDocument(new PostDocumentCommand(id, IfMatch));
+    public Task<IActionResult> Post(Guid id) => SendDocument(new PostDocumentCommand(id, IfMatch));
 
     [HttpPost(RouteSegments.Reverse), Authorize(Policy = Permissions.DocumentReverse)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Reverse(int id, [FromBody] ReverseRequest body) => SendDocument(new ReverseDocumentCommand(id, body, IfMatch));
+    public Task<IActionResult> Reverse(Guid id, [FromBody] ReverseRequest body) => SendDocument(new ReverseDocumentCommand(id, body, IfMatch));
 
     /// <summary>
     /// The concurrency token the client last saw, from the If-Match header, with or without the quotes (an unquoted token is still a token, never a
@@ -79,7 +79,9 @@ public class DocumentsController(IDispatcher dispatcher) : ApiControllerBase(dis
             if (string.IsNullOrWhiteSpace(raw)) throw new PreconditionRequiredException(Messages.IfMatchRequired);
             var first = raw.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
             if (first == "*") return null;
-            return (first.StartsWith("W/", StringComparison.Ordinal) ? first[2..] : first).Trim('"');
+            // An empty value (no entry at all, or just quotes) names no version: it is a missing header, not a skipped check.
+            var token = (first.StartsWith("W/", StringComparison.Ordinal) ? first[2..] : first).Trim('"').Trim();
+            return token.Length == 0 ? throw new PreconditionRequiredException(Messages.IfMatchRequired) : token;
         }
     }
 

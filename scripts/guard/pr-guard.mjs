@@ -17,9 +17,10 @@ problems.push(...checkBranchName(PR_BRANCH).map((p) => `Branch: ${p}`));
 if (BASE_SHA && HEAD_SHA) {
   const range = `${BASE_SHA}...${HEAD_SHA}`;
   // Only the commits this PR adds: two dots. (Three dots would also list commits that exist only on the base branch.)
+  // A commit already squash-merged into a branch this PR merges (an integration branch) carries GitHub's " (#123)" suffix.
   for (const sha of run('rev-list', '--no-merges', `${BASE_SHA}..${HEAD_SHA}`).split('\n').filter(Boolean)) {
     const message = run('log', '-1', '--format=%B', sha);
-    problems.push(...checkCommitMessage(message.trim()).map((p) => `Commit ${sha.slice(0, 7)}: ${p}`));
+    problems.push(...checkCommitMessage(message.trim(), { fromTargetHistory: true }).map((p) => `Commit ${sha.slice(0, 7)}: ${p}`));
   }
   const files = run('diff', '--name-only', '--diff-filter=ACMR', range).split('\n').filter(Boolean);
   for (const f of files) {

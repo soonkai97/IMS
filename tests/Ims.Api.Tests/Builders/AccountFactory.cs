@@ -10,7 +10,7 @@ namespace Ims.Api.Tests.Builders;
 /// <summary>Creates throw-away users through the API (as the seeded admin) and signs them in.</summary>
 public sealed class AccountFactory(ApiFixture fixture)
 {
-    public async Task<TestAccount> CreateAsync(string role, IEnumerable<int>? warehouseIds = null, bool isActive = true, string prefix = "user")
+    public async Task<TestAccount> CreateAsync(string role, IEnumerable<Guid>? warehouseIds = null, bool isActive = true, string prefix = "user")
     {
         var admin = await fixture.AsAsync(Roles.Admin);
         var username = Unique.Username(prefix);
@@ -32,7 +32,7 @@ public sealed class AccountFactory(ApiFixture fixture)
     }
 
     /// <summary>Updates a user as the admin, keeping everything else as created.</summary>
-    public async Task<ApiResponse> UpdateAsync(TestAccount account, bool? isActive = null, string? newPassword = null, IEnumerable<int>? warehouseIds = null)
+    public async Task<ApiResponse> UpdateAsync(TestAccount account, bool? isActive = null, string? newPassword = null, IEnumerable<Guid>? warehouseIds = null)
     {
         var admin = await fixture.AsAsync(Roles.Admin);
         var request = new UserSaveRequest(account.Username, account.Email, account.Username, account.Role, isActive ?? true, newPassword,

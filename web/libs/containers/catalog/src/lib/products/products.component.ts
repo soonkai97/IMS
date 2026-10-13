@@ -12,7 +12,7 @@ import { ProductDto, ProductSort } from '@ims/api';
 import { AppQtyPipe, TranslatePipe, I18nService } from '@ims/core/i18n';
 import { PermissionService } from '@ims/core/identity';
 import { CatalogStore, ProductQuery, ProductsStore } from '@ims/features/catalog';
-import { DEFAULT_PAGE_SIZE, PERMISSION } from '@ims/models';
+import { DEFAULT_PAGE_SIZE, PERMISSION, PublicId } from '@ims/models';
 import {
   SelectOption,
   TableColumn,
@@ -66,7 +66,7 @@ export class ProductsPageComponent implements OnInit {
   private readonly permissions = inject(PermissionService);
   private readonly store = inject(ProductsStore);
 
-  readonly categoryControl = new FormControl<number | null>(null);
+  readonly categoryControl = new FormControl<PublicId | null>(null);
   readonly statusControl = new FormControl<ActiveFilter>(STATUS_ACTIVE, { nonNullable: true });
 
   $searchInput = signal('');

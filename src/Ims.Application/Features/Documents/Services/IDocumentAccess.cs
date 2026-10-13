@@ -4,7 +4,8 @@ namespace Ims.Application.Features.Documents;
 /// <summary>Who may see and do what. Warehouse data scope, the ownership guards of the commands, and the action list the UI renders.</summary>
 public interface IDocumentAccess
 {
-    /// <exception cref="ForbiddenException">The warehouse chosen for a new document is outside the caller's scope.</exception>
+    /// <summary>A warehouse outside the caller's scope is answered like one that does not exist (400, same message), so warehouse ids cannot be probed.</summary>
+    /// <exception cref="ValidationException">The warehouse chosen for a new document is outside the caller's scope.</exception>
     void EnsureWarehouse(int warehouseId);
 
     /// <summary>An existing document outside the caller's warehouses does not exist as far as they can tell: 404, not 403, so document ids cannot be probed.</summary>

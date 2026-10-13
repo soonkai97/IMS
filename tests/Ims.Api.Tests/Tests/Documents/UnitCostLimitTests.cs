@@ -12,7 +12,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class UnitCostLimitTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     [Fact]
     public async Task A_unit_cost_above_the_ceiling_is_a_400_with_a_sentence_and_the_ceiling_itself_is_fine()

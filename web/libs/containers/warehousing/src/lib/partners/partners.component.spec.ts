@@ -9,7 +9,7 @@ import { ApiCommand } from '@ims/utils';
 import { PartnersPageComponent } from './partners.component';
 
 const ROW: PartnerDto = {
-  id: 1,
+  id: '00000000-0000-4000-8000-000000000001',
   type: PartnerType.Supplier,
   name: 'Acme Trading',
   contact: undefined,

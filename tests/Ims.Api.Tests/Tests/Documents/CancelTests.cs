@@ -9,7 +9,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class CancelTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     [Fact]
     public async Task A_draft_can_be_cancelled_with_a_reason_and_then_nothing_more_can_be_done_with_it()

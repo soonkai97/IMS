@@ -13,8 +13,10 @@ import { WarehousesStore } from '@ims/features/warehousing';
 import { PERMISSION, SEARCH_DEBOUNCE_MS } from '@ims/models';
 import { DocumentListPageComponent } from './document-list.component';
 
+const USER_ID = '00000000-0000-4000-8000-000000000004';
+
 const ITEM: DocumentListItem = {
-  id: 1,
+  id: '00000000-0000-4000-8000-000000000001',
   type: DocumentType.Issue,
   no: 'ISS-1',
   status: DocumentStatus.Draft,
@@ -25,7 +27,7 @@ const ITEM: DocumentListItem = {
   totalQty: 5,
   totalAmount: 0,
   createdBy: 'staff',
-  createdById: 3,
+  createdById: '00000000-0000-4000-8000-000000000003',
   createdByName: 'Staff',
   submittedById: undefined,
   submittedBy: undefined,
@@ -55,7 +57,7 @@ describe('DocumentListPageComponent Mine / All', () => {
         useValue: {
           has: (permission: string) => granted.has(permission),
           $profile: () => ({ mineFirst: mineFirst() }),
-          $userId: signal(4)
+          $userId: signal(USER_ID)
         }
       },
       {
@@ -173,7 +175,7 @@ describe('DocumentListPageComponent Mine / All', () => {
     await spectator.fixture.whenStable();
 
     expect(lastQuery().mine).toBeUndefined();
-    expect(localStorage.getItem('ims.documents.scope.4')).toBe('all');
+    expect(localStorage.getItem(`ims.documents.scope.${USER_ID}`)).toBe('all');
   });
 
   it('shows Returned, Override and Large next to the status of a document', async () => {

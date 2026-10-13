@@ -10,13 +10,13 @@ import {
   PagedResultOfDocumentListItem
 } from '@ims/api';
 import { withIfMatch } from '@ims/core/http';
-import { PagedQuery } from '@ims/models';
+import { PagedQuery, PublicId } from '@ims/models';
 import { ApiCommand, QueryLoader } from '@ims/utils';
 
 export interface DocumentQuery extends PagedQuery {
   readonly type: DocumentType;
   readonly status?: DocumentStatus;
-  readonly warehouseId?: number;
+  readonly warehouseId?: PublicId;
   readonly from?: string;
   readonly to?: string;
   readonly search?: string;
@@ -31,7 +31,7 @@ export interface DocumentQuery extends PagedQuery {
  * document changed since (E4); without a token it acts on whatever is current.
  */
 export interface DocumentRef {
-  readonly id: number;
+  readonly id: PublicId;
   readonly concurrencyToken?: string;
 }
 
@@ -81,9 +81,14 @@ export class DocumentsStore {
       query.mine
     )
   );
-  readonly detail = new QueryLoader<number, DocumentDto>(id => this.client.get(id));
+  /** The editor loads it with `handledInline()` (its banner shows a failure); the context goes to the call. */
+  readonly detail = new QueryLoader<PublicId, DocumentDto>((id, context) =>
+    this.client.get(id, context)
+  );
   /** Home numbers and the approvals badge: four indexed counts for the signed-in user. */
-  readonly counts = new QueryLoader<void, DocumentCounts>(() => this.client.counts());
+  readonly counts = new QueryLoader<void, DocumentCounts>((_, context) =>
+    this.client.counts(context)
+  );
 
   /** Save, submit and post are exclusive: a second tap while one runs sends nothing (NR-07). */
   readonly save: ApiCommand<SaveDocumentArgs, DocumentDto> = new ApiCommand(

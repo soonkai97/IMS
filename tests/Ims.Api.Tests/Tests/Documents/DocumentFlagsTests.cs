@@ -14,7 +14,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 [Collection(ApiCollection.Name)]
 public class DocumentFlagsTests(ApiFixture fixture)
 {
-    private int Warehouse => fixture.Reference.DefaultWarehouseId;
+    private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
     private async Task<DocumentListItem> ListItemAsync(ApiClient client, DocumentDto document) =>
         Assert.Single((await client.Documents.ListAsync(search: document.No)).Data<PagedResult<DocumentListItem>>().Items);

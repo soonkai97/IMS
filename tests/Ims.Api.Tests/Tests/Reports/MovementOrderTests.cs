@@ -15,7 +15,7 @@ namespace Ims.Api.Tests.Tests.Reports;
 [Collection(ApiCollection.Name)]
 public class MovementOrderTests(ApiFixture fixture)
 {
-    private sealed record Scenario(int WarehouseId, string Earlier, string FirstTied, string SecondTied, string SkuA, string SkuB);
+    private sealed record Scenario(Guid WarehouseId, string Earlier, string FirstTied, string SecondTied, string SkuA, string SkuB);
 
     /// <summary>
     /// Three posted documents in a fresh warehouse. "Earlier" is posted first. "FirstTied" (created first, two lines) and "SecondTied" get the
@@ -35,20 +35,20 @@ public class MovementOrderTests(ApiFixture fixture)
 
         await s.CompleteAsync(await s.SubmitAsync(s.Admin, firstTied));
         await s.CompleteAsync(await s.SubmitAsync(s.Admin, secondTied));
-        await fixture.Database.ExecuteAsync("UPDATE StockDocument SET PostedAt = @at WHERE Id IN (@first, @second)",
+        await fixture.Database.ExecuteAsync("UPDATE StockDocument SET PostedAt = @at WHERE PublicId IN (@first, @second)",
             ("@at", DateTime.UtcNow.AddHours(1)), ("@first", firstTied.Id), ("@second", secondTied.Id));
 
         return new Scenario(warehouse.Id, earlier.No, firstTied.No, secondTied.No, a.Sku, b.Sku);
     }
 
-    private async Task<List<(string Document, string Sku)>> PageAsync(int warehouseId, int page, int pageSize)
+    private async Task<List<(string Document, string Sku)>> PageAsync(Guid warehouseId, int page, int pageSize)
     {
         var admin = await fixture.AsAsync(Roles.Admin);
         var result = (await admin.Reports.MovementsInWarehouseAsync(warehouseId, page, pageSize)).Data<PagedResult<MovementRow>>();
         return result.Items.Select(r => (r.DocNo, r.Sku)).ToList();
     }
 
-    private async Task<List<(string Document, string Sku)>> WalkAsync(int warehouseId, int pageSize)
+    private async Task<List<(string Document, string Sku)>> WalkAsync(Guid warehouseId, int pageSize)
     {
         var rows = new List<(string Document, string Sku)>();
         for (var page = 1; page <= 20; page++)

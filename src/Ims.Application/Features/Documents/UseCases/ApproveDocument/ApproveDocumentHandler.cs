@@ -2,14 +2,14 @@ using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 public class ApproveDocumentHandler(IRepository<StockDocument> documents, IApprovalEvaluator approvals, ISystemSettings settings,
-    IDocumentAccess access, IDocumentReader reader, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit)
+    IDocumentAccess access, IDocumentReader reader, IDocumentVersion version, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<ApproveDocumentCommand, DocumentDto>
 {
     public async Task<DocumentDto> HandleAsync(ApproveDocumentCommand cmd, CancellationToken ct)
     {
         var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
         access.EnsureDocumentInScope(doc.WarehouseId);
-        DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
+        version.EnsureCurrent(doc, cmd.IfMatch);
 
         if (await approvals.ReviewRefusalAsync(doc.Type, doc.IsLarge, doc.TotalQty, doc.TotalAmount, ct) is { } refusal)
             throw new ForbiddenException(refusal);

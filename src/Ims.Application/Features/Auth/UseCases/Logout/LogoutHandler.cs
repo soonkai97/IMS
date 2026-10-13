@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Auth;
 
-public class LogoutHandler(IRepository<RefreshToken> tokensRepo, ITokenService tokens, IUnitOfWork uow, IClock clock, IAuditTrail audit)
+public class LogoutHandler(IRepository<RefreshToken> tokensRepo, ITokenService tokens, IUnitOfWork uow, IClock clock, IAuditTrail audit, IIdMap<User> userIds)
     : ICommandHandler<LogoutCommand, Unit>
 {
     public async Task<Unit> HandleAsync(LogoutCommand cmd, CancellationToken ct)
@@ -10,7 +10,8 @@ public class LogoutHandler(IRepository<RefreshToken> tokensRepo, ITokenService t
         if (stored is { RevokedAt: null })
         {
             stored.Revoke(clock.UtcNow);
-            audit.Record(AuditActions.Logout, AuditEntities.User, stored.UserId.ToString());
+            // The audit row names the user by public id, like every other row of the user; only a real sign-out pays this one look-up.
+            audit.Record(AuditActions.Logout, AuditEntities.User, (await userIds.ToPublicAsync([stored.UserId], ct))[stored.UserId].ToString());
             await uow.SaveChangesAsync(ct);
         }
         return Unit.Value;

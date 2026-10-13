@@ -20,7 +20,7 @@ public class ProductTests(ApiFixture fixture)
 
         var created = await new ProductBuilder(Ref).WithSafetyStock(12.5m).WithBarcodes(barcode).CreateAsync(admin);
 
-        Assert.True(created.Id > 0);
+        Assert.NotEqual(Guid.Empty, created.Id);
         Assert.True(created.IsActive);
         Assert.Equal(12.5m, created.SafetyStock);
         Assert.Equal([barcode], created.Barcodes);
@@ -118,10 +118,10 @@ public class ProductTests(ApiFixture fixture)
     {
         var admin = await fixture.AsAsync("Admin");
 
-        var response = await admin.Products.UpdateAsync(9_999_999, new ProductBuilder(Ref).Build());
+        var response = await admin.Products.UpdateAsync(Guid.NewGuid(), new ProductBuilder(Ref).Build());
 
         response.ShouldBeProblem(HttpStatusCode.NotFound, "Not found");
-        (await admin.Products.GetAsync(9_999_999)).ShouldBeProblem(HttpStatusCode.NotFound);
+        (await admin.Products.GetAsync(Guid.NewGuid())).ShouldBeProblem(HttpStatusCode.NotFound);
     }
 
     // ---------- uniqueness ----------
@@ -223,8 +223,8 @@ public class ProductTests(ApiFixture fixture)
     {
         var admin = await fixture.AsAsync("Admin");
 
-        (await admin.Products.CreateAsync(new ProductBuilder(Ref).WithBaseUnit(9_999_999).Build())).ShouldBeProblem(HttpStatusCode.BadRequest);
-        (await admin.Products.CreateAsync(new ProductBuilder(Ref).WithCategory(9_999_999).Build())).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await admin.Products.CreateAsync(new ProductBuilder(Ref).WithBaseUnit(Guid.NewGuid()).Build())).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await admin.Products.CreateAsync(new ProductBuilder(Ref).WithCategory(Guid.NewGuid()).Build())).ShouldBeProblem(HttpStatusCode.BadRequest);
     }
 
     [Fact]

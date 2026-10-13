@@ -1,19 +1,39 @@
+using System.Buffers.Text;
+using System.Security.Cryptography;
+using System.Text;
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 /// <summary>
-/// The concurrency token of a document: its ROW_VERSION as base64. The API hands it out as <c>concurrencyToken</c> and as the ETag, and a client may
-/// send it back (If-Match) to have a stale edit refused before anything is changed. Changing the lines moves it too (see AppDbContext).
+/// The concurrency token of a document: a keyed hash (HMAC-SHA256, 16 bytes, base64url) of the document's public id and its ROW_VERSION. The raw ROW_VERSION is one counter for the
+/// whole database (every insert or update in any table moves it), so handing it out would let a warehouse-scoped user measure what other warehouses do (decision D2). The hash cannot be
+/// turned back into the counter, is bound to one document (the same version of another document gives another token) and is the same string every time for one version, so a client can
+/// still tell whether the copy it holds is the current one by comparing strings. The key is derived (HKDF, own context) from the JWT signing key, the one secret every instance already shares.
+/// A client sends the token back as If-Match; changing the lines moves the row version too (see AppDbContext).
 /// </summary>
-public static class DocumentVersion
+public sealed class DocumentVersion(ITokenValidationSettings settings) : IDocumentVersion, IAppService
 {
-    public static string Token(byte[]? rowVersion) => Convert.ToBase64String(rowVersion ?? []);
+    private const string KeyContext = "Ims.DocVersion.v1";
+    private const int KeyBytes = 32;
+    private const int TokenBytes = 16;
+    private const int GuidBytes = 16;
 
-    /// <exception cref="StaleDocumentException">The caller sent a token and the document has changed since; says who changed it last and when.</exception>
-    public static void EnsureCurrent(StockDocument document, string? expectedToken)
+    private readonly byte[] _key = HKDF.DeriveKey(HashAlgorithmName.SHA256, settings.SigningKey, KeyBytes, salt: null, info: Encoding.ASCII.GetBytes(KeyContext));
+
+    public string Token(Guid publicId, byte[]? rowVersion)
+    {
+        var data = new byte[GuidBytes + (rowVersion?.Length ?? 0)];
+        publicId.TryWriteBytes(data);
+        rowVersion?.CopyTo(data, GuidBytes);
+        return Base64Url.EncodeToString(HMACSHA256.HashData(_key, data).AsSpan(0, TokenBytes));
+    }
+
+    public void EnsureCurrent(StockDocument document, string? expectedToken)
     {
         if (string.IsNullOrEmpty(expectedToken)) return;
-        if (!string.Equals(Token(document.RowVersion), expectedToken, StringComparison.Ordinal))
+        var current = Encoding.ASCII.GetBytes(Token(document.PublicId, document.RowVersion));
+        // Anything that is not exactly the current token (any length, any characters) is the same answer as a stale one: never an exception of another kind.
+        if (!CryptographicOperations.FixedTimeEquals(current, Encoding.UTF8.GetBytes(expectedToken)))
             throw new StaleDocumentException(document.No, document.RecRevisor, document.RecRevDate);
     }
 }

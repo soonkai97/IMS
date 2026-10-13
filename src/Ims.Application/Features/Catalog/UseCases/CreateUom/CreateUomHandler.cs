@@ -10,6 +10,6 @@ public class CreateUomHandler(IRepository<Uom> uoms, IUnitOfWork uow) : ICommand
         var u = Uom.Create(code, cmd.Data.Name);
         uoms.Add(u);
         await uow.SaveChangesAsync(ct);
-        return new UomDto(u.Id, u.Code, u.Name);
+        return new UomDto(u.PublicId, u.Code, u.Name);
     }
 }

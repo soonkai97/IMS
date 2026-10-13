@@ -105,7 +105,7 @@ describe('QueryLoader', () => {
 
     expect(loader.$data()).toBe('result of b');
     expect(fetch).toHaveBeenCalledTimes(3);
-    expect(fetch).toHaveBeenLastCalledWith('b');
+    expect(fetch).toHaveBeenLastCalledWith('b', undefined);
   });
 
   it('latest wins: a slow earlier request never overwrites a newer one', () => {

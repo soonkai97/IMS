@@ -6,7 +6,7 @@ import { StockAvailabilityService } from '@ims/features/documents';
 import { PickedProduct, ProductPickerComponent } from './product-picker.component';
 
 const WIDGET = {
-  id: 5,
+  id: '00000000-0000-4000-8000-000000000005',
   sku: 'W-1',
   name: 'Widget',
   isActive: true,

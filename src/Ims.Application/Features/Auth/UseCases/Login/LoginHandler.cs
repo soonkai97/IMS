@@ -41,7 +41,7 @@ public class LoginHandler(IRepository<User> users, IPasswordHasher hasher, IAuth
         var passwordOk = hasher.Verify(user.PasswordHash, password);
         if (user.IsLockedOut(now))
         {
-            audit.Record(AuditActions.LoginLocked, AuditEntities.User, user.Id.ToString(), actor: user.Username);
+            audit.Record(AuditActions.LoginLocked, AuditEntities.User, user.PublicId.ToString(), actor: user.Username);
             await uow.SaveChangesAsync(ct);
             // The lock is only disclosed to someone who knows the password; anyone else sees the generic message.
             return passwordOk
@@ -52,13 +52,13 @@ public class LoginHandler(IRepository<User> users, IPasswordHasher hasher, IAuth
         if (!passwordOk)
         {
             user.RegisterFailedLogin(now);
-            audit.Record(user.LockoutUntil is null ? AuditActions.LoginFailed : AuditActions.LoginLockout, AuditEntities.User, user.Id.ToString(), actor: user.Username);
+            audit.Record(user.LockoutUntil is null ? AuditActions.LoginFailed : AuditActions.LoginLockout, AuditEntities.User, user.PublicId.ToString(), actor: user.Username);
             await uow.SaveChangesAsync(ct);
             return new Attempt(null, Messages.InvalidCredentials);
         }
 
         user.RegisterSuccessfulLogin();
-        audit.Record(AuditActions.LoginSuccess, AuditEntities.User, user.Id.ToString(), actor: user.Username);
+        audit.Record(AuditActions.LoginSuccess, AuditEntities.User, user.PublicId.ToString(), actor: user.Username);
         await uow.SaveChangesAsync(ct);
         return new Attempt(user, null);
     }

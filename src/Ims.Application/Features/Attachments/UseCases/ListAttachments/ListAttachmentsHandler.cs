@@ -7,9 +7,11 @@ public class ListAttachmentsHandler(IAttachmentOwners owners, IReadRepository<At
 {
     public async Task<IReadOnlyList<AttachmentDto>> HandleAsync(ListAttachmentsQuery q, CancellationToken ct)
     {
-        await owners.For(q.OwnerType).EnsureCanReadAsync(q.OwnerId, ct);
-        var rows = await attachments.ListAsync(new AttachmentsByOwnerSpec(q.OwnerType, q.OwnerId), ct);
-        var uploaders = await attachments.ListAsync(new AttachmentUploadersSpec(q.OwnerType, q.OwnerId), ct);
+        var policy = owners.For(q.OwnerType);
+        var ownerId = await policy.ResolveAsync(q.OwnerId, ct); // the owner is looked up among the owners of the type asked for: a wrong-type id is simply not found
+        await policy.EnsureCanReadAsync(ownerId, ct);
+        var rows = await attachments.ListAsync(new AttachmentsByOwnerSpec(q.OwnerType, ownerId, q.OwnerId), ct);
+        var uploaders = await attachments.ListAsync(new AttachmentUploadersSpec(q.OwnerType, ownerId), ct);
         var names = uploaders.Count == 0 ? [] : (await users.ListAsync(new UsernamesByIdsSpec(uploaders.Select(u => u.UploadedBy).Distinct().ToList()), ct))
             .ToDictionary(u => u.Id, u => u.Username);
         var byId = uploaders.ToDictionary(u => u.Id, u => names.GetValueOrDefault(u.UploadedBy, ""));

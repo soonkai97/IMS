@@ -5,7 +5,7 @@ public class UpdateProductHandler(IProductWriter writer, IReadRepository<Product
 {
     public async Task<ProductDto> HandleAsync(UpdateProductCommand cmd, CancellationToken ct)
     {
-        var id = await writer.SaveAsync(cmd.Id, cmd.Data, ct);
-        return await products.FirstOrDefaultAsync(new ProductDtoSpec(id), ct) ?? throw new NotFoundException(Messages.ProductNotFound);
+        await writer.SaveAsync(cmd.Id, cmd.Data, ct);
+        return await products.FirstOrDefaultAsync(new ProductDtoSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.ProductNotFound);
     }
 }

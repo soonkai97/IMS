@@ -6,34 +6,37 @@ import { randomBytes, randomInt } from 'node:crypto';
 import { API_URL, passwordFor, type Role } from './config';
 import { spendLoginBudget } from './rate-limit';
 
+/** The id of an entity on the wire: an opaque GUID string, never parsed or compared as a number. */
+export type PublicId = string;
+
 export interface ApiDocument {
-  id: number;
+  id: PublicId;
   no: string;
   status: string;
   requiresApproval: boolean;
   requiresOverride: boolean;
   concurrencyToken: string;
   allowedActions: string[];
-  lines: { productId: number; sku: string; qty: number }[];
+  lines: { productId: PublicId; sku: string; qty: number }[];
 }
 export interface ApiProduct {
-  id: number;
+  id: PublicId;
   sku: string;
   name: string;
   barcodes: string[];
 }
 export interface ApiPartner {
-  id: number;
+  id: PublicId;
   name: string;
 }
 export interface DocumentLine {
-  productId: number;
+  productId: PublicId;
   qty: number;
   unitCost?: number;
 }
 
 const tokens = new Map<Role, string>();
-let mainWarehouseId = 0;
+let mainWarehouseId: PublicId | undefined;
 let counter = 0;
 
 /** A short unique, upper-case token for names, SKUs and barcodes. */
@@ -63,7 +66,7 @@ async function signIn(role: Role): Promise<string> {
   }
 }
 
-const DOCUMENT_COMMAND = /^\/api\/documents\/\d+(\/(submit|approve|reject|cancel|post|reverse))?$/;
+const DOCUMENT_COMMAND = /^\/api\/documents\/[0-9a-f-]{36}(\/(submit|approve|reject|cancel|post|reverse))?$/;
 
 export class ImsApi {
   constructor(private readonly role: Role) {}
@@ -109,9 +112,9 @@ export class ImsApi {
   // Documents ----------------------------------------------------------------------------------------------------
 
   /** The seeded "Main warehouse", where the demo staff, supervisor and clerk work. */
-  private async warehouseId(): Promise<number> {
-    if (!mainWarehouseId) {
-      const list = await new ImsApi('admin').call<{ id: number; name: string }[]>(
+  private async warehouseId(): Promise<PublicId> {
+    if (mainWarehouseId === undefined) {
+      const list = await new ImsApi('admin').call<{ id: PublicId; name: string }[]>(
         'GET',
         '/api/warehouses'
       );
@@ -123,10 +126,10 @@ export class ImsApi {
   async createDocument(
     kind: 'receipts' | 'issues',
     lines: DocumentLine[],
-    options: { partnerId?: number | null; remark?: string } = {}
+    options: { partnerId?: PublicId | null; remark?: string; warehouseId?: PublicId } = {}
   ): Promise<ApiDocument> {
     return this.call<ApiDocument>('POST', `/api/documents/${kind}`, {
-      warehouseId: await this.warehouseId(),
+      warehouseId: options.warehouseId ?? (await this.warehouseId()),
       partnerId: options.partnerId ?? null,
       purpose: kind === 'issues' ? 'Sale' : null,
       remark: options.remark ?? null,
@@ -135,14 +138,14 @@ export class ImsApi {
   }
 
   command(
-    id: number,
+    id: PublicId,
     name: 'submit' | 'approve' | 'post' | 'cancel',
     body?: object
   ): Promise<ApiDocument> {
     return this.call<ApiDocument>('POST', `/api/documents/${id}/${name}`, body ?? {});
   }
 
-  reverse(id: number, reason: string): Promise<ApiDocument> {
+  reverse(id: PublicId, reason: string): Promise<ApiDocument> {
     return this.call<ApiDocument>('POST', `/api/documents/${id}/reverse`, { reason });
   }
 
@@ -153,7 +156,7 @@ export class ImsApi {
     return this.command(draft.id, 'post');
   }
 
-  getDocument(id: number): Promise<ApiDocument> {
+  getDocument(id: PublicId): Promise<ApiDocument> {
     return this.call<ApiDocument>('GET', `/api/documents/${id}`);
   }
 
@@ -170,7 +173,7 @@ export class ImsApi {
     options: { safetyStock?: number; isActive?: boolean; name?: string; sku?: string } = {}
   ): Promise<ApiProduct> {
     const token = unique();
-    const units = await this.call<{ id: number; code: string }[]>('GET', '/api/units');
+    const units = await this.call<{ id: PublicId; code: string }[]>('GET', '/api/units');
     return this.call<ApiProduct>('POST', '/api/products', {
       sku: options.sku ?? `E2E-${token}`,
       name: options.name ?? `E2E Widget ${token}`,
@@ -192,6 +195,18 @@ export class ImsApi {
       type,
       name: options.name ?? `E2E ${type} ${unique()}`,
       contact: options.contact ?? null,
+      isActive: true
+    });
+  }
+
+  /** A warehouse nobody but Admin and Owner is assigned to (the demo staff, supervisor and clerk work in the Main warehouse only). */
+  async createWarehouse(): Promise<{ id: PublicId; name: string }> {
+    const token = unique();
+    return this.call<{ id: PublicId; name: string }>('POST', '/api/warehouses', {
+      code: `E${token}`.slice(0, 20),
+      name: `E2E Warehouse ${token}`,
+      contact: null,
+      notes: null,
       isActive: true
     });
   }
@@ -228,7 +243,7 @@ export class ImsApi {
     return product;
   }
 
-  async onHand(productId: number): Promise<number> {
+  async onHand(productId: PublicId): Promise<number> {
     const page = await this.call<{ items: { qtyOnHand: number }[] }>(
       'GET',
       `/api/stock?productId=${productId}`

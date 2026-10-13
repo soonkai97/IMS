@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Catalog;
 
-public record UomConversionDto(int FromUomId, int ToUomId, decimal Factor);
+public record UomConversionDto(Guid FromUomId, Guid ToUomId, decimal Factor);

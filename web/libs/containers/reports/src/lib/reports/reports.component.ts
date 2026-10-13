@@ -24,7 +24,7 @@ import {
 import { PermissionService } from '@ims/core/identity';
 import { MovementFilter, MovementQuery, ReportsStore } from '@ims/features/reports';
 import { WarehousesStore } from '@ims/features/warehousing';
-import { DEFAULT_PAGE_SIZE, PERMISSION } from '@ims/models';
+import { DEFAULT_PAGE_SIZE, PERMISSION, PublicId } from '@ims/models';
 import {
   SelectOption,
   TabItem,
@@ -88,7 +88,7 @@ export class ReportsPageComponent implements OnInit {
   private readonly warehouses = inject(WarehousesStore);
 
   readonly typeControl = new FormControl<DocumentType | null>(null);
-  readonly warehouseControl = new FormControl<number | null>(null);
+  readonly warehouseControl = new FormControl<PublicId | null>(null);
   readonly fromControl = new FormControl('', { nonNullable: true });
   readonly toControl = new FormControl('', { nonNullable: true });
 

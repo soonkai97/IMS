@@ -22,7 +22,7 @@ import {
 } from '@ims/core/i18n';
 import { ToastService } from '@ims/core/notification';
 import { SystemRulesStore } from '@ims/features/administration';
-import { ROLE } from '@ims/models';
+import { PublicId, ROLE } from '@ims/models';
 import {
   SelectOption,
   TableColumn,
@@ -111,7 +111,7 @@ export class SettingsPageComponent implements OnInit {
   });
 
   $ruleDialogOpen = signal(false);
-  $editingRuleId = signal<number | undefined>(undefined);
+  $editingRuleId = signal<PublicId | undefined>(undefined);
 
   $settings = this.store.settings.$data;
   $rules = computed(() => this.store.rules.$data() ?? []);
@@ -250,7 +250,7 @@ export class SettingsPageComponent implements OnInit {
       .subscribe();
   }
 
-  private openRule(id: number | undefined, value: RuleFormValue): void {
+  private openRule(id: PublicId | undefined, value: RuleFormValue): void {
     this.store.saveRule.reset();
     this.ruleForm.reset(value);
     this.$editingRuleId.set(id);
