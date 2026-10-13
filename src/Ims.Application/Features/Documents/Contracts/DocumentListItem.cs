@@ -7,7 +7,7 @@ namespace Ims.Application.Features.Documents;
 /// <param name="TotalAmount">Same meaning as on the full document: an unposted issue is valued at the average cost seen when it was last saved or submitted (<c>AmountIsEstimate</c>). Null for a caller without <c>cost.view</c> (the Warehouse staff).</param>
 /// <param name="RequiresApproval">An approval rule fired when the document was submitted. With <c>status=Submitted</c> this is the approvals inbox.</param>
 /// <param name="IsReturned">A Draft that a reviewer sent back.</param>
-/// <param name="RowVersion">Source of <see cref="ConcurrencyToken"/>; not part of the JSON.</param>
+/// <param name="RowVersion">Source of <see cref="ConcurrencyToken"/>; not part of the JSON (the token is set by <see cref="IDocumentVersion"/> where the document is read).</param>
 /// <param name="CreatedByKey">The integer key of the creator, for the ownership rules (compared with the caller's own integer key); not part of the JSON.</param>
 /// <param name="SubmittedByKey">Same for the submitter, for the self-approval rule; not part of the JSON.</param>
 /// <param name="Key">The integer key of the document: the position the seek cursor of the list is made from (the public id, <c>Id</c>, has no order); not part of the JSON.</param>
@@ -19,7 +19,7 @@ public record DocumentListItem(Guid Id, DocumentType Type, string No, DocumentSt
 {
     /// <summary>Same value as <c>concurrencyToken</c> on the full document: compare it to know whether an open document has gone stale.</summary>
     [Required]
-    public string ConcurrencyToken { get; init; } = DocumentVersion.Token(RowVersion);
+    public string ConcurrencyToken { get; init; } = "";
 
     /// <summary>True for an issue that has not posted yet: <c>totalAmount</c> is an estimate at the average cost seen when it was last saved or submitted.</summary>
     [Required]

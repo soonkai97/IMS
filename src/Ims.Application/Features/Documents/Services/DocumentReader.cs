@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentAccess access, ISystemSettings settings, IStockAvailability availability,
-    IApprovalEvaluator approvals) : IDocumentReader, IAppService
+    IApprovalEvaluator approvals, IDocumentVersion version) : IDocumentReader, IAppService
 {
     public async Task<DocumentDto> GetAsync(Guid publicId, CancellationToken ct)
     {
@@ -19,7 +19,7 @@ public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentA
             : [];
         var withinLimit = dto.Status != DocumentStatus.Submitted || !dto.RequiresApproval ||
                           await approvals.ReviewRefusalAsync(dto.Type, dto.IsLarge, dto.TotalQty, amount, ct) is null;
-        return dto with { ApprovalTriggers = triggers, AllowedActions = access.AllowedActions(dto, await settings.GetAsync(ct), withinLimit) };
+        return dto with { ApprovalTriggers = triggers, AllowedActions = access.AllowedActions(dto, await settings.GetAsync(ct), withinLimit), ConcurrencyToken = version.Token(dto.Id, dto.RowVersion) };
     }
 
     /// <summary>Fills <c>available</c> on every line with one balance query for the whole document (no query per line).</summary>

@@ -94,10 +94,11 @@ public partial class OpenApiDocumentTests(ApiFixture fixture)
     // ----- public ids (GUID plan: no integer id on the wire) -----
 
     /// <summary>
-    /// The only properties and parameters named like an id that are NOT a public id: the position of a ledger row and of an audit row (neither is addressable), and the audit
-    /// entity id, which is text (a public id, a document number or an old integer). Everything else that is called <c>id</c> or ends in <c>Id</c> or <c>Ids</c> is a GUID.
+    /// The only properties and parameters named like an id that are NOT a public id: the audit entity id, which is text (a public id, a document number or an old integer).
+    /// No integer id is allowed: a ledger or audit row has no id on the wire (PID-01), so a scoped user cannot count what other warehouses write.
+    /// Everything else that is called <c>id</c> or ends in <c>Id</c> or <c>Ids</c> is a GUID.
     /// </summary>
-    private static readonly string[] PositionIds = ["LedgerRow.id", "AuditLogDto.id", "AuditLogDto.entityId", "get /api/audit entityId"];
+    private static readonly string[] TextIds = ["AuditLogDto.entityId", "get /api/audit entityId"];
 
     /// <summary>Query parameters of a bound filter record keep the C# casing (<c>WarehouseId</c>), properties and route values are camel case: positions are compared without case.</summary>
     private static bool Same(string left, string right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
@@ -133,7 +134,7 @@ public partial class OpenApiDocumentTests(ApiFixture fixture)
             : []);
 
     [Fact]
-    public async Task Every_id_on_the_wire_is_a_uuid_except_the_listed_positions()
+    public async Task Every_id_on_the_wire_is_a_uuid_except_the_text_audit_entity_id()
     {
         using var doc = await DocumentAsync();
         var root = doc.RootElement;
@@ -150,12 +151,13 @@ public partial class OpenApiDocumentTests(ApiFixture fixture)
         Assert.Contains(parameters, x => Same(x.Where, "get /api/attachments ownerId"));
         Assert.Contains(parameters, x => Same(x.Where, "get /api/stock/ledger sourceDocId"));
         Assert.Contains(parameters, x => Same(x.Where, "put /api/approval-rules/{id} id"));
-        Assert.True(properties.Count >= 40 && parameters.Count >= 30, $"{properties.Count} properties and {parameters.Count} parameters named like an id");
+        Assert.DoesNotContain(properties, x => Same(x.Where, "LedgerRow.id") || Same(x.Where, "AuditLogDto.id"));   // PID-01: no row counter on the wire
+        Assert.True(properties.Count >= 38 && parameters.Count >= 30, $"{properties.Count} properties and {parameters.Count} parameters named like an id");
 
         // The allow-list holds only positions that exist (a rename must not leave a stale entry that hides a new integer id).
-        Assert.All(PositionIds, name => Assert.True(properties.Concat(parameters).Any(x => Same(x.Where, name)), $"{name} is not in the document any more"));
+        Assert.All(TextIds, name => Assert.True(properties.Concat(parameters).Any(x => Same(x.Where, name)), $"{name} is not in the document any more"));
 
-        var notUuid = properties.Concat(parameters).Where(x => !PositionIds.Any(p => Same(x.Where, p)) && !IsUuid(x.Schema)).Select(x => x.Where).ToList();
+        var notUuid = properties.Concat(parameters).Where(x => !TextIds.Any(p => Same(x.Where, p)) && !IsUuid(x.Schema)).Select(x => x.Where).ToList();
         Assert.True(notUuid.Count == 0, "Ids that are not a uuid: " + string.Join(", ", notUuid));
     }
 

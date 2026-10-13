@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 public class UpdateDocumentHandler(IRepository<StockDocument> documents, IReadRepository<Partner> partners,
-    IDocumentLineBuilder lineBuilder, IIssueValuation valuation, IReceiptCostDefaults receiptCosts, IDocumentAccess access, IDocumentReader reader, IIdMap<Warehouse> warehouseIds, IUnitOfWork uow)
+    IDocumentLineBuilder lineBuilder, IIssueValuation valuation, IReceiptCostDefaults receiptCosts, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version, IIdMap<Warehouse> warehouseIds, IUnitOfWork uow)
     : ICommandHandler<UpdateDocumentCommand, DocumentDto>
 {
     public async Task<DocumentDto> HandleAsync(UpdateDocumentCommand cmd, CancellationToken ct)
@@ -10,7 +10,7 @@ public class UpdateDocumentHandler(IRepository<StockDocument> documents, IReadRe
         var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
         access.EnsureDocumentInScope(doc.WarehouseId);
         access.EnsureMayEditOrSubmit(doc);
-        DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
+        version.EnsureCurrent(doc, cmd.IfMatch);
         if (doc.WarehouseId != await warehouseIds.ToInternalOrNoRowAsync(cmd.Data.WarehouseId, ct)) throw new ValidationException(Messages.WarehouseCannotChange);
 
         var partner = await CreateDocumentHandler.LoadPartnerAsync(partners, cmd.Data.PartnerId, ct);

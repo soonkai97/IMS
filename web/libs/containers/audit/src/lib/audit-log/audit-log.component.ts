@@ -130,6 +130,12 @@ export class AuditLogPageComponent implements OnInit {
     return [row.entityType, row.entityId].filter(Boolean).join(' #');
   }
 
+  /** The place of the row in the whole list (1 = newest): tells apart two entries that read the same. A position, not an id: the API gives audit entries none. */
+  entryNumber(row: AuditLogDto): number {
+    const page = this.$page();
+    return page ? (page.page - 1) * page.pageSize + page.items.indexOf(row) + 1 : 0;
+  }
+
   constructor() {
     loadOnChange(this.$query, query => this.store.list.load(query));
   }

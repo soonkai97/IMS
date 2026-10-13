@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class CancelDocumentHandler(IRepository<StockDocument> documents, IDocumentAccess access, IDocumentReader reader, IUnitOfWork uow, IAuditTrail audit)
+public class CancelDocumentHandler(IRepository<StockDocument> documents, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<CancelDocumentCommand, DocumentDto>
 {
     public async Task<DocumentDto> HandleAsync(CancelDocumentCommand cmd, CancellationToken ct)
@@ -9,7 +9,7 @@ public class CancelDocumentHandler(IRepository<StockDocument> documents, IDocume
         var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
         access.EnsureDocumentInScope(doc.WarehouseId);
         access.EnsureMayCancel(doc);
-        DocumentVersion.EnsureCurrent(doc, cmd.IfMatch);
+        version.EnsureCurrent(doc, cmd.IfMatch);
         var before = doc.Status;
         doc.Cancel(cmd.Data.Reason);
         audit.Record(AuditActions.DocumentCancelled, AuditEntities.StockDocument, doc.No, new { Status = before }, new { doc.Status, cmd.Data.Reason });

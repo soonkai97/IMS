@@ -79,7 +79,9 @@ public class DocumentsController(IDispatcher dispatcher) : ApiControllerBase(dis
             if (string.IsNullOrWhiteSpace(raw)) throw new PreconditionRequiredException(Messages.IfMatchRequired);
             var first = raw.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
             if (first == "*") return null;
-            return (first.StartsWith("W/", StringComparison.Ordinal) ? first[2..] : first).Trim('"');
+            // An empty value (no entry at all, or just quotes) names no version: it is a missing header, not a skipped check.
+            var token = (first.StartsWith("W/", StringComparison.Ordinal) ? first[2..] : first).Trim('"').Trim();
+            return token.Length == 0 ? throw new PreconditionRequiredException(Messages.IfMatchRequired) : token;
         }
     }
 
