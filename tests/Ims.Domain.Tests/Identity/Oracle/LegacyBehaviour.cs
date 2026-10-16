@@ -1,68 +1,39 @@
+using System.Globalization;
 using static Ims.Domain.Tests.Identity.Oracle.OracleKeys;
 
 namespace Ims.Domain.Tests.Identity.Oracle;
 
 /// <summary>
-/// The oracle tables as the code answered them before the roles work: every answer is asked of the role-keyed functions
-/// (<c>Permissions.For</c>, <c>DocumentActionPolicy</c>, <c>ApprovalPolicy</c>, <c>PostingAuthority</c>, <c>Roles.SeesAllWarehouses</c>).
-/// The committed CSV files were written by this class at commit abe1ad0.
+/// The answers of the role-keyed code that still exists (<c>Permissions.For</c>, <c>Roles.SeesAllWarehouses</c>, <c>ApprovalPolicy</c> by role name),
+/// until slices RP-4a and RP-4b delete it. The committed CSV files were written from the whole role-keyed code at commit abe1ad0; the policies
+/// that moved to <see cref="ActorRights"/> in RP-1 are answered by <see cref="NewBehaviour"/>.
 /// </summary>
 internal static class LegacyBehaviour
 {
-    public static readonly OracleTable RolesTable = new(
-        "roles.csv", ["role"],
-        ["permissions", "seesAllWarehouses", "restrictedToOwn", "rank", "reviewsStandard", "reviewsLarge", "postsApprovalRequired", "overridesNegativeStock"],
-        RoleKeys,
-        k =>
-        [
-            string.Join(';', Permissions.For(k[0]).Order(StringComparer.Ordinal)),
-            Flag(Roles.SeesAllWarehouses(k[0])),
-            Flag(DocumentActionPolicy.IsRestrictedToOwn(k[0])),
-            ApprovalPolicy.RankOf(k[0]).ToString(),
-            Flag(ApprovalPolicy.MayReview(k[0], isLarge: false)),
-            Flag(ApprovalPolicy.MayReview(k[0], isLarge: true)),
-            Flag(PostingAuthority.MayPostApprovalRequiredDocument(k[0])),
-            Flag(PostingAuthority.MayOverrideNegativeStock(k[0])),
-        ]);
-
-    public static readonly OracleTable RuleSetsTable = new(
-        "rule-sets.csv", ["rules", "amount"],
-        ["requiresApproval", "isLarge", .. SystemRoles.Select(r => $"canApprove.{r}")],
-        RuleSetKeys,
-        k =>
+    public static IReadOnlyDictionary<string, string> Role(IReadOnlyDictionary<string, string> key)
+    {
+        var role = key["role"];
+        return new Dictionary<string, string>
         {
-            var rules = ParseRules(k[0]);
-            var amount = decimal.Parse(k[1], System.Globalization.CultureInfo.InvariantCulture);
-            return
-            [
-                Flag(ApprovalPolicy.RequiresApproval(rules, DocumentType.Receipt, 1m, amount)),
-                Flag(ApprovalPolicy.IsLarge(rules, DocumentType.Receipt, 1m, amount)),
-                .. SystemRoles.Select(r => Flag(ApprovalPolicy.CanApprove(r, rules, DocumentType.Receipt, 1m, amount)))
-            ];
-        });
+            ["permissions"] = string.Join(';', Permissions.For(role).Order(StringComparer.Ordinal)),
+            ["seesAllWarehouses"] = Flag(Roles.SeesAllWarehouses(role)),
+            ["rank"] = ApprovalPolicy.RankOf(role).ToString(CultureInfo.InvariantCulture),
+            ["reviewsStandard"] = Flag(ApprovalPolicy.MayReview(role, isLarge: false)),
+            ["reviewsLarge"] = Flag(ApprovalPolicy.MayReview(role, isLarge: true)),
+        };
+    }
 
-    public static readonly OracleTable DocumentActionsTable = new(
-        "document-actions.csv", ["role", "status", "requiresApproval", "isLarge"],
-        ["editSubmit", "cancel", "reviewSelfOff", "reviewSelfOn", "actionsSelfOff", "actionsSelfOffOverLimit", "actionsSelfOn", "actionsSelfOnOverLimit"],
-        DocumentKeys,
-        k =>
+    public static IReadOnlyDictionary<string, string> RuleSet(IReadOnlyDictionary<string, string> key)
+    {
+        var rules = ParseRules(key["rules"]);
+        var amount = decimal.Parse(key["amount"], CultureInfo.InvariantCulture);
+        var answers = new Dictionary<string, string>
         {
-            var (role, status, requiresApproval, isLarge) = ParseDocumentKey(k);
-            string Bits(Func<(int Created, int? Submitted), bool> answer) => string.Concat(Contexts.Select(c => Flag(answer(c))));
-            string Cells(bool allowSelf, bool withinLimit) =>
-                string.Join(' ', Contexts.Select(c => Cell(DocumentActionPolicy.AllowedActions(role, Me, Doc(status, requiresApproval, isLarge, c), allowSelf, withinLimit))));
-            return
-            [
-                Bits(c => DocumentActionPolicy.MayEditOrSubmit(role, Me, Doc(status, requiresApproval, isLarge, c))),
-                Bits(c => DocumentActionPolicy.MayCancel(role, Me, Doc(status, requiresApproval, isLarge, c))),
-                Bits(c => DocumentActionPolicy.MayReview(role, Me, Doc(status, requiresApproval, isLarge, c), allowSelfApproval: false)),
-                Bits(c => DocumentActionPolicy.MayReview(role, Me, Doc(status, requiresApproval, isLarge, c), allowSelfApproval: true)),
-                Cells(allowSelf: false, withinLimit: true),
-                Cells(allowSelf: false, withinLimit: false),
-                Cells(allowSelf: true, withinLimit: true),
-                Cells(allowSelf: true, withinLimit: false),
-            ];
-        });
-
-    public static readonly OracleTable[] All = [RolesTable, RuleSetsTable, DocumentActionsTable];
+            ["requiresApproval"] = Flag(ApprovalPolicy.RequiresApproval(rules, DocumentType.Receipt, 1m, amount)),
+            ["isLarge"] = Flag(ApprovalPolicy.IsLarge(rules, DocumentType.Receipt, 1m, amount)),
+        };
+        foreach (var role in SystemRoles)
+            answers[$"canApprove.{role}"] = Flag(ApprovalPolicy.CanApprove(role, rules, DocumentType.Receipt, 1m, amount));
+        return answers;
+    }
 }

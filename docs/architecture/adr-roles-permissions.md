@@ -408,3 +408,11 @@ Statements for the owner to confirm without a question: a demoted person keeps t
 | Semantic change of `document.approve` for the Owner | Documented in 2.1 and 3.5; web follows in P01 in the same release; the deprecated `roleRequired` field gives the UI one release to move |
 | Permission sprawl through exceptions | Reason, mandatory end date on grants, exceptions count and list in the UI, Q2 |
 | Epoch row contention | Writes only on administrator actions, under one application lock; reads are separate and unlocked (`READ_COMMITTED_SNAPSHOT`) |
+
+## 10. Build notes (decisions taken while building)
+
+- **RP-1, the shim reads the new defaults.** The Domain policies take `ActorRights` built from `SystemRoleDefaults` (the 21-code defaults of section 2.1), not from the old 15-code map: the old map has no `document.edit.any`, so a policy reading it would restrict the Supervisor. `Permissions.All` and the role-keyed map stay (15 codes) for the endpoints and `/api/auth/me` until RP-4a; so the API's output does not change.
+- **RP-1, `Requires` entries** beyond the two the ADR names: `users.manage` needs `users.read`, `roles.manage` needs `roles.read`, `masterdata.manage` needs `masterdata.read`, `document.edit.any` needs `document.create`, `valuation.view` needs `cost.view` (an existing invariant). Every system default satisfies them (tested).
+- **RP-1, no `DefaultFor` on the catalog entry.** The defaults live in `SystemRoleDefaults` (lean scope: no sync, so nothing needs "first time inserted").
+- **RP-1, approval services keep the rank code.** `ApprovalEvaluator` and `ApprovalsWaitingCountSpec` still ask by role name (`RankOf`, `MayReview(role, ...)`, `CanApprove`), so an Admin-only rule keeps its old effect (the Owner cannot satisfy it) until RP-4b collapses `CanApprove` into `MayReview`. `IsLarge` already reads the tier.
+- **For RP-2 (migration step 5).** `ApprovalRule.Tier` maps Owner and Admin to Large and **Supervisor, WarehouseStaff and Clerk to Standard**, which is what the old "a rule above a supervisor" test did (the oracle covers rules naming each of the five roles). Section 4.2 says "anything else to Large"; apply that only to a string that is none of the five system roles.

@@ -65,6 +65,8 @@ public static class Limits
     public const int UsernameMaxLength = 100;
     public const int EmailMaxLength = 256;
     public const int RoleMaxLength = 32;
+    /// <summary>A permission code such as <c>document.approve.large</c>: the catalog keeps them at most this long (a database key later on).</summary>
+    public const int PermissionCodeMaxLength = 64;
     public const int RemarkMaxLength = 500;
     /// <summary>Shortest reason (after trimming) accepted for a reject, a reversal or a negative-stock override (UX 6.4).</summary>
     public const int ReasonMinLength = 5;

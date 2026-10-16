@@ -14,6 +14,12 @@ public class ApprovalRule : PublicEntity
     public string RoleRequired { get; private set; } = Roles.Supervisor;
     public bool IsActive { get; private set; } = true;
 
+    /// <summary>
+    /// The tier of approver the rule asks for, read from the role it names until the rule stores a tier itself (RP-2/RP-4b). Owner and Admin are Large, anything
+    /// else Standard: exactly the old "a rule above a supervisor" test, so which documents are large does not change.
+    /// </summary>
+    public ApproverTier Tier => RoleRequired is Roles.Owner or Roles.Admin ? ApproverTier.Large : ApproverTier.Standard;
+
     public static ApprovalRule Create(DocumentType docType, decimal? amountThreshold, decimal? qtyThreshold, string roleRequired, bool isActive = true)
     {
         var r = new ApprovalRule();
