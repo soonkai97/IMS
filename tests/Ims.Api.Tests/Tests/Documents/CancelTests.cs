@@ -58,6 +58,12 @@ public class CancelTests(ApiFixture fixture)
     }
 
     [Fact]
+    public async Task Cancel_has_no_permission_door_but_still_needs_a_signed_in_caller()
+    {
+        (await fixture.Anonymous().PostAsync($"/api/documents/{Guid.NewGuid()}/cancel", new CancelRequest("No token"))).ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task Roles_without_the_create_right_cannot_cancel()
     {
         var s = await StockScenario.CreateAsync(fixture);

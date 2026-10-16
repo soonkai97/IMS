@@ -61,8 +61,8 @@ public class DocumentsController(IDispatcher dispatcher) : ApiControllerBase(dis
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Recall(Guid id) => SendDocument(new RecallDocumentCommand(id, IfMatch));
 
-    /// <summary>Cancels a Draft, a Submitted or an Approved document. The reason is optional, except that cancelling an Approved document (by a reviewer it is routed to) needs one of at least 5 characters.</summary>
-    [HttpPost(RouteSegments.Cancel), Authorize(Policy = AuthPolicies.DocumentCancel)]
+    /// <summary>Cancels a Draft, a Submitted or an Approved document. The reason is optional, except that cancelling an Approved document (by a reviewer it is routed to) needs one of at least 5 characters. No permission door: the create right is not enough (the Owner approves but cannot create), so <c>DocumentActionPolicy.MayCancel</c> decides; the catalog gives document endpoints their doors in RP-4a.</summary>
+    [HttpPost(RouteSegments.Cancel), Authorize]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Cancel(Guid id, [FromBody] CancelRequest body) => SendDocument(new CancelDocumentCommand(id, body, IfMatch));
 

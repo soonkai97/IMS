@@ -160,6 +160,34 @@ public class ApprovalPolicyTests
         Assert.False(ApprovalPolicy.IsLarge(rules, DocumentType.Receipt, 1m, 10m));
     }
 
+    // ----- By tier: the reviewer a document is routed to, from the permissions a person holds -----
+    private static ActorRights With(params string[] codes) => new(1, EffectivePermissions.Compute(codes));
+
+    [Theory]
+    [InlineData(new[] { Permissions.DocumentApprove }, false, true)]
+    [InlineData(new[] { Permissions.DocumentApprove }, true, false)]
+    [InlineData(new[] { Permissions.DocumentApproveLarge }, false, false)]   // the Owner reviews only large documents (EA-02)
+    [InlineData(new[] { Permissions.DocumentApproveLarge }, true, true)]
+    [InlineData(new[] { Permissions.DocumentApprove, Permissions.DocumentApproveLarge }, false, true)]   // the Admin holds both tiers
+    [InlineData(new[] { Permissions.DocumentApprove, Permissions.DocumentApproveLarge }, true, true)]
+    [InlineData(new string[0], false, false)]
+    [InlineData(new string[0], true, false)]
+    public void MayReviewByTier_FollowsThePermissionOfTheTier(string[] held, bool isLarge, bool expected)
+    {
+        Assert.Equal(expected, ApprovalPolicy.MayReview(With(held), isLarge));
+    }
+
+    [Theory]
+    [InlineData(Roles.Supervisor, ApproverTier.Standard)]
+    [InlineData(Roles.WarehouseStaff, ApproverTier.Standard)]
+    [InlineData(Roles.Clerk, ApproverTier.Standard)]
+    [InlineData(Roles.Owner, ApproverTier.Large)]
+    [InlineData(Roles.Admin, ApproverTier.Large)]   // an Admin-only rule is a Large rule (ADR 2.7)
+    public void ARuleAsksForTheTierOfItsRole(string role, ApproverTier expected)
+    {
+        Assert.Equal(expected, Rule(role).Tier);
+    }
+
     // ----- MayReview: the reviewer a document is routed to (PRD 3.1) -----
     [Theory]
     [InlineData(Roles.Admin, false, true)]

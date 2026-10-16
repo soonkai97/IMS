@@ -9,13 +9,16 @@ public class DocumentActionPolicyTests
     private const int Me = 42;
     private const int SomeoneElse = 43;
 
+    /// <summary>The default rights of a system role, the acting user being <see cref="Me"/>.</summary>
+    private static ActorRights Rights(string role) => SystemRoleDefaults.RightsFor(role, Me);
+
     private static DocumentActionContext Doc(DocumentStatus status, bool requiresApproval = false, bool isLarge = false,
         int createdBy = SomeoneElse, int? submittedBy = SomeoneElse) =>
         new(status, requiresApproval, isLarge, createdBy, submittedBy);
 
     private static string[] Actions(string role, DocumentStatus status, bool requiresApproval = false, bool isLarge = false,
         int createdBy = SomeoneElse, int? submittedBy = SomeoneElse, bool allowSelf = false, bool withinLimit = true) =>
-        DocumentActionPolicy.AllowedActions(role, Me, Doc(status, requiresApproval, isLarge, createdBy, submittedBy), allowSelf, withinLimit).Order().ToArray();
+        DocumentActionPolicy.AllowedActions(Rights(role), Doc(status, requiresApproval, isLarge, createdBy, submittedBy), allowSelf, withinLimit).Order().ToArray();
 
     private static string[] Sorted(params string[] actions) => actions.Order().ToArray();
 
@@ -293,7 +296,7 @@ public class DocumentActionPolicyTests
     [InlineData(Roles.Owner, Me, false)]
     public void MayEditOrSubmit_FollowsOwnership(string role, int createdBy, bool expected)
     {
-        Assert.Equal(expected, DocumentActionPolicy.MayEditOrSubmit(role, Me, Doc(DocumentStatus.Draft, createdBy: createdBy, submittedBy: null)));
+        Assert.Equal(expected, DocumentActionPolicy.MayEditOrSubmit(Rights(role), Doc(DocumentStatus.Draft, createdBy: createdBy, submittedBy: null)));
     }
 
     [Theory]
@@ -309,7 +312,69 @@ public class DocumentActionPolicyTests
     [InlineData(Roles.Owner, DocumentStatus.Draft, Me, null, false)]                    // the Owner creates nothing
     public void MayCancel_FollowsOwnershipOfADraftAndTheSubmitterOfASubmittedDocument(string role, DocumentStatus status, int createdBy, int? submittedBy, bool expected)
     {
-        Assert.Equal(expected, DocumentActionPolicy.MayCancel(role, Me, Doc(status, createdBy: createdBy, submittedBy: submittedBy)));
+        Assert.Equal(expected, DocumentActionPolicy.MayCancel(Rights(role), Doc(status, createdBy: createdBy, submittedBy: submittedBy)));
+    }
+
+    // ----- What a person holds decides, not the role they are called (ADR roles-permissions 2.7) -----
+    private static ActorRights With(params string[] codes) => new(Me, EffectivePermissions.Compute(codes));
+
+    [Fact]
+    public void AnApproverWithoutEditAny_IsStillRestrictedToTheirOwnDrafts()
+    {
+        // Before: giving a Clerk document.approve silently lifted the ownership rule. Now the rule is its own permission.
+        var rights = With(Permissions.DocumentCreate, Permissions.DocumentApprove);
+
+        Assert.True(DocumentActionPolicy.IsRestrictedToOwn(rights));
+        Assert.False(DocumentActionPolicy.MayEditOrSubmit(rights, Doc(DocumentStatus.Draft, createdBy: SomeoneElse, submittedBy: null)));
+        Assert.True(DocumentActionPolicy.MayEditOrSubmit(rights, Doc(DocumentStatus.Draft, createdBy: Me, submittedBy: null)));
+    }
+
+    [Fact]
+    public void EditAny_LiftsTheOwnershipRule_ForEditingSubmittingAndCancelling()
+    {
+        var rights = With(Permissions.DocumentCreate, Permissions.DocumentEditAny);
+
+        Assert.False(DocumentActionPolicy.IsRestrictedToOwn(rights));
+        Assert.True(DocumentActionPolicy.MayEditOrSubmit(rights, Doc(DocumentStatus.Draft, createdBy: SomeoneElse, submittedBy: null)));
+        Assert.True(DocumentActionPolicy.MayCancel(rights, Doc(DocumentStatus.Submitted, createdBy: SomeoneElse, submittedBy: SomeoneElse)));
+    }
+
+    [Fact]
+    public void EditAnyWithoutCreate_DoesNothing()
+    {
+        var rights = With(Permissions.DocumentEditAny);
+
+        Assert.False(DocumentActionPolicy.IsRestrictedToOwn(rights));
+        Assert.False(DocumentActionPolicy.MayEditOrSubmit(rights, Doc(DocumentStatus.Draft, createdBy: Me, submittedBy: null)));
+        Assert.False(DocumentActionPolicy.MayCancel(rights, Doc(DocumentStatus.Draft, createdBy: Me, submittedBy: null)));
+    }
+
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]  // post alone: not a document that needed approval
+    [InlineData(false, true, false)]  // the extra permission needs document.post itself
+    [InlineData(true, true, true)]
+    public void PostingAnApprovedDocument_NeedsPostAndPostApproved(bool post, bool postApproved, bool expected)
+    {
+        var codes = new List<string>();
+        if (post) codes.Add(Permissions.DocumentPost);
+        if (postApproved) codes.Add(Permissions.DocumentPostApproved);
+
+        var actions = DocumentActionPolicy.AllowedActions(With([.. codes]), Doc(DocumentStatus.Approved, requiresApproval: true), allowSelfApproval: false);
+
+        Assert.Equal(expected, actions.Contains(DocumentActions.Post));
+    }
+
+    [Theory]
+    [InlineData(Permissions.DocumentApprove, false, true)]
+    [InlineData(Permissions.DocumentApprove, true, false)]
+    [InlineData(Permissions.DocumentApproveLarge, true, true)]
+    [InlineData(Permissions.DocumentApproveLarge, false, false)]
+    public void TheTierThePersonHolds_DecidesWhichDocumentsTheyReview(string tier, bool isLarge, bool expected)
+    {
+        var actions = DocumentActionPolicy.AllowedActions(With(tier), Doc(DocumentStatus.Submitted, requiresApproval: true, isLarge: isLarge), allowSelfApproval: false);
+
+        Assert.Equal(expected, actions.Contains(DocumentActions.Approve) && actions.Contains(DocumentActions.Reject));
     }
 
     [Theory]
@@ -323,7 +388,7 @@ public class DocumentActionPolicyTests
     [InlineData(Roles.Owner, Me, false)]                  // no create right
     public void MayRecall_IsTheSubmitterWhoMayCreateDocuments(string role, int submittedBy, bool expected)
     {
-        Assert.Equal(expected, DocumentActionPolicy.MayRecall(role, Me, Doc(DocumentStatus.Submitted, requiresApproval: true, submittedBy: submittedBy)));
+        Assert.Equal(expected, DocumentActionPolicy.MayRecall(Rights(role), Doc(DocumentStatus.Submitted, requiresApproval: true, submittedBy: submittedBy)));
     }
 
     [Theory]
@@ -335,7 +400,7 @@ public class DocumentActionPolicyTests
     public void MayRecall_IsFalseInEveryStatusButSubmitted(DocumentStatus status)
     {
         foreach (var role in Roles.All)
-            Assert.False(DocumentActionPolicy.MayRecall(role, Me, Doc(status, createdBy: Me, submittedBy: Me)));
+            Assert.False(DocumentActionPolicy.MayRecall(Rights(role), Doc(status, createdBy: Me, submittedBy: Me)));
     }
 
     [Theory]
@@ -349,7 +414,7 @@ public class DocumentActionPolicyTests
     [InlineData(Roles.Clerk, false, false)]
     public void MayReviewApproved_FollowsTheReviewerTheDocumentIsRoutedTo(string role, bool isLarge, bool expected)
     {
-        Assert.Equal(expected, DocumentActionPolicy.MayReviewApproved(role, Doc(DocumentStatus.Approved, requiresApproval: true, isLarge: isLarge)));
+        Assert.Equal(expected, DocumentActionPolicy.MayReviewApproved(Rights(role), Doc(DocumentStatus.Approved, requiresApproval: true, isLarge: isLarge)));
     }
 
     [Theory]
@@ -361,7 +426,7 @@ public class DocumentActionPolicyTests
     public void MayReviewApproved_IsFalseInEveryStatusButApproved(DocumentStatus status)
     {
         foreach (var role in Roles.All)
-            Assert.False(DocumentActionPolicy.MayReviewApproved(role, Doc(status, requiresApproval: true, isLarge: true)));
+            Assert.False(DocumentActionPolicy.MayReviewApproved(Rights(role), Doc(status, requiresApproval: true, isLarge: true)));
     }
 
     // ----- Consistency with the document state machine -----

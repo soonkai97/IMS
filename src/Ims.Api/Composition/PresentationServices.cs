@@ -51,9 +51,6 @@ public static class PresentationServices
             foreach (var permission in Permissions.All)
                 o.AddPolicy(permission, p => p.RequireAuthenticatedUser()
                     .RequireAssertion(ctx => Roles.All.Any(role => ctx.User.IsInRole(role) && Permissions.Has(role, permission))));
-            o.AddPolicy(AuthPolicies.DocumentCancel, p => p.RequireAuthenticatedUser()
-                .RequireAssertion(ctx => Roles.All.Any(role => ctx.User.IsInRole(role) &&
-                    (Permissions.Has(role, Permissions.DocumentCreate) || Permissions.Has(role, Permissions.DocumentApprove)))));
             o.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
         });
         return services;

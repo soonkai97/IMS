@@ -15,22 +15,24 @@ internal static class CorrectionsExtension
 
     public static readonly OracleTable Table = new(
         "document-corrections.csv", ["role", "status"], ["cancel", "recall", "reviewApproved", "actions"],
-        () => from role in SystemRoles from status in Enum.GetValues<DocumentStatus>() select new[] { role, status.ToString() },
-        k =>
+        () => from role in SystemRoles from status in Enum.GetValues<DocumentStatus>() select new[] { role, status.ToString() });
+
+    public static IReadOnlyDictionary<string, string> Answers(IReadOnlyDictionary<string, string> key)
+    {
+        var rights = SystemRoleDefaults.RightsFor(key["role"], Me);
+        var status = Enum.Parse<DocumentStatus>(key["status"]);
+        string Each(Func<bool, bool, string> answer) => string.Join('/', Settings.Select(s => answer(s.RequiresApproval, s.IsLarge)));
+        string Bits(bool ra, bool large, Func<DocumentActionContext, bool> answer) => string.Concat(Contexts.Select(c => Flag(answer(Doc(status, ra, large, c)))));
+        return new Dictionary<string, string>
         {
-            var (role, status) = (k[0], Enum.Parse<DocumentStatus>(k[1]));
-            string Each(Func<bool, bool, string> answer) => string.Join('/', Settings.Select(s => answer(s.RequiresApproval, s.IsLarge)));
-            string Bits(bool ra, bool large, Func<DocumentActionContext, bool> answer) => string.Concat(Contexts.Select(c => Flag(answer(Doc(status, ra, large, c)))));
-            return
-            [
-                Each((ra, l) => Bits(ra, l, d => DocumentActionPolicy.MayCancel(role, Me, d))),
-                Each((ra, l) => Bits(ra, l, d => DocumentActionPolicy.MayRecall(role, Me, d))),
-                Each((ra, l) => Flag(DocumentActionPolicy.MayReviewApproved(role, Doc(status, ra, l, Contexts[0])))),
-                Each((ra, l) => string.Join(' ', Contexts.Select(c =>
-                {
-                    var actions = DocumentActionPolicy.AllowedActions(role, Me, Doc(status, ra, l, c), allowSelfApproval: false, withinApprovalLimit: true);
-                    return Cell(actions) + (actions.Contains(DocumentActions.Recall) ? 'B' : '.');
-                })))
-            ];
-        });
+            ["cancel"] = Each((ra, l) => Bits(ra, l, d => DocumentActionPolicy.MayCancel(rights, d))),
+            ["recall"] = Each((ra, l) => Bits(ra, l, d => DocumentActionPolicy.MayRecall(rights, d))),
+            ["reviewApproved"] = Each((ra, l) => Flag(DocumentActionPolicy.MayReviewApproved(rights, Doc(status, ra, l, Contexts[0])))),
+            ["actions"] = Each((ra, l) => string.Join(' ', Contexts.Select(c =>
+            {
+                var actions = DocumentActionPolicy.AllowedActions(rights, Doc(status, ra, l, c), allowSelfApproval: false, withinApprovalLimit: true);
+                return Cell(actions) + (actions.Contains(DocumentActions.Recall) ? 'B' : '.');
+            })))
+        };
+    }
 }

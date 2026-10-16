@@ -20,13 +20,13 @@ public class DocumentAccess(ICurrentUser current) : IDocumentAccess, IAppService
 
     public void EnsureMayEditOrSubmit(StockDocument document)
     {
-        if (!DocumentActionPolicy.MayEditOrSubmit(current.Role, current.UserId, document.ActionContext))
+        if (!DocumentActionPolicy.MayEditOrSubmit(current.Rights(), document.ActionContext))
             throw new ForbiddenException(Messages.OwnDocumentsOnly);
     }
 
     public void EnsureMayCancel(StockDocument document)
     {
-        if (!DocumentActionPolicy.MayCancel(current.Role, current.UserId, document.ActionContext))
+        if (!DocumentActionPolicy.MayCancel(current.Rights(), document.ActionContext))
             throw new ForbiddenException(document.Status switch
             {
                 DocumentStatus.Draft => Messages.OwnDocumentsOnly,
@@ -41,17 +41,17 @@ public class DocumentAccess(ICurrentUser current) : IDocumentAccess, IAppService
         // (the recall itself did) counts too: their retry is the same request again. Anyone else is refused, whatever state the document is in.
         var me = current.UserId;
         var mine = document.SubmittedBy == me || (document.Status == DocumentStatus.Draft && (document.CreatedBy == me || document.RecRevisor == me));
-        if (!mine || !Permissions.Has(current.Role, Permissions.DocumentCreate))
+        if (!mine || !current.Rights().Has(Permissions.DocumentCreate))
             throw new ForbiddenException(Messages.OwnRecallOnly);
     }
 
     public bool IsRepeatedRecall(StockDocument document) => document is { Status: DocumentStatus.Draft, IsReturned: false };
 
     public IReadOnlyList<string> AllowedActions(DocumentDto d, SystemSettings settings, bool withinApprovalLimit) =>
-        DocumentActionPolicy.AllowedActions(current.Role, current.UserId,
+        DocumentActionPolicy.AllowedActions(current.Rights(),
             new DocumentActionContext(d.Status, d.RequiresApproval, d.IsLarge, d.CreatedByKey, d.SubmittedByKey), settings.AllowSelfApproval, withinApprovalLimit);
 
     public bool CanAct(DocumentListItem item, SystemSettings settings) =>
-        DocumentActionPolicy.MayReview(current.Role, current.UserId,
+        DocumentActionPolicy.MayReview(current.Rights(),
             new DocumentActionContext(item.Status, item.RequiresApproval, item.IsLarge, item.CreatedByKey, item.SubmittedByKey), settings.AllowSelfApproval);
 }
