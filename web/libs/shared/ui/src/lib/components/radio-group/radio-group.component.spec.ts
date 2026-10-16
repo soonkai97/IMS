@@ -94,6 +94,16 @@ describe('UiRadioGroupComponent accessibility (NV-09, EA-06)', () => {
     );
   });
 
+  it('R25: a hidden legend still names the group for assistive technology', () => {
+    render({ hideLegend: true, legend: 'Language' });
+
+    const legend = spectator.query('legend');
+    expect(legend?.textContent?.trim()).toBe('Language');
+    expect(legend?.classList.contains('--hidden')).toBe(true);
+    render({ legend: 'Language' });
+    expect(spectator.query('legend')?.classList.contains('--hidden')).toBe(false);
+  });
+
   it('a valid group carries neither attribute', () => {
     render({ errorId: 'purpose-error' });
 

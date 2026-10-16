@@ -107,6 +107,17 @@ or `all`.
   is open (`UiModalState`) the dialog renders the host itself (`UI_DIALOG_FEEDBACK`, `provideDialogFeedback()`) and the page copy
   renders nothing.
 
+## Sign-in page (R25)
+
+- From 1024px two full-height regions: the brand panel (`brand` / `on-brand`, a shelf pattern at 6%) and the form column; the header
+  spans both (a subgrid) so the lockup (`app-logo`, `currentColor`) lands on the panel. Below, one column; the panel is `display: none`.
+  The form is top-aligned (about 12% down), never centred, so a banner or the keyboard does not move it.
+- One entrance on load and one shake of the form per failed attempt (class `--shake`, removed by the next edit or submit): keyframes on
+  opacity and transform with `backwards` fill, so nothing stays animating. The stagger is built from `duration()`, so reduced motion
+  and `data-motion="off"` collapse it. The message carries the failure, not the shake: one `role="alert"` banner, no toast, focus stays.
+- A failure is data (`login-failure.ts`: kind plus the minutes or seconds the API sent); the sentence is written from the catalog, so
+  a language change rewrites it. Environment failures are warnings that are still alerts: `<app-banner kind="warning" alert>`.
+
 ## Naming: flat BEM, component specific
 
 - Block = component purpose, prefixed by the library area: `ui-button`, `document-editor-bar`, `stock-list-page-filters`

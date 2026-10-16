@@ -16,7 +16,6 @@ export function provideUiText(): EnvironmentProviders {
           required: i18n.t('ui.required'),
           requiredLegend: i18n.t('form.requiredLegend'),
           showPassword: i18n.t('ui.showPassword'),
-          hidePassword: i18n.t('ui.hidePassword'),
           previousPage: i18n.t('ui.previousPage'),
           nextPage: i18n.t('ui.nextPage'),
           clear: i18n.t('ui.clear'),

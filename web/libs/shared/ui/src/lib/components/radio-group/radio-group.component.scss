@@ -16,6 +16,10 @@
   padding: 0;
   font-size: font-size(2);
   font-weight: font-weight('medium');
+
+  &.--hidden {
+    @include visually-hidden;
+  }
 }
 
 // The star is a visual cue only (aria-hidden); the word beside it is what assistive technology reads (D4).
@@ -67,7 +71,7 @@
 
   &.--segmented {
     position: relative;
-    flex: 1;
+    flex: 1 1 auto;
     justify-content: center;
     min-width: 0;
     min-height: height('touch-min');

@@ -1,46 +1,283 @@
 @use 'libs' as *;
 
-:host {
-  display: grid;
-  place-items: center;
-  min-height: 100dvh;
-  padding: space(2);
+// The sign-in page (R25, docs/design/2026-refresh-login.md, lean): from 1024px a panel and a form column side by side (a subgrid
+// puts the lockup on the panel), below that one column on surface. Nothing is fixed, the height is a minimum: the keyboard and
+// 400% zoom only scroll. Motion is one entrance and one shake, CSS keyframes on opacity and transform that end by themselves
+// (reduced motion and data-motion=off collapse them in globals/_motion.scss); the fields take input from the first frame.
+
+@keyframes login-fade {
+  from {
+    opacity: 0;
+  }
 }
 
-.login-page-panel {
+@keyframes login-rise {
+  from {
+    opacity: 0;
+    transform: translateY(space(1));
+  }
+}
+
+// Two quick swings of 4px each way (motion spec 3.7, without the decay).
+@keyframes login-shake {
+  20%,
+  60% {
+    transform: translateX(-1 * space(0));
+  }
+
+  40%,
+  80% {
+    transform: translateX(space(0));
+  }
+}
+
+:host {
+  // One step of the entrance stagger: 40ms, about 0 when the durations collapse.
+  --login-step: calc(#{duration('fast')} / 3);
+  --login-gutter: #{space(2)};
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  min-height: 100dvh;
+  color: color('text');
+  background: color('surface');
+
+  @include media-desktop {
+    grid-template-columns: minmax(#{width('auth-panel-min')}, 5fr) minmax(0, 7fr);
+  }
+}
+
+// Header: lockup at the start, language control at the end. It wraps on a phone: the control gets its own row.
+.login-page-header {
+  --login-lockup-color: #{color('text')};
+  --login-mark-color: #{color('accent')};
+  --ui-logo-size: #{space(4)};
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1) space(2);
+  align-items: center;
+  justify-content: space-between;
+  min-height: height('bar');
+  padding: max(space(1), var(--ims-safe-top)) max(var(--login-gutter), var(--ims-safe-right)) 0
+    max(var(--login-gutter), var(--ims-safe-left));
+  animation: login-fade duration('base') easing('out') backwards;
+
+  @include media-tablet {
+    --ui-logo-size: #{space(5)};
+
+    padding-top: max(space(2), var(--ims-safe-top));
+  }
+
+  @include media-desktop {
+    --login-lockup-color: #{color('on-brand')};
+    --login-mark-color: #{color('on-brand')};
+
+    position: relative;
+    z-index: z-index('raised');
+    display: grid;
+    grid-column: 1 / -1;
+    grid-row: 1;
+    grid-template-columns: subgrid;
+    padding: max(space(6), var(--ims-safe-top)) space(6) 0;
+  }
+}
+
+.login-page-lockup {
+  display: flex;
+  gap: space(1);
+  align-items: center;
+  min-width: 0;
+  color: var(--login-lockup-color);
+
+  @include media-tablet {
+    gap: space(1.5);
+  }
+}
+
+.login-page-mark {
+  color: var(--login-mark-color);
+}
+
+.login-page-name {
+  font-size: font-size(5);
+  font-weight: font-weight('bold');
+  line-height: 1.25;
+
+  @include media-desktop {
+    font-size: font-size(6);
+  }
+}
+
+.login-page-language {
+  flex: 1 1 18rem;
+  max-width: 26rem;
+  margin-inline-start: auto;
+
+  @include media-desktop {
+    max-width: none;
+    margin-inline-start: 0;
+    justify-self: end;
+  }
+}
+
+// Brand panel (from 1024px): flat `brand` field with a faint shelf pattern. It carries no control.
+.login-page-brand {
+  position: relative;
+  display: none;
+  overflow: hidden;
+  color: color('on-brand');
+  background: color('brand');
+  border-inline-end: border-width('thin') solid color('border');
+  animation: login-fade duration('base') easing('out') backwards;
+
+  @include media-desktop {
+    display: flex;
+    grid-column: 1;
+    grid-row: 1 / -1;
+    align-items: center;
+    padding: space(9) space(6);
+  }
+}
+
+// Texture only: not announced, not selectable, never under a control; it vanishes where colours are forced or printed.
+.login-page-pattern {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: color-alpha('on-brand', 6%);
+  pointer-events: none;
+
+  @media (forced-colors: active), print {
+    display: none;
+  }
+}
+
+.login-page-brand-copy {
+  position: relative;
+  max-width: width('auth-form');
+}
+
+.login-page-tagline {
+  max-width: 16em;
+  font-size: font-size(6);
+  font-weight: font-weight('bold');
+  line-height: 1.25;
+}
+
+.login-page-points {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  margin: space(4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.login-page-point {
+  display: flex;
+  gap: space(2);
+  align-items: center;
+  font-weight: font-weight('medium');
+}
+
+.login-page-point-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: space(4);
+  height: space(4);
+  border: border-width('thin') solid currentcolor;
+  border-radius: border-radius('pill');
+}
+
+// Form column.
+.login-page-main {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  min-width: 0;
+  padding: space(3) max(var(--login-gutter), var(--ims-safe-right))
+    max(space(3), var(--ims-safe-bottom)) max(var(--login-gutter), var(--ims-safe-left));
+
+  // Starts about an eighth down the page, not centred, so a banner that appears or the keyboard does not move the form.
+  @include media-tablet {
+    padding-top: max(space(3), 12dvh);
+  }
+
+  @include media-desktop {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    padding: max(space(6), 12dvh) space(6) space(6);
+  }
+
+  @include media-short {
+    padding-top: space(2);
+  }
+}
+
+.login-page-column {
   display: flex;
   flex-direction: column;
   gap: space(2);
   width: 100%;
-  max-width: width('form-max');
-  padding: space(3);
-  background: color('surface');
-  border: border-width('thin') solid color('border');
-  border-radius: border-radius('lg');
-  box-shadow: shadow(1);
+  max-width: width('auth-form');
+  margin-inline: auto;
+}
 
-  @include media-phone {
-    padding: space(2);
-    border: 0;
-    box-shadow: none;
-  }
+.login-page-head {
+  display: flex;
+  flex-direction: column;
+  gap: space(0);
+  margin-bottom: space(1);
+  animation: login-rise duration('base') easing('out') backwards;
 }
 
 .login-page-title {
-  font-size: font-size(6);
+  font-size: font-size(5);
+  font-weight: font-weight('bold');
 }
 
 .login-page-subtitle {
   color: color('text-muted');
+
+  @include media-short {
+    display: none;
+  }
+}
+
+.login-page-body {
+  animation: login-rise duration('base') easing('out') calc(var(--login-step) * 1) backwards;
 }
 
 .login-page-form {
   display: flex;
   flex-direction: column;
   gap: space(2);
+
+  // One shake per failed attempt. The class is removed by the next edit or submit, so the next failure plays it again.
+  &.--shake {
+    animation: login-shake duration('slow') easing('standard');
+  }
+}
+
+// A message that arrives after the page (a failure, the offline notice) fades in; removal is instant.
+.login-page-notice {
+  animation: login-fade duration('base') easing('out') backwards;
+}
+
+.login-page-access,
+.login-page-dev-hint {
+  max-width: 70ch;
+  font-size: font-size(2);
+  color: color('text-muted');
+  animation: login-fade duration('base') easing('out') calc(var(--login-step) * 2) backwards;
 }
 
 .login-page-dev-hint {
   font-size: font-size(1);
-  color: color('text-muted');
 }

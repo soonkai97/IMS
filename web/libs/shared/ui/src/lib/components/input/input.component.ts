@@ -49,6 +49,10 @@ export class UiInputComponent implements ControlValueAccessor, Validator {
     alias: 'inputMode'
   });
   $autocomplete = input<string | undefined>(undefined, { alias: 'autocomplete' });
+  /** The `name` password managers key on; keep it stable across releases and languages. */
+  $name = input<string | undefined>(undefined, { alias: 'name' });
+  /** For a user name or a code: no automatic capital, correction or spell check (they would change what was typed). */
+  $noSuggestions = input(false, { alias: 'noSuggestions', transform: booleanAttribute });
   $min = input<number | string | undefined>(undefined, { alias: 'min' });
   $max = input<number | string | undefined>(undefined, { alias: 'max' });
   $step = input<number | string | undefined>(undefined, { alias: 'step' });
@@ -70,10 +74,15 @@ export class UiInputComponent implements ControlValueAccessor, Validator {
   $selectsOnFocus = computed(() => this.$type() === 'number');
   $isPassword = computed(() => this.$type() === 'password');
   $nativeType = computed(() => (this.$isPassword() && this.$revealed() ? 'text' : this.$type()));
-  $toggleLabel = computed(() =>
-    this.$revealed() ? this.uiText().hidePassword : this.uiText().showPassword
+  /** One constant name plus `aria-pressed`: a name that changes on top of the state reads "Hide password, pressed". */
+  $toggleLabel = computed(() => this.uiText().showPassword);
+  $controlClass = computed(() =>
+    toClassStr([
+      'ui-input-control',
+      this.$invalid() && '--invalid',
+      this.$isPassword() && '--with-toggle'
+    ])
   );
-  $controlClass = computed(() => toClassStr(['ui-input-control', this.$invalid() && '--invalid']));
 
   private onChange: (value: string | number | null) => void = () => undefined;
   private onTouched: () => void = () => undefined;

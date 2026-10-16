@@ -38,6 +38,8 @@ export class UiRadioGroupComponent implements ControlValueAccessor {
 
   $options = input.required<readonly RadioOption[]>({ alias: 'options' });
   $legend = input.required<string>({ alias: 'legend' });
+  /** The legend names the group for assistive technology only (the options already say what the group is, e.g. a language list). */
+  $hideLegend = input(false, { alias: 'hideLegend', transform: booleanAttribute });
   /**
    * Red asterisk plus the word "required" (screen-reader only) in the legend (D4). A group has no single control that
    * could carry the state, and `required` on each radio would announce it once per option.

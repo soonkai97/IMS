@@ -7,6 +7,11 @@
 
 .ui-input-control {
   @include control-base;
+
+  // The text never runs under the show/hide button.
+  &.--with-toggle {
+    padding-inline-end: height('touch');
+  }
 }
 
 .ui-input-toggle {

@@ -11,7 +11,6 @@ export interface UiText {
   /** "* means required": the legend that explains the red asterisk once per form (D4). */
   readonly requiredLegend: string;
   readonly showPassword: string;
-  readonly hidePassword: string;
   readonly previousPage: string;
   readonly nextPage: string;
   readonly clear: string;
@@ -39,7 +38,6 @@ const DEFAULT_UI_TEXT: UiText = {
   required: 'required',
   requiredLegend: '* means required',
   showPassword: 'Show password',
-  hidePassword: 'Hide password',
   previousPage: 'Previous page',
   nextPage: 'Next page',
   clear: 'Clear',

@@ -40,7 +40,7 @@ origin). Edit the deployed `assets/config.json` to repoint a build without rebui
 | `npm run lint`                         | ESLint (module boundaries, conventions) + Stylelint                     |
 | `npm run format` / `format:check`      | Prettier                                                                |
 | `npm run api:generate`                 | download `/openapi/v1.json`, normalise it, regenerate the NSwag client  |
-| `npm run contrast`                     | WCAG AA gate: 162 palette checks (81 pairs x light, dark) + alias check |
+| `npm run contrast`                     | WCAG AA gate: 164 palette checks (82 pairs x light, dark) + alias check |
 | `npm run dep-graph`                    | Nx project graph                                                        |
 | `node tools/scaffold-libs.mjs`         | (re)generate library boilerplate and path aliases from `tools/libs.mjs` |
 | `node tools/scan-i18n-keys.mjs`        | list message keys used in code but missing in the English catalog       |
@@ -107,7 +107,7 @@ The names used before the refresh (`bg`, `surface-2`, `surface-3`, `primary*`, `
 `$aliases` map (old name to canonical name; no value is copied, so an alias cannot drift). `color('primary')` compiles to
 `var(--ims-color-accent)`. A new component uses the canonical names; the aliases are removed in slice R24.
 
-`npm run contrast` (`scripts/check-contrast.mjs`) runs the 81 pairs of the visual spec in light and dark (162 checks: 4.5 text,
+`npm run contrast` (`scripts/check-contrast.mjs`) runs the 82 pairs (the visual spec plus the sign-in brand pair) in light and dark (164 checks: 4.5 text,
 3 UI components, borders, focus ring, chart series) plus a few call-site pairs, and exits 1 when a pair misses its ratio, when
 `$light` and `$dark` differ in keys, when a value is not a plain 6-digit hex, when an alias differs from the mapping of spec 6.2
 pinned in the script, or when a token is in no pair (only `border` and `overlay` are exempt, with their reason in the script). A

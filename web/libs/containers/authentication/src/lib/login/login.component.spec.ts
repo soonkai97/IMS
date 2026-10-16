@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { EMPTY } from 'rxjs';
+import { I18nService } from '@ims/core/i18n';
 import { AuthService } from '@ims/core/identity';
 import {
   API_ERROR_KIND,
@@ -70,29 +71,90 @@ describe('LoginPageComponent failure messages', () => {
     expect(document.activeElement?.getAttribute('aria-invalid')).toBe('true');
   });
 
-  it('EA-24: the rate limit shows the API sentence with the wait', () => {
-    show(error(API_ERROR_KIND.Unknown, 429, 'Too many requests. Try again in 12 seconds.'));
-
-    expect(banner()).toContain('Too many requests. Try again in 12 seconds.');
+  const rateLimited = (seconds?: number): ApiError => ({
+    ...error(API_ERROR_KIND.Unknown, 429, 'Too many requests. The API sentence, in English.'),
+    extensions: seconds === undefined ? {} : { retryAfterSeconds: seconds }
+  });
+  const locked = (minutes: number): ApiError => ({
+    ...error(API_ERROR_KIND.Unauthorized, 401, 'The API sentence, in English.'),
+    extensions: { code: 'account_locked', retryAfterMinutes: minutes }
   });
 
-  it('EA-24: a rate limit without a sentence gets ours', () => {
-    show(error(API_ERROR_KIND.Unknown, 429, ''));
+  describe('R25: the wait and the cause are written by the client, from the numbers the API sends (EA-24, EA-13)', () => {
+    it('the rate limit names the wait in seconds, and in minutes (rounded up) from 90 seconds', () => {
+      show(rateLimited(42));
+      expect(banner()).toBe(
+        'Too many sign-in attempts from this network. Try again in 42 seconds.'
+      );
 
-    expect(banner()).toContain('Too many attempts. Wait a minute and try again.');
-  });
+      show(rateLimited(1));
+      expect(banner()).toContain('in 1 second.');
 
-  it('EA-13: a locked account shows the E7 sentence with the minutes, not the generic one', () => {
-    show({
-      ...error(
-        API_ERROR_KIND.Unauthorized,
-        401,
-        'Too many failed attempts. Try again in 14 minutes.'
-      ),
-      extensions: { code: 'account_locked', retryAfterMinutes: 14 }
+      show(rateLimited(89));
+      expect(banner()).toContain('in 89 seconds.');
+
+      show(rateLimited(120));
+      expect(banner()).toBe('Too many sign-in attempts from this network. Try again in 2 minutes.');
+
+      show(rateLimited(91));
+      expect(banner()).toContain('in 2 minutes.');
+
+      show(rateLimited());
+      expect(banner()).toBe('Too many attempts. Wait a minute and try again.');
     });
 
-    expect(banner()).toContain('Too many failed attempts. Try again in 14 minutes.');
+    it('a locked account shows the wait, never the API sentence', () => {
+      show(locked(14));
+      expect(banner()).toBe('Too many failed attempts. Try again in 14 minutes.');
+
+      show(locked(1));
+      expect(banner()).toBe('Too many failed attempts. Try again in 1 minute.');
+    });
+
+    it('a network failure and a server failure each have their own sentence', () => {
+      show(error(API_ERROR_KIND.Network, 0, ''));
+      expect(banner()).toBe("Can't reach the server. Check your connection and try again.");
+
+      show(error(API_ERROR_KIND.Server, 500, 'Internal detail'));
+      expect(banner()).toBe('Sign-in is not working right now. Try again in a moment.');
+      // An environment failure is a warning that is still the one alert, and there is no toast.
+      expect(alerts()).toHaveLength(1);
+      expect(spectator.query('app-banner.--warning')).not.toBeNull();
+      expect(spectator.queryAll('app-toast')).toHaveLength(0);
+    });
+
+    it('a language change rewrites the banner and keeps what was typed', async () => {
+      operation.set(IDLE_OPERATION);
+      spectator = createComponent();
+      spectator.detectChanges();
+      const i18n = spectator.inject(I18nService);
+      spectator.typeInElement('staff', USERNAME);
+      operation.set(failureOperation(locked(15)));
+      spectator.detectChanges();
+
+      await i18n.setLanguage('zh');
+      spectator.detectChanges();
+
+      expect(banner()).toBe('失败次数过多。请 15 分钟后重试。');
+      expect(spectator.query<HTMLInputElement>(USERNAME)?.value).toBe('staff');
+      await i18n.setLanguage('en');
+    });
+  });
+
+  describe('R25: motion that carries no meaning of its own', () => {
+    const form = (): Element | null => spectator.query('form');
+
+    it('a failed attempt shakes the form once; an edit takes the shake away so the next failure plays it again', () => {
+      show(WRONG_CREDENTIALS);
+      expect(form()?.classList.contains('--shake')).toBe(true);
+
+      spectator.typeInElement('s', USERNAME);
+      expect(form()?.classList.contains('--shake')).toBe(false);
+
+      operation.set(failureOperation(WRONG_CREDENTIALS));
+      spectator.detectChanges();
+      expect(form()?.classList.contains('--shake')).toBe(true);
+    });
   });
 
   describe('D3: the error banner never outlives the attempt that caused it', () => {
