@@ -292,8 +292,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
     {
         ChangeTracker.DetectChanges(); // so children removed from a collection are seen as deleted before they are converted
         EnforceAppendOnly();
-        var softDeleted = StampAuditColumns();
-        var pending = CollectAudit(softDeleted);
+        StampAuditColumns();
+        var pending = CollectAudit();
         if (pending.Count == 0) return await base.SaveChangesAsync(acceptAllChangesOnSuccess, ct);
 
         await using var own = Database.CurrentTransaction is null ? await Database.BeginTransactionAsync(ct) : null;
@@ -314,13 +314,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
 
     /// <summary>
     /// Stamps REC_CREATOR/REC_CREDATE on inserts and REC_REVISOR/REC_REVDATE on changes, and turns a physical delete into a soft delete
-    /// (REC_DELETED = 1). Returns the entries that were soft-deleted, so the row-level audit still reports them as deletions.
+    /// (REC_DELETED = 1); <see cref="IsSoftDelete"/> then tells the row-level audit that the row was deleted.
     /// </summary>
-    private HashSet<EntityEntry> StampAuditColumns()
+    private void StampAuditColumns()
     {
         int? userId = current is { IsAuthenticated: true } ? current.UserId : null;
         var now = clock.UtcNow;
-        var softDeleted = new HashSet<EntityEntry>();
         TouchDocumentsWithChangedLines();
 
         foreach (var e in ChangeTracker.Entries<AuditableEntity>().ToList())
@@ -340,12 +339,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
                     e.Property(nameof(AuditableEntity.RecDeleted)).CurrentValue = true;
                     e.Property(nameof(AuditableEntity.RecRevisor)).CurrentValue = userId;
                     e.Property(nameof(AuditableEntity.RecRevDate)).CurrentValue = now;
-                    softDeleted.Add(e);
                     break;
             }
         }
-        return softDeleted;
     }
+
+    /// <summary>
+    /// True when the save deletes the row: REC_DELETED goes from false to true, whether the context turned a physical delete into it or the domain called
+    /// <see cref="AuditableEntity.MarkDeleted"/>. Read from the entry itself: an <see cref="EntityEntry"/> is made again by every <c>Entries()</c> call, so a set of
+    /// entries kept between the two calls never matches, and the deletion would be reported as an update with no audited property changed (which writes no row).
+    /// </summary>
+    private static bool IsSoftDelete(EntityEntry e) =>
+        e.State == EntityState.Modified && e.Property(nameof(AuditableEntity.RecDeleted)) is { OriginalValue: false, CurrentValue: true };
 
     /// <summary>
     /// A document is its header plus its lines. When only lines are added, changed or removed the header row would stay untouched and keep
@@ -370,14 +375,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
                 throw new InvalidOperationException($"{e.Metadata.ClrType.Name} is append-only and cannot be modified or deleted.");
     }
 
-    private List<Pending> CollectAudit(HashSet<EntityEntry> softDeleted)
+    private List<Pending> CollectAudit()
     {
         var list = new List<Pending>();
         foreach (var e in ChangeTracker.Entries().Where(x => x.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
         {
             if (!Audited.Contains(e.Metadata.ClrType)) continue;
             var props = e.Properties.Where(p => !AuditSkippedProperties.Contains(p.Metadata.Name) && !p.Metadata.IsShadowProperty()).ToList();
-            var state = softDeleted.Contains(e) ? EntityState.Deleted : e.State;
+            var state = IsSoftDelete(e) ? EntityState.Deleted : e.State;
             switch (state)
             {
                 case EntityState.Added:
