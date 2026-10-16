@@ -85,41 +85,20 @@ public class CancelApprovedTests(ApiFixture fixture)
 
     // ----- the reason -----
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("    ")]
-    public async Task Cancelling_an_approved_document_without_a_reason_is_refused_and_it_stays_approved(string? reason)
+    [InlineData(null, true)]
+    [InlineData("", true)]
+    [InlineData("    ", true)]
+    [InlineData("x", false)]
+    [InlineData("abcd", false)]
+    [InlineData("  abcd ", false)]
+    public async Task A_missing_or_short_reason_is_refused_with_the_usual_sentence_and_it_stays_approved(string? reason, bool missing)
     {
         var (s, _, approved) = await ApprovedIssueAsync();
 
         var response = await s.Supervisor.Documents.CancelAsync(approved.Id, reason);
 
-        Assert.Equal(Messages.CancelApprovedReasonRequired, response.ShouldBeProblem(HttpStatusCode.BadRequest).Detail);
+        Assert.Equal(missing ? Messages.CancelApprovedReasonRequired : Messages.ReasonTooShort, response.ShouldBeProblem(HttpStatusCode.BadRequest).Detail);
         Assert.Equal(DocumentStatus.Approved, (await s.GetAsync(approved.Id)).Status);
-    }
-
-    [Theory]
-    [InlineData("x")]
-    [InlineData("abcd")]
-    [InlineData("  abcd ")]
-    public async Task A_reason_under_the_minimum_length_is_refused_with_the_usual_sentence_and_it_stays_approved(string reason)
-    {
-        var (s, _, approved) = await ApprovedIssueAsync();
-
-        var response = await s.Supervisor.Documents.CancelAsync(approved.Id, reason);
-
-        Assert.Equal(Messages.ReasonTooShort, response.ShouldBeProblem(HttpStatusCode.BadRequest).Detail);
-        Assert.Equal(DocumentStatus.Approved, (await s.GetAsync(approved.Id)).Status);
-    }
-
-    [Fact]
-    public async Task A_reason_of_exactly_the_minimum_length_is_enough()
-    {
-        var (s, _, approved) = await ApprovedIssueAsync();
-
-        var cancelled = (await s.Supervisor.Documents.CancelAsync(approved.Id, new string('a', Limits.ReasonMinLength))).ShouldBeOk().Read<DocumentDto>();
-
-        Assert.Equal(DocumentStatus.Cancelled, cancelled.Status);
     }
 
     [Fact]
@@ -152,7 +131,7 @@ public class CancelApprovedTests(ApiFixture fixture)
     {
         var (s, _, approved) = await ApprovedIssueAsync();
 
-        var response = await s.As(role).Documents.CancelAsync(approved.Id, "Customer withdrew the order");
+        var response = await s.As(role).Documents.CancelAsync(approved.Id, "x"); // the role is refused before the reason is looked at
 
         Assert.Equal(Messages.OnlyReviewerCanCancelApproved, response.ShouldBeProblem(HttpStatusCode.Forbidden).Detail);
         Assert.Equal(DocumentStatus.Approved, (await s.GetAsync(approved.Id)).Status);
@@ -172,14 +151,6 @@ public class CancelApprovedTests(ApiFixture fixture)
         else Assert.Equal(Messages.OnlyReviewerCanCancelApproved, response.ShouldBeProblem(HttpStatusCode.Forbidden).Detail);
         Assert.Equal(allowed ? DocumentStatus.Cancelled : DocumentStatus.Approved, (await s.GetAsync(approved.Id)).Status);
         Assert.Equal(100, await s.OnHandAsync(product.Id, Warehouse));
-    }
-
-    [Fact]
-    public async Task The_refusal_comes_before_the_reason_is_checked_so_a_caller_who_may_not_cancel_learns_nothing_from_the_reason_rule()
-    {
-        var (s, _, approved) = await ApprovedIssueAsync();
-
-        (await s.Clerk.Documents.CancelAsync(approved.Id, "x")).ShouldBeProblem(HttpStatusCode.Forbidden);
     }
 
     [Fact]

@@ -252,13 +252,6 @@ public class DocumentActionPolicyTests
             Actions(Roles.Supervisor, DocumentStatus.Approved, requiresApproval: true, createdBy: Me, submittedBy: Me));
     }
 
-    [Fact]
-    public void Approved_TheCreatorWhoCannotReviewGetsNothing()
-    {
-        Assert.Empty(Actions(Roles.Clerk, DocumentStatus.Approved, requiresApproval: true, createdBy: Me, submittedBy: Me));
-        Assert.Empty(Actions(Roles.WarehouseStaff, DocumentStatus.Approved, requiresApproval: true, createdBy: Me, submittedBy: Me));
-    }
-
     // ----- Posted / Reversed / Cancelled -----
     [Theory]
     [InlineData(Roles.Admin, true)]

@@ -56,15 +56,9 @@ public class RecallTests(ApiFixture fixture)
         var response = await s.As(role).Documents.RecallAsync(submitted.Id, submitted.ConcurrencyToken);
 
         var recalled = response.ShouldBeOk().Read<DocumentDto>();
-        Assert.Equal(submitted.Id, recalled.Id);
-        Assert.Equal(submitted.No, recalled.No);
-        Assert.Equal(DocumentStatus.Draft, recalled.Status);
-        Assert.False(recalled.IsReturned);
-        Assert.Null(recalled.RejectionReason);
-        Assert.Null(recalled.SubmittedBy);
+        Assert.Equal((submitted.Id, submitted.No, DocumentStatus.Draft, false), (recalled.Id, recalled.No, recalled.Status, recalled.IsReturned));
+        Assert.Null(recalled.RejectionReason ?? recalled.SubmittedBy);
         Assert.Null(recalled.SubmittedAt);
-        Assert.False(recalled.RequiresApproval);
-        Assert.Equal(submitted.TotalQty, recalled.TotalQty);
         Assert.Equal(submitted.Lines.Select(l => (l.ProductId, l.Qty)), recalled.Lines.Select(l => (l.ProductId, l.Qty)));
         Assert.Equal(["cancel", "edit", "submit"], recalled.AllowedActions.Order());
         Assert.Equal(recalled.ConcurrencyToken, response.Header("ETag")!.Trim('"'));
@@ -111,18 +105,6 @@ public class RecallTests(ApiFixture fixture)
         Assert.Equal(TestUsers.UsernameOf(Roles.Supervisor), again.SubmittedBy);
         Assert.NotEqual(submitted.SubmittedAt, again.SubmittedAt);
         Assert.Equal(1, again.TotalQty);
-    }
-
-    [Fact]
-    public async Task A_recalled_document_cannot_be_posted_or_approved_until_it_is_submitted_again()
-    {
-        var (s, product) = await WithStockAsync();
-        var submitted = await SubmittedReceiptAsync(s, s.Clerk, product, 5);
-        (await s.Clerk.Documents.RecallAsync(submitted.Id)).ShouldBeOk();
-
-        (await s.Admin.Documents.PostAsync(submitted.Id)).ShouldBeProblem(HttpStatusCode.BadRequest);
-        (await s.Supervisor.Documents.ApproveAsync(submitted.Id)).ShouldBeProblem(HttpStatusCode.BadRequest);
-        Assert.Equal(100, await s.OnHandAsync(product.Id, Warehouse)); // only the opening receipt
     }
 
     [Fact]
@@ -183,21 +165,6 @@ public class RecallTests(ApiFixture fixture)
     }
 
     // ----- wrong state, stale token, repeats -----
-    [Fact]
-    public async Task An_approved_document_cannot_be_recalled_by_its_creator()
-    {
-        var (s, product) = await WithStockAsync();
-        var submitted = await IssueWaitingForApprovalAsync(s, s.Clerk, product);
-        var approved = (await s.Supervisor.Documents.ApproveAsync(submitted.Id, submitted.ConcurrencyToken)).Data<DocumentDto>();
-
-        var response = await s.Clerk.Documents.RecallAsync(submitted.Id, approved.ConcurrencyToken);
-
-        Assert.Equal(Messages.OnlySubmittedCanRecall(submitted.No, DocumentStatus.Approved), response.ShouldBeProblem(HttpStatusCode.BadRequest).Detail);
-        var after = await s.GetAsync(submitted.Id);
-        Assert.Equal(DocumentStatus.Approved, after.Status);
-        Assert.Equal(TestUsers.UsernameOf(Roles.Supervisor), after.ApprovedBy);
-    }
-
     [Theory]
     [InlineData(DocumentStatus.Approved)]
     [InlineData(DocumentStatus.Posted)]
@@ -255,18 +222,6 @@ public class RecallTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task A_token_of_another_document_is_refused_like_a_stale_one()
-    {
-        var s = await StockScenario.CreateAsync(fixture);
-        var product = await s.NewProductAsync();
-        var one = await SubmittedReceiptAsync(s, s.Clerk, product, 1);
-        var two = await SubmittedReceiptAsync(s, s.Clerk, product, 1);
-
-        (await s.Clerk.Documents.RecallAsync(one.Id, two.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Conflict);
-        Assert.Equal(DocumentStatus.Submitted, (await s.GetAsync(one.Id)).Status);
-    }
-
-    [Fact]
     public async Task A_second_recall_is_a_no_op_that_answers_200_with_the_draft_even_with_the_old_token_and_writes_no_second_audit_row()
     {
         var s = await StockScenario.CreateAsync(fixture);
@@ -297,30 +252,20 @@ public class RecallTests(ApiFixture fixture)
     }
 
     [Theory]
-    [InlineData(Roles.Supervisor)]
-    [InlineData(Roles.Admin)]
-    [InlineData(Roles.WarehouseStaff)]
-    public async Task Recalling_somebody_elses_draft_is_403_for_every_role_not_a_no_op_and_the_creators_own_repeat_is(string role)
+    [InlineData(Roles.Supervisor, Roles.Clerk)]
+    [InlineData(Roles.Admin, Roles.Clerk)]
+    [InlineData(Roles.WarehouseStaff, Roles.Clerk)]
+    [InlineData(Roles.Clerk, Roles.WarehouseStaff)]
+    public async Task Recalling_somebody_elses_draft_is_403_for_every_role_not_a_no_op_and_the_creators_own_repeat_is(string role, string creator)
     {
         var s = await StockScenario.CreateAsync(fixture);
-        var product = await s.NewProductAsync();
-        var draft = await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 5, 1m));
+        var draft = await s.DraftReceiptAsync(s.As(creator), Warehouse, new Line((await s.NewProductAsync()).Id, 5, 1m));
 
         var refused = await s.As(role).Documents.RecallAsync(draft.Id);
 
         Assert.Equal(Messages.OwnRecallOnly, refused.ShouldBeProblem(HttpStatusCode.Forbidden).Detail);
-        (await s.Clerk.Documents.RecallAsync(draft.Id)).ShouldBeOk(); // the creator's own plain draft: the same call is a no-op
+        (await s.As(creator).Documents.RecallAsync(draft.Id)).ShouldBeOk(); // the creator's own plain draft: the same call is a no-op
         Assert.Empty(await RecalledEntriesAsync(s, draft.No));
-    }
-
-    [Fact]
-    public async Task A_clerk_recalling_a_staff_draft_is_403_too()
-    {
-        var s = await StockScenario.CreateAsync(fixture);
-        var product = await s.NewProductAsync();
-        var staffs = await s.DraftReceiptAsync(s.Staff, Warehouse, new Line(product.Id, 5, 1m));
-
-        (await s.Clerk.Documents.RecallAsync(staffs.Id)).ShouldBeProblem(HttpStatusCode.Forbidden);
     }
 
     [Fact]

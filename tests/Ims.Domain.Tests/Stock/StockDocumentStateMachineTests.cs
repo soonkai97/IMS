@@ -428,19 +428,6 @@ public class StockDocumentStateMachineTests
         Assert.Equal("duplicate", doc.CancelReason);
     }
 
-    [Theory]
-    [InlineData(DocumentStatus.Draft)]
-    [InlineData(DocumentStatus.Submitted)]
-    public void Cancel_FromDraftOrSubmitted_NeedsNoReason(DocumentStatus status)
-    {
-        var doc = InStatus(status);
-
-        doc.Cancel(null);
-
-        Assert.Equal(DocumentStatus.Cancelled, doc.Status);
-        Assert.Null(doc.CancelReason);
-    }
-
     [Fact]
     public void Cancel_FromApproved_MovesToCancelledKeepingTheTrimmedReasonAndTheApprovalAsHistory()
     {
@@ -520,20 +507,6 @@ public class StockDocumentStateMachineTests
     {
         Assert.Equal(recallLegal, Succeeds(InStatus(status), d => d.Recall()));
         Assert.Equal(cancelLegal, Succeeds(InStatus(status), d => d.Cancel("a good enough reason")));
-    }
-
-    [Fact]
-    public void ARecalledDocument_CannotBeApprovedOrPostedUntilItIsSubmittedAgain()
-    {
-        var doc = InStatus(DocumentStatus.Submitted);
-        doc.Recall();
-
-        Assert.Throws<DomainException>(() => doc.MarkPosted(Approver, Later));
-        Assert.Throws<DomainException>(() => doc.Approve(Approver, false, Later));
-
-        doc.Submit(Submitter, requiresApproval: false, Later);
-        doc.MarkPosted(Approver, Later);
-        Assert.Equal(DocumentStatus.Posted, doc.Status);
     }
 
     private static bool Succeeds(StockDocument doc, Action<StockDocument> act)

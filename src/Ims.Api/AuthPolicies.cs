@@ -1,14 +1,8 @@
 namespace Ims.Api;
 
-/// <summary>
-/// Authorization policies that are not one feature permission (those are named by the permission itself). A policy here is a door only: the
-/// command still asks <c>DocumentActionPolicy</c> what the caller may do with the document.
-/// </summary>
+/// <summary>Authorization policies that are not one feature permission. A policy here is a door only: the command still asks <c>DocumentActionPolicy</c>.</summary>
 public static class AuthPolicies
 {
-    /// <summary>
-    /// May cancel a document: someone who creates documents (cancels a Draft or a Submitted one) or someone who approves them (cancels an
-    /// Approved one). The Owner approves but does not create, so the create permission alone would shut the Owner out.
-    /// </summary>
+    /// <summary>Create right (cancels a Draft or Submitted document) OR approve right (cancels an Approved one): the Owner approves but cannot create.</summary>
     public const string DocumentCancel = "document.cancel";
 }
