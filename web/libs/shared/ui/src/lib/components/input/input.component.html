@@ -6,6 +6,10 @@
   [attr.placeholder]="$placeholder() || null"
   [attr.inputmode]="$inputMode()"
   [attr.autocomplete]="$autocomplete()"
+  [attr.name]="$name()"
+  [attr.autocapitalize]="$noSuggestions() ? 'none' : null"
+  [attr.autocorrect]="$noSuggestions() ? 'off' : null"
+  [attr.spellcheck]="$noSuggestions() ? 'false' : null"
   [attr.min]="$min()"
   [attr.max]="$max()"
   [attr.step]="$step()"
@@ -29,6 +33,7 @@
     class="ui-input-toggle"
     [attr.aria-label]="$toggleLabel()"
     [attr.aria-pressed]="$revealed()"
+    (mousedown)="$event.preventDefault()"
     (click)="onToggleReveal()"
   >
     <app-icon [name]="$revealed() ? 'eye-off' : 'eye'" />

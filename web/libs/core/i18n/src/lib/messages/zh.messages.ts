@@ -3,7 +3,6 @@ import { Messages } from './message.types';
 /** Simplified Chinese. TODO-review: machine-quality draft, needs a native speaker's pass before release. */
 export const ZH_MESSAGES: Messages = {
   'app.name': 'IMS',
-  'app.tagline': '库存管理',
   'language.label': '语言',
   'system.goHome': '返回首页',
   'pwa.updateReady': '有新版本可用。',
@@ -40,7 +39,6 @@ export const ZH_MESSAGES: Messages = {
   'ui.showLess': '收起',
   'ui.dropFile': '或将文件拖到此处',
   'ui.errorTitle': '出了点问题。',
-  'ui.hidePassword': '隐藏密码',
   'ui.loading': '加载中',
   'ui.nextPage': '下一页',
   'ui.pageStatus': '第 {page} 页，共 {pages} 页',
@@ -132,13 +130,29 @@ export const ZH_MESSAGES: Messages = {
   'ledgerReason.Reversal': '冲销',
   'ledgerReason.Opening': '期初库存',
 
-  'login.devHint':
-    '开发环境：演示用户（admin、owner、supervisor、staff、clerk）列在 src/Ims.Api/appsettings.Development.json 中。',
+  'login.about': '关于{name}',
+  'login.access': '需要开通账户或忘记密码？请联系管理员。',
+  'login.devHint': '开发环境：演示用户列在 src/Ims.Api/appsettings.Development.json 中。',
   'login.error.invalid': '邮箱、用户名或密码有误。',
+  // TODO-review: machine draft (sign-in page, R25).
+  'login.error.locked': '失败次数过多。请 {minutes} 分钟后重试。',
+  'login.error.rateLimited': '此网络的登录尝试次数过多。请 {seconds} 秒后重试。',
+  'login.error.rateLimited.minutes': '此网络的登录尝试次数过多。请 {minutes} 分钟后重试。',
+  'login.error.server': '暂时无法登录。请稍后重试。',
+  'login.offline': '您当前处于离线状态。请连接网络后登录。',
   'login.password': '密码',
+  'login.password.empty': '请输入密码。',
+  'login.point.audit': '审批流程，全程留痕',
+  'login.point.devices': '支持扫码枪和手机',
+  'login.point.warehouses': '所有仓库，一个实时视图',
   'login.sessionExpired': '您的登录已过期，请重新登录。',
   'login.submit': '登录',
+  'login.subtitle': '请输入邮箱或用户名和密码。',
+  'login.tagline': '掌握每个货架上的库存',
+  'login.title': '登录',
   'login.username': '邮箱或用户名',
+  // TODO-review: machine draft (sign-in page, R25).
+  'login.username.empty': '请输入邮箱或用户名。',
 
   'forbidden.body': '您的角色（{role}）无法打开此页面。如需访问，请联系管理员。',
   'forbidden.title': '您无权访问此页面。',

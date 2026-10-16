@@ -84,7 +84,7 @@
   grid-template-columns: minmax(0, 1fr);
   place-items: center;
   min-width: height('touch-min');
-  min-height: height('touch');
+  min-height: var(--ui-button-min-height, #{height('touch')});
   padding: 0 space(2);
   font-weight: font-weight('medium');
   color: var(--button-fg);

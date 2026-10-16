@@ -1,51 +1,106 @@
-<main class="login-page-panel">
+<header class="login-page-header">
+  <div class="login-page-identity">
+    <div class="login-page-lockup">
+      <app-logo class="login-page-mark" />
+      <span class="login-page-name">{{ 'app.name' | t }}</span>
+    </div>
+    <p class="login-page-strapline">{{ 'login.tagline' | t }}</p>
+  </div>
+  <app-language-select class="login-page-language" variant="segmented" />
+</header>
+
+<!-- Brand panel: from 1024px only (display: none below, so it is also out of the reading order). It has no control. -->
+<aside class="login-page-brand" [attr.aria-label]="$aboutLabel()">
+  <div class="login-page-brand-copy">
+    <p class="login-page-tagline">{{ 'login.tagline' | t }}</p>
+    <ul class="login-page-points">
+      @for (point of points; track point) {
+        <li class="login-page-point">
+          <app-icon name="check" [size]="20" />
+          {{ point | t }}
+        </li>
+      }
+    </ul>
+  </div>
+</aside>
+
+<main class="login-page-main">
   <app-toast-host />
-  <h1 class="login-page-title">{{ 'app.name' | t }}</h1>
-  <p class="login-page-subtitle">{{ 'app.tagline' | t }}</p>
+  <div class="login-page-column">
+    <div class="login-page-head">
+      <h1 class="login-page-title">{{ 'login.title' | t }}</h1>
+      <p class="login-page-subtitle">{{ 'login.subtitle' | t }}</p>
+    </div>
 
-  <form class="login-page-form" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
     @if ($sessionExpired()) {
-      <app-banner kind="warning">{{ 'login.sessionExpired' | t }}</app-banner>
+      <app-banner class="login-page-notice" kind="warning">{{
+        'login.sessionExpired' | t
+      }}</app-banner>
     }
-    <app-form-legend />
-    <app-form-field
-      [label]="'login.username' | t"
-      [required]="true"
-      [control]="form.controls.username"
-    >
-      <app-input
-        formControlName="username"
-        autocomplete="username"
-        [readonly]="$isRunning()"
-        [maxLength]="maxUsernameLength"
-      />
-    </app-form-field>
-    <app-form-field
-      [label]="'login.password' | t"
-      [required]="true"
-      [control]="form.controls.password"
-    >
-      <app-input
-        type="password"
-        formControlName="password"
-        autocomplete="current-password"
-        [readonly]="$isRunning()"
-        [maxLength]="maxPasswordLength"
-      />
-    </app-form-field>
-
-    @if ($errorMessage(); as errorMessage) {
-      <app-banner kind="danger">{{ errorMessage }}</app-banner>
+    @if ($offlineNotice()) {
+      <app-banner class="login-page-notice" kind="warning">{{ 'login.offline' | t }}</app-banner>
     }
 
-    <app-button type="submit" variant="primary" [block]="true" [loading]="$isRunning()">
-      {{ 'login.submit' | t }}
-    </app-button>
-  </form>
+    <div class="login-page-body">
+      <form
+        class="login-page-form"
+        [class.--shake]="$shaking()"
+        [formGroup]="form"
+        (ngSubmit)="onSubmit()"
+        novalidate
+      >
+        <app-form-legend />
+        <app-form-field
+          [label]="'login.username' | t"
+          [required]="true"
+          [control]="form.controls.username"
+          [messages]="{ required: 'login.username.empty' | t }"
+        >
+          <app-input
+            #username
+            formControlName="username"
+            name="username"
+            autocomplete="username"
+            inputMode="email"
+            [noSuggestions]="true"
+            [readonly]="$busy()"
+            [maxLength]="maxUsernameLength"
+          />
+        </app-form-field>
+        <app-form-field
+          [label]="'login.password' | t"
+          [required]="true"
+          [control]="form.controls.password"
+          [messages]="{ required: 'login.password.empty' | t }"
+        >
+          <app-input
+            #password
+            type="password"
+            formControlName="password"
+            name="password"
+            autocomplete="current-password"
+            [noSuggestions]="true"
+            [readonly]="$busy()"
+            [maxLength]="maxPasswordLength"
+          />
+        </app-form-field>
 
-  <app-language-select />
+        @if ($failureMessage(); as failureMessage) {
+          <app-banner class="login-page-notice" [kind]="$failureKind()" [alert]="true">{{
+            failureMessage
+          }}</app-banner>
+        }
 
-  @if (isDev) {
-    <p class="login-page-dev-hint">{{ 'login.devHint' | t }}</p>
-  }
+        <app-button type="submit" variant="primary" [block]="true" [loading]="$busy()">
+          {{ 'login.submit' | t }}
+        </app-button>
+      </form>
+    </div>
+
+    <p class="login-page-access">{{ 'login.access' | t }}</p>
+
+    @if (isDev) {
+      <p class="login-page-dev-hint">{{ 'login.devHint' | t }}</p>
+    }
+  </div>
 </main>

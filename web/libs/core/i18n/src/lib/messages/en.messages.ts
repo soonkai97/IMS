@@ -6,7 +6,6 @@
 export const EN_MESSAGES = {
   // App
   'app.name': 'IMS',
-  'app.tagline': 'Inventory Management',
   'language.label': 'Language',
   'system.goHome': 'Go to Home',
   'pwa.updateReady': 'A new version is ready.',
@@ -45,7 +44,6 @@ export const EN_MESSAGES = {
   'ui.showLess': 'Show less',
   'ui.dropFile': 'or drop a file here',
   'ui.errorTitle': 'Something went wrong.',
-  'ui.hidePassword': 'Hide password',
   'ui.loading': 'Loading',
   'ui.nextPage': 'Next page',
   'ui.pageStatus': 'Page {page} of {pages}',
@@ -141,13 +139,31 @@ export const EN_MESSAGES = {
   'ledgerReason.Opening': 'Opening stock',
 
   // Login
+  'login.about': 'About {name}',
+  'login.access': 'Need access or forgot your password? Ask your administrator.',
   'login.devHint':
-    'Development: demo users (admin, owner, supervisor, staff, clerk) are listed in src/Ims.Api/appsettings.Development.json.',
+    'Development: the demo users are listed in src/Ims.Api/appsettings.Development.json.',
   'login.error.invalid': 'Email, username or password is wrong.',
+  'login.error.locked':
+    'Too many failed attempts. Try again in {minutes, plural, one {# minute} other {# minutes}}.',
+  'login.error.rateLimited':
+    'Too many sign-in attempts from this network. Try again in {seconds, plural, one {# second} other {# seconds}}.',
+  'login.error.rateLimited.minutes':
+    'Too many sign-in attempts from this network. Try again in {minutes, plural, one {# minute} other {# minutes}}.',
+  'login.error.server': 'Sign-in is not working right now. Try again in a moment.',
+  'login.offline': "You're offline. Connect to the internet to sign in.",
   'login.password': 'Password',
+  'login.password.empty': 'Enter your password.',
+  'login.point.audit': 'Approvals with a full audit trail',
+  'login.point.devices': 'Made for barcode scanners and phones',
+  'login.point.warehouses': 'Every warehouse in one live view',
   'login.sessionExpired': 'Your session expired. Sign in again.',
   'login.submit': 'Sign in',
+  'login.subtitle': 'Enter your email or username and password.',
+  'login.tagline': 'Know what is on every shelf',
+  'login.title': 'Sign in',
   'login.username': 'Email or username',
+  'login.username.empty': 'Enter your email or username.',
 
   // Errors pages
   'forbidden.body': "Your role ({role}) can't open this. Ask an Admin if you need it.",

@@ -92,7 +92,7 @@ The OpenAPI document at `/openapi/v1.json` describes the wire format as it is, s
 
 ## Cost and value visibility
 
-Who may see cost and value is decided by two permissions, `cost.view` (Clerk, Supervisor, Owner, Admin) and `valuation.view` (Supervisor, Owner, Admin), and written once: a cost or value is tagged `[VisibleWith(permission)]` where it is declared (`Ims.Domain.VisibleWithAttribute`). The matrix is in `docs/design/mvp-ux.md` 1.4. Nothing else in the code checks a role name for this.
+Who may see cost and value is decided by two permissions, `cost.view` (held by default by Clerk, Supervisor, Owner, Admin) and `valuation.view` (by default Supervisor, Owner, Admin), and written once: a cost or value is tagged `[VisibleWith(permission)]` where it is declared (`Ims.Domain.VisibleWithAttribute`). The matrix is in `docs/design/mvp-ux.md` 1.4. Nothing else in the code checks a role name for this.
 
 - **Responses.** `CostVisibilityBehavior` (a pipeline step after validation, for every request) runs `ResponseShaper` over the result: a tagged property of a caller without the permission is set to `null`, wherever it sits (nested objects, lists, pages). Tagged properties are therefore nullable `init` properties; `OnlyWhen` limits the rule to one case (an approval trigger hides its numbers only for an amount rule). Handlers see the full values: only the outermost request is shaped (`ShapingState`), so a handler that sends another command reads the complete result.
 - **Audit.** `AuditPayloadScrubber` removes the keys that name a cost or value from the before/after JSON (entity properties tagged in the Domain, plus the payload keys of `AuditFields`); a payload that carries money must name its key with an `AuditFields` constant. The audit log itself is Owner and Admin only.
@@ -140,4 +140,4 @@ Request logging records the final mapped status; business rejections are warning
 
 - Application references `Ardalis.Specification` (persistence-ignorant) but not EF Core.
 - Namespaces inside a layer are flat per feature (`Ims.Application.Features.Catalog`) while folders carry the finer structure.
-- Roles and the permission matrix are code (PRD 3.1). Per-customer roles are a Phase 2 change.
+- Permissions are defined in code (the catalog, stable codes) and roles are configurable: the five roles of PRD 3.1 are system roles whose permission matrix is their *defaults*, not a fixed rule; custom roles and the move of roles into the database follow [adr-roles-permissions.md](adr-roles-permissions.md) (accepted 2026-10-16, lean scope). Until slice RP-4a the running code still reads the role-keyed matrix; `tests/Ims.Domain.Tests/Identity/Oracle` pins its answers so every slice can prove the default behaviour did not move.

@@ -14,6 +14,7 @@ export * from './lib/components/icon/icon-size';
 export * from './lib/components/icon/icon.component';
 export * from './lib/components/icon/icon.paths';
 export * from './lib/components/input/input.component';
+export * from './lib/components/logo/logo.component';
 export * from './lib/components/page-header/page-header.component';
 export * from './lib/components/pager/pager.component';
 export * from './lib/components/radio-group/radio-group.component';

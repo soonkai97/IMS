@@ -18,6 +18,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- The roles-and-permissions oracle: answers of the pre-roles code, read by Identity/Oracle tests. -->
+  <ItemGroup>
+    <None Include="Identity\Oracle\*.csv" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Ims.Domain\Ims.Domain.csproj" />
     <ProjectReference Include="..\..\src\Ims.Application\Ims.Application.csproj" />

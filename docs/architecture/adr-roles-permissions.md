@@ -1,8 +1,25 @@
 # ADR: Configurable roles and permissions
 
-Status: Proposed (needs the owner answers in section 8). Date: 2026-10-11. Author: be-architect.
+Status: **Accepted 2026-10-16** in the lean scope below (the owner's lean approval, `TASKS.md` EP06; section 8 questions Q1 to Q7 take their recommended defaults). Written 2026-10-11 as Proposed. Author: be-architect.
 Inputs: `docs/architecture/backend.md`, `adr-guid-keys.md` (revised 2026-10-11), `docs/design/mvp-ux.md` (1.1, 1.2, 1.4, 7.2), `docs/security/security-review-initial.md` (SEC-06, SEC-08, SEC-09, SEC-10), `docs/qa/retest-edge-accessibility.md` (ER-15), `docs/design/2026-refresh-plan.md`, PRD 3 and AUTH-02/03, and the code at HEAD 9d5a782 (file:line below).
-Scope: design only. No code was changed. `backend.md` is updated after acceptance (slice RP-0); its trade-off line "Roles and the permission matrix are code. Per-customer roles are a Phase 2 change" is superseded by this ADR.
+Scope: design. The code is built slice by slice (section 7); `backend.md` and `mvp-ux.md` 1.1/1.2 were reworded in slice RP-0, so the trade-off line "Roles and the permission matrix are code. Per-customer roles are a Phase 2 change" is superseded by this ADR.
+
+## Lean scope (accepted 2026-10-16): what changes in the text below
+
+`docs/design/lean-scope.md` section 6.1 is the scope that is built. Where it and the sections below differ, the lean scope wins; the sections stay as the full design.
+
+| Item | Decision |
+|---|---|
+| Slices | RP-0, RP-1, RP-2, RP-3, RP-4a, RP-4b, RP-5, RP-6, RP-8 are built. **RP-7 (per-user overrides, section 2.5) is deferred**, **RP-9 (reset, impact preview) is dropped.** Trigger for RP-7: lean-scope section 4 |
+| Overrides | Not built: no `UserPermissionOverride` table, no override endpoints, no sweeper, no `effective-permissions` endpoint, no exceptions count. `EffectivePermissions` takes the role's grants as its input set, so overrides can be added later without changing the policies. Q2 is therefore not asked |
+| Catalog sync | No `Permission` table and no start-up sync (sections 2.1 "Sync", 4.1). The catalog lives in code and is served at `GET /api/permissions`. A release that adds a permission ships a migration that grants it to Admin and to the right default roles; a test fails when a catalog code is not held by Admin on a fresh database |
+| Freshness | No `AccessEpoch` table, watcher, two-host tests or `X-Permissions-Version` (sections 3.2 step 4, 3.3). The access snapshot is cached in `IMemoryCache` with a 15-second time to live and evicted on every access write on the instance that made it; one API instance is the hosting default. The port `IAccessSnapshots` stays, so an epoch can be added when a second instance exists. Deactivation answers 401 and a demotion applies within 15 seconds (ER-15, SEC-06) |
+| Roles | One role per user (Q1). Custom roles: blank or copied, renamed, deactivated, deleted when unused. A role in use cannot be deactivated or deleted (Q7). Only Admin holds `roles.manage` at install (Q3) |
+| Approval | Two tiers (Q5): `document.approve` (standard) and `document.approve.large`; the rule stores a tier. An Admin-only rule becomes Large |
+| Scope | "Sees every warehouse" becomes the per-person flag `AllWarehouses` (Q6) |
+| Cost visibility | Changeable by administrators with a reason and an audit entry; the defaults of the system roles are unchanged (Q4) |
+
+**Oracle fixtures (slice RP-0).** The old behaviour is committed before anything changes, as three compact files in `tests/Ims.Domain.Tests/Identity/Oracle/` (written by `LegacyBehaviour` from commit abe1ad0): `roles.csv` (permissions and the role-keyed answers of the five roles plus an unknown role), `rule-sets.csv` (93 approval-rule situations x the five approver roles) and `document-actions.csv` (120 rows: role x status x requires-approval x large; each row holds the answers for six creator/submitter situations and four setting combinations, so the file carries 5,760 answers). `LegacyOracleTests` pins the current code to them. Every later slice re-checks the same files with the new types; the documented exceptions are the two renames (Owner: `document.approve` becomes `document.approve.large`; Admin-only rules become Large) and the two standalone answers of `PostingAuthority` that only hold together with `document.post` (the new permissions require it).
 
 ## 0. Decision in short
 
