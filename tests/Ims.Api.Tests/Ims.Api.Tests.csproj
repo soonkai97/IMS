@@ -32,6 +32,12 @@
   <ItemGroup>
     <!-- One builder of tiny valid JPEG/PNG/WebP files (with and without metadata) shared with the domain tests. -->
     <Compile Include="..\Ims.Domain.Tests\Attachments\TestImages.cs" Link="Support\TestImages.cs" />
+    <!-- The roles oracle (answers of the pre-roles code) and the types that read it, so a migrated database is judged by the very same files as the code (RP-2). -->
+    <Compile Include="..\Ims.Domain.Tests\Identity\Oracle\OracleKeys.cs" Link="Support\Oracle\OracleKeys.cs" />
+    <Compile Include="..\Ims.Domain.Tests\Identity\Oracle\OracleTable.cs" Link="Support\Oracle\OracleTable.cs" />
+    <Compile Include="..\Ims.Domain.Tests\Identity\Oracle\OracleTables.cs" Link="Support\Oracle\OracleTables.cs" />
+    <Compile Include="..\Ims.Domain.Tests\Identity\Oracle\NewBehaviour.cs" Link="Support\Oracle\NewBehaviour.cs" />
+    <None Include="..\Ims.Domain.Tests\Identity\Oracle\*.csv" Link="Identity\Oracle\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

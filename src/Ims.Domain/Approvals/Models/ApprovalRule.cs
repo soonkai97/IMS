@@ -15,10 +15,11 @@ public class ApprovalRule : PublicEntity
     public bool IsActive { get; private set; } = true;
 
     /// <summary>
-    /// The tier of approver the rule asks for, read from the role it names until the rule stores a tier itself (RP-2/RP-4b). Owner and Admin are Large, anything
-    /// else Standard: exactly the old "a rule above a supervisor" test, so which documents are large does not change.
+    /// The tier of approver the rule asks for. Stored since RP-2, written with <see cref="RoleRequired"/> on every save and derived from it until RP-4b makes the
+    /// tier the source: Owner and Admin are Large, anything else Standard, exactly the old "a rule above a supervisor" test, so which documents are large does not change.
+    /// The migration gave the rules saved before it the same value.
     /// </summary>
-    public ApproverTier Tier => RoleRequired is Roles.Owner or Roles.Admin ? ApproverTier.Large : ApproverTier.Standard;
+    public ApproverTier Tier { get; private set; }
 
     public static ApprovalRule Create(DocumentType docType, decimal? amountThreshold, decimal? qtyThreshold, string roleRequired, bool isActive = true)
     {
@@ -38,6 +39,7 @@ public class ApprovalRule : PublicEntity
         AmountThreshold = amountThreshold;
         QtyThreshold = qtyThreshold;
         RoleRequired = roleRequired;
+        Tier = roleRequired is Roles.Owner or Roles.Admin ? ApproverTier.Large : ApproverTier.Standard;
         IsActive = isActive;
     }
 

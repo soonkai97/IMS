@@ -38,6 +38,10 @@ public static class Messages
     public const string UsernameInvalid = "Username is required.";
     public const string EmailInvalid = "Enter a valid email address.";
     public const string UnknownRole = "Unknown role.";
+    public static readonly string RoleCodeInvalid = $"A role needs a code of up to {Limits.RoleMaxLength} characters.";
+    public static readonly string RoleNameInvalid = $"A role name needs {Limits.RoleNameMinLength} to {Limits.RoleNameMaxLength} characters.";
+    public static readonly string RoleDescriptionTooLong = $"A role description can have at most {Limits.RoleDescriptionMaxLength} characters.";
+    public static string UnknownPermission(string code) => $"Unknown permission '{code}'.";
 
     // ----- Catalogue -----
     public const string ProductNotFound = "Product not found.";

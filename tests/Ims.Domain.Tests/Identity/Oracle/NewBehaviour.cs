@@ -8,9 +8,15 @@ namespace Ims.Domain.Tests.Identity.Oracle;
 /// </summary>
 internal static class NewBehaviour
 {
-    public static IReadOnlyDictionary<string, string> Role(IReadOnlyDictionary<string, string> key)
+    public static IReadOnlyDictionary<string, string> Role(IReadOnlyDictionary<string, string> key) => Role(key, DefaultRights);
+
+    /// <summary>The rights of a system role as <see cref="SystemRoleDefaults"/> holds them in code.</summary>
+    public static ActorRights DefaultRights(string role) => SystemRoleDefaults.RightsFor(role, Me);
+
+    /// <summary>The same questions asked of rights from anywhere else, for example the permission rows a migrated database holds for the role.</summary>
+    public static IReadOnlyDictionary<string, string> Role(IReadOnlyDictionary<string, string> key, Func<string, ActorRights> rightsOf)
     {
-        var rights = SystemRoleDefaults.RightsFor(key["role"], Me);
+        var rights = rightsOf(key["role"]);
         return new Dictionary<string, string>
         {
             ["restrictedToOwn"] = Flag(DocumentActionPolicy.IsRestrictedToOwn(rights)),
@@ -25,18 +31,22 @@ internal static class NewBehaviour
     /// the action cells are left out here; <c>document-corrections.csv</c> pins them (<see cref="CorrectionsExtension"/>). Everything else, every other
     /// row and the recall action (the old cells have no letter for it) still has to equal the frozen file.
     /// </summary>
-    public static IReadOnlyDictionary<string, string> DocumentAsFrozen(IReadOnlyDictionary<string, string> key)
+    public static IReadOnlyDictionary<string, string> DocumentAsFrozen(IReadOnlyDictionary<string, string> key) => DocumentAsFrozen(key, DefaultRights);
+
+    public static IReadOnlyDictionary<string, string> DocumentAsFrozen(IReadOnlyDictionary<string, string> key, Func<string, ActorRights> rightsOf)
     {
-        var answers = Document(key).ToDictionary(a => a.Key, a => a.Value);
+        var answers = Document(key, rightsOf).ToDictionary(a => a.Key, a => a.Value);
         if (key["status"] != nameof(DocumentStatus.Approved)) return answers;
         answers.Remove("cancel");
         foreach (var column in answers.Keys.Where(c => c.StartsWith("actions", StringComparison.Ordinal)).ToList()) answers[column] = answers[column].Replace('C', '.');
         return answers;
     }
 
-    public static IReadOnlyDictionary<string, string> Document(IReadOnlyDictionary<string, string> key)
+    public static IReadOnlyDictionary<string, string> Document(IReadOnlyDictionary<string, string> key) => Document(key, DefaultRights);
+
+    public static IReadOnlyDictionary<string, string> Document(IReadOnlyDictionary<string, string> key, Func<string, ActorRights> rightsOf)
     {
-        var rights = SystemRoleDefaults.RightsFor(key["role"], Me);
+        var rights = rightsOf(key["role"]);
         var status = Enum.Parse<DocumentStatus>(key["status"]);
         var requiresApproval = key["requiresApproval"] == "1";
         var isLarge = key["isLarge"] == "1";
