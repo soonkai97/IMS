@@ -337,6 +337,83 @@ public class StockDocumentStateMachineTests
         Assert.False(doc.IsLarge);
     }
 
+    // ----- Recall (the submitter takes a Submitted document back to Draft) -----
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, true)]
+    public void Recall_FromSubmitted_ReturnsToAnOrdinaryDraftWithNothingOfTheSubmissionLeft(bool requiresApproval, bool isLarge, bool requiresOverride)
+    {
+        var doc = NewReceipt(1, (NewProduct(), 5m, 2m));
+        doc.AssignNumber("RCV-WH01-2601-0001");
+        doc.Submit(Submitter, requiresApproval, Now, isLarge, requiresOverride);
+
+        doc.Recall();
+
+        Assert.Equal(DocumentStatus.Draft, doc.Status);
+        Assert.Null(doc.SubmittedBy);
+        Assert.Null(doc.SubmittedAt);
+        Assert.False(doc.RequiresApproval);
+        Assert.False(doc.IsLarge);
+        Assert.False(doc.RequiresOverride);
+        Assert.False(doc.IsReturned);          // a recall is not a rejection: no "Returned" badge
+        Assert.Null(doc.RejectionReason);
+        Assert.Null(doc.RejectedBy);
+        Assert.Equal("RCV-WH01-2601-0001", doc.No);
+        Assert.Single(doc.Lines);
+        Assert.Null(doc.ApprovedBy);
+    }
+
+    [Fact]
+    public void Recall_LeavesADraftThatCanBeEditedAndSubmittedAgainWithTheRulesAssessedAgain()
+    {
+        var doc = NewReceipt(1, (NewProduct(), 500m, 2m));
+        doc.Submit(Submitter, requiresApproval: true, Now, isLarge: true);
+        doc.Recall();
+
+        doc.ReplaceLines([NewLine(NewProduct(), DocumentType.Receipt, 5m, 2m, lineId: 1)]);
+        doc.Submit(Approver, requiresApproval: false, Later);
+
+        Assert.Equal(DocumentStatus.Submitted, doc.Status);
+        Assert.False(doc.RequiresApproval);   // the new, smaller quantity needs no approval
+        Assert.False(doc.IsLarge);
+        Assert.Equal(Approver, doc.SubmittedBy);
+        Assert.Equal(Later, doc.SubmittedAt);
+        Assert.True(doc.CanPost);
+    }
+
+    [Fact]
+    public void Recall_OfAReturnedDraftIsRefusedBecauseItIsAlreadyADraft()
+    {
+        var doc = InStatus(DocumentStatus.Submitted);
+        doc.Reject("price looks wrong", Approver, allowSelfApproval: false, Later);
+
+        var ex = Assert.Throws<DomainException>(doc.Recall);
+
+        Assert.Equal(Messages.OnlySubmittedCanRecall(doc.No, DocumentStatus.Draft), ex.Message);
+        Assert.True(doc.IsReturned);
+    }
+
+    [Theory]
+    [InlineData(DocumentStatus.Draft)]
+    [InlineData(DocumentStatus.Approved)]
+    [InlineData(DocumentStatus.Posted)]
+    [InlineData(DocumentStatus.Reversed)]
+    [InlineData(DocumentStatus.Cancelled)]
+    public void Recall_FromAnyStatusButSubmitted_ThrowsAndChangesNothing(DocumentStatus status)
+    {
+        var doc = InStatus(status);
+        var approvedBy = doc.ApprovedBy;
+        var submittedBy = doc.SubmittedBy;
+
+        var ex = Assert.Throws<DomainException>(doc.Recall);
+
+        Assert.Equal(Messages.OnlySubmittedCanRecall(doc.No, status), ex.Message);
+        Assert.Equal(status, doc.Status);
+        Assert.Equal((approvedBy, submittedBy), (doc.ApprovedBy, doc.SubmittedBy));
+    }
+
     // ----- Cancel -----
     [Theory]
     [InlineData(DocumentStatus.Draft)]
@@ -352,7 +429,72 @@ public class StockDocumentStateMachineTests
     }
 
     [Theory]
-    [InlineData(DocumentStatus.Approved)]
+    [InlineData(DocumentStatus.Draft)]
+    [InlineData(DocumentStatus.Submitted)]
+    public void Cancel_FromDraftOrSubmitted_NeedsNoReason(DocumentStatus status)
+    {
+        var doc = InStatus(status);
+
+        doc.Cancel(null);
+
+        Assert.Equal(DocumentStatus.Cancelled, doc.Status);
+        Assert.Null(doc.CancelReason);
+    }
+
+    [Fact]
+    public void Cancel_FromApproved_MovesToCancelledKeepingTheTrimmedReasonAndTheApprovalAsHistory()
+    {
+        var doc = InStatus(DocumentStatus.Approved);
+
+        doc.Cancel("  customer withdrew the order ");
+
+        Assert.Equal(DocumentStatus.Cancelled, doc.Status);
+        Assert.Equal("customer withdrew the order", doc.CancelReason);
+        Assert.Equal(Approver, doc.ApprovedBy);
+        Assert.NotNull(doc.ApprovedAt);
+        Assert.Null(doc.PostedAt);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Cancel_FromApproved_WithoutAReason_ThrowsAndStaysApproved(string? reason)
+    {
+        var doc = InStatus(DocumentStatus.Approved);
+
+        var ex = Assert.Throws<DomainException>(() => doc.Cancel(reason));
+
+        Assert.Equal(Messages.CancelApprovedReasonRequired, ex.Message);
+        Assert.Equal(DocumentStatus.Approved, doc.Status);
+        Assert.Null(doc.CancelReason);
+    }
+
+    [Theory]
+    [InlineData("x")]
+    [InlineData("abcd")]
+    [InlineData("  abcd  ")]
+    public void Cancel_FromApproved_WithAReasonUnderTheMinimum_ThrowsAndStaysApproved(string reason)
+    {
+        var doc = InStatus(DocumentStatus.Approved);
+
+        var ex = Assert.Throws<DomainException>(() => doc.Cancel(reason));
+
+        Assert.Equal(Messages.ReasonTooShort, ex.Message);
+        Assert.Equal(DocumentStatus.Approved, doc.Status);
+    }
+
+    [Fact]
+    public void Cancel_FromApproved_AcceptsAReasonOfExactlyTheMinimumLength()
+    {
+        var doc = InStatus(DocumentStatus.Approved);
+
+        doc.Cancel(new string('a', Limits.ReasonMinLength));
+
+        Assert.Equal(DocumentStatus.Cancelled, doc.Status);
+    }
+
+    [Theory]
     [InlineData(DocumentStatus.Posted)]
     [InlineData(DocumentStatus.Reversed)]
     [InlineData(DocumentStatus.Cancelled)]
@@ -360,10 +502,51 @@ public class StockDocumentStateMachineTests
     {
         var doc = InStatus(status);
 
-        var ex = Assert.Throws<DomainException>(() => doc.Cancel("oops"));
+        var ex = Assert.Throws<DomainException>(() => doc.Cancel("oops, wrong one"));
 
-        Assert.Equal(Messages.OnlyDraftOrSubmittedCanCancel(status), ex.Message);
+        Assert.Equal(Messages.OnlyDraftSubmittedOrApprovedCanCancel(status), ex.Message);
         Assert.Equal(status, doc.Status);
+    }
+
+    // ----- The whole table: every status against Recall and Cancel -----
+    [Theory]
+    [InlineData(DocumentStatus.Draft, false, true)]
+    [InlineData(DocumentStatus.Submitted, true, true)]
+    [InlineData(DocumentStatus.Approved, false, true)]
+    [InlineData(DocumentStatus.Posted, false, false)]
+    [InlineData(DocumentStatus.Reversed, false, false)]
+    [InlineData(DocumentStatus.Cancelled, false, false)]
+    public void Recall_AndCancel_AreLegalExactlyWhereFigure5SaysSo(DocumentStatus status, bool recallLegal, bool cancelLegal)
+    {
+        Assert.Equal(recallLegal, Succeeds(InStatus(status), d => d.Recall()));
+        Assert.Equal(cancelLegal, Succeeds(InStatus(status), d => d.Cancel("a good enough reason")));
+    }
+
+    [Fact]
+    public void ARecalledDocument_CannotBeApprovedOrPostedUntilItIsSubmittedAgain()
+    {
+        var doc = InStatus(DocumentStatus.Submitted);
+        doc.Recall();
+
+        Assert.Throws<DomainException>(() => doc.MarkPosted(Approver, Later));
+        Assert.Throws<DomainException>(() => doc.Approve(Approver, false, Later));
+
+        doc.Submit(Submitter, requiresApproval: false, Later);
+        doc.MarkPosted(Approver, Later);
+        Assert.Equal(DocumentStatus.Posted, doc.Status);
+    }
+
+    private static bool Succeeds(StockDocument doc, Action<StockDocument> act)
+    {
+        try
+        {
+            act(doc);
+            return true;
+        }
+        catch (DomainException)
+        {
+            return false;
+        }
     }
 
     // ----- Post -----

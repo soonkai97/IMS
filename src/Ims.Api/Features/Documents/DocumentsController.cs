@@ -53,7 +53,16 @@ public class DocumentsController(IDispatcher dispatcher) : ApiControllerBase(dis
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Reject(Guid id, [FromBody] RejectRequest body) => SendDocument(new RejectDocumentCommand(id, body, IfMatch));
 
-    [HttpPost(RouteSegments.Cancel), Authorize(Policy = Permissions.DocumentCreate)]
+    /// <summary>
+    /// Takes the caller's own Submitted document back to Draft (the Edit button): same number, same lines, no reason. Repeating it on a document
+    /// that is already an ordinary Draft answers 200 with the document and changes nothing.
+    /// </summary>
+    [HttpPost(RouteSegments.Recall), Authorize(Policy = Permissions.DocumentCreate)]
+    [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
+    public Task<IActionResult> Recall(Guid id) => SendDocument(new RecallDocumentCommand(id, IfMatch));
+
+    /// <summary>Cancels a Draft, a Submitted or an Approved document. The reason is optional, except that cancelling an Approved document (by a reviewer it is routed to) needs one of at least 5 characters.</summary>
+    [HttpPost(RouteSegments.Cancel), Authorize(Policy = AuthPolicies.DocumentCancel)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Cancel(Guid id, [FromBody] CancelRequest body) => SendDocument(new CancelDocumentCommand(id, body, IfMatch));
 

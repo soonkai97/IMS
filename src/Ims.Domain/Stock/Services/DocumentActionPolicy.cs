@@ -20,17 +20,36 @@ public static class DocumentActionPolicy
         (!IsRestrictedToOwn(role) || doc.Status != DocumentStatus.Draft || doc.CreatedBy == userId);
 
     /// <summary>
-    /// Cancel a Draft (restricted roles: the creator) or a Submitted document (restricted roles: the submitter, a recall). In any other
-    /// status the state machine refuses it for everyone, so ownership is not asked.
+    /// Take a Submitted document back to Draft: only the person who submitted it, whatever their role, as long as they may create documents.
+    /// An approval is someone else's decision, so there is no recall of an Approved document. Ownership only matters while the document is
+    /// Submitted; in any other status the state machine gives the answer.
+    /// </summary>
+    public static bool MayRecall(string role, int userId, in DocumentActionContext doc) =>
+        Permissions.Has(role, Permissions.DocumentCreate) && doc.Status == DocumentStatus.Submitted && doc.SubmittedBy == userId;
+
+    /// <summary>
+    /// Undo the approval of an Approved document: a person who may review it (the reviewer role it is routed to, <see cref="ApprovalPolicy.MayReview"/>),
+    /// so a Supervisor cannot touch a large document and the Owner only a large one. The submitter is not excluded: this only reduces what was allowed.
+    /// </summary>
+    public static bool MayReviewApproved(string role, in DocumentActionContext doc) =>
+        doc.Status == DocumentStatus.Approved &&
+        Permissions.Has(role, Permissions.DocumentApprove) && ApprovalPolicy.MayReview(role, doc.IsLarge);
+
+    /// <summary>
+    /// Cancel a Draft (restricted roles: the creator), a Submitted document (restricted roles: the submitter) or an Approved one (the reviewers
+    /// of <see cref="MayReviewApproved"/>, who may be the Owner although the Owner cannot create documents). In any other status the state
+    /// machine refuses it for everyone, so ownership is not asked.
     /// </summary>
     public static bool MayCancel(string role, int userId, in DocumentActionContext doc) =>
-        Permissions.Has(role, Permissions.DocumentCreate) &&
-        (!IsRestrictedToOwn(role) || doc.Status switch
-        {
-            DocumentStatus.Draft => doc.CreatedBy == userId,
-            DocumentStatus.Submitted => doc.SubmittedBy == userId,
-            _ => true
-        });
+        doc.Status == DocumentStatus.Approved
+            ? MayReviewApproved(role, doc)
+            : Permissions.Has(role, Permissions.DocumentCreate) &&
+              (!IsRestrictedToOwn(role) || doc.Status switch
+              {
+                  DocumentStatus.Draft => doc.CreatedBy == userId,
+                  DocumentStatus.Submitted => doc.SubmittedBy == userId,
+                  _ => true
+              });
 
     /// <summary>
     /// Approve or reject a Submitted document held for approval: the reviewer role it is routed to (<see cref="ApprovalPolicy.MayReview"/>),
@@ -57,6 +76,7 @@ public static class DocumentActionPolicy
                 break;
 
             case DocumentStatus.Submitted:
+                if (MayRecall(role, userId, doc)) actions.Add(DocumentActions.Recall);
                 if (MayCancel(role, userId, doc)) actions.Add(DocumentActions.Cancel);
                 if (doc.RequiresApproval)
                 {
@@ -69,9 +89,10 @@ public static class DocumentActionPolicy
                 }
                 break;
 
-            // Warehouse staff may only post documents that never needed approval (PRD 3.1).
-            case DocumentStatus.Approved when Can(Permissions.DocumentPost) && PostingAuthority.MayPostApprovalRequiredDocument(role):
-                actions.Add(DocumentActions.Post);
+            case DocumentStatus.Approved:
+                // Warehouse staff may only post documents that never needed approval (PRD 3.1).
+                if (Can(Permissions.DocumentPost) && PostingAuthority.MayPostApprovalRequiredDocument(role)) actions.Add(DocumentActions.Post);
+                if (MayCancel(role, userId, doc)) actions.Add(DocumentActions.Cancel);
                 break;
 
             case DocumentStatus.Posted when Can(Permissions.DocumentReverse):

@@ -17,8 +17,20 @@ public interface IDocumentAccess
     /// <exception cref="ForbiddenException">Warehouse staff and Clerk may edit and submit only documents they created (UX 7.2).</exception>
     void EnsureMayEditOrSubmit(StockDocument document);
 
-    /// <exception cref="ForbiddenException">Warehouse staff and Clerk may cancel only their own Drafts and the documents they submitted (UX 7.2).</exception>
+    /// <exception cref="ForbiddenException">Warehouse staff and Clerk may cancel only their own Drafts and the documents they submitted (UX 7.2); an Approved document only a reviewer it is routed to.</exception>
     void EnsureMayCancel(StockDocument document);
+
+    /// <summary>
+    /// A Submitted document is taken back only by its submitter. In any other status the state machine answers (so the refusal is the same for everyone).
+    /// </summary>
+    /// <exception cref="ForbiddenException">The document is Submitted and the caller did not submit it.</exception>
+    void EnsureMayRecall(StockDocument document);
+
+    /// <summary>
+    /// True when a recall would repeat one that already happened: the document is an ordinary Draft (not a returned one) that the caller may edit.
+    /// The recall then answers with the document and changes nothing.
+    /// </summary>
+    bool IsRepeatedRecall(StockDocument document);
 
     /// <param name="withinApprovalLimit">False when the approval rules in force need a higher role than the caller's: approve and reject are then not offered.</param>
     IReadOnlyList<string> AllowedActions(DocumentDto document, SystemSettings settings, bool withinApprovalLimit);

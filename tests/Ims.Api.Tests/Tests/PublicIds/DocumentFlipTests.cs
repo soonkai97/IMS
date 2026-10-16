@@ -71,6 +71,7 @@ public partial class DocumentFlipTests(ApiFixture fixture)
             ["get"] = id => s.Admin.Documents.GetAsync(id),
             ["update"] = id => s.Admin.Documents.UpdateAsync(id, body),
             ["submit"] = id => s.Admin.Documents.SubmitAsync(id),
+            ["recall"] = id => s.Admin.Documents.RecallAsync(id),
             ["cancel"] = id => s.Admin.Documents.CancelAsync(id, "Not needed here"),
             ["approve"] = id => s.Owner.Documents.ApproveAsync(id),
             ["reject"] = id => s.Owner.Documents.RejectAsync(id, "Not needed here"),

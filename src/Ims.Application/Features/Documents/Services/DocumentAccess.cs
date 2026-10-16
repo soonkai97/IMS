@@ -27,8 +27,23 @@ public class DocumentAccess(ICurrentUser current) : IDocumentAccess, IAppService
     public void EnsureMayCancel(StockDocument document)
     {
         if (!DocumentActionPolicy.MayCancel(current.Role, current.UserId, document.ActionContext))
-            throw new ForbiddenException(document.Status == DocumentStatus.Draft ? Messages.OwnDocumentsOnly : Messages.OwnSubmissionsOnly);
+            throw new ForbiddenException(document.Status switch
+            {
+                DocumentStatus.Draft => Messages.OwnDocumentsOnly,
+                DocumentStatus.Approved => Messages.OnlyReviewerCanCancelApproved,
+                _ => Messages.OwnSubmissionsOnly
+            });
     }
+
+    public void EnsureMayRecall(StockDocument document)
+    {
+        if (document.Status == DocumentStatus.Submitted && !DocumentActionPolicy.MayRecall(current.Role, current.UserId, document.ActionContext))
+            throw new ForbiddenException(Messages.OwnRecallOnly);
+    }
+
+    public bool IsRepeatedRecall(StockDocument document) =>
+        document is { Status: DocumentStatus.Draft, IsReturned: false } &&
+        DocumentActionPolicy.MayEditOrSubmit(current.Role, current.UserId, document.ActionContext);
 
     public IReadOnlyList<string> AllowedActions(DocumentDto d, SystemSettings settings, bool withinApprovalLimit) =>
         DocumentActionPolicy.AllowedActions(current.Role, current.UserId,

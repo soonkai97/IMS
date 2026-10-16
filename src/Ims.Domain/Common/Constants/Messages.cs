@@ -102,6 +102,9 @@ public static class Messages
     public const string ReverseReasonRequired = "A reversal reason is required.";
     public const string OwnDocumentsOnly = "You can only change documents you created.";
     public const string OwnSubmissionsOnly = "You can only cancel documents you submitted.";
+    public const string OwnRecallOnly = "Only the person who submitted a document can take it back to draft.";
+    public const string OnlyReviewerCanCancelApproved = "Only an approver for this document can cancel it after approval.";
+    public const string CancelApprovedReasonRequired = "A reason is required to cancel an approved document.";
     public const string SelfRejection = "You cannot reject a document you submitted.";
     public const string OwnerReviewsLargeOnly = "Owners review only large documents. A supervisor reviews this one.";
     public const string NeedsApprovalNotForStaff = "This document needs approval; warehouse staff can only post documents that do not.";
@@ -118,7 +121,8 @@ public static class Messages
     public static string OnlyDraftCanSubmit(DocumentStatus status) => $"Only a Draft can be submitted (current: {status}).";
     public static string OnlySubmittedCanApprove(DocumentStatus status) => $"Only a Submitted document can be approved (current: {status}).";
     public static string OnlySubmittedCanReject(DocumentStatus status) => $"Only a Submitted document can be rejected (current: {status}).";
-    public static string OnlyDraftOrSubmittedCanCancel(DocumentStatus status) => $"Only Draft or Submitted documents can be cancelled (current: {status}).";
+    public static string OnlySubmittedCanRecall(string no, DocumentStatus status) => $"{no} is {status} and can't be taken back to draft.";
+    public static string OnlyDraftSubmittedOrApprovedCanCancel(DocumentStatus status) => $"Only Draft, Submitted or Approved documents can be cancelled (current: {status}).";
     public static string CannotPostInStatus(DocumentStatus status) => $"A document in status {status} cannot be posted.";
     public const string OnlyPostedCanReverse = "Only a Posted document can be reversed.";
 

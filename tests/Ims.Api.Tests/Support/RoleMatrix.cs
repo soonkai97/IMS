@@ -1,3 +1,4 @@
+using Ims.Api;
 using Ims.Domain;
 
 namespace Ims.Api.Tests.Support;
@@ -32,5 +33,11 @@ public static class RoleMatrix
         [Roles.Clerk] = [Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.StockRead, Permissions.CostView]
     };
 
-    public static bool MayUse(string role, string permission) => Allowed[role].Contains(permission);
+    /// <summary>
+    /// A door is a permission, except <see cref="AuthPolicies.DocumentCancel"/>: the create right (Draft and Submitted) or the approve right
+    /// (Approved), written out here again so that a change to the policy has to be a change to this table too.
+    /// </summary>
+    public static bool MayUse(string role, string permission) => permission == AuthPolicies.DocumentCancel
+        ? Allowed[role].Contains(Permissions.DocumentCreate) || Allowed[role].Contains(Permissions.DocumentApprove)
+        : Allowed[role].Contains(permission);
 }

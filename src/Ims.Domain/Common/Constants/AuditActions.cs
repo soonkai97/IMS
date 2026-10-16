@@ -22,6 +22,7 @@ public static class AuditActions
     public const string DocumentSubmitted = "document.submitted";
     public const string DocumentApproved = "document.approved";
     public const string DocumentRejected = "document.rejected";
+    public const string DocumentRecalled = "document.recalled";
     public const string DocumentCancelled = "document.cancelled";
     public const string DocumentPosted = "document.posted";
     public const string DocumentReversed = "document.reversed";
@@ -39,7 +40,7 @@ public static class AuditActions
     public static readonly IReadOnlyList<string> Known =
     [
         RowCreated, RowUpdated, RowDeleted, LoginSuccess, LoginFailed, LoginLocked, LoginLockout, Logout, UserCreated, UserUpdated, PasswordChanged,
-        SettingsUpdated, DocumentCreated, DocumentSubmitted, DocumentApproved, DocumentRejected, DocumentCancelled, DocumentPosted, DocumentReversed,
+        SettingsUpdated, DocumentCreated, DocumentSubmitted, DocumentApproved, DocumentRejected, DocumentRecalled, DocumentCancelled, DocumentPosted, DocumentReversed,
         AttachmentUploaded, AttachmentDeleted, ImportProducts, ImportOpeningStock
     ];
 }

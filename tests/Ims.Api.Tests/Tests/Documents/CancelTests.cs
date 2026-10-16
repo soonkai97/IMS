@@ -45,21 +45,6 @@ public class CancelTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task An_approved_document_cannot_be_cancelled()
-    {
-        var s = await StockScenario.CreateAsync(fixture);
-        var product = await s.NewProductAsync();
-        await s.ReceiveAsync(Warehouse, new Line(product.Id, 100, 100m));
-        var submitted = await s.SubmitAsync(s.Clerk, await s.DraftIssueAsync(s.Clerk, Warehouse, new Line(product.Id, 60)));
-        (await s.Supervisor.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();
-
-        var response = await s.Admin.Documents.CancelAsync(submitted.Id, "changed my mind");
-
-        response.ShouldBeProblem(HttpStatusCode.BadRequest);
-        Assert.Equal(DocumentStatus.Approved, (await s.GetAsync(submitted.Id)).Status);
-    }
-
-    [Fact]
     public async Task A_posted_document_cannot_be_cancelled_only_reversed()
     {
         var s = await StockScenario.CreateAsync(fixture);
