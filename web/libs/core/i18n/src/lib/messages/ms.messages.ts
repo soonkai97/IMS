@@ -460,6 +460,27 @@ export const MS_MESSAGES: Messages = {
     'Ini menambah entri stok yang bertentangan. Dokumen asal kekal dalam rekod.',
   'dialog.reverse.title': 'Balikkan {docNo}?',
 
+  // TODO-review: machine draft (document corrections, R28 and R31).
+  'doc.action.recall': 'Sunting',
+  'doc.toast.recalled': 'Kembali kepada draf. Betulkan, kemudian hantar semula.',
+  'doc.hint.recallWaiting': 'Perlu ubah sesuatu? Ketik Sunting.',
+  'doc.hint.recallReady': 'Kuantiti salah? Ketik Sunting.',
+  'doc.hint.approvedAskCancel': 'Kuantiti salah? Minta {name} membatalkannya.',
+  'dialog.post.edit': 'Sunting item',
+  'dialog.recall.title': 'Sunting {docNo}?',
+  'dialog.recall.body':
+    'Ia keluar daripada senarai kelulusan dan kembali menjadi draf. Hantar semula apabila betul.',
+  'dialog.recall.keep': 'Terus tunggu',
+  'dialog.cancelApproved.body':
+    'Dokumen ini sudah diluluskan tetapi belum diposkan. Stok tidak berubah. Ini tidak boleh dibatalkan semula.',
+  'doc.cannotPost.title': 'Tidak boleh diposkan sekarang',
+  'doc.cannotPost.body':
+    '{sku} memerlukan {requested}, tetapi hanya {available} ada di {warehouse}. Tunggu stok atau batalkan.',
+  'doc.stockChangedBodyEdit':
+    'Stok {sku} kini {available} {uom}, tetapi dokumen memerlukan {requested}. Ketik Sunting untuk kurangkan kuantiti.',
+  'doc.stockChangedBodyReviewer':
+    'Stok {sku} kini {available} {uom}, tetapi dokumen memerlukan {requested}. Tunggu stok atau batalkan.',
+
   'approvals.emptyMine': 'Anda tiada dokumen yang dihantar.',
   'approvals.emptyWaiting': 'Tiada yang menunggu kelulusan anda.',
   'approvals.flags': 'Tanda',

@@ -14,7 +14,7 @@ import {
 import { provideUiText } from '@ims/core/i18n';
 import { PermissionService } from '@ims/core/identity';
 import { PageTitleService, unsavedChangesGuard } from '@ims/core/navigation';
-import { ConfirmService } from '@ims/core/notification';
+import { ConfirmService, ToastService } from '@ims/core/notification';
 import { SystemSettingsStore } from '@ims/core/settings';
 import { CatalogStore, ProductsStore } from '@ims/features/catalog';
 import { DocumentsStore, StockAvailabilityService } from '@ims/features/documents';
@@ -266,7 +266,7 @@ describe('DocumentEditorPageComponent', () => {
     granted.clear();
     granted.add(PERMISSION.StockRead);
     commands = Object.fromEntries(
-      ['save', 'submit', 'approve', 'reject', 'cancel', 'post', 'reverse'].map(name => [
+      ['save', 'submit', 'approve', 'reject', 'cancel', 'recall', 'post', 'reverse'].map(name => [
         name,
         command(name)
       ])
@@ -1251,6 +1251,275 @@ describe('DocumentEditorPageComponent', () => {
       );
 
       expect(text()).toContain('The quantity 1,200 reaches the 1,000 limit. Approver: Owner.');
+    });
+  });
+
+  describe('correcting a document before it posts: recall and cancel on Approved (R28, R31)', () => {
+    const toasts = (): string[] =>
+      TestBed.inject(ToastService)
+        .$toasts()
+        .map(toast => toast.message);
+    const submitted = (overrides: Partial<DocumentDto> = {}): DocumentDto =>
+      document({
+        requiresApproval: false,
+        allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Recall, DOCUMENT_ACTION.Cancel],
+        ...overrides
+      });
+    const recalledDraft = (): DocumentDto =>
+      document({
+        status: DocumentStatus.Draft,
+        requiresApproval: false,
+        concurrencyToken: 'BBBB',
+        allowedActions: [DOCUMENT_ACTION.Edit, DOCUMENT_ACTION.Submit, DOCUMENT_ACTION.Cancel]
+      });
+    /** The main buttons of the bar (Cancel document and the "more" button are the same on every row of the table). */
+    const labels = (): string[] =>
+      spectator
+        .queryAll('.document-editor-bar button')
+        .map(button => (button.textContent ?? '').trim())
+        .filter(label => label !== 'Cancel document' && label !== '');
+
+    it('Edit shows only when allowedActions lists recall, secondary next to Post', async () => {
+      await open(submitted());
+
+      expect(labels()).toEqual(['Edit', 'Post']);
+      expect(text()).toContain('Wrong quantity? Tap Edit.');
+
+      await open(submitted({ allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Cancel] }));
+      expect(labels()).not.toContain('Edit');
+      expect(text()).not.toContain('Tap Edit');
+    });
+
+    it('a document waiting for approval: Edit is the primary button of the bar', async () => {
+      await open(document({ allowedActions: [DOCUMENT_ACTION.Recall, DOCUMENT_ACTION.Cancel] }));
+
+      const edit = spectator
+        .queryAll('.document-editor-bar button')
+        .find(button => button.textContent?.includes('Edit'));
+      expect(edit?.closest('app-button')?.className).toContain('--primary');
+      expect(text()).toContain('Need to change something? Tap Edit.');
+    });
+
+    it('an approval-free document is recalled at once, with no dialog, and opens as an editable Draft', async () => {
+      await open(submitted());
+      responses['recall'] = recalledDraft();
+
+      spectator.component.onAction(DOCUMENT_ACTION.Recall);
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+      spectator.detectChanges();
+
+      expect(confirm().$pending()).toBeUndefined();
+      expect(calls['recall']).toEqual([{ id: guid(2), concurrencyToken: 'AAAA' }]);
+      expect(toasts()).toContain('Back to draft. Fix it, then submit again.');
+      expect(spectator.component.$editable()).toBe(true);
+      expect(labels().some(label => label.includes('Save draft'))).toBe(true);
+      expect(text()).not.toContain('Returned');
+    });
+
+    it('a document waiting for approval asks first, and Keep waiting sends nothing', async () => {
+      await open(document({ allowedActions: [DOCUMENT_ACTION.Recall, DOCUMENT_ACTION.Cancel] }));
+
+      spectator.component.onAction(DOCUMENT_ACTION.Recall);
+      const request = confirm().$pending()?.request;
+      expect(request?.heading).toBe('Edit ISS-WH01-2610-0001?');
+      expect(request?.body).toContain('leaves the approval list and goes back to draft');
+      expect(request?.cancelLabel).toBe('Keep waiting');
+
+      confirm().cancel();
+      expect(calls['recall']).toBeUndefined();
+
+      spectator.component.onAction(DOCUMENT_ACTION.Recall);
+      responses['recall'] = recalledDraft();
+      confirm().confirm('');
+      expect(calls['recall']).toEqual([{ id: guid(2), concurrencyToken: 'AAAA' }]);
+    });
+
+    it('the Post dialog offers "Edit items" to whoever can recall; it recalls and never posts', async () => {
+      await open(submitted());
+      responses['recall'] = recalledDraft();
+
+      spectator.component.onAction(DOCUMENT_ACTION.Post);
+      expect(confirm().$pending()?.request.alternateLabel).toBe('Edit items');
+
+      confirm().alternate();
+      expect(calls['recall']).toEqual([{ id: guid(2), concurrencyToken: 'AAAA' }]);
+      expect(calls['post']).toBeUndefined();
+    });
+
+    it('closing the Post dialog (Esc, outside tap, system Back) changes nothing: still Submitted with Edit next to Post', async () => {
+      await open(submitted());
+
+      spectator.component.onAction(DOCUMENT_ACTION.Post);
+      confirm().cancel();
+      spectator.detectChanges();
+
+      expect(calls['recall']).toBeUndefined();
+      expect(calls['post']).toBeUndefined();
+      expect(labels()).toEqual(['Edit', 'Post']);
+    });
+
+    it('a reader who cannot recall gets "Back" in the Post dialog', async () => {
+      await open(submitted({ allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Cancel] }));
+
+      spectator.component.onAction(DOCUMENT_ACTION.Post);
+
+      const request = confirm().$pending()?.request;
+      expect(request?.alternateLabel).toBeUndefined();
+      expect(request?.cancelLabel).toBe('Back');
+    });
+
+    it('a stale answer to Edit is the one E4 banner; a plain 400 reloads the document', async () => {
+      await open(submitted());
+
+      commands['recall'].$operation.set(
+        failureOperation({ ...STALE, extensions: { code: 'document_changed' } })
+      );
+      spectator.detectChanges();
+      expect(text()).toContain('changed since you opened it');
+      expect(detailReload).not.toHaveBeenCalled();
+
+      commands['recall'].$operation.set(
+        failureOperation({
+          ...STALE,
+          kind: API_ERROR_KIND.Validation,
+          status: 400,
+          detail: 'ISS-WH01-2610-0001 is Approved and can not be taken back to draft.'
+        })
+      );
+      spectator.detectChanges();
+      expect(detailReload).toHaveBeenCalledTimes(1);
+    });
+
+    it('cancelling an Approved document asks for a reason of 5+ characters and sends it with the version', async () => {
+      await open(
+        document({
+          status: DocumentStatus.Approved,
+          allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Cancel]
+        })
+      );
+
+      spectator.component.onAction(DOCUMENT_ACTION.Cancel);
+      const request = confirm().$pending()?.request;
+      expect(request?.heading).toBe('Cancel ISS-WH01-2610-0001?');
+      expect(request?.body).toContain('approved but not posted yet. Stock does not change');
+      expect(request?.reasonRequired).toBe(true);
+      expect(request?.minReasonLength).toBe(5);
+      expect(request?.reasonLabel).toBe('Reason (at least 5 characters)');
+
+      confirm().confirm('Customer withdrew the order');
+      expect(calls['cancel']).toEqual([
+        { id: guid(2), concurrencyToken: 'AAAA', reason: 'Customer withdrew the order' }
+      ]);
+      expect(toasts()).toContain('Document cancelled.');
+    });
+
+    it('cancelling a Draft or a Submitted document keeps its optional reason', async () => {
+      await open(submitted());
+
+      spectator.component.onAction(DOCUMENT_ACTION.Cancel);
+
+      const request = confirm().$pending()?.request;
+      expect(request?.reasonRequired).toBeUndefined();
+      expect(request?.reasonLabel).toBe('Reason (optional)');
+      expect(request?.body).toBe("This can't be undone.");
+    });
+
+    describe('an approved issue that is short on stock (PR-02)', () => {
+      const approvedShort = (overrides: Partial<DocumentDto> = {}): DocumentDto =>
+        document({
+          status: DocumentStatus.Approved,
+          approvedByName: 'Lim',
+          allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Cancel],
+          ...overrides
+        });
+
+      it('says it can not be posted now, as an alert with a Cancel document button that opens the dialog', async () => {
+        await open(approvedShort());
+
+        const banner = spectator.query('app-banner[role="alert"]');
+        expect(banner?.textContent).toContain("Can't be posted now");
+        expect(banner?.textContent).toContain(
+          'DEMO-001 needs 15, but only 10 are on hand in Main warehouse. Wait for stock or cancel it.'
+        );
+        const cancel = Array.from(banner?.querySelectorAll('button') ?? []).find(button =>
+          button.textContent?.includes('Cancel document')
+        );
+        spectator.click(cancel as HTMLElement);
+        expect(confirm().$pending()?.request.reasonRequired).toBe(true);
+      });
+
+      it('adds up the lines of one product', async () => {
+        const line = document().lines[0];
+        await open(
+          approvedShort({
+            lines: [
+              { ...line, qty: 6, baseQty: 6, available: 10 },
+              { ...line, qty: 6, baseQty: 6, available: 10 }
+            ]
+          })
+        );
+
+        expect(text()).toContain("Can't be posted now");
+        expect(text()).toContain('needs 12, but only 10');
+      });
+
+      it('is not shown with enough stock, with an approved override, or to a reader who can not cancel', async () => {
+        const line = document().lines[0];
+        await open(approvedShort({ lines: [{ ...line, available: 20 }] }));
+        expect(text()).not.toContain("Can't be posted now");
+
+        await open(approvedShort({ negativeStockOverrideReason: 'Customer pre-paid' }));
+        expect(text()).not.toContain("Can't be posted now");
+
+        await open(approvedShort({ allowedActions: [DOCUMENT_ACTION.Post] }));
+        expect(text()).not.toContain("Can't be posted now");
+      });
+
+      it('a worker who made the document is told whom to ask, and has no Cancel', async () => {
+        granted.add(PERMISSION.DocumentCreate);
+        await open(approvedShort({ allowedActions: [] }));
+
+        expect(text()).toContain('Wrong quantity? Ask Lim to cancel it.');
+        expect(spectator.query('.document-editor-bar')).toBeNull();
+      });
+    });
+
+    describe('NR-11: the stock-changed banner and the page say one thing', () => {
+      const conflict = failureOperation({
+        ...STALE,
+        extensions: { code: 'insufficient_stock', productId: guid(1), available: 2, requested: 15 }
+      });
+
+      it('hides "Ready to post" and Post, and tells the submitter to tap Edit', async () => {
+        await open(submitted());
+        expect(text()).toContain('Ready to post');
+
+        commands['post'].$operation.set(conflict);
+        spectator.detectChanges();
+
+        expect(text()).toContain('Stock changed');
+        expect(text()).toContain('Tap Edit to lower the quantity');
+        expect(text()).not.toContain('Ready to post');
+        expect(text()).not.toContain('Wrong quantity? Tap Edit.');
+        expect(labels()).toEqual(['Edit']);
+      });
+
+      it('an approved document tells the reviewer to wait for stock or cancel, and shows no second banner', async () => {
+        await open(
+          document({
+            status: DocumentStatus.Approved,
+            allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Cancel]
+          })
+        );
+
+        commands['post'].$operation.set(conflict);
+        spectator.detectChanges();
+
+        expect(text()).toContain('Wait for stock or cancel it.');
+        expect(text()).not.toContain("Can't be posted now");
+        expect(labels().some(label => label === 'Post')).toBe(false);
+      });
     });
   });
 

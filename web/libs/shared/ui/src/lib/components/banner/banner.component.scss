@@ -6,6 +6,7 @@
   --banner-border: #{color('primary')};
 
   display: flex;
+  flex-wrap: wrap;
   gap: space(1);
   align-items: flex-start;
   padding: space(1) space(2);
@@ -33,8 +34,10 @@
   }
 }
 
+// A button next to a long sentence would squeeze it into a narrow column on a phone: below about 15rem of text the
+// actions wrap under it (the icon stays with the text).
 .ui-banner-content {
-  flex: 1;
+  flex: 1 1 12rem;
   min-width: 0;
 }
 
@@ -45,6 +48,7 @@
 .ui-banner-actions {
   display: flex;
   gap: space(1);
+  margin-inline-start: auto;
 
   &:empty {
     display: none;

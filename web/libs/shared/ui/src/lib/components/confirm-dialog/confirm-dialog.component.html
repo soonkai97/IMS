@@ -16,7 +16,11 @@
     </app-form-field>
   }
   <div dialogActions class="ui-confirm-dialog-actions">
-    <app-button (clicked)="onCancel()">{{ $cancelLabel() }}</app-button>
+    @if ($alternateLabel(); as alternate) {
+      <app-button (clicked)="onAlternate()">{{ alternate }}</app-button>
+    } @else {
+      <app-button (clicked)="onCancel()">{{ $cancelLabel() }}</app-button>
+    }
     <app-button [variant]="$confirmVariant()" [loading]="$busy()" (clicked)="onConfirm()">
       {{ $confirmLabel() }}
     </app-button>

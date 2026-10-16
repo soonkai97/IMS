@@ -50,9 +50,18 @@ export class DocumentActionsComponent {
   $canApprove = computed(() => this.$actions().has(DOCUMENT_ACTION.Approve));
   $canReject = computed(() => this.$actions().has(DOCUMENT_ACTION.Reject));
   $canCancel = computed(() => this.$actions().has(DOCUMENT_ACTION.Cancel));
+  $canRecall = computed(() => this.$actions().has(DOCUMENT_ACTION.Recall));
   $canPostDocument = computed(() => this.$actions().has(DOCUMENT_ACTION.Post));
   $canReverse = computed(() => this.$actions().has(DOCUMENT_ACTION.Reverse));
   $showBlockedApprove = computed(() => this.$selfApprovalBlocked() && !this.$canApprove());
+  /** Edit is the primary button of a document that only waits for approval; next to Post (or Approve) it is the secondary one. */
+  $recallIsPrimary = computed(
+    () =>
+      !this.$canPostDocument() &&
+      !this.$canApprove() &&
+      !this.$canSubmit() &&
+      !this.$showBlockedApprove()
+  );
   /**
    * Cancel is the one-tap neighbour of the primary button, which is how a worker cancels by mistake (NV-10): on a phone
    * it moves into the "more" sheet whenever there is something else to do. Alone, it stays where it is.
@@ -61,6 +70,7 @@ export class DocumentActionsComponent {
     () =>
       this.$canCancel() &&
       (this.$canSave() ||
+        this.$canRecall() ||
         this.$canSubmit() ||
         this.$canApprove() ||
         this.$canReject() ||

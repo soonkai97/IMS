@@ -24,6 +24,10 @@
   </p>
 }
 
+@if ($recallHintKey(); as recallHint) {
+  <p class="document-editor-hint">{{ recallHint | t }}</p>
+}
+
 @if ($isLoading()) {
   <app-skeleton [count]="4" />
 } @else if ($notFound()) {
@@ -47,6 +51,26 @@
         {{ 'doc.staleBody' | t }}
       }
       <app-button bannerActions (clicked)="onReload()">{{ 'doc.reload' | t }}</app-button>
+    </app-banner>
+  }
+  @if ($cannotPost(); as short) {
+    <app-banner kind="warning" alert [heading]="'doc.cannotPost.title' | t">
+      {{
+        'doc.cannotPost.body'
+          | t
+            : {
+                sku: short.sku,
+                requested: (short.requested | appQty),
+                available: (short.available | appQty),
+                warehouse: short.warehouse
+              }
+      }}
+      <app-button
+        bannerActions
+        [disabled]="$isBusy() || $isStale()"
+        (clicked)="onAction(cancelAction)"
+        >{{ 'doc.action.cancel' | t }}</app-button
+      >
     </app-banner>
   }
   @if ($returned(); as returned) {
@@ -297,6 +321,9 @@
   @if ($askToReverse()) {
     <app-banner kind="info">{{ 'doc.askToReverse' | t }}</app-banner>
   }
+  @if ($askToCancel(); as approver) {
+    <app-banner kind="info">{{ 'doc.hint.approvedAskCancel' | t: { name: approver } }}</app-banner>
+  }
 
   @if ($showBar()) {
     <footer
@@ -323,7 +350,7 @@
         }
       }
       <app-document-actions
-        [allowedActions]="$allowedActions()"
+        [allowedActions]="$barActions()"
         [canPost]="$canPost()"
         [busy]="$isBusy()"
         [selfApprovalBlocked]="$selfApprovalBlocked()"

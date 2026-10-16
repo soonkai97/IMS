@@ -2625,6 +2625,63 @@ export class DocumentsClient {
     }
 
     /**
+     * Takes the caller's own Submitted document back to Draft (the Edit button): same number, same lines, no reason. Repeating it on a document
+    that is already an ordinary Draft answers 200 with the document and changes nothing.
+     * @return OK
+     */
+    recall(id: string, httpContext?: HttpContext): Observable<DocumentDto> {
+        let url_ = this.baseUrl + "/api/documents/{id}/recall";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processRecall(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processRecall(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<DocumentDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<DocumentDto>;
+        }));
+    }
+
+    protected processRecall(response: HttpResponseBase): Observable<DocumentDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as DocumentDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * Cancels a Draft, a Submitted or an Approved document. The reason is optional, except that cancelling an Approved document (by a reviewer it is routed to) needs one of at least 5 characters. No permission door: the create right is not enough (the Owner approves but cannot create), so `DocumentActionPolicy.MayCancel` decides; the catalog gives document endpoints their doors in RP-4a.
      * @return OK
      */
     cancel(id: string, body: CancelRequest, httpContext?: HttpContext): Observable<DocumentDto> {
@@ -4182,7 +4239,7 @@ export interface DocumentDto {
     /** Value of the document: receipts at their entered cost; an issue at its booked cost once posted, and before that at the average cost when it was last saved or submitted (see `AmountIsEstimate`). For a Submitted document this is the value the approval rules were tested against. Null for a caller without `cost.view` (the Warehouse staff). */
     totalAmount: number | undefined;
     lines: DocumentLineDto[];
-    /** What the caller may do right now (edit, submit, approve, reject, cancel, post, reverse). The UI shows buttons from this list only. It already accounts for ownership (Warehouse staff and Clerk act only on their own documents), the approver the document is routed to (an Owner reviews only `isLarge` documents, a Supervisor the rest) and self-approval, so a listed action is one the API will accept. */
+    /** What the caller may do right now (edit, submit, recall, approve, reject, cancel, post, reverse). The UI shows buttons from this list only. It already accounts for ownership (Warehouse staff and Clerk act only on their own documents), the approver the document is routed to (an Owner reviews only `isLarge` documents, a Supervisor the rest) and self-approval, so a listed action is one the API will accept. */
     allowedActions: string[];
     /** While the document is Submitted or Approved and an approval rule held it back: which thresholds it reaches (value or quantity), for the approver and the "sent for approval" message. Empty otherwise, and when only a negative-stock override (`requiresOverride`) sent it to approval. */
     approvalTriggers: ApprovalTriggerDto[];

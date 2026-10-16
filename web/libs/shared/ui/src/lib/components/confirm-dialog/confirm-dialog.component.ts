@@ -64,12 +64,15 @@ export class UiConfirmDialogComponent {
   $cancelLabel = input.required<string>({ alias: 'cancelLabel' });
   $destructive = input(false, { alias: 'destructive', transform: booleanAttribute });
   $busy = input(false, { alias: 'busy', transform: booleanAttribute });
+  /** A third way out: the left button reads this and emits `alternated`; Esc and a tap outside still just close. */
+  $alternateLabel = input<string | undefined>(undefined, { alias: 'alternateLabel' });
   $reasonLabel = input<string | undefined>(undefined, { alias: 'reasonLabel' });
   $reasonRequired = input(false, { alias: 'reasonRequired', transform: booleanAttribute });
   $minReasonLength = input(0, { alias: 'minReasonLength', transform: numberAttribute });
 
   $confirmed = output<string>({ alias: 'confirmed' });
   $cancelled = output<void>({ alias: 'cancelled' });
+  $alternated = output<void>({ alias: 'alternated' });
 
   readonly reason = new FormControl('', { nonNullable: true });
 
@@ -107,6 +110,11 @@ export class UiConfirmDialogComponent {
   onCancel(): void {
     this.$open.set(false);
     this.$cancelled.emit();
+  }
+
+  onAlternate(): void {
+    this.$open.set(false);
+    this.$alternated.emit();
   }
 
   onOpenChange(open: boolean): void {
