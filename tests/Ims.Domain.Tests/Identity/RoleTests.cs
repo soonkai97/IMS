@@ -13,8 +13,6 @@ public class RoleTests
         Assert.False(role.IsSystem);
         Assert.True(role.IsActive);
         Assert.Equal([Permissions.DocumentCreate, Permissions.StockRead], role.Grants.Select(g => g.PermissionCode).Order(StringComparer.Ordinal));
-        Assert.True(role.Holds(Permissions.StockRead));
-        Assert.False(role.Holds(Permissions.AuditRead));
         Assert.NotEqual(Guid.Empty, role.PublicId);
     }
 

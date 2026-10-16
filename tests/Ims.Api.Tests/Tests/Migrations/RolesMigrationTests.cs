@@ -242,8 +242,15 @@ public class RolesMigrationTests
         }
     }
 
-    [Fact]
-    public async Task A_user_whose_role_is_not_one_of_the_five_stops_the_migration_and_leaves_no_trace()
+    /// <summary>
+    /// Role strings the old code gave no rights at all (it compared them exactly): another name, other case, a trailing space or tab. The database collation would
+    /// match the last three to a system role, so they must be refused on purpose.
+    /// </summary>
+    public static TheoryData<string> NotRoles => new() { NotARole, "admin", "ADMIN", "Admin ", "Admin\t", "owner", "Clerk  ", " Clerk" };
+
+    [Theory]
+    [MemberData(nameof(NotRoles))]
+    public async Task A_user_whose_role_is_not_one_of_the_five_exactly_stops_the_migration_and_leaves_no_trace(string notARole)
     {
         var database = TestDatabase.CreateNew();
         try
@@ -251,15 +258,16 @@ public class RolesMigrationTests
             await MigrateAsync(database, Before);
             await SeedOldDataAsync(database);
             await database.ExecuteAsync(
-                "INSERT [User] (Username, Email, DisplayName, PasswordHash, Role, IsActive, FailedLoginCount) VALUES (N'odd', N'odd@example.test', N'odd', N'x', @r, 1, 0)", ("@r", NotARole));
+                "INSERT [User] (Username, Email, DisplayName, PasswordHash, Role, IsActive, FailedLoginCount) VALUES (N'odd', N'odd@example.test', N'odd', N'x', @r, 1, 0)", ("@r", notARole));
             var id = await database.ScalarAsync<int>("SELECT Id FROM [User] WHERE Username = N'odd'");
+            Assert.Equal(notARole.Length * 2, await database.ScalarAsync<int>("SELECT DATALENGTH(Role) FROM [User] WHERE Username = N'odd'")); // stored as given
 
             var failure = await Assert.ThrowsAnyAsync<Exception>(() => MigrateAsync(database, Latest));
 
             Assert.Contains($"User {id} ", failure.ToString()); // names the user ...
-            Assert.Contains(NotARole, failure.ToString()); // ... and the role it could not map
+            Assert.Contains($"has the role '{notARole}'", failure.ToString()); // ... and the role it could not map
             await AssertNothingAddedAsync(database); // everything the migration did before it noticed was rolled back, so a new run starts from the same place
-            Assert.Equal(NotARole, await database.ScalarAsync<string>("SELECT Role FROM [User] WHERE Username = N'odd'"));
+            Assert.Equal(notARole.Length * 2, await database.ScalarAsync<int>("SELECT DATALENGTH(Role) FROM [User] WHERE Username = N'odd'"));
 
             await database.ExecuteAsync("UPDATE [User] SET Role = N'Clerk' WHERE Username = N'odd'"); // fix the data, run again
             await MigrateAsync(database, Latest);
@@ -273,29 +281,58 @@ public class RolesMigrationTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task A_rule_naming_a_role_that_is_not_one_of_the_five_stops_the_migration_names_the_rule_and_leaves_no_trace(bool softDeleted)
+    [MemberData(nameof(NotRoles))]
+    public async Task A_rule_naming_a_role_that_is_not_one_of_the_five_exactly_stops_the_migration_names_the_rule_and_leaves_no_trace(string notARole)
     {
+        foreach (var softDeleted in new[] { false, true }) // nothing is guessed, a deleted rule included
+        {
+            var database = TestDatabase.CreateNew();
+            try
+            {
+                await MigrateAsync(database, Before);
+                await SeedOldDataAsync(database);
+                await database.ExecuteAsync(
+                    "INSERT ApprovalRule (DocType, AmountThreshold, QtyThreshold, RoleRequired, IsActive, REC_DELETED) VALUES (2, NULL, 50, @r, 1, @d)", ("@r", notARole), ("@d", softDeleted));
+                var id = await database.ScalarAsync<int>("SELECT MAX(Id) FROM ApprovalRule"); // not by role: the collation would find the Admin rules too
+
+                var failure = await Assert.ThrowsAnyAsync<Exception>(() => MigrateAsync(database, Latest));
+
+                Assert.Contains($"Approval rule {id} ", failure.ToString());
+                Assert.Contains($"names the role '{notARole}'", failure.ToString());
+                await AssertNothingAddedAsync(database);
+                Assert.Equal(0, await database.ScalarAsync<int>("SELECT COUNT(*) FROM AuditLogs WHERE Action = @a", ("@a", Widened)));
+
+                await database.ExecuteAsync("UPDATE ApprovalRule SET RoleRequired = N'Supervisor' WHERE Id = @i", ("@i", id));
+                await MigrateAsync(database, Latest);
+                Assert.Equal(Standard, await database.ScalarAsync<int>("SELECT Tier FROM ApprovalRule WHERE Id = @i", ("@i", id)));
+            }
+            finally
+            {
+                await database.DropAsync();
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Many_admin_only_rules_are_all_named_in_the_one_audit_row()
+    {
+        const int extra = 150; // the list of ids is longer than 8,000 bytes of nvarchar(36) from about 110 rules
         var database = TestDatabase.CreateNew();
         try
         {
             await MigrateAsync(database, Before);
             await SeedOldDataAsync(database);
             await database.ExecuteAsync(
-                "INSERT ApprovalRule (DocType, AmountThreshold, QtyThreshold, RoleRequired, IsActive, REC_DELETED) VALUES (2, NULL, 50, @r, 1, @d)", ("@r", NotARole), ("@d", softDeleted));
-            var id = await database.ScalarAsync<int>("SELECT Id FROM ApprovalRule WHERE RoleRequired = @r", ("@r", NotARole));
+                "INSERT ApprovalRule (DocType, AmountThreshold, QtyThreshold, RoleRequired, IsActive) SELECT TOP (@n) 1, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)), NULL, N'Admin', 1 FROM sys.all_objects",
+                ("@n", extra));
 
-            var failure = await Assert.ThrowsAnyAsync<Exception>(() => MigrateAsync(database, Latest)); // nothing is guessed, a deleted rule included
-
-            Assert.Contains($"Approval rule {id} ", failure.ToString());
-            Assert.Contains(NotARole, failure.ToString());
-            await AssertNothingAddedAsync(database);
-            Assert.Equal(0, await database.ScalarAsync<int>("SELECT COUNT(*) FROM AuditLogs WHERE Action = @a", ("@a", Widened)));
-
-            await database.ExecuteAsync("UPDATE ApprovalRule SET RoleRequired = N'Supervisor' WHERE RoleRequired = @r", ("@r", NotARole));
             await MigrateAsync(database, Latest);
-            Assert.Equal(Standard, await database.ScalarAsync<int>("SELECT Tier FROM ApprovalRule WHERE Id = @i", ("@i", id)));
+
+            var after = await database.ScalarAsync<string>("SELECT [After] FROM AuditLogs WHERE Action = @a", ("@a", Widened));
+            using var json = System.Text.Json.JsonDocument.Parse(after);
+            Assert.Equal(extra + 1, json.RootElement.GetProperty("count").GetInt32()); // the extra rules and the seeded active Admin rule
+            Assert.Equal(extra + 1, json.RootElement.GetProperty("ruleIds").GetArrayLength());
+            Assert.Equal(extra + 1, await database.ScalarAsync<int>("SELECT COUNT(*) FROM ApprovalRule WHERE RoleRequired = N'Admin' AND IsActive = 1 AND REC_DELETED = 0 AND Tier = 2"));
         }
         finally
         {

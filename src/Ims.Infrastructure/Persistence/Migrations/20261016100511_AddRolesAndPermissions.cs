@@ -60,6 +60,10 @@ namespace Ims.Infrastructure.Persistence.Migrations
         private const int Standard = 1;
         private const int Large = 2;
 
+        /// <summary>The column equals the role code exactly: same case, same length (the collation of the database ignores both case and trailing spaces).</summary>
+        private static string Exactly(string column, string code) =>
+            $"({column} COLLATE Latin1_General_BIN2 = N'{code}' AND DATALENGTH({column}) = {code.Length * sizeof(char)})";
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -150,9 +154,12 @@ namespace Ims.Infrastructure.Persistence.Migrations
                 type: "int",
                 nullable: true);
 
+            // EXACT match, as the old code compared the strings (ordinal, case and spaces included): the database collation is case-insensitive and ignores trailing
+            // spaces, so 'admin' or 'Admin ' must not become an Admin here (the old code gave such a user no rights at all). Binary collation plus a length check.
             migrationBuilder.Sql("""
                 UPDATE u SET u.[RoleId] = r.[Id]
-                FROM [User] u JOIN [Role] r ON r.[Code] = u.[Role] AND r.[REC_DELETED] = 0
+                FROM [User] u JOIN [Role] r
+                    ON r.[Code] COLLATE Latin1_General_BIN2 = u.[Role] COLLATE Latin1_General_BIN2 AND DATALENGTH(r.[Code]) = DATALENGTH(u.[Role]) AND r.[REC_DELETED] = 0
                 WHERE u.[RoleId] IS NULL;
                 """);
 
@@ -193,7 +200,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
                 nullable: false,
                 defaultValue: false);
 
-            migrationBuilder.Sql($"UPDATE [User] SET [AllWarehouses] = 1 WHERE [Role] IN (N'{Admin}', N'{Owner}');");
+            // Through the role row the user was matched to, so it rests on the same exact match.
+            migrationBuilder.Sql($"UPDATE u SET u.[AllWarehouses] = 1 FROM [User] u JOIN [Role] r ON r.[Id] = u.[RoleId] WHERE r.[Code] IN (N'{Admin}', N'{Owner}');");
 
             // ----- ApprovalRule.Tier: empty, filled from the role string, then required -----
             migrationBuilder.AddColumn<int>(
@@ -203,9 +211,10 @@ namespace Ims.Infrastructure.Persistence.Migrations
                 nullable: true);
 
             migrationBuilder.Sql($"""
-                UPDATE [ApprovalRule] SET [Tier] = CASE [RoleRequired]
-                    WHEN N'{Owner}' THEN {Large} WHEN N'{Admin}' THEN {Large}
-                    WHEN N'{Supervisor}' THEN {Standard} WHEN N'{WarehouseStaff}' THEN {Standard} WHEN N'{Clerk}' THEN {Standard} END
+                UPDATE [ApprovalRule] SET [Tier] = CASE
+                    WHEN {Exactly("[RoleRequired]", Owner)} THEN {Large} WHEN {Exactly("[RoleRequired]", Admin)} THEN {Large}
+                    WHEN {Exactly("[RoleRequired]", Supervisor)} THEN {Standard} WHEN {Exactly("[RoleRequired]", WarehouseStaff)} THEN {Standard}
+                    WHEN {Exactly("[RoleRequired]", Clerk)} THEN {Standard} END
                 WHERE [Tier] IS NULL;
                 """);
 
@@ -229,8 +238,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
             migrationBuilder.Sql($$"""
                 INSERT INTO [AuditLogs] ([Actor], [Action], [EntityType], [EntityId], [After], [At])
                 SELECT N'system', N'approval-rules.widened', N'ApprovalRule', N'bulk',
-                       CONCAT(N'{"count":', COUNT(*), N',"ruleIds":["', STRING_AGG(CONVERT(nvarchar(36), [PublicId]), N'","'), N'"]}'), SYSUTCDATETIME()
-                FROM [ApprovalRule] WHERE [RoleRequired] = N'{{Admin}}' AND [IsActive] = 1 AND [REC_DELETED] = 0
+                       CONCAT(N'{"count":', COUNT(*), N',"ruleIds":["', STRING_AGG(CONVERT(nvarchar(max), [PublicId]), N'","'), N'"]}'), SYSUTCDATETIME()
+                FROM [ApprovalRule] WHERE {{Exactly("[RoleRequired]", Admin)}} AND [IsActive] = 1 AND [REC_DELETED] = 0
                 HAVING COUNT(*) > 0;
                 """);
         }

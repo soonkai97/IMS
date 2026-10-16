@@ -76,6 +76,16 @@ public class UserTests
     }
 
     [Fact]
+    public void Create_ARoleThatIsNotASavedRow_Throws()
+    {
+        var unsaved = Role.Create(Roles.Clerk, "Clerk", null, true, []);
+
+        var ex = Assert.Throws<DomainException>(() => User.Create("alice", "a@b.c", "A", unsaved, "h"));
+
+        Assert.Equal(Messages.UnknownRole, ex.Message);
+    }
+
+    [Fact]
     public void Create_NullDisplayName_BecomesEmpty()
     {
         var user = User.Create("alice", "a@b.c", null!, NewRole(Roles.Clerk), "h");

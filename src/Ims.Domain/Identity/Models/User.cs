@@ -42,7 +42,8 @@ public class User : PublicEntity
     {
         if (string.IsNullOrWhiteSpace(username)) throw new DomainException(Messages.UsernameInvalid);
         if (string.IsNullOrWhiteSpace(email)) throw new DomainException(Messages.EmailInvalid);
-        if (!Roles.All.Contains(role.Code)) throw new DomainException(Messages.UnknownRole);
+        // A role that is not a saved row (no key yet) cannot be pointed at: the foreign key would be the only thing to notice.
+        if (role.Id <= 0 || !Roles.All.Contains(role.Code)) throw new DomainException(Messages.UnknownRole);
 
         Username = username.Trim();
         Email = email.Trim();

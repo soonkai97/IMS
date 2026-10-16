@@ -395,7 +395,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         {
             if (!Audited.Contains(e.Metadata.ClrType)) continue;
             var props = e.Properties.Where(p => !AuditSkippedProperties.Contains(p.Metadata.Name) && !p.Metadata.IsShadowProperty()).ToList();
-            var state = softDeleted.Contains(e) ? EntityState.Deleted : e.State;            switch (state)
+            var state = softDeleted.Contains(e) ? EntityState.Deleted : e.State;
+            switch (state)
             {
                 case EntityState.Added:
                     list.Add(new Pending(e, state, null, props.Select(p => p.Metadata.Name).ToList()));

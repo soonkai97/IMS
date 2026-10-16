@@ -39,6 +39,4 @@ public class Role : PublicEntity
         }
         return role;
     }
-
-    public bool Holds(string permission) => _grants.Any(g => g.PermissionCode == permission);
 }
