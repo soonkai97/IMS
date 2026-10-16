@@ -37,6 +37,8 @@ Open questions (default in brackets is what this design assumes):
 
 ### 1.1 How the permission matrix is read (PRD 3.1)
 
+The columns below are the **defaults of the five system roles**, what a fresh installation does. Administrators can add roles and change which permissions a role holds ([ADR](../architecture/adr-roles-permissions.md), accepted 2026-10-16), so the matrix describes the starting point, not a fixed rule. The oracle fixtures of slice RP-0 pin it, and from slice RP-1 the code holds it as `SystemRoleDefaults`.
+
 Warehouse scope: Warehouse staff, Supervisor and Clerk only see warehouses assigned to them; Admin and Owner see all.
 
 | Feature | Admin | Owner | Supervisor | Warehouse staff | Clerk |
@@ -57,6 +59,8 @@ Warehouse scope: Warehouse staff, Supervisor and Clerk only see warehouses assig
 Cross-cutting rule: a user cannot approve a document they submitted (BR-07, configurable). Shown as a disabled Approve with the reason, never as a missing button, so the user understands why (see error E3).
 
 ### 1.2 Menu per role
+
+A menu item is shown by permission, never by role name; the columns are what the **default system roles** see, and a custom role sees the items its permissions allow.
 
 Legend: **Yes** = full; **Read** = view only (no create/edit buttons rendered); `--` = item not in menu (route also guarded; direct URL shows S03 Forbidden).
 

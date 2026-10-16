@@ -1,0 +1,12 @@
+# Oracle fixture (RP-0): what the five system roles (and an unknown role) could do before the roles-and-permissions work.
+# Frozen answers of the role-keyed code at commit abe1ad0, written by LegacyBehaviour. Do not edit by hand; never regenerate from changed code.
+# permissions: Permissions.For(role) sorted, ';' separated. seesAllWarehouses: Roles.SeesAllWarehouses. restrictedToOwn: DocumentActionPolicy.IsRestrictedToOwn.
+# rank: ApprovalPolicy.RankOf. reviewsStandard / reviewsLarge: ApprovalPolicy.MayReview(role, isLarge). postsApprovalRequired: PostingAuthority.MayPostApprovalRequiredDocument.
+# overridesNegativeStock: PostingAuthority.MayOverrideNegativeStock. 1 = yes, 0 = no.
+role,permissions,seesAllWarehouses,restrictedToOwn,rank,reviewsStandard,reviewsLarge,postsApprovalRequired,overridesNegativeStock
+Admin,audit.read;cost.view;document.approve;document.create;document.post;document.reverse;masterdata.manage;masterdata.read;partners.create;reports.read;settings.manage;stock.read;users.manage;users.read;valuation.view,1,0,4,1,1,1,1
+Owner,audit.read;cost.view;document.approve;masterdata.read;reports.read;stock.read;valuation.view,1,0,3,0,1,1,1
+Supervisor,cost.view;document.approve;document.create;document.post;document.reverse;masterdata.manage;masterdata.read;partners.create;reports.read;stock.read;valuation.view,0,0,2,1,0,1,1
+WarehouseStaff,document.create;document.post;masterdata.read;stock.read,0,1,0,0,0,0,0
+Clerk,cost.view;document.create;masterdata.read;partners.create;stock.read,0,1,0,0,0,1,0
+Nobody,,0,0,0,0,0,1,0
