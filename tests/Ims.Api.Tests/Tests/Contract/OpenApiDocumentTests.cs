@@ -195,6 +195,8 @@ public partial class OpenApiDocumentTests(ApiFixture fixture)
     [InlineData("/api/documents", "get", "Documents_list")]
     [InlineData("/api/documents/{id}", "get", "Documents_get")]
     [InlineData("/api/documents/receipts", "post", "Documents_createReceipt")]
+    [InlineData("/api/documents/{id}/recall", "post", "Documents_recall")]
+    [InlineData("/api/documents/{id}/cancel", "post", "Documents_cancel")]
     [InlineData("/api/documents/counts", "get", "Documents_counts")]
     [InlineData("/api/products/lookup", "get", "Products_lookup")]
     [InlineData("/api/import/products", "post", "Import_importProducts")]

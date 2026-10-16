@@ -16,7 +16,7 @@ const check = (name, ok, detail = '') => {
 };
 
 // Every document command must carry the document version in If-Match (428 otherwise); the smoke test uses the explicit "any version" wildcard.
-const DOCUMENT_COMMAND = /^\/api\/documents\/[0-9a-fA-F-]{36}(\/(submit|approve|reject|cancel|post|reverse))?$/;
+const DOCUMENT_COMMAND = /^\/api\/documents\/[0-9a-fA-F-]{36}(\/(submit|recall|approve|reject|cancel|post|reverse))?$/;
 const needsIfMatch = (method, path) => DOCUMENT_COMMAND.test(path) && (method === 'PUT' || (method === 'POST' && path.split('/').length === 5));
 
 async function api(method, path, { token, body, headers } = {}) {
@@ -94,6 +94,17 @@ r = await api('POST', `/api/documents/${draft.id}/cancel`, { token: staff, body:
 check('draft can be cancelled', r.body.status === 'Cancelled');
 r = await api('PUT', `/api/documents/${draft.id}`, { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 1 }]) });
 check('cancelled document cannot be edited (400)', r.status === 400);
+
+console.log('Recall a submitted document (Edit)');
+r = await api('POST', '/api/documents/receipts', { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 5, unitCost: 1 }]) });
+const recallDoc = r.body;
+r = await api('POST', `/api/documents/${recallDoc.id}/submit`, { token: staff });
+check('the submitter is offered recall', r.status === 200 && r.body.allowedActions.includes('recall'), JSON.stringify(r.body.allowedActions));
+r = await api('POST', `/api/documents/${recallDoc.id}/recall`, { token: staff });
+check('recall returns the same document to Draft', r.status === 200 && r.body.status === 'Draft' && r.body.id === recallDoc.id && r.body.no === recallDoc.no && !r.body.isReturned, JSON.stringify(r.body));
+r = await api('POST', `/api/documents/${recallDoc.id}/recall`, { token: staff });
+check('a repeated recall is a no-op (200)', r.status === 200 && r.body.status === 'Draft');
+await api('POST', `/api/documents/${recallDoc.id}/cancel`, { token: staff, body: { reason: 'smoke' } });
 r = await api('POST', '/api/documents/receipts', { token: staff, body: doc(customer.id, [{ productId: p1.id, qty: 1 }]) });
 check('receipt with a customer is rejected (400)', r.status === 400, JSON.stringify(r.body));
 

@@ -77,7 +77,7 @@ public static class EndpointCatalog
         new("PUT documents/{id}", Put, Permissions.DocumentCreate, _ => $"/api/documents/{MissingPublicId}",
             r => new DocumentBuilder(r.DefaultWarehouseId).WithLines(new Line(r.DemoProductId, 1)).Build(), OkWhenAllowed: false),
         new("POST documents/{id}/submit", Post, Permissions.DocumentCreate, _ => $"/api/documents/{MissingPublicId}/submit", OkWhenAllowed: false),
-        new("POST documents/{id}/cancel", Post, Permissions.DocumentCreate, _ => $"/api/documents/{MissingPublicId}/cancel", _ => new { reason = "x" }, OkWhenAllowed: false),
+        new("POST documents/{id}/recall", Post, Permissions.DocumentCreate, _ => $"/api/documents/{MissingPublicId}/recall", OkWhenAllowed: false),
         new("POST documents/{id}/approve", Post, Permissions.DocumentApprove, _ => $"/api/documents/{MissingPublicId}/approve", OkWhenAllowed: false),
         new("POST documents/{id}/reject", Post, Permissions.DocumentApprove, _ => $"/api/documents/{MissingPublicId}/reject", _ => new { reason = "x" }, OkWhenAllowed: false),
         new("POST documents/{id}/post", Post, Permissions.DocumentPost, _ => $"/api/documents/{MissingPublicId}/post", _ => new { }, OkWhenAllowed: false),

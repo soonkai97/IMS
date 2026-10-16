@@ -13,7 +13,7 @@ public class RightsParityTests
     [Fact]
     public void TheDocumentPoliciesAnswerEveryQuestionOfTheOracle()
     {
-        var differences = OracleTables.DocumentActions.Differences(NewBehaviour.Document);
+        var differences = OracleTables.DocumentActions.Differences(NewBehaviour.DocumentAsFrozen);
 
         Assert.True(differences.Count == 0, $"{differences.Count} answer(s) differ from the oracle:\n" + string.Join('\n', differences.Take(15)));
     }

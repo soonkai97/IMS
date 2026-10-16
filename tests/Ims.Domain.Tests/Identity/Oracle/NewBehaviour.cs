@@ -19,6 +19,21 @@ internal static class NewBehaviour
         };
     }
 
+    /// <summary>
+    /// <see cref="Document"/> as the FROZEN document-actions.csv can judge it. The one deliberate departure from the old answers is document corrections
+    /// (B22): the reviewer an Approved document is routed to may now cancel it, so on <c>Approved</c> rows the <c>cancel</c> bits and the <c>C</c> letter of
+    /// the action cells are left out here; <c>document-corrections.csv</c> pins them (<see cref="CorrectionsExtension"/>). Everything else, every other
+    /// row and the recall action (the old cells have no letter for it) still has to equal the frozen file.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> DocumentAsFrozen(IReadOnlyDictionary<string, string> key)
+    {
+        var answers = Document(key).ToDictionary(a => a.Key, a => a.Value);
+        if (key["status"] != nameof(DocumentStatus.Approved)) return answers;
+        answers.Remove("cancel");
+        foreach (var column in answers.Keys.Where(c => c.StartsWith("actions", StringComparison.Ordinal)).ToList()) answers[column] = answers[column].Replace('C', '.');
+        return answers;
+    }
+
     public static IReadOnlyDictionary<string, string> Document(IReadOnlyDictionary<string, string> key)
     {
         var rights = SystemRoleDefaults.RightsFor(key["role"], Me);

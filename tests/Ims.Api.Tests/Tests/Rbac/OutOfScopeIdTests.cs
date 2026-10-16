@@ -21,6 +21,7 @@ public class OutOfScopeIdTests(ApiFixture fixture)
     private const string GetDocument = "get a document";
     private const string UpdateDocument = "update a document";
     private const string SubmitDocument = "submit a document";
+    private const string RecallDocument = "recall a document";
     private const string CancelDocument = "cancel a document";
     private const string PostDocument = "post a document";
     private const string ApproveDocument = "approve a document";
@@ -37,7 +38,7 @@ public class OutOfScopeIdTests(ApiFixture fixture)
 
     public static IEnumerable<object[]> Routes() =>
     [
-        [GetDocument], [UpdateDocument], [SubmitDocument], [CancelDocument], [PostDocument], [ApproveDocument], [RejectDocument], [ReverseDocument],
+        [GetDocument], [UpdateDocument], [SubmitDocument], [RecallDocument], [CancelDocument], [PostDocument], [ApproveDocument], [RejectDocument], [ReverseDocument],
         [ListFiles], [UploadFile], [DownloadFile], [DeleteFile]
     ];
 
@@ -62,6 +63,7 @@ public class OutOfScopeIdTests(ApiFixture fixture)
             GetDocument => (setup.DocumentId, id => s.Staff.Documents.GetAsync(id)),
             UpdateDocument => (setup.DocumentId, id => s.Staff.Documents.UpdateAsync(id, setup.Edit)),
             SubmitDocument => (setup.DocumentId, id => s.Staff.Documents.SubmitAsync(id)),
+            RecallDocument => (setup.DocumentId, id => s.Staff.Documents.RecallAsync(id)),
             CancelDocument => (setup.DocumentId, id => s.Staff.Documents.CancelAsync(id)),
             PostDocument => (setup.DocumentId, id => s.Staff.Documents.PostAsync(id)),
             ApproveDocument => (setup.DocumentId, id => s.Supervisor.Documents.ApproveAsync(id)),

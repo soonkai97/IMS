@@ -27,6 +27,7 @@ public sealed class DocumentsClient(ApiClient api)
     public Task<ApiResponse> SubmitAsync(Guid id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/submit", null, ifMatch);
     public Task<ApiResponse> ApproveAsync(Guid id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/approve", null, ifMatch);
     public Task<ApiResponse> RejectAsync(Guid id, string reason, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/reject", new RejectRequest(reason), ifMatch);
+    public Task<ApiResponse> RecallAsync(Guid id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/recall", null, ifMatch);
     public Task<ApiResponse> CancelAsync(Guid id, string? reason = null, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/documents/{id}/cancel", new CancelRequest(reason), ifMatch);
     /// <summary>Approves with the override reason in the body (needed when the document <c>requiresOverride</c>).</summary>
     public Task<ApiResponse> ApproveWithReasonAsync(Guid id, string? negativeStockOverrideReason, string? ifMatch = null) =>

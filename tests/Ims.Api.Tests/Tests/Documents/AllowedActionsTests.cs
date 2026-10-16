@@ -64,7 +64,7 @@ public class AllowedActionsTests(ApiFixture fixture)
             (Roles.Owner, Actions()),
             (Roles.Supervisor, Actions("cancel", "post")),
             (Roles.WarehouseStaff, Actions("post")),
-            (Roles.Clerk, Actions("cancel"))
+            (Roles.Clerk, Actions("cancel", "recall"))
         ]);
     }
 
@@ -81,7 +81,7 @@ public class AllowedActionsTests(ApiFixture fixture)
             (Roles.Owner, Actions()),                       // not a large document: the supervisor's to review (EA-02)
             (Roles.Supervisor, Actions("cancel", "approve", "reject")),
             (Roles.WarehouseStaff, Actions()),              // only the submitter (the clerk) may recall it (EA-01)
-            (Roles.Clerk, Actions("cancel"))
+            (Roles.Clerk, Actions("cancel", "recall"))
         ]);
     }
 
@@ -99,7 +99,7 @@ public class AllowedActionsTests(ApiFixture fixture)
             (Roles.Owner, Actions("approve", "reject")),
             (Roles.Supervisor, Actions("cancel")),          // the API would answer 403 to approve and reject (PS-07)
             (Roles.WarehouseStaff, Actions()),
-            (Roles.Clerk, Actions("cancel"))
+            (Roles.Clerk, Actions("cancel", "recall"))
         ]);
     }
 
@@ -111,7 +111,7 @@ public class AllowedActionsTests(ApiFixture fixture)
 
         await AssertActionsAsync(s, submitted.Id,
         [
-            (Roles.Supervisor, Actions("cancel")),
+            (Roles.Supervisor, Actions("cancel", "recall")),
             (Roles.Admin, Actions("cancel", "approve", "reject")),
             (Roles.Owner, Actions())
         ]);
@@ -134,7 +134,7 @@ public class AllowedActionsTests(ApiFixture fixture)
         ]);
         await AssertActionsAsync(s, clerkSubmitted.Id,
         [
-            (Roles.Clerk, Actions("cancel")),
+            (Roles.Clerk, Actions("cancel", "recall")),
             (Roles.WarehouseStaff, Actions("post")),
             (Roles.Supervisor, Actions("cancel", "post"))
         ]);
@@ -148,11 +148,11 @@ public class AllowedActionsTests(ApiFixture fixture)
 
         await using var _ = await SettingsOverride.ApplyAsync(s.Admin, allowSelfApproval: true);
 
-        await AssertActionsAsync(s, submitted.Id, [(Roles.Supervisor, Actions("cancel", "approve", "reject"))]);
+        await AssertActionsAsync(s, submitted.Id, [(Roles.Supervisor, Actions("cancel", "recall", "approve", "reject"))]);
     }
 
     [Fact]
-    public async Task Approved_can_be_posted_by_supervisor_and_admin_but_not_by_warehouse_staff_and_cannot_be_cancelled()
+    public async Task Approved_can_be_posted_and_cancelled_by_supervisor_and_admin_and_by_nobody_else()
     {
         var (s, productId) = await ScenarioWithStockAsync();
         var submitted = await s.SubmitAsync(s.Clerk, await s.DraftIssueAsync(s.Clerk, Warehouse, new Line(productId, 60)));
@@ -160,11 +160,57 @@ public class AllowedActionsTests(ApiFixture fixture)
 
         await AssertActionsAsync(s, submitted.Id,
         [
-            (Roles.Admin, Actions("post")),
-            (Roles.Owner, Actions()),
-            (Roles.Supervisor, Actions("post")),
+            (Roles.Admin, Actions("post", "cancel")),
+            (Roles.Owner, Actions()),                       // not a large document: not the Owner's
+            (Roles.Supervisor, Actions("post", "cancel")),
+            (Roles.WarehouseStaff, Actions()),
+            (Roles.Clerk, Actions())                        // the creator cannot undo someone else's approval (document-corrections 0.5)
+        ]);
+    }
+
+    [Fact]
+    public async Task A_large_approved_document_is_cancelled_by_the_owner_and_admin_and_not_by_the_supervisor_who_may_still_post_it()
+    {
+        var (s, productId) = await ScenarioWithStockAsync();
+        await using var _ = await ApprovalRuleScope.AddAsync(s.Admin, DocumentType.Issue, 6000m, null, Roles.Owner);
+        var submitted = await s.SubmitAsync(s.Clerk, await s.DraftIssueAsync(s.Clerk, Warehouse, new Line(productId, 60)));
+        Assert.True(submitted.IsLarge);
+        (await s.Owner.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();
+
+        await AssertActionsAsync(s, submitted.Id,
+        [
+            (Roles.Admin, Actions("post", "cancel")),
+            (Roles.Owner, Actions("cancel")),               // may cancel although the Owner cannot post
+            (Roles.Supervisor, Actions("post")),            // may post it (posting is not tiered) but not cancel it
             (Roles.WarehouseStaff, Actions()),
             (Roles.Clerk, Actions())
+        ]);
+    }
+
+    [Fact]
+    public async Task Approved_gives_a_supervisor_who_submitted_it_cancel_as_a_reviewer_but_never_recall()
+    {
+        var (s, productId) = await ScenarioWithStockAsync();
+        var submitted = await s.SubmitAsync(s.Supervisor, await s.DraftIssueAsync(s.Supervisor, Warehouse, new Line(productId, 60)));
+        (await s.Admin.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();
+
+        await AssertActionsAsync(s, submitted.Id, [(Roles.Supervisor, Actions("post", "cancel"))]); // a reviewer role, so cancel is theirs; recall is not
+    }
+
+    [Fact]
+    public async Task A_recalled_document_offers_the_draft_actions_and_no_longer_the_submitted_ones()
+    {
+        var (s, productId) = await ScenarioWithStockAsync();
+        var submitted = await s.SubmitAsync(s.Clerk, await s.DraftIssueAsync(s.Clerk, Warehouse, new Line(productId, 60)));
+        (await s.Clerk.Documents.RecallAsync(submitted.Id)).ShouldBeOk();
+
+        await AssertActionsAsync(s, submitted.Id,
+        [
+            (Roles.Clerk, Actions("edit", "submit", "cancel")),
+            (Roles.Supervisor, Actions("edit", "submit", "cancel")),
+            (Roles.Admin, Actions("edit", "submit", "cancel")),
+            (Roles.WarehouseStaff, Actions()),
+            (Roles.Owner, Actions())
         ]);
     }
 
@@ -224,7 +270,7 @@ public class AllowedActionsTests(ApiFixture fixture)
         var submitted = (await s.Staff.Documents.SubmitAsync(draft.Id)).Data<DocumentDto>();
         var posted = (await s.Staff.Documents.PostAsync(draft.Id)).Data<DocumentDto>();
 
-        Assert.Equal(Actions("cancel", "post"), submitted.AllowedActions.Order());
+        Assert.Equal(Actions("cancel", "post", "recall"), submitted.AllowedActions.Order());
         Assert.Empty(posted.AllowedActions); // staff cannot reverse
     }
 }

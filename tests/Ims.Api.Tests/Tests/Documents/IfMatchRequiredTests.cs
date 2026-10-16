@@ -25,6 +25,7 @@ public class IfMatchRequiredTests(ApiFixture fixture)
     [Theory]
     [InlineData("PUT", "")]
     [InlineData("POST", "/submit")]
+    [InlineData("POST", "/recall")]
     [InlineData("POST", "/approve")]
     [InlineData("POST", "/reject")]
     [InlineData("POST", "/cancel")]

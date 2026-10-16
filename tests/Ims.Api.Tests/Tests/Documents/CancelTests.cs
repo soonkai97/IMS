@@ -45,21 +45,6 @@ public class CancelTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task An_approved_document_cannot_be_cancelled()
-    {
-        var s = await StockScenario.CreateAsync(fixture);
-        var product = await s.NewProductAsync();
-        await s.ReceiveAsync(Warehouse, new Line(product.Id, 100, 100m));
-        var submitted = await s.SubmitAsync(s.Clerk, await s.DraftIssueAsync(s.Clerk, Warehouse, new Line(product.Id, 60)));
-        (await s.Supervisor.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();
-
-        var response = await s.Admin.Documents.CancelAsync(submitted.Id, "changed my mind");
-
-        response.ShouldBeProblem(HttpStatusCode.BadRequest);
-        Assert.Equal(DocumentStatus.Approved, (await s.GetAsync(submitted.Id)).Status);
-    }
-
-    [Fact]
     public async Task A_posted_document_cannot_be_cancelled_only_reversed()
     {
         var s = await StockScenario.CreateAsync(fixture);
@@ -70,6 +55,12 @@ public class CancelTests(ApiFixture fixture)
 
         Assert.Equal(DocumentStatus.Posted, (await s.GetAsync(posted.Id)).Status);
         Assert.Equal(5, await s.OnHandAsync(product.Id, Warehouse));
+    }
+
+    [Fact]
+    public async Task Cancel_has_no_permission_door_but_still_needs_a_signed_in_caller()
+    {
+        (await fixture.Anonymous().PostAsync($"/api/documents/{Guid.NewGuid()}/cancel", new CancelRequest("No token"))).ShouldBe(HttpStatusCode.Unauthorized);
     }
 
     [Fact]

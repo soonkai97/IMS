@@ -7,6 +7,7 @@ public static class DocumentActions
     public const string Submit = "submit";
     public const string Approve = "approve";
     public const string Reject = "reject";
+    public const string Recall = "recall";
     public const string Cancel = "cancel";
     public const string Post = "post";
     public const string Reverse = "reverse";

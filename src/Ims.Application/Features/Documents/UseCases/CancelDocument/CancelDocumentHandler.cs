@@ -12,7 +12,7 @@ public class CancelDocumentHandler(IRepository<StockDocument> documents, IDocume
         version.EnsureCurrent(doc, cmd.IfMatch);
         var before = doc.Status;
         doc.Cancel(cmd.Data.Reason);
-        audit.Record(AuditActions.DocumentCancelled, AuditEntities.StockDocument, doc.No, new { Status = before }, new { doc.Status, cmd.Data.Reason });
+        audit.Record(AuditActions.DocumentCancelled, AuditEntities.StockDocument, doc.No, new { Status = before }, new { doc.Status, Reason = doc.CancelReason });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);
     }

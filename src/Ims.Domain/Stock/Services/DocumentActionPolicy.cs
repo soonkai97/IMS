@@ -21,17 +21,34 @@ public static class DocumentActionPolicy
         (!IsRestrictedToOwn(actor) || doc.Status != DocumentStatus.Draft || doc.CreatedBy == actor.UserId);
 
     /// <summary>
-    /// Cancel a Draft (restricted: the creator) or a Submitted document (restricted: the submitter, a recall). In any other
-    /// status the state machine refuses it for everyone, so ownership is not asked.
+    /// Take a Submitted document back to Draft: only the person who submitted it, whatever they hold beyond the create right. An approval is someone
+    /// else's decision, so there is no recall of an Approved document. Ownership only matters while it is Submitted; in any other status the state machine answers.
+    /// </summary>
+    public static bool MayRecall(ActorRights actor, in DocumentActionContext doc) =>
+        actor.Has(Permissions.DocumentCreate) && doc.Status == DocumentStatus.Submitted && doc.SubmittedBy == actor.UserId;
+
+    /// <summary>
+    /// Undo the approval of an Approved document: the reviewer it is routed to (<see cref="ApprovalPolicy.MayReview(ActorRights, bool)"/>), so a standard
+    /// approver cannot touch a large document and the large approver only a large one. The submitter is not excluded: this only reduces what was allowed.
+    /// </summary>
+    public static bool MayReviewApproved(ActorRights actor, in DocumentActionContext doc) =>
+        doc.Status == DocumentStatus.Approved && ApprovalPolicy.MayReview(actor, doc.IsLarge);
+
+    /// <summary>
+    /// Cancel a Draft (restricted: the creator), a Submitted document (restricted: the submitter) or an Approved one (the reviewers of
+    /// <see cref="MayReviewApproved"/>, who need not be able to create documents). In any other status the state machine refuses it for everyone,
+    /// so ownership is not asked.
     /// </summary>
     public static bool MayCancel(ActorRights actor, in DocumentActionContext doc) =>
-        actor.Has(Permissions.DocumentCreate) &&
-        (!IsRestrictedToOwn(actor) || doc.Status switch
-        {
-            DocumentStatus.Draft => doc.CreatedBy == actor.UserId,
-            DocumentStatus.Submitted => doc.SubmittedBy == actor.UserId,
-            _ => true
-        });
+        doc.Status == DocumentStatus.Approved
+            ? MayReviewApproved(actor, doc)
+            : actor.Has(Permissions.DocumentCreate) &&
+              (!IsRestrictedToOwn(actor) || doc.Status switch
+              {
+                  DocumentStatus.Draft => doc.CreatedBy == actor.UserId,
+                  DocumentStatus.Submitted => doc.SubmittedBy == actor.UserId,
+                  _ => true
+              });
 
     /// <summary>
     /// Approve or reject a Submitted document held for approval: the reviewer it is routed to (<see cref="ApprovalPolicy.MayReview(ActorRights, bool)"/>),
@@ -57,6 +74,7 @@ public static class DocumentActionPolicy
                 break;
 
             case DocumentStatus.Submitted:
+                if (MayRecall(actor, doc)) actions.Add(DocumentActions.Recall);
                 if (MayCancel(actor, doc)) actions.Add(DocumentActions.Cancel);
                 if (doc.RequiresApproval)
                 {
@@ -69,9 +87,10 @@ public static class DocumentActionPolicy
                 }
                 break;
 
-            // Warehouse staff may only post documents that never needed approval (PRD 3.1).
-            case DocumentStatus.Approved when actor.Has(Permissions.DocumentPost) && PostingAuthority.MayPostApprovalRequiredDocument(actor):
-                actions.Add(DocumentActions.Post);
+            case DocumentStatus.Approved:
+                // Warehouse staff may only post documents that never needed approval (PRD 3.1).
+                if (actor.Has(Permissions.DocumentPost) && PostingAuthority.MayPostApprovalRequiredDocument(actor)) actions.Add(DocumentActions.Post);
+                if (MayCancel(actor, doc)) actions.Add(DocumentActions.Cancel);
                 break;
 
             case DocumentStatus.Posted when actor.Has(Permissions.DocumentReverse):

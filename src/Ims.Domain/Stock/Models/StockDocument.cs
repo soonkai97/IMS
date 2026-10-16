@@ -1,8 +1,8 @@
 namespace Ims.Domain;
 
 /// <summary>
-/// A receipt or issue and its Figure 5 state machine: Draft -> Submitted -> (Approved) -> Posted -> Reversed, or Cancelled.
-/// Posting is the irreversible step: a posted document is never edited, only reversed.
+/// A receipt or issue and its Figure 5 state machine: Draft -> Submitted -> (Approved) -> Posted -> Reversed, or Cancelled; a Submitted
+/// document can also be recalled to Draft by its submitter. Posting is the irreversible step: a posted document is never edited, only reversed.
 /// All state changes go through the methods below, so an illegal transition cannot happen.
 /// </summary>
 public class StockDocument : PublicEntity
@@ -201,7 +201,7 @@ public class StockDocument : PublicEntity
 
     /// <summary>
     /// Rejection returns the document to Draft and keeps the (trimmed) reason and who returned it. The submit-time flags no longer describe a Draft.
-    /// Like approval, it is a review: the submitter may not reject their own document unless self-approval is allowed (the recall is Cancel).
+    /// Like approval, it is a review: the submitter may not reject their own document unless self-approval is allowed (taking one's own submission back is <see cref="Recall"/>).
     /// </summary>
     public void Reject(string reason, int userId, bool allowSelfApproval, DateTime utcNow)
     {
@@ -222,10 +222,39 @@ public class StockDocument : PublicEntity
         RequiresOverride = false;
     }
 
+    /// <summary>
+    /// Takes a Submitted document back to Draft so its submitter can fix it: same number, same lines. Nothing was approved yet, so there is
+    /// nothing to void; the submit-time facts no longer describe a Draft, and submitting again assesses the approval rules from scratch. It is
+    /// not a rejection: no reason is kept, so the draft does not count as Returned. Who may do it is <see cref="DocumentActionPolicy.MayRecall"/>.
+    /// </summary>
+    public void Recall()
+    {
+        if (Status != DocumentStatus.Submitted)
+            throw new DomainException(Messages.OnlySubmittedCanRecall(No, Status));
+
+        Status = DocumentStatus.Draft;
+        SubmittedBy = null;
+        SubmittedAt = null;
+        RequiresApproval = false;
+        IsLarge = false;
+        RequiresOverride = false;
+    }
+
+    /// <summary>
+    /// Cancels a Draft, a Submitted or an Approved document. Cancelling an approved document is a reviewer's decision that the stock-moving
+    /// step will not happen, so it must say why (at least <see cref="Limits.ReasonMinLength"/> characters once trimmed). Nothing was posted, so
+    /// no stock changes; who approved and when stays on the document as history.
+    /// </summary>
     public void Cancel(string? reason)
     {
-        if (Status is not (DocumentStatus.Draft or DocumentStatus.Submitted))
-            throw new DomainException(Messages.OnlyDraftOrSubmittedCanCancel(Status));
+        if (Status is not (DocumentStatus.Draft or DocumentStatus.Submitted or DocumentStatus.Approved))
+            throw new DomainException(Messages.OnlyDraftSubmittedOrApprovedCanCancel(Status));
+        if (Status == DocumentStatus.Approved)
+        {
+            BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.CancelApprovedReasonRequired));
+            BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
+            reason = reason!.Trim();
+        }
         Status = DocumentStatus.Cancelled;
         CancelReason = reason;
     }
