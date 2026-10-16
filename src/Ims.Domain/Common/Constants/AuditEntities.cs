@@ -20,8 +20,8 @@ public static class AuditEntities
     public static readonly IReadOnlyList<string> Known =
     [
         nameof(Ims.Domain.ApprovalRule), nameof(Ims.Domain.Attachment), nameof(Ims.Domain.Category), nameof(Ims.Domain.Partner),
-        nameof(Ims.Domain.Product), nameof(Ims.Domain.ProductBarcode), nameof(Ims.Domain.StockDocument), nameof(Ims.Domain.SystemSetting),
-        nameof(Ims.Domain.Uom), nameof(Ims.Domain.UomConversion), nameof(Ims.Domain.User), nameof(Ims.Domain.Warehouse)
+        nameof(Ims.Domain.Product), nameof(Ims.Domain.ProductBarcode), nameof(Ims.Domain.Role), nameof(Ims.Domain.RolePermission), nameof(Ims.Domain.StockDocument),
+        nameof(Ims.Domain.SystemSetting), nameof(Ims.Domain.Uom), nameof(Ims.Domain.UomConversion), nameof(Ims.Domain.User), nameof(Ims.Domain.Warehouse)
     ];
 
     /// <summary>

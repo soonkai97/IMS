@@ -4,13 +4,13 @@ namespace Ims.Domain.Tests.Identity;
 
 public class UserTests
 {
-    private static User NewUser(string role = Roles.Clerk) => User.Create("alice", "alice@example.com", "Alice", role, "hash");
+    private static User NewUser(string role = Roles.Clerk) => User.Create("alice", "alice@example.com", "Alice", NewRole(role), "hash");
 
     // ----- Create / profile -----
     [Fact]
     public void Create_TrimsFieldsAndKeepsHashAndRole()
     {
-        var user = User.Create("  alice ", " alice@example.com ", " Alice A ", Roles.Supervisor, "hash", [3, 3, 4]);
+        var user = User.Create("  alice ", " alice@example.com ", " Alice A ", NewRole(Roles.Supervisor), "hash", [3, 3, 4]);
 
         Assert.Equal("alice", user.Username);
         Assert.Equal("alice@example.com", user.Email);
@@ -22,11 +22,37 @@ public class UserTests
     }
 
     [Theory]
+    [InlineData(Roles.Admin, true)]
+    [InlineData(Roles.Owner, true)]
+    [InlineData(Roles.Supervisor, false)]
+    [InlineData(Roles.WarehouseStaff, false)]
+    [InlineData(Roles.Clerk, false)]
+    public void Create_TakesTheRoleRowAndTheOldAllWarehousesRuleOfTheRole(string code, bool seesAll)
+    {
+        var user = User.Create("alice", "alice@example.com", "Alice", NewRole(code, id: 41), "hash");
+
+        Assert.Equal(code, user.Role);
+        Assert.Equal(41, user.RoleId);
+        Assert.Equal(seesAll, user.AllWarehouses);
+        Assert.Equal(Roles.SeesAllWarehouses(code), user.AllWarehouses);
+    }
+
+    [Fact]
+    public void UpdateProfile_MovesTheRoleStringTheRoleIdAndTheScopeFlagTogether()
+    {
+        var user = User.Create("alice", "alice@example.com", "Alice", NewRole(Roles.Admin, id: 1), "hash");
+
+        user.UpdateProfile("alice", "alice@example.com", "Alice", NewRole(Roles.Clerk, id: 5), true);
+
+        Assert.Equal((Roles.Clerk, 5, false), (user.Role, user.RoleId, user.AllWarehouses));
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData("  ")]
     public void Create_BlankUsername_Throws(string username)
     {
-        var ex = Assert.Throws<DomainException>(() => User.Create(username, "a@b.c", "A", Roles.Clerk, "h"));
+        var ex = Assert.Throws<DomainException>(() => User.Create(username, "a@b.c", "A", NewRole(Roles.Clerk), "h"));
 
         Assert.Equal(Messages.UsernameInvalid, ex.Message);
     }
@@ -36,7 +62,7 @@ public class UserTests
     [InlineData("  ")]
     public void Create_BlankEmail_Throws(string email)
     {
-        var ex = Assert.Throws<DomainException>(() => User.Create("alice", email, "A", Roles.Clerk, "h"));
+        var ex = Assert.Throws<DomainException>(() => User.Create("alice", email, "A", NewRole(Roles.Clerk), "h"));
 
         Assert.Equal(Messages.EmailInvalid, ex.Message);
     }
@@ -44,7 +70,7 @@ public class UserTests
     [Fact]
     public void Create_UnknownRole_Throws()
     {
-        var ex = Assert.Throws<DomainException>(() => User.Create("alice", "a@b.c", "A", "Janitor", "h"));
+        var ex = Assert.Throws<DomainException>(() => User.Create("alice", "a@b.c", "A", NewRole("Janitor"), "h"));
 
         Assert.Equal(Messages.UnknownRole, ex.Message);
     }
@@ -52,7 +78,7 @@ public class UserTests
     [Fact]
     public void Create_NullDisplayName_BecomesEmpty()
     {
-        var user = User.Create("alice", "a@b.c", null!, Roles.Clerk, "h");
+        var user = User.Create("alice", "a@b.c", null!, NewRole(Roles.Clerk), "h");
 
         Assert.Equal("", user.DisplayName);
     }
@@ -62,7 +88,7 @@ public class UserTests
     {
         var user = NewUser();
 
-        Assert.Throws<DomainException>(() => user.UpdateProfile("bob", "b@b.c", "Bob", "Janitor", false));
+        Assert.Throws<DomainException>(() => user.UpdateProfile("bob", "b@b.c", "Bob", NewRole("Janitor"), false));
 
         Assert.Equal("alice", user.Username);
         Assert.Equal(Roles.Clerk, user.Role);
@@ -83,7 +109,7 @@ public class UserTests
     [Fact]
     public void AssignWarehouses_MakesTheSetExact_AddingAndRemoving()
     {
-        var user = User.Create("a", "a@b.c", "A", Roles.Clerk, "h", [1, 2]);
+        var user = User.Create("a", "a@b.c", "A", NewRole(Roles.Clerk), "h", [1, 2]);
         var kept = user.Warehouses.Single(w => w.WarehouseId == 2);
 
         user.AssignWarehouses([2, 3, 3]);
@@ -95,7 +121,7 @@ public class UserTests
     [Fact]
     public void AssignWarehouses_Empty_RemovesAll()
     {
-        var user = User.Create("a", "a@b.c", "A", Roles.Clerk, "h", [1, 2]);
+        var user = User.Create("a", "a@b.c", "A", NewRole(Roles.Clerk), "h", [1, 2]);
 
         user.AssignWarehouses([]);
 

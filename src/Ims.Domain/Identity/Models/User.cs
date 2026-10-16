@@ -10,7 +10,15 @@ public class User : PublicEntity
     public string Email { get; private set; } = "";
     public string DisplayName { get; private set; } = "";
     public string PasswordHash { get; private set; } = "";
+    /// <summary>The role's code. The source of what the running API lets the user do until the permissions come from the database (RP-4a); <see cref="RoleId"/> follows it.</summary>
     public string Role { get; private set; } = Roles.WarehouseStaff;
+    /// <summary>The role as a row (<see cref="Ims.Domain.Role"/>): always the row whose code is <see cref="Role"/>, set by the same call.</summary>
+    public int RoleId { get; private set; }
+    /// <summary>
+    /// Sees every warehouse whatever the list of <see cref="Warehouses"/> says. Until RP-4b makes it a choice per person it is the old rule of the role
+    /// (<see cref="Roles.SeesAllWarehouses"/>), written with the role, so switching over later moves nobody's scope.
+    /// </summary>
+    public bool AllWarehouses { get; private set; }
     public bool IsActive { get; private set; } = true;
     public int FailedLoginCount { get; private set; }
     public DateTime? LockoutUntil { get; private set; }
@@ -21,7 +29,7 @@ public class User : PublicEntity
     public IReadOnlyList<UserWarehouse> Warehouses => _warehouses;
 
     /// <param name="passwordHash">Already hashed by the infrastructure; the domain never sees a plain password.</param>
-    public static User Create(string username, string email, string displayName, string role, string passwordHash,
+    public static User Create(string username, string email, string displayName, Role role, string passwordHash,
         IEnumerable<int>? warehouseIds = null, bool isActive = true)
     {
         var u = new User { PasswordHash = passwordHash };
@@ -30,16 +38,18 @@ public class User : PublicEntity
         return u;
     }
 
-    public void UpdateProfile(string username, string email, string displayName, string role, bool isActive)
+    public void UpdateProfile(string username, string email, string displayName, Role role, bool isActive)
     {
         if (string.IsNullOrWhiteSpace(username)) throw new DomainException(Messages.UsernameInvalid);
         if (string.IsNullOrWhiteSpace(email)) throw new DomainException(Messages.EmailInvalid);
-        if (!Roles.All.Contains(role)) throw new DomainException(Messages.UnknownRole);
+        if (!Roles.All.Contains(role.Code)) throw new DomainException(Messages.UnknownRole);
 
         Username = username.Trim();
         Email = email.Trim();
         DisplayName = (displayName ?? "").Trim();
-        Role = role;
+        Role = role.Code;
+        RoleId = role.Id;
+        AllWarehouses = Roles.SeesAllWarehouses(role.Code);
         IsActive = isActive;
     }
 

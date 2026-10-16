@@ -83,6 +83,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("rowversion")
                         .HasColumnName("ROW_VERSION");
 
+                    b.Property<int>("Tier")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PublicId")
@@ -684,6 +687,146 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.ToTable("RefreshToken");
                 });
 
+            modelBuilder.Entity("Ims.Domain.Role", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<DateTime>("RecCreDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("REC_CREDATE")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int?>("RecCreator")
+                        .HasColumnType("int")
+                        .HasColumnName("REC_CREATOR");
+
+                    b.Property<bool>("RecDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("REC_DELETED");
+
+                    b.Property<DateTime?>("RecRevDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("REC_REVDATE");
+
+                    b.Property<int?>("RecRevisor")
+                        .HasColumnType("int")
+                        .HasColumnName("REC_REVISOR");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("ROW_VERSION");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasFilter("[REC_DELETED] = 0");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasFilter("[REC_DELETED] = 0");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Role_PublicId");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex("PublicId"), 90);
+
+                    b.ToTable("Role");
+                });
+
+            modelBuilder.Entity("Ims.Domain.RolePermission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("PermissionCode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("RecCreDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("REC_CREDATE")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int?>("RecCreator")
+                        .HasColumnType("int")
+                        .HasColumnName("REC_CREATOR");
+
+                    b.Property<bool>("RecDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("REC_DELETED");
+
+                    b.Property<DateTime?>("RecRevDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("REC_REVDATE");
+
+                    b.Property<int?>("RecRevisor")
+                        .HasColumnType("int")
+                        .HasColumnName("REC_REVISOR");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("ROW_VERSION");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId", "PermissionCode")
+                        .IsUnique()
+                        .HasFilter("[REC_DELETED] = 0");
+
+                    b.ToTable("RolePermission");
+                });
+
             modelBuilder.Entity("Ims.Domain.StockBalance", b =>
                 {
                     b.Property<int>("ProductId")
@@ -1283,6 +1426,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("AllWarehouses")
+                        .HasColumnType("bit");
+
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1340,6 +1486,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
 
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -1363,6 +1512,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("UX_User_PublicId");
 
                     SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex("PublicId"), 90);
+
+                    b.HasIndex("RoleId");
 
                     b.HasIndex("Username")
                         .IsUnique()
@@ -1550,6 +1701,15 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Ims.Domain.RolePermission", b =>
+                {
+                    b.HasOne("Ims.Domain.Role", null)
+                        .WithMany("Grants")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Ims.Domain.StockBalance", b =>
                 {
                     b.HasOne("Ims.Domain.Product", "Product")
@@ -1694,7 +1854,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Ims.Domain.UomConversion", b =>
                 {
-                    b.HasOne("Ims.Domain.Uom", null)
+                    b.HasOne("Ims.Domain.Uom", "FromUom")
                         .WithMany()
                         .HasForeignKey("FromUomId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1706,9 +1866,22 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Ims.Domain.Uom", null)
+                    b.HasOne("Ims.Domain.Uom", "ToUom")
                         .WithMany()
                         .HasForeignKey("ToUomId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FromUom");
+
+                    b.Navigation("ToUom");
+                });
+
+            modelBuilder.Entity("Ims.Domain.User", b =>
+                {
+                    b.HasOne("Ims.Domain.Role", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -1721,11 +1894,13 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Ims.Domain.Warehouse", null)
+                    b.HasOne("Ims.Domain.Warehouse", "Warehouse")
                         .WithMany()
                         .HasForeignKey("WarehouseId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("Ims.Domain.Product", b =>
@@ -1733,6 +1908,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Navigation("Barcodes");
 
                     b.Navigation("Conversions");
+                });
+
+            modelBuilder.Entity("Ims.Domain.Role", b =>
+                {
+                    b.Navigation("Grants");
                 });
 
             modelBuilder.Entity("Ims.Domain.StockDocument", b =>

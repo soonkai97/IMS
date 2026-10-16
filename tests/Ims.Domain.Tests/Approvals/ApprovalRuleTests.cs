@@ -84,6 +84,33 @@ public class ApprovalRuleTests
         Assert.False(rule.IsActive);
     }
 
+    [Fact]
+    public void EverySaveWritesTheTierWithTheRole_OwnerAndAdminAreLarge_TheOthersStandard()
+    {
+        var rule = ApprovalRule.Create(DocumentType.Receipt, 100m, null, Roles.Owner);
+        Assert.Equal(ApproverTier.Large, rule.Tier);
+
+        foreach (var (role, tier) in new[]
+                 {
+                     (Roles.Supervisor, ApproverTier.Standard), (Roles.Admin, ApproverTier.Large), (Roles.Clerk, ApproverTier.Standard),
+                     (Roles.WarehouseStaff, ApproverTier.Standard), (Roles.Owner, ApproverTier.Large)
+                 })
+        {
+            rule.Update(DocumentType.Receipt, 100m, null, role, true);
+            Assert.Equal(tier, rule.Tier);
+        }
+    }
+
+    [Fact]
+    public void ARejectedUpdate_LeavesTheTierAsItWas()
+    {
+        var rule = ApprovalRule.Create(DocumentType.Receipt, 100m, null, Roles.Owner);
+
+        Assert.Throws<DomainException>(() => rule.Update(DocumentType.Receipt, 100m, null, "Janitor", true));
+
+        Assert.Equal(ApproverTier.Large, rule.Tier);
+    }
+
     // ----- Matches -----
     [Theory]
     [InlineData(99.99, false)]
