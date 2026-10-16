@@ -44,6 +44,10 @@ public static class TestData
 
     public static Uom NewUom(int id = PcsId, string code = "PCS") => Uom.Create(code).WithId(id);
 
+    /// <summary>A role as the database would hold it: the code is the name, the permissions are the defaults of a system role (none for another code).</summary>
+    public static Role NewRole(string code = Roles.Clerk, int id = 7) =>
+        Role.Create(code, code, null, Roles.All.Contains(code), SystemRoleDefaults.For(code)).WithId(id);
+
     public static Warehouse NewWarehouse(int id = 1, string code = "WH1", bool active = true) =>
         Warehouse.Create(code, "Main warehouse", isActive: active).WithId(id);
 

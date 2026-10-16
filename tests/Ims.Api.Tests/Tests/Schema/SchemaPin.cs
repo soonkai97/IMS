@@ -3,7 +3,7 @@ namespace Ims.Api.Tests.Tests.Schema;
 /// <summary>
 /// The shape of the database as the migrations build it today (<see cref="SchemaShape"/> writes the same lines). Change it in the pull request
 /// that changes a key, a foreign key or a unique index, never to make a red test green. Order does not matter.
-/// 19 tables, 27 foreign keys, 22 unique indexes besides the primary keys, 2 append-only triggers. The nine <c>UX_&lt;Table&gt;_PublicId</c> indexes carry no
+/// 21 tables, 29 foreign keys, 26 unique indexes besides the primary keys, 2 append-only triggers. The ten <c>UX_&lt;Table&gt;_PublicId</c> indexes carry no
 /// filter on purpose: a soft-deleted row keeps its public id, so an id is never handed out twice.
 /// </summary>
 public static class SchemaPin
@@ -18,6 +18,8 @@ public static class SchemaPin
         TABLE Product PK(Id:int identity) clustered
         TABLE ProductBarcode PK(Id:int identity) clustered
         TABLE RefreshToken PK(Id:int identity) clustered
+        TABLE Role PK(Id:int identity) clustered
+        TABLE RolePermission PK(Id:int identity) clustered
         TABLE StockBalance PK(ProductId:int, WarehouseId:int) clustered
         TABLE StockDocument PK(Id:int identity) clustered
         TABLE StockDocumentLine PK(Id:int identity) clustered
@@ -33,6 +35,7 @@ public static class SchemaPin
         FK Product(CategoryId) -> Category(Id) on delete no_action
         FK ProductBarcode(ProductId) -> Product(Id) on delete cascade
         FK RefreshToken(UserId) -> User(Id) on delete cascade
+        FK RolePermission(RoleId) -> Role(Id) on delete no_action
         FK StockBalance(ProductId) -> Product(Id) on delete no_action
         FK StockBalance(WarehouseId) -> Warehouse(Id) on delete no_action
         FK StockDocument(ApprovedBy) -> User(Id) on delete no_action
@@ -53,6 +56,7 @@ public static class SchemaPin
         FK UomConversion(FromUomId) -> Uom(Id) on delete no_action
         FK UomConversion(ProductId) -> Product(Id) on delete cascade
         FK UomConversion(ToUomId) -> Uom(Id) on delete no_action
+        FK User(RoleId) -> Role(Id) on delete no_action
         FK UserWarehouse(UserId) -> User(Id) on delete cascade
         FK UserWarehouse(WarehouseId) -> Warehouse(Id) on delete no_action
         UNIQUE ApprovalRule.UX_ApprovalRule_PublicId (PublicId)
@@ -66,6 +70,10 @@ public static class SchemaPin
         UNIQUE Product.UX_Product_PublicId (PublicId)
         UNIQUE ProductBarcode.IX_ProductBarcode_Barcode (Barcode) where ([REC_DELETED]=(0))
         UNIQUE RefreshToken.IX_RefreshToken_TokenHash (TokenHash) where ([REC_DELETED]=(0))
+        UNIQUE Role.IX_Role_Code (Code) where ([REC_DELETED]=(0))
+        UNIQUE Role.IX_Role_Name (Name) where ([REC_DELETED]=(0))
+        UNIQUE Role.UX_Role_PublicId (PublicId)
+        UNIQUE RolePermission.IX_RolePermission_RoleId_PermissionCode (RoleId, PermissionCode) where ([REC_DELETED]=(0))
         UNIQUE StockDocument.IX_StockDocument_No (No) where ([REC_DELETED]=(0))
         UNIQUE StockDocument.UX_StockDocument_PublicId (PublicId)
         UNIQUE Uom.IX_Uom_Code (Code) where ([REC_DELETED]=(0))
