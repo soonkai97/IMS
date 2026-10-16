@@ -747,3 +747,9 @@
 - Two main tests assumed ordered ids and were wrong once ids are GUIDs: `DocumentsListPlanTests` (newest-first is now checked against the order of creation) and `ProductLookupTests` (dropped `barcodeOwner.Id < skuOwner.Id`; the creation order is sequential). No behaviour change.
 - Verified: Release `-warnaserror --no-incremental` build clean; Domain 756, Architecture 68, Api 1238 (all pass, incl. DocumentsListPlanTests, ProductLookupTests, MovementsByProductPlanTests through the real host); CI smoke 102/0 on a throw-away `(localdb)\ImsDev` database (dropped); `node --test scripts/guard` 10/10. Web untouched by main since the last merge, not re-run.
 - Open conflicts: none.
+
+### 2026-10-16 be-framework -> orchestrator, security-engineer (fix: NU1902/NU1903 on System.Security.Cryptography.Pkcs 9.0.11)
+- Produced (branch `fix/pkcs-advisory`, one line in `src/Ims.Infrastructure/Ims.Infrastructure.csproj`): GHSA-846f-f764-76mx (high, CVE-2026-84008) and GHSA-2fmv-rv2c-59x7 (moderate, CVE-2026-70162) hit the transitive `Pkcs 9.0.11`, pulled by `Microsoft.EntityFrameworkCore.SqlServer 10.0.12` -> `Microsoft.Data.SqlClient 6.1.6`. Patched in 9.0.21 / 10.0.13; Infrastructure now references `Pkcs 10.0.13` directly (flows to Api and the test projects). No NoWarn, auditing stays on. No newer SqlClient 6.x exists (7.x is a major bump, not taken).
+- Verified: `dotnet list package --vulnerable --include-transitive` is clean for all 7 projects; Release `-warnaserror --no-incremental` build 0 warnings. The published output has no Pkcs dll (the .NET 10 shared framework supplies it), so the runtime fix is the `aspnet:10.0` image at 10.0.13 or later; the pin only clears the restore graph.
+- Decisions others must respect: remove the pin once SqlClient asks for a patched Pkcs. Dependabot's group PR (#38 style) must not downgrade it.
+- Open conflicts: none.
