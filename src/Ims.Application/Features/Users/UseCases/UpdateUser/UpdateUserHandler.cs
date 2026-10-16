@@ -1,8 +1,8 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Users;
 
-public class UpdateUserHandler(IRepository<User> users, IIdMap<Warehouse> warehouseIds, IRepository<RefreshToken> tokens, IPasswordHasher hasher, ICurrentUser current,
-    IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<UpdateUserCommand, UserDto>
+public class UpdateUserHandler(IRepository<User> users, IReadRepository<Role> roles, IIdMap<Warehouse> warehouseIds, IRepository<RefreshToken> tokens, IPasswordHasher hasher,
+    ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<UpdateUserCommand, UserDto>
 {
     public async Task<UserDto> HandleAsync(UpdateUserCommand cmd, CancellationToken ct)
     {
@@ -10,6 +10,7 @@ public class UpdateUserHandler(IRepository<User> users, IIdMap<Warehouse> wareho
         var user = await users.FirstOrDefaultAsync(new UserWithWarehousesByPublicIdSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.UserNotFound);
         if (await users.AnyAsync(new UserTakenSpec(r.Username, r.Email, user.Id), ct)) throw new ConflictException(Messages.UserExists);
         var wanted = await UserWarehouses.ResolveAsync(warehouseIds, r.WarehouseIds, ct);
+        var role = await roles.FirstOrDefaultAsync(new RoleByCodeSpec(r.Role), ct) ?? throw new DomainException(Messages.UnknownRole);
 
         // Nobody may lock the system out of administration: not themselves, and not the last active administrator.
         var losesAdmin = user.Role == Roles.Admin && user.IsActive && (!r.IsActive || r.Role != Roles.Admin);
@@ -23,7 +24,7 @@ public class UpdateUserHandler(IRepository<User> users, IIdMap<Warehouse> wareho
         var accessChanged = user.Role != r.Role || user.IsActive != r.IsActive || !string.IsNullOrEmpty(r.Password) ||
                             !before.Warehouses.Order().SequenceEqual(wanted.Order());
 
-        user.UpdateProfile(r.Username, r.Email, r.DisplayName, r.Role, r.IsActive);
+        user.UpdateProfile(r.Username, r.Email, r.DisplayName, role, r.IsActive);
         if (!string.IsNullOrEmpty(r.Password)) user.ChangePasswordHash(hasher.Hash(r.Password));
         user.AssignWarehouses(wanted);
 

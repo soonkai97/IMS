@@ -33,6 +33,9 @@ public static class AuditActions
     public const string ImportProducts = "import.products";
     public const string ImportOpeningStock = "import.opening-stock";
 
+    /// <summary>Written once by the roles migration (system actor) when rules that only an Administrator could satisfy became Large and so can now be satisfied by the Owner too.</summary>
+    public const string ApprovalRulesWidened = "approval-rules.widened";
+
     /// <summary>The sign-in events: what the audit log leaves out when asked to hide sign-ins.</summary>
     public static readonly IReadOnlyList<string> SignIns = [LoginSuccess, LoginFailed, LoginLocked, LoginLockout, Logout];
 
@@ -41,6 +44,6 @@ public static class AuditActions
     [
         RowCreated, RowUpdated, RowDeleted, LoginSuccess, LoginFailed, LoginLocked, LoginLockout, Logout, UserCreated, UserUpdated, PasswordChanged,
         SettingsUpdated, DocumentCreated, DocumentSubmitted, DocumentApproved, DocumentRejected, DocumentRecalled, DocumentCancelled, DocumentPosted, DocumentReversed,
-        AttachmentUploaded, AttachmentDeleted, ImportProducts, ImportOpeningStock
+        AttachmentUploaded, AttachmentDeleted, ImportProducts, ImportOpeningStock, ApprovalRulesWidened
     ];
 }

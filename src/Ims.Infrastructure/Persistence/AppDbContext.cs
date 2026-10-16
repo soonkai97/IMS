@@ -30,6 +30,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.RowVersion).IsRowVersion();
             e.HasMany(x => x.Warehouses).WithOne().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Warehouses).UsePropertyAccessMode(PropertyAccessMode.Field);
+            // The role as a row. Restrict: a role in use is never removed under its users (its string, User.Role, stays the source until RP-4a).
+            e.HasOne<Role>().WithMany().HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Restrict);
+        });
+        // Code and name are unique among live roles (ConfigureAuditColumns filters every unique index on REC_DELETED).
+        b.Entity<Role>(e =>
+        {
+            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.Name).IsUnique();
+            e.Property(x => x.Code).HasMaxLength(Limits.RoleMaxLength);
+            e.Property(x => x.Name).HasMaxLength(Limits.RoleNameMaxLength);
+            e.Property(x => x.Description).HasMaxLength(Limits.RoleDescriptionMaxLength);
+            e.HasMany(x => x.Grants).WithOne().HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Restrict);
+            e.Navigation(x => x.Grants).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+        b.Entity<RolePermission>(e =>
+        {
+            e.HasIndex(x => new { x.RoleId, x.PermissionCode }).IsUnique();
+            e.Property(x => x.PermissionCode).HasMaxLength(Limits.PermissionCodeMaxLength);
         });
         b.Entity<UserWarehouse>(e =>
         {
@@ -271,7 +289,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
     private static readonly HashSet<Type> Audited =
     [
         typeof(Product), typeof(ProductBarcode), typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom),
-        typeof(ApprovalRule), typeof(User), typeof(UomConversion)
+        typeof(ApprovalRule), typeof(User), typeof(UomConversion), typeof(Role), typeof(RolePermission)
     ];
 
     /// <summary>Secrets and login-attempt counters stay out of the audit payload (logins have their own events).</summary>
@@ -410,7 +428,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
     /// </summary>
     private static readonly HashSet<Type> AuditedByPublicId =
     [
-        typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom), typeof(User), typeof(Product), typeof(ApprovalRule)
+        typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom), typeof(User), typeof(Product), typeof(ApprovalRule), typeof(Role)
     ];
 
     private static string KeyOf(EntityEntry e) =>

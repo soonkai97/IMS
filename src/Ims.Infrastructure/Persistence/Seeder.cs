@@ -57,7 +57,8 @@ public static class Seeder
             log.LogWarning("No admin user exists and {Key} is not set. Set it to create the first admin.", ConfigKeys.SeedAdminPassword);
             return;
         }
-        db.Add(User.Create(SeedDefaults.AdminUsername, SeedDefaults.AdminEmail, SeedDefaults.AdminDisplayName, Roles.Admin, hasher.Hash(password)));
+        var admin = await db.Set<Role>().SingleAsync(r => r.Code == Roles.Admin, ct); // the migration seeds the system roles
+        db.Add(User.Create(SeedDefaults.AdminUsername, SeedDefaults.AdminEmail, SeedDefaults.AdminDisplayName, admin, hasher.Hash(password)));
         await db.SaveChangesAsync(ct);
     }
 
@@ -66,10 +67,12 @@ public static class Seeder
         if (string.IsNullOrWhiteSpace(password) || await db.Set<User>().AnyAsync(u => u.Username == SeedDefaults.SupervisorUsername, ct)) return;
 
         var warehouseId = await db.Set<Warehouse>().Select(w => w.Id).FirstAsync(ct);
-        foreach (var (username, role) in SeedDefaults.DemoUsers)
+        var roles = await db.Set<Role>().ToDictionaryAsync(r => r.Code, ct);
+        foreach (var (username, roleCode) in SeedDefaults.DemoUsers)
         {
+            var role = roles[roleCode];
             var displayName = char.ToUpperInvariant(username[0]) + username[1..];
-            var scope = Roles.SeesAllWarehouses(role) ? [] : new[] { warehouseId };
+            var scope = Roles.SeesAllWarehouses(roleCode) ? [] : new[] { warehouseId };
             db.Add(User.Create(username, $"{username}@{SeedDefaults.DemoEmailDomain}", displayName, role, hasher.Hash(password), scope));
         }
 
