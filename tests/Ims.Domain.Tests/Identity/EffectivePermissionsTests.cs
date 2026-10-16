@@ -53,7 +53,7 @@ public class EffectivePermissionsTests
         var first = SystemRoleDefaults.RightsFor(Roles.Clerk, 1);
         var second = SystemRoleDefaults.RightsFor(Roles.Clerk, 2);
 
-        Assert.Same(first.Permissions, second.Permissions);
+        Assert.Same(first.Effective, second.Effective);
         Assert.Equal(1, first.UserId);
         Assert.Equal(2, second.UserId);
     }

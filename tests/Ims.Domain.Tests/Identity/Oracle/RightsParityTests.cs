@@ -104,7 +104,7 @@ public class RightsParityTests
     {
         var rights = SystemRoleDefaults.RightsFor("Nobody", Me);
 
-        Assert.Empty(rights.Permissions.Codes);
+        Assert.Empty(rights.Effective.Codes);
         Assert.Empty(SystemRoleDefaults.For("Nobody"));
     }
 }
