@@ -14,7 +14,7 @@ public static class RouteSegments
     public const string Approve = ApiRoutes.PublicId + "/approve";
     public const string Reject = ApiRoutes.PublicId + "/reject";
     public const string Recall = ApiRoutes.PublicId + "/recall";
-    public const string Cancel =ApiRoutes.PublicId + "/cancel";
+    public const string Cancel = ApiRoutes.PublicId + "/cancel";
     public const string Post = ApiRoutes.PublicId + "/post";
     public const string Reverse = ApiRoutes.PublicId + "/reverse";
     public const string Lookup = "lookup";

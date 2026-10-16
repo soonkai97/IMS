@@ -276,22 +276,64 @@ public class RecallTests(ApiFixture fixture)
 
         var again = (await s.Clerk.Documents.RecallAsync(submitted.Id, submitted.ConcurrencyToken)).ShouldBeOk().Read<DocumentDto>(); // a retry with the old token
         var withNew = (await s.Clerk.Documents.RecallAsync(submitted.Id, first.ConcurrencyToken)).ShouldBeOk().Read<DocumentDto>();
-        var byAdmin = (await s.Admin.Documents.RecallAsync(submitted.Id)).ShouldBeOk().Read<DocumentDto>(); // supervisors and admins act on any draft
 
-        Assert.All(new[] { again, withNew, byAdmin }, d => Assert.Equal((DocumentStatus.Draft, first.ConcurrencyToken), (d.Status, d.ConcurrencyToken)));
+        Assert.All(new[] { again, withNew }, d => Assert.Equal((DocumentStatus.Draft, first.ConcurrencyToken), (d.Status, d.ConcurrencyToken)));
         Assert.Single(await RecalledEntriesAsync(s, submitted.No));
     }
 
     [Fact]
-    public async Task A_recall_of_somebody_elses_draft_by_staff_is_refused_not_a_no_op()
+    public async Task The_retry_of_a_recall_by_a_supervisor_who_submitted_somebody_elses_draft_is_still_theirs_and_a_no_op()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var draft = await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 5, 1m));
+        var submitted = (await s.Supervisor.Documents.SubmitAsync(draft.Id)).Data<DocumentDto>();
+        var first = (await s.Supervisor.Documents.RecallAsync(submitted.Id, submitted.ConcurrencyToken)).Data<DocumentDto>();
+
+        var again = (await s.Supervisor.Documents.RecallAsync(submitted.Id, submitted.ConcurrencyToken)).ShouldBeOk().Read<DocumentDto>();
+
+        Assert.Equal((DocumentStatus.Draft, first.ConcurrencyToken), (again.Status, again.ConcurrencyToken));
+        Assert.Single(await RecalledEntriesAsync(s, submitted.No));
+    }
+
+    [Theory]
+    [InlineData(Roles.Supervisor)]
+    [InlineData(Roles.Admin)]
+    [InlineData(Roles.WarehouseStaff)]
+    public async Task Recalling_somebody_elses_draft_is_403_for_every_role_not_a_no_op_and_the_creators_own_repeat_is(string role)
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync();
         var draft = await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 5, 1m));
 
-        (await s.Staff.Documents.RecallAsync(draft.Id)).ShouldBeProblem(HttpStatusCode.BadRequest);
-        (await s.Clerk.Documents.RecallAsync(draft.Id)).ShouldBeOk(); // the creator's own draft: the same call is a no-op
+        var refused = await s.As(role).Documents.RecallAsync(draft.Id);
+
+        Assert.Equal(Messages.OwnRecallOnly, refused.ShouldBeProblem(HttpStatusCode.Forbidden).Detail);
+        (await s.Clerk.Documents.RecallAsync(draft.Id)).ShouldBeOk(); // the creator's own plain draft: the same call is a no-op
         Assert.Empty(await RecalledEntriesAsync(s, draft.No));
+    }
+
+    [Fact]
+    public async Task A_clerk_recalling_a_staff_draft_is_403_too()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var staffs = await s.DraftReceiptAsync(s.Staff, Warehouse, new Line(product.Id, 5, 1m));
+
+        (await s.Clerk.Documents.RecallAsync(staffs.Id)).ShouldBeProblem(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Somebody_elses_posted_or_cancelled_document_is_403_too_so_the_answer_does_not_tell_its_state()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        var posted = await s.ReceiveAsync(Warehouse, new Line(product.Id, 5, 1m));
+        var cancelled = await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 5, 1m));
+        (await s.Clerk.Documents.CancelAsync(cancelled.Id)).ShouldBeOk();
+
+        (await s.Clerk.Documents.RecallAsync(posted.Id)).ShouldBeProblem(HttpStatusCode.Forbidden);
+        (await s.Supervisor.Documents.RecallAsync(cancelled.Id)).ShouldBeProblem(HttpStatusCode.Forbidden);
     }
 
     // ----- audit -----
@@ -341,17 +383,17 @@ public class RecallTests(ApiFixture fixture)
 
         var results = await Concurrently.RunAsync(documents.SelectMany(d => new[]
         {
-            (Func<Task<ApiResponse>>)(() => s.Admin.Documents.PostAsync(d.Id)),
-            () => s.Admin.Documents.RecallAsync(d.Id)
+            (Func<Task<ApiResponse>>)(() => s.Admin.Documents.PostAsync(d.Id, d.ConcurrencyToken)),
+            () => s.Admin.Documents.RecallAsync(d.Id, d.ConcurrencyToken)
         }));
 
         var finals = new List<DocumentDto>();
         foreach (var d in documents) finals.Add(await s.GetAsync(d.Id));
         Assert.All(finals, f => Assert.Contains(f.Status, new[] { DocumentStatus.Posted, DocumentStatus.Draft }));
         var posted = finals.Count(f => f.Status == DocumentStatus.Posted);
-        // Each document: one request won (200) and the other lost with a client error (409 stale or 400 wrong state), never both and never a 500.
+        // Each document: one request won (200) and the other, holding the same token, lost with 409 (stale), never both and never a 500.
         Assert.All(results.Chunk(2), pair => Assert.Single(pair, r => r.Status == HttpStatusCode.OK));
-        Assert.All(results.Where(r => !r.IsSuccess), r => Assert.Contains(r.Status, new[] { HttpStatusCode.Conflict, HttpStatusCode.BadRequest }));
+        Assert.All(results.Where(r => !r.IsSuccess), r => Assert.Equal(HttpStatusCode.Conflict, r.Status));
         Assert.Equal(posted * 10m, await s.OnHandAsync(product.Id, Warehouse));
         Assert.Equal(posted * 10m, await s.LedgerSumAsync(product.Id, Warehouse));
     }
@@ -365,12 +407,12 @@ public class RecallTests(ApiFixture fixture)
 
         var results = await Concurrently.RunAsync(submitted.SelectMany(d => new[]
         {
-            (Func<Task<ApiResponse>>)(() => s.Supervisor.Documents.ApproveAsync(d.Id)),
-            () => s.Clerk.Documents.RecallAsync(d.Id)
+            (Func<Task<ApiResponse>>)(() => s.Supervisor.Documents.ApproveAsync(d.Id, d.ConcurrencyToken)),
+            () => s.Clerk.Documents.RecallAsync(d.Id, d.ConcurrencyToken)
         }));
 
         Assert.All(results.Chunk(2), pair => Assert.Single(pair, r => r.Status == HttpStatusCode.OK));
-        Assert.All(results.Where(r => !r.IsSuccess), r => Assert.Contains(r.Status, new[] { HttpStatusCode.Conflict, HttpStatusCode.BadRequest }));
+        Assert.All(results.Where(r => !r.IsSuccess), r => Assert.Equal(HttpStatusCode.Conflict, r.Status));
         foreach (var d in submitted)
         {
             var final = await s.GetAsync(d.Id);

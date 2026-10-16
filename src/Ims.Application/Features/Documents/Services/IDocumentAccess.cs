@@ -21,14 +21,15 @@ public interface IDocumentAccess
     void EnsureMayCancel(StockDocument document);
 
     /// <summary>
-    /// A Submitted document is taken back only by its submitter. In any other status the state machine answers (so the refusal is the same for everyone).
+    /// A document is taken back only by its submitter. A Draft counts as theirs too when they made it or last changed it (a recall names no submitter
+    /// afterwards, so a retry must still be theirs). Anyone else is refused in every status, so the answer does not tell what state it is in.
     /// </summary>
-    /// <exception cref="ForbiddenException">The document is Submitted and the caller did not submit it.</exception>
+    /// <exception cref="ForbiddenException">The caller did not submit the document.</exception>
     void EnsureMayRecall(StockDocument document);
 
     /// <summary>
-    /// True when a recall would repeat one that already happened: the document is an ordinary Draft (not a returned one) that the caller may edit.
-    /// The recall then answers with the document and changes nothing.
+    /// True when a recall would repeat one that already happened: the document is an ordinary Draft (not a returned one). Asked after
+    /// <see cref="EnsureMayRecall"/>, so only the caller's own; the recall then answers with the document and changes nothing.
     /// </summary>
     bool IsRepeatedRecall(StockDocument document);
 

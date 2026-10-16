@@ -264,18 +264,17 @@ public class CancelApprovedTests(ApiFixture fixture)
         {
             var submitted = await s.SubmitAsync(s.Clerk, await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 10, 1m)));
             Assert.True(submitted.RequiresApproval);
-            (await s.Supervisor.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();
-            approved.Add(submitted);
+            approved.Add((await s.Supervisor.Documents.ApproveAsync(submitted.Id, submitted.ConcurrencyToken)).ShouldBeOk().Read<DocumentDto>());
         }
 
         var results = await Concurrently.RunAsync(approved.SelectMany(d => new[]
         {
-            (Func<Task<ApiResponse>>)(() => s.Admin.Documents.PostAsync(d.Id)),
-            () => s.Admin.Documents.CancelAsync(d.Id, "Customer withdrew the order")
+            (Func<Task<ApiResponse>>)(() => s.Admin.Documents.PostAsync(d.Id, d.ConcurrencyToken)),
+            () => s.Admin.Documents.CancelAsync(d.Id, "Customer withdrew the order", d.ConcurrencyToken)
         }));
 
         Assert.All(results.Chunk(2), pair => Assert.Single(pair, r => r.Status == HttpStatusCode.OK));
-        Assert.All(results.Where(r => !r.IsSuccess), r => Assert.Contains(r.Status, new[] { HttpStatusCode.Conflict, HttpStatusCode.BadRequest }));
+        Assert.All(results.Where(r => !r.IsSuccess), r => Assert.Equal(HttpStatusCode.Conflict, r.Status));
         var posted = 0;
         foreach (var d in approved)
         {
@@ -285,5 +284,32 @@ public class CancelApprovedTests(ApiFixture fixture)
         }
         Assert.Equal(posted * 10m, await s.OnHandAsync(product.Id, Warehouse));
         Assert.Equal(posted * 10m, await s.LedgerSumAsync(product.Id, Warehouse));
+    }
+
+    [Fact]
+    public async Task An_approval_racing_a_cancel_of_a_submitted_document_has_exactly_one_winner()
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        await s.ReceiveAsync(Warehouse, new Line(product.Id, 100, 100m));
+        var waiting = new List<DocumentDto>();
+        for (var i = 0; i < 4; i++) waiting.Add(await s.SubmitAsync(s.Clerk, await s.DraftIssueAsync(s.Clerk, Warehouse, new Line(product.Id, 60))));
+        Assert.All(waiting, d => Assert.True(d.RequiresApproval));
+
+        var results = await Concurrently.RunAsync(waiting.SelectMany(d => new[]
+        {
+            (Func<Task<ApiResponse>>)(() => s.Supervisor.Documents.ApproveAsync(d.Id, d.ConcurrencyToken)),
+            () => s.Admin.Documents.CancelAsync(d.Id, "Customer withdrew the order", d.ConcurrencyToken)
+        }));
+
+        Assert.All(results.Chunk(2), pair => Assert.Single(pair, r => r.Status == HttpStatusCode.OK));
+        Assert.All(results.Where(r => !r.IsSuccess), r => Assert.Equal(HttpStatusCode.Conflict, r.Status));
+        foreach (var d in waiting)
+        {
+            var final = await s.GetAsync(d.Id);
+            Assert.Contains(final.Status, new[] { DocumentStatus.Approved, DocumentStatus.Cancelled });
+            Assert.Equal(final.Status == DocumentStatus.Approved, final.ApprovedBy is not null); // never an approval left on a cancelled document
+        }
+        Assert.Equal(100, await s.OnHandAsync(product.Id, Warehouse)); // neither transition posts
     }
 }

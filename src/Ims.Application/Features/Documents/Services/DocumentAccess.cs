@@ -37,13 +37,15 @@ public class DocumentAccess(ICurrentUser current) : IDocumentAccess, IAppService
 
     public void EnsureMayRecall(StockDocument document)
     {
-        if (document.Status == DocumentStatus.Submitted && !DocumentActionPolicy.MayRecall(current.Role, current.UserId, document.ActionContext))
+        // Whoever submitted it. Once recalled a document no longer names its submitter, so the person who made the Draft or who last changed it
+        // (the recall itself did) counts too: their retry is the same request again. Anyone else is refused, whatever state the document is in.
+        var me = current.UserId;
+        var mine = document.SubmittedBy == me || (document.Status == DocumentStatus.Draft && (document.CreatedBy == me || document.RecRevisor == me));
+        if (!mine || !Permissions.Has(current.Role, Permissions.DocumentCreate))
             throw new ForbiddenException(Messages.OwnRecallOnly);
     }
 
-    public bool IsRepeatedRecall(StockDocument document) =>
-        document is { Status: DocumentStatus.Draft, IsReturned: false } &&
-        DocumentActionPolicy.MayEditOrSubmit(current.Role, current.UserId, document.ActionContext);
+    public bool IsRepeatedRecall(StockDocument document) => document is { Status: DocumentStatus.Draft, IsReturned: false };
 
     public IReadOnlyList<string> AllowedActions(DocumentDto d, SystemSettings settings, bool withinApprovalLimit) =>
         DocumentActionPolicy.AllowedActions(current.Role, current.UserId,
