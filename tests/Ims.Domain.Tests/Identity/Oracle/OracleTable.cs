@@ -1,50 +1,41 @@
 namespace Ims.Domain.Tests.Identity.Oracle;
 
 /// <summary>
-/// One oracle fixture: a CSV file (lines starting with # are comments) holding the answers of the code as it was before the roles work,
-/// for every combination of its key columns. <see cref="Compute"/> asks an implementation for the value columns of a key, so the same
-/// table checks the old code (RP-0) and the new code (RP-1 onwards) against the one committed file.
+/// One oracle fixture: a CSV file (lines starting with # are comments) holding the answers of the code as it was before the roles work, for every
+/// combination of its key columns. An implementation answers some of the value columns for a key (<see cref="Differences"/>), so the same file
+/// checks the old code and the new types, each for the columns it still can answer.
 /// </summary>
-internal sealed record OracleTable(string File, string[] KeyColumns, string[] ValueColumns, Func<IEnumerable<string[]>> Keys, Func<string[], string[]> Compute)
+internal sealed record OracleTable(string File, string[] KeyColumns, string[] ValueColumns, Func<IEnumerable<string[]>> Keys)
 {
     public string Header => string.Join(',', [.. KeyColumns, .. ValueColumns]);
 
-    /// <summary>The data lines of the committed file: header first, comments dropped.</summary>
-    public IReadOnlyList<string> ReadFile() =>
-        System.IO.File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "Identity", "Oracle", File))
+    /// <summary>The rows of the committed file as column to value. Fails when the header or the set of keys is not the expected one, so a dropped row cannot pass.</summary>
+    public IReadOnlyList<IReadOnlyDictionary<string, string>> Rows()
+    {
+        var lines = System.IO.File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "Identity", "Oracle", File))
             .Where(l => l.Length > 0 && !l.StartsWith('#')).ToList();
+        Assert.Equal(Header, lines[0]);
 
-    /// <summary>The lines <see cref="Compute"/> produces, in the order of <see cref="Keys"/> (what the generator wrote).</summary>
-    public IEnumerable<string> Render() => Keys().Select(k => string.Join(',', [.. k, .. Compute(k)]));
+        var columns = Header.Split(',');
+        var rows = lines.Skip(1).Select(l => (IReadOnlyDictionary<string, string>)columns.Zip(l.Split(',')).ToDictionary(p => p.First, p => p.Second)).ToList();
+        Assert.Equal(Keys().Select(k => string.Join(',', k)), rows.Select(r => string.Join(',', KeyColumns.Select(c => r[c]))));
+        return rows;
+    }
 
     /// <summary>
-    /// Every answer that differs from the committed file, as "file:line  key  column  expected  got" (empty when they agree).
-    /// <paramref name="onlyColumns"/> limits the check to some value columns.
+    /// Every answer that differs from the committed file, as "file:line  key  column  expected  got" (empty when they agree). <paramref name="answers"/>
+    /// gets the key columns of a row and returns the value columns it can answer.
     /// </summary>
-    public IReadOnlyList<string> Differences(IReadOnlyCollection<string>? onlyColumns = null)
+    public IReadOnlyList<string> Differences(Func<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>> answers)
     {
-        var committed = ReadFile();
         var found = new List<string>();
-        if (committed[0] != Header) found.Add($"{File}: header is '{committed[0]}', expected '{Header}'");
-
-        var keys = Keys().ToList();
-        if (committed.Count - 1 != keys.Count) found.Add($"{File}: {committed.Count - 1} rows, expected {keys.Count}");
-
-        for (var i = 0; i < Math.Min(keys.Count, committed.Count - 1); i++)
+        var rows = Rows();
+        for (var i = 0; i < rows.Count; i++)
         {
-            var expected = committed[i + 1].Split(',');
-            if (!expected.Take(KeyColumns.Length).SequenceEqual(keys[i]))
+            foreach (var (column, got) in answers(rows[i]))
             {
-                found.Add($"{File}:{i + 2}  key '{string.Join(',', expected.Take(KeyColumns.Length))}' is not '{string.Join(',', keys[i])}'");
-                continue;
-            }
-
-            var actual = Compute(keys[i]);
-            for (var c = 0; c < ValueColumns.Length; c++)
-            {
-                if (onlyColumns is not null && !onlyColumns.Contains(ValueColumns[c])) continue;
-                var want = expected[KeyColumns.Length + c];
-                if (want != actual[c]) found.Add($"{File}:{i + 2}  {string.Join(' ', keys[i])}  {ValueColumns[c]}  expected '{want}'  got '{actual[c]}'");
+                var want = rows[i][column];
+                if (want != got) found.Add($"{File} row {i + 1}  {string.Join(' ', KeyColumns.Select(c => rows[i][c]))}  {column}  expected '{want}'  got '{got}'");
             }
         }
         return found;

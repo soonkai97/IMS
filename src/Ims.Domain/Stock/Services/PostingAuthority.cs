@@ -6,9 +6,9 @@ namespace Ims.Domain;
 /// </summary>
 public static class PostingAuthority
 {
-    /// <summary>Warehouse staff may only post documents that never needed approval (PRD 3.1).</summary>
-    public static bool MayPostApprovalRequiredDocument(string role) => role != Roles.WarehouseStaff;
+    /// <summary>Warehouse staff may only post documents that never needed approval (PRD 3.1). Holding the permission also needs <see cref="Permissions.DocumentPost"/>.</summary>
+    public static bool MayPostApprovalRequiredDocument(ActorRights actor) => actor.Has(Permissions.DocumentPostApproved);
 
-    /// <summary>BR-03: pushing stock below zero needs at least supervisor authority.</summary>
-    public static bool MayOverrideNegativeStock(string role) => ApprovalPolicy.RankOf(role) >= ApprovalPolicy.RankOf(Roles.Supervisor);
+    /// <summary>BR-03: pushing stock below zero needs at least supervisor authority. Holding the permission also needs <see cref="Permissions.DocumentPost"/>.</summary>
+    public static bool MayOverrideNegativeStock(ActorRights actor) => actor.Has(Permissions.StockNegativeOverride);
 }

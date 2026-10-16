@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Ims.Api.Tests.Harness;
 using Ims.Api.Tests.Support;
+using Ims.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
@@ -20,6 +21,16 @@ public partial class EndpointCoverageTests
             .Order().ToList();
 
         Assert.Equal(inCode, inTable);
+    }
+
+    [Fact]
+    public void Every_policy_an_endpoint_asks_for_is_a_permission_of_the_catalog_listed_once()
+    {
+        var policies = ProtectedEndpointsInCode().Select(line => line[(line.LastIndexOf("-> ", StringComparison.Ordinal) + 3)..]).Distinct().ToList();
+
+        Assert.NotEmpty(policies);
+        foreach (var policy in policies)
+            Assert.True(PermissionCatalog.All.Count(p => p.Code == policy) == 1, $"'{policy}' must be in the permission catalog exactly once");
     }
 
     [Fact]

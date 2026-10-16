@@ -13,13 +13,14 @@ public class PostDocumentHandler(IRepository<StockDocument> documents, IReposito
             var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
             access.EnsureDocumentInScope(doc.WarehouseId);
             version.EnsureCurrent(doc, cmd.IfMatch);
-            if (doc.RequiresApproval && !PostingAuthority.MayPostApprovalRequiredDocument(current.Role))
+            var rights = current.Rights();
+            if (doc.RequiresApproval && !PostingAuthority.MayPostApprovalRequiredDocument(rights))
                 throw new ForbiddenException(Messages.NeedsApprovalNotForStaff);
             doc.EnsureCanPost();
             var statusBefore = doc.Status;
 
             var ctx = new PostingContext(doc, await settings.GetAsync(ct), current.UserId,
-                canOverrideNegative: PostingAuthority.MayOverrideNegativeStock(current.Role), clock.UtcNow);
+                canOverrideNegative: PostingAuthority.MayOverrideNegativeStock(rights), clock.UtcNow);
             engine.Post(doc, await balances.LoadForUpdateAsync(doc, ct), ctx);
 
             ledger.AddRange(ctx.Entries);
