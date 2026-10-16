@@ -25,6 +25,10 @@ $light: (
   'on-accent': #ffffff,
   'accent-soft': #e4eaff,
   'on-accent-soft': #1b2f86,
+  // Sign-in brand panel (R25): the accent field in light, the soft tint in dark (a bright slab would glare). Literal copies of
+  // accent / on-accent here and accent-soft / on-accent-soft in $dark; check-contrast.mjs asserts that they stay equal.
+  'brand': #2447c4,
+  'on-brand': #ffffff,
   // Success
   'success': #17692f,
   'on-success': #ffffff,
@@ -78,6 +82,9 @@ $dark: (
   'on-accent': #0b1530,
   'accent-soft': #1c2b52,
   'on-accent-soft': #d4e1ff,
+  // Sign-in brand panel (see $light).
+  'brand': #1c2b52,
+  'on-brand': #d4e1ff,
   // Success
   'success': #6fd195,
   'on-success': #07210f,

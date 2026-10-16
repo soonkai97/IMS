@@ -1,8 +1,10 @@
 import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../src/fixtures';
+import { failCalls } from '../src/feedback';
 import { DocumentEditor } from '../src/pages/documents';
 import { goTo } from '../src/pages/shell';
+import { spendLoginBudget } from '../src/rate-limit';
 import type { Role } from '../src/config';
 
 /**
@@ -24,6 +26,11 @@ async function settled(page: Page): Promise<void> {
   await page.waitForFunction(
     () => document.querySelector('[aria-busy="true"], .ui-table-progress') === null
   );
+}
+
+/** Waits until no animation is running (the sign-in entrance and shake end by themselves; a loop would time out here). */
+async function animationsDone(page: Page): Promise<void> {
+  await page.waitForFunction(() => document.getAnimations().length === 0);
 }
 
 /** Serious and critical axe violations of the current screen that are not in KNOWN, as readable lines. */
@@ -69,10 +76,30 @@ for (const scheme of ['light', 'dark'] as const) {
   test.describe(`PRD 9 / WCAG 2.2 AA: axe finds no serious or critical violations (${scheme})`, () => {
     test.use({ colorScheme: scheme });
 
-    test('given the sign-in screen, then it is clean', async ({ page, login }) => {
-      await login.open();
-      expect(await audit(page, 'login', scheme)).toEqual([]);
-    });
+    // R25: phone and desktop layout, with a failure shown. The entrance fades the page in and axe would measure a half-transparent
+    // page, so the audit waits until nothing animates.
+    for (const width of [360, 1280]) {
+      test(`given the sign-in screen at ${width}px, then it is clean, with and without a failure`, async ({
+        page,
+        login
+      }) => {
+        await page.setViewportSize({ width, height: width === 360 ? 740 : 800 });
+        await failCalls(page, /\/api\/auth\/login$/, 'Invalid credentials.', {
+          method: 'POST',
+          status: 401
+        });
+        await spendLoginBudget(1);
+        await login.open();
+        await animationsDone(page);
+        const problems = await audit(page, `login ${width}`, scheme);
+
+        await login.fill('staff', 'not-a-real-password-1');
+        await expect(login.error).toHaveCount(1);
+        await animationsDone(page);
+        problems.push(...(await audit(page, `login ${width} with a failure`, scheme)));
+        expect(problems, problems.join('\n')).toEqual([]);
+      });
+    }
 
     for (const [label, { role, paths }] of Object.entries(SCREENS)) {
       test(`given ${label} browses its main screens, then every one is clean`, async ({

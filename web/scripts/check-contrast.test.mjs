@@ -32,10 +32,10 @@ function mutate(from, to) {
   return palette.replace(from, to);
 }
 
-test('the real palette passes with 162 spec checks', () => {
+test('the real palette passes with 164 spec checks', () => {
   const { status, out } = gate(palette);
   assert.equal(status, 0, out);
-  assert.match(out, /^162 checks, 0 failing$/m);
+  assert.match(out, /^164 checks, 0 failing$/m);
 });
 
 const failing = {
@@ -46,7 +46,7 @@ const failing = {
   ],
   'alias points to a token that does not exist': [
     "'primary': 'accent'",
-    "'primary': 'brand'",
+    "'primary': 'nothing'",
     /does not exist/
   ],
   'alias points to the wrong existing token (typo)': [
@@ -72,8 +72,13 @@ const failing = {
   ],
   'new token with no contrast pair': [
     "'chart-6': #5b6472",
-    "'chart-6': #5b6472, 'brand': #123456",
-    /token "brand" is in no contrast pair/
+    "'chart-6': #5b6472, 'spare': #123456",
+    /token "spare" is in no contrast pair/
+  ],
+  'brand panel drifts from the accent': [
+    "'brand': #2447c4",
+    "'brand': #2447c5",
+    /token "brand" must equal "accent" in light/
   ],
   'eight-digit (alpha) hex': [
     "'canvas': #f4f5f7",

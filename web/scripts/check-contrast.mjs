@@ -135,7 +135,21 @@ if ((aliasBody.match(/'[\w-]+':/g) ?? []).length !== Object.keys(aliases).length
   problems.push('$aliases has an entry that is not "old-name": "canonical-name"');
 }
 
-// Pair list (Appendix A of the visual spec): 81 pairs x 2 themes = 162 checks.
+// The sign-in brand panel (R25) is the accent field in light and the soft tint in dark. Its tokens are literal copies, so they are
+// compared with the role they stand for: a changed accent must change the panel in the same PR.
+const BRAND_SOURCE = {
+  light: { brand: 'accent', 'on-brand': 'on-accent' },
+  dark: { brand: 'accent-soft', 'on-brand': 'on-accent-soft' }
+};
+for (const [theme, tokens] of Object.entries(BRAND_SOURCE)) {
+  for (const [token, source] of Object.entries(tokens)) {
+    if (themes[theme][token]?.toLowerCase() !== themes[theme][source]?.toLowerCase()) {
+      problems.push(`token "${token}" must equal "${source}" in ${theme}`);
+    }
+  }
+}
+
+// Pair list (Appendix A of the visual spec plus the brand pair): 82 pairs x 2 themes = 164 checks.
 const TEXT = 4.5;
 const UI = 3;
 const surfaces = ['canvas', 'surface', 'surface-raised', 'surface-sunken', 'surface-strong'];
@@ -147,6 +161,7 @@ add('text', [...surfaces, 'accent-soft'], TEXT, 'text');
 add('text-muted', [...surfaces, 'accent-soft'], TEXT, 'text');
 add('accent', ['canvas', 'surface', 'surface-raised', 'surface-sunken'], TEXT, 'text (link)');
 add('on-accent-soft', ['accent-soft'], TEXT, 'text');
+add('on-brand', ['brand'], TEXT, 'text (sign-in brand panel)');
 add('on-accent', ['accent', 'accent-hover', 'accent-pressed'], TEXT, 'text');
 for (const role of roles) {
   add(role, ['canvas', 'surface', 'surface-raised', 'surface-sunken'], TEXT, 'text');
@@ -172,7 +187,7 @@ for (let i = 1; i <= 6; i += 1) {
 
 // Call sites that still read a soft-tint text colour straight on a plain surface (reports stock effect "+5", the line-editor
 // override hint, the warning flag chip). The spec list does not hold these; they leave when R24 moves the call sites to the
-// role colours. Counted and reported separately so the spec count stays at 162.
+// role colours. Counted and reported separately so the spec count stays at 164.
 const callSitePairs = [];
 for (const fg of ['on-success-soft', 'on-warning-soft']) {
   for (const bg of ['surface', 'surface-sunken']) {
