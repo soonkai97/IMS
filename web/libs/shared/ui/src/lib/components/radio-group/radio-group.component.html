@@ -4,7 +4,7 @@
   [attr.aria-invalid]="$invalid() || null"
   [attr.aria-describedby]="$invalid() ? $errorId() : null"
 >
-  <legend class="ui-radio-group-legend">
+  <legend class="ui-radio-group-legend" [class.--hidden]="$hideLegend()">
     @if ($required()) {
       {{ $legend() }}&nbsp;<span class="ui-radio-group-asterisk" aria-hidden="true">*</span
       ><span class="ui-radio-group-sr">{{ $requiredText() }}</span>
@@ -28,7 +28,7 @@
           [checked]="item.checked"
           (change)="onSelect(item.value)"
         />
-        <span>{{ item.label }}</span>
+        <span [attr.lang]="item.lang">{{ item.label }}</span>
       </label>
     }
   </div>

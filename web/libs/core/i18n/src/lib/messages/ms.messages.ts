@@ -3,7 +3,6 @@ import { Messages } from './message.types';
 /** Bahasa Melayu. TODO-review: machine-quality draft, needs a native speaker's pass before release. */
 export const MS_MESSAGES: Messages = {
   'app.name': 'IMS',
-  'app.tagline': 'Pengurusan Inventori',
   'language.label': 'Bahasa',
   'system.goHome': 'Pergi ke Laman Utama',
   'pwa.updateReady': 'Versi baharu sedia.',
@@ -40,7 +39,6 @@ export const MS_MESSAGES: Messages = {
   'ui.showLess': 'Papar kurang',
   'ui.dropFile': 'atau seret fail ke sini',
   'ui.errorTitle': 'Sesuatu tidak kena.',
-  'ui.hidePassword': 'Sembunyikan kata laluan',
   'ui.loading': 'Memuatkan',
   'ui.nextPage': 'Halaman seterusnya',
   'ui.pageStatus': 'Halaman {page} daripada {pages}',
@@ -133,13 +131,32 @@ export const MS_MESSAGES: Messages = {
   'ledgerReason.Reversal': 'Pembalikan',
   'ledgerReason.Opening': 'Stok permulaan',
 
+  'login.about': 'Tentang {name}',
+  'login.access': 'Perlukan akses atau terlupa kata laluan? Tanya pentadbir anda.',
   'login.devHint':
-    'Pembangunan: pengguna demo (admin, owner, supervisor, staff, clerk) disenaraikan dalam src/Ims.Api/appsettings.Development.json.',
+    'Pembangunan: pengguna demo disenaraikan dalam src/Ims.Api/appsettings.Development.json.',
   'login.error.invalid': 'E-mel, nama pengguna atau kata laluan salah.',
+  // TODO-review: machine draft (sign-in page, R25).
+  'login.error.locked': 'Terlalu banyak percubaan gagal. Cuba lagi dalam {minutes} minit.',
+  'login.error.rateLimited':
+    'Terlalu banyak percubaan log masuk dari rangkaian ini. Cuba lagi dalam {seconds} saat.',
+  'login.error.rateLimited.minutes':
+    'Terlalu banyak percubaan log masuk dari rangkaian ini. Cuba lagi dalam {minutes} minit.',
+  'login.error.server': 'Log masuk tidak berfungsi sekarang. Cuba sebentar lagi.',
+  'login.offline': 'Anda di luar talian. Sambung ke internet untuk log masuk.',
   'login.password': 'Kata laluan',
+  'login.password.empty': 'Masukkan kata laluan anda.',
+  'login.point.audit': 'Kelulusan dengan jejak audit penuh',
+  'login.point.devices': 'Dibuat untuk pengimbas kod bar dan telefon',
+  'login.point.warehouses': 'Semua gudang dalam satu paparan langsung',
   'login.sessionExpired': 'Sesi anda telah tamat. Log masuk semula.',
   'login.submit': 'Log masuk',
+  'login.subtitle': 'Masukkan e-mel atau nama pengguna dan kata laluan anda.',
+  'login.tagline': 'Tahu apa yang ada di setiap rak',
+  'login.title': 'Log masuk',
   'login.username': 'E-mel atau nama pengguna',
+  // TODO-review: machine draft (sign-in page, R25).
+  'login.username.empty': 'Masukkan e-mel atau nama pengguna anda.',
 
   'forbidden.body':
     'Peranan anda ({role}) tidak boleh membuka ini. Minta Pentadbir jika anda memerlukannya.',

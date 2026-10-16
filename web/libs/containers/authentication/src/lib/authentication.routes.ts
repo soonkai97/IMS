@@ -3,5 +3,5 @@ import { guestGuard } from '@ims/core/identity';
 import { LoginPageComponent } from './login/login.component';
 
 export const AUTHENTICATION_ROUTES: Routes = [
-  { path: '', component: LoginPageComponent, title: 'login.submit', canActivate: [guestGuard] }
+  { path: '', component: LoginPageComponent, title: 'login.title', canActivate: [guestGuard] }
 ];
