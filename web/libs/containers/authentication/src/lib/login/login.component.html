@@ -1,44 +1,25 @@
 <header class="login-page-header">
-  <div class="login-page-lockup">
-    <app-logo class="login-page-mark" />
-    <span class="login-page-name">{{ 'app.name' | t }}</span>
+  <div class="login-page-identity">
+    <div class="login-page-lockup">
+      <app-logo class="login-page-mark" />
+      <span class="login-page-name">{{ 'app.name' | t }}</span>
+    </div>
+    <p class="login-page-strapline">{{ 'login.tagline' | t }}</p>
   </div>
   <app-language-select class="login-page-language" variant="segmented" />
 </header>
 
 <!-- Brand panel: from 1024px only (display: none below, so it is also out of the reading order). It has no control. -->
 <aside class="login-page-brand" [attr.aria-label]="$aboutLabel()">
-  <svg class="login-page-pattern" aria-hidden="true" focusable="false">
-    <defs>
-      <pattern id="login-page-shelves" width="96" height="96" patternUnits="userSpaceOnUse">
-        <g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
-          <path d="M0 44H96M0 92H96" />
-          <rect x="8" y="24" width="20" height="20" rx="3" />
-          <rect x="36" y="12" width="16" height="32" rx="3" />
-          <rect x="60" y="28" width="24" height="16" rx="3" />
-          <rect x="20" y="72" width="24" height="20" rx="3" />
-          <rect x="52" y="60" width="20" height="32" rx="3" />
-          <rect x="76" y="76" width="16" height="16" rx="3" />
-        </g>
-      </pattern>
-    </defs>
-    <rect width="100%" height="100%" fill="url(#login-page-shelves)" />
-  </svg>
   <div class="login-page-brand-copy">
     <p class="login-page-tagline">{{ 'login.tagline' | t }}</p>
     <ul class="login-page-points">
-      <li class="login-page-point">
-        <span class="login-page-point-mark"><app-icon name="check" [size]="20" /></span
-        >{{ 'login.point.warehouses' | t }}
-      </li>
-      <li class="login-page-point">
-        <span class="login-page-point-mark"><app-icon name="check" [size]="20" /></span
-        >{{ 'login.point.audit' | t }}
-      </li>
-      <li class="login-page-point">
-        <span class="login-page-point-mark"><app-icon name="check" [size]="20" /></span
-        >{{ 'login.point.devices' | t }}
-      </li>
+      @for (point of points; track point) {
+        <li class="login-page-point">
+          <app-icon name="check" [size]="20" />
+          {{ point | t }}
+        </li>
+      }
     </ul>
   </div>
 </aside>
@@ -73,6 +54,7 @@
           [label]="'login.username' | t"
           [required]="true"
           [control]="form.controls.username"
+          [messages]="{ required: 'login.username.empty' | t }"
         >
           <app-input
             #username
@@ -89,8 +71,10 @@
           [label]="'login.password' | t"
           [required]="true"
           [control]="form.controls.password"
+          [messages]="{ required: 'login.password.empty' | t }"
         >
           <app-input
+            #password
             type="password"
             formControlName="password"
             name="password"

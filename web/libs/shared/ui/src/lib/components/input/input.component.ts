@@ -175,6 +175,11 @@ export class UiInputComponent implements ControlValueAccessor, Validator {
     this.onTouched();
   }
 
+  /** A revealed password goes back to dots (after a submit, when the page is hidden). */
+  hide(): void {
+    this.$revealed.set(false);
+  }
+
   onToggleReveal(): void {
     this.$revealed.update(revealed => !revealed);
   }

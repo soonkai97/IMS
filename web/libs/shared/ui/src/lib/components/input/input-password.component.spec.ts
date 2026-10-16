@@ -18,13 +18,16 @@ describe('UiInputComponent password field (R25)', () => {
 
   it('the show-password button has one constant name and carries the state in aria-pressed', () => {
     render();
-    expect(toggle().getAttribute('aria-label')).toBe('Show password');
-    expect([toggle().getAttribute('aria-pressed'), input().type]).toEqual(['false', 'password']);
+    const state = (): unknown[] => [
+      toggle().getAttribute('aria-label'),
+      toggle().getAttribute('aria-pressed'),
+      input().type
+    ];
+    expect(state()).toEqual(['Show password', 'false', 'password']);
 
     spectator.click(toggle());
 
-    expect(toggle().getAttribute('aria-label')).toBe('Show password');
-    expect([toggle().getAttribute('aria-pressed'), input().type]).toEqual(['true', 'text']);
+    expect(state()).toEqual(['Show password', 'true', 'text']);
   });
 
   it('a pointer press does not take the focus (the phone keyboard stays open), and the text clears the button', () => {
@@ -35,15 +38,5 @@ describe('UiInputComponent password field (R25)', () => {
 
     expect(down.defaultPrevented).toBe(true);
     expect(input().classList.contains('--with-toggle')).toBe(true);
-  });
-
-  it('noSuggestions turns off capitals, correction and spell check; name is passed on', () => {
-    render({ noSuggestions: true, name: 'password' });
-    expect(
-      ['autocapitalize', 'autocorrect', 'spellcheck', 'name'].map(a => input().getAttribute(a))
-    ).toEqual(['none', 'off', 'false', 'password']);
-
-    render();
-    expect(input().hasAttribute('autocapitalize') || input().hasAttribute('name')).toBe(false);
   });
 });

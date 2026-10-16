@@ -18,12 +18,18 @@
   @include reset-button;
 
   position: absolute;
-  top: 0;
-  right: 0;
+  top: border-width('thin');
+  right: border-width('thin');
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: height('touch');
-  height: 100%;
+  height: calc(100% - 2 * #{border-width('thin')});
   color: color('text-muted');
+  border-radius: border-radius('sm');
+
+  // Inside the field's border, not past it (the field clips nothing, so an outside ring would stick out).
+  &:focus-visible {
+    outline-offset: -#{border-width('ring')};
+  }
 }

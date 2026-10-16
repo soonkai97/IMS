@@ -37,9 +37,8 @@
   flex-wrap: wrap;
   gap: space(1);
 
-  // Segmented: one track, the options share it equally and the chosen one is filled.
+  // Segmented: one track, the options share it and the chosen one is filled. A name is never split: at a large text size an option wraps to the next row.
   &.--segmented {
-    flex-wrap: nowrap;
     gap: space(0);
     padding: space(0);
     background: color('surface-sunken');
@@ -70,11 +69,13 @@
   }
 
   &.--segmented {
+    @include keep-whole;
+
     position: relative;
     flex: 1 1 auto;
     justify-content: center;
-    min-width: 0;
     min-height: height('touch-min');
+    padding-inline: space(1);
     text-align: center;
     background: transparent;
     border-color: transparent;

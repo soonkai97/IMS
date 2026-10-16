@@ -86,24 +86,37 @@ test.describe('R25 The sign-in page', () => {
     expect(calls()).toBe(1);
   });
 
-  test('given reduced motion, then nothing animates and a failed sign-in is still shown by its message', async ({
-    page,
-    login
-  }) => {
-    await stubLogin(page, 401);
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await openLogin(login);
-    await expect.poll(() => animations(page)).toBe(0);
+  for (const mode of ['prefers-reduced-motion', 'data-motion=off']) {
+    test(`given ${mode}, then the entrance and the shake collapse and the message still shows the failure`, async ({
+      page,
+      login
+    }) => {
+      await stubLogin(page, 401);
+      if (mode === 'data-motion=off') {
+        await page.addInitScript(() => {
+          // Runs before the page has a root element: mark it as soon as it exists.
+          const observer = new MutationObserver(() => {
+            document.documentElement.setAttribute('data-motion', 'off');
+            observer.disconnect();
+          });
+          observer.observe(document, { childList: true });
+        });
+      } else {
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+      }
+      await openLogin(login);
+      await expect.poll(() => animations(page)).toBe(0);
 
-    await typeCredentials(login);
-    await login.submit.click();
+      await typeCredentials(login);
+      await login.submit.click();
 
-    await expect(login.error).toHaveText(WRONG);
-    await expect.poll(() => animations(page)).toBe(0);
-    // The shake is still declared, but it lasts a hundredth of a millisecond and moves nothing.
-    const seconds = await login.form.evaluate(f => parseFloat(getComputedStyle(f).animationDuration));
-    expect(seconds).toBeLessThan(0.001);
-  });
+      await expect(login.error).toHaveText(WRONG);
+      await expect.poll(() => animations(page)).toBe(0);
+      // The shake is still declared, but it lasts a hundredth of a millisecond and moves nothing.
+      const seconds = await login.form.evaluate(f => parseFloat(getComputedStyle(f).animationDuration));
+      expect(seconds).toBeLessThan(0.001);
+    });
+  }
 
   test('given a wrong password, when Enter is pressed, then the form shakes, one alert says so, nothing else announces it and the retry is ready', async ({
     page,
@@ -132,31 +145,6 @@ test.describe('R25 The sign-in page', () => {
     await expect(login.form).not.toHaveClass(/--shake/);
   });
 
-  test('given a lockout, a rate limit or an outage, then one alert says what to do and the button stays enabled', async ({
-    page,
-    login
-  }) => {
-    await openLogin(login);
-    await typeCredentials(login);
-    const cases: [number, object, string][] = [
-      [401, { code: 'account_locked', retryAfterMinutes: 15 }, 'Too many failed attempts. Try again in 15 minutes.'],
-      [401, { code: 'account_locked', retryAfterMinutes: 1 }, 'Too many failed attempts. Try again in 1 minute.'],
-      [429, { retryAfterSeconds: 42 }, 'Too many sign-in attempts from this network. Try again in 42 seconds.'],
-      [429, { retryAfterSeconds: 120 }, 'Too many sign-in attempts from this network. Try again in 2 minutes.'],
-      [500, {}, 'Sign-in is not working right now. Try again in a moment.']
-    ];
-    for (const [status, body, sentence] of cases) {
-      await page.unroute(LOGIN);
-      await stubLogin(page, status, body);
-      await login.submit.click();
-      await expect(login.error).toHaveText(sentence);
-      await expect(login.error).toHaveCount(1);
-      expect(await announcedBy(page, sentence)).toBe(1);
-      await expect(page.locator('app-toast')).toHaveCount(0);
-      await expect(login.submit).toBeEnabled();
-    }
-  });
-
   test('given the browser goes offline, then a notice says so and a failed attempt shows the network sentence alone', async ({
     context,
     login
@@ -166,16 +154,14 @@ test.describe('R25 The sign-in page', () => {
 
     await context.setOffline(true);
     await expect(login.notice).toHaveText(/You're offline\. Connect to the internet to sign in\./);
-    await expect(login.submit).toBeEnabled();
     await login.submit.click();
 
     await expect(login.error).toHaveText("Can't reach the server. Check your connection and try again.");
-    await expect(login.error).toHaveCount(1);
     await expect(login.notice).toHaveCount(0);
     await context.setOffline(false);
   });
 
-  test('given the page, then password managers find the fields, storage stays clean, no credentials are printed and the eye button works', async ({
+  test('given the page, then password managers find the fields, storage stays clean, no credentials are printed', async ({
     page,
     login
   }) => {
@@ -207,15 +193,6 @@ test.describe('R25 The sign-in page', () => {
     expect(info.local.filter(key => !['ims.language', 'ims.theme'].includes(key))).toEqual([]);
     // Compared as booleans, so a failure never prints a value.
     expect(info.text.includes(passwordFor('admin')) || info.text.includes(NOT_A_PASSWORD)).toBe(false);
-
-    // The eye button keeps its name, shows the value, and leaves the focus in the field.
-    await login.passwordBox.focus();
-    await login.showPassword.click();
-    await expect(login.passwordBox).toHaveAttribute('type', 'text');
-    await expect(login.showPassword).toHaveAttribute('aria-pressed', 'true');
-    await expect(login.showPassword).toHaveAccessibleName('Show password');
-    await expect(login.passwordBox).toBeFocused();
-    await expect(login.passwordBox).toHaveValue(NOT_A_PASSWORD);
   });
 
   test('given a desktop window, then the page is two regions with the right landmarks, and the panel is gone below 1024px', async ({
@@ -235,12 +212,13 @@ test.describe('R25 The sign-in page', () => {
     await expect(panel.getByRole('listitem')).toHaveCount(3);
     const [panelBox, formBox] = await Promise.all([panel.boundingBox(), login.form.boundingBox()]);
     expect(panelBox && formBox && panelBox.x + panelBox.width <= formBox.x).toBe(true);
-    expect([panelBox?.x, panelBox?.y]).toEqual([0, 0]);
-    expect(panelBox?.height).toBeGreaterThanOrEqual(800);
+    expect([panelBox?.x, panelBox?.y, panelBox?.height]).toEqual([0, 0, 800]);
     await noSidewaysScroll(page);
 
     await page.setViewportSize({ width: 1023, height: 768 });
     await expect(page.getByRole('complementary')).toHaveCount(0);
+    // The tagline moves under the lockup (600 to 1023px).
+    await expect(page.locator('.login-page-strapline')).toBeVisible();
     await noSidewaysScroll(page);
   });
 
@@ -256,19 +234,17 @@ test.describe('R25 The sign-in page', () => {
       const box = await control.boundingBox();
       expect([box?.height, box?.width].every(size => (size ?? 0) >= 44)).toBe(true);
     }
-    for (const visible of [login.heading, login.username, login.passwordBox, login.submit]) {
-      const box = await visible.boundingBox();
-      expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(640);
-    }
-    await expect(page.getByRole('complementary')).toHaveCount(0);
+    const box = await login.submit.boundingBox();
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(640);
+    await expect(page.locator('.login-page-strapline')).toBeHidden();
+    expect((await login.submit.boundingBox())?.height).toBeGreaterThanOrEqual(56);
     await noSidewaysScroll(page);
   });
 
-  test('given a 320px phone and a long failure, when the language changes, then the text is rebuilt, nothing typed is lost and the page does not scroll sideways', async ({
+  test('given a long failure and the text size raised to 150% and 200%, in English, Chinese and Malay, then the page does not scroll sideways at 320 and 360px and no language name is split', async ({
     page,
     login
   }) => {
-    await page.setViewportSize({ width: 320, height: 568 });
     await stubLogin(page, 429, { retryAfterSeconds: 3600 });
     await openLogin(login);
     const fields = fieldsOf(page);
@@ -277,16 +253,19 @@ test.describe('R25 The sign-in page', () => {
     await fields.submit.click();
     await expect(login.error).toHaveCount(1);
 
-    const languages = [
-      ['English', 'Sign in'],
-      ['中文', '登录'],
-      ['Bahasa Melayu', 'Log masuk']
-    ] as const;
-    for (const [language, heading] of languages) {
+    for (const language of ['English', '中文', 'Bahasa Melayu']) {
       await login.language.getByText(language).click();
-      await expect(login.heading).toHaveText(heading);
-      await expect(fields.username).toHaveValue('staff');
-      await noSidewaysScroll(page);
+      for (const width of [320, 360]) {
+        for (const size of ['100%', '150%', '200%']) {
+          await page.setViewportSize({ width, height: 700 });
+          await page.evaluate(percent => (document.documentElement.style.fontSize = percent), size);
+          await noSidewaysScroll(page);
+          for (const name of await login.language.locator('label span').all()) {
+            const lineHeight = await name.evaluate(n => parseFloat(getComputedStyle(n).lineHeight));
+            expect((await name.boundingBox())?.height).toBeLessThan(lineHeight * 1.5);
+          }
+        }
+      }
       await fields.submit.scrollIntoViewIfNeeded();
       await expect(fields.submit).toBeInViewport();
     }

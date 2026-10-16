@@ -76,9 +76,8 @@ for (const scheme of ['light', 'dark'] as const) {
   test.describe(`PRD 9 / WCAG 2.2 AA: axe finds no serious or critical violations (${scheme})`, () => {
     test.use({ colorScheme: scheme });
 
-    // R25: the phone layout (one column) and the desktop layout (brand panel beside the form), with a failure shown, because the
-    // banner is part of the page a user sees. The entrance fades the page in, and axe would measure a half-transparent page,
-    // so the audit starts when nothing animates (the page has no infinite animation, so this ends).
+    // R25: phone and desktop layout, with a failure shown. The entrance fades the page in and axe would measure a half-transparent
+    // page, so the audit waits until nothing animates.
     for (const width of [360, 1280]) {
       test(`given the sign-in screen at ${width}px, then it is clean, with and without a failure`, async ({
         page,

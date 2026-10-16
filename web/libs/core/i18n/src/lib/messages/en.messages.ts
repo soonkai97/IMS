@@ -153,6 +153,7 @@ export const EN_MESSAGES = {
   'login.error.server': 'Sign-in is not working right now. Try again in a moment.',
   'login.offline': "You're offline. Connect to the internet to sign in.",
   'login.password': 'Password',
+  'login.password.empty': 'Enter your password.',
   'login.point.audit': 'Approvals with a full audit trail',
   'login.point.devices': 'Made for barcode scanners and phones',
   'login.point.warehouses': 'Every warehouse in one live view',
@@ -162,6 +163,7 @@ export const EN_MESSAGES = {
   'login.tagline': 'Know what is on every shelf',
   'login.title': 'Sign in',
   'login.username': 'Email or username',
+  'login.username.empty': 'Enter your email or username.',
 
   // Errors pages
   'forbidden.body': "Your role ({role}) can't open this. Ask an Admin if you need it.",

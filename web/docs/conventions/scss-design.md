@@ -109,14 +109,12 @@ or `all`.
 
 ## Sign-in page (R25)
 
-- From 1024px two full-height regions: the brand panel (`brand` / `on-brand`, a shelf pattern at 6%) and the form column; the header
-  spans both (a subgrid) so the lockup (`app-logo`, `currentColor`) lands on the panel. Below, one column; the panel is `display: none`.
-  The form is top-aligned (about 12% down), never centred, so a banner or the keyboard does not move it.
-- One entrance on load and one shake of the form per failed attempt (class `--shake`, removed by the next edit or submit): keyframes on
-  opacity and transform with `backwards` fill, so nothing stays animating. The stagger is built from `duration()`, so reduced motion
-  and `data-motion="off"` collapse it. The message carries the failure, not the shake: one `role="alert"` banner, no toast, focus stays.
-- A failure is data (`login-failure.ts`: kind plus the minutes or seconds the API sent); the sentence is written from the catalog, so
-  a language change rewrites it. Environment failures are warnings that are still alerts: `<app-banner kind="warning" alert>`.
+- From 1024px a brand panel (`brand` / `on-brand`) beside the form; the header spans both (a subgrid), so the lockup lands on the
+  panel. Below, one column and the panel is `display: none`. The form is top-aligned, so a banner or the keyboard never moves it.
+- One entrance and one shake per failed attempt (class `--shake`, removed by the next edit or submit): opacity and transform
+  keyframes that end by themselves, collapsed by reduced motion and `data-motion="off"`. The banner carries the failure, not the shake.
+- A failure is data (`login-failure.ts`), the sentence is written from the catalog, so a language change rewrites it. An environment
+  failure is a warning that is still an alert: `<app-banner kind="warning" alert>`.
 
 ## Naming: flat BEM, component specific
 

@@ -14,6 +14,8 @@ import { UI_TEXT } from '../../tokens/ui-text.token';
 export interface RadioOption {
   readonly value: string | number;
   readonly label: string;
+  /** Language of the label, when it differs from the page (a language named in its own language). */
+  readonly lang?: string;
 }
 
 export type RadioVariant = 'default' | 'segmented';

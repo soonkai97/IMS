@@ -1,9 +1,7 @@
 @use 'libs' as *;
 
-// The sign-in page (R25, docs/design/2026-refresh-login.md, lean): from 1024px a panel and a form column side by side (a subgrid
-// puts the lockup on the panel), below that one column on surface. Nothing is fixed, the height is a minimum: the keyboard and
-// 400% zoom only scroll. Motion is one entrance and one shake, CSS keyframes on opacity and transform that end by themselves
-// (reduced motion and data-motion=off collapse them in globals/_motion.scss); the fields take input from the first frame.
+// The sign-in page (R25, docs/design/2026-refresh-login.md, lean). Nothing is fixed and the height is a minimum, so the keyboard and
+// 400% zoom only scroll. Motion: one entrance and one shake, ended by themselves (globals/_motion.scss collapses them).
 
 @keyframes login-fade {
   from {
@@ -84,6 +82,20 @@
   }
 }
 
+// Tablet only (600 to 1023px): the panel's tagline moves under the lockup, in muted text.
+.login-page-strapline {
+  display: none;
+  color: color('text-muted');
+
+  @include media-tablet {
+    display: block;
+  }
+
+  @include media-desktop {
+    display: none;
+  }
+}
+
 .login-page-lockup {
   display: flex;
   gap: space(1);
@@ -112,6 +124,7 @@
 
 .login-page-language {
   flex: 1 1 18rem;
+  min-width: 0;
   max-width: 26rem;
   margin-inline-start: auto;
 
@@ -122,7 +135,7 @@
   }
 }
 
-// Brand panel (from 1024px): flat `brand` field with a faint shelf pattern. It carries no control.
+// Brand panel (from 1024px): flat `brand` field. It carries no control.
 .login-page-brand {
   position: relative;
   display: none;
@@ -138,20 +151,6 @@
     grid-row: 1 / -1;
     align-items: center;
     padding: space(9) space(6);
-  }
-}
-
-// Texture only: not announced, not selectable, never under a control; it vanishes where colours are forced or printed.
-.login-page-pattern {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  color: color-alpha('on-brand', 6%);
-  pointer-events: none;
-
-  @media (forced-colors: active), print {
-    display: none;
   }
 }
 
@@ -183,17 +182,6 @@
   font-weight: font-weight('medium');
 }
 
-.login-page-point-mark {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: space(4);
-  height: space(4);
-  border: border-width('thin') solid currentcolor;
-  border-radius: border-radius('pill');
-}
-
 // Form column.
 .login-page-main {
   display: flex;
@@ -212,7 +200,7 @@
     grid-column: 2;
     grid-row: 2;
     align-self: start;
-    padding: max(space(6), 12dvh) space(6) space(6);
+    padding: max(space(6), calc(50dvh - 19rem)) space(6) space(6);
   }
 
   @include media-short {
@@ -240,13 +228,9 @@
 .login-page-title {
   font-size: font-size(5);
   font-weight: font-weight('bold');
-}
 
-.login-page-subtitle {
-  color: color('text-muted');
-
-  @include media-short {
-    display: none;
+  @include media-desktop {
+    font-size: font-size(6);
   }
 }
 
@@ -255,9 +239,16 @@
 }
 
 .login-page-form {
+  // The Sign in button is 56px under 600px (gloves) and 48px from there on.
+  --ui-button-min-height: #{height('bar')};
+
   display: flex;
   flex-direction: column;
   gap: space(2);
+
+  @include media-tablet {
+    --ui-button-min-height: #{height('touch')};
+  }
 
   // One shake per failed attempt. The class is removed by the next edit or submit, so the next failure plays it again.
   &.--shake {

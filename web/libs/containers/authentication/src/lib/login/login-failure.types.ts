@@ -1,11 +1,8 @@
 /** Why a sign-in did not work. Danger kinds are about the user's input or account; the others about the environment. */
 export const LOGIN_FAILURE = {
-  /** Unknown user, wrong password: one sentence for every cause (E7). */
   Invalid: 'invalid',
-  /** The right password for a locked account. */
   Locked: 'locked',
   RateLimited: 'rate-limited',
-  /** The server could not be reached, or the call timed out. */
   Network: 'network',
   Server: 'server'
 } as const;

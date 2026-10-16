@@ -145,6 +145,7 @@ export const MS_MESSAGES: Messages = {
   'login.error.server': 'Log masuk tidak berfungsi sekarang. Cuba sebentar lagi.',
   'login.offline': 'Anda di luar talian. Sambung ke internet untuk log masuk.',
   'login.password': 'Kata laluan',
+  'login.password.empty': 'Masukkan kata laluan anda.',
   'login.point.audit': 'Kelulusan dengan jejak audit penuh',
   'login.point.devices': 'Dibuat untuk pengimbas kod bar dan telefon',
   'login.point.warehouses': 'Semua gudang dalam satu paparan langsung',
@@ -154,6 +155,8 @@ export const MS_MESSAGES: Messages = {
   'login.tagline': 'Tahu apa yang ada di setiap rak',
   'login.title': 'Log masuk',
   'login.username': 'E-mel atau nama pengguna',
+  // TODO-review: machine draft (sign-in page, R25).
+  'login.username.empty': 'Masukkan e-mel atau nama pengguna anda.',
 
   'forbidden.body':
     'Peranan anda ({role}) tidak boleh membuka ini. Minta Pentadbir jika anda memerlukannya.',

@@ -141,6 +141,7 @@ export const ZH_MESSAGES: Messages = {
   'login.error.server': '暂时无法登录。请稍后重试。',
   'login.offline': '您当前处于离线状态。请连接网络后登录。',
   'login.password': '密码',
+  'login.password.empty': '请输入密码。',
   'login.point.audit': '审批流程，全程留痕',
   'login.point.devices': '支持扫码枪和手机',
   'login.point.warehouses': '所有仓库，一个实时视图',
@@ -150,6 +151,8 @@ export const ZH_MESSAGES: Messages = {
   'login.tagline': '掌握每个货架上的库存',
   'login.title': '登录',
   'login.username': '邮箱或用户名',
+  // TODO-review: machine draft (sign-in page, R25).
+  'login.username.empty': '请输入邮箱或用户名。',
 
   'forbidden.body': '您的角色（{role}）无法打开此页面。如需访问，请联系管理员。',
   'forbidden.title': '您无权访问此页面。',

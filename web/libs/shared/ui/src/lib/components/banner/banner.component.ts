@@ -18,10 +18,7 @@ const BANNER_ICONS: Record<BannerKind, IconName> = {
   success: 'check'
 };
 
-/**
- * Inline message block. Danger is announced immediately (role=alert); the others politely (role=status). `alert` makes any kind
- * an alert: a warning that is the answer to something the user just did (the sign-in call was refused, not by their input).
- */
+/** Inline message block. Danger is an alert, the other kinds are polite status messages; `alert` makes any kind an alert. */
 @Component({
   selector: 'app-banner',
   imports: [UiIconComponent],

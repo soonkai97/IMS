@@ -18,8 +18,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { tap } from 'rxjs';
-import { I18nService, LanguageSelectComponent, TranslatePipe } from '@ims/core/i18n';
-import { AuthService, HOME_ROUTE, SESSION_EXPIRED_REASON } from '@ims/core/identity';
+import { I18nService, LanguageSelectComponent, MessageKey, TranslatePipe } from '@ims/core/i18n';
+import { AuthService, SESSION_EXPIRED_REASON } from '@ims/core/identity';
 import { ToastHostComponent } from '@ims/core/notification';
 import { MAX_PASSWORD_LENGTH, MAX_USERNAME_LENGTH } from '@ims/models';
 import {
@@ -33,18 +33,11 @@ import {
 } from '@ims/ui';
 import { loginFailureOf } from './login-failure';
 import { LOGIN_FAILURE, LoginFailure } from './login-failure.types';
+import { safeReturnUrl } from './safe-return-url';
 
 /** From this many seconds the rate-limit wait is told in minutes ("90 seconds" reads better as "2 minutes"). */
 const MINUTES_FROM_SECONDS = 90;
 const SECONDS_PER_MINUTE = 60;
-
-/** Only same-app paths are accepted as a return URL, so a crafted link cannot send the user to another site. */
-function safeReturnUrl(url: string | undefined): string {
-  if (!url?.startsWith('/') || url.startsWith('//')) {
-    return HOME_ROUTE;
-  }
-  return url;
-}
 
 @Component({
   selector: 'app-login-page',
@@ -64,7 +57,11 @@ function safeReturnUrl(url: string | undefined): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
-  host: { '(window:online)': 'onConnection(true)', '(window:offline)': 'onConnection(false)' }
+  host: {
+    '(window:online)': 'onConnection(true)',
+    '(window:offline)': 'onConnection(false)',
+    '(document:visibilitychange)': 'onVisibility()'
+  }
 })
 export class LoginPageComponent implements OnInit {
   private readonly auth = inject(AuthService);
@@ -77,6 +74,7 @@ export class LoginPageComponent implements OnInit {
   $returnUrl = input<string | undefined>(undefined, { alias: 'returnUrl' });
   $reason = input<string | undefined>(undefined, { alias: 'reason' });
   private readonly $username = viewChild.required<UiInputComponent>('username');
+  private readonly $passwordField = viewChild.required<UiInputComponent>('password');
 
   readonly maxUsernameLength = MAX_USERNAME_LENGTH;
   readonly maxPasswordLength = MAX_PASSWORD_LENGTH;
@@ -117,12 +115,17 @@ export class LoginPageComponent implements OnInit {
   $shaking = signal(false);
   $aboutLabel = computed(() => this.i18n.t('login.about', { name: this.i18n.t('app.name') }));
   readonly isDev = isDevMode();
+  readonly points: readonly MessageKey[] = [
+    'login.point.warehouses',
+    'login.point.audit',
+    'login.point.devices'
+  ];
 
   constructor() {
     effect(() => {
       if (this.$failure()) {
         this.$shaking.set(true);
-        // The focus stays where it was (moving it would cut off the announcement); the password is selected so typing replaces it.
+        // After a click or Enter alike the password has the focus again, its text selected so typing replaces it.
         afterNextRender(() => this.selectPassword(), { injector: this.injector });
       }
     });
@@ -146,8 +149,13 @@ export class LoginPageComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();
-    // The user came here to type: the first field has the focus from the first frame (the entrance never blocks input).
     afterNextRender(() => this.$username().focus(), { injector: this.injector });
+  }
+
+  onVisibility(): void {
+    if (document.visibilityState === 'hidden') {
+      this.$passwordField().hide();
+    }
   }
 
   onConnection(online: boolean): void {
@@ -161,6 +169,7 @@ export class LoginPageComponent implements OnInit {
     // A new attempt removes the old banner first, so an invalid resubmit shows only the field messages (D3).
     this.auth.login.reset();
     this.$shaking.set(false);
+    this.$passwordField().hide();
     this.form.markAllAsTouched();
     if (this.form.invalid) {
       // The focus goes to the first field with an error, so a keyboard user does not have to look for it (EA-06).
@@ -215,8 +224,7 @@ export class LoginPageComponent implements OnInit {
     const field = this.host.nativeElement.querySelector<HTMLInputElement>(
       'input[autocomplete="current-password"]'
     );
-    if (field && document.activeElement === field) {
-      field.select();
-    }
+    field?.focus();
+    field?.select();
   }
 }

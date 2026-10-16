@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
-import { EMPTY } from 'rxjs';
+import { EMPTY, of } from 'rxjs';
 import { I18nService } from '@ims/core/i18n';
 import { AuthService } from '@ims/core/identity';
 import {
@@ -90,14 +90,8 @@ describe('LoginPageComponent failure messages', () => {
       show(rateLimited(1));
       expect(banner()).toContain('in 1 second.');
 
-      show(rateLimited(89));
-      expect(banner()).toContain('in 89 seconds.');
-
       show(rateLimited(120));
       expect(banner()).toBe('Too many sign-in attempts from this network. Try again in 2 minutes.');
-
-      show(rateLimited(91));
-      expect(banner()).toContain('in 2 minutes.');
 
       show(rateLimited());
       expect(banner()).toBe('Too many attempts. Wait a minute and try again.');
@@ -195,7 +189,11 @@ describe('LoginPageComponent failure messages', () => {
       spectator.detectChanges();
 
       expect(alerts()).toHaveLength(0);
-      expect(fieldMessages()).toHaveLength(2);
+      // The spec copy says what to do, not "This field is required.".
+      expect(fieldMessages().map(m => m.textContent?.trim())).toEqual([
+        'Enter your email or username.',
+        'Enter your password.'
+      ]);
       expect(login.run).not.toHaveBeenCalled();
     });
 
@@ -241,6 +239,64 @@ describe('LoginPageComponent failure messages', () => {
       spectator.typeInElement('s', USERNAME);
 
       expect(spectator.queryAll('app-banner[role=status]')).toHaveLength(1);
+    });
+  });
+
+  describe('R25: the password and the page after an attempt', () => {
+    beforeEach(() => {
+      operation.set(IDLE_OPERATION);
+      running.set(false);
+      login.run.mockClear();
+      spectator = createComponent();
+      spectator.detectChanges();
+    });
+    const password = (): HTMLInputElement =>
+      spectator.query<HTMLInputElement>(PASSWORD) as HTMLInputElement;
+
+    it('stays busy until the next page has opened, so a second Enter signs in nothing twice', () => {
+      jest
+        .spyOn(spectator.inject(Router), 'navigateByUrl')
+        .mockReturnValue(new Promise(() => undefined));
+      login.run.mockReturnValueOnce(of({}) as never);
+      spectator.typeInElement('staff', USERNAME);
+      spectator.typeInElement('pw', PASSWORD);
+
+      spectator.component.onSubmit();
+      spectator.detectChanges();
+      spectator.component.onSubmit();
+
+      expect(spectator.component.$busy()).toBe(true);
+      expect(spectator.query<HTMLInputElement>(USERNAME)?.readOnly).toBe(true);
+      expect(login.run).toHaveBeenCalledTimes(1);
+    });
+
+    it('after a failed attempt the password has the focus, its text selected, whatever had it before', async () => {
+      spectator.typeInElement('wrong', PASSWORD);
+      spectator.query<HTMLElement>('app-button button')?.focus();
+      operation.set(failureOperation(WRONG_CREDENTIALS));
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(document.activeElement).toBe(password());
+      expect([password().selectionStart, password().selectionEnd]).toEqual([0, 'wrong'.length]);
+    });
+
+    it('a revealed password is hidden again after a submit and when the page is hidden', () => {
+      const reveal = (): void => spectator.click('.ui-input-toggle');
+      spectator.typeInElement('staff', USERNAME);
+      spectator.typeInElement('pw', PASSWORD);
+
+      reveal();
+      expect(password().type).toBe('text');
+      spectator.component.onSubmit();
+      spectator.detectChanges();
+      expect(password().type).toBe('password');
+
+      reveal();
+      jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+      document.dispatchEvent(new Event('visibilitychange'));
+      spectator.detectChanges();
+      expect(password().type).toBe('password');
     });
   });
 

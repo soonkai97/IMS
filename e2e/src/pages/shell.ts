@@ -13,15 +13,10 @@ export class LoginPage {
   readonly fieldMessages: Locator;
   /** "* means required" (D4). It is hidden from assistive technology, so it is found by its text. */
   readonly legend: Locator;
-  /** The one h1, "Sign in" (ER-16). */
   readonly heading: Locator;
-  /** The show / hide button inside the password field. Its name is constant; `aria-pressed` carries the state. */
   readonly showPassword: Locator;
-  /** The form that shakes once per failed attempt (R25). */
   readonly form: Locator;
-  /** The language control of the header: one group of three radios (English, 中文, Bahasa Melayu). */
   readonly language: Locator;
-  /** A notice that is not an error (session expired, offline): role status. */
   readonly notice: Locator;
 
   constructor(private readonly page: Page) {

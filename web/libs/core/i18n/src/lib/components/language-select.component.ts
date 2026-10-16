@@ -60,7 +60,8 @@ export class LanguageSelectComponent implements OnInit {
   /** Plain `{ value, label }` pairs: both the dropdown and the segmented group take them. */
   readonly options = LANGUAGES.map(language => ({
     value: language.code,
-    label: language.label
+    label: language.label,
+    lang: language.code
   }));
 
   ngOnInit(): void {
