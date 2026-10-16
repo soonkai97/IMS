@@ -22,7 +22,9 @@ persistence layer on save, never by use cases.
 - The stock ledger and the audit log carry the columns but are never updated or deleted (triggers enforce it) and have no filter.
 - `AuditableEntity` is in `Ims.Domain/Common/Models`; the mapping is `ConfigureAuditColumns` in `AppDbContext`.
 - Row-level audit (the `AuditLogs` table) records before/after values for master and security data. Business events (posting, approval,
-  login) are recorded explicitly. Both commit in the same transaction as the change.
+  login) are recorded explicitly. Both commit in the same transaction as the change. A soft delete of a row-audited entity (a physical `Remove` the context turns
+  into REC_DELETED = 1, or the domain's `MarkDeleted`) writes a `deleted` row with the whole before-image; the context recognises it from the entry itself
+  (`IsSoftDelete`: REC_DELETED false to true), never from a set of entries kept between two `Entries()` calls (each call makes new `EntityEntry` objects).
 
 ## 2. SQL injection
 
