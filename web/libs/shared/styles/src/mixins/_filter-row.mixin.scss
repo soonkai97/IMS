@@ -1,0 +1,30 @@
+@use '../variables' as *;
+@use 'media.mixin' as media;
+
+/// A row of list filters: one column on a phone, `$columns` from the tablet width. The cells are aligned to the top, so a
+/// field that grows below its box (an error line under To) never moves a box. A search box or a checkbox has no label, so
+/// it gets the label's height (one line and the label-to-box gap of app-form-field) as a top margin, and its box lines up
+/// with the boxes of the labelled fields. On a phone the fields stack and they need no margin.
+@mixin filter-row($columns: repeat(auto-fit, minmax(11rem, 1fr))) {
+  $label-block: font-size(2) * $line-height + space(0);
+  // The checkbox row is touch-min high and a box is touch high: half the difference keeps their centres level.
+  $checkbox-nudge: (height('touch') - height('touch-min')) * 0.5;
+
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: space(1) space(2);
+  margin-bottom: space(2);
+
+  @include media.media-tablet {
+    grid-template-columns: $columns;
+    align-items: start;
+
+    app-search-input {
+      margin-top: $label-block;
+    }
+
+    app-checkbox {
+      margin-top: $label-block + $checkbox-nudge;
+    }
+  }
+}
