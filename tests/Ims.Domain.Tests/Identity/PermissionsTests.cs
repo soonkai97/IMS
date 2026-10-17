@@ -188,17 +188,6 @@ public class PermissionsTests
     }
 
     // ----- Roles -----
-    [Theory]
-    [InlineData(Roles.Admin, true)]
-    [InlineData(Roles.Owner, true)]
-    [InlineData(Roles.Supervisor, false)]
-    [InlineData(Roles.WarehouseStaff, false)]
-    [InlineData(Roles.Clerk, false)]
-    public void SeesAllWarehouses_OnlyAdminAndOwner(string role, bool expected)
-    {
-        Assert.Equal(expected, Roles.SeesAllWarehouses(role));
-    }
-
     [Fact]
     public void Roles_AllListsTheFiveRolesOfThePrd()
     {

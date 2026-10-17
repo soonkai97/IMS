@@ -54,7 +54,7 @@ public class ResponseShaperTests
     [Fact]
     public void ABareListOfRules_IsShapedToo_AndAQuantityIsNotMoney()
     {
-        var rules = new List<ApprovalRuleDto> { new(Guid.NewGuid(), DocumentType.Issue, 500m, 10m, Roles.Supervisor, true) };
+        var rules = new List<ApprovalRuleDto> { new(Guid.NewGuid(), DocumentType.Issue, 500m, 10m, ApproverTier.Standard, Roles.Supervisor, true) };
 
         ResponseShaper.Shape(rules, Nothing);
 
@@ -65,12 +65,12 @@ public class ResponseShaperTests
     [Fact]
     public void AnApprovalTriggerOnAnAmount_HidesTheAmountsButNotTheKindOfRule()
     {
-        var amount = new ApprovalTriggerDto(ApprovalMetric.Amount, 1000m, 1500m, Roles.Owner);
-        var quantity = new ApprovalTriggerDto(ApprovalMetric.Quantity, 50m, 80m, Roles.Supervisor);
+        var amount = new ApprovalTriggerDto(ApprovalMetric.Amount, 1000m, 1500m, ApproverTier.Large, Roles.Owner);
+        var quantity = new ApprovalTriggerDto(ApprovalMetric.Quantity, 50m, 80m, ApproverTier.Standard, Roles.Supervisor);
 
         ResponseShaper.Shape(new[] { amount, quantity }, Nothing);
 
-        Assert.Equal((ApprovalMetric.Amount, Roles.Owner), (amount.Metric, amount.RoleRequired));
+        Assert.Equal((ApprovalMetric.Amount, ApproverTier.Large), (amount.Metric, amount.ApproverTier));
         Assert.Null(amount.Threshold);
         Assert.Null(amount.Actual);
         Assert.Equal((50m, 80m), (quantity.Threshold, quantity.Actual));
@@ -168,8 +168,8 @@ public class ResponseShaperTests
     [Fact]
     public void ANumberThatIsNotMoney_IsLeftAlone()
     {
-        var quantity = new ApprovalTriggerDto(ApprovalMetric.Quantity, 50.12345m, 80.54321m, Roles.Supervisor);
-        var amount = new ApprovalTriggerDto(ApprovalMetric.Amount, 1000m, 1500.005m, Roles.Owner);
+        var quantity = new ApprovalTriggerDto(ApprovalMetric.Quantity, 50.12345m, 80.54321m, ApproverTier.Standard, Roles.Supervisor);
+        var amount = new ApprovalTriggerDto(ApprovalMetric.Amount, 1000m, 1500.005m, ApproverTier.Large, Roles.Owner);
 
         ResponseShaper.Shape(new[] { quantity, amount }, Everything);
 

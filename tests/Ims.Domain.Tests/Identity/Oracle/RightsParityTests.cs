@@ -67,23 +67,29 @@ public class RightsParityTests
     }
 
     [Fact]
-    public void TheApprovalDecisionByWhatIsHeldIsTheRoleRankDecision_ForEveryStoredTierRuleSetAndSystemRole()
+    public void TheApprovalDecisionByTierIsTheRoleRankDecision_ForEveryStoredTierRuleSetAndSystemRole_ExceptTheOwnerOnAnAdminRule()
     {
         // Routing and limit together, as the Approve handler asks them. The stored tier of the document varies on its own, apart from the rules in force now (they can
         // change between submit and approve), so a standard approver on a document stored as standard is refused when a rule naming the Owner is in force.
+        // The one documented difference is Q5 (ADR roles-permissions 2.7, accepted by the owner): a rule that named the Administrator is a Large rule, and the Owner,
+        // who holds the large tier, may now satisfy it, where the rank of role names kept it for the Administrator alone.
         var differences = new List<string>();
         foreach (var key in OracleKeys.RuleSetKeys())
         {
+            var parts = ParseRuleParts(key[0]);
             var rules = ParseRules(key[0]);
             var amount = decimal.Parse(key[1], System.Globalization.CultureInfo.InvariantCulture);
+            var adminRuleFired = parts.Any(p => p.Role == Roles.Admin && amount >= p.Threshold);
             foreach (var storedLarge in new[] { false, true })
             foreach (var role in SystemRoles)
             {
                 var rights = SystemRoleDefaults.RightsFor(role, Me);
-                var before = ApprovalPolicy.MayReview(role, storedLarge) && ApprovalPolicy.CanApprove(role, rules, DocumentType.Receipt, 1m, amount);
-                var now = ApprovalPolicy.MayReview(rights, storedLarge) && ApprovalPolicy.CanApprove(rights, rules, DocumentType.Receipt, 1m, amount);
+                var before = LegacyBehaviour.MayReview(role, storedLarge) && LegacyBehaviour.CanApprove(role, parts, amount);
+                var now = ApprovalPolicy.MayReview(rights, storedLarge, rules, DocumentType.Receipt, 1m, amount);
+                var documented = role == Roles.Owner && storedLarge && adminRuleFired;
 
-                if (before != now) differences.Add($"{role}, stored {(storedLarge ? "large" : "standard")}, rules {key[0]}, amount {key[1]}: was {before}, now {now}");
+                if (documented) Assert.True(!before && now, $"the Owner on an Admin rule: was {before}, now {now} ({key[0]}, amount {key[1]})");
+                else if (before != now) differences.Add($"{role}, stored {(storedLarge ? "large" : "standard")}, rules {key[0]}, amount {key[1]}: was {before}, now {now}");
             }
         }
 
@@ -97,7 +103,23 @@ public class RightsParityTests
         var supervisor = SystemRoleDefaults.RightsFor(Roles.Supervisor, Me);
 
         Assert.True(ApprovalPolicy.MayReview(supervisor, isLarge: false));
-        Assert.False(ApprovalPolicy.CanApprove(supervisor, rules, DocumentType.Receipt, 1m, 500m));
+        Assert.False(ApprovalPolicy.MayReview(supervisor, isLarge: false, rules, DocumentType.Receipt, 1m, 500m));
+    }
+
+    [Fact]
+    public void TheOwnerMaySatisfyARuleThatNamedTheAdministrator_AndASupervisorStillMayNot()
+    {
+        // Q5: an Admin-only rule is a Large rule. The Owner holds the large tier, so the document is theirs; a standard approver is not.
+        var rules = ParseRules("Admin@100");
+        Assert.All(rules, r => Assert.Equal(ApproverTier.Large, r.Tier));
+
+        var owner = SystemRoleDefaults.RightsFor(Roles.Owner, Me);
+        var supervisor = SystemRoleDefaults.RightsFor(Roles.Supervisor, Me);
+        var admin = SystemRoleDefaults.RightsFor(Roles.Admin, Me);
+
+        Assert.True(ApprovalPolicy.MayReview(owner, isLarge: true, rules, DocumentType.Receipt, 1m, 500m));
+        Assert.True(ApprovalPolicy.MayReview(admin, isLarge: true, rules, DocumentType.Receipt, 1m, 500m));
+        Assert.False(ApprovalPolicy.MayReview(supervisor, isLarge: true, rules, DocumentType.Receipt, 1m, 500m));
     }
 
     [Fact]

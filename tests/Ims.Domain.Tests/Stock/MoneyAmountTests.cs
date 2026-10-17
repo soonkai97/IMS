@@ -93,7 +93,7 @@ public class MoneyAmountTests
         // 1,000 pieces at 4.9999996 are 4,999.9996: that is 5,000.00 to the cent, and a rule that starts at 5,000.00 fires.
         var doc = NewIssue(2, (P(1), 1000m));
         doc.EstimateIssueCosts(new Dictionary<int, decimal> { [1] = 4.9999996m });
-        var rule = ApprovalRule.Create(DocumentType.Issue, 5000m, null, Roles.Supervisor);
+        var rule = ApprovalRule.Create(DocumentType.Issue, 5000m, null, ApproverTier.Standard);
 
         Assert.Equal(5000.00m, doc.TotalAmount);
         Assert.True(rule.Matches(DocumentType.Issue, doc.TotalQty, doc.TotalAmount));
@@ -104,7 +104,7 @@ public class MoneyAmountTests
     {
         var doc = NewIssue(2, (P(1), 1000m));
         doc.EstimateIssueCosts(new Dictionary<int, decimal> { [1] = 4.9999949m }); // 4,999.9949 is 4,999.99
-        var rule = ApprovalRule.Create(DocumentType.Issue, 5000m, null, Roles.Supervisor);
+        var rule = ApprovalRule.Create(DocumentType.Issue, 5000m, null, ApproverTier.Standard);
 
         Assert.Equal(4999.99m, doc.TotalAmount);
         Assert.False(rule.Matches(DocumentType.Issue, doc.TotalQty, doc.TotalAmount));
@@ -213,7 +213,7 @@ public class MoneyAmountTests
     [InlineData("0.001")]
     public void AnApprovalThreshold_RefusesAFractionOfACent(string amount)
     {
-        var ex = Assert.Throws<DomainException>(() => ApprovalRule.Create(DocumentType.Issue, decimal.Parse(amount, System.Globalization.CultureInfo.InvariantCulture), null, Roles.Supervisor));
+        var ex = Assert.Throws<DomainException>(() => ApprovalRule.Create(DocumentType.Issue, decimal.Parse(amount, System.Globalization.CultureInfo.InvariantCulture), null, ApproverTier.Standard));
 
         Assert.Equal(Messages.AmountTooPrecise, ex.Message);
     }
@@ -221,7 +221,7 @@ public class MoneyAmountTests
     [Fact]
     public void AnApprovalThreshold_OfUpToTwoDecimals_IsAccepted()
     {
-        var rule = ApprovalRule.Create(DocumentType.Issue, 100.50m, null, Roles.Supervisor);
+        var rule = ApprovalRule.Create(DocumentType.Issue, 100.50m, null, ApproverTier.Standard);
 
         Assert.Equal(100.50m, rule.AmountThreshold);
     }
