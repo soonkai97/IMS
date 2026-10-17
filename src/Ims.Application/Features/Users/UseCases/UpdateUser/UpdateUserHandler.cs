@@ -10,10 +10,14 @@ public class UpdateUserHandler(IRepository<User> users, IReadRepository<Role> ro
         var user = await users.FirstOrDefaultAsync(new UserWithWarehousesByPublicIdSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.UserNotFound);
         if (await users.AnyAsync(new UserTakenSpec(r.Username, r.Email, user.Id), ct)) throw new ConflictException(Messages.UserExists);
         var wanted = await UserWarehouses.ResolveAsync(warehouseIds, r.WarehouseIds, ct);
-        var role = await roles.FirstOrDefaultAsync(new RoleByCodeSpec(r.Role, tracked: true), ct) ?? throw new DomainException(Messages.UnknownRole);
+        var role = UserContainment.ExactRole(await roles.FirstOrDefaultAsync(new RoleForAssignmentSpec(r.Role), ct), r.Role);
+
+        // Nobody gets more than they have: not a user who sees or holds more than the caller, not a role or warehouses beyond the caller's own.
+        UserContainment.CheckTarget(user, current);
+        UserContainment.CheckAssignment(role, wanted, current);
 
         // Nobody may lock the system out of administration: not themselves, and not the last active administrator.
-        var losesAdmin = user.Role.Code == SystemRoleCodes.Admin && user.IsActive && (!r.IsActive || r.Role != SystemRoleCodes.Admin);
+        var losesAdmin = user.Role.Code == SystemRoleCodes.Admin && user.IsActive && (!r.IsActive || role.Code != SystemRoleCodes.Admin);
         if (losesAdmin)
         {
             if (user.Id == current.UserId) throw new ConflictException(Messages.CannotLockOutSelf);

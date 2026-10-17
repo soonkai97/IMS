@@ -9,8 +9,9 @@ public class CreateUserHandler(IRepository<User> users, IReadRepository<Role> ro
         var r = cmd.Data;
         if (await users.AnyAsync(new UserTakenSpec(r.Username, r.Email), ct)) throw new ConflictException(Messages.UserExists);
         var warehouses = await UserWarehouses.ResolveAsync(warehouseIds, r.WarehouseIds, ct);
-        var role = await roles.FirstOrDefaultAsync(new RoleByCodeSpec(r.Role, tracked: true), ct) ?? throw new DomainException(Messages.UnknownRole);
+        var role = UserContainment.ExactRole(await roles.FirstOrDefaultAsync(new RoleForAssignmentSpec(r.Role), ct), r.Role);
         var allWarehouses = UserWarehouses.ResolveAllWarehouses(r.AllWarehouses, false, current);
+        UserContainment.CheckAssignment(role, warehouses, current);
 
         var user = User.Create(r.Username, r.Email, r.DisplayName, role, hasher.Hash(r.Password!), warehouses, r.IsActive, allWarehouses);
         users.Add(user);

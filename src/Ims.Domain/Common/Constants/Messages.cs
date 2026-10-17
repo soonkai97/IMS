@@ -40,6 +40,9 @@ public static class Messages
     public const string UnknownRole = "Unknown role.";
     public const string RoleInactive = "This role is not active. Choose another role.";
     public const string AllWarehousesNotGrantable = "Only a user who sees every warehouse can let someone else see every warehouse.";
+    public const string UserBeyondYourAccess = "You cannot change a user who has more access than you.";
+    public const string RoleBeyondYourAccess = "You can only give a role whose permissions you hold yourself.";
+    public const string WarehouseOutsideYourScope = "You can only assign warehouses you can reach yourself.";
     public const string UnknownApproverTier = "Unknown approver tier.";
     public const string ApproverTierRequired = "Choose the approver tier (standard or large); a role named with it must match.";
     public static readonly string RoleCodeInvalid = $"A role needs a code of up to {Limits.RoleMaxLength} characters.";
