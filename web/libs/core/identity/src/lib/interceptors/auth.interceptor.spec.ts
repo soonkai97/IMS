@@ -93,6 +93,26 @@ describe('authInterceptor', () => {
     expect(status).toBe(401);
   });
 
+  it('refreshes again on the next 401 after a refresh that failed (the session is not ended for it)', () => {
+    auth.refresh
+      .mockReturnValueOnce(throwError(() => ({ isApiError: true, status: 429, extensions: {} })))
+      .mockReturnValueOnce(of('new'));
+    const statuses: number[] = [];
+    http.get(`${API}/api/stock`).subscribe({
+      error: (error: HttpErrorResponse) => statuses.push(error.status)
+    });
+    backend.expectOne(`${API}/api/stock`).flush(null, UNAUTHORIZED);
+
+    http.get(`${API}/api/stock`).subscribe();
+    backend.expectOne(`${API}/api/stock`).flush(null, UNAUTHORIZED);
+    const replay = backend.expectOne(`${API}/api/stock`);
+
+    expect(statuses).toEqual([401]);
+    expect(replay.request.headers.get('Authorization')).toBe('Bearer new');
+    expect(auth.refresh).toHaveBeenCalledTimes(2);
+    replay.flush({});
+  });
+
   it('leaves non-401 errors alone', () => {
     http.get(`${API}/api/stock`).subscribe({ error: () => undefined });
 

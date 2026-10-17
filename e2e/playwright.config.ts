@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import { WEB_URL } from './src/config';
 
 // One worker by default: scenarios use unique data, but a few switch global settings (negative stock) and every sign-in
-// shares the API's login rate limit (20 per minute per address). Raise IMS_E2E_WORKERS only against a relaxed API.
+// shares the API's sign-in rate limit (20 per minute per address). Raise IMS_E2E_WORKERS only against a relaxed API.
 export default defineConfig({
   testDir: './tests',
   globalSetup: './src/global-setup.ts',

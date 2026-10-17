@@ -20,7 +20,7 @@ Scan scope is our own API inside the runner and nothing else. The scan is delibe
 | `ASPNETCORE_ENVIRONMENT` | `Development` | The OpenAPI document and demo accounts exist only there. Consequence: no HSTS header, cookies without `Secure` over plain http. Check those two with the production header check in `web-headers.md` section 6 instead. |
 | `RateLimit__PerMinute` | `1000000` | One address with one token would hit the 600-per-minute limit within seconds and the rest of the scan would only see 429. |
 | `Jwt__AccessMinutes` | `60` | The token must outlive the scan (default 5 minutes; the host refuses to start above 60). **This value is the revocation window:** a demotion, a role edit or a deactivation reaches an access token already issued only when it expires, so the freshness figures of the roles ADR (about 5.5 minutes: 5 plus the 30 s skew) hold only for the default and a larger value widens them by the same amount. Set it only for a scan or load run, never in a deployed environment. |
-| Sign-in limit | unchanged (20 per minute per address) | The login and refresh endpoints are scanned at that pace and mostly answer 429; that is the control working. |
+| Sign-in and refresh limits | login 20 (unchanged), refresh 300 (own bucket), per minute per address | The login endpoint is scanned at that pace and mostly answers 429; that is the control working. Refresh has its own, larger bucket. |
 
 ## 3. Reading the result
 

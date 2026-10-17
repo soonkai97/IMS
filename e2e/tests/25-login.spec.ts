@@ -6,7 +6,7 @@ import { LoginPage } from '../src/pages/shell';
 import { spendLoginBudget } from '../src/rate-limit';
 
 // R25 (docs/design/2026-refresh-login.md, lean). Failures are answered by a stub, so no case spends one of the API's real
-// attempts (20 a minute per address, shared with token refresh); 08-session keeps the one real wrong password.
+// attempts (20 a minute per address; token refresh has its own limit); 08-session keeps the one real wrong password.
 
 const LOGIN = /\/api\/auth\/login$/;
 const WRONG = 'Email, username or password is wrong.';

@@ -43,7 +43,7 @@ let counter = 0;
 export const unique = (): string =>
   `${Date.now().toString(36)}${(counter++).toString(36)}${randomInt(0, 1296).toString(36)}`.toUpperCase();
 
-/** Signs in; sign-in and refresh share a limit of 20 a minute per address, so a 429 waits as long as the API asks. */
+/** Signs in; sign-in is limited to 20 a minute per address, so a 429 waits as long as the API asks. */
 async function signIn(role: Role): Promise<string> {
   for (let attempt = 1; ; attempt++) {
     await spendLoginBudget(1);
