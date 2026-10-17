@@ -6,7 +6,7 @@ namespace Ims.Application.Features.Documents;
 /// One reason a document needs approval: <paramref name="Actual"/> reached <paramref name="Threshold"/> of a rule that asks for <paramref name="ApproverTier"/>.
 /// For an amount rule the two numbers are money, so a caller without <c>cost.view</c> (the Warehouse staff) gets them as null: they still see that
 /// the document needs approval and which kind of rule fired (<paramref name="Metric"/>), not the amount. A quantity rule is not hidden.
-/// <paramref name="RoleRequired"/> is deprecated: the system role that holds the tier by default (<see cref="ApproverTierNames.RoleOf"/>).
+/// <paramref name="RoleRequired"/> is deprecated: the system role that holds the tier by default (Supervisor for Standard, Owner for Large).
 /// </summary>
 public record ApprovalTriggerDto(ApprovalMetric Metric,
     [property: VisibleWith(Permissions.CostView, OnlyWhen = nameof(ApprovalTriggerDto.IsAmount))] decimal? Threshold,
