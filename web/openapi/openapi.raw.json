@@ -2354,7 +2354,7 @@
         "tags": [
           "Documents"
         ],
-        "summary": "Cancels a Draft, a Submitted or an Approved document. The reason is optional, except that cancelling an Approved document (by a reviewer it is routed to) needs one of at least 5 characters. No permission door: the create right is not enough (the Owner approves but cannot create), so `DocumentActionPolicy.MayCancel` decides; the catalog gives document endpoints their doors in RP-4a.",
+        "summary": "Cancels a Draft, a Submitted or an Approved document. The reason is optional, except that cancelling an Approved document (by a reviewer it is routed to) needs one of at least 5 characters. The door is the create right or either approval tier (the Owner approves but cannot create); `DocumentActionPolicy.MayCancel` then decides for this document.",
         "operationId": "Documents_cancel",
         "parameters": [
           {
