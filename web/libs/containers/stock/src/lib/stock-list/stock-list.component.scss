@@ -5,15 +5,7 @@
 }
 
 .stock-list-page-filters {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: space(1) space(2);
-  margin-bottom: space(2);
-
-  @include media-tablet {
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-    align-items: end;
-  }
+  @include filter-row(repeat(auto-fit, minmax(12rem, 1fr)));
 }
 
 // Why a product is Low, on the phone card where the safety stock column is not shown (NV-11).
