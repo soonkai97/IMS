@@ -92,15 +92,18 @@ test.describe("R11 A failure the screen shows in place", () => {
     });
   }
 
-  test("given a sign-in the server answers with a 500 and a sentence, then the banner shows it once and no toast", async ({
+  // The sign-in page owns its sentences (login spec LG-18): a 500 shows the translated server line, never the API's text.
+  test("given a sign-in the server answers with a 500 and a sentence, then the banner shows the page's own sentence once and no toast", async ({
     page,
     login,
   }) => {
+    const OWN_SENTENCE = "Sign-in is not working right now. Try again in a moment.";
     await failCalls(page, /\/api\/auth\/login/, SENTENCE, { status: 500 });
     await login.open();
     await login.fill("someone", "not-a-real-password");
 
-    await expect(page.getByRole("alert").filter({ hasText: SENTENCE })).toHaveCount(1);
+    await expect(page.getByRole("alert").filter({ hasText: OWN_SENTENCE })).toHaveCount(1);
+    await expect(page.getByRole("alert").filter({ hasText: SENTENCE })).toHaveCount(0);
     await expect(page.locator("app-toast")).toHaveCount(0);
     expect(await announcedBy(page)).toBe(1);
   });
