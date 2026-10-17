@@ -90,7 +90,14 @@ test.describe("R23 Date filters use the app format", () => {
     });
     await typeDate(page, toBox(page), "10 Oct 2026");
 
-    await expect(page.getByText(range)).toBeVisible();
+    await expect(
+      page.locator(".ui-form-field-error").getByText(range),
+    ).toBeVisible();
+    // The empty area says the same instead of "No documents match": no search ran (and it still offers Clear filters).
+    await expect(page.locator(".ui-empty-state-message")).toHaveText(range);
+    await expect(
+      page.getByRole("button", { name: "Clear filters" }),
+    ).toBeVisible();
     await expect(toBox(page)).toHaveAttribute("aria-invalid", "true");
     expect(reversed).toEqual([]);
 

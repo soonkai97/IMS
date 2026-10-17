@@ -130,6 +130,11 @@ describe('AuditLogPageComponent search (PS-06)', () => {
     );
     expect(error?.textContent?.trim()).toBe('From must be on or before To.');
     expect(load).not.toHaveBeenCalled();
+    // The empty area says the same, not that no entry matches (no search ran).
+    expect(spectator.query('app-empty-state')?.textContent).toContain(
+      'From must be on or before To.'
+    );
+    expect(spectator.query('app-empty-state')?.textContent).not.toContain('No activity');
 
     spectator.component.toControl.setValue('2026-10-12');
     spectator.detectChanges();

@@ -212,6 +212,10 @@ export class DocumentListPageComponent implements OnInit {
   ]);
   $heading = computed(() => this.i18n.t(this.$isIssue() ? 'issues.title' : 'receipts.title'));
   $emptyKey = computed<MessageKey>(() => {
+    // No search ran for a reversed range, so "no documents match" would be untrue.
+    if (this.$rangeInvalid()) {
+      return 'filter.rangeInvalid';
+    }
     if (this.$hasFilters()) {
       return 'docs.noMatch';
     }

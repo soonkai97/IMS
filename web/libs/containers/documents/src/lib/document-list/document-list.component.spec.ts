@@ -182,6 +182,11 @@ describe('DocumentListPageComponent Mine / All', () => {
     expect(error?.textContent?.trim()).toBe('From must be on or before To.');
     expect(load).not.toHaveBeenCalled();
     expect(spectator.query('tbody tr')).toBeNull();
+    // The empty area says the same, not that no document matches (no search ran), and still offers Clear filters.
+    const empty = spectator.query('app-empty-state')?.textContent ?? '';
+    expect(empty).toContain('From must be on or before To.');
+    expect(empty).not.toContain('match');
+    expect(empty).toContain('Clear filters');
 
     spectator.component.toControl.setValue('2026-10-12');
     spectator.detectChanges();

@@ -29,6 +29,10 @@ The Nx generator (`nx g @nx/angular:library ...`) works too, but then apply the 
 - [ ] `eslint.config.mjs` re-exports the root config (selector prefix `app`, boundary rules, conventions).
 - [ ] Path alias `@ims/...` -> `libs/.../src/index.ts` (alphabetical in `tsconfig.base.json`).
 - [ ] `src/index.ts` is the only public surface (alphabetical `export *`). Everything else is private to the library.
+- [ ] A library whose barrel the app shell imports but whose parts a lazy screen needs (today only `shared/ui`) carries a
+      `package.json` with `{ "sideEffects": false }`. Without it the bundler keeps every `export *` module in the initial
+      chunk (the whole kit, about 60 kB, was there); with it, a component only a lazy route uses moves to that route's chunk.
+      So a module in such a library must have no top-level side effect (no registration, no `document` or `window` access).
 
 ## 3. Folder layout
 
