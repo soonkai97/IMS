@@ -8,5 +8,5 @@ public class JwtOptions
     [Required, MinLength(Limits.JwtKeyMinLength)] public string Key { get; set; } = "";
     [Required] public string Issuer { get; set; } = "";
     [Required] public string Audience { get; set; } = "";
-    [Range(1, 24 * 60)] public int AccessMinutes { get; set; } = Limits.AccessTokenMinutes;
+    [Range(1, Limits.AccessTokenMaxMinutes)] public int AccessMinutes { get; set; } = Limits.AccessTokenMinutes;
 }

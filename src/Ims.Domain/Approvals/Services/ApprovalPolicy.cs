@@ -20,7 +20,24 @@ public static class ApprovalPolicy
     public static bool IsLarge(IEnumerable<ApprovalRule> rules, DocumentType type, decimal totalQty, decimal totalAmount) =>
         rules.Any(r => r.Matches(type, totalQty, totalAmount) && r.Tier == ApproverTier.Large);
 
-    // ----- By role name: still used by the approval services until approvals go end to end (RP-4b), which deletes them -----
+    /// <summary>
+    /// The approval-limit check by what the approver holds, not by a role name: the approver must outrank every rule that fired (a rule names the role it needs; with no rule
+    /// fired a standard approver suffices). The rank of the approver is read from the tiers held: both tiers 4 (the Admin), the large tier alone 3 (the Owner), the
+    /// standard tier alone 2 (a Supervisor), neither 0. Asked together with <see cref="MayReview(ActorRights, bool)"/>, and for the five system roles it answers as the
+    /// role-keyed <see cref="CanApprove(string, IEnumerable{ApprovalRule}, DocumentType, decimal, decimal)"/> for every stored tier and every rule set (the parity test pins that),
+    /// so the rules in force at approval time still refuse a standard approver on a document stored as standard, as before. RP-4b replaces the rule's role name with a tier.
+    /// </summary>
+    public static bool CanApprove(ActorRights actor, IEnumerable<ApprovalRule> rules, DocumentType type, decimal totalQty, decimal totalAmount)
+    {
+        var required = rules.Where(r => r.Matches(type, totalQty, totalAmount))
+            .Select(r => RankOf(r.RoleRequired)).DefaultIfEmpty(RankOf(Roles.Supervisor)).Max();
+        return RankOf(actor) >= required;
+    }
+
+    private static int RankOf(ActorRights actor) =>
+        actor.Has(Permissions.DocumentApprove) ? (actor.Has(Permissions.DocumentApproveLarge) ? 4 : 2) : actor.Has(Permissions.DocumentApproveLarge) ? 3 : 0;
+
+    // ----- By role name: what the oracle fixtures were written from; nothing in the running code calls them (RP-4b deletes them with RoleRequired) -----
 
     /// <summary>Approval authority. A higher rank may approve anything a lower rank may.</summary>
     public static int RankOf(string role) => role switch

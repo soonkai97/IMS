@@ -54,7 +54,9 @@ export class HomePageComponent implements OnInit {
 
   $canViewStock = computed(() => this.permissions.has(PERMISSION.StockRead));
   $canCreate = computed(() => this.permissions.has(PERMISSION.DocumentCreate));
-  $canApprove = computed(() => this.permissions.has(PERMISSION.DocumentApprove));
+  $canApprove = computed(() =>
+    this.permissions.hasAny([PERMISSION.DocumentApprove, PERMISSION.DocumentApproveLarge])
+  );
   /** "Posted today" is for the roles that approve AND post (Supervisor, Admin); the Owner only reviews. */
   $canSeePostedToday = computed(
     () => this.$canApprove() && this.permissions.has(PERMISSION.DocumentPost)

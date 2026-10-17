@@ -281,7 +281,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       document.status === DocumentStatus.Submitted &&
       document.requiresApproval &&
       document.submittedById === this.permissions.$userId() &&
-      this.permissions.has(PERMISSION.DocumentApprove) &&
+      this.permissions.hasAny([PERMISSION.DocumentApprove, PERMISSION.DocumentApproveLarge]) &&
       !this.$actions().has(DOCUMENT_ACTION.Approve)
     );
   });

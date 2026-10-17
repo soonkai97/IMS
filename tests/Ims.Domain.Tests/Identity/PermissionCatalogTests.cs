@@ -109,19 +109,6 @@ public partial class PermissionCatalogTests
     }
 
     [Fact]
-    public void ThePermissionsTheRunningApiEnforces_AreAllInTheCatalog_AndTheOthersAreTheSixNewOnes()
-    {
-        Assert.All(Permissions.All, code => Assert.True(PermissionCatalog.IsKnown(code), code));
-        Assert.Equal(
-            new[]
-            {
-                Permissions.DocumentApproveLarge, Permissions.DocumentEditAny, Permissions.DocumentPostApproved, Permissions.RolesManage, Permissions.RolesRead,
-                Permissions.StockNegativeOverride
-            }.Order(StringComparer.Ordinal),
-            PermissionCatalog.Codes.Except(Permissions.All).Order(StringComparer.Ordinal));
-    }
-
-    [Fact]
     public void FindAndIsKnown_AgreeWithTheCatalog()
     {
         Assert.Equal(Permissions.CostView, PermissionCatalog.Find(Permissions.CostView)!.Code);

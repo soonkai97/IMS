@@ -18,8 +18,10 @@ public class GetDocumentCountsHandler(IReadRepository<StockDocument> documents, 
         var today = DateOnly.FromDateTime(clock.UtcNow.AddHours(Limits.MalaysiaUtcOffsetHours));
         var posted = await documents.CountAsync(new PostedBetweenCountSpec(Paging.StartOfDayUtc(today), Paging.EndOfDayUtc(today), scope), ct);
 
-        var waiting = Permissions.Has(current.Role, Permissions.DocumentApprove)
-            ? await documents.CountAsync(new ApprovalsWaitingCountSpec(current.Role, current.UserId, (await settings.GetAsync(ct)).AllowSelfApproval, scope), ct)
+        // Either approval tier makes a reviewer: the Owner holds only the large one.
+        var rights = current.Rights();
+        var waiting = rights.Has(Permissions.DocumentApprove) || rights.Has(Permissions.DocumentApproveLarge)
+            ? await documents.CountAsync(new ApprovalsWaitingCountSpec(rights, (await settings.GetAsync(ct)).AllowSelfApproval, scope), ct)
             : 0;
         return new DocumentCounts(returned, drafts, posted, waiting);
     }

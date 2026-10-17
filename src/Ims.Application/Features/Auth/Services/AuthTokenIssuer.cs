@@ -11,6 +11,6 @@ public class AuthTokenIssuer(IRepository<RefreshToken> tokensRepo, ITokenService
         tokensRepo.Add(RefreshToken.Issue(user.Id, tokens.Hash(refresh), clock.UtcNow));
         await uow.SaveChangesAsync(ct);
         return new AuthResult(token, expires, refresh,
-            await UserInfoMapper.ToInfoAsync(user, access.RoleCode, access.RoleName, access.AllWarehouses, access.WarehouseIds, warehouseIds, ct));
+            await UserInfoMapper.ToInfoAsync(user, access.RoleCode, access.RoleName, access.Permissions, access.AllWarehouses, access.WarehouseIds, warehouseIds, ct));
     }
 }

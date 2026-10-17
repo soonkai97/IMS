@@ -106,17 +106,22 @@ public class DocumentCountsTests(ApiFixture fixture)
         var product = await s.NewProductAsync();
         await using var supervisorRule = await ApprovalRuleScope.AddAsync(s.Admin, DocumentType.Receipt, null, 500m, Roles.Supervisor);
         await using var ownerRule = await ApprovalRuleScope.AddAsync(s.Admin, DocumentType.Receipt, null, 900m, Roles.Owner);
-        var supervisorBefore = (await CountsAsync(s.Supervisor)).ApprovalsWaiting;
-        var ownerBefore = (await CountsAsync(s.Owner)).ApprovalsWaiting;
-        var adminBefore = (await CountsAsync(s.Admin)).ApprovalsWaiting;
+        async Task<(int Supervisor, int Owner, int Admin)> WaitingAsync() =>
+            ((await CountsAsync(s.Supervisor)).ApprovalsWaiting, (await CountsAsync(s.Owner)).ApprovalsWaiting, (await CountsAsync(s.Admin)).ApprovalsWaiting);
+        var before = await WaitingAsync();
 
-        await s.SubmitAsync(s.Clerk, await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 600, 1m)));  // needs a supervisor
-        await s.SubmitAsync(s.Clerk, await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 1000, 1m))); // large: needs the owner
-        await s.SubmitAsync(s.Clerk, await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 1, 1m)));    // no approval
+        // The large document first: only the large tier (the Owner) and the holder of both (the Admin) see it, the supervisor does not.
+        var large = await s.SubmitAsync(s.Clerk, await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 1000, 1m)));
+        Assert.True(large.IsLarge);
+        Assert.Equal((before.Supervisor, before.Owner + 1, before.Admin + 1), await WaitingAsync());
 
-        Assert.Equal(supervisorBefore + 1, (await CountsAsync(s.Supervisor)).ApprovalsWaiting);
-        Assert.Equal(ownerBefore + 1, (await CountsAsync(s.Owner)).ApprovalsWaiting);
-        Assert.Equal(adminBefore + 2, (await CountsAsync(s.Admin)).ApprovalsWaiting);
+        // Then the standard one: the supervisor and the Admin see it, the Owner does not.
+        var standard = await s.SubmitAsync(s.Clerk, await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 600, 1m)));
+        Assert.False(standard.IsLarge);
+        Assert.Equal((before.Supervisor + 1, before.Owner + 1, before.Admin + 2), await WaitingAsync());
+
+        await s.SubmitAsync(s.Clerk, await s.DraftReceiptAsync(s.Clerk, Warehouse, new Line(product.Id, 1, 1m)));    // no approval: nobody's count moves
+        Assert.Equal((before.Supervisor + 1, before.Owner + 1, before.Admin + 2), await WaitingAsync());
         Assert.Equal(0, (await CountsAsync(s.Clerk)).ApprovalsWaiting);
         Assert.Equal(0, (await CountsAsync(s.Staff)).ApprovalsWaiting);
     }
