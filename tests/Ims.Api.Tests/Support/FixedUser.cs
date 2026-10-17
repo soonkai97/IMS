@@ -10,5 +10,7 @@ public sealed class FixedUser(int userId, string username) : ICurrentUser
     public string Username { get; } = username;
     public string Role => Domain.Roles.Admin;
     public IReadOnlyCollection<int> WarehouseIds => [];
+    public IReadOnlyCollection<string> PermissionCodes => [];
+    public bool AllWarehouses => true;
     public bool CanAccessWarehouse(int warehouseId) => true;
 }

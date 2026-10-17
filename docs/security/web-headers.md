@@ -188,4 +188,4 @@ Validate with `nginx -t`. Check the result with `curl -sI https://ims.example.co
 - [ ] `curl -sI https://<host>/` shows all headers of section 1 and the CSP; `curl -sI https://<host>/api/auth/me` shows the API's own CSP (`default-src 'none'`).
 - [ ] Browser console: no CSP violations on login, dashboard, a document editor, product import, the PWA install prompt and an update (new release).
 - [ ] `https://securityheaders.com` (or `curl`) grade A or better; HSTS present only on https.
-- [ ] Login, silent refresh after 15 minutes and logout work (the cookie: `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`).
+- [ ] Login, silent refresh after 5 minutes (the access token lifetime) and logout work (the cookie: `HttpOnly; Secure; SameSite=Strict; Path=/api/auth`).

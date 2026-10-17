@@ -1,13 +1,18 @@
-using Ardalis.Specification;
 using Ims.Domain;
 namespace Ims.Application.Features.Auth;
 
 public static class UserInfoMapper
 {
-    /// <summary>The user's warehouses leave as public ids (one query for the list); the access token keeps the integer ids the data scope uses.</summary>
-    public static async Task<UserInfo> ToInfoAsync(User u, IIdMap<Warehouse> warehouses, CancellationToken ct)
+    /// <summary>
+    /// Sign-in, refresh and /me say the same thing about the rights because they all come here with the role and the scope of one access token: the snapshot it was
+    /// written from, or the token's own claims. A user who sees every warehouse lists none (as the token does); the others leave as public ids (one query for the list).
+    /// <c>Permissions</c> is still the fixed list of the user's system role, until the endpoints read the permission claims (RP-4a).
+    /// </summary>
+    public static async Task<UserInfo> ToInfoAsync(User u, string roleCode, string roleName, bool allWarehouses, IReadOnlyCollection<int> warehouseIds,
+        IIdMap<Warehouse> warehouses, CancellationToken ct)
     {
-        var publicIds = await warehouses.ToPublicAsync(u.Warehouses.Select(w => w.WarehouseId), ct);
-        return new(u.PublicId, u.Username, u.DisplayName, u.Role, Permissions.For(u.Role).ToList(), u.Warehouses.Select(w => publicIds[w.WarehouseId]).ToList());
+        var publicIds = await warehouses.ToPublicAsync(allWarehouses ? [] : warehouseIds, ct);
+        return new(u.PublicId, u.Username, u.DisplayName, roleCode, roleName, Permissions.For(roleCode).ToList(), allWarehouses,
+            (allWarehouses ? [] : warehouseIds).Select(id => publicIds[id]).ToList());
     }
 }

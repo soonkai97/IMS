@@ -14,7 +14,7 @@ namespace Ims.Api.Tests.Harness;
 /// </summary>
 public sealed class ApiFixture : IAsyncLifetime
 {
-    private static readonly TimeSpan SessionLifetime = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan SessionLifetime = TimeSpan.FromMinutes(3); // an access token lives 5 minutes
 
     private readonly Dictionary<string, (string Token, DateTime IssuedAt)> _sessions = [];
     private readonly SemaphoreSlim _sessionGate = new(1, 1);

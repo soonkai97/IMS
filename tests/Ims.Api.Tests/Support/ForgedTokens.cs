@@ -11,15 +11,17 @@ public static class ForgedTokens
     public const string Issuer = "ims";
     public const string Audience = "ims-clients";
 
-    public static string Create(string signingKey, string role = "Admin", DateTime? expiresAt = null, string issuer = Issuer, string audience = Audience)
+    public static string Create(string signingKey, string role = "Admin", DateTime? expiresAt = null, string issuer = Issuer, string audience = Audience,
+        IEnumerable<string>? permissions = null)
     {
         var expires = expiresAt ?? DateTime.UtcNow.AddMinutes(10);
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, "1"),
             new Claim(ClaimTypes.Name, "forged"),
             new Claim(ClaimTypes.Role, role)
         };
+        claims.AddRange((permissions ?? []).Select(p => new Claim("perm", p)));
         var credentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)), SecurityAlgorithms.HmacSha256);
         // notBefore must be earlier than expires, so an already-expired token starts an hour before it ends.
         var token = new JwtSecurityToken(issuer, audience, claims, notBefore: expires.AddHours(-1), expires: expires, signingCredentials: credentials);

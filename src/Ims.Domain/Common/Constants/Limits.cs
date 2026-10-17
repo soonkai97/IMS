@@ -8,7 +8,8 @@ public static class Limits
     public const int LockoutMinutes = 15;
     public const int PasswordMinLength = 12;
     public const int RefreshTokenDays = 7;
-    public const int AccessTokenMinutes = 15;
+    /// <summary>Rights ride in the access token, so this (plus <see cref="ClockSkewSeconds"/>) is how long a demotion can go unnoticed.</summary>
+    public const int AccessTokenMinutes = 5;
     public const int ClockSkewSeconds = 30;
     public const int JwtKeyMinLength = 32;
     public const int JwtKeyGeneratedBytes = 48;

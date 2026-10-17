@@ -14,8 +14,8 @@
 // The API rate limit must be raised for a run (tests/load/README.md): setup() makes about 700 calls in 30 seconds or more.
 //
 // Login is rate limited (20/min per IP), so every scenario logs in ONCE in setup() and shares the five tokens
-// with all VUs. Access tokens last 15 minutes: scenarios longer than ~12 minutes re-login in setup() hourly
-// or are split; 401s are counted (http_401) so an expiry is visible instead of silent.
+// with all VUs. Access tokens last 5 minutes by default, so start the API for a load run with Jwt__AccessMinutes=30 (tests/load/README.md); a scenario longer than ~25 minutes must be split;
+// 401s are counted (http_401) so an expiry is visible instead of silent.
 import http from 'k6/http';
 import { check, fail } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';

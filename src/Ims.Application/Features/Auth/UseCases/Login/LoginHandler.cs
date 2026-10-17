@@ -5,15 +5,16 @@ namespace Ims.Application.Features.Auth;
 /// <summary>
 /// Login by username or email; 5 wrong passwords lock the account temporarily. Failed attempts are counted inside a retried
 /// transaction (the user row has a concurrency token), so parallel wrong passwords cannot all read the same counter and dodge the lock.
+/// A user whose role is gone or inactive cannot sign in: the rights are read before anything is written, so there is no success audit row, no reset of the failed-login count and no refresh token.
 /// Unknown users leave no audit row (that table is permanent and the text is attacker-chosen): they are logged with a short hash only.
 /// </summary>
-public class LoginHandler(IRepository<User> users, IPasswordHasher hasher, IAuthTokenIssuer issuer, ITokenService tokens, IUnitOfWork uow,
+public class LoginHandler(IRepository<User> users, IPasswordHasher hasher, IAuthTokenIssuer issuer, IAccessSnapshotLoader snapshots, ITokenService tokens, IUnitOfWork uow,
     IClock clock, IAuditTrail audit, ILogger<LoginHandler> log) : ICommandHandler<LoginCommand, AuthResult>
 {
     // Verified against when the account does not exist, so response time does not reveal which usernames are real.
     private static string? _dummyHash;
 
-    private sealed record Attempt(User? User, string? Error, int? LockedForMinutes = null);
+    private sealed record Attempt(User? User, string? Error, int? LockedForMinutes = null, AccessSnapshot? Access = null);
 
     public async Task<AuthResult> HandleAsync(LoginCommand cmd, CancellationToken ct)
     {
@@ -21,7 +22,7 @@ public class LoginHandler(IRepository<User> users, IPasswordHasher hasher, IAuth
         var attempt = await uow.ExecuteAsync(() => TryAsync(key, cmd.Body.Password, ct), ct);
         if (attempt.LockedForMinutes is { } minutes) throw new AccountLockedException(minutes);
         if (attempt.Error is not null) throw new UnauthorizedException(attempt.Error);
-        return await issuer.IssueAsync(attempt.User!, ct);
+        return await issuer.IssueAsync(attempt.User!, attempt.Access!, ct);
     }
 
     private async Task<Attempt> TryAsync(string key, string password, CancellationToken ct)
@@ -57,9 +58,17 @@ public class LoginHandler(IRepository<User> users, IPasswordHasher hasher, IAuth
             return new Attempt(null, Messages.InvalidCredentials);
         }
 
+        // The rights the token will carry are read first: with no live role there is nothing to write into a token, so nothing else is written either.
+        var access = await snapshots.LoadAsync(user.Id, ct);
+        if (access is null)
+        {
+            log.LogWarning("Login refused for user {UserId}: no live role", user.Id);
+            return new Attempt(null, Messages.InvalidCredentials);
+        }
+
         user.RegisterSuccessfulLogin();
         audit.Record(AuditActions.LoginSuccess, AuditEntities.User, user.PublicId.ToString(), actor: user.Username);
         await uow.SaveChangesAsync(ct);
-        return new Attempt(user, null);
+        return new Attempt(user, null, Access: access);
     }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -12,17 +13,24 @@ public class TokenService(IOptions<JwtOptions> options, IClock clock) : ITokenSe
 {
     private readonly JwtOptions _o = options.Value;
 
-    public string CreateAccessToken(User user, out DateTime expiresAt)
+    /// <summary>
+    /// Identity (sub, name) and rights from one snapshot: the role code (display and audit), one <c>perm</c> claim per permission held, <c>allwh</c>, the <c>wh</c> list
+    /// only for a user who does not see every warehouse, and the claim-shape version. Rights are as old as the token, which is why it lives minutes (ADR roles-permissions 3.2).
+    /// </summary>
+    public string CreateAccessToken(string username, AccessSnapshot access, out DateTime expiresAt)
     {
         expiresAt = clock.UtcNow.AddMinutes(_o.AccessMinutes);
         var claims = new List<Claim>
         {
-            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Name, user.Username),
-            new(ClaimTypes.Role, user.Role),
+            new(JwtRegisteredClaimNames.Sub, access.UserId.ToString()),
+            new(ClaimTypes.NameIdentifier, access.UserId.ToString()),
+            new(ClaimTypes.Name, username),
+            new(ClaimTypes.Role, access.RoleCode),
+            new(ClaimNames.AllWarehouses, access.AllWarehouses ? ClaimNames.True : ClaimNames.False),
+            new(ClaimNames.ClaimsVersion, ClaimNames.CurrentClaimsVersion.ToString(CultureInfo.InvariantCulture)),
         };
-        claims.AddRange(user.Warehouses.Select(w => new Claim(ClaimNames.Warehouse, w.WarehouseId.ToString())));
+        claims.AddRange(access.Permissions.Codes.Select(code => new Claim(ClaimNames.Permission, code)));
+        if (!access.AllWarehouses) claims.AddRange(access.WarehouseIds.Select(id => new Claim(ClaimNames.Warehouse, id.ToString(CultureInfo.InvariantCulture))));
 
         var creds = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_o.Key)), SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(_o.Issuer, _o.Audience, claims, notBefore: clock.UtcNow, expires: expiresAt, signingCredentials: creds);

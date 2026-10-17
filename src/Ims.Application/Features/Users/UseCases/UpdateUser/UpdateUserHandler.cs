@@ -21,16 +21,15 @@ public class UpdateUserHandler(IRepository<User> users, IReadRepository<Role> ro
         }
 
         var before = new { user.Username, user.Role, user.IsActive, Warehouses = user.Warehouses.Select(w => w.WarehouseId).ToList() };
-        var accessChanged = user.Role != r.Role || user.IsActive != r.IsActive || !string.IsNullOrEmpty(r.Password) ||
-                            !before.Warehouses.Order().SequenceEqual(wanted.Order());
+        var endSessions = (user.IsActive && !r.IsActive) || !string.IsNullOrEmpty(r.Password);
 
         user.UpdateProfile(r.Username, r.Email, r.DisplayName, role, r.IsActive);
         if (!string.IsNullOrEmpty(r.Password)) user.ChangePasswordHash(hasher.Hash(r.Password));
         user.AssignWarehouses(wanted);
 
-        // A changed role, scope, status or password must not leave older sessions alive: end every refresh token so the
-        // old access token expires within AccessTokenMinutes and cannot be renewed.
-        if (accessChanged)
+        // A deactivation or a new password ends every session: the refresh tokens are revoked so nobody can renew. A changed role or scope does not: the rights ride in
+        // the access token, so they apply at the next refresh (within AccessTokenMinutes plus the clock skew), and nobody is signed out for being promoted or demoted.
+        if (endSessions)
         {
             var now = clock.UtcNow;
             foreach (var token in await tokens.ListAsync(new ActiveRefreshTokensOfUserSpec(user.Id, now), ct)) token.Revoke(now);
