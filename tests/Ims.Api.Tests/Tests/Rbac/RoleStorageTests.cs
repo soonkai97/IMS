@@ -109,7 +109,7 @@ public class RoleStorageTests(PublicIdDatabase fixture) : IClassFixture<PublicId
         // ... and a role a user has stays too, even without grants.
         var held = await AddAsync(NewRole());
         await fixture.Database.ExecuteAsync(
-            "INSERT [User] (Username, Email, DisplayName, PasswordHash, Role, RoleId, AllWarehouses, IsActive, FailedLoginCount) VALUES (@u, @e, @u, N'x', N'Clerk', @r, 0, 1, 0)",
+            "INSERT [User] (Username, Email, DisplayName, PasswordHash, RoleId, AllWarehouses, IsActive, FailedLoginCount) VALUES (@u, @e, @u, N'x', @r, 0, 1, 0)",
             ("@u", Unique.Username()), ("@e", Unique.Email(Unique.Username())), ("@r", held.Id));
         var userFailure = await Assert.ThrowsAsync<SqlException>(() => fixture.Database.ExecuteAsync("DELETE FROM Role WHERE Id = @r", ("@r", held.Id)));
         Assert.Contains("FK_User_Role_RoleId", userFailure.Message);
@@ -119,7 +119,7 @@ public class RoleStorageTests(PublicIdDatabase fixture) : IClassFixture<PublicId
     public async Task A_user_without_a_role_row_cannot_be_written()
     {
         var failure = await Assert.ThrowsAsync<SqlException>(() => fixture.Database.ExecuteAsync(
-            "INSERT [User] (Username, Email, DisplayName, PasswordHash, Role, RoleId, AllWarehouses, IsActive, FailedLoginCount) VALUES (N'orphan', N'orphan@example.test', N'orphan', N'x', N'Clerk', -1, 0, 1, 0)"));
+            "INSERT [User] (Username, Email, DisplayName, PasswordHash, RoleId, AllWarehouses, IsActive, FailedLoginCount) VALUES (N'orphan', N'orphan@example.test', N'orphan', N'x', -1, 0, 1, 0)"));
 
         Assert.Contains("FK_User_Role_RoleId", failure.Message);
     }
