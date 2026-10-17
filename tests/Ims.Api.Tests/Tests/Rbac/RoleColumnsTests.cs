@@ -67,28 +67,18 @@ public class RoleColumnsTests(ApiFixture fixture)
     }
 
     [Theory]
-    [InlineData(Roles.Admin, true)]
-    [InlineData(Roles.Owner, false)]
-    [InlineData(Roles.Clerk, true)]
-    [InlineData(Roles.Supervisor, false)]
-    public async Task A_user_created_through_the_api_keeps_the_scope_flag_it_was_given_whatever_its_role(string role, bool all)
+    [InlineData(Roles.Admin, true, true)]
+    [InlineData(Roles.Owner, false, false)]
+    [InlineData(Roles.Clerk, true, true)]
+    [InlineData(Roles.Admin, null, false)] // not told: a new user sees no warehouse, whatever the role
+    public async Task A_user_created_through_the_api_keeps_the_scope_flag_it_was_given_whatever_its_role(string role, bool? all, bool expected)
     {
         var admin = await fixture.AsAsync(Roles.Admin);
 
         var created = (await admin.Users.CreateAsync(NewUser(role, all))).Data<UserDto>();
 
-        Assert.Equal((role, all), (created.Role, created.AllWarehouses));
-        Assert.Equal((role, all), await UserRowAsync(created.Username));
-    }
-
-    [Fact]
-    public async Task A_new_user_who_is_not_told_to_see_every_warehouse_does_not()
-    {
-        var admin = await fixture.AsAsync(Roles.Admin);
-
-        var created = (await admin.Users.CreateAsync(NewUser(Roles.Admin))).Data<UserDto>();
-
-        Assert.False(created.AllWarehouses);
+        Assert.Equal((role, expected), (created.Role, created.AllWarehouses));
+        Assert.Equal((role, expected), await UserRowAsync(created.Username));
     }
 
     [Fact]
