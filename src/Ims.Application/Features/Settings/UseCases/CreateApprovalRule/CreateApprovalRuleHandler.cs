@@ -6,11 +6,11 @@ public class CreateApprovalRuleHandler(IRepository<ApprovalRule> rules, IUnitOfW
     public async Task<ApprovalRuleDto> HandleAsync(CreateApprovalRuleCommand cmd, CancellationToken ct)
     {
         var r = cmd.Data;
-        var rule = ApprovalRule.Create(r.DocType, r.AmountThreshold, r.QtyThreshold, r.RoleRequired, r.IsActive);
+        var rule = ApprovalRule.Create(r.DocType, r.AmountThreshold, r.QtyThreshold, ApproverTierNames.Resolve(r.RoleRequired, r.ApproverTier)!.Value, r.IsActive);
         rules.Add(rule);
         await uow.SaveChangesAsync(ct);
         return ToDto(rule);
     }
 
-    internal static ApprovalRuleDto ToDto(ApprovalRule r) => new(r.PublicId, r.DocType, r.AmountThreshold, r.QtyThreshold, r.RoleRequired, r.IsActive);
+    internal static ApprovalRuleDto ToDto(ApprovalRule r) => new(r.PublicId, r.DocType, r.AmountThreshold, r.QtyThreshold, r.Tier, ApproverTierNames.RoleOf(r.Tier), r.IsActive);
 }

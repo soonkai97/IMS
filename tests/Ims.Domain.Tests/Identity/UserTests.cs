@@ -15,36 +15,46 @@ public class UserTests
         Assert.Equal("alice", user.Username);
         Assert.Equal("alice@example.com", user.Email);
         Assert.Equal("Alice A", user.DisplayName);
-        Assert.Equal(Roles.Supervisor, user.Role);
+        Assert.Equal(Roles.Supervisor, user.Role.Code);
         Assert.Equal("hash", user.PasswordHash);
         Assert.True(user.IsActive);
         Assert.Equal([3, 4], user.Warehouses.Select(w => w.WarehouseId).Order());
     }
 
-    [Theory]
-    [InlineData(Roles.Admin, true)]
-    [InlineData(Roles.Owner, true)]
-    [InlineData(Roles.Supervisor, false)]
-    [InlineData(Roles.WarehouseStaff, false)]
-    [InlineData(Roles.Clerk, false)]
-    public void Create_TakesTheRoleRowAndTheOldAllWarehousesRuleOfTheRole(string code, bool seesAll)
+    [Fact]
+    public void Create_TakesTheRoleRow_AndSeesNoWarehouseUnlessToldTo()
     {
-        var user = User.Create("alice", "alice@example.com", "Alice", NewRole(code, id: 41), "hash");
+        var role = NewRole(Roles.Admin, id: 41); // not even the Admin role decides the scope: it is a choice per person
 
-        Assert.Equal(code, user.Role);
+        var user = User.Create("alice", "alice@example.com", "Alice", role, "hash");
+
+        Assert.Same(role, user.Role);
         Assert.Equal(41, user.RoleId);
-        Assert.Equal(seesAll, user.AllWarehouses);
-        Assert.Equal(Roles.SeesAllWarehouses(code), user.AllWarehouses);
+        Assert.False(user.AllWarehouses);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Create_TakesTheScopeFlagAsGiven(bool all)
+    {
+        var user = User.Create("alice", "alice@example.com", "Alice", NewRole(Roles.Clerk), "hash", allWarehouses: all);
+
+        Assert.Equal(all, user.AllWarehouses);
     }
 
     [Fact]
-    public void UpdateProfile_MovesTheRoleStringTheRoleIdAndTheScopeFlagTogether()
+    public void UpdateProfile_MovesTheRoleAndLeavesTheScopeFlagAlone_SetAllWarehousesChangesIt()
     {
-        var user = User.Create("alice", "alice@example.com", "Alice", NewRole(Roles.Admin, id: 1), "hash");
+        var user = User.Create("alice", "alice@example.com", "Alice", NewRole(Roles.Admin, id: 1), "hash", allWarehouses: true);
 
         user.UpdateProfile("alice", "alice@example.com", "Alice", NewRole(Roles.Clerk, id: 5), true);
 
-        Assert.Equal((Roles.Clerk, 5, false), (user.Role, user.RoleId, user.AllWarehouses));
+        Assert.Equal((Roles.Clerk, 5, true), (user.Role.Code, user.RoleId, user.AllWarehouses));
+
+        user.SetAllWarehouses(false);
+
+        Assert.False(user.AllWarehouses);
     }
 
     [Theory]
@@ -68,11 +78,21 @@ public class UserTests
     }
 
     [Fact]
-    public void Create_UnknownRole_Throws()
+    public void Create_ACustomRoleIsAsGoodAsASystemRole()
     {
-        var ex = Assert.Throws<DomainException>(() => User.Create("alice", "a@b.c", "A", NewRole("Janitor"), "h"));
+        var user = User.Create("alice", "a@b.c", "A", NewRole("Janitor", id: 9), "h");
 
-        Assert.Equal(Messages.UnknownRole, ex.Message);
+        Assert.Equal(("Janitor", 9), (user.Role.Code, user.RoleId));
+    }
+
+    [Fact]
+    public void Create_AnInactiveRole_Throws()
+    {
+        var inactive = NewRole(Roles.Clerk).WithPrivate("IsActive", false);
+
+        var ex = Assert.Throws<DomainException>(() => User.Create("alice", "a@b.c", "A", inactive, "h"));
+
+        Assert.Equal(Messages.RoleInactive, ex.Message);
     }
 
     [Fact]
@@ -98,10 +118,10 @@ public class UserTests
     {
         var user = NewUser();
 
-        Assert.Throws<DomainException>(() => user.UpdateProfile("bob", "b@b.c", "Bob", NewRole("Janitor"), false));
+        Assert.Throws<DomainException>(() => user.UpdateProfile("bob", "b@b.c", "Bob", NewRole("Janitor").WithPrivate("IsActive", false), false));
 
         Assert.Equal("alice", user.Username);
-        Assert.Equal(Roles.Clerk, user.Role);
+        Assert.Equal(Roles.Clerk, user.Role.Code);
         Assert.True(user.IsActive);
     }
 

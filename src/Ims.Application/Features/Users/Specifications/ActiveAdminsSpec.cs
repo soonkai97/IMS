@@ -6,5 +6,5 @@ namespace Ims.Application.Features.Users;
 public sealed class ActiveAdminsSpec : Specification<User>
 {
     public ActiveAdminsSpec(int exceptUserId) =>
-        Query.AsNoTracking().Where(u => u.Role == Roles.Admin && u.IsActive && u.Id != exceptUserId);
+        Query.AsNoTracking().Where(u => u.Role.Code == SystemRoleCodes.Admin && u.IsActive && u.Id != exceptUserId);
 }

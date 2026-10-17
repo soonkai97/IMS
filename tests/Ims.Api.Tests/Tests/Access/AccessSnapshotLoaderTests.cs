@@ -24,7 +24,7 @@ public class AccessSnapshotLoaderTests(PublicIdDatabase fixture) : IClassFixture
         await using var db = fixture.NewContext();
         var role = await db.Set<Role>().SingleAsync(r => r.Code == roleCode);
         var username = Unique.Username("snap");
-        var user = User.Create(username, Unique.Email(username), username, role, "hash", warehouseIds, isActive);
+        var user = User.Create(username, Unique.Email(username), username, role, "hash", warehouseIds, isActive, allWarehouses: TestScope.SeesAllWarehouses(roleCode));
         db.Add(user);
         await db.SaveChangesAsync();
         return user;
@@ -64,7 +64,7 @@ public class AccessSnapshotLoaderTests(PublicIdDatabase fixture) : IClassFixture
         Assert.Equal(user.Id, snapshot.UserId);
         Assert.Equal(roleCode, snapshot.RoleCode);
         Assert.Equal(SystemRoleDefaults.For(roleCode).Order(StringComparer.Ordinal), snapshot.Permissions.Codes.Order(StringComparer.Ordinal));
-        Assert.Equal(Roles.SeesAllWarehouses(roleCode), snapshot.AllWarehouses);
+        Assert.Equal(TestScope.SeesAllWarehouses(roleCode), snapshot.AllWarehouses);
         Assert.False(string.IsNullOrWhiteSpace(snapshot.RoleName));
     }
 

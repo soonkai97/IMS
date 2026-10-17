@@ -81,15 +81,18 @@ public class RoleClaimDecidesNothingTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task A_rule_that_names_the_Admin_needs_both_tiers_whatever_the_token_is_called()
+    public async Task A_rule_that_names_the_Admin_is_a_Large_rule_the_large_tier_satisfies_whatever_the_token_is_called()
     {
+        // Q5 (ADR roles-permissions 2.7, accepted by the owner): the rank of role names is gone, so a rule only the Administrator could satisfy is a Large rule and the Owner,
+        // who holds the large tier, may satisfy it. What the token is called decides nothing in either direction.
         var s = await StockScenario.CreateAsync(fixture);
         await using var rule = await ApprovalRuleScope.AddAsync(s.Admin, DocumentType.Receipt, null, Threshold, Roles.Admin);
         var doc = await SubmitAsync(s);
         Assert.True(doc.IsLarge);
 
-        (await fixture.CreateClient(Token(Roles.Owner, Holding(Permissions.DocumentApproveLarge))).Documents.ApproveAsync(doc.Id)).ShouldBe(HttpStatusCode.Forbidden);
-        (await fixture.CreateClient(Token(CustomRole, Holding(Permissions.DocumentApprove, Permissions.DocumentApproveLarge))).Documents.ApproveAsync(doc.Id)).ShouldBeOk();
+        (await fixture.CreateClient(Token(Roles.Admin, Holding(Permissions.DocumentApprove))).Documents.ApproveAsync(doc.Id)).ShouldBe(HttpStatusCode.Forbidden);
+        (await fixture.CreateClient(Token(CustomRole, Holding(Permissions.DocumentApproveLarge))).Documents.ApproveAsync(doc.Id)).ShouldBeOk();
+        Assert.Equal(DocumentStatus.Approved, await StatusAsync(s, doc));
     }
 
     // ---------- the warehouse scope ----------

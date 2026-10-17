@@ -14,7 +14,7 @@ public class UserSaveRequestValidator : AbstractValidator<UserSaveRequest>
             .Must(name => string.IsNullOrEmpty(name) || AllowedUsername.IsMatch(name)).WithMessage(Messages.UsernameCharacters);
         RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(Limits.EmailMaxLength).WithMessage(Messages.EmailInvalid);
         RuleFor(x => x.DisplayName).MaximumLength(Limits.ShortNameMaxLength);
-        RuleFor(x => x.Role).Must(r => Roles.All.Contains(r)).WithMessage(Messages.UnknownRole);
+        RuleFor(x => x.Role).NotEmpty().MaximumLength(Limits.RoleMaxLength).WithMessage(Messages.UnknownRole); // which roles exist is the Role table's answer, asked by the handler
         if (creating)
             RuleFor(x => x.Password).NotEmpty().MinimumLength(Limits.PasswordMinLength).MaximumLength(Limits.PasswordMaxLength).WithMessage(Messages.PasswordTooShort);
         else

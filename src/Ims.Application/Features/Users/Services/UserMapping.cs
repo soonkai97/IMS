@@ -8,6 +8,6 @@ internal static class UserMapping
     public static async Task<UserDto> ToDtoAsync(User u, IIdMap<Warehouse> warehouses, CancellationToken ct)
     {
         var publicIds = await warehouses.ToPublicAsync(u.Warehouses.Select(w => w.WarehouseId), ct);
-        return new(u.PublicId, u.Username, u.Email, u.DisplayName, u.Role, u.IsActive, u.Warehouses.Select(w => publicIds[w.WarehouseId]).ToList());
+        return new(u.PublicId, u.Username, u.Email, u.DisplayName, u.Role.Code, u.IsActive, u.Warehouses.Select(w => publicIds[w.WarehouseId]).ToList(), u.AllWarehouses);
     }
 }

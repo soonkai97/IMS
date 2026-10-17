@@ -12,7 +12,7 @@ internal static class UserFilters
             var s = f.Search.Trim();
             query.Where(u => u.Username.Contains(s) || u.Email.Contains(s) || u.DisplayName.Contains(s));
         }
-        if (!string.IsNullOrWhiteSpace(f.Role)) query.Where(u => u.Role == f.Role);
+        if (!string.IsNullOrWhiteSpace(f.Role)) query.Where(u => u.Role.Code == f.Role);
         if (f.Active is { } a) query.Where(u => u.IsActive == a);
     }
 }

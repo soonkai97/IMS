@@ -44,10 +44,10 @@ public class AccessTokenTests(ApiFixture fixture)
         Assert.Equal(role, One(token, ClaimTypes.Role));
         Assert.Equal(account.Username, One(token, ClaimTypes.Name));
         Assert.Equal(One(token, JwtRegisteredClaimNames.Sub), One(token, ClaimTypes.NameIdentifier));
-        Assert.Equal(Roles.SeesAllWarehouses(role) ? ClaimNames.True : ClaimNames.False, One(token, ClaimNames.AllWarehouses));
+        Assert.Equal(TestScope.SeesAllWarehouses(role) ? ClaimNames.True : ClaimNames.False, One(token, ClaimNames.AllWarehouses));
         Assert.Equal(ClaimNames.CurrentClaimsVersion.ToString(), One(token, ClaimNames.ClaimsVersion));
         // The warehouse list is only for a user who does not see every warehouse.
-        Assert.Equal(Roles.SeesAllWarehouses(role) ? 0 : account.WarehouseIds.Count, All(token, ClaimNames.Warehouse).Count);
+        Assert.Equal(TestScope.SeesAllWarehouses(role) ? 0 : account.WarehouseIds.Count, All(token, ClaimNames.Warehouse).Count);
         Assert.Equal(TimeSpan.FromMinutes(5), token.ValidTo - token.ValidFrom);
     }
 

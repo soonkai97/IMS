@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="Ims.Domain.SystemRoleCodes" Alias="Roles" />
   </ItemGroup>
 
   <!-- Assemblies are inspected through reflection, so the layers under test must be built and copied next to the tests. -->

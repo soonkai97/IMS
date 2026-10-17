@@ -16,10 +16,11 @@ public static class SeedDefaults
     public const decimal DefaultApprovalAmount = 5000m;
 
     public static readonly (string Code, string Name)[] Units = [("PCS", "Piece"), ("CTN", "Carton"), ("KG", "Kilogram"), ("BOX", "Box")];
-    public static readonly (string Username, string Role)[] DemoUsers =
+    /// <summary>Username, role code and whether the person sees every warehouse (the owner does; the others work in the default warehouse).</summary>
+    public static readonly (string Username, string Role, bool AllWarehouses)[] DemoUsers =
     [
-        ("owner", Ims.Domain.Roles.Owner), ("supervisor", Ims.Domain.Roles.Supervisor),
-        ("staff", Ims.Domain.Roles.WarehouseStaff), ("clerk", Ims.Domain.Roles.Clerk)
+        ("owner", Ims.Domain.SystemRoleCodes.Owner, true), ("supervisor", Ims.Domain.SystemRoleCodes.Supervisor, false),
+        ("staff", Ims.Domain.SystemRoleCodes.WarehouseStaff, false), ("clerk", Ims.Domain.SystemRoleCodes.Clerk, false)
     ];
     public static readonly (string Sku, string Name, decimal Safety, string Barcode)[] DemoProducts =
     [

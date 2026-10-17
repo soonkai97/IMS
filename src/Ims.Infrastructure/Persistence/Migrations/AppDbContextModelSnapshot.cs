@@ -71,11 +71,6 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("int")
                         .HasColumnName("REC_REVISOR");
 
-                    b.Property<string>("RoleRequired")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -1481,11 +1476,6 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("int")
                         .HasColumnName("REC_REVISOR");
 
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
@@ -1879,11 +1869,13 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Ims.Domain.User", b =>
                 {
-                    b.HasOne("Ims.Domain.Role", null)
+                    b.HasOne("Ims.Domain.Role", "Role")
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("Ims.Domain.UserWarehouse", b =>

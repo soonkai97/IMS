@@ -21,7 +21,7 @@ public class NoLiveRoleTests(ApiFixture fixture)
 
     private readonly AccountFactory _accounts = new(fixture);
 
-    /// <summary>A user on a custom role. The domain still refuses a role outside the five (RP-5 lifts that), so the user is made with a system role and pointed at the custom one.</summary>
+    /// <summary>A user on a custom role: made with a system role, then pointed at the custom one (the Role table is the only place that knows it).</summary>
     private async Task<(TestAccount Account, int UserId, int RoleId)> UserOnCustomRoleAsync()
     {
         int roleId;

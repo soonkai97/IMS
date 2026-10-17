@@ -62,9 +62,16 @@ internal static class OracleKeys
         return from set in sets from amount in Amounts select new[] { set, amount.ToString(CultureInfo.InvariantCulture) };
     }
 
+    /// <summary>The rules of a set as the oracle names them: the role each rule named and its amount threshold.</summary>
+    public static IReadOnlyList<(string Role, decimal Threshold)> ParseRuleParts(string set) =>
+        set == "-" ? [] : set.Split('+').Select(part => part.Split('@')).Select(p => (p[0], decimal.Parse(p[1], CultureInfo.InvariantCulture))).ToList();
+
+    /// <summary>
+    /// The rules of a set as they are stored since RP-4b: the tier is all that is kept of the role a rule named. Owner and Admin are Large, the other three roles Standard,
+    /// the mapping the RP-2 migration applied (rule-sets.csv's isLarge column is the proof that it reproduces the old "a rule above a supervisor" test).
+    /// </summary>
     public static IReadOnlyList<ApprovalRule> ParseRules(string set) =>
-        set == "-"
-            ? []
-            : set.Split('+').Select(part => part.Split('@'))
-                .Select(p => ApprovalRule.Create(DocumentType.Receipt, decimal.Parse(p[1], CultureInfo.InvariantCulture), null, p[0])).ToList();
+        ParseRuleParts(set).Select(p => ApprovalRule.Create(DocumentType.Receipt, p.Threshold, null, TierOf(p.Role))).ToList();
+
+    public static ApproverTier TierOf(string role) => role is Roles.Owner or Roles.Admin ? ApproverTier.Large : ApproverTier.Standard;
 }
