@@ -20,11 +20,11 @@ public sealed class PublicIdDatabase : IAsyncLifetime
 
     public async Task DisposeAsync() => await Database.DropAsync();
 
-    public AppDbContext NewContext(CommandCounter? counter = null)
+    public AppDbContext NewContext(CommandCounter? counter = null, Ims.Application.ICurrentUser? user = null, Ims.Application.IClock? clock = null)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(Database.ConnectionString);
         if (counter is not null) options.AddInterceptors(counter);
-        return new AppDbContext(options.Options, new FrozenClock());
+        return new AppDbContext(options.Options, clock ?? new FrozenClock(), user);
     }
 
     /// <summary>Counts the queries a context sends, to show that a list of ids costs one.</summary>
