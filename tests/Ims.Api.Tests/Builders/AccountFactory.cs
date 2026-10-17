@@ -15,9 +15,9 @@ public sealed class AccountFactory(ApiFixture fixture)
         var admin = await fixture.AsAsync(Roles.Admin);
         var username = Unique.Username(prefix);
         var password = $"Pw-{Guid.NewGuid():N}-1!";
-        var scope = Roles.SeesAllWarehouses(role) ? [] : (warehouseIds ?? [fixture.Reference.DefaultWarehouseId]).ToList();
+        var scope = TestScope.SeesAllWarehouses(role) ? [] : (warehouseIds ?? [fixture.Reference.DefaultWarehouseId]).ToList();
 
-        var request = new UserSaveRequest(username, Unique.Email(username), username, role, isActive, password, scope);
+        var request = new UserSaveRequest(username, Unique.Email(username), username, role, isActive, password, scope, TestScope.SeesAllWarehouses(role));
         var created = (await admin.Users.CreateAsync(request)).Data<UserDto>();
         return new TestAccount(created.Id, username, request.Email, password, role, scope);
     }

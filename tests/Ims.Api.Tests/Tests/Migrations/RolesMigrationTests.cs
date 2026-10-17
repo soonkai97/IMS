@@ -114,10 +114,8 @@ public class RolesMigrationTests
 
         foreach (var (name, role, active, deleted) in OldUsers)
         {
-            var user = $"{name} ({role})";
             Assert.Equal(role, await database.ScalarAsync<string>("SELECT r.Code FROM [User] u JOIN Role r ON r.Id = u.RoleId WHERE u.Username = @n", ("@n", name)));
             Assert.Equal(role, await database.ScalarAsync<string>("SELECT Role FROM [User] WHERE Username = @n", ("@n", name))); // the string was not touched
-            Assert.True(oracleSeesAll[role] == Roles.SeesAllWarehouses(role), user);
             Assert.Equal(oracleSeesAll[role], await database.ScalarAsync<bool>("SELECT AllWarehouses FROM [User] WHERE Username = @n", ("@n", name)));
             Assert.Equal(active, await database.ScalarAsync<bool>("SELECT IsActive FROM [User] WHERE Username = @n", ("@n", name)));
             Assert.Equal(deleted, await database.ScalarAsync<bool>("SELECT REC_DELETED FROM [User] WHERE Username = @n", ("@n", name)));

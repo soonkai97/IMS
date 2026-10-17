@@ -11,6 +11,14 @@ public static class ApprovalPolicy
     public static bool MayReview(ActorRights actor, bool isLarge) =>
         actor.Has(isLarge ? Permissions.DocumentApproveLarge : Permissions.DocumentApprove);
 
+    /// <summary>
+    /// The routing as it is asked when someone approves or rejects: by the tier the document was stored with, and by the rules in force now, which can be stricter than when it
+    /// was stored (a rule changed to Large since): a Large rule in force needs the large tier, so a standard approver is refused on such a document. This is the approval limit
+    /// (BR-06); there is no rank of role names to compare.
+    /// </summary>
+    public static bool MayReview(ActorRights actor, bool isLarge, IEnumerable<ApprovalRule> rulesInForce, DocumentType type, decimal totalQty, decimal totalAmount) =>
+        MayReview(actor, isLarge) && (!IsLarge(rulesInForce, type, totalQty, totalAmount) || MayReview(actor, isLarge: true));
+
     public static bool RequiresApproval(IEnumerable<ApprovalRule> rules, DocumentType type, decimal totalQty, decimal totalAmount) =>
         rules.Any(r => r.Matches(type, totalQty, totalAmount));
 

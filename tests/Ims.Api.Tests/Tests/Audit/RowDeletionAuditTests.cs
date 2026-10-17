@@ -42,7 +42,7 @@ public class RowDeletionAuditTests(PublicIdDatabase fixture) : IClassFixture<Pub
                 var username = Unique.Username();
                 var clerk = await db.Set<Role>().SingleAsync(r => r.Code == Roles.Clerk);
                 entity = User.Create(username, Unique.Email(username), "Deleted soon", clerk, "hash"); break;
-            case nameof(ApprovalRule): entity = ApprovalRule.Create(DocumentType.Issue, 1000m, null, Roles.Supervisor); break;
+            case nameof(ApprovalRule): entity = ApprovalRule.Create(DocumentType.Issue, 1000m, null, ApproverTier.Standard); break;
             case nameof(Product):
                 var category = Category.Create(Unique.Name("Cat"));
                 var unit = Uom.Create(Unique.Code("U"));

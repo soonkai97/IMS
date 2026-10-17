@@ -7,7 +7,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
     /// <summary>
     /// A role is data (ADR roles-permissions 4.2 step 6, RP-4b): the two legacy role strings go, <c>User.RoleId</c> and <c>ApprovalRule.Tier</c> are the only record. Nothing
     /// that runs reads the strings since RP-4a (the rights come from the role row's permissions through the token claims), so no right moves. One transaction, small tables:
-    ///   1. stop if any user's <c>Role</c> text is not exactly the code of the role row its <c>RoleId</c> points at. The row has decided the person's rights since RP-4a, but the
+    ///   1. stop if any user of a system role has a <c>Role</c> text that is not exactly the code of the role row its <c>RoleId</c> points at (a custom role has no text
+    ///      of its own: Down writes WarehouseStaff there, and a second run must not be stopped by it). The row has decided the person's rights since RP-4a, but the
     ///      text was what the list showed and the old release decided by, so a difference is a manual edit someone must look at: nothing is guessed, nobody silently changes role;
     ///   2. one audit row names the active approval rules that name the Administrator: they are Large rules (since the RP-2 migration) and from this release the Owner can
     ///      satisfy them too, because the approval check no longer ranks role names (an owner decision, Q5);
@@ -34,7 +35,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
                 DECLARE @differs nvarchar(2048) = (
                     SELECT TOP (1) CONCAT(N'User ', u.[Id], N' (', u.[PublicId], N') has the role text ''', u.[Role], N''' but its role row is ''', r.[Code], N'''. Make them agree, then run the migration again.')
                     FROM [User] u JOIN [Role] r ON r.[Id] = u.[RoleId]
-                    WHERE NOT (u.[Role] COLLATE Latin1_General_BIN2 = r.[Code] COLLATE Latin1_General_BIN2 AND DATALENGTH(u.[Role]) = DATALENGTH(r.[Code]))
+                    WHERE r.[IsSystem] = 1 AND NOT (u.[Role] COLLATE Latin1_General_BIN2 = r.[Code] COLLATE Latin1_General_BIN2 AND DATALENGTH(u.[Role]) = DATALENGTH(r.[Code]))
                     ORDER BY u.[Id]);
                 IF @differs IS NOT NULL THROW 50003, @differs, 1;
                 """);
