@@ -2,8 +2,9 @@ namespace Ims.Domain;
 
 /// <summary>
 /// What the five system roles hold by default (PRD 3.1, docs/design/mvp-ux.md 1.1): the permission matrix as defaults, not as a rule. The one place
-/// that still names roles for rights. A fresh installation seeds these, and until roles come from the database (RP-4a) <see cref="RightsFor"/> is
-/// how the Domain policies learn what a signed-in role may do. The oracle fixtures prove they reproduce the behaviour of the role-keyed map.
+/// that still names roles for rights. The migration seeds a frozen copy of these; nothing in the running API reads them (the rights of a signed-in person
+/// come from the <c>perm</c> claims of the token, RP-4a), so they are the reference the tests hold the seeded rows and the endpoint policies to.
+/// The oracle fixtures prove they reproduce the behaviour of the old role-keyed map.
 /// </summary>
 public static class SystemRoleDefaults
 {

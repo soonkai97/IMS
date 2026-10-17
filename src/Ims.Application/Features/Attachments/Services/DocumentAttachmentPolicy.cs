@@ -40,6 +40,6 @@ public class DocumentAttachmentPolicy(IReadRepository<StockDocument> documents, 
 
     private void RequireDocumentPermission()
     {
-        if (!Permissions.Has(current.Role, Permissions.DocumentCreate)) throw new ForbiddenException(Messages.NotAllowed);
+        if (!current.Rights().Has(Permissions.DocumentCreate)) throw new ForbiddenException(Messages.NotAllowed);
     }
 }

@@ -43,18 +43,24 @@ public static class PresentationServices
         return services;
     }
 
-    /// <summary>One policy per feature permission (AUTH-02). A missing permission yields 403, no token yields 401.</summary>
+    /// <summary>
+    /// One policy per permission of the catalog (named by its code) and the any-of policies of <see cref="AuthPolicies"/> (AUTH-02). A policy passes when the token carries
+    /// the <c>perm</c> claim; the role claim is never read. A missing permission yields 403, no token (or a token of an old shape, see <see cref="ConfigureJwtBearer"/>) yields 401.
+    /// </summary>
     private static IServiceCollection AddPermissionPolicies(this IServiceCollection services)
     {
         services.AddAuthorization(o =>
         {
-            foreach (var permission in Permissions.All)
-                o.AddPolicy(permission, p => p.RequireAuthenticatedUser()
-                    .RequireAssertion(ctx => Roles.All.Any(role => ctx.User.IsInRole(role) && Permissions.Has(role, permission))));
+            foreach (var code in PermissionCatalog.Codes) AddPolicy(o, code, [code]);
+            foreach (var (name, codes) in AuthPolicies.AnyOf) AddPolicy(o, name, codes);
             o.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
         });
         return services;
     }
+
+    private static void AddPolicy(AuthorizationOptions options, string name, IReadOnlyList<string> anyOf) =>
+        options.AddPolicy(name, p => p.RequireAuthenticatedUser()
+            .RequireAssertion(ctx => ctx.User.HasClaim(c => c.Type == ClaimNames.Permission && anyOf.Contains(c.Value))));
 
     private static IServiceCollection AddCorsPolicy(this IServiceCollection services, IConfiguration cfg, IHostEnvironment env)
     {

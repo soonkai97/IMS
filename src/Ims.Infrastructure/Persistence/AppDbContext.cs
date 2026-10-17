@@ -30,7 +30,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.RowVersion).IsRowVersion();
             e.HasMany(x => x.Warehouses).WithOne().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Warehouses).UsePropertyAccessMode(PropertyAccessMode.Field);
-            // The role as a row. Restrict: a role in use is never removed under its users (its string, User.Role, stays the source until RP-4a).
+            // The role as a row. Restrict: a role in use is never removed under its users (its string, User.Role, stays until RP-4b).
             e.HasOne<Role>().WithMany().HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Restrict);
         });
         // Code and name are unique among live roles (ConfigureAuditColumns filters every unique index on REC_DELETED).

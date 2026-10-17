@@ -25,7 +25,7 @@ public class ProductAttachmentPolicy(IReadRepository<Product> products, IIdMap<P
 
     private void Require(string permission)
     {
-        if (!Permissions.Has(current.Role, permission)) throw new ForbiddenException(Messages.NotAllowed);
+        if (!current.Rights().Has(permission)) throw new ForbiddenException(Messages.NotAllowed);
     }
 
     private async Task EnsureExistsAsync(int productId, CancellationToken ct)

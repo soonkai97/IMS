@@ -24,13 +24,25 @@ public partial class EndpointCoverageTests
     }
 
     [Fact]
-    public void Every_policy_an_endpoint_asks_for_is_a_permission_of_the_catalog_listed_once()
+    public void Every_policy_an_endpoint_asks_for_is_a_permission_of_the_catalog_listed_once_or_an_any_of_policy()
     {
         var policies = ProtectedEndpointsInCode().Select(line => line[(line.LastIndexOf("-> ", StringComparison.Ordinal) + 3)..]).Distinct().ToList();
 
         Assert.NotEmpty(policies);
-        foreach (var policy in policies)
+        foreach (var policy in policies.Where(p => !AuthPolicies.AnyOf.ContainsKey(p)))
             Assert.True(PermissionCatalog.All.Count(p => p.Code == policy) == 1, $"'{policy}' must be in the permission catalog exactly once");
+    }
+
+    [Fact]
+    public void Only_the_sign_in_family_and_the_attachments_have_endpoints_without_a_permission_policy()
+    {
+        // Attachments decide inside the handler (the owner of the file is a document or a product); the Auth endpoints are open or ask only for a token.
+        var withoutPolicy = typeof(Program).Assembly.GetTypes().Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract)
+            .Where(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .Any(m => m.GetCustomAttributes<HttpMethodAttribute>().Any() && m.GetCustomAttribute<AuthorizeAttribute>()?.Policy is null))
+            .Select(t => t.Name).Order().ToList();
+
+        Assert.Equal(["AttachmentsController", "AuthController"], withoutPolicy);
     }
 
     [Fact]

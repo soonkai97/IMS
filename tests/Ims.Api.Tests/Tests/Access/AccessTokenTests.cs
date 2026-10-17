@@ -12,7 +12,7 @@ namespace Ims.Api.Tests.Tests.Access;
 
 /// <summary>
 /// What the access token a sign-in writes says (ADR roles-permissions 3.2, claims in the token): the role, one claim per permission, the scope and the shape version,
-/// and that sign-in, refresh and /me tell the person the same thing. Endpoint checks still go by the role claim until RP-4a; the permission claims are not enforced yet.
+/// and that sign-in, refresh and /me tell the person the same thing. The endpoints decide by the permission claims (PermissionEnforcementTests).
 /// </summary>
 [Collection(ApiCollection.Name)]
 public class AccessTokenTests(ApiFixture fixture)
@@ -68,7 +68,7 @@ public class AccessTokenTests(ApiFixture fixture)
         Assert.Equal(Shape(signedIn.User), Shape(me));
         Assert.Equal(role, me.Role);
         Assert.False(string.IsNullOrWhiteSpace(me.RoleName));
-        Assert.Equal(Permissions.For(role), me.Permissions); // the list the web reads is still the fixed one; enforcement is unchanged
+        Assert.Equal(PermissionCatalog.Codes.Where(SystemRoleDefaults.For(role).Contains), me.Permissions); // the list the web reads: the codes of the token, in catalog order
         var token = Read(refreshed.AccessToken);
         Assert.Equal(me.SeesAllWarehouses, bool.Parse(One(token, ClaimNames.AllWarehouses)));
         Assert.Equal(me.WarehouseIds.Count, All(token, ClaimNames.Warehouse).Count);
@@ -89,18 +89,6 @@ public class AccessTokenTests(ApiFixture fixture)
         Assert.Equal(Roles.Admin, me.Role); // the token still says Admin, and so does the screen: both change at the next refresh
         Assert.True(me.SeesAllWarehouses);
         Assert.Equal(Shape(auth.User), Shape(me));
-    }
-
-    [Theory]
-    [InlineData(Roles.Admin, true)]
-    [InlineData(Roles.Clerk, false)]
-    public async Task A_token_from_before_the_claims_existed_falls_back_to_the_rule_of_its_role_for_the_scope(string role, bool seesAll)
-    {
-        var old = ForgedTokens.Create(fixture.Settings.JwtKey, role: role); // validly signed, no allwh claim, as a token issued before this release
-
-        var me = (await fixture.CreateClient(old).Auth.MeAsync()).Data<UserInfo>();
-
-        Assert.Equal(seesAll, me.SeesAllWarehouses);
     }
 
     [Fact]

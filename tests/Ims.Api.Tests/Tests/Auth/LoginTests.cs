@@ -22,7 +22,7 @@ public class LoginTests(ApiFixture fixture)
         Assert.True(auth.ExpiresAt > DateTime.UtcNow);
         Assert.Equal("admin", auth.User.Username);
         Assert.Equal(Roles.Admin, auth.User.Role);
-        Assert.Equal(Permissions.For(Roles.Admin).Order(), auth.User.Permissions.Order());
+        Assert.Equal(PermissionCatalog.Codes, auth.User.Permissions);
     }
 
     [Theory]
