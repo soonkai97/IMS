@@ -19,7 +19,7 @@ Scan scope is our own API inside the runner and nothing else. The scan is delibe
 |---|---|---|
 | `ASPNETCORE_ENVIRONMENT` | `Development` | The OpenAPI document and demo accounts exist only there. Consequence: no HSTS header, cookies without `Secure` over plain http. Check those two with the production header check in `web-headers.md` section 6 instead. |
 | `RateLimit__PerMinute` | `1000000` | One address with one token would hit the 600-per-minute limit within seconds and the rest of the scan would only see 429. |
-| `Jwt__AccessMinutes` | `180` | The token must outlive the scan (default 5 minutes). Scan-only: the freshness figures of the roles ADR (a demotion applies within about 5.5 minutes, 5 plus the 30 s skew) hold only for the default; a larger value widens that window by the same amount, so never set it outside a scan or load run. |
+| `Jwt__AccessMinutes` | `60` | The token must outlive the scan (default 5 minutes; the host refuses to start above 60). **This value is the revocation window:** a demotion, a role edit or a deactivation reaches an access token already issued only when it expires, so the freshness figures of the roles ADR (about 5.5 minutes: 5 plus the 30 s skew) hold only for the default and a larger value widens them by the same amount. Set it only for a scan or load run, never in a deployed environment. |
 | Sign-in limit | unchanged (20 per minute per address) | The login and refresh endpoints are scanned at that pace and mostly answer 429; that is the control working. |
 
 ## 3. Reading the result
@@ -46,7 +46,7 @@ Needs Docker and a SQL Server (the LocalDB instance `(localdb)\ImsDev` is not re
 
 ```bash
 # 1. API on a free port, Development, throw-away database
-ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5199 RateLimit__PerMinute=1000000 Jwt__AccessMinutes=180 \
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5199 RateLimit__PerMinute=1000000 Jwt__AccessMinutes=60 \
   ConnectionStrings__Default="Server=localhost,1433;Database=Ims_Dast;User Id=sa;Password=<local sa password>;TrustServerCertificate=True" \
   dotnet run --project src/Ims.Api -c Release
 # 2. token + ZAP as in the workflow steps "Sign in for the scan" to "ZAP API scan" (copy them; on Docker Desktop for Windows/macOS
