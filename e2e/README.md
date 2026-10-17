@@ -84,8 +84,8 @@ Examples use the free ports 5611 (API) and 5612 (web); any ports work.
 
 - **One worker, on purpose.** Two scenarios switch the global setting "allow negative stock" (restored afterwards) and every
   sign-in shares the API's login limit. Run the suite against a database nobody else is using.
-- **Rate limit.** Sign-in and token refresh share 20 requests a minute per address, and every full page load of a signed-in app
-  refreshes the session. The suite therefore navigates inside the app (`goTo`) and paces its sign-ins and page loads
+- **Rate limit.** Sign-in is limited to 20 requests a minute per address (token refresh has its own limit of 300), and every full page load
+  of a signed-in app refreshes the session. The suite therefore navigates inside the app (`goTo`) and paces its sign-ins and page loads
   (`src/rate-limit.ts`, which keeps a small log in the temp folder); a full run takes about five minutes because of it.
 - **Data.** Each scenario creates products, partners and documents with unique names (`E2E-<token>`) and leaves them; use a
   throw-away database. Nothing is deleted through the API (posted documents are append-only by design).

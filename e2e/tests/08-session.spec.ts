@@ -22,7 +22,7 @@ test.describe('AUTH-01 Sign in, sign out and session restore (UX error E7, SEC-3
     login,
     page
   }) => {
-    // Page boot (1) and four sign-in attempts share the API's limit of 20 a minute.
+    // The four sign-in attempts count against the API's sign-in limit of 20 a minute; the page boot (a refresh) is counted too, to stay careful.
     await spendLoginBudget(5);
     let attempts = 0;
     page.on('request', request => {

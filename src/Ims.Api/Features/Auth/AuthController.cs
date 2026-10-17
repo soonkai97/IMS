@@ -17,7 +17,7 @@ public class AuthController(IDispatcher dispatcher, IRefreshTokenCookie refreshC
     [ProducesResponseType<AuthResult>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Login([FromBody] LoginRequest body) => Issued(await Send(new LoginCommand(body)));
 
-    [HttpPost(RouteSegments.Refresh), AllowAnonymous, EnableRateLimiting(RateLimitPolicies.Login)]
+    [HttpPost(RouteSegments.Refresh), AllowAnonymous, EnableRateLimiting(RateLimitPolicies.Refresh)]
     [EndpointDescription(AuthDocs.Refresh)]
     [ProducesResponseType<AuthResult>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Refresh([FromBody] RefreshRequest? body)

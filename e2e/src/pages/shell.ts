@@ -103,7 +103,7 @@ export class Shell {
 
 /**
  * Opens a screen the way a user clicking a link does: inside the running app, without a page load. A full load of a
- * signed-in app calls POST /api/auth/refresh, and sign-in and refresh share one limit of 20 a minute per address.
+ * signed-in app calls POST /api/auth/refresh (its own limit of 300 a minute per address; sign-in is limited to 20).
  * Falls back to a normal navigation when the app is not running yet. Use page.goto only for the reload scenario.
  */
 export async function goTo(page: Page, path: string): Promise<void> {
