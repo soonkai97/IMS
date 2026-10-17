@@ -2,10 +2,11 @@ import type { Page, Request } from "@playwright/test";
 import { expect, test } from "../src/fixtures";
 import { goTo } from "../src/pages/shell";
 
-// R23 (docs/design/2026-refresh-plan.md): the From / To filters are text date fields in the app format `dd MMM yyyy`, not the
+// R23 (docs/design/2026-refresh-plan.md): the From / To filters are text date fields in the app format `dd/MM/yyyy`, not the
 // browser's mm/dd/yyyy input. The value sent to the API stays yyyy-MM-dd. Covers NV-27, PS-15 and EA-29.
 
-const EXAMPLE = "09 Oct 2026";
+const EXAMPLE = "09/10/2026";
+const PATTERN = "dd/mm/yyyy";
 
 /** A request whose query asks for this filter day (the API client writes the names with a capital: From, To). */
 const asksFor = (name: "from" | "to", day: string) => (request: Request) =>
@@ -27,7 +28,7 @@ async function typeDate(
 }
 
 test.describe("R23 Date filters use the app format", () => {
-  test("given the Audit log, when a date is typed in the app format, ISO or day first, then the API gets yyyy-MM-dd and the field shows dd MMM yyyy", async ({
+  test("given the Audit log, when a date is typed in the app format, ISO or day first, then the API gets yyyy-MM-dd and the field shows dd/MM/yyyy", async ({
     page,
     signIn,
   }) => {
@@ -36,7 +37,7 @@ test.describe("R23 Date filters use the app format", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: "Audit log" }),
     ).toBeVisible();
-    await expect(fromBox(page)).toHaveAttribute("placeholder", EXAMPLE);
+    await expect(fromBox(page)).toHaveAttribute("placeholder", PATTERN);
     await expect(page.locator('input[type="date"]:visible')).toHaveCount(0);
 
     const sent = page.waitForRequest(asksFor("from", "2026-10-09"));
@@ -44,8 +45,8 @@ test.describe("R23 Date filters use the app format", () => {
     await sent;
     await expect(fromBox(page)).toHaveValue(EXAMPLE);
 
-    for (const typed of ["2026-10-09", "09/10/2026"]) {
-      await typeDate(page, fromBox(page), "01 Jan 2026");
+    for (const typed of ["2026-10-09", "09 Oct 2026", "9.10.2026"]) {
+      await typeDate(page, fromBox(page), "01/01/2026");
       const again = page.waitForRequest(asksFor("from", "2026-10-09"));
       await typeDate(page, fromBox(page), typed);
       await again;
@@ -62,7 +63,7 @@ test.describe("R23 Date filters use the app format", () => {
 
     await typeDate(page, fromBox(page), "31 Feb 2026");
 
-    const sentence = `Enter a date such as ${EXAMPLE}.`;
+    const sentence = `Enter a date as dd/mm/yyyy, such as ${EXAMPLE}.`;
     await expect(page.getByText(sentence)).toBeVisible();
     await expect(fromBox(page)).toHaveAttribute("aria-invalid", "true");
     const described = await fromBox(page).getAttribute("aria-describedby");
@@ -70,7 +71,7 @@ test.describe("R23 Date filters use the app format", () => {
 
     await typeDate(page, fromBox(page), "28 Feb 2026");
     await expect(page.getByText(sentence)).toHaveCount(0);
-    await expect(fromBox(page)).toHaveValue("28 Feb 2026");
+    await expect(fromBox(page)).toHaveValue("28/02/2026");
   });
 
   test("given From after To, then the sentence is under To, no request is sent, and fixing or emptying a field removes it", async ({
@@ -81,14 +82,14 @@ test.describe("R23 Date filters use the app format", () => {
     await goTo(page, "/receipts");
     const range = "From must be on or before To.";
 
-    await typeDate(page, fromBox(page), "12 Oct 2026");
+    await typeDate(page, fromBox(page), "12/10/2026");
     const reversed: string[] = [];
     page.on("request", (request) => {
       if (asksFor("to", "2026-10-10")(request)) {
         reversed.push(request.url());
       }
     });
-    await typeDate(page, toBox(page), "10 Oct 2026");
+    await typeDate(page, toBox(page), "10/10/2026");
 
     await expect(
       page.locator(".ui-form-field-error").getByText(range),
@@ -101,14 +102,14 @@ test.describe("R23 Date filters use the app format", () => {
     await expect(toBox(page)).toHaveAttribute("aria-invalid", "true");
     expect(reversed).toEqual([]);
 
-    await typeDate(page, toBox(page), "12 Oct 2026");
+    await typeDate(page, toBox(page), "12/10/2026");
     await expect(page.getByText(range)).toHaveCount(0);
 
     await typeDate(page, toBox(page), "");
     await expect(toBox(page)).toHaveValue("");
   });
 
-  test("given the Reports filters in Chinese and Malay, then the month is written in that language and read back", async ({
+  test("given the Reports filters in Malay and Chinese, then the date is dd/MM/yyyy in both, the pattern hint is in that language, and a month name is still read", async ({
     page,
     signIn,
     shell,
@@ -119,13 +120,19 @@ test.describe("R23 Date filters use the app format", () => {
 
     await shell.setLanguage("Bahasa Melayu");
     const dari = page.getByRole("textbox", { name: "Dari", exact: true });
-    await expect(dari).toHaveValue("09 Okt 2026");
+    await expect(dari).toHaveValue(EXAMPLE);
+    await expect(dari).toHaveAttribute("placeholder", "hh/bb/tttt");
     await typeDate(page, dari, "10 Mac 2026");
-    await expect(dari).toHaveValue("10 Mac 2026");
+    await expect(dari).toHaveValue("10/03/2026");
 
     await shell.setLanguage("中文");
     const cong = page.getByRole("textbox", { name: "从", exact: true });
-    await expect(cong).toHaveValue("10 3月 2026");
+    await expect(cong).toHaveValue("10/03/2026");
+    await expect(cong).toHaveAttribute("placeholder", "日/月/年");
+    await typeDate(page, cong, "20/10/2026");
+    await expect(cong).toHaveValue("20/10/2026");
+    await typeDate(page, cong, "2026年10月15日");
+    await expect(cong).toHaveValue("15/10/2026");
   });
 
   test("given a keyboard user (EA-29), then the calendar button is a 44px tab stop with a name and a visible focus ring, and the picker input is never a tab stop", async ({

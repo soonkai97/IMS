@@ -206,7 +206,7 @@ describe('DocumentListPageComponent Mine / All', () => {
 
     expect(spectator.queryAll('#document-list-filters app-date-field')).toHaveLength(2);
     const texts = spectator.queryAll<HTMLInputElement>('#document-list-filters input[type="text"]');
-    expect(texts.map(text => text.value)).toContain('09 Oct 2026');
+    expect(texts.map(text => text.value)).toContain('09/10/2026');
   });
 
   it('switching to All reloads without the filter and remembers the choice for next time', async () => {

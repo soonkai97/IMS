@@ -23,6 +23,7 @@ export function provideUiText(): EnvironmentProviders {
           retry: i18n.t('ui.retry'),
           saved: i18n.t('ui.saved'),
           chooseDate: i18n.t('ui.chooseDate'),
+          datePlaceholder: i18n.t('ui.datePlaceholder'),
           chooseFile: i18n.t('ui.chooseFile'),
           dropFile: i18n.t('ui.dropFile'),
           selectPlaceholder: i18n.t('ui.selectPlaceholder'),
@@ -74,7 +75,7 @@ function validationMessage(i18n: I18nService, key: string, error: unknown): stri
         : i18n.t('validation.decimals', { max });
     }
     case 'date':
-      return i18n.t('validation.date', { example: exampleDateText(i18n.$locale()) });
+      return i18n.t('validation.date', { example: exampleDateText() });
     case 'badInput':
       return i18n.t('validation.badInput');
     case 'email':
