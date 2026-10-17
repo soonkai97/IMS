@@ -9,9 +9,11 @@ namespace Ims.Api.Tests.Tests.Access;
 [Collection(ApiCollection.Name)]
 public class JwtLifetimeTests(ApiFixture fixture)
 {
-    private static bool IsValid(int minutes) =>
-        Validator.TryValidateObject(new JwtOptions { Key = new string('k', Limits.JwtKeyMinLength), Issuer = "i", Audience = "a", AccessMinutes = minutes },
-            new ValidationContext(new JwtOptions()), null, validateAllProperties: true);
+    private static bool IsValid(int minutes)
+    {
+        var options = new JwtOptions { Key = new string('k', Limits.JwtKeyMinLength), Issuer = "i", Audience = "a", AccessMinutes = minutes };
+        return Validator.TryValidateObject(options, new ValidationContext(options), null, validateAllProperties: true);
+    }
 
     [Theory]
     [InlineData(0, false)]
