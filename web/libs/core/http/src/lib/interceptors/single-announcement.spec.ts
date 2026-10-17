@@ -29,10 +29,18 @@ class TestScreenComponent {
 
   readonly message = signal<string | undefined>(undefined);
 
-  run(method: 'GET' | 'POST', context?: HttpContext, showInline = true): void {
-    this.http
-      .request(method, URL, { responseType: 'blob', context })
-      .subscribe({ error: (error: ApiError) => showInline && this.message.set(error.message) });
+  /** Resolves once the call has failed and the screen has been told, so a test never guesses how long that takes. */
+  run(method: 'GET' | 'POST', context?: HttpContext, showInline = true): Promise<void> {
+    return new Promise(resolve =>
+      this.http.request(method, URL, { responseType: 'blob', context }).subscribe({
+        error: (error: ApiError) => {
+          if (showInline) {
+            this.message.set(error.message);
+          }
+          resolve();
+        }
+      })
+    );
   }
 }
 
@@ -69,37 +77,35 @@ describe('one failure, one announcement', () => {
     fixture.detectChanges();
   });
 
-  async function fail(): Promise<void> {
+  /** Answers the one pending call with a 503, then waits until the interceptor and the screen have both handled it. */
+  async function fail(handled: Promise<void>): Promise<void> {
     backend.expectOne(URL).flush(
       new Blob([JSON.stringify({ status: 503, detail: SENTENCE })], {
         type: 'application/problem+json'
       }),
       { status: 503, statusText: 'x' }
     );
-    // The error body is read asynchronously (Blob or FileReader) before the interceptor answers.
-    await new Promise(resolve => setTimeout(resolve, 50));
+    // The error body is read asynchronously (Blob or FileReader) before the interceptor answers; wait for that, not for a delay.
+    await handled;
     fixture.detectChanges();
   }
 
   it('a failure the screen shows in a banner is announced once, by the banner', async () => {
-    screen.run('GET', handledInline());
-    await fail();
+    await fail(screen.run('GET', handledInline()));
 
     expect(announcements(root)).toEqual([SENTENCE]);
     expect(root.querySelector('app-toast')).toBeNull();
   });
 
   it('a failure nobody shows in place is announced once, by one toast', async () => {
-    screen.run('POST', undefined, false);
-    await fail();
+    await fail(screen.run('POST', undefined, false));
 
     expect(announcements(root)).toEqual([SENTENCE]);
     expect(root.querySelectorAll('app-toast')).toHaveLength(1);
   });
 
   it('control: without the flag the same screen announces the failure twice (banner and toast)', async () => {
-    screen.run('GET');
-    await fail();
+    await fail(screen.run('GET'));
 
     expect(announcements(root)).toEqual([SENTENCE, SENTENCE]);
   });
