@@ -67,6 +67,53 @@ public class RightsParityTests
     }
 
     [Fact]
+    public void TheApprovalDecisionByWhatIsHeldIsTheRoleRankDecision_ForEveryStoredTierRuleSetAndSystemRole()
+    {
+        // Routing and limit together, as the Approve handler asks them. The stored tier of the document varies on its own, apart from the rules in force now (they can
+        // change between submit and approve), so a standard approver on a document stored as standard is refused when a rule naming the Owner is in force.
+        var differences = new List<string>();
+        foreach (var key in OracleKeys.RuleSetKeys())
+        {
+            var rules = ParseRules(key[0]);
+            var amount = decimal.Parse(key[1], System.Globalization.CultureInfo.InvariantCulture);
+            foreach (var storedLarge in new[] { false, true })
+            foreach (var role in SystemRoles)
+            {
+                var rights = SystemRoleDefaults.RightsFor(role, Me);
+                var before = ApprovalPolicy.MayReview(role, storedLarge) && ApprovalPolicy.CanApprove(role, rules, DocumentType.Receipt, 1m, amount);
+                var now = ApprovalPolicy.MayReview(rights, storedLarge) && ApprovalPolicy.CanApprove(rights, rules, DocumentType.Receipt, 1m, amount);
+
+                if (before != now) differences.Add($"{role}, stored {(storedLarge ? "large" : "standard")}, rules {key[0]}, amount {key[1]}: was {before}, now {now}");
+            }
+        }
+
+        Assert.True(differences.Count == 0, $"{differences.Count} difference(s):" + Environment.NewLine + string.Join(Environment.NewLine, differences.Take(15)));
+    }
+
+    [Fact]
+    public void ASupervisorIsRefusedOnAStandardDocumentWhenARuleNamingTheOwnerIsInForce()
+    {
+        var rules = ParseRules("Owner@100");
+        var supervisor = SystemRoleDefaults.RightsFor(Roles.Supervisor, Me);
+
+        Assert.True(ApprovalPolicy.MayReview(supervisor, isLarge: false));
+        Assert.False(ApprovalPolicy.CanApprove(supervisor, rules, DocumentType.Receipt, 1m, 500m));
+    }
+
+    [Fact]
+    public void AnApprovalTierIsNotLentByTheRoleName()
+    {
+        // A holder of only the standard tier never reviews a large document, whatever else they are called; the large tier alone never reviews a standard one.
+        var standardOnly = new ActorRights(Me, EffectivePermissions.Compute([Permissions.DocumentApprove]));
+        var largeOnly = new ActorRights(Me, EffectivePermissions.Compute([Permissions.DocumentApproveLarge]));
+
+        Assert.False(ApprovalPolicy.MayReview(standardOnly, isLarge: true));
+        Assert.True(ApprovalPolicy.MayReview(standardOnly, isLarge: false));
+        Assert.True(ApprovalPolicy.MayReview(largeOnly, isLarge: true));
+        Assert.False(ApprovalPolicy.MayReview(largeOnly, isLarge: false));
+    }
+
+    [Fact]
     public void PostingAuthorityAgreesWithTheOracleForEveryoneWhoCanPost()
     {
         // The role-keyed answers were standalone and true for roles that cannot post at all (Owner, Clerk, an unknown role), where they never mattered:

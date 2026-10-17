@@ -10,7 +10,7 @@ public class User : PublicEntity
     public string Email { get; private set; } = "";
     public string DisplayName { get; private set; } = "";
     public string PasswordHash { get; private set; } = "";
-    /// <summary>The role's code. The source of what the running API lets the user do until the permissions come from the database (RP-4a); <see cref="RoleId"/> follows it.</summary>
+    /// <summary>The role's code. Still written with every user save and read by the user list and the last-administrator guard; the rights come from the role row's permissions (the token claims, RP-4a). RP-4b moves the rest to <see cref="RoleId"/> and drops it.</summary>
     public string Role { get; private set; } = Roles.WarehouseStaff;
     /// <summary>The role as a row (<see cref="Ims.Domain.Role"/>): always the row whose code is <see cref="Role"/>, set by the same call.</summary>
     public int RoleId { get; private set; }

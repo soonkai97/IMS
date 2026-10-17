@@ -8,7 +8,7 @@ namespace Ims.Api.Tests.Tests.Rbac;
 
 /// <summary>
 /// RP-2 changes what the database stores, not what anyone may do: every way a user or an approval rule gets written (the seed, the API) must leave the new columns agreeing with
-/// the old ones, because the API still decides by the role string and RP-4a/RP-4b switch to the new columns later. Real SQL Server, through the running host.
+/// the old ones, because the user list and the last-administrator guard still read the role string and RP-4b switches them to the new columns. Real SQL Server, through the running host.
 /// </summary>
 [Collection(ApiCollection.Name)]
 public class RoleColumnsTests(ApiFixture fixture)

@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Attachments;
 
 /// <summary>
-/// Files on a stock document (for example the photo of a delivery note). Visible to anyone who may see the document's warehouse;
+/// Files on a stock document (for example the photo of a delivery note). Visible to anyone who may read documents (<c>stock.read</c>) in the document's warehouse;
 /// added by people who may create documents, also after posting (the paperwork often arrives later) but not to a cancelled document;
 /// removed only while the document is a Draft.
 /// </summary>
@@ -15,18 +15,22 @@ public class DocumentAttachmentPolicy(IReadRepository<StockDocument> documents, 
     public async Task<int> ResolveAsync(Guid ownerPublicId, CancellationToken ct) =>
         await documentIds.ToInternalOrNoRowAsync(ownerPublicId, ct) ?? IdMapExtensions.NoRow;
 
-    public async Task EnsureCanReadAsync(int ownerId, CancellationToken ct) => await LoadScopedAsync(ownerId, ct);
+    public async Task EnsureCanReadAsync(int ownerId, CancellationToken ct)
+    {
+        Require(Permissions.StockRead); // the permission that opens the document itself: its files are not more public than it is
+        await LoadScopedAsync(ownerId, ct);
+    }
 
     public async Task EnsureCanWriteAsync(int ownerId, CancellationToken ct)
     {
-        RequireDocumentPermission(); // before the look-up: without the permission every id answers 403
+        Require(Permissions.DocumentCreate); // before the look-up: without the permission every id answers 403
         var scope = await LoadScopedAsync(ownerId, ct);
         if (scope.Status == DocumentStatus.Cancelled) throw new ConflictException(Messages.AttachmentOnCancelled);
     }
 
     public async Task EnsureCanDeleteAsync(int ownerId, CancellationToken ct)
     {
-        RequireDocumentPermission();
+        Require(Permissions.DocumentCreate);
         var scope = await LoadScopedAsync(ownerId, ct);
         if (scope.Status != DocumentStatus.Draft) throw new ConflictException(Messages.AttachmentDeleteOnlyDraft);
     }
@@ -38,8 +42,8 @@ public class DocumentAttachmentPolicy(IReadRepository<StockDocument> documents, 
         return scope;
     }
 
-    private void RequireDocumentPermission()
+    private void Require(string permission)
     {
-        if (!Permissions.Has(current.Role, Permissions.DocumentCreate)) throw new ForbiddenException(Messages.NotAllowed);
+        if (!current.Rights().Has(permission)) throw new ForbiddenException(Messages.NotAllowed);
     }
 }

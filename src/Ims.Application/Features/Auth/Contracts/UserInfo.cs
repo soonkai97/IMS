@@ -1,7 +1,7 @@
 namespace Ims.Application.Features.Auth;
 
 /// <summary>
-/// The signed-in user. <c>RoleName</c> and <c>SeesAllWarehouses</c> were added for the roles work (additive). <c>Permissions</c> is still the list of the
-/// user's system role from the fixed map, until the permissions come from the database.
+/// The signed-in user. <c>Permissions</c> lists the codes of the access token (the role's grants when it was issued) in catalog order; the web reads it for menus and
+/// buttons, the API decides by the token itself.
 /// </summary>
 public record UserInfo(Guid Id, string Username, string DisplayName, string Role, string RoleName, IReadOnlyList<string> Permissions, bool SeesAllWarehouses, IReadOnlyList<Guid> WarehouseIds);

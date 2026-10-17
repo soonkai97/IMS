@@ -24,13 +24,30 @@ public partial class EndpointCoverageTests
     }
 
     [Fact]
-    public void Every_policy_an_endpoint_asks_for_is_a_permission_of_the_catalog_listed_once()
+    public void Every_policy_an_endpoint_asks_for_is_a_permission_of_the_catalog_listed_once_or_an_any_of_policy()
     {
         var policies = ProtectedEndpointsInCode().Select(line => line[(line.LastIndexOf("-> ", StringComparison.Ordinal) + 3)..]).Distinct().ToList();
 
         Assert.NotEmpty(policies);
-        foreach (var policy in policies)
+        foreach (var policy in policies.Where(p => !AuthPolicies.AnyOf.ContainsKey(p)))
             Assert.True(PermissionCatalog.All.Count(p => p.Code == policy) == 1, $"'{policy}' must be in the permission catalog exactly once");
+    }
+
+    [Fact]
+    public void Only_these_actions_have_no_permission_policy()
+    {
+        // The sign-in family is open or asks only for a token; attachments decide inside the handler (the owner of a file is a document or a product, whose permission
+        // is asked there). A new action without a policy must be added here on purpose, so it is never an oversight.
+        var withoutPolicy = typeof(Program).Assembly.GetTypes().Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract)
+            .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .Where(m => m.GetCustomAttributes<HttpMethodAttribute>().Any() && m.GetCustomAttribute<AuthorizeAttribute>()?.Policy is null)
+                .Select(m => $"{t.Name}.{m.Name}"))
+            .Order().ToList();
+
+        Assert.Equal(
+            ["AttachmentsController.Delete", "AttachmentsController.Download", "AttachmentsController.List", "AttachmentsController.Upload",
+             "AuthController.ChangePassword", "AuthController.Login", "AuthController.Logout", "AuthController.Me", "AuthController.Refresh"],
+            withoutPolicy);
     }
 
     [Fact]

@@ -2,12 +2,12 @@ namespace Ims.Domain.Tests.Identity.Oracle;
 
 /// <summary>
 /// The role-keyed code that still exists is pinned to the oracle fixtures (<c>*.csv</c> next to this file), so deleting it step by step
-/// (RP-4a, RP-4b) cannot move the behaviour of the five system roles unnoticed. The fixtures are frozen: they are never regenerated.
+/// (RP-4b) cannot move the behaviour of the five system roles unnoticed. The fixtures are frozen: they are never regenerated.
 /// </summary>
 public class LegacyOracleTests
 {
     [Fact]
-    public void ThePermissionsAndTheRoleRulesAreAsTheOracleSays()
+    public void TheRoleRulesAreAsTheOracleSays()
     {
         var differences = OracleTables.Roles.Differences(LegacyBehaviour.Role);
 

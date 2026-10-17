@@ -44,12 +44,12 @@ public class DocumentsController(IDispatcher dispatcher) : ApiControllerBase(dis
     public Task<IActionResult> Submit(Guid id) => SendDocument(new SubmitDocumentCommand(id, IfMatch));
 
     /// <summary>Approves a Submitted document. The body is optional, except that a document with <c>requiresOverride</c> needs <c>negativeStockOverrideReason</c> here: the approver gives the reason, not the person who posts.</summary>
-    [HttpPost(RouteSegments.Approve), Authorize(Policy = Permissions.DocumentApprove)]
+    [HttpPost(RouteSegments.Approve), Authorize(Policy = AuthPolicies.DocumentReview)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Approve(Guid id, [FromBody] ApproveRequest? body = null) =>
         SendDocument(new ApproveDocumentCommand(id, body ?? new ApproveRequest(null), IfMatch));
 
-    [HttpPost(RouteSegments.Reject), Authorize(Policy = Permissions.DocumentApprove)]
+    [HttpPost(RouteSegments.Reject), Authorize(Policy = AuthPolicies.DocumentReview)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Reject(Guid id, [FromBody] RejectRequest body) => SendDocument(new RejectDocumentCommand(id, body, IfMatch));
 
@@ -61,8 +61,8 @@ public class DocumentsController(IDispatcher dispatcher) : ApiControllerBase(dis
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Recall(Guid id) => SendDocument(new RecallDocumentCommand(id, IfMatch));
 
-    /// <summary>Cancels a Draft, a Submitted or an Approved document. The reason is optional, except that cancelling an Approved document (by a reviewer it is routed to) needs one of at least 5 characters. No permission door: the create right is not enough (the Owner approves but cannot create), so <c>DocumentActionPolicy.MayCancel</c> decides; the catalog gives document endpoints their doors in RP-4a.</summary>
-    [HttpPost(RouteSegments.Cancel), Authorize]
+    /// <summary>Cancels a Draft, a Submitted or an Approved document. The reason is optional, except that cancelling an Approved document (by a reviewer it is routed to) needs one of at least 5 characters. The door is the create right or either approval tier (the Owner approves but cannot create); <c>DocumentActionPolicy.MayCancel</c> then decides for this document.</summary>
+    [HttpPost(RouteSegments.Cancel), Authorize(Policy = AuthPolicies.DocumentCancel)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Cancel(Guid id, [FromBody] CancelRequest body) => SendDocument(new CancelDocumentCommand(id, body, IfMatch));
 

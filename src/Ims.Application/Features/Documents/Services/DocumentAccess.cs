@@ -16,7 +16,7 @@ public class DocumentAccess(ICurrentUser current) : IDocumentAccess, IAppService
             throw new NotFoundException(Messages.DocumentNotFound);
     }
 
-    public IReadOnlyCollection<int>? WarehouseScope() => Roles.SeesAllWarehouses(current.Role) ? null : current.WarehouseIds;
+    public IReadOnlyCollection<int>? WarehouseScope() => current.AllWarehouses ? null : current.WarehouseIds;
 
     public void EnsureMayEditOrSubmit(StockDocument document)
     {

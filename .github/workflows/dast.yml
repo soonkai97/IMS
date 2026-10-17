@@ -68,7 +68,7 @@ jobs:
           # A scan is thousands of requests from one address with one token: lift the per-minute limit and let the token outlive the scan.
           # The sign-in limit (20 per minute) and the refresh limit (300 per minute) stay as they are, so those endpoints are scanned at that pace.
           RateLimit__PerMinute: "1000000"
-          Jwt__AccessMinutes: "180"
+          Jwt__AccessMinutes: "60"
         run: |
           # The content root is the working directory, so start from the build output where appsettings*.json were copied.
           (cd src/Ims.Api/bin/Release/net10.0 && nohup dotnet Ims.Api.dll > "$GITHUB_WORKSPACE/api.log" 2>&1 &)

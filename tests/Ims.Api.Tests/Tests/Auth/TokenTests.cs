@@ -107,7 +107,7 @@ public class TokenTests(ApiFixture fixture)
     public async Task A_well_formed_token_signed_with_the_servers_key_is_accepted()
     {
         // Control for the faulty-token tests below: it proves the forged token differs from a good one only by its fault.
-        var client = fixture.CreateClient(ForgedTokens.Create(fixture.Settings.JwtKey));
+        var client = fixture.CreateClient(ForgedTokens.Create(fixture.Settings.JwtKey, permissions: [Permissions.MasterDataRead]));
 
         (await client.Warehouses.ListAsync()).ShouldBeOk();
     }

@@ -4,8 +4,9 @@ using static Ims.Domain.Tests.Identity.Oracle.OracleKeys;
 namespace Ims.Domain.Tests.Identity.Oracle;
 
 /// <summary>
-/// The answers of the role-keyed code that still exists (<c>Permissions.For</c>, <c>Roles.SeesAllWarehouses</c>, <c>ApprovalPolicy</c> by role name),
-/// until slices RP-4a and RP-4b delete it. The committed CSV files were written from the whole role-keyed code at commit abe1ad0; the policies
+/// The answers of the role-keyed code that still exists (<c>Roles.SeesAllWarehouses</c>, <c>ApprovalPolicy</c> by role name),
+/// until slice RP-4b deletes it. The committed CSV files were written from the whole role-keyed code at commit abe1ad0; the permission lists (the 15-code map, deleted
+/// in RP-4a) are checked against <see cref="SystemRoleDefaults"/> by <c>RightsParityTests</c>, and the policies
 /// that moved to <see cref="ActorRights"/> in RP-1 are answered by <see cref="NewBehaviour"/>.
 /// </summary>
 internal static class LegacyBehaviour
@@ -15,7 +16,6 @@ internal static class LegacyBehaviour
         var role = key["role"];
         return new Dictionary<string, string>
         {
-            ["permissions"] = string.Join(';', Permissions.For(role).Order(StringComparer.Ordinal)),
             ["seesAllWarehouses"] = Flag(Roles.SeesAllWarehouses(role)),
             ["rank"] = ApprovalPolicy.RankOf(role).ToString(CultureInfo.InvariantCulture),
             ["reviewsStandard"] = Flag(ApprovalPolicy.MayReview(role, isLarge: false)),

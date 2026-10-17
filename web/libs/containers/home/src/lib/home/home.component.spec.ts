@@ -57,6 +57,8 @@ describe('HomePageComponent', () => {
         provide: PermissionService,
         useValue: {
           has: (permission: string) => granted.has(permission),
+          hasAny: (permissions: readonly string[]) =>
+            permissions.some(permission => granted.has(permission)),
           $displayName: signal('Pat'),
           $seesAllWarehouses: signal(true),
           $warehouseIds: signal<number[]>([])
@@ -112,8 +114,8 @@ describe('HomePageComponent', () => {
     expect(countsLoad).toHaveBeenCalledTimes(1);
   });
 
-  it('the Owner reviews but does not post: approvals yes, posted today no, no drafts', () => {
-    const text = render(PERMISSION.StockRead, PERMISSION.DocumentApprove);
+  it('the Owner (who holds only the large approval tier) reviews but does not post: approvals yes, posted today no, no drafts', () => {
+    const text = render(PERMISSION.StockRead, PERMISSION.DocumentApproveLarge);
 
     expect(text).toContain('Waiting for approval 3');
     expect(text).not.toContain('Posted today');
