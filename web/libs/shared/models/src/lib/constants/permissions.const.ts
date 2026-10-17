@@ -37,3 +37,6 @@ export const ALL_ROLES = [
   ROLE.WarehouseStaff,
   ROLE.Clerk
 ] as const;
+
+/** Roles that see every warehouse; the others only their assigned ones. */
+export const ALL_WAREHOUSE_ROLES: readonly string[] = [ROLE.Admin, ROLE.Owner];

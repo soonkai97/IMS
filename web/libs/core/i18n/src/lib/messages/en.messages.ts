@@ -546,8 +546,7 @@ export const EN_MESSAGES = {
   'user.username': 'Username',
   'user.warehouses': 'Warehouses',
   'user.warehousesHint':
-    'Leave this off to limit the person to the warehouses ticked here.',
-  'user.allWarehouses': 'Sees every warehouse',
+    'Admin and Owner see every warehouse. Other roles see only the ones ticked here.',
   'settings.alertCooldown': 'Low-stock alert cool-down (hours)',
   'settings.alertCooldownHint': 'Minimum time between two alerts for the same product.',
   'settings.allowNegativeStock': 'Allow negative stock',

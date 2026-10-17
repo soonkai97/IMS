@@ -530,8 +530,7 @@ export const MS_MESSAGES: Messages = {
   'user.username': 'Nama pengguna',
   'user.warehouses': 'Gudang',
   'user.warehousesHint':
-    'Biarkan tidak ditanda untuk mengehadkan orang ini kepada gudang yang ditanda di sini.',
-  'user.allWarehouses': 'Melihat semua gudang',
+    'Pentadbir dan Pemilik melihat semua gudang. Peranan lain hanya melihat yang ditanda di sini.',
   'settings.alertCooldown': 'Selang amaran stok rendah (jam)',
   'settings.alertCooldownHint': 'Masa minimum antara dua amaran untuk produk yang sama.',
   'settings.allowNegativeStock': 'Benarkan stok negatif',
