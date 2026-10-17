@@ -85,7 +85,7 @@ public class RightsParityTests
             {
                 var rights = SystemRoleDefaults.RightsFor(role, Me);
                 var before = LegacyBehaviour.MayReview(role, storedLarge) && LegacyBehaviour.CanApprove(role, parts, amount);
-                var now = ApprovalPolicy.MayReview(rights, storedLarge, rules, DocumentType.Receipt, 1m, amount);
+                var now = ApprovalPolicy.MayReviewUnderRulesInForce(rights, storedLarge, rules, DocumentType.Receipt, 1m, amount);
                 var documented = role == Roles.Owner && storedLarge && adminRuleFired;
 
                 if (documented) Assert.True(!before && now, $"the Owner on an Admin rule: was {before}, now {now} ({key[0]}, amount {key[1]})");
@@ -103,7 +103,7 @@ public class RightsParityTests
         var supervisor = SystemRoleDefaults.RightsFor(Roles.Supervisor, Me);
 
         Assert.True(ApprovalPolicy.MayReview(supervisor, isLarge: false));
-        Assert.False(ApprovalPolicy.MayReview(supervisor, isLarge: false, rules, DocumentType.Receipt, 1m, 500m));
+        Assert.False(ApprovalPolicy.MayReviewUnderRulesInForce(supervisor, isLarge: false, rules, DocumentType.Receipt, 1m, 500m));
     }
 
     [Fact]
@@ -117,9 +117,9 @@ public class RightsParityTests
         var supervisor = SystemRoleDefaults.RightsFor(Roles.Supervisor, Me);
         var admin = SystemRoleDefaults.RightsFor(Roles.Admin, Me);
 
-        Assert.True(ApprovalPolicy.MayReview(owner, isLarge: true, rules, DocumentType.Receipt, 1m, 500m));
-        Assert.True(ApprovalPolicy.MayReview(admin, isLarge: true, rules, DocumentType.Receipt, 1m, 500m));
-        Assert.False(ApprovalPolicy.MayReview(supervisor, isLarge: true, rules, DocumentType.Receipt, 1m, 500m));
+        Assert.True(ApprovalPolicy.MayReviewUnderRulesInForce(owner, isLarge: true, rules, DocumentType.Receipt, 1m, 500m));
+        Assert.True(ApprovalPolicy.MayReviewUnderRulesInForce(admin, isLarge: true, rules, DocumentType.Receipt, 1m, 500m));
+        Assert.False(ApprovalPolicy.MayReviewUnderRulesInForce(supervisor, isLarge: true, rules, DocumentType.Receipt, 1m, 500m));
     }
 
     [Fact]

@@ -25,7 +25,7 @@ public class ApprovalEvaluator(IReadRepository<ApprovalRule> rules, ICurrentUser
 
         // Then the limit by the rules in force now, which can be stricter than when the document was stored: a rule of the Large tier in force needs the large tier.
         var active = await rules.ListAsync(new ActiveRulesForTypeSpec(type), ct);
-        return ApprovalPolicy.MayReview(rights, isLarge, active, type, totalQty, totalAmount) ? null : Messages.AboveApprovalLimit;
+        return ApprovalPolicy.MayReviewUnderRulesInForce(rights, isLarge, active, type, totalQty, totalAmount) ? null : Messages.AboveApprovalLimit;
     }
 
     public async Task<IReadOnlyList<ApprovalTrigger>> TriggersAsync(DocumentType type, decimal totalQty, decimal totalAmount, CancellationToken ct) =>

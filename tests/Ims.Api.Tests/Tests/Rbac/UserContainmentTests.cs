@@ -94,6 +94,28 @@ public class UserContainmentTests(ApiFixture fixture)
     }
 
     [Fact]
+    public async Task A_delegated_manager_cannot_take_over_a_peer_who_sees_more_or_holds_more_even_when_the_save_keeps_the_delegates_own_role()
+    {
+        var d = await NewDelegateAsync();
+        var admin = await fixture.AsAsync(Roles.Admin);
+        var other = await OtherWarehouseAsync();
+        var sameRoleSeesAll = (await admin.Users.CreateAsync(NewUser(d.Role.Code, [], all: true))).Data<UserDto>();                       // same role, every warehouse
+        var sameRoleElsewhere = (await admin.Users.CreateAsync(NewUser(d.Role.Code, [other], all: false))).Data<UserDto>();               // same role, a warehouse the delegate cannot reach
+        var holdsMore = (await admin.Users.CreateAsync(NewUser(Roles.Admin, all: false))).Data<UserDto>();                                // same warehouse, a role with more permissions
+        var seeded = await SeededAdminAsync();
+
+        foreach (var target in new[] { sameRoleSeesAll, sameRoleElsewhere, holdsMore, seeded })
+        {
+            var hash = await HashAsync(target.Username);
+            // The save keeps the delegate's own role (which CheckAssignment accepts), so only the check on the target can stop it.
+            (await d.Client.Users.UpdateAsync(target.Id, Save(target, role: d.Role.Code, password: "Takeover-Passw0rd-1!", warehouses: [fixture.Reference.DefaultWarehouseId]))).ShouldBeProblem(HttpStatusCode.Forbidden);
+            (await d.Client.Users.UpdateAsync(target.Id, Save(target, role: d.Role.Code, active: false, warehouses: [fixture.Reference.DefaultWarehouseId]))).ShouldBeProblem(HttpStatusCode.Forbidden);
+            Assert.Equal(hash, await HashAsync(target.Username));
+            Assert.True(await fixture.Database.ScalarAsync<bool>("SELECT IsActive FROM [User] WHERE Username = @u", ("@u", target.Username)));
+        }
+    }
+
+    [Fact]
     public async Task A_delegated_manager_cannot_give_a_role_that_holds_permissions_they_lack_to_themselves_or_to_anyone()
     {
         var d = await NewDelegateAsync();
