@@ -83,6 +83,18 @@ describe('UiDateFieldComponent (R23)', () => {
     expect(control.value).toBe('2026-10-01');
   });
 
+  it('types an ISO day through without applying a wrong one on the way (2026-10-1 is not 1 October)', () => {
+    const control = render();
+    const changes: string[] = [];
+    control.valueChanges.subscribe(value => changes.push(value));
+
+    for (const typed of ['2026-1', '2026-10-', '2026-10-1', '2026-10-15']) {
+      type(typed);
+    }
+
+    expect(changes).toEqual(['2026-10-15']);
+  });
+
   it('on blur, text that is no date clears the value and says what to type', () => {
     const control = render('2026-10-01');
 

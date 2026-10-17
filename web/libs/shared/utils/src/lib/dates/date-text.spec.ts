@@ -21,6 +21,12 @@ describe('formatDateText (R23)', () => {
     expect(formatDateText('09 Oct 2026', EN)).toBe('');
   });
 
+  it('gives an empty text, never "45 undefined 2026", for a day the calendar does not have', () => {
+    for (const iso of ['2026-13-45', '2026-13-01', '2026-00-10', '2026-02-30', '2026-04-31']) {
+      expect(formatDateText(iso, EN)).toBe('');
+    }
+  });
+
   it('shows the example the error sentence quotes', () => {
     expect(exampleDateText(EN)).toBe('09 Oct 2026');
   });
@@ -51,7 +57,33 @@ describe('parseDateText (R23)', () => {
 
   it('reads an ISO date', () => {
     expect(parseDateText('2026-10-09', EN)).toBe('2026-10-09');
-    expect(parseDateText('2026-1-9', EN)).toBe('2026-01-09');
+  });
+
+  it('does not read a half-typed ISO day: 2026-10-1 waits for 2026-10-15 instead of applying 1 October', () => {
+    for (const half of ['2026-1-9', '2026-10-1', '2026-1-', '2026-10-']) {
+      expect(parseDateText(half, EN)).toBeNull();
+    }
+    expect(parseDateText('2026-10-15', EN)).toBe('2026-10-15');
+  });
+
+  it('reads the form the tables use in Chinese, 2026年10月15日, in any language', () => {
+    expect(parseDateText('2026年10月15日', ZH)).toBe('2026-10-15');
+    expect(parseDateText('2026年1月5日', ZH)).toBe('2026-01-05');
+    expect(parseDateText(' 2026 年 10 月 15 日 ', EN)).toBe('2026-10-15');
+    expect(formatDateText('2026-10-15', ZH)).toBe('15 10月 2026');
+  });
+
+  it('does not read a half-typed Chinese day, or a Chinese day that does not exist', () => {
+    for (const text of [
+      '2026年10月1',
+      '2026年10月15',
+      '2026年10月',
+      '2026年2月30日',
+      '2026年13月1日',
+      '1999年1月1日'
+    ]) {
+      expect(parseDateText(text, ZH)).toBeNull();
+    }
   });
 
   it('reads dd/MM/yyyy with the day first, with / . or - between the parts', () => {

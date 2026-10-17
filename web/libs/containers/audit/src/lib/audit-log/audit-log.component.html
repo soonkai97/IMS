@@ -50,7 +50,7 @@
       >{{ 'audit.show' | t }}</app-button
     >
   </ng-template>
-  <app-empty-state empty icon="audit" [message]="'audit.empty' | t">
+  <app-empty-state empty icon="audit" [message]="$emptyKey() | t">
     @if ($hasFilters()) {
       <app-button (clicked)="onClearFilters()">{{ 'filter.clear' | t }}</app-button>
     }

@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { AuditLogDto } from '@ims/api';
-import { AppDatePipe, I18nService, TranslatePipe } from '@ims/core/i18n';
+import { AppDatePipe, I18nService, MessageKey, TranslatePipe } from '@ims/core/i18n';
 import { AuditQuery, AuditStore } from '@ims/features/audit';
 import { DEFAULT_PAGE_SIZE } from '@ims/models';
 import {
@@ -113,6 +113,10 @@ export class AuditLogPageComponent implements OnInit {
       this.$actor() !== '' ||
       this.$from() !== '' ||
       this.$to() !== ''
+  );
+  // No search ran for a reversed range, so "no entries" would be untrue.
+  $emptyKey = computed<MessageKey>(() =>
+    this.$rangeInvalid() ? 'filter.rangeInvalid' : 'audit.empty'
   );
   $detail = signal<AuditLogDto | undefined>(undefined);
   $detailOpen = signal(false);
