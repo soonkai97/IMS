@@ -72,6 +72,12 @@ public static class DependencyInjection
             .PostConfigure<IHostEnvironment>(EnsureDevelopmentKey)
             .ValidateDataAnnotations()
             .ValidateOnStart();
+        services.AddOptions<AccessOptions>()
+            .Bind(cfg.GetSection(ConfigKeys.AccessSection))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddMemoryCache();
+        services.AddSingleton<IAccessSnapshots, CachedAccessSnapshots>();
         services.AddSingleton<ITokenService, TokenService>();
         services.AddSingleton<ITokenValidationSettings, JwtTokenValidationSettings>();
         services.AddSingleton<IPasswordHasher, IdentityPasswordHasher>();

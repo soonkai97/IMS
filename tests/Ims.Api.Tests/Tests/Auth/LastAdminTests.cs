@@ -20,7 +20,7 @@ public class LastAdminTests : IAsyncLifetime
     public Task DisposeAsync() => _fixture.DisposeAsync();
 
     [Fact]
-    public async Task The_only_active_administrator_cannot_be_demoted_or_disabled_by_a_session_that_outlived_its_own_deactivation()
+    public async Task The_only_active_administrator_cannot_be_demoted_or_disabled_by_a_session_that_outlived_its_own_deactivation_elsewhere()
     {
         var accounts = new AccountFactory(_fixture);
         var survivor = await accounts.CreateAsync(Roles.Admin);
@@ -33,10 +33,12 @@ public class LastAdminTests : IAsyncLifetime
         var seededUser = (await seeded.GetAsync($"/api/users?search={TestUsers.UsernameOf(Roles.Admin)}&role={Roles.Admin}")).Data<PagedResult<UserDto>>().Items.Single(u => u.Username == TestUsers.UsernameOf(Roles.Admin));
         var disableSeeded = new UserSaveRequest(seededUser.Username, seededUser.Email, seededUser.DisplayName, Roles.Admin, false, null, []);
         (await survivorClient.Users.UpdateAsync(seededUser.Id, disableSeeded)).ShouldBeOk();
-        var disableLeaver = new UserSaveRequest(leaver.Username, leaver.Email, leaver.Username, Roles.Admin, false, null, []);
-        (await survivorClient.Users.UpdateAsync(leaver.Id, disableLeaver)).ShouldBeOk();
+        // The leaver is deactivated behind the back of this instance (as if on another one, whose change this cache has not heard of yet): its snapshot lives on for at most
+        // Access:SnapshotTtlSeconds. Through this instance a deactivation ends the session at once (SessionSecurityTests), so this is the only way to reach the guard.
+        (await leaverClient.Warehouses.ListAsync()).ShouldBeOk();
+        await _fixture.Database.ExecuteAsync("UPDATE [User] SET IsActive = 0 WHERE Username = @u", ("@u", leaver.Username));
 
-        // The survivor is now the only active administrator; the leaver's access token is still valid (it is not looked up per request) and tries to remove it.
+        // The survivor is now the only active administrator; the leaver's cached snapshot still lets it in, and it tries to remove it.
         var demote = new UserSaveRequest(survivor.Username, survivor.Email, survivor.Username, Roles.Supervisor, true, null, [_fixture.Reference.DefaultWarehouseId]);
         var disable = new UserSaveRequest(survivor.Username, survivor.Email, survivor.Username, Roles.Admin, false, null, []);
         Assert.Equal(Messages.LastAdminRequired, (await leaverClient.Users.UpdateAsync(survivor.Id, demote)).ShouldBeProblem(HttpStatusCode.Conflict).Detail);

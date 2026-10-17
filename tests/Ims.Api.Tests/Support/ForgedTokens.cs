@@ -11,12 +11,12 @@ public static class ForgedTokens
     public const string Issuer = "ims";
     public const string Audience = "ims-clients";
 
-    public static string Create(string signingKey, string role = "Admin", DateTime? expiresAt = null, string issuer = Issuer, string audience = Audience)
+    public static string Create(string signingKey, string role = "Admin", DateTime? expiresAt = null, string issuer = Issuer, string audience = Audience, int userId = 1)
     {
         var expires = expiresAt ?? DateTime.UtcNow.AddMinutes(10);
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, "1"),
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
             new Claim(ClaimTypes.Name, "forged"),
             new Claim(ClaimTypes.Role, role)
         };

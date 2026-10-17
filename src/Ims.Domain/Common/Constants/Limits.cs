@@ -9,6 +9,9 @@ public static class Limits
     public const int PasswordMinLength = 12;
     public const int RefreshTokenDays = 7;
     public const int AccessTokenMinutes = 15;
+    /// <summary>How long a cached access snapshot is trusted (ADR roles-permissions, lean scope): the longest a demotion can take to apply when the change was made on another instance.</summary>
+    public const int AccessSnapshotTtlSeconds = 15;
+    public const int AccessSnapshotTtlMaxSeconds = 300;
     public const int ClockSkewSeconds = 30;
     public const int JwtKeyMinLength = 32;
     public const int JwtKeyGeneratedBytes = 48;

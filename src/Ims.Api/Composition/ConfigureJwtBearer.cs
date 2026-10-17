@@ -18,6 +18,7 @@ public sealed class ConfigureJwtBearer(ITokenValidationSettings settings) : ICon
             ValidateLifetime = true, ClockSkew = TimeSpan.FromSeconds(Limits.ClockSkewSeconds),
             RoleClaimType = System.Security.Claims.ClaimTypes.Role, NameClaimType = System.Security.Claims.ClaimTypes.Name
         };
+        o.Events = new AccessSnapshotBearerEvents();
     }
 
     public void Configure(JwtBearerOptions options) => Configure(JwtBearerDefaults.AuthenticationScheme, options);

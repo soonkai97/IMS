@@ -3,6 +3,7 @@ using Ims.Api.Tests.Builders;
 using Ims.Api.Tests.Harness;
 using Ims.Application.Features.Auth;
 using Ims.Application.Features.Users;
+using Ims.Application.Features.Warehouses;
 using Ims.Domain;
 
 namespace Ims.Api.Tests.Tests.Auth;
@@ -57,7 +58,7 @@ public class SessionSecurityTests(ApiFixture fixture)
     // ---------- sessions end when access changes ----------
 
     [Fact]
-    public async Task Deactivating_a_user_revokes_the_refresh_token_while_the_current_access_token_runs_out_on_its_own()
+    public async Task Deactivating_a_user_revokes_the_refresh_token_and_stops_the_access_token_at_once()
     {
         var account = await _accounts.CreateAsync(Roles.Clerk);
         var (client, auth) = await _accounts.SignInAsync(account);
@@ -66,12 +67,12 @@ public class SessionSecurityTests(ApiFixture fixture)
 
         (await client.Auth.RefreshAsync(auth.RefreshToken)).ShouldBeProblem(HttpStatusCode.Unauthorized);
         (await fixture.Anonymous().Auth.LoginAsync(account.Username, account.Password)).ShouldBeProblem(HttpStatusCode.Unauthorized);
-        // Known limit of stateless tokens: the access token already issued is honoured until it expires (15 minutes at most).
-        (await client.Warehouses.ListAsync()).ShouldBeOk();
+        // Closes ER-15 and SEC-06: the access token already issued is no longer honoured until it expires (the snapshot is gone, so the answer is a 401).
+        (await client.Warehouses.ListAsync()).ShouldBe(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task A_role_change_revokes_the_refresh_token_and_a_new_login_carries_the_new_role()
+    public async Task A_role_change_keeps_the_refresh_token_and_the_new_rights_ride_on_it()
     {
         var account = await _accounts.CreateAsync(Roles.Clerk);
         var (client, auth) = await _accounts.SignInAsync(account);
@@ -80,22 +81,26 @@ public class SessionSecurityTests(ApiFixture fixture)
         var promote = new UserSaveRequest(account.Username, account.Email, account.Username, Roles.Supervisor, true, null, account.WarehouseIds.ToList());
         (await admin.Users.UpdateAsync(account.Id, promote)).ShouldBeOk();
 
-        (await client.Auth.RefreshAsync(auth.RefreshToken)).ShouldBeProblem(HttpStatusCode.Unauthorized);
+        var refreshed = (await client.Auth.RefreshAsync(auth.RefreshToken)).Data<AuthResult>(); // nobody is signed out for being promoted
+        Assert.Equal(Roles.Supervisor, refreshed.User.Role);
         var relogin = (await fixture.Anonymous().Auth.LoginAsync(account.Username, account.Password)).Data<AuthResult>();
         Assert.Equal(Roles.Supervisor, relogin.User.Role);
     }
 
     [Fact]
-    public async Task A_warehouse_scope_change_revokes_the_refresh_token()
+    public async Task A_warehouse_scope_change_keeps_the_refresh_token_and_applies_to_the_same_access_token()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var other = await s.NewWarehouseAsync();
         var account = await _accounts.CreateAsync(Roles.WarehouseStaff);
         var (client, auth) = await _accounts.SignInAsync(account);
 
+        Assert.DoesNotContain((await client.Warehouses.ListAsync(includeInactive: true)).Data<List<WarehouseDto>>(), w => w.Id == other.Id);
+
         (await _accounts.UpdateAsync(account, warehouseIds: [fixture.Reference.DefaultWarehouseId, other.Id])).ShouldBeOk();
 
-        (await client.Auth.RefreshAsync(auth.RefreshToken)).ShouldBeProblem(HttpStatusCode.Unauthorized);
+        (await client.Auth.RefreshAsync(auth.RefreshToken)).ShouldBeOk();
+        Assert.Contains((await client.Warehouses.ListAsync(includeInactive: true)).Data<List<WarehouseDto>>(), w => w.Id == other.Id);
     }
 
     [Fact]

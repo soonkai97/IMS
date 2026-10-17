@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Users;
 
 public class UpdateUserHandler(IRepository<User> users, IReadRepository<Role> roles, IIdMap<Warehouse> warehouseIds, IRepository<RefreshToken> tokens, IPasswordHasher hasher,
-    ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<UpdateUserCommand, UserDto>
+    ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit, IAccessSnapshots snapshots) : ICommandHandler<UpdateUserCommand, UserDto>
 {
     public async Task<UserDto> HandleAsync(UpdateUserCommand cmd, CancellationToken ct)
     {
@@ -21,16 +21,15 @@ public class UpdateUserHandler(IRepository<User> users, IReadRepository<Role> ro
         }
 
         var before = new { user.Username, user.Role, user.IsActive, Warehouses = user.Warehouses.Select(w => w.WarehouseId).ToList() };
-        var accessChanged = user.Role != r.Role || user.IsActive != r.IsActive || !string.IsNullOrEmpty(r.Password) ||
-                            !before.Warehouses.Order().SequenceEqual(wanted.Order());
+        var endSessions = (user.IsActive && !r.IsActive) || !string.IsNullOrEmpty(r.Password);
 
         user.UpdateProfile(r.Username, r.Email, r.DisplayName, role, r.IsActive);
         if (!string.IsNullOrEmpty(r.Password)) user.ChangePasswordHash(hasher.Hash(r.Password));
         user.AssignWarehouses(wanted);
 
-        // A changed role, scope, status or password must not leave older sessions alive: end every refresh token so the
-        // old access token expires within AccessTokenMinutes and cannot be renewed.
-        if (accessChanged)
+        // A deactivation or a new password ends every session: the refresh tokens are revoked so nobody can renew. A changed role or scope does not: the next
+        // request reads the new rights from the access snapshot, so nobody is signed out for being promoted or demoted (ADR roles-permissions 3.4).
+        if (endSessions)
         {
             var now = clock.UtcNow;
             foreach (var token in await tokens.ListAsync(new ActiveRefreshTokensOfUserSpec(user.Id, now), ct)) token.Revoke(now);
@@ -38,6 +37,7 @@ public class UpdateUserHandler(IRepository<User> users, IReadRepository<Role> ro
 
         audit.Record(AuditActions.UserUpdated, AuditEntities.User, user.PublicId.ToString(), before, new { user.Username, user.Role, user.IsActive, Warehouses = wanted });
         await uow.SaveChangesAsync(ct);
+        snapshots.Forget(user.Id); // after the commit: the next request reads the new role, scope and status here at once
         return await UserMapping.ToDtoAsync(user, warehouseIds, ct);
     }
 }

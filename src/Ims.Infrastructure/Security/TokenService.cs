@@ -12,6 +12,7 @@ public class TokenService(IOptions<JwtOptions> options, IClock clock) : ITokenSe
 {
     private readonly JwtOptions _o = options.Value;
 
+    /// <summary>Identity only (ADR roles-permissions 3.2): who the person is, never what they may do. Rights are read per request from the access snapshot, so a token cannot outlive a demotion.</summary>
     public string CreateAccessToken(User user, out DateTime expiresAt)
     {
         expiresAt = clock.UtcNow.AddMinutes(_o.AccessMinutes);
@@ -20,9 +21,7 @@ public class TokenService(IOptions<JwtOptions> options, IClock clock) : ITokenSe
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.Username),
-            new(ClaimTypes.Role, user.Role),
         };
-        claims.AddRange(user.Warehouses.Select(w => new Claim(ClaimNames.Warehouse, w.WarehouseId.ToString())));
 
         var creds = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_o.Key)), SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(_o.Issuer, _o.Audience, claims, notBefore: clock.UtcNow, expires: expiresAt, signingCredentials: creds);
