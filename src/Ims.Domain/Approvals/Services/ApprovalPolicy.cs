@@ -20,7 +20,17 @@ public static class ApprovalPolicy
     public static bool IsLarge(IEnumerable<ApprovalRule> rules, DocumentType type, decimal totalQty, decimal totalAmount) =>
         rules.Any(r => r.Matches(type, totalQty, totalAmount) && r.Tier == ApproverTier.Large);
 
-    // ----- By role name: still used by the approval services until approvals go end to end (RP-4b), which deletes them -----
+    /// <summary>
+    /// The approval-limit check by what the approver holds, not by a role name: a rule that names the Admin needs both tiers (the Owner's large tier alone does not satisfy
+    /// it, as before); every other rule is met by the tier the document is routed to (<see cref="MayReview(ActorRights, bool)"/>, asked first). Gives the answers
+    /// of the role-keyed <see cref="CanApprove(string, IEnumerable{ApprovalRule}, DocumentType, decimal, decimal)"/> for the five system roles together with the routing
+    /// (the parity test pins that); RP-4b replaces it with the tier alone when <c>RoleRequired</c> goes.
+    /// </summary>
+    public static bool CanApprove(ActorRights actor, IEnumerable<ApprovalRule> rules, DocumentType type, decimal totalQty, decimal totalAmount) =>
+        actor.Has(Permissions.DocumentApprove) && actor.Has(Permissions.DocumentApproveLarge) ||
+        !rules.Any(r => r.Matches(type, totalQty, totalAmount) && r.RoleRequired == Roles.Admin);
+
+    // ----- By role name: what the oracle fixtures were written from; nothing in the running code calls them (RP-4b deletes them with RoleRequired) -----
 
     /// <summary>Approval authority. A higher rank may approve anything a lower rank may.</summary>
     public static int RankOf(string role) => role switch

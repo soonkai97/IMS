@@ -34,15 +34,20 @@ public partial class EndpointCoverageTests
     }
 
     [Fact]
-    public void Only_the_sign_in_family_and_the_attachments_have_endpoints_without_a_permission_policy()
+    public void Only_these_actions_have_no_permission_policy()
     {
-        // Attachments decide inside the handler (the owner of the file is a document or a product); the Auth endpoints are open or ask only for a token.
+        // The sign-in family is open or asks only for a token; attachments decide inside the handler (the owner of a file is a document or a product, whose permission
+        // is asked there). A new action without a policy must be added here on purpose, so it is never an oversight.
         var withoutPolicy = typeof(Program).Assembly.GetTypes().Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract)
-            .Where(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-                .Any(m => m.GetCustomAttributes<HttpMethodAttribute>().Any() && m.GetCustomAttribute<AuthorizeAttribute>()?.Policy is null))
-            .Select(t => t.Name).Order().ToList();
+            .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .Where(m => m.GetCustomAttributes<HttpMethodAttribute>().Any() && m.GetCustomAttribute<AuthorizeAttribute>()?.Policy is null)
+                .Select(m => $"{t.Name}.{m.Name}"))
+            .Order().ToList();
 
-        Assert.Equal(["AttachmentsController", "AuthController"], withoutPolicy);
+        Assert.Equal(
+            ["AttachmentsController.Delete", "AttachmentsController.Download", "AttachmentsController.List", "AttachmentsController.Upload",
+             "AuthController.ChangePassword", "AuthController.Login", "AuthController.Logout", "AuthController.Me", "AuthController.Refresh"],
+            withoutPolicy);
     }
 
     [Fact]

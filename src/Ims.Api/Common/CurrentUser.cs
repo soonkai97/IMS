@@ -17,7 +17,7 @@ public class CurrentUser(IHttpContextAccessor accessor) : ICurrentUser
     /// <summary>Every token the API accepts carries the claim (<see cref="ClaimNames.ClaimsVersion"/> is checked at validation); a missing or unreadable one means no.</summary>
     public bool AllWarehouses => bool.TryParse(Principal?.FindFirstValue(ClaimNames.AllWarehouses), out var all) && all;
 
-    public bool CanAccessWarehouse(int warehouseId) => Roles.SeesAllWarehouses(Role) || WarehouseIds.Contains(warehouseId);
+    public bool CanAccessWarehouse(int warehouseId) => AllWarehouses || WarehouseIds.Contains(warehouseId);
 
     public ActorRights Rights() => _rights ??= IsAuthenticated
         ? new ActorRights(UserId, EffectivePermissions.Compute(Principal!.FindAll(ClaimNames.Permission).Select(c => c.Value)))

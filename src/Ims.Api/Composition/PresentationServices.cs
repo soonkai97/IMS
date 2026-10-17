@@ -59,8 +59,7 @@ public static class PresentationServices
     }
 
     private static void AddPolicy(AuthorizationOptions options, string name, IReadOnlyList<string> anyOf) =>
-        options.AddPolicy(name, p => p.RequireAuthenticatedUser()
-            .RequireAssertion(ctx => ctx.User.HasClaim(c => c.Type == ClaimNames.Permission && anyOf.Contains(c.Value))));
+        options.AddPolicy(name, p => p.RequireAuthenticatedUser().RequireClaim(ClaimNames.Permission, anyOf));
 
     private static IServiceCollection AddCorsPolicy(this IServiceCollection services, IConfiguration cfg, IHostEnvironment env)
     {

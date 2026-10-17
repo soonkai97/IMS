@@ -8,7 +8,7 @@ public interface ICurrentUser
     int UserId { get; }
     string Username { get; }
 
-    /// <summary>The code of the caller's role, from the token. For display, audit and the checks of RP-4b (approval limit, warehouse scope); a permission is never decided by it.</summary>
+    /// <summary>The code of the caller's role, from the token. For display and audit only: no permission, approval tier or warehouse scope is decided by it.</summary>
     string Role { get; }
     IReadOnlyCollection<int> WarehouseIds { get; }
     bool CanAccessWarehouse(int warehouseId);

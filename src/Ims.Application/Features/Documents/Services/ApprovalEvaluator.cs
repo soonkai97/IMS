@@ -12,19 +12,20 @@ public class ApprovalEvaluator(IReadRepository<ApprovalRule> rules, ICurrentUser
         var qty = document.TotalQty;
         return new ApprovalAssessment(
             ApprovalPolicy.RequiresApproval(active, document.Type, qty, amount),
-            ApprovalPolicy.CanApprove(current.Role, active, document.Type, qty, amount),
+            ApprovalPolicy.CanApprove(current.Rights(), active, document.Type, qty, amount),
             amount,
             ApprovalPolicy.IsLarge(active, document.Type, qty, amount));
     }
 
     public async Task<string?> ReviewRefusalAsync(DocumentType type, bool isLarge, decimal totalQty, decimal totalAmount, CancellationToken ct)
     {
-        // Routing first: the Owner reviews only large documents, a Supervisor only the rest (PRD 3.1).
-        if (!ApprovalPolicy.MayReview(current.Role, isLarge))
-            return current.Role == Roles.Owner ? Messages.OwnerReviewsLargeOnly : Messages.AboveApprovalLimit;
+        // Routing first, by the approval tier the token holds: a large document goes to the large tier, any other to the standard tier (PRD 3.1).
+        var rights = current.Rights();
+        if (!ApprovalPolicy.MayReview(rights, isLarge))
+            return rights.Has(Permissions.DocumentApproveLarge) && !rights.Has(Permissions.DocumentApprove) ? Messages.OwnerReviewsLargeOnly : Messages.AboveApprovalLimit;
 
         var active = await rules.ListAsync(new ActiveRulesForTypeSpec(type), ct);
-        return ApprovalPolicy.CanApprove(current.Role, active, type, totalQty, totalAmount) ? null : Messages.AboveApprovalLimit;
+        return ApprovalPolicy.CanApprove(rights, active, type, totalQty, totalAmount) ? null : Messages.AboveApprovalLimit;
     }
 
     public async Task<IReadOnlyList<ApprovalTrigger>> TriggersAsync(DocumentType type, decimal totalQty, decimal totalAmount, CancellationToken ct) =>

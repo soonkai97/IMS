@@ -67,6 +67,39 @@ public class RightsParityTests
     }
 
     [Fact]
+    public void TheApprovalLimitByWhatIsHeldAnswersAsTheRoleRankDid_ForEveryRuleSetAndEverySystemRole()
+    {
+        // Routing and limit together, as the Approve handler asks them: the role-keyed pair (RP-1 and earlier) against the rights-keyed pair (RP-4a).
+        foreach (var key in OracleKeys.RuleSetKeys())
+        {
+            var rules = ParseRules(key[0]);
+            var amount = decimal.Parse(key[1], System.Globalization.CultureInfo.InvariantCulture);
+            var isLarge = ApprovalPolicy.IsLarge(rules, DocumentType.Receipt, 1m, amount);
+            foreach (var role in SystemRoles)
+            {
+                var rights = SystemRoleDefaults.RightsFor(role, Me);
+                var before = ApprovalPolicy.MayReview(role, isLarge) && ApprovalPolicy.CanApprove(role, rules, DocumentType.Receipt, 1m, amount);
+                var now = ApprovalPolicy.MayReview(rights, isLarge) && ApprovalPolicy.CanApprove(rights, rules, DocumentType.Receipt, 1m, amount);
+
+                Assert.True(before == now, $"{role} on {key[0]} at {key[1]}: was {before}, now {now}");
+            }
+        }
+    }
+
+    [Fact]
+    public void AnApprovalTierIsNotLentByTheRoleName()
+    {
+        // A holder of only the standard tier never reviews a large document, whatever else they are called; the large tier alone never reviews a standard one.
+        var standardOnly = new ActorRights(Me, EffectivePermissions.Compute([Permissions.DocumentApprove]));
+        var largeOnly = new ActorRights(Me, EffectivePermissions.Compute([Permissions.DocumentApproveLarge]));
+
+        Assert.False(ApprovalPolicy.MayReview(standardOnly, isLarge: true));
+        Assert.True(ApprovalPolicy.MayReview(standardOnly, isLarge: false));
+        Assert.True(ApprovalPolicy.MayReview(largeOnly, isLarge: true));
+        Assert.False(ApprovalPolicy.MayReview(largeOnly, isLarge: false));
+    }
+
+    [Fact]
     public void PostingAuthorityAgreesWithTheOracleForEveryoneWhoCanPost()
     {
         // The role-keyed answers were standalone and true for roles that cannot post at all (Owner, Clerk, an unknown role), where they never mattered:

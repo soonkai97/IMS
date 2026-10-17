@@ -10,6 +10,8 @@ public static class Limits
     public const int RefreshTokenDays = 7;
     /// <summary>Rights ride in the access token, so this (plus <see cref="ClockSkewSeconds"/>) is how long a demotion can go unnoticed.</summary>
     public const int AccessTokenMinutes = 5;
+    /// <summary>The longest <c>Jwt:AccessMinutes</c> the host starts with: it is the revocation window of every right, so it is bounded (load and DAST runs use 30 and 60).</summary>
+    public const int AccessTokenMaxMinutes = 60;
     public const int ClockSkewSeconds = 30;
     public const int JwtKeyMinLength = 32;
     public const int JwtKeyGeneratedBytes = 48;
