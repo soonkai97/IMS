@@ -62,8 +62,7 @@ function toIso(year: number, month: number, day: number): string | null {
 
 /**
  * What the user typed, as yyyy-MM-dd, or null when it is no date. Accepts `09/10/2026` (day first, the app format),
- * `09 Oct 2026` (month name in
- * the active language or English), `2026-10-09` and `2026年10月9日`.
+ * `09 Oct 2026` (month name in the active language or English), `2026-10-09` and `2026年10月9日`.
  */
 export function parseDateText(text: string, locale: string): string | null {
   const trimmed = text.trim().replace(/\s+/g, ' ');

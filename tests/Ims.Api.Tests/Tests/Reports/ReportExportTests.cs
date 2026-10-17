@@ -118,6 +118,11 @@ public class ReportExportTests(ApiFixture fixture)
         Assert.Equal(ReportHeaders.Ledger, content.Headers);
         Assert.Equal([-6m, 6m], content.Rows.Select(r => Number(content.Cell(r, "Qty change"))).Order());
         Assert.Equal(["Receipt", "Reversal"], content.Rows.Select(r => content.Cell(r, "Reason")).Order());
+        // The date column is a real Excel date shown dd/MM/yyyy hh:mm, not text.
+        using var workbook = new ClosedXML.Excel.XLWorkbook(new MemoryStream(response.Bytes));
+        var when = workbook.Worksheet(1).Cell(2, 1);
+        Assert.Equal(ClosedXML.Excel.XLDataType.DateTime, when.DataType);
+        Assert.Equal("dd/mm/yyyy hh:mm", when.Style.DateFormat.Format);
     }
 
     [Fact]

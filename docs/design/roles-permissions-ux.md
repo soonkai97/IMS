@@ -88,7 +88,7 @@ Every row is only the seeded default. The owner can change it from this feature 
 7. Row: the whole row opens the editor (the name is the link). One inline control only: the row menu `...` (44px on touch) with **Copy as new role**, **Retire** / **Reactivate**, **Delete**, each present only if allowed. Disabled-with-reason items for the cases in 2.3.
 8. Primary action: [+ Add role] (needs `roles.manage`). Secondary: [Compare roles] (Should).
 9. Counts: "People" is the number of active plus turned-off accounts holding the role, shown as `5` with a sr-only suffix "people". Clicking the number is not a target; the editor's People tab and `Users` filtered by role are the routes (the link "Show people" in the row menu opens `/users?role=<id>`).
-10. Created is shown in the editor header ("Created 02 Oct 2026 by Raj"); the list shows Modified, because administrators scan for what changed lately. (The owner asked for both: the list has a "Created" column that is hidden by default under A03 column choice and `priority 3`.)
+10. Created is shown in the editor header ("Created 02/10/2026 by Raj"); the list shows Modified, because administrators scan for what changed lately. (The owner asked for both: the list has a "Created" column that is hidden by default under A03 column choice and `priority 3`.)
 
 ### 2.2 Create, copy, start from
 
@@ -192,7 +192,7 @@ Phone (360):
 Order top to bottom (DOM order = visual order):
 
 1. Page header: breadcrumb "Roles > {name}", title (the role name), chips (Standard / Custom, Active / Retired, View only), the primary [Review and save] (shows the number of changes, disabled with the reason "No changes yet" while clean) and a quiet [Discard changes] (only while dirty), and the `...` menu (Copy as new role, Reset to standard, Retire / Reactivate, Delete, View history).
-2. A one-line status row: "{count, plural, one {1 person has} other {# people have}} this role. Changes reach them within a minute." and "Last changed 09 Oct 2026 14:05 by Raj - View history".
+2. A one-line status row: "{count, plural, one {1 person has} other {# people have}} this role. Changes reach them within a minute." and "Last changed 09/10/2026 14:05 by Raj - View history".
 3. Banners when relevant: started from a source; Admin locked; stale (E4-style); retired; "You hold this role" (section 5.2).
 4. Details card: Role name (required), Description, **Warehouse access** radio group ("Only the warehouses assigned to each person" / "Every warehouse"), Approval level (only shown when Approve is ticked, section 3.6). The legend "* means required" sits above the first field.
 5. Permissions: the grouped checklist (3.2) with the group index.
@@ -478,7 +478,7 @@ DOM order = visual order. Each card has its own save, so one card's error cannot
 
 **Profile tab**: username, display name, email, password reset (write-only, as today), Active switch (turn off/on). This is the old dialog's content. Turning an account off goes through the confirm "Turn off {name}?" "{name} is signed out within a minute and can't sign in. Their documents stay." [Back] [Turn off].
 
-**Activity tab**: the last 20 audit entries about this person's access (role changes, exceptions added or removed, warehouses, sign-in lockouts), newest first, each a sentence (section 5.8) and the link "Open in Audit log" (pre-filtered to this person). Needs `audit.read` for the link; without it the tab shows only "Last changed 10 Oct 2026 by Raj".
+**Activity tab**: the last 20 audit entries about this person's access (role changes, exceptions added or removed, warehouses, sign-in lockouts), newest first, each a sentence (section 5.8) and the link "Open in Audit log" (pre-filtered to this person). Needs `audit.read` for the link; without it the tab shows only "Last changed 10/10/2026 by Raj".
 
 ### 4.2 Card 1: What they can do (role)
 
@@ -504,7 +504,7 @@ Purpose: a single permission differs from the role for this person. Always visib
 - Expired exceptions are not in effect. They move to a collapsed section "Expired exceptions ({n})" (disclosure, closed by default) with the same columns minus the action; history stays in the audit trail.
 - [+ Add exception] (needs `users.overrides`; absent otherwise; disabled on your own page with the reason in 5.1).
 - Empty: "No exceptions. {name} has exactly what the {role} role allows." [Add exception].
-- Phone: cards with Permission as heading, effect chip, reason (full), "Expires 30 Oct 2026", [Remove].
+- Phone: cards with Permission as heading, effect chip, reason (full), "Expires 30/10/2026", [Remove].
 
 **Add exception dialog** (S58; bottom sheet on phone):
 
@@ -546,13 +546,13 @@ A read-only list of the same six groups, but each row says **Allowed** or **Not 
 |---|---|
 | Permission | name, with the flags |
 | Result | "Allowed" (icon `check`) / "Not allowed" (icon `minus`) |
-| Source | "Role: Supervisor" / "Exception: allowed by Raj on 02 Oct 2026 - \"Covering the stocktake\" - until 20 Oct 2026" / "Exception: taken away by Raj ..." / "Not given" (muted) |
+| Source | "Role: Supervisor" / "Exception: allowed by Raj on 02/10/2026 - \"Covering the stocktake\" - until 20/10/2026" / "Exception: taken away by Raj ..." / "Not given" (muted) |
 
 - Filter chips above: **All**, **Allowed**, **From exceptions** (the default is All; a person with exceptions sees the count on the chip). The filter is a toggle group (`aria-pressed`), not a tab strip.
 - Rows from exceptions get the change marker (accent bar + icon + text), so the difference from the role is findable without colour.
 - Search box "Find a permission" (client-side).
 - Phone: one card per permission row, grouped under the group headings.
-- Headline answers on top (same ten Yes/No rows as the role preview, computed from the person's effective set), so a supervisor can read "Can see stock value: Yes, from an exception until 20 Oct" at a glance.
+- Headline answers on top (same ten Yes/No rows as the role preview, computed from the person's effective set), so a supervisor can read "Can see stock value: Yes, from an exception until 20/10/2026" at a glance.
 
 ### 4.6 Compare
 
@@ -696,7 +696,7 @@ Accessibility: the banner is announced politely once; the button is the first co
 | Role retired / reactivated / deleted | "Raj retired the role ..." |
 | Person's role changed | "Raj changed Siti Rahman's role from Clerk to Supervisor." |
 | Warehouses changed | "Raj changed Siti Rahman's warehouses: added Store B, removed Store C." |
-| Exception added | "Raj gave Siti Rahman \"See stock value\" as an exception until 20 Oct 2026. Reason: {reason}" |
+| Exception added | "Raj gave Siti Rahman \"See stock value\" as an exception until 20/10/2026. Reason: {reason}" |
 | Exception removed / expired | "Raj removed the exception ..." / "The exception ... expired." |
 | Account off / on | "Raj turned off Siti Rahman's account." |
 

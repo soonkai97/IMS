@@ -5,7 +5,9 @@ namespace Ims.Infrastructure.Excel;
 
 public class ClosedXmlExcelWriter : IExcelWriter
 {
-    private const string DateTimeFormat = "yyyy-mm-dd hh:mm";
+    // dd/MM/yyyy everywhere (owner decision, same as the web). The cells stay real Excel dates, so sort and filter keep working.
+    private const string DateFormat = "dd/mm/yyyy";
+    private const string DateTimeFormat = "dd/mm/yyyy hh:mm";
     private const int HeaderRow = 1;
 
     public byte[] Write(string sheetName, string[] headers, IReadOnlyList<int?> decimalPlaces, IEnumerable<object?[]> rows)
@@ -28,6 +30,7 @@ public class ClosedXmlExcelWriter : IExcelWriter
                     case decimal d when decimalPlaces[c] is { } places: cell.Value = Money.Round(d, places); cell.Style.NumberFormat.Format = "#,##0." + new string('0', places); break;
                     case decimal d: cell.Value = d; break;
                     case DateTime dt: cell.Value = dt; cell.Style.DateFormat.Format = DateTimeFormat; break;
+                    case DateOnly d: cell.Value = d.ToDateTime(TimeOnly.MinValue); cell.Style.DateFormat.Format = DateFormat; break;
                     case int i: cell.Value = i; break;
                     // Stored as an explicit text cell, so user-entered "=..." is never evaluated as a formula.
                     default: cell.SetValue(row[c]!.ToString()!); break;

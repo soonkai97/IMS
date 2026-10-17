@@ -135,7 +135,7 @@ Same rule: implementers do not re-argue these.
 
 ### 0.4 Novice retest (NR-01..NR-18, open NV items) and open edge items: triage
 
-`docs/qa/retest-novice-warehouse-staff.md` and the still-open items of the edge retest are assigned like this. Decisions given with the request: NV-27 is decided (use the `dd MMM yyyy` date field, R23); NV-28 stays a draft until the native review (marker `TODO-review`, risk K15); NR-02 is being decided by the owner through the designers (placeholder R28).
+`docs/qa/retest-novice-warehouse-staff.md` and the still-open items of the edge retest are assigned like this. Decisions given with the request: NV-27 is decided (use the `dd/MM/yyyy` date field, R23); NV-28 stays a draft until the native review (marker `TODO-review`, risk K15); NR-02 is being decided by the owner through the designers (placeholder R28).
 
 | Finding | Severity | Slice |
 |---|---|---|
@@ -151,7 +151,7 @@ Same rule: implementers do not re-argue these.
 | NV-07 reload mid-edit loses work | Major (open, partly) | not built by decision: no draft is written to browser storage (cost data on shared devices); the browser warns before leaving; a session ending is R26. Owner question P9 |
 | NV-08 Home tiles not tappable, no line count on cards | Major (open, partly) | R17 (Doer Home rows are links) and R19; the line count on the card needs the optional `lineCount` field (A08 API note) |
 | NV-10 footer a third of the screen | Minor (open, partly) | R29 (same as NR-03, NR-04) |
-| NV-27 date format | Polish, decided | R23 (`dd MMM yyyy`) |
+| NV-27 date format | Polish, decided | R23 (`dd/MM/yyyy`) |
 | NV-28 zh wording of Submit & post | Polish, decided | stays as drafted until the native review (K15) |
 | EA-06, EA-07 | Minor (open, partly) | R14 (ER-03, ER-04), plus "Keep editing" returns focus to the control (R14) |
 | EA-15, EA-26 | Minor/Polish | R11 (panel copy, one announcement) |
@@ -212,7 +212,7 @@ Not covered here on purpose (not part of this refresh): PR-01 (backend valuation
 | R19 | Role-aware Home: Reviewer, Overseer, Admin | Refresh | 900 | R17, G02 | 17 | H |
 | R20 | Palette search and phone button | Refresh | 700 | R18, G02 | 20 | H |
 | R22 | Keyboard shortcuts (changed) | Refresh | 500 | R18, A04 | 31 | T |
-| R23 | Date field dd MMM yyyy | Refresh | 600 | R03, R08 | 19 | - |
+| R23 | Date field dd/MM/yyyy | Refresh | 600 | R03, R08 | 19 | - |
 | R24 | Clean-up | Refresh | 300 | all | 34 | - |
 | R25 | Sign-in page redesign (from the login spec) | Refresh | 1,000 | R01, R02, R05, R06, R08, R11, A01 | 8 | - |
 | R26 | Re-sign-in in place (ER-01) | Refresh | 450 | R25, R14, R11 | 17 | - |
@@ -331,7 +331,7 @@ These are the version 1 slices. The text is unchanged except where a title says 
 - Behaviour: a client validator on the two date controls blocks the request and shows "From must be on or before To." under the To field; if the API answers 400 with `errors.to` the same field shows the server sentence; in both cases the table is cleared (no stale rows) and the pager is hidden. Columns for the movements table: Posted, Document (with the Reversal badge), Type, Status, Warehouse, Partner (may wrap to a second line), SKU, Product, Qty, Unit, Stock effect, Unit cost (only `cost.view`, the existing `columnWhen`), Amount (only `cost.view`). SKU, document number and date are `white-space: nowrap`.
 - Size: 350.
 - Depends on: none.
-- Acceptance: with From 12 Oct 2026 and To 10 Oct 2026 no "Something went wrong" and no Retry; the To field shows the sentence (announced once, `aria-describedby`); the old "1-6 of 6" footer is gone; correcting the dates reloads the table. At 1280 wide the supervisor sees every column including Amount without horizontal scroll inside the region; at 1024 the region scrolls but SKU and date stay on one line (TB-01, TB-05). Product, Unit and Unit cost are visible to Supervisor and Owner and Admin; the Unit cost column is absent for any user without `cost.view`.
+- Acceptance: with From 12/10/2026 and To 10/10/2026 no "Something went wrong" and no Retry; the To field shows the sentence (announced once, `aria-describedby`); the old "1-6 of 6" footer is gone; correcting the dates reloads the table. At 1280 wide the supervisor sees every column including Amount without horizontal scroll inside the region; at 1024 the region scrolls but SKU and date stay on one line (TB-01, TB-05). Product, Unit and Unit cost are visible to Supervisor and Owner and Admin; the Unit cost column is absent for any user without `cost.view`.
 - Tests: reports component spec (range error client and server, columns per permission, cleared table); e2e new `15-reports-range` (supervisor: bad range message; wide table columns; no wrap measured by `boundingBox().height` of the SKU cell equal to one line).
 - Re-check: power (PR-03, PR-06, PS-22 closed), edge.
 
@@ -543,10 +543,10 @@ Same scope, now A05 (paging toolbar), which adds the density button and the 10,0
 > Owner decision (after merge): dates are `dd/MM/yyyy` everywhere, in en, zh and ms, and `dd/MM/yyyy HH:mm` (24 hour) with a time. The month-name form below is still read when typed but is no longer shown; the placeholder is the pattern (`dd/mm/yyyy`, `hh/bb/tttt`, `日/月/年`).
 
 - Goal: UX 10.4 (NV-27, PS-15, accepted): a text date field in the app format with a calendar button.
-- Files: new `web/libs/shared/ui/src/lib/components/date-field/*` (`app-date-field`: typed text `dd MMM yyyy`, also accepts a pick from the native picker through a button, emits an ISO date string `yyyy-MM-dd` (the Kuala Lumpur calendar day, same as today's `from`/`to`), validation message "Enter a date such as 09 Oct 2026."), `web/libs/shared/utils/src/lib/dates/*` (parse/format helper with a month table for en, zh, ms), adoption in the filter bars of `reports`, `document-list`, `audit-log`, and any other `type="date"` input (grep `type="date"`), the Reports empty state action "Change filters" (S11), the catalogs.
+- Files: new `web/libs/shared/ui/src/lib/components/date-field/*` (`app-date-field`: typed text `dd/MM/yyyy`, also accepts a pick from the native picker through a button, emits an ISO date string `yyyy-MM-dd` (the Kuala Lumpur calendar day, same as today's `from`/`to`), validation message "Enter a date such as 09/10/2026."), `web/libs/shared/utils/src/lib/dates/*` (parse/format helper with a month table for en, zh, ms), adoption in the filter bars of `reports`, `document-list`, `audit-log`, and any other `type="date"` input (grep `type="date"`), the Reports empty state action "Change filters" (S11), the catalogs.
 - Size: 600.
 - Depends on: R03 (range validator and message), R08 (form-field).
-- Acceptance: the Reports, Receipts, Issues and Audit date filters accept `09 Oct 2026` and reject `31 Feb 2026`; From after To shows "From must be on or before To." (R03 behaviour kept); the sentence sits under To and no box moves (the filter-row mixin aligns the cells to the top and gives a label-less search box or checkbox the label's height as a top margin, measured at 1480 in en, zh and ms); the field shows the same format in en, zh and ms; keyboard and screen reader: label, hint of the format, error linked with `aria-describedby`; no mm/dd/yyyy anywhere; ER-17 (v2: the focus ring stays visible on the calendar button, `:focus-within` on the field wrapper).
+- Acceptance: the Reports, Receipts, Issues and Audit date filters accept `09/10/2026` (a typed `09 Oct 2026` is still read) and reject `31/02/2026`; From after To shows "From must be on or before To." (R03 behaviour kept); the sentence sits under To and no box moves (the filter-row mixin aligns the cells to the top and gives a label-less search box or checkbox the label's height as a top margin, measured at 1480 in en, zh and ms); the field shows the same format in en, zh and ms; keyboard and screen reader: label, the pattern as the placeholder, error linked with `aria-describedby`; no mm/dd/yyyy anywhere; ER-17 (v2: the focus ring stays visible on the calendar button, `:focus-within` on the field wrapper).
 - Tests: parse/format spec (leap day, month names per locale, trailing spaces), date-field spec, reports and document-list filter specs, e2e `24-paging-dates` and `15-reports-range` updated for the new field.
 - Re-check: novice (NV-27), power (PS-15), edge.
 
@@ -739,7 +739,7 @@ The phone keeps cards (L04). Column menu, resize, reorder, bulk bar and continuo
 #### A07 Filter chips bar and URL state
 
 - Goal: see and clear what is filtering the list; make the state shareable and back-button safe.
-- Files: new `web/libs/shared/ui/src/lib/components/filter-bar/*` (`app-filter-chips`: chips "Warehouse: Main WH x", "Status: Submitted x", "Search: widget x", "From: 01 Oct 2026 x"; chips are buttons with an accessible "Remove filter Warehouse: Main WH"; a "Clear all" button when any chip exists; a polite summary "3 filters active, 25 results"), `FilterChip` model and `filterChip()` helper in `@ims/utils`, `TableUrlState` helper (filters, sort, page, page size to query parameters; `replaceUrl` for typing, push for page changes; the URL wins over a saved view on load), adoption on `receipts`, `issues`, `stock`, `low-stock`, `products`, `movements`, `audit`.
+- Files: new `web/libs/shared/ui/src/lib/components/filter-bar/*` (`app-filter-chips`: chips "Warehouse: Main WH x", "Status: Submitted x", "Search: widget x", "From: 01/10/2026 x"; chips are buttons with an accessible "Remove filter Warehouse: Main WH"; a "Clear all" button when any chip exists; a polite summary "3 filters active, 25 results"), `FilterChip` model and `filterChip()` helper in `@ims/utils`, `TableUrlState` helper (filters, sort, page, page size to query parameters; `replaceUrl` for typing, push for page changes; the URL wins over a saved view on load), adoption on `receipts`, `issues`, `stock`, `low-stock`, `products`, `movements`, `audit`.
 - API: none (uses today's filters).
 - Size: 900. Depends on: A06.
 - Acceptance: A07.1 a chip exists for exactly the active non-default filters (the Mine/All scope is not a chip and "Clear all" does not change it). A07.2 removing a chip or Clear all reloads once and returns focus to the filter bar. A07.3 reload, Back and a pasted link restore the same list; an unknown or invalid parameter is ignored. A07.4 no chip, `title` or announcement carries a cost or value (D5). A07.5 chips wrap at 320 and are 44px high on touch.
@@ -847,7 +847,7 @@ The phone keeps cards (L04). Column menu, resize, reorder, bulk bar and continuo
 #### A17 Document timeline
 
 - Goal: who did what and when, on one screen.
-- Files: new `web/libs/shared/ui/src/lib/components/timeline/*` (`<ol>` of events; icon + label, never colour only; who; absolute time in Kuala Lumpur `dd MMM yyyy HH:mm` plus a relative hint in text, not in a tooltip; optional reason block), `features/documents/src/lib/timeline/document-events.ts` (maps `DocumentDto` to events: Created, Submitted, Approved, Returned (with the rejection reason), Posted, Cancelled (reason), Reversed (reason), using `createdAt/By`, `submittedAt/By`, `approvedAt/By`, `postedAt/By`, `returnedAt/By` that exist today), use in the drawer (A16) and a "History" tab of the document editor (decision 7 reserved the tab list; small change in `document-editor`).
+- Files: new `web/libs/shared/ui/src/lib/components/timeline/*` (`<ol>` of events; icon + label, never colour only; who; absolute time in Kuala Lumpur `dd/MM/yyyy HH:mm` plus a relative hint in text, not in a tooltip; optional reason block), `features/documents/src/lib/timeline/document-events.ts` (maps `DocumentDto` to events: Created, Submitted, Approved, Returned (with the rejection reason), Posted, Cancelled (reason), Reversed (reason), using `createdAt/By`, `submittedAt/By`, `approvedAt/By`, `postedAt/By`, `returnedAt/By` that exist today), use in the drawer (A16) and a "History" tab of the document editor (decision 7 reserved the tab list; small change in `document-editor`).
 - API: B10. Today the document has the actor and time for create, submit, approve, return and post, but only a reason (no actor, no time) for cancel and reverse. Without B10 those two events show "Cancelled" or "Reversed" with the reason and no time or name, and the mapper never invents one.
 - Size: 640. Depends on: A16.
 - Acceptance: A17.1 events are in time order, each with icon, label, name and time where the API has them. A17.2 Staff sees no amounts in any event text. A17.3 the list is a real list for screen readers ("list, 5 items"). A17.4 with B10 the cancel and reverse events show actor and time (the mapper reads the new field when present).
@@ -870,7 +870,7 @@ The phone keeps cards (L04). Column menu, resize, reorder, bulk bar and continuo
 
 - Goal: small, honest, accessible charts drawn by us. No chart library.
 - Files: new `web/libs/shared/ui/src/lib/components/chart/*`: `app-chart-frame` (title `h3`, period, one-sentence summary shown and used as description, legend, a "Show as table" toggle with `aria-pressed` that reveals a real data table, skeleton/empty/error states from the widget frame), `app-line-chart`, `app-bar-chart` (vertical, horizontal, stacked), `chart-scale.ts` (nice ticks, linear time scale; unit-tested), colour tokens `chart-1..chart-4` appended to the palette with their contrast pairs in `check-contrast.mjs` in the same PR, patterns for forced colours (see L06).
-- Behaviour: `<svg role="img" aria-labelledby aria-describedby>` sized by its container (container query plus `ResizeObserver` for tick count); the plot area is focusable and Left/Right step through data points, announcing "12 Oct, 42 receipts" and showing a persistent value readout (nothing is hover-only); series are told apart by shape, dash or label as well as colour (FR-08); axis labels use the app pipes: money with 2 decimals and thousands separators, never "12.4k" (N10); no animation, no gradients, no shadows; prints in black and white with patterns.
+- Behaviour: `<svg role="img" aria-labelledby aria-describedby>` sized by its container (container query plus `ResizeObserver` for tick count); the plot area is focusable and Left/Right step through data points, announcing "12/10/2026, 42 receipts" and showing a persistent value readout (nothing is hover-only); series are told apart by shape, dash or label as well as colour (FR-08); axis labels use the app pipes: money with 2 decimals and thousands separators, never "12.4k" (N10); no animation, no gradients, no shadows; prints in black and white with patterns.
 - API: none (data is passed in).
 - Size: 1,000. Depends on: R05, L01, L06.
 - Acceptance: A19.1 every chart has a text alternative (title + summary) and a data table with the same numbers. A19.2 keyboard stepping works and is announced once per step. A19.3 axis and tooltip money has exactly 2 decimals. A19.4 colour is never the only carrier of meaning (grayscale screenshot, forced-colors screenshot). A19.5 the chart chunk is <= 40 kB raw and lazy.
