@@ -1,12 +1,10 @@
 @use 'libs' as *;
 
 :host {
-  // The box, the magnifier and the clear button share one grid cell. When a filter row stretches the host taller (its
-  // neighbours have a label above the box), the cell stays box-high and sits at the bottom, so the box lines up with
-  // the labelled fields and the icon stays centred on the box, not on the stretched host.
+  // The box, the magnifier and the clear button share one grid cell, so the icon stays centred on the box whatever the
+  // height of the host. A filter row (filter-row mixin) gives the host its top margin to line up with labelled fields.
   display: grid;
   grid-template: 'cell' auto / minmax(0, 1fr);
-  align-content: end;
   min-width: 0;
 }
 
