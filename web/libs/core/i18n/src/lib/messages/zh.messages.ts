@@ -445,6 +445,25 @@ export const ZH_MESSAGES: Messages = {
   'dialog.reverse.body': '这会添加相反的库存记录，原单据仍会保留。',
   'dialog.reverse.title': '冲销 {docNo}？',
 
+  // TODO-review: machine draft (document corrections, R28 and R31).
+  'doc.action.recall': '编辑',
+  'doc.toast.recalled': '已退回草稿。请修改后重新提交。',
+  'doc.hint.recallWaiting': '需要修改？请点“编辑”。',
+  'doc.hint.recallReady': '数量有误？请点“编辑”。',
+  'doc.hint.approvedAskCancel': '数量有误？请联系 {name} 取消这张单据。',
+  'dialog.post.edit': '修改明细',
+  'dialog.recall.title': '编辑 {docNo}？',
+  'dialog.recall.body': '单据将离开审批列表并退回草稿。修改无误后请重新提交。',
+  'dialog.recall.keep': '继续等待',
+  'dialog.cancelApproved.body': '该单据已批准但尚未过账，库存不会变化。此操作无法撤销。',
+  'doc.cannotPost.title': '现在无法过账',
+  'doc.cannotPost.body':
+    '{sku} 需要 {requested}，但 {warehouse} 仅有 {available}。请等待到货或取消单据。',
+  'doc.stockChangedBodyEdit':
+    '{sku} 目前库存为 {available} {uom}，但单据需要 {requested}。请点“编辑”减少数量。',
+  'doc.stockChangedBodyReviewer':
+    '{sku} 目前库存为 {available} {uom}，但单据需要 {requested}。请等待到货或取消单据。',
+
   'approvals.emptyMine': '您没有已提交的单据。',
   'approvals.emptyWaiting': '没有等待您审批的单据。',
   'approvals.flags': '标记',

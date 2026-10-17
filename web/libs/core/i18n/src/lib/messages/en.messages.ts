@@ -477,6 +477,27 @@ export const EN_MESSAGES = {
   'dialog.reverse.body': 'This adds opposite stock entries. The original stays on record.',
   'dialog.reverse.title': 'Reverse {docNo}?',
 
+  // Correcting a document before it posts (docs/design/document-corrections.md)
+  'doc.action.recall': 'Edit',
+  'doc.toast.recalled': 'Back to draft. Fix it, then submit again.',
+  'doc.hint.recallWaiting': 'Need to change something? Tap Edit.',
+  'doc.hint.recallReady': 'Wrong quantity? Tap Edit.',
+  'doc.hint.approvedAskCancel': 'Wrong quantity? Ask {name} to cancel it.',
+  'dialog.post.edit': 'Edit items',
+  'dialog.recall.title': 'Edit {docNo}?',
+  'dialog.recall.body':
+    'It leaves the approval list and goes back to draft. Submit it again when it is right.',
+  'dialog.recall.keep': 'Keep waiting',
+  'dialog.cancelApproved.body':
+    "It is approved but not posted yet. Stock does not change. This can't be undone.",
+  'doc.cannotPost.title': "Can't be posted now",
+  'doc.cannotPost.body':
+    '{sku} needs {requested}, but only {available} are on hand in {warehouse}. Wait for stock or cancel it.',
+  'doc.stockChangedBodyEdit':
+    'Stock for {sku} is now {available} {uom}, but the document needs {requested}. Tap Edit to lower the quantity.',
+  'doc.stockChangedBodyReviewer':
+    'Stock for {sku} is now {available} {uom}, but the document needs {requested}. Wait for stock or cancel it.',
+
   // Approvals
   'approvals.emptyMine': 'You have nothing submitted.',
   'approvals.emptyWaiting': 'Nothing waiting for your approval.',

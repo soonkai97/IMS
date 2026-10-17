@@ -107,7 +107,7 @@ test.describe('IN-01 Receive stock (Warehouse staff)', () => {
     expect(saves).toHaveLength(1);
   });
 
-  test('given a filled receipt, when staff backs out of the Post dialog and posts again, then only one document is created (NV-02)', async ({
+  test('given a filled receipt, when staff closes the Post dialog and posts again, then only one document is created (NV-02)', async ({
     page,
     signIn,
     shell,
@@ -125,12 +125,14 @@ test.describe('IN-01 Receive stock (Warehouse staff)', () => {
 
     await editor.action('Submit & post').click();
     await expect(shell.dialog(/^Post /)).toBeVisible();
-    await shell
-      .dialog(/^Post /)
-      .getByRole('button', { name: 'Back' })
-      .click();
+    // The submitter may take the document back, so the left button reads "Edit items" (R28); Escape just closes the dialog.
+    await expect(
+      shell.dialog(/^Post /).getByRole('button', { name: 'Edit items', exact: true })
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
     await expect(shell.dialog(/^Post /)).toBeHidden();
     await expect(editor.status).toHaveText('Submitted');
+    await expect(editor.action('Edit')).toBeVisible();
 
     await editor.action('Post').click();
     await editor.confirm(/^Post /, 'Post');

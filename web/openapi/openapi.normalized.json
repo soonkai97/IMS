@@ -2301,11 +2301,54 @@
         }
       }
     },
+    "/api/documents/{id}/recall": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Takes the caller's own Submitted document back to Draft (the Edit button): same number, same lines, no reason. Repeating it on a document\r\nthat is already an ordinary Draft answers 200 with the document and changes nothing.",
+        "operationId": "Documents_recall",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/documents/{id}/cancel": {
       "post": {
         "tags": [
           "Documents"
         ],
+        "summary": "Cancels a Draft, a Submitted or an Approved document. The reason is optional, except that cancelling an Approved document (by a reviewer it is routed to) needs one of at least 5 characters. No permission door: the create right is not enough (the Owner approves but cannot create), so `DocumentActionPolicy.MayCancel` decides; the catalog gives document endpoints their doors in RP-4a.",
         "operationId": "Documents_cancel",
         "parameters": [
           {
@@ -4040,7 +4083,7 @@
             "items": {
               "type": "string"
             },
-            "description": "What the caller may do right now (edit, submit, approve, reject, cancel, post, reverse). The UI shows buttons from this list only. It already accounts for ownership (Warehouse staff and Clerk act only on their own documents), the approver the document is routed to (an Owner reviews only `isLarge` documents, a Supervisor the rest) and self-approval, so a listed action is one the API will accept."
+            "description": "What the caller may do right now (edit, submit, recall, approve, reject, cancel, post, reverse). The UI shows buttons from this list only. It already accounts for ownership (Warehouse staff and Clerk act only on their own documents), the approver the document is routed to (an Owner reviews only `isLarge` documents, a Supervisor the rest) and self-approval, so a listed action is one the API will accept."
           },
           "approvalTriggers": {
             "type": "array",

@@ -5,11 +5,13 @@
     [body]="request.body ?? ''"
     [confirmLabel]="request.confirmLabel"
     [cancelLabel]="request.cancelLabel"
+    [alternateLabel]="request.alternateLabel"
     [destructive]="request.destructive ?? false"
     [reasonLabel]="request.reasonLabel"
     [reasonRequired]="request.reasonRequired ?? false"
     [minReasonLength]="request.minReasonLength ?? 0"
     (confirmed)="onConfirmed($event)"
+    (alternated)="onAlternated()"
     (cancelled)="onCancelled()"
   />
 }
