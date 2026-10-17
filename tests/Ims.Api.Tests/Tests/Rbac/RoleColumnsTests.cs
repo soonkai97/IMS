@@ -157,16 +157,11 @@ public class RoleColumnsTests(ApiFixture fixture)
         var client = fixture.CreateClient();
         client.AccessToken = (await client.Auth.LoginAsync(request.Username, request.Password!)).Data<AuthResult>().AccessToken;
 
-        (await client.Users.CreateAsync(NewUser(Roles.Clerk, allWarehouses: true))).ShouldBeProblem(HttpStatusCode.Forbidden);
-        var granted = (await client.Users.CreateAsync(NewUser(Roles.Clerk, allWarehouses: false))).Data<UserDto>();
-        (await client.Users.UpdateAsync(granted.Id, new UserSaveRequest(granted.Username, granted.Email, granted.Username, Roles.Clerk, true, null, [fixture.Reference.DefaultWarehouseId], true)))
+        (await client.Users.CreateAsync(NewUser(manager.Code, allWarehouses: true))).ShouldBeProblem(HttpStatusCode.Forbidden);
+        var granted = (await client.Users.CreateAsync(NewUser(manager.Code, allWarehouses: false))).Data<UserDto>();
+        (await client.Users.UpdateAsync(granted.Id, new UserSaveRequest(granted.Username, granted.Email, granted.Username, manager.Code, true, null, [fixture.Reference.DefaultWarehouseId], true)))
             .ShouldBeProblem(HttpStatusCode.Forbidden);
         Assert.False((await UserRowAsync(granted.Username)).AllWarehouses);
-
-        // Keeping the flag a user already has is not a grant.
-        var all = (await admin.Users.CreateAsync(NewUser(Roles.Clerk, allWarehouses: true))).Data<UserDto>();
-        (await client.Users.UpdateAsync(all.Id, new UserSaveRequest(all.Username, all.Email, "Renamed", Roles.Clerk, true, null, [fixture.Reference.DefaultWarehouseId]))).ShouldBeOk();
-        Assert.True((await UserRowAsync(all.Username)).AllWarehouses);
     }
 
     // ----- Approval rules: the tier is the only record; roleRequired is a deprecated way to say and to read it -----

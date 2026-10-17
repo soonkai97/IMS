@@ -10,11 +10,13 @@ namespace Ims.Infrastructure.Persistence.Migrations
     ///   1. stop if any user of a system role has a <c>Role</c> text that is not exactly the code of the role row its <c>RoleId</c> points at (a custom role has no text
     ///      of its own: Down writes WarehouseStaff there, and a second run must not be stopped by it). The row has decided the person's rights since RP-4a, but the
     ///      text was what the list showed and the old release decided by, so a difference is a manual edit someone must look at: nothing is guessed, nobody silently changes role;
-    ///   2. one audit row names the active approval rules that name the Administrator: they are Large rules (since the RP-2 migration) and from this release the Owner can
+    ///   2. one audit row names the approval rules that name the Administrator and that no earlier `approval-rules.widened` row names (the RP-2 migration already named the
+    ///      active ones it found): `ruleIds` the active ones, `inactiveRuleIds` the inactive ones, each in ascending id. They are Large rules (since the RP-2 migration) and from this release the Owner can
     ///      satisfy them too, because the approval check no longer ranks role names (an owner decision, Q5);
     ///   3. drop <c>User.Role</c> and <c>ApprovalRule.RoleRequired</c>.
     /// A failed run leaves the database as it was and can simply be run again. Down puts both columns back from the rows (a user in a custom role gets WarehouseStaff, the
-    /// least privilege; a Standard rule gets Supervisor and a Large rule Owner), so the previous release works again.
+    /// least privilege; a Standard rule gets Supervisor and a Large rule Owner, so an Administrator-only rule comes back as an Owner rule), so the previous release works again.
+    /// The statements that read a column the same Down has just added are wrapped in EXEC, so the generated script runs as well as the migration runner.
     /// </summary>
     public partial class DropLegacyRoleColumns : Migration
     {
@@ -23,6 +25,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
         private const string Supervisor = "Supervisor";
         private const string Owner = "Owner";
         private const int Large = 2;
+        private const string Widened = "approval-rules.widened";
 
         /// <summary>The column equals the text exactly: same case, same length (the collation of the database ignores both case and trailing spaces).</summary>
         private static string Exactly(string column, string text) =>
@@ -32,6 +35,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql("""
+                SET XACT_ABORT ON; -- a run by hand that is stopped below leaves no open transaction
                 DECLARE @differs nvarchar(2048) = (
                     SELECT TOP (1) CONCAT(N'User ', u.[Id], N' (', u.[PublicId], N') has the role text ''', u.[Role], N''' but its role row is ''', r.[Code], N'''. Make them agree, then run the migration again.')
                     FROM [User] u JOIN [Role] r ON r.[Id] = u.[RoleId]
@@ -41,11 +45,17 @@ namespace Ims.Infrastructure.Persistence.Migrations
                 """);
 
             migrationBuilder.Sql($$"""
+                WITH [AdminRules] AS (
+                    SELECT [Id], [PublicId], [IsActive] FROM [ApprovalRule]
+                    WHERE {{Exactly("[RoleRequired]", Admin)}} AND [REC_DELETED] = 0
+                      AND NOT EXISTS (SELECT 1 FROM [AuditLogs] a WHERE a.[Action] = N'{{Widened}}' AND a.[After] LIKE CONCAT(N'%', CONVERT(nvarchar(36), [ApprovalRule].[PublicId]), N'%')))
                 INSERT INTO [AuditLogs] ([Actor], [Action], [EntityType], [EntityId], [After], [At])
-                SELECT N'system', N'approval-rules.widened', N'ApprovalRule', N'bulk',
-                       CONCAT(N'{"count":', COUNT(*), N',"ruleIds":["', STRING_AGG(CONVERT(nvarchar(max), [PublicId]), N'","'), N'"]}'), SYSUTCDATETIME()
-                FROM [ApprovalRule] WHERE {{Exactly("[RoleRequired]", Admin)}} AND [IsActive] = 1 AND [REC_DELETED] = 0
-                HAVING COUNT(*) > 0;
+                SELECT N'system', N'{{Widened}}', N'ApprovalRule', N'bulk',
+                       CONCAT(N'{"count":', SUM(IIF([IsActive] = 1, 1, 0)),
+                              N',"ruleIds":[', ISNULL(STRING_AGG(IIF([IsActive] = 1, CONVERT(nvarchar(max), CONCAT(N'"', [PublicId], N'"')), NULL), N',') WITHIN GROUP (ORDER BY [Id]), N''),
+                              N'],"inactiveRuleIds":[', ISNULL(STRING_AGG(IIF([IsActive] = 0, CONVERT(nvarchar(max), CONCAT(N'"', [PublicId], N'"')), NULL), N',') WITHIN GROUP (ORDER BY [Id]), N''),
+                              N']}'), SYSUTCDATETIME()
+                FROM [AdminRules] HAVING COUNT(*) > 0;
                 """);
 
             migrationBuilder.DropColumn(
@@ -67,7 +77,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
                 maxLength: 32,
                 nullable: true);
 
-            migrationBuilder.Sql($"UPDATE u SET u.[Role] = CASE WHEN r.[IsSystem] = 1 THEN r.[Code] ELSE N'{WarehouseStaff}' END FROM [User] u JOIN [Role] r ON r.[Id] = u.[RoleId];");
+            // EXEC: the statement reads the column the batch before it added, which a scripted run (no batch break between the two) would not find at compile time.
+            migrationBuilder.Sql($"EXEC(N'UPDATE u SET u.[Role] = CASE WHEN r.[IsSystem] = 1 THEN r.[Code] ELSE N''{WarehouseStaff}'' END FROM [User] u JOIN [Role] r ON r.[Id] = u.[RoleId];');");
 
             migrationBuilder.AlterColumn<string>(
                 name: "Role",
@@ -87,7 +98,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
                 maxLength: 32,
                 nullable: true);
 
-            migrationBuilder.Sql($"UPDATE [ApprovalRule] SET [RoleRequired] = CASE WHEN [Tier] = {Large} THEN N'{Owner}' ELSE N'{Supervisor}' END;");
+            migrationBuilder.Sql($"EXEC(N'UPDATE [ApprovalRule] SET [RoleRequired] = CASE WHEN [Tier] = {Large} THEN N''{Owner}'' ELSE N''{Supervisor}'' END;');");
 
             migrationBuilder.AlterColumn<string>(
                 name: "RoleRequired",
