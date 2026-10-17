@@ -1,8 +1,11 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Auth;
 
-/// <summary>Rotates the refresh token: the presented one is revoked and a new pair is issued.</summary>
-public class RefreshTokenHandler(IRepository<RefreshToken> tokensRepo, IReadRepository<User> users, ITokenService tokens, IAuthTokenIssuer issuer, IClock clock)
+/// <summary>
+/// Rotates the refresh token: the presented one is revoked and a new pair is issued, with the rights read now (this is where a demotion or a changed scope reaches the token).
+/// A user with no live role gets a 401 before anything is revoked or written.
+/// </summary>
+public class RefreshTokenHandler(IRepository<RefreshToken> tokensRepo, IReadRepository<User> users, ITokenService tokens, IAuthTokenIssuer issuer, IAccessSnapshotLoader snapshots, IClock clock)
     : ICommandHandler<RefreshTokenCommand, AuthResult>
 {
     public async Task<AuthResult> HandleAsync(RefreshTokenCommand cmd, CancellationToken ct)
@@ -16,10 +19,12 @@ public class RefreshTokenHandler(IRepository<RefreshToken> tokensRepo, IReadRepo
         if (user is null || !user.IsActive || user.IsLockedOut(now))
             throw new UnauthorizedException(Messages.SessionExpired);
 
+        var access = await snapshots.LoadAsync(user.Id, ct) ?? throw new UnauthorizedException(Messages.SessionExpired);
+
         stored.Revoke(now);
         try
         {
-            return await issuer.IssueAsync(user, ct);
+            return await issuer.IssueAsync(user, access, ct);
         }
         catch (ConcurrencyException)
         {
