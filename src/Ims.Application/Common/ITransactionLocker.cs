@@ -13,4 +13,10 @@ public interface ITransactionLocker
 
     /// <summary>Serialises allocation of the next document number for one document type, warehouse and month.</summary>
     Task LockDocumentSequenceAsync(string prefix, int yearMonth, int warehouseId, CancellationToken ct);
+
+    /// <summary>
+    /// Serialises the changes that decide whether a role may be deleted or deactivated with the changes that give a role to a user (the user save), so a role is never removed from
+    /// under a user who has just been given it. Taken by those writes only; never held together with a stock or document lock.
+    /// </summary>
+    Task LockRolesAsync(CancellationToken ct);
 }

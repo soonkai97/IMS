@@ -2,14 +2,16 @@ using Ims.Domain;
 namespace Ims.Application.Features.Users;
 
 public class UpdateUserHandler(IRepository<User> users, IReadRepository<Role> roles, IIdMap<Warehouse> warehouseIds, IRepository<RefreshToken> tokens, IPasswordHasher hasher,
-    ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<UpdateUserCommand, UserDto>
+    ICurrentUser current, IClock clock, ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<UpdateUserCommand, UserDto>
 {
-    public async Task<UserDto> HandleAsync(UpdateUserCommand cmd, CancellationToken ct)
+    public Task<UserDto> HandleAsync(UpdateUserCommand cmd, CancellationToken ct) => uow.ExecuteAsync(async () =>
     {
         var r = cmd.Data;
         var user = await users.FirstOrDefaultAsync(new UserWithWarehousesByPublicIdSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.UserNotFound);
         if (await users.AnyAsync(new UserTakenSpec(r.Username, r.Email, user.Id), ct)) throw new ConflictException(Messages.UserExists);
         var wanted = await UserWarehouses.ResolveAsync(warehouseIds, r.WarehouseIds, ct);
+        // Under the roles lock, so the role cannot be deleted or deactivated between this look-up and the save.
+        await locker.LockRolesAsync(ct);
         var role = UserContainment.ExactRole(await roles.FirstOrDefaultAsync(new RoleForAssignmentSpec(r.Role), ct), r.Role);
 
         // Nobody gets more than they have: not a user who sees or holds more than the caller, not a role or warehouses beyond the caller's own.
@@ -44,5 +46,5 @@ public class UpdateUserHandler(IRepository<User> users, IReadRepository<Role> ro
         audit.Record(AuditActions.UserUpdated, AuditEntities.User, user.PublicId.ToString(), before, new { user.Username, Role = role.Code, AllWarehouses = allWarehouses, user.IsActive, Warehouses = wanted });
         await uow.SaveChangesAsync(ct);
         return await UserMapping.ToDtoAsync(user, warehouseIds, ct);
-    }
+    }, ct);
 }

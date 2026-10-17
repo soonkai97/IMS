@@ -15,6 +15,10 @@ public static class AuditActions
 
     public const string UserCreated = "user.created";
     public const string UserUpdated = "user.updated";
+    public const string RoleCreated = "role.created";
+    public const string RoleUpdated = "role.updated";
+    public const string RolePermissionsChanged = "role.permissions-changed";
+    public const string RoleDeleted = "role.deleted";
     public const string PasswordChanged = "user.password-changed";
     public const string SettingsUpdated = "settings.updated";
 
@@ -42,7 +46,7 @@ public static class AuditActions
     /// <summary>Every action name above, for the audit log filter dropdown.</summary>
     public static readonly IReadOnlyList<string> Known =
     [
-        RowCreated, RowUpdated, RowDeleted, LoginSuccess, LoginFailed, LoginLocked, LoginLockout, Logout, UserCreated, UserUpdated, PasswordChanged,
+        RowCreated, RowUpdated, RowDeleted, LoginSuccess, LoginFailed, LoginLocked, LoginLockout, Logout, UserCreated, UserUpdated, PasswordChanged, RoleCreated, RoleUpdated, RolePermissionsChanged, RoleDeleted,
         SettingsUpdated, DocumentCreated, DocumentSubmitted, DocumentApproved, DocumentRejected, DocumentRecalled, DocumentCancelled, DocumentPosted, DocumentReversed,
         AttachmentUploaded, AttachmentDeleted, ImportProducts, ImportOpeningStock, ApprovalRulesWidened
     ];
