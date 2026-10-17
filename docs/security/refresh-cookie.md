@@ -56,8 +56,20 @@ Failure: `403` ProblemDetails, the token is not consumed and the cookie is left 
 cookie. A token sent in the request body is an explicit credential that a forged request cannot supply, so the old clients need no header.
 Login is not cookie-authenticated (it needs the password in a JSON body, which a cross-site form cannot send), so it carries no check.
 
-Unchanged and still needed: HTTPS only (HSTS is sent outside Development), the 20-per-minute limiter on the three endpoints, and CORS limited to the
-configured origins.
+Unchanged and still needed: HTTPS only (HSTS is sent outside Development) and CORS limited to the configured origins.
+
+Rate limits (per client address, fixed one-minute window; `Caller` in `PresentationServices.cs`):
+
+| Policy | Endpoint | Limit | Why |
+|---|---|---|---|
+| `login` | `POST /api/auth/login` | 20 (`Limits.LoginRateLimitPerMinute`) | Stops password guessing. Strict on purpose; the 5-strike account lockout is a second guard. |
+| `refresh` | `POST /api/auth/refresh` | 300 (`Limits.RefreshRateLimitPerMinute`) | Not a guessing target (the token is 384 random bits). Every signed-in user refreshes every 5 minutes (access token life), and all of them at once after a deploy that changes the access claims, so an office behind one address needs room. A separate bucket: sign-in traffic can no longer use up refreshes, nor the reverse. |
+| global | everything else | 600, or the signed-in user name instead of the address | Backstop; also counts login and refresh. |
+
+A limited call answers 429 with `Retry-After` and `retryAfterSeconds` in the body. The web app does not treat that as a sign-out: a refresh
+that fails with 429, a gateway error or no network is retried twice (after `Retry-After`, capped at 10 s, else 1 s then 2 s) and, if it still
+fails, the user stays signed in and the next call that gets a 401 refreshes again. Only 401 and 403 from refresh end the session.
+Logout has no dedicated limit (the global one applies).
 
 Site rule: `SameSite=Strict` means the web app and the API must be the same site (same registrable domain, ports ignored). The supported
 deployment is one host with `/api` proxied (`apiBaseUrl: ''` in the production web build). Web and API on unrelated domains cannot use the cookie.

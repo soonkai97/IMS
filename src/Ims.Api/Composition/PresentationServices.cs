@@ -86,6 +86,8 @@ public static class PresentationServices
                 context.HttpContext, context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter) ? retryAfter : null, ct));
             o.AddPolicy(RateLimitPolicies.Login, ctx => RateLimitPartition.GetFixedWindowLimiter(Caller(ctx),
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = Limits.LoginRateLimitPerMinute, Window = window }));
+            o.AddPolicy(RateLimitPolicies.Refresh, ctx => RateLimitPartition.GetFixedWindowLimiter(Caller(ctx),
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = Limits.RefreshRateLimitPerMinute, Window = window }));
             o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx => RateLimitPartition.GetFixedWindowLimiter(
                 ctx.User.Identity?.Name ?? Caller(ctx), _ => new FixedWindowRateLimiterOptions { PermitLimit = perMinute, Window = window }));
         });

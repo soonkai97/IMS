@@ -14,7 +14,13 @@ public static class Limits
     public const int JwtKeyMinLength = 32;
     public const int JwtKeyGeneratedBytes = 48;
     public const int RefreshTokenBytes = 48;
+    /// <summary>Password-guessing guard: sign-in only, per address.</summary>
     public const int LoginRateLimitPerMinute = 20;
+    /// <summary>
+    /// Token refresh, per address. Every signed-in user refreshes every <see cref="AccessTokenMinutes"/> minutes and all of them at once
+    /// after a deploy, so an office behind one address needs room; a refresh token is 384 random bits, so there is nothing to guess.
+    /// </summary>
+    public const int RefreshRateLimitPerMinute = 300;
     public const int GlobalRateLimitPerMinute = 600;
 
     // Time (BR-10: stored in UTC, shown in Asia/Kuala_Lumpur, which has no DST)
