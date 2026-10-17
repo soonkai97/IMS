@@ -10,7 +10,7 @@ public class GetCurrentUserHandler(IReadRepository<User> users, IReadRepository<
 {
     public async Task<UserInfo> HandleAsync(GetCurrentUserQuery query, CancellationToken ct)
     {
-        var user = await users.FirstOrDefaultAsync(new UserWithWarehousesSpec(current.UserId, tracked: false), ct)
+        var user = await users.FirstOrDefaultAsync(new ByIdSpec<User>(current.UserId, tracked: false), ct)
                    ?? throw new UnauthorizedException(Messages.SessionExpired);
         var roleName = (await roles.FirstOrDefaultAsync(new RoleByCodeSpec(current.Role), ct))?.Name ?? current.Role;
         return await UserInfoMapper.ToInfoAsync(user, current.Role, roleName, current.AllWarehouses, current.WarehouseIds, warehouseIds, ct);

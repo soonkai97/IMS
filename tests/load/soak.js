@@ -1,4 +1,4 @@
-// (d2) Soak: 50 VUs mixed 80/20 for 10 minutes (tokens last 15 min, so keep DURATION <= 12m). Env: VUS (50), DURATION (10m).
+// (d2) Soak: 50 VUs mixed 80/20 for 10 minutes (the API must run with Jwt__AccessMinutes=30, see tests/load/README.md; keep DURATION <= 25m). Env: VUS (50), DURATION (10m).
 import { sleep } from 'k6';
 import { THRESHOLDS, setupData, readOp, writeFlow, summaryTo } from './scenarios.js';
 

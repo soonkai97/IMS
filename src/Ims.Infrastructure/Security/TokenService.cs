@@ -26,7 +26,7 @@ public class TokenService(IOptions<JwtOptions> options, IClock clock) : ITokenSe
             new(ClaimTypes.NameIdentifier, access.UserId.ToString()),
             new(ClaimTypes.Name, username),
             new(ClaimTypes.Role, access.RoleCode),
-            new(ClaimNames.AllWarehouses, access.AllWarehouses ? "true" : "false"),
+            new(ClaimNames.AllWarehouses, access.AllWarehouses ? ClaimNames.True : ClaimNames.False),
             new(ClaimNames.ClaimsVersion, ClaimNames.CurrentClaimsVersion.ToString(CultureInfo.InvariantCulture)),
         };
         claims.AddRange(access.Permissions.Codes.Select(code => new Claim(ClaimNames.Permission, code)));

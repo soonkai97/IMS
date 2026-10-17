@@ -44,7 +44,7 @@ public class AccessTokenTests(ApiFixture fixture)
         Assert.Equal(role, One(token, ClaimTypes.Role));
         Assert.Equal(account.Username, One(token, ClaimTypes.Name));
         Assert.Equal(One(token, JwtRegisteredClaimNames.Sub), One(token, ClaimTypes.NameIdentifier));
-        Assert.Equal(Roles.SeesAllWarehouses(role) ? "true" : "false", One(token, ClaimNames.AllWarehouses));
+        Assert.Equal(Roles.SeesAllWarehouses(role) ? ClaimNames.True : ClaimNames.False, One(token, ClaimNames.AllWarehouses));
         Assert.Equal(ClaimNames.CurrentClaimsVersion.ToString(), One(token, ClaimNames.ClaimsVersion));
         // The warehouse list is only for a user who does not see every warehouse.
         Assert.Equal(Roles.SeesAllWarehouses(role) ? 0 : account.WarehouseIds.Count, All(token, ClaimNames.Warehouse).Count);
@@ -89,6 +89,18 @@ public class AccessTokenTests(ApiFixture fixture)
         Assert.Equal(Roles.Admin, me.Role); // the token still says Admin, and so does the screen: both change at the next refresh
         Assert.True(me.SeesAllWarehouses);
         Assert.Equal(Shape(auth.User), Shape(me));
+    }
+
+    [Theory]
+    [InlineData(Roles.Admin, true)]
+    [InlineData(Roles.Clerk, false)]
+    public async Task A_token_from_before_the_claims_existed_falls_back_to_the_rule_of_its_role_for_the_scope(string role, bool seesAll)
+    {
+        var old = ForgedTokens.Create(fixture.Settings.JwtKey, role: role); // validly signed, no allwh claim, as a token issued before this release
+
+        var me = (await fixture.CreateClient(old).Auth.MeAsync()).Data<UserInfo>();
+
+        Assert.Equal(seesAll, me.SeesAllWarehouses);
     }
 
     [Fact]

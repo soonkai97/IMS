@@ -15,7 +15,7 @@ public class RefreshTokenHandler(IRepository<RefreshToken> tokensRepo, IReadRepo
         if (stored is null || !stored.IsActive(now))
             throw new UnauthorizedException(Messages.SessionExpired);
 
-        var user = await users.FirstOrDefaultAsync(new UserWithWarehousesSpec(stored.UserId), ct);
+        var user = await users.FirstOrDefaultAsync(new ByIdSpec<User>(stored.UserId), ct);
         if (user is null || !user.IsActive || user.IsLockedOut(now))
             throw new UnauthorizedException(Messages.SessionExpired);
 

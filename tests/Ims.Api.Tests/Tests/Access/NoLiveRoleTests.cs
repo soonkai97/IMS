@@ -45,6 +45,9 @@ public class NoLiveRoleTests(ApiFixture fixture)
     private Task<int> TokensAsync(int userId, bool onlyActive = false) =>
         fixture.Database.ScalarAsync<int>($"SELECT COUNT(*) FROM RefreshToken WHERE UserId = @id{(onlyActive ? " AND RevokedAt IS NULL" : "")}", ("@id", userId));
 
+    private Task<int> FailedLoginsAsync(int userId) =>
+        fixture.Database.ScalarAsync<int>("SELECT FailedLoginCount FROM [User] WHERE Id = @id", ("@id", userId));
+
     private Task<int> SuccessesAsync(string username) =>
         fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM AuditLogs WHERE Actor = @u AND Action = @a", ("@u", username), ("@a", AuditActions.LoginSuccess));
 
@@ -74,10 +77,15 @@ public class NoLiveRoleTests(ApiFixture fixture)
         var (account, userId, roleId) = await UserOnCustomRoleAsync();
         await SetRoleAsync(roleId, breakTheRole);
         var successes = await SuccessesAsync(account.Username);
+        await fixture.Anonymous().Auth.LoginAsync(account.Username, "wrong"); // two failures on record: a refusal for a dead role must not reset them
+        await fixture.Anonymous().Auth.LoginAsync(account.Username, "wrong");
+        var failures = await FailedLoginsAsync(userId);
 
         (await fixture.Anonymous().Auth.LoginAsync(account.Username, account.Password)).ShouldBeProblem(HttpStatusCode.Unauthorized);
 
         Assert.Equal(0, await TokensAsync(userId));
+        Assert.Equal(failures, await FailedLoginsAsync(userId));
+        Assert.Equal(2, failures);
         Assert.Equal(successes, await SuccessesAsync(account.Username));
         await SetRoleAsync(roleId, Restored);
         (await fixture.Anonymous().Auth.LoginAsync(account.Username, account.Password)).ShouldBeOk();

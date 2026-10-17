@@ -15,12 +15,13 @@ and the DBA conclusions are in `docs/dba/README.md`.
 
 ## Start a local API on the perf database
 
-The default rate limit (600 requests per minute per user) would turn a load test into a rate-limit test, so raise it for the run.
+The default rate limit (600 requests per minute per user) would turn a load test into a rate-limit test, so raise it for the run. The access token lives 5 minutes by default and the scenarios log in once, so lengthen it too.
 
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT = 'Development'
 $env:ASPNETCORE_URLS = 'http://localhost:5109'
 $env:RateLimit__PerMinute = '1000000'
+$env:Jwt__AccessMinutes = '30'   # the token lives 5 minutes by default; setup() logs in once and every VU shares the tokens
 $env:ConnectionStrings__Default = 'Server=(localdb)\ImsDev;Database=Ims_Perf;Trusted_Connection=True;TrustServerCertificate=True'
 dotnet run --project src/Ims.Api -c Release --no-launch-profile
 ```
@@ -45,7 +46,7 @@ A threshold that is crossed makes k6 exit non-zero and print `thresholds on metr
 | `mixed.js` | 80 % reads, 20 % write flows | `VUS` 50, `DURATION` 3m |
 | `post-burst.js` | 50 VUs post on the same 5 hot products at the same moment | `ITERATIONS` 3 |
 | `ramp.js` / `spike.js` | 10 to 200 VUs over about 5.5 minutes / jump to 300 VUs and recover | none |
-| `soak.js` | 50 VUs, mixed, 10 minutes (tokens last 15 minutes, keep `DURATION` at 12m or less) | `VUS` 50, `DURATION` 10m |
+| `soak.js` | 50 VUs, mixed, 10 minutes (start the API with `Jwt__AccessMinutes=30`, keep `DURATION` at 25m or less) | `VUS` 50, `DURATION` 10m |
 
 Other knobs: `WAREHOUSES` (5), `HOT_PRODUCTS` (5), `DEBUG=1` prints the first failing responses.
 
@@ -55,7 +56,7 @@ looked up by SKU from `PRODUCT_DRAWS` (600) Zipf-skewed draws (hot products stay
 walking `nextCursor` over `DOC_PAGES` (100) pages of 200, and the ledger cursors from OFFSET pages. That makes `setup()` about 700 calls,
 so keep the rate limit raised (above). The by-id reads cover the newest `DOC_PAGES x 200` documents, not the whole table.
 Thresholds (all scenarios): read P95 < 1 s, write P95 < 2 s, failed requests < 1 %, and no 5xx, 504 or 409.
-Login is rate limited, so each scenario logs in once in `setup()` and shares the tokens; access tokens expire after 15 minutes (401s are counted).
+Login is rate limited, so each scenario logs in once in `setup()` and shares the tokens; access tokens expire after `Jwt:AccessMinutes` (5 by default, so the run needs `Jwt__AccessMinutes=30`; 401s are counted and, since setup() logs in once, a run longer than the token fails `http_req_failed`).
 
 ## Run with SQL Server evidence
 

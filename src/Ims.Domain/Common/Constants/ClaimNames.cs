@@ -17,4 +17,8 @@ public static class ClaimNames
 
     /// <summary>The value of <see cref="ClaimsVersion"/> this release writes.</summary>
     public const int CurrentClaimsVersion = 1;
+
+    /// <summary>The two values of <see cref="AllWarehouses"/>.</summary>
+    public const string True = "true";
+    public const string False = "false";
 }

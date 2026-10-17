@@ -26,7 +26,7 @@ public class TokenServiceTests
 
         Assert.Equal([Permissions.ReportsRead, Permissions.StockRead], All(token, ClaimNames.Permission).Order(StringComparer.Ordinal));
         Assert.Equal(["night-shift"], All(token, ClaimTypes.Role));
-        Assert.Equal(["false"], All(token, ClaimNames.AllWarehouses));
+        Assert.Equal([ClaimNames.False], All(token, ClaimNames.AllWarehouses));
         Assert.Equal(["3", "5"], All(token, ClaimNames.Warehouse));
     }
 
@@ -35,7 +35,7 @@ public class TokenServiceTests
     {
         var token = Service.CreateAccessToken("ada", Snapshot(Roles.Admin, PermissionCatalog.Codes, true, [3, 5]), out _);
 
-        Assert.Equal(["true"], All(token, ClaimNames.AllWarehouses));
+        Assert.Equal([ClaimNames.True], All(token, ClaimNames.AllWarehouses));
         Assert.Empty(All(token, ClaimNames.Warehouse));
     }
 
