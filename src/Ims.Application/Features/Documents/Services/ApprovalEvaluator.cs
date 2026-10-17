@@ -12,7 +12,6 @@ public class ApprovalEvaluator(IReadRepository<ApprovalRule> rules, ICurrentUser
         var qty = document.TotalQty;
         return new ApprovalAssessment(
             ApprovalPolicy.RequiresApproval(active, document.Type, qty, amount),
-            ApprovalPolicy.CanApprove(current.Rights(), active, document.Type, qty, amount),
             amount,
             ApprovalPolicy.IsLarge(active, document.Type, qty, amount));
     }
