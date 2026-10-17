@@ -331,6 +331,23 @@ test.describe('L00 Content containment', () => {
       await expect(toast).toBeHidden();
     }
   });
+
+  test('given a filter row with a label above the fields, then the search box ends where the labelled box ends', async ({
+    page,
+    signIn
+  }) => {
+    await signIn('admin');
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await goTo(page, '/stock');
+    const search = await page.getByRole('searchbox', { name: 'Search stock' }).boundingBox();
+    const category = await page.getByLabel('Category').boundingBox();
+    expect(search).not.toBeNull();
+    expect(category).not.toBeNull();
+    expect(
+      Math.abs(search!.y + search!.height - (category!.y + category!.height)),
+      'the search box sits level with the Category box'
+    ).toBeLessThan(1);
+  });
 });
 
 // A02: the table is a table or a list of cards by the width of its OWN box, its header and first column stay in view, and a
