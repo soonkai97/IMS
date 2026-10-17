@@ -875,3 +875,8 @@
 - Needs from security-engineer: full review (auth-adjacent). Questions to look at: is 300 per address right for the biggest office (a per-token partition was considered and dropped: a client choosing its own tokens gets a new bucket each time, so the address stays the key); the 403 from a failed CSRF check ends the session, as before.
 - Decisions others must respect: login limit stays 20 and keeps its own bucket; refresh never shares a bucket with login; a refresh that failed for any reason but 401/403 must not sign the user out. PR #104's `acv` check relies on this (every user refreshes once at deploy).
 - Open conflicts: none.
+
+### 2026-10-17 be-framework -> security-engineer, orchestrator
+- Produced (PR #105 review round): all four findings fixed on `fix/refresh-rate-limit`. Web `AuthService`: a pending retry and a late answer are dropped when the session ends, on logout or on a new sign-in (`sessionChanged` + `takeUntil`; a waiting caller gets an error and the original request fails as before); only transient failures (0, 408, 429, 5xx) are retried, every other status ends the session; retry waits have +-25% jitter and a 15 s total budget from the first request (`REFRESH_RETRY` in `identity.const.ts`). Comments in e2e, `dast.yml`, `dast.md` and `refresh-cookie.md` corrected; the proxy/ForwardedHeaders sentence added. Follow-ups (refresh-token purge, IPv6 /64 key) are in TASKS.md.
+- Decisions others must respect: a refresh answered with anything except 0/408/429/5xx ends the session; `sessionChanged` must fire on every path that starts or ends a session.
+- Open conflicts: none.

@@ -66,7 +66,7 @@ jobs:
           Seed__AdminPassword: ${{ env.DAST_ADMIN_PASSWORD }}
           Seed__DemoPassword: ${{ env.DAST_DEMO_PASSWORD }}
           # A scan is thousands of requests from one address with one token: lift the per-minute limit and let the token outlive the scan.
-          # The 20-per-minute limit on the sign-in endpoints stays as it is, so those endpoints are scanned at that pace.
+          # The sign-in limit (20 per minute) and the refresh limit (300 per minute) stay as they are, so those endpoints are scanned at that pace.
           RateLimit__PerMinute: "1000000"
           Jwt__AccessMinutes: "180"
         run: |

@@ -67,8 +67,15 @@ Rate limits (per client address, fixed one-minute window; `Caller` in `Presentat
 | global | everything else | 600, or the signed-in user name instead of the address | Backstop; also counts login and refresh. |
 
 A limited call answers 429 with `Retry-After` and `retryAfterSeconds` in the body. The web app does not treat that as a sign-out: a refresh
-that fails with 429, a gateway error or no network is retried twice (after `Retry-After`, capped at 10 s, else 1 s then 2 s) and, if it still
-fails, the user stays signed in and the next call that gets a 401 refreshes again. Only 401 and 403 from refresh end the session.
+that fails with a transient error (429, 408, 5xx or no network) is retried at most twice (after `Retry-After` capped at 10 s, else 1 s then 2 s,
+each with +-25% jitter, and none that would end later than 15 s after the first request) and, if it still fails, the user stays signed in and
+the next call that gets a 401 refreshes again. Any other answer (401, 403, 400, 404, 422 and so on) ends the session. Logout, a session end and a
+new sign-in cancel a retry that is waiting and discard a refresh answer that arrives late, so a retry cannot sign a user back in or show
+"session expired" after a deliberate logout. The limiter reports the whole window as `Retry-After`, so a capped retry usually lands inside the
+same window; that is accepted because a limited refresh is rare at 300 a minute.
+
+The limits are per client address. Behind a reverse proxy, `ForwardedHeaders__Enabled` with `KnownProxies` is mandatory for them to be per user:
+without it every user shares the proxy's address and one noisy client can keep everyone's refresh at 429.
 Logout has no dedicated limit (the global one applies).
 
 Site rule: `SameSite=Strict` means the web app and the API must be the same site (same registrable domain, ports ignored). The supported
