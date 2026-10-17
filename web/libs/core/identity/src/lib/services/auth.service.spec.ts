@@ -89,8 +89,14 @@ describe('AuthService', () => {
       extensions: seconds === undefined ? {} : { retryAfterSeconds: seconds }
     });
 
-    beforeEach(() => jest.useFakeTimers());
-    afterEach(() => jest.useRealTimers());
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.spyOn(Math, 'random').mockReturnValue(0.5); // no jitter
+    });
+    afterEach(() => {
+      jest.useRealTimers();
+      jest.restoreAllMocks();
+    });
 
     async function signIn(): Promise<void> {
       client().refresh.mockReturnValueOnce(of(authResult('a1')));
@@ -113,6 +119,113 @@ describe('AuthService', () => {
       expect(client().refresh).toHaveBeenCalledTimes(2);
       expect(spectator.service.$isAuthenticated()).toBe(true);
       expect(router().navigate).not.toHaveBeenCalled();
+    });
+
+    it('adds jitter to the wait', async () => {
+      await signIn();
+      jest.spyOn(Math, 'random').mockReturnValue(1); // +25%
+      client()
+        .refresh.mockReturnValueOnce(throwError(() => rateLimited(4)))
+        .mockReturnValueOnce(of(authResult('a2')));
+
+      const done = firstValueFrom(spectator.service.refresh());
+      await jest.advanceTimersByTimeAsync(4999);
+      expect(client().refresh).toHaveBeenCalledTimes(1);
+      await jest.advanceTimersByTimeAsync(1);
+
+      await expect(done).resolves.toBe('a2');
+    });
+
+    it('stops retrying when the next wait would pass the total budget', async () => {
+      await signIn();
+      client().refresh.mockReturnValue(throwError(() => rateLimited(60)));
+
+      const done = firstValueFrom(spectator.service.refresh()).catch((error: unknown) => error);
+      await jest.advanceTimersByTimeAsync(REFRESH_RETRY.budgetMs);
+
+      expect(await done).toMatchObject({ status: 429 });
+      expect(client().refresh).toHaveBeenCalledTimes(2); // 0 s and 10 s; a third at 20 s would pass 15 s
+      expect(spectator.service.$isAuthenticated()).toBe(true);
+    });
+
+    it.each([408, 500, 502, 503])('retries a %i', async status => {
+      await signIn();
+      client()
+        .refresh.mockReturnValueOnce(
+          throwError(() => ({ isApiError: true, status, extensions: {} }))
+        )
+        .mockReturnValueOnce(of(authResult('a2')));
+
+      const done = firstValueFrom(spectator.service.refresh());
+      await jest.advanceTimersByTimeAsync(1000);
+
+      await expect(done).resolves.toBe('a2');
+    });
+
+    it.each([400, 404, 405, 413, 422])(
+      'does not retry a %i: the answer is final and the session ends',
+      async status => {
+        await signIn();
+        client().refresh.mockReturnValue(
+          throwError(() => ({ isApiError: true, status, extensions: {} }))
+        );
+
+        await expect(firstValueFrom(spectator.service.refresh())).rejects.toMatchObject({ status });
+
+        expect(client().refresh).toHaveBeenCalledTimes(1);
+        expect(spectator.service.$isAuthenticated()).toBe(false);
+        expect(router().navigate).toHaveBeenCalledWith(['/login'], expect.anything());
+      }
+    );
+
+    it('logout during a pending back-off cancels the retry: no sign-in again, no "session expired"', async () => {
+      await signIn();
+      client().refresh.mockReturnValue(throwError(() => rateLimited(3)));
+      client().logout.mockReturnValue(of(undefined));
+      const pending = firstValueFrom(spectator.service.refresh()).catch((error: unknown) => error);
+      await jest.advanceTimersByTimeAsync(1000);
+
+      await firstValueFrom(spectator.service.logout(), { defaultValue: undefined });
+      client().refresh.mockReturnValue(of(authResult('late')));
+      await jest.advanceTimersByTimeAsync(20_000);
+
+      expect(await pending).toBeInstanceOf(Error);
+      expect(client().refresh).toHaveBeenCalledTimes(1);
+      expect(spectator.service.token).toBeUndefined();
+      expect(spectator.service.$isAuthenticated()).toBe(false);
+      expect(router().navigate).toHaveBeenCalledTimes(1);
+      expect(router().navigate).toHaveBeenCalledWith(['/login'], { queryParams: {} });
+    });
+
+    it('a refresh that succeeds after logout is ignored', async () => {
+      await signIn();
+      const answer = new Subject<AuthResult>();
+      client().refresh.mockReturnValue(answer);
+      client().logout.mockReturnValue(of(undefined));
+      const pending = firstValueFrom(spectator.service.refresh()).catch((error: unknown) => error);
+
+      await firstValueFrom(spectator.service.logout(), { defaultValue: undefined });
+      answer.next(authResult('late'));
+      answer.complete();
+
+      expect(await pending).toBeInstanceOf(Error);
+      expect(spectator.service.token).toBeUndefined();
+      expect(spectator.service.$isAuthenticated()).toBe(false);
+    });
+
+    it('a new sign-in cancels a refresh that is waiting to retry', async () => {
+      await signIn();
+      client().refresh.mockReturnValue(throwError(() => rateLimited(3)));
+      const pending = firstValueFrom(spectator.service.refresh()).catch((error: unknown) => error);
+      client().login.mockReturnValue(of(authResult('fresh')));
+      client().me.mockReturnValue(of(USER));
+
+      await firstValueFrom(spectator.service.login.run({ username: 'staff', password: 'x' }));
+      await jest.advanceTimersByTimeAsync(20_000);
+
+      expect(await pending).toBeInstanceOf(Error);
+      expect(client().refresh).toHaveBeenCalledTimes(1);
+      expect(spectator.service.token).toBe('fresh');
     });
 
     it('caps a long Retry-After', async () => {
