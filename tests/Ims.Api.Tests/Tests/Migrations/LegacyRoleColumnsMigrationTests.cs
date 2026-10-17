@@ -112,19 +112,48 @@ public class LegacyRoleColumnsMigrationTests
     }
 
     [Fact]
-    public async Task The_active_administrator_rules_that_now_widen_are_named_in_one_audit_row()
+    public async Task The_inactive_administrator_rule_is_named_and_the_active_one_the_RP2_row_already_named_is_not_repeated()
     {
         var database = await PreviousReleaseAsync();
         try
         {
             var rows = await database.ScalarAsync<int>("SELECT COUNT(*) FROM AuditLogs WHERE Action = @a", ("@a", Widened));
             var active = await database.ScalarAsync<Guid>("SELECT PublicId FROM ApprovalRule WHERE RoleRequired = N'Admin' AND IsActive = 1 AND REC_DELETED = 0");
+            var inactive = await database.ScalarAsync<Guid>("SELECT PublicId FROM ApprovalRule WHERE RoleRequired = N'Admin' AND IsActive = 0 AND REC_DELETED = 0");
+            Assert.Contains(active.ToString(), await database.ScalarAsync<string>("SELECT [After] FROM AuditLogs WHERE Action = @a", ("@a", Widened)), StringComparison.OrdinalIgnoreCase); // RP-2 named it
 
             await MigrateAsync(database, Latest);
 
             Assert.Equal(rows + 1, await database.ScalarAsync<int>("SELECT COUNT(*) FROM AuditLogs WHERE Action = @a AND Actor = N'system'", ("@a", Widened)));
             var after = await database.ScalarAsync<string>("SELECT TOP (1) [After] FROM AuditLogs WHERE Action = @a ORDER BY Id DESC", ("@a", Widened));
-            Assert.Equal($$"""{"count":1,"ruleIds":["{{active}}"]}""", after, ignoreCase: true); // the inactive and the soft-deleted Admin rule widen nothing
+            Assert.Equal($$"""{"count":0,"ruleIds":[],"inactiveRuleIds":["{{inactive}}"]}""", after, ignoreCase: true); // the soft-deleted Admin rule widens nothing
+        }
+        finally
+        {
+            await database.DropAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Administrator_rules_saved_after_RP2_are_named_with_their_ids_in_ascending_order()
+    {
+        var database = await PreviousReleaseAsync();
+        try
+        {
+            // Saved by the RP-4a release, which still wrote RoleRequired and Tier together. Inserted newest id first by threshold, to show the order is by id.
+            await database.ExecuteAsync("INSERT ApprovalRule (DocType, AmountThreshold, QtyThreshold, RoleRequired, Tier, IsActive) VALUES (1, 900, NULL, N'Admin', 2, 1), (1, 800, NULL, N'Admin', 2, 1), (1, 700, NULL, N'Admin', 2, 0)");
+            var ids = new List<string>();
+            foreach (var threshold in new[] { 900, 800 })
+                ids.Add((await database.ScalarAsync<Guid>("SELECT PublicId FROM ApprovalRule WHERE AmountThreshold = @t", ("@t", threshold))).ToString().ToUpperInvariant());
+            var inactive = (await database.ScalarAsync<Guid>("SELECT PublicId FROM ApprovalRule WHERE AmountThreshold = 700")).ToString().ToUpperInvariant();
+
+            await MigrateAsync(database, Latest);
+
+            var after = await database.ScalarAsync<string>("SELECT TOP (1) [After] FROM AuditLogs WHERE Action = @a ORDER BY Id DESC", ("@a", Widened));
+            using var json = System.Text.Json.JsonDocument.Parse(after);
+            Assert.Equal(2, json.RootElement.GetProperty("count").GetInt32());
+            Assert.Equal(ids, json.RootElement.GetProperty("ruleIds").EnumerateArray().Select(e => e.GetString()!.ToUpperInvariant()).ToList()); // 900 was inserted before 800: ascending id
+            Assert.Contains(inactive, json.RootElement.GetProperty("inactiveRuleIds").EnumerateArray().Select(e => e.GetString()!.ToUpperInvariant()));
         }
         finally
         {
@@ -151,7 +180,45 @@ public class LegacyRoleColumnsMigrationTests
         }
     }
 
+    /// <summary>The script a DBA generates and runs by hand (<c>dotnet ef migrations script</c>) is one batch per GO: it must do what the migration runner does.</summary>
+    private static async Task RunScriptAsync(TestDatabase database, string from, string to)
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(database.ConnectionString).Options;
+        await using var db = new AppDbContext(options, new FrozenClock());
+        var script = db.GetService<IMigrator>().GenerateScript(from, to);
+        foreach (var batch in System.Text.RegularExpressions.Regex.Split(script, @"^\s*GO\s*$", System.Text.RegularExpressions.RegexOptions.Multiline))
+            if (!string.IsNullOrWhiteSpace(batch)) await database.ExecuteAsync(batch);
+    }
+
     [Fact]
+    public async Task The_generated_scripts_go_up_down_and_up_again_as_the_runner_does()
+    {
+        var database = await PreviousReleaseAsync();
+        try
+        {
+            await RunScriptAsync(database, RolesTables, Latest);
+            var up = await SnapshotAsync(database);
+            Assert.False(await ExistsAsync(database, "User", "Role"));
+            var rows = await database.ScalarAsync<int>("SELECT COUNT(*) FROM AuditLogs WHERE Action = @a", ("@a", Widened));
+
+            await RunScriptAsync(database, Latest, RolesTables); // Down: this failed with "Invalid column name" while the update shared a batch with the column it reads
+            Assert.True(await ExistsAsync(database, "User", "Role"));
+            Assert.Equal(0, await database.ScalarAsync<int>("SELECT COUNT(*) FROM [User] u JOIN Role r ON r.Id = u.RoleId WHERE u.Role <> r.Code"));
+            Assert.Equal(0, await database.ScalarAsync<int>("SELECT COUNT(*) FROM ApprovalRule WHERE RoleRequired <> IIF(Tier = 2, N'Owner', N'Supervisor')"));
+            Assert.Equal(0, await database.ScalarAsync<int>("SELECT COUNT(*) FROM __EFMigrationsHistory WHERE MigrationId = @m", ("@m", Latest)));
+
+            await RunScriptAsync(database, RolesTables, Latest);
+            var again = await SnapshotAsync(database);
+            Assert.Equal(up.Users, again.Users);
+            Assert.Equal(up.Rules, again.Rules);
+            Assert.Equal(rows, await database.ScalarAsync<int>("SELECT COUNT(*) FROM AuditLogs WHERE Action = @a", ("@a", Widened))); // nothing is named twice
+        }
+        finally
+        {
+            await database.DropAsync();
+        }
+    }
+
     public async Task Down_puts_the_strings_back_from_the_rows_and_up_again_changes_nothing()
     {
         var database = await PreviousReleaseAsync();
