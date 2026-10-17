@@ -36,3 +36,9 @@
 .ui-form-field-error-icon {
   margin-top: space(0);
 }
+
+// The live region is always in the DOM (a message added later is announced). While it is empty it must not leave the
+// flex gap under the control, or a search box beside this field would sit a gap lower than the field's own box.
+.ui-form-field-live:empty {
+  margin-top: calc(-1 * #{space(0)});
+}

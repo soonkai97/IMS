@@ -12,6 +12,7 @@
 
   @include media-tablet {
     grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    align-items: end;
   }
 }
 

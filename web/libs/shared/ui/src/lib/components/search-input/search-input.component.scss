@@ -1,23 +1,28 @@
 @use 'libs' as *;
 
 :host {
-  position: relative;
-  display: block;
+  // The box, the magnifier and the clear button share one grid cell. When a filter row stretches the host taller (its
+  // neighbours have a label above the box), the cell stays box-high and sits at the bottom, so the box lines up with
+  // the labelled fields and the icon stays centred on the box, not on the stretched host.
+  display: grid;
+  grid-template: 'cell' auto / minmax(0, 1fr);
+  align-content: end;
   min-width: 0;
 }
 
 .ui-search-input-icon {
-  position: absolute;
-  top: 50%;
-  left: space(1);
+  z-index: 1;
+  grid-area: cell;
+  place-self: center start;
+  margin-left: space(1);
   color: color('text-muted');
   pointer-events: none;
-  transform: translateY(-50%);
 }
 
 .ui-search-input-control {
   @include control-base;
 
+  grid-area: cell;
   padding-right: height('touch');
   padding-left: space(5);
 
@@ -30,13 +35,11 @@
 .ui-search-input-clear {
   @include reset-button;
 
-  position: absolute;
-  top: 0;
-  right: 0;
   display: inline-flex;
+  grid-area: cell;
   align-items: center;
   justify-content: center;
+  justify-self: end;
   width: height('touch');
-  height: 100%;
   color: color('text-muted');
 }
