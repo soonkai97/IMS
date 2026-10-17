@@ -9,7 +9,7 @@
 @if ($hint(); as hint) {
   <p class="ui-form-field-hint" [id]="hintId">{{ hint }}</p>
 }
-<div aria-live="polite">
+<div class="ui-form-field-live" aria-live="polite">
   @if ($errorText(); as errorText) {
     <p class="ui-form-field-error" [id]="errorId">
       <app-icon class="ui-form-field-error-icon" name="alert" [size]="16" />

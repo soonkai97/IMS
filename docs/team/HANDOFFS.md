@@ -811,3 +811,10 @@
 - Open conflicts: none.
 - Also fixed (test only): e2e `17-feedback` "sign-in 500 with a sentence" expected the API's sentence, but the sign-in page (R25) maps a 500 to its own translated line (login spec LG-18, `login.error.server`; `login-failure.ts` is right). The test now expects that line once, no API sentence, no toast. Not run (needs the API and a throw-away DB).
 - Evidence: 20 of 20 runs of `single-announcement.spec.ts` pass with 24 busy loops on 12 cores (run time up to 264 s).
+
+### 2026-10-17 fe-framework -> orchestrator, qa-edge-accessibility (fix: search box not aligned with labelled filter fields)
+- Produced (branch `fix/filter-row-alignment`): `web/libs/shared/ui/src/lib/components/search-input/search-input.component.scss` and `form-field/form-field.component.{html,scss}`. No per-page change.
+- Cause: (1) the Audit log filter grid lacks `align-items: end`, so `app-search-input` stretched to label + box height while its box stayed at the top and its magnifier was centred on the stretched host (15 px low, 26 px above the neighbours); (2) on every other list the box sat 4 px lower than the labelled fields, because the always-present empty `aria-live` region in `app-form-field` left one flex gap under each field.
+- Fix: the search host is a one-cell grid (`align-content: end`) holding box, icon and clear button, so the box bottom-aligns in any stretched row and the icon is centred on the box; the empty live region gets `margin-top: -gap` (still in the DOM, still announces). Measured at 360, 768 and 1280, en and zh, light and dark, on the audit, receipts, issues, stock, products, partners, users and reports screens: search box bottom equals the neighbours' box bottom (0 px, was 4 px; audit was 26 px), icon offset 0 px (audit was 14.9 px).
+- Decisions others must respect: a filter row needs no `align-items: end` for the search box to line up; a new field-like component beside `app-form-field` should end at the box bottom. Native date inputs (mm/dd/yyyy) untouched (R23).
+- Open conflicts: none.
