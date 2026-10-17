@@ -11,18 +11,18 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { tap } from 'rxjs';
-import { ApprovalRuleDto, DocumentType } from '@ims/api';
+import { ApprovalRuleDto, ApproverTier, DocumentType } from '@ims/api';
 import {
   AppMoneyPipe,
   AppQtyPipe,
+  APPROVER_TIER_LABELS,
   DOCUMENT_TYPE_LABELS,
   I18nService,
-  ROLE_LABELS,
   TranslatePipe
 } from '@ims/core/i18n';
 import { ToastService } from '@ims/core/notification';
 import { SystemRulesStore } from '@ims/features/administration';
-import { PublicId, ROLE } from '@ims/models';
+import { PublicId } from '@ims/models';
 import {
   SelectOption,
   TableColumn,
@@ -51,7 +51,7 @@ interface RuleFormValue {
   readonly docType: DocumentType;
   readonly amountThreshold: number | null;
   readonly qtyThreshold: number | null;
-  readonly roleRequired: string;
+  readonly approverTier: ApproverTier;
   readonly isActive: boolean;
 }
 
@@ -106,7 +106,7 @@ export class SettingsPageComponent implements OnInit {
       Validators.min(0)
     ]),
     qtyThreshold: new FormControl<number | null>(null, [Validators.min(0)]),
-    roleRequired: new FormControl<string>(ROLE.Supervisor, { nonNullable: true }),
+    approverTier: new FormControl<ApproverTier>(ApproverTier.Standard, { nonNullable: true }),
     isActive: new FormControl(true, { nonNullable: true })
   });
 
@@ -122,10 +122,10 @@ export class SettingsPageComponent implements OnInit {
     { value: DocumentType.Issue, label: this.i18n.t('docType.Issue') },
     { value: DocumentType.Receipt, label: this.i18n.t('docType.Receipt') }
   ]);
-  $roleOptions = computed<readonly SelectOption[]>(() =>
-    [ROLE.Supervisor, ROLE.Owner, ROLE.Admin].map(role => ({
-      value: role,
-      label: this.i18n.enumLabel(ROLE_LABELS, role)
+  $tierOptions = computed<readonly SelectOption[]>(() =>
+    [ApproverTier.Standard, ApproverTier.Large].map(tier => ({
+      value: tier,
+      label: this.i18n.enumLabel(APPROVER_TIER_LABELS, tier)
     }))
   );
   $ruleColumns = computed<readonly TableColumn<ApprovalRuleDto>[]>(() => [
@@ -139,8 +139,8 @@ export class SettingsPageComponent implements OnInit {
     { key: 'qty', header: this.i18n.t('rule.qtyThreshold'), align: 'end' },
     {
       key: 'role',
-      header: this.i18n.t('rule.roleRequired'),
-      value: row => this.i18n.enumLabel(ROLE_LABELS, row.roleRequired)
+      header: this.i18n.t('rule.tier'),
+      value: row => this.i18n.enumLabel(APPROVER_TIER_LABELS, row.approverTier)
     },
     { key: 'status', type: 'status', header: this.i18n.t('product.status') },
     { key: 'actions', type: 'action', header: this.i18n.t('common.actions'), align: 'end' }
@@ -150,7 +150,7 @@ export class SettingsPageComponent implements OnInit {
     return this.i18n.enumLabel(DOCUMENT_TYPE_LABELS, rule.docType);
   }
   ruleRoleLabel(rule: ApprovalRuleDto): string {
-    return this.i18n.enumLabel(ROLE_LABELS, rule.roleRequired);
+    return this.i18n.enumLabel(APPROVER_TIER_LABELS, rule.approverTier);
   }
   $ruleHeading = computed(() =>
     this.i18n.t(this.$editingRuleId() === undefined ? 'rule.new' : 'rule.edit')
@@ -208,7 +208,7 @@ export class SettingsPageComponent implements OnInit {
       docType: DocumentType.Issue,
       amountThreshold: null,
       qtyThreshold: null,
-      roleRequired: ROLE.Supervisor,
+      approverTier: ApproverTier.Standard,
       isActive: true
     });
   }
@@ -218,7 +218,7 @@ export class SettingsPageComponent implements OnInit {
       docType: rule.docType,
       amountThreshold: rule.amountThreshold ?? null,
       qtyThreshold: rule.qtyThreshold ?? null,
-      roleRequired: rule.roleRequired,
+      approverTier: rule.approverTier,
       isActive: rule.isActive
     });
   }
@@ -236,7 +236,7 @@ export class SettingsPageComponent implements OnInit {
           docType: value.docType,
           amountThreshold: value.amountThreshold ?? undefined,
           qtyThreshold: value.qtyThreshold ?? undefined,
-          roleRequired: value.roleRequired,
+          approverTier: value.approverTier,
           isActive: value.isActive
         }
       })

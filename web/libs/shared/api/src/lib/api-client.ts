@@ -4099,8 +4099,8 @@ export interface ApprovalRuleSaveRequest {
     amountThreshold: number | undefined;
     qtyThreshold: number | undefined;
     /** Deprecated (ADR roles-permissions 2.7): a system role name, mapped to a tier (Owner and Admin Large, the other system roles Standard). Send ApproverTier instead; one of the two is required, and when both are sent they must agree. */
-    roleRequired: string | undefined;
-    isActive: boolean;
+    roleRequired?: string | undefined;
+    isActive?: boolean;
     approverTier?: ApproverTier | undefined;
 }
 

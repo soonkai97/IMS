@@ -509,7 +509,8 @@ export const ZH_MESSAGES: Messages = {
   'user.role': '角色',
   'user.username': '用户名',
   'user.warehouses': '仓库',
-  'user.warehousesHint': '不勾选时，此人只能查看此处勾选的仓库。',
+  'user.warehousesHint':
+    '不勾选时，此人只能查看此处勾选的仓库。你只能分配自己能访问的仓库，也只能修改访问范围不超过你的人。',
   'user.allWarehouses': '可查看全部仓库',
   'settings.alertCooldown': '低库存提醒间隔（小时）',
   'settings.alertCooldownHint': '同一商品两次提醒之间的最短时间。',
@@ -527,7 +528,10 @@ export const ZH_MESSAGES: Messages = {
   'rule.empty': '还没有审批规则。',
   'rule.new': '新建规则',
   'rule.qtyThreshold': '数量起',
-  'rule.roleRequired': '审批角色',
+  'rule.tier': '由谁审批',
+  'rule.tier.Large': '大额单据审批人',
+  'rule.tier.Standard': '普通审批人',
+  'rule.tierHint': '达到大额规则的单据由有权审批大额单据的人处理（默认是所有者）。',
   'rule.thresholdHint': '留空表示不限制该项。',
 
   'audit.action': '操作',

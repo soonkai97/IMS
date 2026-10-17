@@ -115,8 +115,8 @@
     <app-form-field [label]="'rule.qtyThreshold' | t" [control]="ruleForm.controls.qtyThreshold">
       <app-input type="number" formControlName="qtyThreshold" inputMode="decimal" min="0" />
     </app-form-field>
-    <app-form-field [label]="'rule.roleRequired' | t" [required]="true">
-      <app-select formControlName="roleRequired" [options]="$roleOptions()" />
+    <app-form-field [label]="'rule.tier' | t" [required]="true" [hint]="'rule.tierHint' | t">
+      <app-select formControlName="approverTier" [options]="$tierOptions()" />
     </app-form-field>
     <app-checkbox formControlName="isActive">{{ 'product.active' | t }}</app-checkbox>
   </form>

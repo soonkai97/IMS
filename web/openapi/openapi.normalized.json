@@ -3543,9 +3543,7 @@
         "required": [
           "docType",
           "amountThreshold",
-          "qtyThreshold",
-          "roleRequired",
-          "isActive"
+          "qtyThreshold"
         ],
         "type": "object",
         "properties": {
@@ -3568,7 +3566,8 @@
             "nullable": true
           },
           "isActive": {
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
           },
           "approverTier": {
             "nullable": true,

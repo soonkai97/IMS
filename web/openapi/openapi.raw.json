@@ -3564,9 +3564,7 @@
         "required": [
           "docType",
           "amountThreshold",
-          "qtyThreshold",
-          "roleRequired",
-          "isActive"
+          "qtyThreshold"
         ],
         "type": "object",
         "properties": {
@@ -3595,7 +3593,8 @@
             "description": "Deprecated (ADR roles-permissions 2.7): a system role name, mapped to a tier (Owner and Admin Large, the other system roles Standard). Send ApproverTier instead; one of the two is required, and when both are sent they must agree."
           },
           "isActive": {
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
           },
           "approverTier": {
             "oneOf": [
