@@ -5,6 +5,8 @@ export const DOCUMENT_ACTION = {
   Approve: 'approve',
   Reject: 'reject',
   Cancel: 'cancel',
+  /** The submitter takes a Submitted document back to Draft; the button reads "Edit". */
+  Recall: 'recall',
   Post: 'post',
   Reverse: 'reverse'
 } as const;

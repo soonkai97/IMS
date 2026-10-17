@@ -83,6 +83,48 @@ describe('UiConfirmDialogComponent reason box (EA-06)', () => {
   });
 });
 
+describe('UiConfirmDialogComponent alternative (R28, the Post dialog)', () => {
+  const createComponent = createComponentFactory({
+    component: UiConfirmDialogComponent,
+    detectChanges: false
+  });
+
+  function open(alternateLabel?: string): Spectator<UiConfirmDialogComponent> {
+    const spectator = createComponent({
+      props: {
+        open: true,
+        heading: 'Post RCV-1?',
+        confirmLabel: 'Post',
+        cancelLabel: 'Back',
+        alternateLabel
+      } as never
+    });
+    spectator.detectChanges();
+    return spectator;
+  }
+
+  const buttons = (spectator: Spectator<UiConfirmDialogComponent>): string[] =>
+    spectator.queryAll('.ui-confirm-dialog-actions button').map(b => (b.textContent ?? '').trim());
+
+  it('the left button reads the alternative, and tapping it is neither a cancel nor a confirm', () => {
+    const spectator = open('Edit items');
+    const events: string[] = [];
+    spectator.output('$alternated').subscribe(() => events.push('alternated'));
+    spectator.output('$cancelled').subscribe(() => events.push('cancelled'));
+    spectator.output('$confirmed').subscribe(() => events.push('confirmed'));
+
+    expect(buttons(spectator)).toEqual(['Edit items', 'Post']);
+    spectator.click(spectator.query('.ui-confirm-dialog-actions button') as HTMLElement);
+
+    expect(events).toEqual(['alternated']);
+    expect(spectator.component.$open()).toBe(false);
+  });
+
+  it('without an alternative the left button is the usual Back', () => {
+    expect(buttons(open())).toEqual(['Back', 'Post']);
+  });
+});
+
 describe('UiConfirmDialogComponent optional reason (D4)', () => {
   const createComponent = createComponentFactory({
     component: UiConfirmDialogComponent,

@@ -125,6 +125,11 @@ export class DocumentsStore {
       this.cancel
     )
   );
+  /** The submitter takes a Submitted document back to Draft (the Edit button): no body, no reason. Exclusive: a double tap sends one. */
+  readonly recall: ApiCommand<DocumentRef, DocumentDto> = new ApiCommand(
+    ref => this.accept(this.client.recall(ref.id, withIfMatch(ref.concurrencyToken)), this.recall),
+    true
+  );
   /** Posting takes no body: an override reason was given when the document was approved. */
   readonly post: ApiCommand<DocumentRef, DocumentDto> = new ApiCommand(
     ref => this.accept(this.client.post(ref.id, withIfMatch(ref.concurrencyToken)), this.post),
@@ -170,6 +175,7 @@ export class DocumentsStore {
       this.approve,
       this.reject,
       this.cancel,
+      this.recall,
       this.post,
       this.reverse
     ]) {

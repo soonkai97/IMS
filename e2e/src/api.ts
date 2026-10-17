@@ -66,7 +66,7 @@ async function signIn(role: Role): Promise<string> {
   }
 }
 
-const DOCUMENT_COMMAND = /^\/api\/documents\/[0-9a-f-]{36}(\/(submit|approve|reject|cancel|post|reverse))?$/;
+const DOCUMENT_COMMAND = /^\/api\/documents\/[0-9a-f-]{36}(\/(submit|approve|reject|recall|cancel|post|reverse))?$/;
 
 export class ImsApi {
   constructor(private readonly role: Role) {}
@@ -139,7 +139,7 @@ export class ImsApi {
 
   command(
     id: PublicId,
-    name: 'submit' | 'approve' | 'post' | 'cancel',
+    name: 'submit' | 'approve' | 'recall' | 'post' | 'cancel',
     body?: object
   ): Promise<ApiDocument> {
     return this.call<ApiDocument>('POST', `/api/documents/${id}/${name}`, body ?? {});

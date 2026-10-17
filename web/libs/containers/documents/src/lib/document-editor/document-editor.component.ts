@@ -64,6 +64,7 @@ import {
   ApiError,
   DOCUMENT_ACTION,
   DocumentAction,
+  HTTP_STATUS,
   MIN_REASON_LENGTH,
   PERMISSION,
   PublicId,
@@ -192,6 +193,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   private readonly toast = inject(ToastService);
   private readonly warehouses = inject(WarehousesStore);
   readonly view = inject(DocumentEditorViewService);
+  /** The shortage banner offers Cancel document as a button of its own. */
+  readonly cancelAction = DOCUMENT_ACTION.Cancel;
 
   /** Route data. */
   $type = input.required<DocumentType>({ alias: 'type' });
@@ -267,6 +270,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       this.documents.approve.$isRunning() ||
       this.documents.reject.$isRunning() ||
       this.documents.cancel.$isRunning() ||
+      this.documents.recall.$isRunning() ||
       this.documents.post.$isRunning() ||
       this.documents.reverse.$isRunning()
   );
@@ -440,6 +444,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     this.documents.approve.$operation().error,
     this.documents.reject.$operation().error,
     this.documents.cancel.$operation().error,
+    this.documents.recall.$operation().error,
     this.documents.post.$operation().error
   ]);
   private readonly $commandErrors = computed(() => [
@@ -491,21 +496,70 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       .map(error => staleDetails(error))
       .find(isDefined)
   );
-  /** What to tell the user when posting failed on stock: edit (draft), cancel and redo (submitted), or ask (no right). */
+  /**
+   * What to tell the user when posting failed on stock: adjust (draft), tap Edit (the submitter), wait or cancel (a
+   * reviewer of an approved document), cancel and redo (submitted), or ask (no right).
+   */
   readonly $stockConflictBodyKey = computed<MessageKey>(() => {
     if (this.$editable()) {
       return 'doc.stockChangedBody';
     }
-    return this.$actions().has(DOCUMENT_ACTION.Cancel)
-      ? 'doc.stockChangedBodyCancel'
-      : 'doc.stockChangedBodyAsk';
+    if (this.$actions().has(DOCUMENT_ACTION.Recall)) {
+      return 'doc.stockChangedBodyEdit';
+    }
+    if (this.$actions().has(DOCUMENT_ACTION.Cancel)) {
+      return this.$status() === DocumentStatus.Approved
+        ? 'doc.stockChangedBodyReviewer'
+        : 'doc.stockChangedBodyCancel';
+    }
+    return 'doc.stockChangedBodyAsk';
+  });
+  /**
+   * The buttons of the bar. While the "Stock changed" banner is on screen Post is not offered (NR-11): the page says the
+   * document cannot be posted, so a Post button next to it would contradict it. The server still decides at the next load.
+   */
+  readonly $barActions = computed<readonly string[]>(() =>
+    this.$stockConflict() === undefined
+      ? this.$allowedActions()
+      : this.$allowedActions().filter(action => action !== DOCUMENT_ACTION.Post)
+  );
+  /** An approved issue the reviewer can see is short on stock (PR-02): says so before anyone presses Post. */
+  readonly $cannotPost = computed(() => {
+    const document = this.$document();
+    if (
+      !document ||
+      document.type !== DocumentType.Issue ||
+      document.status !== DocumentStatus.Approved ||
+      document.negativeStockOverrideReason ||
+      !this.$actions().has(DOCUMENT_ACTION.Cancel) ||
+      this.$stockConflict() !== undefined
+    ) {
+      return undefined;
+    }
+    // Lines of one product add up, as the API does; `available` is the same figure on each of them.
+    const needs = new Map<string, { sku: string; requested: number; available: number }>();
+    for (const line of document.lines) {
+      if (line.available === undefined || line.available === null) {
+        continue;
+      }
+      const need = needs.get(line.productId) ?? {
+        sku: line.sku,
+        requested: 0,
+        available: line.available
+      };
+      needs.set(line.productId, { ...need, requested: need.requested + line.baseQty });
+    }
+    const short = [...needs.values()].find(need => need.requested > need.available);
+    return short ? { ...short, warehouse: document.warehouseName } : undefined;
   });
   /** One line under the title for what the status chip alone does not say (design 7.1). */
   readonly $statusHint = computed<StatusHint | undefined>(() => {
     const document = this.$document();
     switch (document?.status) {
       case DocumentStatus.Submitted:
-        return document.requiresApproval ? undefined : { key: 'doc.hint.readyToPost' };
+        return document.requiresApproval || this.$stockConflict() !== undefined
+          ? undefined
+          : { key: 'doc.hint.readyToPost' };
       case DocumentStatus.Approved:
         return {
           key: 'doc.hint.approvedBy',
@@ -544,9 +598,33 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       !this.$actions().has(DOCUMENT_ACTION.Reverse) &&
       this.permissions.has(PERMISSION.DocumentCreate)
   );
+  /** The submitter can take a Submitted document back to Draft: one line that says so, where the Edit button is. */
+  readonly $recallHintKey = computed<MessageKey | undefined>(() => {
+    if (
+      this.$status() !== DocumentStatus.Submitted ||
+      !this.$actions().has(DOCUMENT_ACTION.Recall)
+    ) {
+      return undefined;
+    }
+    if (this.$document()?.requiresApproval) {
+      return 'doc.hint.recallWaiting';
+    }
+    // The stock banner already says "Tap Edit".
+    return this.$stockConflict() === undefined ? 'doc.hint.recallReady' : undefined;
+  });
+  /** An approved document is not the creator's to take back: say whom to ask (the approver cancels it). */
+  readonly $askToCancel = computed(() => {
+    const document = this.$document();
+    return document !== undefined &&
+      document.status === DocumentStatus.Approved &&
+      !this.$actions().has(DOCUMENT_ACTION.Cancel) &&
+      this.permissions.has(PERMISSION.DocumentCreate)
+      ? (document.approvedByName ?? document.approvedBy ?? '')
+      : undefined;
+  });
   /** The action bar is only worth its space when it has something to show. */
   readonly $showBar = computed(
-    () => this.$editable() || this.$allowedActions().length > 0 || this.$selfApprovalBlocked()
+    () => this.$editable() || this.$barActions().length > 0 || this.$selfApprovalBlocked()
   );
   readonly $saveGeneralErrors = computed(() => {
     const error = this.documents.save.$operation().error;
@@ -626,6 +704,26 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       untracked(() =>
         this.stock.ledger.load({ sourceDocId: documentId, page: 1, pageSize: LEDGER_PAGE_SIZE })
       );
+    }
+  });
+
+  /**
+   * Edit or Cancel refused with a plain 400 (the document is not in a state that allows it any more): the sentence was
+   * announced once by the toast, and the page is read again so its buttons match the document. A stale 409 has its banner
+   * and Reload button instead (E4); a 400 about a field (the reason) is shown at the field.
+   */
+  private readonly reloadAfterWrongState = effect(() => {
+    const refused = [
+      this.documents.recall.$operation().error,
+      this.documents.cancel.$operation().error
+    ];
+    if (
+      refused.some(
+        error =>
+          error?.status === HTTP_STATUS.BadRequest && Object.keys(error.fieldErrors).length === 0
+      )
+    ) {
+      untracked(() => this.documents.detail.reload());
     }
   });
 
@@ -792,6 +890,9 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         break;
       case DOCUMENT_ACTION.Cancel:
         this.cancel();
+        break;
+      case DOCUMENT_ACTION.Recall:
+        this.recall();
         break;
       case DOCUMENT_ACTION.Post:
         this.runPost(this.$document())
@@ -1002,14 +1103,17 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       void this.router.navigate(this.$backLink());
       return;
     }
+    // Cancelling an approved document undoes someone's decision: the reason is required there (the API refuses without).
+    const approved = document.status === DocumentStatus.Approved;
     this.confirm
       .ask({
         heading: this.i18n.t('dialog.cancel.title', { docNo: document.no }),
-        body: this.i18n.t('dialog.cancel.body'),
+        body: this.i18n.t(approved ? 'dialog.cancelApproved.body' : 'dialog.cancel.body'),
         confirmLabel: this.i18n.t('doc.action.cancel'),
         cancelLabel: this.i18n.t('dialog.cancel.keep'),
         destructive: true,
-        reasonLabel: this.i18n.t('dialog.reasonOptional')
+        reasonLabel: this.i18n.t(approved ? 'dialog.reason' : 'dialog.reasonOptional'),
+        ...(approved && { reasonRequired: true, minReasonLength: MIN_REASON_LENGTH })
       })
       .pipe(
         switchMap(reason => this.documents.cancel.run({ ...toDocumentRef(document), reason })),
@@ -1019,6 +1123,40 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();
+  }
+
+  /**
+   * The submitter takes a Submitted document back to Draft (same number, same lines). Someone else's work is affected only
+   * when the document waits in an approver's list, so only then is the user asked first.
+   */
+  private recall(): void {
+    const document = this.$document();
+    if (!document) {
+      return;
+    }
+    const confirmed$ = document.requiresApproval
+      ? this.confirm.ask({
+          heading: this.i18n.t('dialog.recall.title', { docNo: document.no }),
+          body: this.i18n.t('dialog.recall.body'),
+          confirmLabel: this.i18n.t('doc.action.recall'),
+          cancelLabel: this.i18n.t('dialog.recall.keep')
+        })
+      : of('');
+    confirmed$
+      .pipe(
+        switchMap(() => this.runRecall(document)),
+        finalize(() => this.settleFocus()),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe();
+  }
+
+  /** The answer is the Draft with its new version: the store keeps it as the opened document, so the form opens on it. */
+  private runRecall(document: DocumentDto): Observable<DocumentDto> {
+    return this.documents.recall.run(toDocumentRef(document)).pipe(
+      tap(() => this.toast.success(this.i18n.t('doc.toast.recalled'))),
+      tap(() => this.afterChange(false))
+    );
   }
 
   private reverse(): void {
@@ -1053,20 +1191,28 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       return of();
     }
     const direction = document.type === DocumentType.Issue ? 'decrease' : 'increase';
+    // The last chance to catch a wrong quantity: whoever may take the document back gets "Edit items" instead of "Back".
+    const mayRecall = toDocumentActions(document.allowedActions).has(DOCUMENT_ACTION.Recall);
     return this.confirm
-      .ask({
+      .choose({
         heading: this.i18n.t('dialog.post.title', { docNo: document.no }),
         body: `${this.i18n.t(
           direction === 'decrease' ? 'dialog.post.bodyDecrease' : 'dialog.post.bodyIncrease',
           { count: document.lines.length }
         )} ${this.postSummary(document)}`,
         confirmLabel: this.i18n.t('doc.action.post'),
-        cancelLabel: this.i18n.t('common.back')
+        cancelLabel: this.i18n.t('common.back'),
+        ...(mayRecall && { alternateLabel: this.i18n.t('dialog.post.edit') })
       })
       .pipe(
-        switchMap(() => this.documents.post.run(toDocumentRef(document))),
-        tap(() => this.toast.success(this.i18n.t('doc.toast.posted'))),
-        tap(() => this.afterChange(true))
+        switchMap(answer =>
+          answer.choice === 'alternate'
+            ? this.runRecall(document)
+            : this.documents.post.run(toDocumentRef(document)).pipe(
+                tap(() => this.toast.success(this.i18n.t('doc.toast.posted'))),
+                tap(() => this.afterChange(true))
+              )
+        )
       );
   }
 

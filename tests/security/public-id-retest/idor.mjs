@@ -52,6 +52,7 @@ const routes = [
   ['POST documents/{id}/submit', 'doc', (id) => ['POST', `/api/documents/${id}/submit`, { headers: ifm }]],
   ['POST documents/{id}/approve', 'doc', (id) => ['POST', `/api/documents/${id}/approve`, { headers: ifm, body: { negativeStockOverrideReason: null } }]],
   ['POST documents/{id}/reject', 'doc', (id) => ['POST', `/api/documents/${id}/reject`, { headers: ifm, body: { reason: 'not a valid request' } }]],
+  ['POST documents/{id}/recall', 'doc', (id) => ['POST', `/api/documents/${id}/recall`, { headers: ifm }]],
   ['POST documents/{id}/cancel', 'doc', (id) => ['POST', `/api/documents/${id}/cancel`, { headers: ifm, body: { reason: 'not a valid request' } }]],
   ['POST documents/{id}/post', 'doc', (id) => ['POST', `/api/documents/${id}/post`, { headers: ifm }]],
   ['POST documents/{id}/reverse', 'doc', (id) => ['POST', `/api/documents/${id}/reverse`, { headers: ifm, body: { reason: 'not a valid request' } }]],

@@ -38,6 +38,17 @@
     {{ 'doc.action.reverse' | t }}
   </app-button>
 }
+@if ($canRecall()) {
+  <app-button
+    [variant]="$recallIsPrimary() ? 'primary' : 'secondary'"
+    [disabled]="$inactive()"
+    [loading]="$busyAction() === action.Recall"
+    (clicked)="onTrigger(action.Recall)"
+  >
+    <app-icon name="pencil" />
+    {{ 'doc.action.recall' | t }}
+  </app-button>
+}
 @if ($canSave()) {
   <app-button
     [disabled]="$inactive()"

@@ -1,6 +1,6 @@
 import { HttpContext } from '@angular/common/http';
 import { createServiceFactory, mockProvider, SpectatorService } from '@ngneat/spectator/jest';
-import { firstValueFrom, of, throwError } from 'rxjs';
+import { Subject, firstValueFrom, of, throwError } from 'rxjs';
 import {
   DocumentDto,
   DocumentType,
@@ -29,7 +29,16 @@ describe('DocumentsStore', () => {
 
   beforeEach(() => {
     spectator = createService();
-    for (const action of ['submit', 'approve', 'reject', 'cancel', 'post', 'reverse', 'update']) {
+    for (const action of [
+      'submit',
+      'approve',
+      'reject',
+      'cancel',
+      'recall',
+      'post',
+      'reverse',
+      'update'
+    ]) {
       (client() as unknown as Record<string, jest.Mock>)[action].mockReturnValue(of(DOCUMENT));
     }
   });
@@ -68,12 +77,44 @@ describe('DocumentsStore', () => {
     await firstValueFrom(spectator.service.reject.run({ ...ref, reason: 'check it' }));
     await firstValueFrom(spectator.service.cancel.run({ ...ref, reason: '' }));
     await firstValueFrom(spectator.service.reverse.run({ ...ref, reason: 'wrong lot' }));
+    await firstValueFrom(spectator.service.recall.run(ref));
 
+    expect(tokenOf(client().recall.mock.calls[0][1])).toBe('AAAA');
     expect(tokenOf(client().submit.mock.calls[0][1])).toBe('AAAA');
     expect(tokenOf(client().post.mock.calls[0][1])).toBe('AAAA');
     expect(tokenOf(client().reject.mock.calls[0][2])).toBe('AAAA');
     expect(tokenOf(client().cancel.mock.calls[0][2])).toBe('AAAA');
     expect(tokenOf(client().reverse.mock.calls[0][2])).toBe('AAAA');
+  });
+
+  it('recalls without a body, keeps the answer as the opened document (new token) and a double tap sends one call', async () => {
+    const recalled = { ...DOCUMENT, concurrencyToken: 'BBBB' } as DocumentDto;
+    client().recall.mockReturnValue(of(recalled));
+
+    await firstValueFrom(spectator.service.recall.run(toDocumentRef(DOCUMENT)));
+
+    expect(client().recall).toHaveBeenCalledWith(DOCUMENT_ID, expect.anything());
+    expect(client().recall.mock.calls[0]).toHaveLength(2);
+    expect(spectator.service.detail.$data()?.concurrencyToken).toBe('BBBB');
+
+    const pending = new Subject<DocumentDto>();
+    client().recall.mockReturnValue(pending);
+    const first = spectator.service.recall.run(toDocumentRef(recalled)).subscribe();
+    spectator.service.recall.run(toDocumentRef(recalled)).subscribe();
+    pending.complete();
+    first.unsubscribe();
+    expect(client().recall).toHaveBeenCalledTimes(2);
+  });
+
+  it('cancels an approved document with its reason and the version', async () => {
+    await firstValueFrom(
+      spectator.service.cancel.run({ ...toDocumentRef(DOCUMENT), reason: 'Customer withdrew' })
+    );
+
+    const [id, body, context] = client().cancel.mock.calls[0];
+    expect(id).toBe(DOCUMENT_ID);
+    expect(body).toEqual({ reason: 'Customer withdrew' });
+    expect(tokenOf(context)).toBe('AAAA');
   });
 
   it('posts without a request body: the override reason is given at approval', async () => {
