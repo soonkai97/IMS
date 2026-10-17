@@ -57,6 +57,8 @@ describe('HomePageComponent', () => {
         provide: PermissionService,
         useValue: {
           has: (permission: string) => granted.has(permission),
+          hasAny: (permissions: readonly string[]) =>
+            permissions.some(permission => granted.has(permission)),
           $displayName: signal('Pat'),
           $seesAllWarehouses: signal(true),
           $warehouseIds: signal<number[]>([])
