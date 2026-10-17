@@ -21,7 +21,7 @@ public class RowDeletionAuditTests(PublicIdDatabase fixture) : IClassFixture<Pub
     private readonly FixedUser _deleter = new(2, Unique.Username("deleter"));
 
     public static TheoryData<string> AuditedByPublicId =>
-        new() { nameof(Partner), nameof(Category), nameof(Uom), nameof(Warehouse), nameof(Product), nameof(User), nameof(ApprovalRule) };
+        new() { nameof(Partner), nameof(Category), nameof(Uom), nameof(Warehouse), nameof(Product), nameof(User), nameof(ApprovalRule), nameof(Role) };
 
     private AppDbContext CreatorContext() => fixture.NewContext(user: _creator, clock: new FrozenClock(CreatedAtUtc));
 
@@ -42,6 +42,7 @@ public class RowDeletionAuditTests(PublicIdDatabase fixture) : IClassFixture<Pub
                 var username = Unique.Username();
                 var clerk = await db.Set<Role>().SingleAsync(r => r.Code == Roles.Clerk);
                 entity = User.Create(username, Unique.Email(username), "Deleted soon", clerk, "hash"); break;
+            case nameof(Role): entity = Role.Create(Unique.Code("R"), Unique.Name("Role"), null, false, [Permissions.StockRead, Permissions.ReportsRead]); break;
             case nameof(ApprovalRule): entity = ApprovalRule.Create(DocumentType.Issue, 1000m, null, ApproverTier.Standard); break;
             case nameof(Product):
                 var category = Category.Create(Unique.Name("Cat"));
@@ -136,6 +137,24 @@ public class RowDeletionAuditTests(PublicIdDatabase fixture) : IClassFixture<Pub
 
         var rows = await RowsOfAsync(nameof(Partner), saved.PublicId.ToString());
         Assert.Equal([AuditActions.RowCreated, AuditActions.RowUpdated], rows.Select(r => r.Action));
+    }
+
+    [Fact]
+    public async Task A_role_permission_taken_away_is_audited_as_deleted_by_its_integer_key()
+    {
+        var role = (Role)await CreateAsync(nameof(Role));
+        var revoked = role.Grants.Single(g => g.PermissionCode == Permissions.ReportsRead);
+
+        await using (var edit = DeleterContext())
+        {
+            edit.Remove(await edit.Set<RolePermission>().SingleAsync(g => g.Id == revoked.Id));
+            await edit.SaveChangesAsync();
+        }
+
+        var row = Assert.Single(await RowsOfAsync(nameof(RolePermission), revoked.Id.ToString()), r => r.Action == AuditActions.RowDeleted);
+        Assert.Equal(_deleter.Username, row.Actor);
+        Assert.Contains(Permissions.ReportsRead, row.Before);
+        Assert.Null(row.After);
     }
 
     [Fact]
