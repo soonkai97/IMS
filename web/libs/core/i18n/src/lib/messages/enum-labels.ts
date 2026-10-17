@@ -47,3 +47,9 @@ export const LEDGER_REASON_LABELS: LabelMap = {
   Reversal: 'ledgerReason.Reversal',
   Opening: 'ledgerReason.Opening'
 };
+
+/** Approval rule tier (the server's ApproverTier) -> the plain words the Settings form shows. */
+export const APPROVER_TIER_LABELS: LabelMap = {
+  Standard: 'rule.tier.Standard',
+  Large: 'rule.tier.Large'
+};

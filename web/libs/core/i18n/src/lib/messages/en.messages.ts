@@ -546,7 +546,8 @@ export const EN_MESSAGES = {
   'user.username': 'Username',
   'user.warehouses': 'Warehouses',
   'user.warehousesHint':
-    'Admin and Owner see every warehouse. Other roles see only the ones ticked here.',
+    'Leave this off to limit the person to the warehouses ticked here. You can only give warehouses you can reach yourself, and only change people who do not see more than you.',
+  'user.allWarehouses': 'Sees every warehouse',
   'settings.alertCooldown': 'Low-stock alert cool-down (hours)',
   'settings.alertCooldownHint': 'Minimum time between two alerts for the same product.',
   'settings.allowNegativeStock': 'Allow negative stock',
@@ -566,7 +567,11 @@ export const EN_MESSAGES = {
   'rule.empty': 'No approval rules yet.',
   'rule.new': 'New rule',
   'rule.qtyThreshold': 'Quantity from',
-  'rule.roleRequired': 'Approver role',
+  'rule.tier': 'Who approves',
+  'rule.tier.Large': 'Large-document approvers',
+  'rule.tier.Standard': 'Standard approvers',
+  'rule.tierHint':
+    'Documents that reach a large rule go to the people allowed to approve large documents (the Owner by default).',
   'rule.thresholdHint': 'Leave a threshold empty to ignore it.',
 
   // Audit

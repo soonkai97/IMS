@@ -530,7 +530,8 @@ export const MS_MESSAGES: Messages = {
   'user.username': 'Nama pengguna',
   'user.warehouses': 'Gudang',
   'user.warehousesHint':
-    'Pentadbir dan Pemilik melihat semua gudang. Peranan lain hanya melihat yang ditanda di sini.',
+    'Biarkan tidak ditanda untuk mengehadkan orang ini kepada gudang yang ditanda di sini. Anda hanya boleh memberi gudang yang anda sendiri boleh capai, dan hanya mengubah orang yang tidak melihat lebih daripada anda.',
+  'user.allWarehouses': 'Melihat semua gudang',
   'settings.alertCooldown': 'Selang amaran stok rendah (jam)',
   'settings.alertCooldownHint': 'Masa minimum antara dua amaran untuk produk yang sama.',
   'settings.allowNegativeStock': 'Benarkan stok negatif',
@@ -551,7 +552,11 @@ export const MS_MESSAGES: Messages = {
   'rule.empty': 'Belum ada peraturan kelulusan.',
   'rule.new': 'Peraturan baharu',
   'rule.qtyThreshold': 'Kuantiti dari',
-  'rule.roleRequired': 'Peranan pelulus',
+  'rule.tier': 'Siapa meluluskan',
+  'rule.tier.Large': 'Pelulus dokumen besar',
+  'rule.tier.Standard': 'Pelulus biasa',
+  'rule.tierHint':
+    'Dokumen yang mencapai peraturan besar dihantar kepada orang yang dibenarkan meluluskan dokumen besar (Pemilik secara lalai).',
   'rule.thresholdHint': 'Biarkan ambang kosong untuk mengabaikannya.',
 
   'audit.action': 'Tindakan',

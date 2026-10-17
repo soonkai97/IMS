@@ -99,6 +99,7 @@
     </app-form-field>
     <fieldset class="users-page-warehouses">
       <legend>{{ 'user.warehouses' | t }}</legend>
+      <app-checkbox formControlName="allWarehouses">{{ 'user.allWarehouses' | t }}</app-checkbox>
       @for (choice of $warehouseChoices(); track choice.id) {
         <app-checkbox [formControl]="choice.control">{{ choice.label }}</app-checkbox>
       }

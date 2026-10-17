@@ -1,5 +1,4 @@
 import { Injectable, computed, inject } from '@angular/core';
-import { ALL_WAREHOUSE_ROLES } from '@ims/models';
 import { profileOf } from '../rules/profile-of';
 import { AuthService } from './auth.service';
 
@@ -16,7 +15,8 @@ export class PermissionService {
   readonly $username = computed(() => this.auth.$user()?.username ?? '');
   readonly $userId = computed(() => this.auth.$user()?.id);
   readonly $warehouseIds = computed(() => this.auth.$user()?.warehouseIds ?? []);
-  readonly $seesAllWarehouses = computed(() => ALL_WAREHOUSE_ROLES.includes(this.$role() ?? ''));
+  /** From the user's own flag (the API's seesAllWarehouses), not from the role: a role is data. */
+  readonly $seesAllWarehouses = computed(() => this.auth.$user()?.seesAllWarehouses ?? false);
 
   has(permission: string): boolean {
     return this.$permissions().has(permission);

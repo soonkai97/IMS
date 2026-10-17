@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { of } from 'rxjs';
+import { ApproverTier } from '@ims/api';
 import { ApiError } from '@ims/models';
 import { ToastService } from '@ims/core/notification';
 import { provideUiText } from '@ims/core/i18n';
@@ -80,4 +81,60 @@ describe('SettingsPageComponent approval rule amount (R04: money has 2 decimals)
     expect(amount().errors).toHaveProperty('min');
     expect(saveRun).not.toHaveBeenCalled();
   });
+});
+
+describe('SettingsPageComponent approval rule tier (RP-4b: the rule says who approves by tier, never by role name)', () => {
+  let spectator: Spectator<SettingsPageComponent>;
+  const saveRun = jest.fn(() => of(undefined));
+  const createComponent = createComponentFactory({
+    component: SettingsPageComponent,
+    detectChanges: false,
+    providers: [
+      provideUiText(),
+      { provide: ToastService, useValue: { success: jest.fn() } },
+      {
+        provide: SystemRulesStore,
+        useValue: {
+          settings: { $data: signal(undefined), $isLoading: signal(false), load: jest.fn() },
+          rules: { $data: signal([]), load: jest.fn() },
+          saveSettings: { $isRunning: signal(false), run: jest.fn() },
+          saveRule: {
+            $isRunning: signal(false),
+            $operation: signal({}),
+            run: saveRun,
+            reset: jest.fn()
+          }
+        }
+      }
+    ]
+  });
+
+  beforeEach(() => {
+    saveRun.mockClear();
+    spectator = createComponent();
+    spectator.detectChanges();
+    spectator.component.onAddRule();
+    spectator.component.ruleForm.controls.amountThreshold.setValue(100);
+  });
+
+  it('offers two plain-word levels and no Administrator option', () => {
+    const labels = spectator.component.$tierOptions().map(option => option.label);
+
+    expect(labels).toEqual(['Standard approvers', 'Large-document approvers']);
+  });
+
+  it.each([ApproverTier.Standard, ApproverTier.Large])(
+    'saves %s as approverTier and sends no roleRequired',
+    tier => {
+      spectator.component.ruleForm.controls.approverTier.setValue(tier);
+
+      spectator.component.onSaveRule();
+
+      const [{ body }] = (
+        saveRun.mock.calls as unknown as [{ body: Record<string, unknown> }][]
+      )[0];
+      expect(body['approverTier']).toBe(tier);
+      expect('roleRequired' in body).toBe(false);
+    }
+  );
 });

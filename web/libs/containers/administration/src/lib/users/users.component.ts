@@ -112,6 +112,7 @@ export class UsersPageComponent implements OnInit {
       nonNullable: true,
       validators: [Validators.maxLength(MAX_PASSWORD_LENGTH)]
     }),
+    allWarehouses: new FormControl(false, { nonNullable: true }),
     isActive: new FormControl(true, { nonNullable: true })
   });
 
@@ -220,6 +221,7 @@ export class UsersPageComponent implements OnInit {
           email: value.email.trim(),
           role: value.role ?? '',
           isActive: value.isActive,
+          allWarehouses: value.allWarehouses,
           password: value.password.length > 0 ? value.password : undefined,
           warehouseIds: this.$warehouseChoices()
             .filter(choice => choice.control.value)
@@ -252,6 +254,7 @@ export class UsersPageComponent implements OnInit {
       email: user?.email ?? '',
       role: user?.role ?? null,
       password: '',
+      allWarehouses: user?.allWarehouses ?? false,
       isActive: user?.isActive ?? true
     });
     this.$editingId.set(id);
