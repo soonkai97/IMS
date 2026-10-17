@@ -5,6 +5,7 @@ import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { Subject, of, throwError } from 'rxjs';
 import {
   ApprovalMetric,
+  ApproverTier,
   DocumentDto,
   DocumentStatus,
   DocumentType,
@@ -1026,6 +1027,7 @@ describe('DocumentEditorPageComponent', () => {
               metric: ApprovalMetric.Amount,
               threshold: 5000,
               actual: 5100,
+              approverTier: ApproverTier.Standard,
               roleRequired: 'Supervisor'
             }
           ]
@@ -1047,6 +1049,7 @@ describe('DocumentEditorPageComponent', () => {
               metric: ApprovalMetric.Quantity,
               threshold: 1000,
               actual: 1000,
+              approverTier: ApproverTier.Large,
               roleRequired: 'Owner'
             }
           ]
@@ -1222,6 +1225,7 @@ describe('DocumentEditorPageComponent', () => {
               metric: ApprovalMetric.Amount,
               threshold: null as unknown as undefined,
               actual: null as unknown as undefined,
+              approverTier: ApproverTier.Standard,
               roleRequired: 'Supervisor'
             }
           ]
@@ -1244,6 +1248,7 @@ describe('DocumentEditorPageComponent', () => {
               metric: ApprovalMetric.Quantity,
               threshold: 1000,
               actual: 1200,
+              approverTier: ApproverTier.Large,
               roleRequired: 'Owner'
             }
           ]

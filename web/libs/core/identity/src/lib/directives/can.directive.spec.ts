@@ -11,7 +11,9 @@ function userWith(permissions: string[]): UserInfo {
     username: 'u',
     displayName: 'U',
     role: 'Clerk',
+    roleName: 'Clerk',
     permissions,
+    seesAllWarehouses: false,
     warehouseIds: []
   };
 }

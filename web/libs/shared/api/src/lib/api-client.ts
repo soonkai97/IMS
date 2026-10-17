@@ -4088,6 +4088,8 @@ export interface ApprovalRuleDto {
     /** Money. Null for a caller without `cost.view` (the Warehouse staff), and when the rule has no amount threshold. */
     amountThreshold: number | undefined;
     qtyThreshold: number | undefined;
+    approverTier: ApproverTier;
+    /** Deprecated: the system role that holds the tier by default (Supervisor for Standard, Owner for Large), for a client that has not moved to ApproverTier. */
     roleRequired: string;
     isActive: boolean;
 }
@@ -4096,21 +4098,30 @@ export interface ApprovalRuleSaveRequest {
     docType: DocumentType;
     amountThreshold: number | undefined;
     qtyThreshold: number | undefined;
-    roleRequired: string;
+    /** Deprecated (ADR roles-permissions 2.7): a system role name, mapped to a tier (Owner and Admin Large, the other system roles Standard). Send ApproverTier instead; one of the two is required, and when both are sent they must agree. */
+    roleRequired: string | undefined;
     isActive: boolean;
+    approverTier?: ApproverTier | undefined;
 }
 
-/** One reason a document needs approval: Actual reached Threshold of a rule that needs RoleRequired. For an amount rule the two numbers are money, so a caller without `cost.view` (the Warehouse staff) gets them as null: they still see that the document needs approval and which kind of rule fired (Metric), not the amount. A quantity rule is not hidden. */
+/** One reason a document needs approval: Actual reached Threshold of a rule that asks for ApproverTier. For an amount rule the two numbers are money, so a caller without `cost.view` (the Warehouse staff) gets them as null: they still see that the document needs approval and which kind of rule fired (Metric), not the amount. A quantity rule is not hidden. RoleRequired is deprecated: the system role that holds the tier by default (Supervisor for Standard, Owner for Large). */
 export interface ApprovalTriggerDto {
     metric: ApprovalMetric;
     threshold: number | undefined;
     actual: number | undefined;
+    approverTier: ApproverTier;
     roleRequired: string;
 }
 
 export interface ApproveRequest {
     /** Required when the document `requiresOverride`: why the approver lets stock go below zero. Ignored for any other document. */
     negativeStockOverrideReason: string | undefined;
+}
+
+/** Who may satisfy an approval rule: a holder of string Permissions.DocumentApprove (Standard) or of string Permissions.DocumentApproveLarge (Large). Two levels by design; a third is a new permission and a migration. The values are what the rule stores once it keeps a tier (ADR roles-permissions 4.1). */
+export enum ApproverTier {
+    Standard = "Standard",
+    Large = "Large",
 }
 
 export interface AttachmentDto {
@@ -4692,14 +4703,18 @@ export interface UserDto {
     role: string;
     isActive: boolean;
     warehouseIds: string[];
+    allWarehouses: boolean;
 }
 
+/** The signed-in user. `Permissions` lists the codes of the access token (the role's grants when it was issued) in catalog order; the web reads it for menus and buttons, the API decides by the token itself. */
 export interface UserInfo {
     id: string;
     username: string;
     displayName: string;
     role: string;
+    roleName: string;
     permissions: string[];
+    seesAllWarehouses: boolean;
     warehouseIds: string[];
 }
 
@@ -4707,10 +4722,13 @@ export interface UserSaveRequest {
     username: string;
     email: string;
     displayName: string;
+    /** The code of a role in the Role table (a system role or a custom one). */
     role: string;
     isActive: boolean;
     password: string | undefined;
     warehouseIds: string[] | undefined;
+    /** Sees every warehouse whatever WarehouseIds says. Left out: unchanged on an update, false for a new user. */
+    allWarehouses?: boolean | undefined;
 }
 
 export interface WarehouseDto {

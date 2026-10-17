@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:5277/"
+      "url": "http://localhost:5109/"
     }
   ],
   "paths": {
@@ -3520,6 +3520,7 @@
           "docType",
           "amountThreshold",
           "qtyThreshold",
+          "approverTier",
           "roleRequired",
           "isActive"
         ],
@@ -3547,8 +3548,12 @@
             ],
             "format": "double"
           },
+          "approverTier": {
+            "$ref": "#/components/schemas/ApproverTier"
+          },
           "roleRequired": {
-            "type": "string"
+            "type": "string",
+            "description": "Deprecated: the system role that holds the tier by default (Supervisor for Standard, Owner for Large), for a client that has not moved to ApproverTier."
           },
           "isActive": {
             "type": "boolean"
@@ -3583,10 +3588,24 @@
             "format": "double"
           },
           "roleRequired": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Deprecated (ADR roles-permissions 2.7): a system role name, mapped to a tier (Owner and Admin Large, the other system roles Standard). Send ApproverTier instead; one of the two is required, and when both are sent they must agree."
           },
           "isActive": {
             "type": "boolean"
+          },
+          "approverTier": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ApproverTier"
+              }
+            ]
           }
         }
       },
@@ -3595,6 +3614,7 @@
           "metric",
           "threshold",
           "actual",
+          "approverTier",
           "roleRequired"
         ],
         "type": "object",
@@ -3616,11 +3636,14 @@
             ],
             "format": "double"
           },
+          "approverTier": {
+            "$ref": "#/components/schemas/ApproverTier"
+          },
           "roleRequired": {
             "type": "string"
           }
         },
-        "description": "One reason a document needs approval: Actual reached Threshold of a rule that needs RoleRequired.\r\nFor an amount rule the two numbers are money, so a caller without `cost.view` (the Warehouse staff) gets them as null: they still see that\r\nthe document needs approval and which kind of rule fired (Metric), not the amount. A quantity rule is not hidden."
+        "description": "One reason a document needs approval: Actual reached Threshold of a rule that asks for ApproverTier.\r\nFor an amount rule the two numbers are money, so a caller without `cost.view` (the Warehouse staff) gets them as null: they still see that\r\nthe document needs approval and which kind of rule fired (Metric), not the amount. A quantity rule is not hidden.\r\nRoleRequired is deprecated: the system role that holds the tier by default (Supervisor for Standard, Owner for Large)."
       },
       "ApproveRequest": {
         "required": [
@@ -3636,6 +3659,14 @@
             "description": "Required when the document `requiresOverride`: why the approver lets stock go below zero. Ignored for any other document."
           }
         }
+      },
+      "ApproverTier": {
+        "enum": [
+          "Standard",
+          "Large"
+        ],
+        "type": "string",
+        "description": "Who may satisfy an approval rule: a holder of string Permissions.DocumentApprove (Standard) or of string Permissions.DocumentApproveLarge (Large).\r\nTwo levels by design; a third is a new permission and a migration. The values are what the rule stores once it keeps a tier (ADR roles-permissions 4.1)."
       },
       "AttachmentDto": {
         "required": [
@@ -5685,7 +5716,8 @@
           "displayName",
           "role",
           "isActive",
-          "warehouseIds"
+          "warehouseIds",
+          "allWarehouses"
         ],
         "type": "object",
         "properties": {
@@ -5714,6 +5746,9 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "allWarehouses": {
+            "type": "boolean"
           }
         }
       },
@@ -5723,7 +5758,9 @@
           "username",
           "displayName",
           "role",
+          "roleName",
           "permissions",
+          "seesAllWarehouses",
           "warehouseIds"
         ],
         "type": "object",
@@ -5741,11 +5778,17 @@
           "role": {
             "type": "string"
           },
+          "roleName": {
+            "type": "string"
+          },
           "permissions": {
             "type": "array",
             "items": {
               "type": "string"
             }
+          },
+          "seesAllWarehouses": {
+            "type": "boolean"
           },
           "warehouseIds": {
             "type": "array",
@@ -5754,7 +5797,8 @@
               "format": "uuid"
             }
           }
-        }
+        },
+        "description": "The signed-in user. `Permissions` lists the codes of the access token (the role's grants when it was issued) in catalog order; the web reads it for menus and\r\nbuttons, the API decides by the token itself."
       },
       "UserSaveRequest": {
         "required": [
@@ -5778,7 +5822,8 @@
             "type": "string"
           },
           "role": {
-            "type": "string"
+            "type": "string",
+            "description": "The code of a role in the Role table (a system role or a custom one)."
           },
           "isActive": {
             "type": "boolean"
@@ -5798,6 +5843,13 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "allWarehouses": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Sees every warehouse whatever WarehouseIds says. Left out: unchanged on an update, false for a new user."
           }
         }
       },
