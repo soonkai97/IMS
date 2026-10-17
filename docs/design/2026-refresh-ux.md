@@ -822,7 +822,7 @@ Recommendation: desktop shows First, Previous, "Page 3 of 14", Next, Last and a 
 
 ### 10.4 Dates in filters (NV-27, PS-15, product decision pending, see Q9)
 
-Recommendation: a text date field in the app format `dd MMM yyyy` with a calendar button, inline validation "From must be on or before To.", an empty state with an action "Change filters" in Reports. Until decided, native date inputs stay.
+Recommendation: a text date field in the app format `dd/MM/yyyy` (owner decision: dates are dd/MM/yyyy everywhere, in every language) with a calendar button, inline validation "From must be on or before To.", an empty state with an action "Change filters" in Reports. Until decided, native date inputs stay.
 
 ### 10.5 Acceptance criteria
 
@@ -890,7 +890,7 @@ Default in brackets is what this specification assumes.
 | Q6 | Should the Returned widget show the reviewer's reason (needs `rejectionReason` on the list item), or only the "Returned" chip? | Chip only; reason one tap away |
 | Q7 | Should Admin see a "Stock without cost" warning (stock received by Warehouse staff carries zero cost, PR-07)? It needs a new count endpoint and a cost-correction step. | Not in this refresh |
 | Q8 | Paging controls (PS-13): First/Last and page size 25/50/100 on desktop? | Yes (S11) |
-| Q9 | Date filters (NV-27, PS-15): replace native date inputs with a text date field in the app format `dd MMM yyyy`? | Yes (S11), until then native inputs |
+| Q9 | Date filters (NV-27, PS-15): replace native date inputs with a text date field in the app format `dd/MM/yyyy`? (owner: numeric dd/MM/yyyy everywhere, and `dd/MM/yyyy HH:mm` with a time) | Yes (S11), until then native inputs |
 | Q10 | Recent items are cleared at sign-out because warehouse devices are shared. Keep them across sign-ins instead for single-user devices? | Cleared at sign-out |
 | Q11 | Reduce motion: honour the device setting only, or also add an in-app switch for people whose device setting is not available (some shared handsets)? | Device setting only |
 | Q12 | Open since the MVP and still blocking one dead end: allow Cancel on an Approved document (Q3 of `mvp-ux.md`, PR-02)? Not part of this refresh, but the Home W6 "All clear" and the approver view depend on it being decided | Not changed |

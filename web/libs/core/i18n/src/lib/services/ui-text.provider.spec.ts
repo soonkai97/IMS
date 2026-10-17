@@ -36,8 +36,11 @@ describe('UI text for the kit', () => {
   });
 
   it('R23: text that is no date names a date in the app format; the calendar button has a name', () => {
-    expect(text().validationMessage('date', true)).toBe('Enter a date such as 09 Oct 2026.');
+    expect(text().validationMessage('date', true)).toBe(
+      'Enter a date as dd/mm/yyyy, such as 09/10/2026.'
+    );
     expect(text().chooseDate).toBe('Choose date');
+    expect(text().datePlaceholder).toBe('dd/mm/yyyy');
     expect(text().locale).toBe('en-GB');
   });
 

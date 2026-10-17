@@ -1,34 +1,50 @@
-import { exampleDateText, formatDateText, isDateRangeInvalid, parseDateText } from './date-text';
+import {
+  exampleDateText,
+  formatDateText,
+  formatTimestampText,
+  isDateRangeInvalid,
+  parseDateText
+} from './date-text';
 
 const EN = 'en-GB';
 const ZH = 'zh-CN';
 const MS = 'ms-MY';
 
 describe('formatDateText (R23)', () => {
-  it('writes dd MMM yyyy with the month name of the language', () => {
-    expect(formatDateText('2026-10-09', EN)).toBe('09 Oct 2026');
-    expect(formatDateText('2026-10-09', MS)).toBe('09 Okt 2026');
-    expect(formatDateText('2026-10-09', ZH)).toBe('09 10月 2026');
+  it('writes dd/MM/yyyy, the same in every language (owner decision)', () => {
+    expect(formatDateText('2026-10-09')).toBe('09/10/2026');
+    expect(formatDateText('2026-01-05')).toBe('05/01/2026');
   });
 
   it('keeps the two digit day and the leap day', () => {
-    expect(formatDateText('2028-02-29', EN)).toBe('29 Feb 2028');
-    expect(formatDateText('2026-03-05', MS)).toBe('05 Mac 2026');
+    expect(formatDateText('2028-02-29')).toBe('29/02/2028');
   });
 
   it('gives an empty text for an empty or unreadable value', () => {
-    expect(formatDateText('', EN)).toBe('');
-    expect(formatDateText('09 Oct 2026', EN)).toBe('');
+    expect(formatDateText('')).toBe('');
+    expect(formatDateText('09 Oct 2026')).toBe('');
   });
 
-  it('gives an empty text, never "45 undefined 2026", for a day the calendar does not have', () => {
+  it('gives an empty text, never "45/13/2026", for a day the calendar does not have', () => {
     for (const iso of ['2026-13-45', '2026-13-01', '2026-00-10', '2026-02-30', '2026-04-31']) {
-      expect(formatDateText(iso, EN)).toBe('');
+      expect(formatDateText(iso)).toBe('');
     }
   });
 
   it('shows the example the error sentence quotes', () => {
-    expect(exampleDateText(EN)).toBe('09 Oct 2026');
+    expect(exampleDateText()).toBe('09/10/2026');
+  });
+});
+
+describe('formatTimestampText (owner decision: dates are dd/MM/yyyy everywhere)', () => {
+  it('writes dd/MM/yyyy HH:mm in the business time zone', () => {
+    // 16:30 UTC is 00:30 the next day in Kuala Lumpur (UTC+8), and midnight is 00:30, never 24:30.
+    expect(formatTimestampText('2026-10-09T16:30:00.1234567Z', true)).toBe('10/10/2026 00:30');
+    expect(formatTimestampText('2026-10-09T06:05:00Z', true)).toBe('09/10/2026 14:05');
+  });
+
+  it('writes the date alone', () => {
+    expect(formatTimestampText('2026-10-09T16:30:00Z', false)).toBe('10/10/2026');
   });
 });
 
@@ -70,7 +86,6 @@ describe('parseDateText (R23)', () => {
     expect(parseDateText('2026年10月15日', ZH)).toBe('2026-10-15');
     expect(parseDateText('2026年1月5日', ZH)).toBe('2026-01-05');
     expect(parseDateText(' 2026 年 10 月 15 日 ', EN)).toBe('2026-10-15');
-    expect(formatDateText('2026-10-15', ZH)).toBe('15 10月 2026');
   });
 
   it('does not read a half-typed Chinese day, or a Chinese day that does not exist', () => {
@@ -132,11 +147,11 @@ describe('parseDateText (R23)', () => {
     expect(parseDateText('01 Jan 2000', EN)).toBe('2000-01-01');
   });
 
-  it('round-trips what it writes', () => {
+  it('round-trips what it writes, in every language', () => {
     for (const locale of [EN, ZH, MS]) {
       for (let month = 1; month <= 12; month++) {
         const iso = `2026-${String(month).padStart(2, '0')}-15`;
-        expect(parseDateText(formatDateText(iso, locale), locale)).toBe(iso);
+        expect(parseDateText(formatDateText(iso), locale)).toBe(iso);
       }
     }
   });

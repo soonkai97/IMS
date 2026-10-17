@@ -164,7 +164,7 @@ describe('ReportsPageComponent receipt and issue detail (3.9 signed stock effect
     render([movement({}, true)], ...SUPERVISOR);
 
     const nowrap = spectator.queryAll('.reports-page-nowrap').map(cell => cell.textContent?.trim());
-    expect(nowrap).toEqual(['09 Oct 2026, 09:00', 'DEMO-001']);
+    expect(nowrap).toEqual(['09/10/2026 09:00', 'DEMO-001']);
   });
 
   it('a bad range shows the sentence under To, sends no request and shows no old rows (PR-03)', () => {

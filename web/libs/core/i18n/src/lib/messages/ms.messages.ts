@@ -32,6 +32,7 @@ export const MS_MESSAGES: Messages = {
   'filter.to': 'Hingga',
 
   'ui.chooseDate': 'Pilih tarikh',
+  'ui.datePlaceholder': 'hh/bb/tttt',
   'ui.chooseFile': 'Pilih fail',
   'ui.clear': 'Kosongkan',
   'ui.close': 'Tutup',
@@ -58,7 +59,7 @@ export const MS_MESSAGES: Messages = {
   'validation.decimals': 'Gunakan paling banyak {max} tempat perpuluhan.',
   'validation.maxDecimals': 'Masukkan jumlah dengan paling banyak {max} tempat perpuluhan.',
   'validation.badInput': 'Masukkan nombor seperti 1234.50, tanpa koma atau ruang.',
-  'validation.date': 'Masukkan tarikh seperti {example}.',
+  'validation.date': 'Masukkan tarikh sebagai hh/bb/tttt, contohnya {example}.',
   'validation.email': 'Masukkan alamat e-mel yang sah.',
   'validation.invalid': 'Nilai ini tidak sah.',
   'validation.max': 'Masukkan {max} atau kurang.',
