@@ -19,6 +19,10 @@ export class ConfirmHostComponent {
     this.confirmService.confirm(reason);
   }
 
+  onAlternated(): void {
+    this.confirmService.alternate();
+  }
+
   onCancelled(): void {
     this.confirmService.cancel();
   }

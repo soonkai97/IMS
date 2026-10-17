@@ -88,6 +88,49 @@ describe('DocumentActionsComponent (buttons come from the server allowedActions)
     expect(labels()).toEqual(['Reject', 'Approve']);
   });
 
+  it('R28: Edit shows only when recall is listed, left of Post and secondary', () => {
+    render([DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Recall, DOCUMENT_ACTION.Cancel]);
+
+    expect(labels()).toEqual(['Cancel document', 'More actions', 'Edit', 'Post']);
+    const edit = spectator
+      .queryAll('app-button')
+      .find(button => button.textContent?.includes('Edit'));
+    expect(edit?.className).toContain('--secondary');
+
+    render([DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Cancel]);
+    expect(labels()).not.toContain('Edit');
+  });
+
+  it('R28: a document that only waits for approval has Edit as its primary button, Cancel in the sheet', () => {
+    render([DOCUMENT_ACTION.Recall, DOCUMENT_ACTION.Cancel]);
+
+    expect(labels()).toEqual(['Cancel document', 'More actions', 'Edit']);
+    expect(spectator.query('.document-actions-cancel')?.classList).toContain('--overflow');
+    const edit = spectator
+      .queryAll('app-button')
+      .find(button => button.textContent?.includes('Edit'));
+    expect(edit?.className).toContain('--primary');
+  });
+
+  it('R28: Edit emits recall and shows the spinner while it runs', () => {
+    render([DOCUMENT_ACTION.Recall]);
+    const emitted: DocumentAction[] = [];
+    spectator.output('$triggered').subscribe(action => emitted.push(action as DocumentAction));
+
+    spectator.click(spectator.query('button') as HTMLElement);
+    expect(emitted).toEqual([DOCUMENT_ACTION.Recall]);
+
+    spectator.setInput({ busy: true, busyAction: DOCUMENT_ACTION.Recall } as never);
+    spectator.detectChanges();
+    expect(spectator.query('button')?.getAttribute('aria-busy')).toBe('true');
+  });
+
+  it('R31: the reviewer of an approved Large document (cannot post) sees Cancel document alone', () => {
+    render([DOCUMENT_ACTION.Cancel]);
+
+    expect(labels()).toEqual(['Cancel document']);
+  });
+
   it('approved: Post; posted: Reverse', () => {
     render([DOCUMENT_ACTION.Post]);
     expect(labels()).toEqual(['Post']);
