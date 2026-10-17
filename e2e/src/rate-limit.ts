@@ -1,8 +1,8 @@
 /**
- * The API gives sign-in AND token refresh one shared budget: 20 requests a minute per client address. A full page load of
- * the web app refreshes the session, so a suite that signs in a lot would trip it (HTTP 429). This keeps a small log of
- * the calls we make (in the temp folder, so a restarted worker and a second run see it too) and waits before the budget
- * is used up. It never talks to the API itself.
+ * The API allows sign-in 20 requests a minute per client address (token refresh has its own, larger budget). A suite that
+ * signs in a lot would trip it (HTTP 429). The log still counts the page boot (a refresh) as a cost, which is now more careful
+ * than needed and harmless. This keeps a small log of the calls we make (in the temp folder, so a restarted worker and a
+ * second run see it too) and waits before the budget is used up. It never talks to the API itself.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

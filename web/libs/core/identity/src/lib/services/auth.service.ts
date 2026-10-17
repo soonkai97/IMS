@@ -5,19 +5,24 @@ import {
   Observable,
   Subject,
   catchError,
+  defer,
   finalize,
   map,
   of,
+  retry,
   shareReplay,
   switchMap,
   tap,
-  throwError
+  throwError,
+  timer
 } from 'rxjs';
 import { AuthClient, AuthResult, LoginRequest, UserInfo } from '@ims/api';
 import { handledInline } from '@ims/core/http';
+import { HTTP_STATUS, isApiError } from '@ims/models';
 import { ApiCommand } from '@ims/utils';
 import {
   LOGIN_ROUTE,
+  REFRESH_RETRY,
   RETURN_URL_PARAM,
   SESSION_EXPIRED_REASON,
   SESSION_REASON_PARAM
@@ -27,12 +32,29 @@ import { removeLegacyRefreshToken } from './legacy-refresh-token';
 /** The refresh token travels in an HttpOnly cookie; the body of refresh and logout stays empty. */
 const COOKIE_ONLY_BODY = { refreshToken: undefined } as const;
 
+/** Only these answers say the cookie is no good (expired, revoked, refused); a 429, a gateway error or no network says nothing about it. */
+function refusesSession(error: unknown): boolean {
+  const status = isApiError(error) ? error.status : (error as { status?: number } | null)?.status;
+  return status === HTTP_STATUS.Unauthorized || status === HTTP_STATUS.Forbidden;
+}
+
+/** The server's Retry-After (the rate limiter also puts it in the body as retryAfterSeconds), else a doubling back-off; capped. */
+function retryDelayMs(error: unknown, attempt: number): number {
+  const seconds = isApiError(error) ? error.extensions['retryAfterSeconds'] : undefined;
+  const wanted =
+    typeof seconds === 'number' && seconds > 0
+      ? seconds * 1000
+      : REFRESH_RETRY.baseDelayMs * 2 ** (attempt - 1);
+  return Math.min(wanted, REFRESH_RETRY.maxDelayMs);
+}
+
 /**
  * Session owner: login, logout and token refresh with rotation (SEC-34).
  *  - The access token lives in memory only. The refresh token is an HttpOnly cookie that scripts cannot read, so the
  *    app never stores, reads or sends it; it just calls refresh and the browser attaches the cookie.
  *  - refresh() is single-flight: concurrent 401s share one call, because rotation invalidates the old refresh token.
- *  - When refreshing fails the session ends and the user is sent to the login page with a return URL.
+ *  - When the server refuses the refresh (401, 403) the session ends and the user is sent to the login page with a return URL.
+ *    Any other failure (429, 5xx, no network) is retried a little later and, if it persists, leaves the user signed in.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -106,10 +128,16 @@ export class AuthService {
     if (this.refreshInFlight) {
       return this.refreshInFlight;
     }
-    this.refreshInFlight = this.authClient.refresh(COOKIE_ONLY_BODY).pipe(
+    this.refreshInFlight = defer(() => this.authClient.refresh(COOKIE_ONLY_BODY)).pipe(
+      // App start (endSessionOnFailure false) never waits: an offline start must reach the login page at once.
+      retry({
+        count: endSessionOnFailure ? REFRESH_RETRY.attempts : 0,
+        delay: (error, attempt) =>
+          refusesSession(error) ? throwError(() => error) : timer(retryDelayMs(error, attempt))
+      }),
       tap(result => this.acceptTokens(result)),
       catchError((error: unknown) => {
-        if (endSessionOnFailure) {
+        if (endSessionOnFailure && refusesSession(error)) {
           this.endSession(true);
         }
         return throwError(() => error);
