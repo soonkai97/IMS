@@ -981,7 +981,7 @@ describe('DocumentEditorPageComponent', () => {
       );
       spectator.detectChanges();
 
-      expect(text()).toContain('Raj changed this document at 10 Oct 2026');
+      expect(text()).toContain('Raj changed this document at 10/10/2026');
     });
 
     it('PS-01 (older API): one product named through the insufficient-stock members still reads as a blocked reversal', async () => {
@@ -1012,7 +1012,7 @@ describe('DocumentEditorPageComponent', () => {
         })
       );
 
-      expect(text()).toContain('Posted by Supervisor on 09 Oct 2026');
+      expect(text()).toContain('Posted by Supervisor on 09/10/2026');
     });
 
     it('PS-03: the approver sees why approval is needed and the estimated value', async () => {

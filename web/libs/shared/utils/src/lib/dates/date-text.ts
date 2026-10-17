@@ -1,3 +1,4 @@
+import { BUSINESS_TIME_ZONE } from '../constants/format.const';
 import { DATE_EXAMPLE, FALLBACK_DATE_LOCALE, MIN_FILTER_YEAR } from './date-text.const';
 
 const MONTHS = 12;
@@ -60,8 +61,9 @@ function toIso(year: number, month: number, day: number): string | null {
 }
 
 /**
- * What the user typed, as yyyy-MM-dd, or null when it is no date. Accepts the app format `09 Oct 2026` (month name in
- * the active language or English), `2026-10-09`, `09/10/2026` (day first) and `2026年10月9日`.
+ * What the user typed, as yyyy-MM-dd, or null when it is no date. Accepts `09/10/2026` (day first, the app format),
+ * `09 Oct 2026` (month name in
+ * the active language or English), `2026-10-09` and `2026年10月9日`.
  */
 export function parseDateText(text: string, locale: string): string | null {
   const trimmed = text.trim().replace(/\s+/g, ' ');
@@ -82,18 +84,38 @@ export function parseDateText(text: string, locale: string): string | null {
   return named && month ? toIso(Number(named[3]), month, Number(named[1])) : null;
 }
 
-/** `09 Oct 2026` for a yyyy-MM-dd value, in the language's month name; an empty value or a day the calendar does not have gives an empty text. */
-export function formatDateText(iso: string, locale: string): string {
+/** `09/10/2026` for a yyyy-MM-dd value, in every language (owner decision); an empty value or a day the calendar does not have gives an empty text. */
+export function formatDateText(iso: string): string {
   const match = ISO_DATE.exec(iso);
   if (!match || !isRealDay(Number(match[1]), Number(match[2]), Number(match[3]))) {
     return '';
   }
-  return `${match[3]} ${monthNames(locale)[Number(match[2]) - 1]} ${match[1]}`;
+  return `${match[3]}/${match[2]}/${match[1]}`;
 }
 
-/** The example the placeholder and the error sentence show. */
-export function exampleDateText(locale: string): string {
-  return formatDateText(DATE_EXAMPLE, locale);
+/** The example the error sentence shows. */
+export function exampleDateText(): string {
+  return formatDateText(DATE_EXAMPLE);
+}
+
+/**
+ * `09/10/2026 14:05` (24 hour clock) for a UTC timestamp, or `09/10/2026` without the time, in the business time zone
+ * (BR-10) and in every language. Built from the parts so no locale can reorder or re-style it.
+ */
+export function formatTimestampText(value: string, withTime: boolean): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZone: BUSINESS_TIME_ZONE
+  }).formatToParts(new Date(value));
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find(candidate => candidate.type === type)?.value ?? '';
+  const day = `${part('day')}/${part('month')}/${part('year')}`;
+  return withTime ? `${day} ${part('hour')}:${part('minute')}` : day;
 }
 
 /** Both dates are yyyy-MM-dd (or empty), so comparing the strings compares the days. */

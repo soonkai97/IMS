@@ -19,7 +19,7 @@ Decisions (others must respect; reasons are task speed or error prevention):
 | D7 | Opening-stock import creates Draft receipts (type "Opening stock", one per warehouse) for a supervisor to review and post. Nothing hits stock until posted. | MD-05 says "creates opening documents"; Draft keeps BR-01/BR-02 review step. BA to confirm. |
 | D8 | Text search boxes accept keyboard-wedge input, so a Bluetooth scanner works in MVP: Enter on an exact barcode/SKU match adds that product directly. | Free speed-up before Phase 2 camera scanning (SCAN-01). |
 | D9 | Copy uses ICU-style placeholders (`{sku}`, `{available}`) and is kept in i18n files (en first; zh, ms later). No sentence is built by concatenation. | PRD 9: UI in zh/en/ms. |
-| D10 | Dates shown `dd MMM yyyy HH:mm` in Asia/Kuala_Lumpur (BR-10). Quantities show up to 3 decimals, trailing zeros trimmed. | Consistency with BR-10. |
+| D10 | Dates shown `dd/MM/yyyy HH:mm` (owner decision: numeric in every language) in Asia/Kuala_Lumpur (BR-10). Quantities show up to 3 decimals, trailing zeros trimmed. | Consistency with BR-10. |
 
 Open questions (default in brackets is what this design assumes):
 

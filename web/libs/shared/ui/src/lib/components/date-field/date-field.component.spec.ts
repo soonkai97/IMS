@@ -36,17 +36,17 @@ describe('UiDateFieldComponent (R23)', () => {
     spectator.detectChanges();
   }
 
-  it('shows an ISO value in the app format dd MMM yyyy', () => {
+  it('shows an ISO value in the app format dd/MM/yyyy', () => {
     render('2026-10-09');
 
-    expect(text().value).toBe('09 Oct 2026');
+    expect(text().value).toBe('09/10/2026');
   });
 
-  it('shows an empty value as the example, never as mm/dd/yyyy', () => {
+  it('shows an empty value as the pattern, never as mm/dd/yyyy', () => {
     render();
 
     expect(text().value).toBe('');
-    expect(text().placeholder).toBe('09 Oct 2026');
+    expect(text().placeholder).toBe('dd/mm/yyyy');
   });
 
   it('writes a typed app-format date to the form as an ISO day, as soon as it reads', () => {
@@ -58,18 +58,23 @@ describe('UiDateFieldComponent (R23)', () => {
     expect(control.valid).toBe(true);
   });
 
-  it('also reads a typed ISO day and a typed dd/MM/yyyy day, and rewrites them on blur', () => {
+  it('also reads a typed ISO day, a typed month name and a typed dd/MM/yyyy day, and rewrites them on blur', () => {
     const control = render();
 
     type('2026-10-09');
     leave();
     expect(control.value).toBe('2026-10-09');
-    expect(text().value).toBe('09 Oct 2026');
+    expect(text().value).toBe('09/10/2026');
+
+    type('09 Nov 2026');
+    leave();
+    expect(control.value).toBe('2026-11-09');
+    expect(text().value).toBe('09/11/2026');
 
     type('10/11/2026');
     leave();
     expect(control.value).toBe('2026-11-10');
-    expect(text().value).toBe('10 Nov 2026');
+    expect(text().value).toBe('10/11/2026');
   });
 
   it('applies nothing while the text is half typed, so a filter does not run on 09 Oct 20', () => {
@@ -151,7 +156,7 @@ describe('UiDateFieldComponent (R23)', () => {
     control.setValue('2026-01-05');
     spectator.detectChanges();
 
-    expect(text().value).toBe('05 Jan 2026');
+    expect(text().value).toBe('05/01/2026');
   });
 
   it('keeps the field labelled by its label and the calendar button named after the field (EA-29)', () => {
@@ -205,7 +210,7 @@ describe('UiDateFieldComponent (R23)', () => {
 
     expect(control.value).toBe('2026-10-09');
     expect(control.errors).toBeNull();
-    expect(text().value).toBe('09 Oct 2026');
+    expect(text().value).toBe('09/10/2026');
     expect(control.touched).toBe(true);
   });
 

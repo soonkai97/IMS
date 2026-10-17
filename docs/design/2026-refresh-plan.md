@@ -538,7 +538,9 @@ Same scope, now A05 (paging toolbar), which adds the density button and the 10,0
 - Tests: shortcuts service spec (field guard, switch, Ctrl+S with and without a Save button), e2e new `23-shortcuts` and rerun `07-scan`.
 - Re-check: edge (primary), power.
 
-#### R23 Date field `dd MMM yyyy`
+#### R23 Date field `dd/MM/yyyy`
+
+> Owner decision (after merge): dates are `dd/MM/yyyy` everywhere, in en, zh and ms, and `dd/MM/yyyy HH:mm` (24 hour) with a time. The month-name form below is still read when typed but is no longer shown; the placeholder is the pattern (`dd/mm/yyyy`, `hh/bb/tttt`, `日/月/年`).
 
 - Goal: UX 10.4 (NV-27, PS-15, accepted): a text date field in the app format with a calendar button.
 - Files: new `web/libs/shared/ui/src/lib/components/date-field/*` (`app-date-field`: typed text `dd MMM yyyy`, also accepts a pick from the native picker through a button, emits an ISO date string `yyyy-MM-dd` (the Kuala Lumpur calendar day, same as today's `from`/`to`), validation message "Enter a date such as 09 Oct 2026."), `web/libs/shared/utils/src/lib/dates/*` (parse/format helper with a month table for en, zh, ms), adoption in the filter bars of `reports`, `document-list`, `audit-log`, and any other `type="date"` input (grep `type="date"`), the Reports empty state action "Change filters" (S11), the catalogs.
