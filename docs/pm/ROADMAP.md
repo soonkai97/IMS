@@ -218,7 +218,7 @@ L = likelihood, I = impact (H/M/L). Risks specific to going lean: `lean-scope.md
 7. Roles first; per-user exceptions deferred (a copied role covers the odd person). Roles defaults stand: one role per person, two approval tiers, a role in use cannot be retired, cost visibility changeable by administrators with a reason and an audit entry.
 8. "More advanced tables" is met by: sticky header and first column, cards on narrow screens, page size with First/Last, show/hide columns, filters in the URL. Resize, reorder, saved views, bulk actions and endless scrolling are deferred.
 9. The lean motion set (`lean-scope.md` 2.5) is enough "animation". Only the OS "reduce motion" setting is honoured; no in-app switch.
-10. Not now: the `dd MMM yyyy` date field (R23; a native date input stays) and `Partner.Code` with migration MG4. Triggers in `lean-scope.md` section 4.
+10. Not now: `Partner.Code` with migration MG4. Triggers in `lean-scope.md` section 4. (The R23 date field was built after all, in PRs #96, #98 and #100, as `dd/MM/yyyy`.)
 11. Document corrections: recall plus cancel on Approved; send back deferred.
 12. The independent review gate before merge (`docs/team/PR-REVIEW.md` section 8) for every PR over about 200 lines and for any PR touching money, permissions, authentication, migrations, posting or CI/CD.
 13. Taste questions (look, wording, motion details) are decided by the designers, not the owner. The repository is public and `main` is protected by a ruleset (PR required, four required checks, strict up-to-date, squash only, linear history). No bulk state-changing actions (N8); commands are never queued offline (N9); no drafts in browser storage.
