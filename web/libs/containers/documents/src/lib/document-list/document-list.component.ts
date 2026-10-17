@@ -39,10 +39,10 @@ import {
   columnWhen,
   UiButtonComponent,
   UiCellDirective,
+  UiDateFieldComponent,
   UiEmptyStateComponent,
   UiFormFieldComponent,
   UiIconComponent,
-  UiInputComponent,
   UiPageHeaderComponent,
   UiPagerComponent,
   UiSearchInputComponent,
@@ -52,7 +52,13 @@ import {
   UiTabPanelDirective,
   UiTabsComponent
 } from '@ims/ui';
-import { controlSignal, createPageState, debouncedSignal, loadOnChange } from '@ims/utils';
+import {
+  controlSignal,
+  createPageState,
+  debouncedSignal,
+  isDateRangeInvalid,
+  loadOnChange
+} from '@ims/utils';
 
 /** Receipts or issues (route data `type`): filters, status chips, cards on phones, server paging. */
 @Component({
@@ -67,10 +73,10 @@ import { controlSignal, createPageState, debouncedSignal, loadOnChange } from '@
     TranslatePipe,
     UiButtonComponent,
     UiCellDirective,
+    UiDateFieldComponent,
     UiEmptyStateComponent,
     UiFormFieldComponent,
     UiIconComponent,
-    UiInputComponent,
     UiPageHeaderComponent,
     UiPagerComponent,
     UiSearchInputComponent,
@@ -140,9 +146,12 @@ export class DocumentListPageComponent implements OnInit {
     pageSize: DEFAULT_PAGE_SIZE
   }));
 
-  $page = this.store.list.$data;
-  $isLoading = this.store.list.$isLoading;
-  $failed = this.store.list.$isFailed;
+  // The sentence under To: no request is sent for a reversed range (the API would answer 400), and no old rows stay.
+  $rangeInvalid = computed(() => isDateRangeInvalid(this.$from(), this.$to()));
+  $toError = computed(() => (this.$rangeInvalid() ? this.i18n.t('filter.rangeInvalid') : null));
+  $page = computed(() => (this.$rangeInvalid() ? undefined : this.store.list.$data()));
+  $isLoading = computed(() => !this.$rangeInvalid() && this.store.list.$isLoading());
+  $failed = computed(() => !this.$rangeInvalid() && this.store.list.$isFailed());
   $isIssue = computed(() => this.$type() === DocumentType.Issue);
   $canCreate = computed(() => this.permissions.has(PERMISSION.DocumentCreate));
   $hasFilters = computed(
@@ -219,7 +228,11 @@ export class DocumentListPageComponent implements OnInit {
   readonly statusLabels = DOCUMENT_STATUS_LABELS;
 
   constructor() {
-    loadOnChange(this.$query, query => this.store.list.load(query));
+    loadOnChange(this.$query, query => {
+      if (!this.$rangeInvalid()) {
+        this.store.list.load(query);
+      }
+    });
   }
 
   ngOnInit(): void {

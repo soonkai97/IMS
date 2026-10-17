@@ -1,6 +1,6 @@
 import { EnvironmentProviders, inject, makeEnvironmentProviders } from '@angular/core';
 import { UI_TEXT, UiText } from '@ims/ui';
-import { MONEY_DECIMALS } from '@ims/utils';
+import { MONEY_DECIMALS, exampleDateText } from '@ims/utils';
 import { I18nService } from './i18n.service';
 
 /** Feeds the UI kit (shared/ui) its words from the active language. */
@@ -11,6 +11,7 @@ export function provideUiText(): EnvironmentProviders {
       useFactory: () => {
         const i18n = inject(I18nService);
         return (): UiText => ({
+          locale: i18n.$locale(),
           close: i18n.t('ui.close'),
           loading: i18n.t('ui.loading'),
           required: i18n.t('ui.required'),
@@ -21,6 +22,7 @@ export function provideUiText(): EnvironmentProviders {
           clear: i18n.t('ui.clear'),
           retry: i18n.t('ui.retry'),
           saved: i18n.t('ui.saved'),
+          chooseDate: i18n.t('ui.chooseDate'),
           chooseFile: i18n.t('ui.chooseFile'),
           dropFile: i18n.t('ui.dropFile'),
           selectPlaceholder: i18n.t('ui.selectPlaceholder'),
@@ -71,6 +73,8 @@ function validationMessage(i18n: I18nService, key: string, error: unknown): stri
         ? i18n.t('validation.maxDecimals', { max })
         : i18n.t('validation.decimals', { max });
     }
+    case 'date':
+      return i18n.t('validation.date', { example: exampleDateText(i18n.$locale()) });
     case 'badInput':
       return i18n.t('validation.badInput');
     case 'email':

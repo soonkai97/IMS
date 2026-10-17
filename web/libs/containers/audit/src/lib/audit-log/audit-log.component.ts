@@ -16,6 +16,7 @@ import {
   TableColumn,
   UiButtonComponent,
   UiCellDirective,
+  UiDateFieldComponent,
   UiDialogComponent,
   UiEmptyStateComponent,
   UiFormFieldComponent,
@@ -26,7 +27,13 @@ import {
   UiSelectComponent,
   UiTableComponent
 } from '@ims/ui';
-import { controlSignal, createPageState, debouncedSignal, loadOnChange } from '@ims/utils';
+import {
+  controlSignal,
+  createPageState,
+  debouncedSignal,
+  isDateRangeInvalid,
+  loadOnChange
+} from '@ims/utils';
 
 /** Pretty-prints a JSON snapshot; anything that is not JSON is shown as it is. */
 function prettyJson(value: string | undefined): string {
@@ -49,6 +56,7 @@ function prettyJson(value: string | undefined): string {
     TranslatePipe,
     UiButtonComponent,
     UiCellDirective,
+    UiDateFieldComponent,
     UiDialogComponent,
     UiEmptyStateComponent,
     UiFormFieldComponent,
@@ -108,9 +116,12 @@ export class AuditLogPageComponent implements OnInit {
   );
   $detail = signal<AuditLogDto | undefined>(undefined);
   $detailOpen = signal(false);
-  $page = this.store.list.$data;
-  $isLoading = this.store.list.$isLoading;
-  $failed = this.store.list.$isFailed;
+  // The sentence under To: no request is sent for a reversed range (the API would answer 400), and no old rows stay.
+  $rangeInvalid = computed(() => isDateRangeInvalid(this.$from(), this.$to()));
+  $toError = computed(() => (this.$rangeInvalid() ? this.i18n.t('filter.rangeInvalid') : null));
+  $page = computed(() => (this.$rangeInvalid() ? undefined : this.store.list.$data()));
+  $isLoading = computed(() => !this.$rangeInvalid() && this.store.list.$isLoading());
+  $failed = computed(() => !this.$rangeInvalid() && this.store.list.$isFailed());
   $before = computed(() => prettyJson(this.$detail()?.before));
   $after = computed(() => prettyJson(this.$detail()?.after));
   $columns = computed<readonly TableColumn<AuditLogDto>[]>(() => [
@@ -137,7 +148,11 @@ export class AuditLogPageComponent implements OnInit {
   }
 
   constructor() {
-    loadOnChange(this.$query, query => this.store.list.load(query));
+    loadOnChange(this.$query, query => {
+      if (!this.$rangeInvalid()) {
+        this.store.list.load(query);
+      }
+    });
   }
 
   ngOnInit(): void {

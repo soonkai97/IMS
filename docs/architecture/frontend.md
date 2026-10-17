@@ -97,7 +97,7 @@ Contract features the screens rely on:
 4. "Submit & post" is one button for roles with `document.post`; if the server says approval is required it only submits (D4).
 5. Import is all-or-nothing: Confirm is disabled until the preview has 0 error rows (D6).
 6. Every timestamp from the API is UTC with a trailing `Z` and is shown in Asia/Kuala_Lumpur (`new Date(value)` is enough; no
-   "assume UTC" patching). Date-only filters (`from`, `to`) are Kuala Lumpur calendar days.
+   "assume UTC" patching). Date-only filters (`from`, `to`) are Kuala Lumpur calendar days. They are typed in `app-date-field` (text `dd MMM yyyy`, month names from `Intl`; also reads `yyyy-MM-dd` and `dd/MM/yyyy`); its form value is still the ISO day, and a visible native `<input type="date">` is not used (it shows the browser's format, not the app's). The calendar button calls `showPicker()` on a hidden date input.
 7. The document editor reserves a tab list so an Attachments panel (photos, PDFs stored as server files, never base64) can be added without restructuring.
 8. No token is ever written to web storage. A new call that needs the concurrency check passes `withIfMatch(...)`; it never builds the header by hand.
 9. `new` and a document id are ONE route (`/receipts/:id`, `NEW_DOCUMENT_ID`), so the editor lives on when a save moves `/new` to `/<id>`: the form is marked clean when the first save returns and the editor follows the saved document, which makes Save, Submit and a repeat after Back in the Post dialog idempotent (no "Discard changes?", no second document).

@@ -1,0 +1,37 @@
+<input
+  #text
+  type="text"
+  autocomplete="off"
+  [class]="$controlClass()"
+  [attr.id]="$id()"
+  [attr.placeholder]="$placeholder()"
+  [attr.aria-describedby]="$describedBy()"
+  [attr.aria-invalid]="$invalid() || null"
+  [attr.required]="$required() ? '' : null"
+  [disabled]="$disabled()"
+  [value]="$displayed()"
+  (input)="onInput($event)"
+  (blur)="onBlur()"
+/>
+<button
+  type="button"
+  class="ui-date-field-button"
+  [id]="buttonId"
+  [attr.aria-label]="$chooseLabel()"
+  [attr.aria-labelledby]="$buttonLabelledBy()"
+  [disabled]="$disabled()"
+  (click)="onOpenPicker()"
+>
+  <app-icon name="calendar" />
+</button>
+<!-- Only the picker of the browser uses this input: it is never read, never focused and never shown. -->
+<input
+  #picker
+  type="date"
+  class="ui-date-field-picker"
+  tabindex="-1"
+  aria-hidden="true"
+  [attr.lang]="$locale()"
+  [attr.min]="minDate"
+  (change)="onPick($event)"
+/>

@@ -44,6 +44,7 @@ export class UiFormFieldComponent implements FormFieldContext {
   $messages = input<Readonly<Record<string, string>>>({}, { alias: 'messages' });
 
   readonly inputId = `app-field-${nextFieldId++}`;
+  readonly labelId = `${this.inputId}-label`;
   readonly hintId = `${this.inputId}-hint`;
   readonly errorId = `${this.inputId}-error`;
 
