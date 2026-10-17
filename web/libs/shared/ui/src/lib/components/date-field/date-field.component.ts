@@ -15,13 +15,7 @@ import {
   ValidationErrors,
   Validator
 } from '@angular/forms';
-import {
-  MIN_FILTER_DATE,
-  exampleDateText,
-  formatDateText,
-  parseDateText,
-  toClassStr
-} from '@ims/utils';
+import { MIN_FILTER_DATE, formatDateText, parseDateText, toClassStr } from '@ims/utils';
 import { UI_TEXT } from '../../tokens/ui-text.token';
 import { FORM_FIELD } from '../form-field/form-field.token';
 import { UiIconComponent } from '../icon/icon.component';
@@ -32,9 +26,10 @@ const DATE_ERROR = 'date';
 let nextButtonId = 0;
 
 /**
- * A date in the app format `dd MMM yyyy` ("09 Oct 2026", month name in the active language). The form value is the
+ * A date in the app format `dd/MM/yyyy` ("09/10/2026", in every language). The form value is the
  * ISO day `yyyy-MM-dd` or an empty string, so URLs, requests and every other date in the code stay as they were. Also
- * reads `2026-10-09` and `09/10/2026` (day first); the text is rewritten in the app format when the field is left.
+ * reads `2026-10-09`, `09 Oct 2026` (month name in the active language) and `2026年10月9日`; the text is rewritten in the app
+ * format when the field is left.
  *
  * The calendar button opens the browser's own date picker (`showPicker()` on a visually hidden date input, which
  * takes the language of the page): the picker brings its keyboard handling and screen-reader support, so the kit
@@ -73,8 +68,8 @@ export class UiDateFieldComponent implements ControlValueAccessor, Validator {
   private unreadable = false;
 
   $locale = computed(() => this.uiText().locale);
-  $displayed = computed(() => this.$typed() ?? formatDateText(this.$value(), this.$locale()));
-  $placeholder = computed(() => exampleDateText(this.$locale()));
+  $displayed = computed(() => this.$typed() ?? formatDateText(this.$value()));
+  $placeholder = computed(() => this.uiText().datePlaceholder);
   $chooseLabel = computed(() => this.uiText().chooseDate);
   $id = computed(() => this.field?.inputId ?? null);
   $describedBy = computed(() => this.field?.describedBy() ?? null);
@@ -98,7 +93,7 @@ export class UiDateFieldComponent implements ControlValueAccessor, Validator {
 
   writeValue(value: unknown): void {
     const iso = typeof value === 'string' ? value : '';
-    this.$value.set(formatDateText(iso, this.$locale()) === '' ? '' : iso);
+    this.$value.set(formatDateText(iso) === '' ? '' : iso);
     this.$typed.set(null);
     this.unreadable = false;
   }

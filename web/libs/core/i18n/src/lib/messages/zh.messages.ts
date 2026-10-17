@@ -32,6 +32,7 @@ export const ZH_MESSAGES: Messages = {
   'filter.to': '至',
 
   'ui.chooseDate': '选择日期',
+  'ui.datePlaceholder': '日/月/年',
   'ui.chooseFile': '选择文件',
   'ui.clear': '清除',
   'ui.close': '关闭',
@@ -58,7 +59,7 @@ export const ZH_MESSAGES: Messages = {
   'validation.decimals': '最多保留 {max} 位小数。',
   'validation.maxDecimals': '金额最多保留 {max} 位小数。',
   'validation.badInput': '请输入数字，例如 1234.50，不要使用逗号或空格。',
-  'validation.date': '请输入日期，例如 {example}。',
+  'validation.date': '请输入日期（日/月/年），例如 {example}。',
   'validation.email': '请输入有效的电子邮件地址。',
   'validation.invalid': '此值无效。',
   'validation.max': '请输入不超过 {max} 的值。',
