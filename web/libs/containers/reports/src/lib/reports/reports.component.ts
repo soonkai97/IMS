@@ -35,8 +35,8 @@ import {
   UiCellDirective,
   UiEmptyStateComponent,
   UiFormFieldComponent,
+  UiDateFieldComponent,
   UiIconComponent,
-  UiInputComponent,
   UiPageHeaderComponent,
   UiPagerComponent,
   UiSelectComponent,
@@ -45,7 +45,7 @@ import {
   UiTabPanelDirective,
   UiTabsComponent
 } from '@ims/ui';
-import { controlSignal, createPageState, loadOnChange } from '@ims/utils';
+import { controlSignal, createPageState, isDateRangeInvalid, loadOnChange } from '@ims/utils';
 
 const TAB_MOVEMENTS = 'movements';
 const TAB_EXPORTS = 'exports';
@@ -66,8 +66,8 @@ const TAB_EXPORTS = 'exports';
     UiCellDirective,
     UiEmptyStateComponent,
     UiFormFieldComponent,
+    UiDateFieldComponent,
     UiIconComponent,
-    UiInputComponent,
     UiPageHeaderComponent,
     UiPagerComponent,
     UiSelectComponent,
@@ -115,8 +115,7 @@ export class ReportsPageComponent implements OnInit {
     pageSize: DEFAULT_PAGE_SIZE
   }));
 
-  // Both dates are yyyy-MM-dd, so comparing the strings compares the days.
-  $rangeInvalid = computed(() => !!this.$from() && !!this.$to() && this.$from() > this.$to());
+  $rangeInvalid = computed(() => isDateRangeInvalid(this.$from(), this.$to()));
   // The sentence under To: ours before a request is sent, the server's (errors.to) if it still answers 400.
   private readonly $serverToError = computed(
     () => this.store.movements.$operation().error?.fieldErrors['to']?.[0] ?? null

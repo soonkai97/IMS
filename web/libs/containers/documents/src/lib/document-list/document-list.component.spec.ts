@@ -166,6 +166,44 @@ describe('DocumentListPageComponent Mine / All', () => {
     expect(lastQuery().mine).toBeUndefined();
   });
 
+  it('R23: From after To says so under To and sends no request; fixing the range loads again', async () => {
+    mineFirst.set(false);
+    await render();
+    load.mockClear();
+
+    spectator.component.fromControl.setValue('2026-10-12');
+    spectator.component.toControl.setValue('2026-10-10');
+    spectator.detectChanges();
+    await spectator.fixture.whenStable();
+
+    const error = spectator.query(
+      '#document-list-filters app-form-field:last-child .ui-form-field-error'
+    );
+    expect(error?.textContent?.trim()).toBe('From must be on or before To.');
+    expect(load).not.toHaveBeenCalled();
+    expect(spectator.query('tbody tr')).toBeNull();
+
+    spectator.component.toControl.setValue('2026-10-12');
+    spectator.detectChanges();
+    await spectator.fixture.whenStable();
+
+    expect(spectator.query('#document-list-filters .ui-form-field-error')).toBeNull();
+    expect(lastQuery().from).toBe('2026-10-12');
+    expect(lastQuery().to).toBe('2026-10-12');
+  });
+
+  it('the From and To filters are date fields in the app format, not native date inputs', async () => {
+    mineFirst.set(false);
+    await render();
+
+    spectator.component.fromControl.setValue('2026-10-09');
+    spectator.detectChanges();
+
+    expect(spectator.queryAll('#document-list-filters app-date-field')).toHaveLength(2);
+    const texts = spectator.queryAll<HTMLInputElement>('#document-list-filters input[type="text"]');
+    expect(texts.map(text => text.value)).toContain('09 Oct 2026');
+  });
+
   it('switching to All reloads without the filter and remembers the choice for next time', async () => {
     mineFirst.set(true);
     await render();

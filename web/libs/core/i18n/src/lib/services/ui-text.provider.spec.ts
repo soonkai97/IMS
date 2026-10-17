@@ -35,6 +35,12 @@ describe('UI text for the kit', () => {
     );
   });
 
+  it('R23: text that is no date names a date in the app format; the calendar button has a name', () => {
+    expect(text().validationMessage('date', true)).toBe('Enter a date such as 09 Oct 2026.');
+    expect(text().chooseDate).toBe('Choose date');
+    expect(text().locale).toBe('en-GB');
+  });
+
   it('keeps the other validation sentences', () => {
     expect(text().validationMessage('required', true)).toBe('This field is required.');
     expect(text().validationMessage('maxlength', { requiredLength: 100 })).toBe(

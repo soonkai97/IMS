@@ -36,6 +36,7 @@ export const EN_MESSAGES = {
   'filter.to': 'To',
 
   // UI kit
+  'ui.chooseDate': 'Choose date',
   'ui.chooseFile': 'Choose file',
   'ui.clear': 'Clear',
   'ui.close': 'Close',
@@ -62,6 +63,7 @@ export const EN_MESSAGES = {
   'validation.decimals': 'Use at most {max} decimals.',
   'validation.maxDecimals': 'Enter an amount with at most {max} decimals.',
   'validation.badInput': 'Enter a number such as 1234.50, without commas or spaces.',
+  'validation.date': 'Enter a date such as {example}.',
   'validation.email': 'Enter a valid email address.',
   'validation.invalid': 'This value is not valid.',
   'validation.max': 'Enter {max} or less.',

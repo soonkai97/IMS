@@ -1,0 +1,50 @@
+@use 'libs' as *;
+
+:host {
+  position: relative;
+  display: block;
+}
+
+.ui-date-field-control {
+  @include control-base;
+
+  // The text never runs under the calendar button.
+  padding-inline-end: height('touch');
+}
+
+.ui-date-field-button {
+  @include reset-button;
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: height('touch');
+  height: 100%;
+  color: color('text-muted');
+  border-radius: border-radius('sm');
+
+  // The full height of the field (44px); the ring is drawn inside it, so it stays visible on the button (EA-29).
+  &:focus-visible {
+    outline-offset: -#{border-width('ring')};
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+// The picker of the browser opens under the field; the input itself has no size, colour or events.
+.ui-date-field-picker {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  padding: 0;
+  pointer-events: none;
+  border: 0;
+  opacity: 0;
+}

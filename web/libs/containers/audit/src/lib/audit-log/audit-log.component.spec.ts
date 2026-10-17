@@ -116,6 +116,29 @@ describe('AuditLogPageComponent search (PS-06)', () => {
     page.set({ items: [], page: 1, pageSize: 25, total: 0 } as PagedResultOfAuditLogDto);
   });
 
+  it('R23: From after To says so under To and sends no request; fixing the range loads again', async () => {
+    await render();
+    load.mockClear();
+
+    spectator.component.fromControl.setValue('2026-10-12');
+    spectator.component.toControl.setValue('2026-10-10');
+    spectator.detectChanges();
+    await spectator.fixture.whenStable();
+
+    const error = spectator.query(
+      '.audit-log-page-filters app-form-field:last-child .ui-form-field-error'
+    );
+    expect(error?.textContent?.trim()).toBe('From must be on or before To.');
+    expect(load).not.toHaveBeenCalled();
+
+    spectator.component.toControl.setValue('2026-10-12');
+    spectator.detectChanges();
+    await spectator.fixture.whenStable();
+
+    expect(spectator.query('.audit-log-page-filters .ui-form-field-error')).toBeNull();
+    expect(lastQuery().from).toBe('2026-10-12');
+  });
+
   it('an empty result with filters set offers Clear filters', async () => {
     await render();
     spectator.component.$searchInput.set('nothing');

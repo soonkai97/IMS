@@ -17,11 +17,11 @@
       [placeholder]="'filter.all' | t"
     />
   </app-form-field>
-  <app-form-field [label]="'filter.from' | t">
-    <app-input type="date" [formControl]="fromControl" />
+  <app-form-field [label]="'filter.from' | t" [control]="fromControl">
+    <app-date-field [formControl]="fromControl" />
   </app-form-field>
-  <app-form-field [label]="'filter.to' | t" [error]="$toError()">
-    <app-input type="date" [formControl]="toControl" />
+  <app-form-field [label]="'filter.to' | t" [control]="toControl" [error]="$toError()">
+    <app-date-field [formControl]="toControl" />
   </app-form-field>
 </div>
 

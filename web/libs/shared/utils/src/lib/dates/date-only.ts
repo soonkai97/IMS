@@ -1,5 +1,5 @@
 /**
- * yyyy-MM-dd for <input type="date"> and the API's `date` query parameters. Every timestamp the API returns is UTC with
+ * yyyy-MM-dd, the form value of a date field and the API's `date` query parameters. Every timestamp the API returns is UTC with
  * a trailing "Z", so `new Date(value)` is correct as is; only these date-only filter values need formatting.
  */
 export function toDateOnly(date: Date): string {

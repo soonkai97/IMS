@@ -5,6 +5,8 @@ import { InjectionToken } from '@angular/core';
  * app provides a translated implementation through UI_TEXT; the English default keeps the kit usable on its own.
  */
 export interface UiText {
+  /** BCP 47 tag of the active language: the month names a date field writes and reads. */
+  readonly locale: string;
   readonly close: string;
   readonly loading: string;
   readonly required: string;
@@ -17,6 +19,8 @@ export interface UiText {
   readonly retry: string;
   /** The word a button shows for 1.5s after a save that stays on the screen. */
   readonly saved: string;
+  /** The name of the calendar button of a date field. */
+  readonly chooseDate: string;
   readonly chooseFile: string;
   readonly dropFile: string;
   readonly selectPlaceholder: string;
@@ -33,6 +37,7 @@ export interface UiText {
 }
 
 const DEFAULT_UI_TEXT: UiText = {
+  locale: 'en-GB',
   close: 'Close',
   loading: 'Loading',
   required: 'required',
@@ -43,6 +48,7 @@ const DEFAULT_UI_TEXT: UiText = {
   clear: 'Clear',
   retry: 'Retry',
   saved: 'Saved',
+  chooseDate: 'Choose date',
   chooseFile: 'Choose file',
   dropFile: 'or drop a file here',
   selectPlaceholder: 'Select...',

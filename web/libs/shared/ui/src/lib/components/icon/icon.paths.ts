@@ -4,6 +4,7 @@ export const ICON_PATHS = {
   alert: 'M12 4l9 16H3z M12 10v4 M12 17.5v.5',
   audit: 'M9 4h6v3H9z M7 5H5v16h14V5h-2 M8 12h8 M8 16h5',
   barcode: 'M4 5v14 M7 5v14 M11 5v14 M14 5v14 M18 5v14 M20 5v14',
+  calendar: 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4',
   check: 'M5 12l5 5 9-10',
   'check-double': 'M2 13l4 4 8-9 M10 17l1 1 10-12',
   'chevron-down': 'M6 9l6 6 6-6',
