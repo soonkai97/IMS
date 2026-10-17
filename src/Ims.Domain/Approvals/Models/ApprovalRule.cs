@@ -1,6 +1,6 @@
 namespace Ims.Domain;
 
-/// <summary>BR-06: when a document of a type needs approval, and who may give it.</summary>
+/// <summary>BR-06: when a document of a type needs approval, and which tier of approver may give it.</summary>
 public class ApprovalRule : PublicEntity
 {
     private ApprovalRule() { }
@@ -11,35 +11,32 @@ public class ApprovalRule : PublicEntity
     public decimal? AmountThreshold { get; private set; }
     /// <summary>Document total base quantity at or above this triggers approval. Null = ignore.</summary>
     public decimal? QtyThreshold { get; private set; }
-    public string RoleRequired { get; private set; } = Roles.Supervisor;
     public bool IsActive { get; private set; } = true;
 
     /// <summary>
-    /// The tier of approver the rule asks for. Stored since RP-2, written with <see cref="RoleRequired"/> on every save and derived from it until RP-4b makes the
-    /// tier the source: Owner and Admin are Large, anything else Standard, exactly the old "a rule above a supervisor" test, so which documents are large does not change.
-    /// The migration gave the rules saved before it the same value.
+    /// The tier of approver the rule asks for, the only record of "who" (ADR roles-permissions 2.7): a document that fires a Large rule is Large and is reviewed by the
+    /// holders of <see cref="Permissions.DocumentApproveLarge"/>, any other by the holders of <see cref="Permissions.DocumentApprove"/>.
     /// </summary>
     public ApproverTier Tier { get; private set; }
 
-    public static ApprovalRule Create(DocumentType docType, decimal? amountThreshold, decimal? qtyThreshold, string roleRequired, bool isActive = true)
+    public static ApprovalRule Create(DocumentType docType, decimal? amountThreshold, decimal? qtyThreshold, ApproverTier tier, bool isActive = true)
     {
         var r = new ApprovalRule();
-        r.Update(docType, amountThreshold, qtyThreshold, roleRequired, isActive);
+        r.Update(docType, amountThreshold, qtyThreshold, tier, isActive);
         return r;
     }
 
-    public void Update(DocumentType docType, decimal? amountThreshold, decimal? qtyThreshold, string roleRequired, bool isActive)
+    public void Update(DocumentType docType, decimal? amountThreshold, decimal? qtyThreshold, ApproverTier tier, bool isActive)
     {
         if (amountThreshold is null && qtyThreshold is null) throw new DomainException(Messages.ThresholdRequired);
         if (amountThreshold < 0 || qtyThreshold < 0) throw new DomainException(Messages.ThresholdNegative);
         if (amountThreshold is { } amount && !Money.IsExact(amount)) throw new DomainException(Messages.AmountTooPrecise);
-        if (!Roles.All.Contains(roleRequired)) throw new DomainException(Messages.UnknownRole);
+        if (!Enum.IsDefined(tier)) throw new DomainException(Messages.UnknownApproverTier);
 
         DocType = docType;
         AmountThreshold = amountThreshold;
         QtyThreshold = qtyThreshold;
-        RoleRequired = roleRequired;
-        Tier = roleRequired is Roles.Owner or Roles.Admin ? ApproverTier.Large : ApproverTier.Standard;
+        Tier = tier;
         IsActive = isActive;
     }
 
@@ -51,7 +48,7 @@ public class ApprovalRule : PublicEntity
     public IEnumerable<ApprovalTrigger> Triggers(DocumentType type, decimal totalQty, decimal totalAmount)
     {
         if (!Matches(type, totalQty, totalAmount)) yield break;
-        if (AmountThreshold is { } a && totalAmount >= a) yield return new ApprovalTrigger(ApprovalMetric.Amount, a, totalAmount, RoleRequired);
-        if (QtyThreshold is { } q && totalQty >= q) yield return new ApprovalTrigger(ApprovalMetric.Quantity, q, totalQty, RoleRequired);
+        if (AmountThreshold is { } a && totalAmount >= a) yield return new ApprovalTrigger(ApprovalMetric.Amount, a, totalAmount, Tier);
+        if (QtyThreshold is { } q && totalQty >= q) yield return new ApprovalTrigger(ApprovalMetric.Quantity, q, totalQty, Tier);
     }
 }

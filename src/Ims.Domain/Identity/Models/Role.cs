@@ -2,7 +2,7 @@ namespace Ims.Domain;
 
 /// <summary>
 /// A named set of permissions that a user holds (ADR roles-permissions 2.2, lean scope: one role per user). The five system roles are seeded by the migration with
-/// the permissions of <see cref="SystemRoleDefaults"/>; the code is the stable text a role is known by (the same string <see cref="User.Role"/> holds today) and never
+/// the permissions of <see cref="SystemRoleDefaults"/>; the code is the stable text a role is known by and never
 /// changes. The permissions are code strings of <see cref="PermissionCatalog"/>, not rows of a permission table.
 /// </summary>
 public class Role : PublicEntity

@@ -45,20 +45,20 @@ public static class Seeder
             if (!await db.Set<SystemSetting>().AnyAsync(s => s.Key == key, ct)) db.Add(SystemSetting.Create(key, value));
 
         if (!await db.Set<ApprovalRule>().AnyAsync(ct))
-            db.Add(ApprovalRule.Create(DocumentType.Issue, SeedDefaults.DefaultApprovalAmount, null, Roles.Supervisor));
+            db.Add(ApprovalRule.Create(DocumentType.Issue, SeedDefaults.DefaultApprovalAmount, null, ApproverTier.Standard));
         await db.SaveChangesAsync(ct);
     }
 
     private static async Task SeedAdminAsync(AppDbContext db, IPasswordHasher hasher, string? password, ILogger log, CancellationToken ct)
     {
-        if (await db.Set<User>().AnyAsync(u => u.Role == Roles.Admin, ct)) return;
+        if (await db.Set<User>().AnyAsync(u => u.Role.Code == SystemRoleCodes.Admin, ct)) return;
         if (string.IsNullOrWhiteSpace(password))
         {
             log.LogWarning("No admin user exists and {Key} is not set. Set it to create the first admin.", ConfigKeys.SeedAdminPassword);
             return;
         }
-        var admin = await db.Set<Role>().SingleAsync(r => r.Code == Roles.Admin, ct); // the migration seeds the system roles
-        db.Add(User.Create(SeedDefaults.AdminUsername, SeedDefaults.AdminEmail, SeedDefaults.AdminDisplayName, admin, hasher.Hash(password)));
+        var admin = await db.Set<Role>().SingleAsync(r => r.Code == SystemRoleCodes.Admin, ct); // the migration seeds the system roles
+        db.Add(User.Create(SeedDefaults.AdminUsername, SeedDefaults.AdminEmail, SeedDefaults.AdminDisplayName, admin, hasher.Hash(password), allWarehouses: true));
         await db.SaveChangesAsync(ct);
     }
 
@@ -68,12 +68,11 @@ public static class Seeder
 
         var warehouseId = await db.Set<Warehouse>().Select(w => w.Id).FirstAsync(ct);
         var roles = await db.Set<Role>().ToDictionaryAsync(r => r.Code, ct);
-        foreach (var (username, roleCode) in SeedDefaults.DemoUsers)
+        foreach (var (username, roleCode, allWarehouses) in SeedDefaults.DemoUsers)
         {
             var role = roles[roleCode];
             var displayName = char.ToUpperInvariant(username[0]) + username[1..];
-            var scope = Roles.SeesAllWarehouses(roleCode) ? [] : new[] { warehouseId };
-            db.Add(User.Create(username, $"{username}@{SeedDefaults.DemoEmailDomain}", displayName, role, hasher.Hash(password), scope));
+            db.Add(User.Create(username, $"{username}@{SeedDefaults.DemoEmailDomain}", displayName, role, hasher.Hash(password), allWarehouses ? [] : [warehouseId], allWarehouses: allWarehouses));
         }
 
         if (!await db.Set<Product>().AnyAsync(ct))

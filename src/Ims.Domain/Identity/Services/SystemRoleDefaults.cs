@@ -10,20 +10,20 @@ public static class SystemRoleDefaults
 {
     private static readonly Dictionary<string, string[]> ByRole = new(StringComparer.Ordinal)
     {
-        [Roles.Admin] = [.. PermissionCatalog.Codes],
-        [Roles.Owner] =
+        [SystemRoleCodes.Admin] = [.. PermissionCatalog.Codes],
+        [SystemRoleCodes.Owner] =
         [
             Permissions.MasterDataRead, Permissions.DocumentApproveLarge, Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead,
             Permissions.CostView, Permissions.ValuationView
         ],
-        [Roles.Supervisor] =
+        [SystemRoleCodes.Supervisor] =
         [
             Permissions.MasterDataManage, Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.DocumentEditAny,
             Permissions.DocumentApprove, Permissions.DocumentPost, Permissions.DocumentPostApproved, Permissions.DocumentReverse,
             Permissions.StockNegativeOverride, Permissions.StockRead, Permissions.ReportsRead, Permissions.CostView, Permissions.ValuationView
         ],
-        [Roles.WarehouseStaff] = [Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.StockRead],
-        [Roles.Clerk] = [Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.StockRead, Permissions.CostView],
+        [SystemRoleCodes.WarehouseStaff] = [Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.StockRead],
+        [SystemRoleCodes.Clerk] = [Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.StockRead, Permissions.CostView],
     };
 
     // Computed once: asking for the rights of a role is a dictionary lookup, however often a list asks.

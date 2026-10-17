@@ -16,4 +16,16 @@ internal static class UserWarehouses
         if (found.Count != wanted.Count) throw new ValidationException(Messages.WarehouseMissing);
         return found.Values.ToList();
     }
+
+    /// <summary>
+    /// Whether the saved user sees every warehouse: what the request says, or what the user has now when it says nothing (a new user: <paramref name="current"/> is false).
+    /// Scope cannot be escalated (ADR roles-permissions 2.6): only a caller who sees every warehouse may switch the flag on.
+    /// </summary>
+    /// <exception cref="ForbiddenException">The caller does not see every warehouse and would give the flag to someone who does not have it.</exception>
+    public static bool ResolveAllWarehouses(bool? requested, bool current, ICurrentUser caller)
+    {
+        var wanted = requested ?? current;
+        if (wanted && !current && !caller.AllWarehouses) throw new ForbiddenException(Messages.AllWarehousesNotGrantable);
+        return wanted;
+    }
 }
