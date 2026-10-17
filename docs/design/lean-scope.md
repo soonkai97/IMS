@@ -76,7 +76,7 @@ Class: E = ESSENTIAL (stated owner requirement, or bug or security fix), V = VAL
 | R19 Home for Reviewer, Overseer, Admin | G | Per-role Home variants not requested | 900 | Defer (with B1 to B3) |
 | R20 Palette search | G | Not requested | 700 | Defer |
 | R22 Keyboard shortcuts | G | Could; not requested | 500 | Drop |
-| R23 Date field dd MMM yyyy | V | Accepted earlier; a native date input works | 600 | Defer; ask the owner (section 8) |
+| R23 Date field dd/MM/yyyy | V | Accepted earlier; a native date input works | 600 | Built since (PRs #96, #98, #100): the owner chose `dd/MM/yyyy` everywhere |
 | R24 Clean-up | E | Removes the alias layer | 300 | Build [200]; also removes `@angular/animations` |
 | R25 Sign-in page | E | RQ3 | 1,000 | Build [750]: language as a segmented control, no app-menu, no theme menu, no version footer, no caps-lock hint; entrance and one shake included |
 | R26 Re-sign-in in place | E | Major ER-01 | 450 | Build [400] |
@@ -332,7 +332,7 @@ A deferred slice keeps its id and its design on disk. It is built only when the 
 | R12 Density (500) | Two users on large screens ask to see more rows |
 | R16, R18, R20 Command palette (1,950) | Users report they cannot find screens, or the menu passes 12 entries |
 | R19 Reviewer, Overseer, Admin Home variants (900) with B1 to B3 | Approvers say the tiles are not enough, or a user has more than 25 drafts and a returned one is missing |
-| R23 Date field dd MMM yyyy (600) | A user mis-enters a date because of the native format, or the owner confirms it is wanted (section 8) |
+| R23 Date field dd/MM/yyyy (600) | Built (PRs #96, #98, #100); no trigger left |
 | A03 resize and reorder (about 700) | Users ask to change column widths or order |
 | A04 Keyboard grid navigation (800) | An accessibility audit requires it, or power users ask |
 | A06 Saved views and multi-sort (900, with B8) | The same filter is rebuilt by hand every day by the same users |
@@ -444,5 +444,5 @@ Defaults apply if no answer comes.
 1. Roles first, per-user exceptions later? Recommended yes. A copied role covers a one-off person; exceptions add a table, three endpoints, a form and a rule set. Say "build exceptions now" if you want them in the first release (+20 hours).
 2. Is "more advanced tables" met by: sticky header and first column, cards on narrow screens, page size with First/Last, show/hide columns, and filters that live in the URL? Resize, reorder, saved views, bulk actions and endless scrolling are deferred.
 3. Is the lean motion set (section 2.5) enough "animation"? It leaves out count-up numbers, pull to refresh, shared-element transitions and an in-app "reduce animations" switch.
-4. Two earlier "yes" defaults I recommend turning into "not now": the `dd MMM yyyy` date field (R23) and the optional `Partner.Code`.
+4. One earlier "yes" default I recommend turning into "not now": the optional `Partner.Code`. (The `dd/MM/yyyy` date field, R23, was built after all.)
 5. Confirm the roles defaults already in the roadmap (O2): one role per person, two approval levels, a role in use cannot be retired, cost visibility changeable by administrators with a reason and an audit entry.

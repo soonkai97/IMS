@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { UI_TEXT } from '@ims/ui';
+import { I18nService } from './i18n.service';
 import { provideUiText } from './ui-text.provider';
 
 describe('UI text for the kit', () => {
@@ -43,6 +44,19 @@ describe('UI text for the kit', () => {
     expect(text().datePlaceholder).toBe('dd/mm/yyyy');
     expect(text().locale).toBe('en-GB');
   });
+
+  it.each([
+    ['zh', '日/月/年', '请输入日期（日/月/年），例如 09/10/2026。'],
+    ['ms', 'hh/bb/tttt', 'Masukkan tarikh sebagai hh/bb/tttt, contohnya 09/10/2026.']
+  ] as const)(
+    'R23: in %s the date placeholder is %s and an invalid date names the pattern with the same example',
+    async (language, placeholder, sentence) => {
+      await TestBed.inject(I18nService).setLanguage(language);
+
+      expect(text().datePlaceholder).toBe(placeholder);
+      expect(text().validationMessage('date', true)).toBe(sentence);
+    }
+  );
 
   it('keeps the other validation sentences', () => {
     expect(text().validationMessage('required', true)).toBe('This field is required.');
