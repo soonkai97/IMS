@@ -348,6 +348,44 @@ test.describe('L00 Content containment', () => {
       'the search box sits level with the Category box'
     ).toBeLessThan(1);
   });
+
+  // The error line under To grows the field downwards. The cells of a filter row are aligned to the top, so no box moves.
+  for (const path of ['/audit-log', '/receipts', '/issues', '/reports']) {
+    test(`given a From after To on ${path}, then no filter box moves and the search box stays level`, async ({
+      page,
+      signIn
+    }) => {
+      await signIn('admin');
+      await page.setViewportSize({ width: 1480, height: 900 });
+      await goTo(page, path);
+      const filters = page.locator('[class*="page-filters"]');
+      const boxes = filters.locator('select, input[type="text"], input[type="search"]');
+      const tops = (): Promise<number[]> =>
+        boxes.evaluateAll(list => list.map(element => element.getBoundingClientRect().top));
+      const dates = filters.locator('app-date-field input[type="text"]');
+      await expect(dates.nth(1)).toBeVisible();
+      const before = await tops();
+      expect(before.length, 'the filter row has boxes').toBeGreaterThan(2);
+
+      await dates.nth(0).fill('20 Oct 2026');
+      await dates.nth(0).press('Tab');
+      await dates.nth(1).fill('01 Oct 2026');
+      await dates.nth(1).press('Tab');
+      await expect(filters.locator('.ui-form-field-error')).toBeVisible();
+
+      expect(await tops(), 'no box moved when the error line appeared').toEqual(before);
+
+      const search = filters.getByRole('searchbox');
+      if (await search.count()) {
+        const searchBox = await search.boundingBox();
+        const toBox = await dates.nth(1).boundingBox();
+        expect(
+          Math.abs(searchBox!.y + searchBox!.height - (toBox!.y + toBox!.height)),
+          'the search box still ends where the To box ends'
+        ).toBeLessThan(1);
+      }
+    });
+  }
 });
 
 // A02: the table is a table or a list of cards by the width of its OWN box, its header and first column stay in view, and a

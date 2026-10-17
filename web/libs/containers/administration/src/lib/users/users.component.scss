@@ -5,15 +5,7 @@
 }
 
 .users-page-filters {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: space(1) space(2);
-  margin-bottom: space(2);
-
-  @include media-tablet {
-    grid-template-columns: 2fr 1fr;
-    align-items: end;
-  }
+  @include filter-row(2fr 1fr);
 }
 
 .users-page-form {

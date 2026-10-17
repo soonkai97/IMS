@@ -43,10 +43,9 @@
 }
 
 .document-list-page-filters {
+  @include filter-row;
+
   display: none;
-  grid-template-columns: 1fr;
-  gap: space(1) space(2);
-  margin-bottom: space(2);
 
   &.--open {
     display: grid;
@@ -54,7 +53,5 @@
 
   @include media-tablet {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-    align-items: end;
   }
 }
