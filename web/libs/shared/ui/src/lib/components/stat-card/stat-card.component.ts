@@ -1,13 +1,14 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { toClassStr } from '@ims/utils';
 import { UiIconComponent } from '../icon/icon.component';
 import { IconName } from '../icon/icon.paths';
 
-/** Big number with a label; when `link` is set the whole card is a link (dashboard shortcuts). */
+/** Big number with a label; when `link` is set the whole card is ONE link whose name is the label and the number (dashboard shortcuts). */
 @Component({
   selector: 'app-stat-card',
-  imports: [RouterLink, UiIconComponent],
+  imports: [NgTemplateOutlet, RouterLink, UiIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './stat-card.component.html',
   styleUrl: './stat-card.component.scss',

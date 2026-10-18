@@ -168,6 +168,9 @@ test.describe('EA-23 Cost and value visibility', () => {
     await expect(page.getByRole('alert')).toHaveCount(0);
     await openHome(page);
     await expect(page.getByText('Stock value')).toBeVisible();
+    // The tile is one link to Stock whose name carries the value with exactly two decimals.
+    await expect(page.getByRole('link', { name: /Stock value/ })).toHaveAttribute('href', '/stock');
+    await expect(page.getByRole('link', { name: /Stock value/ })).toContainText(MONEY);
 
     // Movements report: both rows of the reversed receipt, the posting +5 and the reversal -5 with its badge.
     await goTo(page, '/reports');

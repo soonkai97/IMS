@@ -179,7 +179,11 @@ export const MS_MESSAGES: Messages = {
   'home.noWarehouse': 'Anda belum ditugaskan ke gudang. Minta Pentadbir.',
   'home.postedToday': 'Diposkan hari ini',
   'home.receive': 'Terima stok',
+  'home.returnedHint': 'Penyemak mengembalikan dokumen ini. Betulkan, kemudian hantar semula.',
+  'home.returnedOlder':
+    'Draf yang dikembalikan lebih lama daripada 25 terkini. Buka senarai untuk melihatnya.',
   'home.returnedToMe': 'Dikembalikan kepada saya',
+  'home.seeAll': 'Lihat semua',
   'home.skuCount': 'Produk berstok',
   'home.stats': 'Ringkasan',
   'home.stockValue': 'Nilai stok ({currency})',

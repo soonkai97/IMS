@@ -818,7 +818,7 @@ Rules: one line, one action, plain words, no jokes; never an empty table frame w
 
 ### 10.3 Paging (PS-13, product decision pending, see Q8)
 
-Recommendation: desktop shows First, Previous, "Page 3 of 14", Next, Last and a page size select (25, 50, 100). Phone keeps Previous, Next only and the range "26-50 of 333". After changing page, scroll to the top of the list and move focus to the table caption. Until decided, the existing Previous/Next stays.
+Recommendation: desktop shows First, Previous, "Page 3 of 14", Next, Last and a page size select (25, 50, 100). Phone keeps Previous, Next only and the range "26-50 of 333". Focus stays on the pressed control. First, Previous, Next and Last use `aria-disabled` at the boundary instead of `disabled`, so they keep focus. One polite live region announces "Page 2 of 14, 26-50 of 333". Until decided, the existing Previous/Next stays.
 
 ### 10.4 Dates in filters (NV-27, PS-15, product decision pending, see Q9)
 
