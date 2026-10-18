@@ -22,3 +22,8 @@
 @function color-alpha($name, $percent) {
   @return color-mix(in srgb, color($name) $percent, transparent);
 }
+
+/// The scrim behind a dialog or sheet (theme-aware: 50% in light, 60% in dark).
+@function scrim() {
+  @return var(--ims-scrim);
+}
