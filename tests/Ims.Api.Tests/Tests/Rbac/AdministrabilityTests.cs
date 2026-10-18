@@ -95,6 +95,13 @@ public class AdministrabilityTests : IAsyncLifetime
         (await ReplaceCoreRoleAsync([Permissions.StockRead])).ShouldBeOk();
         Assert.Equal(1, await AdministratorsAsync());
         Assert.Equal(Messages.LastAdminRequired, (await SetAsync(_a, Roles.Admin, false)).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
+
+        // The people of an inactive role do not count (the API refuses to deactivate a role in use; a manual edit can): with the core role back and then switched off, A is the last again.
+        (await ReplaceCoreRoleAsync([.. PermissionCatalog.Codes])).ShouldBeOk();
+        Assert.Equal(2, await AdministratorsAsync());
+        await _fixture.Database.ExecuteAsync("UPDATE [Role] SET IsActive = 0 WHERE PublicId = @p", ("@p", _core.Id));
+        Assert.Equal(1, await AdministratorsAsync());
+        Assert.Equal(Messages.LastAdminRequired, (await SetAsync(_a, Roles.Supervisor, true)).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
     }
 
     [Fact]
