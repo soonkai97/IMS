@@ -86,4 +86,62 @@ public class RoleTests
 
         Assert.Equal(SystemRoleDefaults.For(code).Order(StringComparer.Ordinal), role.Grants.Select(g => g.PermissionCode).Order(StringComparer.Ordinal));
     }
+
+    [Fact]
+    public void SetPermissions_ReplacesTheSetAndReportsWhatChangedInCatalogOrder()
+    {
+        var role = Role.Create("Packer", "Packer", null, false, [Permissions.StockRead, Permissions.DocumentCreate]);
+
+        var (added, removed) = role.SetPermissions([Permissions.StockRead, Permissions.ReportsRead, Permissions.CostView]);
+
+        Assert.Equal([Permissions.ReportsRead, Permissions.CostView], added);
+        Assert.Equal([Permissions.DocumentCreate], removed);
+        Assert.Equal([Permissions.StockRead, Permissions.ReportsRead, Permissions.CostView], PermissionCatalog.InOrder(role.Grants.Select(g => g.PermissionCode)));
+        var (addedAgain, removedAgain) = role.SetPermissions([Permissions.StockRead, Permissions.ReportsRead, Permissions.CostView]); // the same set again changes nothing
+        Assert.Empty(addedAgain);
+        Assert.Empty(removedAgain);
+    }
+
+    [Fact]
+    public void SetPermissions_AnUnknownOrDifferentlyCasedCode_ThrowsAndChangesNothing()
+    {
+        var role = Role.Create("Packer", "Packer", null, false, [Permissions.StockRead]);
+
+        Assert.Equal(Messages.UnknownPermission("Stock.Read"), Assert.Throws<DomainException>(() => role.SetPermissions([Permissions.StockRead, "Stock.Read"])).Message);
+        Assert.Equal([Permissions.StockRead], role.Grants.Select(g => g.PermissionCode));
+    }
+
+    [Fact]
+    public void ASystemRoleCannotBeDeactivatedOrDeleted_ACustomRoleCanBeBoth()
+    {
+        var system = Role.Create(Roles.Clerk, "Clerk", null, true, []);
+        var custom = Role.Create("Packer", "Packer", null, false, []);
+
+        Assert.Equal(Messages.SystemRoleProtected, Assert.Throws<DomainException>(() => system.SetActive(false)).Message);
+        Assert.Equal(Messages.SystemRoleProtected, Assert.Throws<DomainException>(system.Delete).Message);
+        custom.SetActive(false);
+        custom.Delete();
+        Assert.False(custom.IsActive);
+        Assert.True(custom.RecDeleted);
+    }
+
+    [Fact]
+    public void UpdateText_KeepsTheCodeAndChecksTheName()
+    {
+        var role = Role.Create("Packer", "Packer", null, false, []);
+
+        role.UpdateText(" Packing floor ", " New text ");
+
+        Assert.Equal(("Packer", "Packing floor", "New text"), (role.Code, role.Name, role.Description));
+        Assert.Equal(Messages.RoleNameInvalid, Assert.Throws<DomainException>(() => role.UpdateText("x", null)).Message);
+    }
+
+    [Fact]
+    public void FirstMissingRequirement_NamesTheCodeAndWhatItNeeds_AndIsNullForAClosedSet()
+    {
+        Assert.Equal((Permissions.UsersManage, Permissions.UsersRead), PermissionCatalog.FirstMissingRequirement([Permissions.UsersManage]));
+        Assert.Null(PermissionCatalog.FirstMissingRequirement([Permissions.UsersManage, Permissions.UsersRead]));
+        Assert.Null(PermissionCatalog.FirstMissingRequirement([Permissions.DocumentApproveLarge])); // the tiers need nothing from each other
+        Assert.Null(PermissionCatalog.FirstMissingRequirement([Permissions.DocumentApprove]));
+    }
 }
