@@ -917,3 +917,8 @@
 - Finding for RP-6 (not a gate): the last-administrator guard (`UpdateUserHandler`, `ActiveAdminsSpec`) compares `SystemRoleCodes.Admin`; it is a safety rail on a write, not an access check, but a custom role holding the whole administrability core is not counted as an administrator. `ApproverTierNames` maps the deprecated `roleRequired` text to a tier (input mapping, not a decision); both entries are removed with RP-6 and P04.
 - Decisions others must respect: a new use of a role name needs an allow-list entry with a reason in the same PR; the detector is syntactic, so it cannot see a role code held in a variable.
 - Open conflicts: none.
+
+### 2026-10-18 be-framework -> security-engineer, be-architect (RP-5: review fixes on #118)
+- Produced: main merged (RP-8); `Role` aggregate now refuses (409 `LockedRoleException`) renaming, deactivating or deleting any system role and replacing the permissions of a role holding every admin-core permission (`PermissionsLocked`, data not name), so `NoRoleDecisionTests` is met without an allow-list entry; handlers no longer repeat those guards. Also: role containment refuses a caller who sees fewer warehouses than a holder of the role (403), `ActorRights.HoldsAll` is the one containment helper, `PUT /api/roles/{id}` leaves omitted `description`/`isActive` unchanged, names and descriptions are plain text, permission lists are capped and the 400 echo is short, DELETE documents 204.
+- Decisions others must respect: other system roles keep editable permissions but no rename (UX D8 over the rename row of ADR 2.2); the ADR error codes are not emitted (status and message only); follow-ups are listed in TASKS (EP06).
+- Open conflicts: none.
