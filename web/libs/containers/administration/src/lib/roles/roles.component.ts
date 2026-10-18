@@ -94,7 +94,7 @@ export class RolesPageComponent {
       value: row => row.description,
       hideOnPhone: true
     },
-    { key: 'kind', type: 'status', header: this.i18n.t('roles.kind') },
+    { key: 'kind', type: 'status', header: this.i18n.t('roles.kind'), phoneEnd: true },
     {
       key: 'permissions',
       header: this.i18n.t('roles.permissions'),
@@ -107,7 +107,7 @@ export class RolesPageComponent {
       align: 'end',
       value: row => String(row.userCount)
     },
-    { key: 'status', type: 'status', header: this.i18n.t('product.status') }
+    { key: 'status', type: 'status', header: this.i18n.t('product.status'), phoneInline: true }
   ]);
 
   constructor() {
