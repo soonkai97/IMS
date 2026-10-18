@@ -7,4 +7,7 @@ namespace Ims.Domain;
 public sealed record ActorRights(int UserId, EffectivePermissions Effective)
 {
     public bool Has(string permission) => Effective.Has(permission);
+
+    /// <summary>Whether every one of the permissions is held: what a caller must satisfy before giving or changing access they would otherwise not have.</summary>
+    public bool HoldsAll(IEnumerable<string> permissions) => permissions.All(Has);
 }

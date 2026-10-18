@@ -74,6 +74,7 @@ public class ApiExceptionHandler(ILogger<ApiExceptionHandler> log, IProblemDetai
             case ConcurrencyException:
                 // The message chain of a concurrency exception carries internals; the client gets the plain sentence.
                 return new Outcome(StatusCodes.Status409Conflict, Messages.ConflictTitle, Messages.ConcurrencyConflict, true);
+            case LockedRoleException: return Expected(StatusCodes.Status409Conflict, Messages.ConflictTitle, ex);
             case ValidationException or DomainException: return Expected(StatusCodes.Status400BadRequest, Messages.RequestRejectedTitle, ex);
             case BadHttpRequestException: return Expected(StatusCodes.Status400BadRequest, Messages.BadRequestTitle, ex);
             case TimeoutException:

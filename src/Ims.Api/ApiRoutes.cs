@@ -6,6 +6,8 @@ public static class ApiRoutes
     public const string Prefix = "api";
     public const string Auth = Prefix + "/auth";
     public const string Users = Prefix + "/users";
+    public const string Roles = Prefix + "/roles";
+    public const string Permissions = Prefix + "/permissions";
     public const string Products = Prefix + "/products";
     public const string Categories = Prefix + "/categories";
     public const string Units = Prefix + "/units";

@@ -75,24 +75,8 @@ public class DocumentsController(IDispatcher dispatcher) : ApiControllerBase(dis
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Reverse(Guid id, [FromBody] ReverseRequest body) => SendDocument(new ReverseDocumentCommand(id, body, IfMatch));
 
-    /// <summary>
-    /// The concurrency token the client last saw, from the If-Match header, with or without the quotes (an unquoted token is still a token, never a
-    /// silently skipped check). The header is required on every document command: a missing one is <c>428</c>, so a client cannot overwrite someone
-    /// else's change by forgetting it. <c>*</c> is the explicit "any version" opt-out and yields null.
-    /// </summary>
-    private string? IfMatch
-    {
-        get
-        {
-            var raw = Request.Headers[Microsoft.Net.Http.Headers.HeaderNames.IfMatch].ToString();
-            if (string.IsNullOrWhiteSpace(raw)) throw new PreconditionRequiredException(Messages.IfMatchRequired);
-            var first = raw.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
-            if (first == "*") return null;
-            // An empty value (no entry at all, or just quotes) names no version: it is a missing header, not a skipped check.
-            var token = (first.StartsWith("W/", StringComparison.Ordinal) ? first[2..] : first).Trim('"').Trim();
-            return token.Length == 0 ? throw new PreconditionRequiredException(Messages.IfMatchRequired) : token;
-        }
-    }
+    /// <summary>The concurrency token the client last saw; required on every document command (a missing header is 428, see <see cref="IfMatchHeader"/>).</summary>
+    private string? IfMatch => IfMatchHeader.Read(Request, required: true);
 
     private async Task<IActionResult> SendDocument(IRequest<DocumentDto> request)
     {
