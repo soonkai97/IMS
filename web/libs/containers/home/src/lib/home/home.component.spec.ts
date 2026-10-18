@@ -1,8 +1,10 @@
 import { computed, signal } from '@angular/core';
+import { NEVER, of } from 'rxjs';
 import { provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import {
   DocumentCounts,
+  DocumentsClient,
   DocumentListItem,
   DocumentType,
   PagedResultOfDocumentListItem,
@@ -55,61 +57,61 @@ describe('HomePageComponent', () => {
   const drafts = signal<PagedResultOfDocumentListItem | undefined>(undefined);
   const draftsOperation = signal<ApiOperation>(IDLE_OPERATION);
   const draftsLoad = jest.fn();
+  const feedMock = {
+    drafts: {
+      $data: drafts,
+      $operation: draftsOperation,
+      $isLoading: signal(false),
+      $isFailed: computed(() => draftsOperation().status === 'failure'),
+      load: draftsLoad,
+      reload: jest.fn()
+    }
+  };
+  const baseProviders = [
+    provideRouter([]),
+    {
+      provide: DocumentsStore,
+      useValue: {
+        counts: {
+          $data: counts,
+          $operation: countsOperation,
+          $isFailed: computed(() => countsOperation().status === 'failure'),
+          load: countsLoad,
+          reload: jest.fn()
+        }
+      }
+    },
+    {
+      provide: StockStore,
+      useValue: {
+        summary: {
+          $data: signal(SUMMARY),
+          $isLoading: signal(false),
+          $isFailed: signal(false),
+          $operation: signal<ApiOperation>(IDLE_OPERATION),
+          load: jest.fn(),
+          reload: jest.fn()
+        }
+      }
+    },
+    {
+      provide: PermissionService,
+      useValue: {
+        has: (permission: string) => granted.has(permission),
+        hasAny: (permissions: readonly string[]) =>
+          permissions.some(permission => granted.has(permission)),
+        $displayName: signal('Pat'),
+        $seesAllWarehouses: signal(true),
+        $warehouseIds: signal<number[]>([])
+      }
+    }
+  ];
+  /** The feed store belongs to the component (providers: [HomeFeedStore]), so the mock goes in as a component provider. */
   const createComponent = createComponentFactory({
     component: HomePageComponent,
     detectChanges: false,
-    providers: [
-      provideRouter([]),
-      {
-        provide: DocumentsStore,
-        useValue: {
-          counts: {
-            $data: counts,
-            $operation: countsOperation,
-            $isFailed: computed(() => countsOperation().status === 'failure'),
-            load: countsLoad,
-            reload: jest.fn()
-          }
-        }
-      },
-      {
-        provide: HomeFeedStore,
-        useValue: {
-          drafts: {
-            $data: drafts,
-            $operation: draftsOperation,
-            $isLoading: signal(false),
-            $isFailed: computed(() => draftsOperation().status === 'failure'),
-            load: draftsLoad,
-            reload: jest.fn()
-          }
-        }
-      },
-      {
-        provide: StockStore,
-        useValue: {
-          summary: {
-            $data: signal(SUMMARY),
-            $isLoading: signal(false),
-            $isFailed: signal(false),
-            $operation: signal<ApiOperation>(IDLE_OPERATION),
-            load: jest.fn(),
-            reload: jest.fn()
-          }
-        }
-      },
-      {
-        provide: PermissionService,
-        useValue: {
-          has: (permission: string) => granted.has(permission),
-          hasAny: (permissions: readonly string[]) =>
-            permissions.some(permission => granted.has(permission)),
-          $displayName: signal('Pat'),
-          $seesAllWarehouses: signal(true),
-          $warehouseIds: signal<number[]>([])
-        }
-      }
-    ]
+    providers: baseProviders,
+    componentProviders: [{ provide: HomeFeedStore, useValue: feedMock }]
   });
 
   function render(...permissions: string[]): string {
@@ -298,11 +300,30 @@ describe('HomePageComponent', () => {
       render(PERMISSION.StockRead, PERMISSION.DocumentCreate);
       expect(spectator.query('.home-page-returned')).toBeNull();
 
+      spectator.fixture.destroy();
       counts.set(COUNTS);
       draftsLoad.mockClear();
       render(PERMISSION.StockRead, PERMISSION.DocumentApprove);
       expect(spectator.query('.home-page-returned')).toBeNull();
       expect(draftsLoad).not.toHaveBeenCalled();
+    });
+
+    it('asks for the drafts only when the counts say something is returned (the common case is none)', () => {
+      counts.set({ ...COUNTS, returnedToMe: 0 });
+      render(PERMISSION.StockRead, PERMISSION.DocumentCreate);
+
+      expect(draftsLoad).not.toHaveBeenCalled();
+      expect(spectator.query('.home-page-returned')).toBeNull();
+    });
+
+    it('a long partner name is clamped to two lines and the number stays whole', () => {
+      drafts.set({
+        items: [{ ...DRAFTS[0], partnerName: 'P'.repeat(300) }]
+      } as PagedResultOfDocumentListItem);
+      render(PERMISSION.StockRead, PERMISSION.DocumentCreate);
+
+      expect(spectator.query('.home-page-row-meta')?.textContent).toContain('P'.repeat(300));
+      expect(spectator.query('.home-page-row-no')?.textContent).toContain('RCV-WH01-2610-0001');
     });
 
     it('a failed list is its own alert with Retry and the tiles stay (failure isolation)', () => {
@@ -333,5 +354,75 @@ describe('HomePageComponent', () => {
       .queryAll('[aria-label], [title]')
       .map(element => `${element.getAttribute('aria-label')} ${element.getAttribute('title')}`)
       .forEach(attribute => expect(attribute).not.toMatch(money));
+  });
+});
+
+/** The real feed store over a fake API client (its own factory: Spectator factories apply to every test of their describe). */
+describe('HomePageComponent: the drafts of one user never reach the next one on the same tab', () => {
+  const listCall = jest.fn();
+  const createComponent = createComponentFactory({
+    component: HomePageComponent,
+    detectChanges: false,
+    providers: [
+      provideRouter([]),
+      { provide: DocumentsClient, useValue: { list: listCall } },
+      {
+        provide: DocumentsStore,
+        useValue: {
+          counts: {
+            $data: signal<DocumentCounts>(COUNTS),
+            $operation: signal<ApiOperation>(IDLE_OPERATION),
+            $isFailed: signal(false),
+            load: jest.fn(),
+            reload: jest.fn()
+          }
+        }
+      },
+      {
+        provide: StockStore,
+        useValue: {
+          summary: {
+            $data: signal(SUMMARY),
+            $isLoading: signal(false),
+            $isFailed: signal(false),
+            $operation: signal<ApiOperation>(IDLE_OPERATION),
+            load: jest.fn(),
+            reload: jest.fn()
+          }
+        }
+      },
+      {
+        provide: PermissionService,
+        useValue: {
+          has: (permission: string) =>
+            [PERMISSION.StockRead, PERMISSION.DocumentCreate].includes(permission as never),
+          hasAny: () => false,
+          $displayName: signal('Pat'),
+          $seesAllWarehouses: signal(true),
+          $warehouseIds: signal<number[]>([])
+        }
+      }
+    ]
+  });
+
+  it('after sign-out the next Home shows no row and no name while its own call is pending', () => {
+    listCall.mockReturnValueOnce(of({ items: DRAFTS }));
+
+    // The clerk's Home loads two returned drafts.
+    const clerk = createComponent();
+    clerk.detectChanges();
+    expect(clerk.queryAll('.home-page-row')).toHaveLength(2);
+    expect(clerk.element.textContent).toContain('Acme Sdn Bhd');
+    clerk.fixture.destroy();
+
+    // Sign-out is a navigation: the next user's Home is a new component whose own call has not answered yet.
+    listCall.mockReturnValueOnce(NEVER);
+    const staff = createComponent();
+    staff.detectChanges();
+
+    expect(listCall).toHaveBeenCalledTimes(2);
+    expect(staff.queryAll('.home-page-row')).toHaveLength(0);
+    expect(staff.element.textContent).not.toContain('Acme Sdn Bhd');
+    expect(staff.element.textContent).not.toContain('RCV-WH01-2610-0001');
   });
 });

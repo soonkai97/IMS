@@ -91,14 +91,18 @@
 }
 
 .home-page-row-no {
+  @include keep-whole;
+
   font-weight: font-weight('bold');
-  white-space: nowrap;
 }
 
+// Two lines at most: a very long partner name must not push the tiles off the screen (the full text stays in the DOM).
 .home-page-row-meta {
+  @include clamp-lines(2);
+
+  overflow-wrap: anywhere;
   font-size: font-size(2);
   color: color('text-muted');
-  overflow-wrap: anywhere;
 }
 
 .home-page-row-chevron {

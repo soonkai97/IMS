@@ -5,7 +5,6 @@
   background: color('surface');
   border: border-width('thin') solid color('border');
   border-radius: border-radius('md');
-  transition: transform duration('fast') easing('standard');
 
   // The warning colour is never the only signal: the alert icon beside the value says it too (FR-08).
   &.--attention {
@@ -14,7 +13,6 @@
 
   &:has(.ui-stat-card-link:hover) {
     box-shadow: shadow(1);
-    transform: translateY(-1px);
   }
 }
 

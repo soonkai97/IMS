@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  untracked
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DocumentListItem, DocumentType } from '@ims/api';
 import {
@@ -49,6 +57,7 @@ const RETURNED_ROWS = 5;
     UiStatCardComponent,
     UiStatusChipComponent
   ],
+  providers: [HomeFeedStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
@@ -103,22 +112,29 @@ export class HomePageComponent implements OnInit {
     this.permissions.has(PERMISSION.ReportsRead) ? ['/reports'] : ['/receipts']
   );
 
+  /** The 25-row call is made only when the counts say there is something to show (the common case is zero). */
+  private readonly $needsFeed = computed(
+    () => this.$canViewStock() && this.$canCreate() && (this.$counts()?.returnedToMe ?? 0) > 0
+  );
+
+  constructor() {
+    effect(() => {
+      if (this.$needsFeed()) {
+        untracked(() => this.feed.drafts.load(undefined, handledInline()));
+      }
+    });
+  }
+
   ngOnInit(): void {
     if (this.$canViewStock()) {
       this.stock.summary.load(undefined, handledInline());
       this.documents.counts.load(undefined, handledInline());
-      if (this.$canCreate()) {
-        this.feed.drafts.load(undefined, handledInline());
-      }
     }
   }
 
   onRetry(): void {
     this.stock.summary.reload();
     this.documents.counts.reload();
-    if (this.$canCreate()) {
-      this.feed.drafts.reload();
-    }
   }
 
   onRetryFeed(): void {

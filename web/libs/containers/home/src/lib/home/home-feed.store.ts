@@ -9,8 +9,10 @@ const FIRST_PAGE = 1;
 /**
  * What Home lists besides numbers: the user's own drafts, receipts and issues together in ONE call. The API has no
  * "returned" filter, so Home keeps the drafts with `isReturned` (docs/design/lean-scope.md: B1 waits).
+ * Provided by the Home component, never in root: sign-out is a router navigation, so a root store would show the next
+ * user on the same tab the previous user's documents.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class HomeFeedStore {
   private readonly client = inject(DocumentsClient);
 
@@ -25,7 +27,7 @@ export class HomeFeedStore {
       FIRST_PAGE,
       DRAFT_FEED_SIZE,
       undefined,
-      undefined,
+      false,
       true,
       undefined,
       context

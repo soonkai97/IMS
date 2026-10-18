@@ -55,8 +55,8 @@
                         <app-status-chip flag="warning" [label]="'doc.returned' | t" />
                       </span>
                       <span class="home-page-row-meta">
-                        {{ row.partnerName || row.warehouseName }} ·
-                        {{ row.createdAt | appDate: false }}
+                        {{ row.createdAt | appDate: false }} ·
+                        {{ row.partnerName || row.warehouseName }}
                       </span>
                     </span>
                     <app-icon class="home-page-row-chevron" name="chevron-right" [size]="16" />
