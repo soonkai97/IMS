@@ -1,5 +1,5 @@
 import { expect, test } from '../src/fixtures';
-import { loadPage } from '../src/pages/shell';
+import { loadPage, signInThroughForm } from '../src/pages/shell';
 import { spendLoginBudget } from '../src/rate-limit';
 
 test.describe('AUTH-01 Sign in, sign out and session restore (UX error E7, SEC-34)', () => {
@@ -102,7 +102,6 @@ test.describe('AUTH-01 Sign in, sign out and session restore (UX error E7, SEC-3
 
   test('given a signed-out visitor opens a screen, when they sign in, then they land on that screen; after sign out a reload stays on the login page', async ({
     page,
-    signIn,
     shell,
     login
   }) => {
@@ -110,7 +109,8 @@ test.describe('AUTH-01 Sign in, sign out and session restore (UX error E7, SEC-3
     await expect(page).toHaveURL(/\/login/);
     await expect(login.username).toBeVisible();
 
-    await signIn('clerk');
+    // Through the form on purpose: a kept session would restore on the home page, not on the return URL.
+    await signInThroughForm(page, 'clerk');
     await expect(page).toHaveURL(/\/receipts$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Receipts' })).toBeVisible();
 
