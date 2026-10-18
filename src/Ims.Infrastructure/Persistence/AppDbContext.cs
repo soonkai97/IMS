@@ -337,6 +337,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         int? userId = current is { IsAuthenticated: true } ? current.UserId : null;
         var now = clock.UtcNow;
         TouchDocumentsWithChangedLines();
+        TouchRolesWithChangedGrants();
 
         foreach (var e in ChangeTracker.Entries<AuditableEntity>().ToList())
         {
@@ -382,6 +383,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
 
         foreach (var document in ChangeTracker.Entries<StockDocument>().Where(d => d.State == EntityState.Unchanged && documentIds.Contains(d.Entity.Id)))
             document.Property(nameof(AuditableEntity.RecRevDate)).IsModified = true;
+    }
+
+    /// <summary>
+    /// A role is its row plus its grants. When only grants are added or revoked the role row would stay untouched and keep its ROW_VERSION, so the concurrency token the API hands out
+    /// (ETag) would not notice the edit. Marking the role as revised moves it.
+    /// </summary>
+    private void TouchRolesWithChangedGrants()
+    {
+        var roleIds = ChangeTracker.Entries<RolePermission>()
+            .Where(g => g.State is EntityState.Added or EntityState.Deleted || IsSoftDelete(g))
+            .Select(g => g.Property(x => x.RoleId).CurrentValue)
+            .ToHashSet();
+        if (roleIds.Count == 0) return;
+
+        foreach (var role in ChangeTracker.Entries<Role>().Where(r => r.State == EntityState.Unchanged && roleIds.Contains(r.Entity.Id)))
+            role.Property(nameof(AuditableEntity.RecRevDate)).IsModified = true;
     }
 
     private void EnforceAppendOnly()

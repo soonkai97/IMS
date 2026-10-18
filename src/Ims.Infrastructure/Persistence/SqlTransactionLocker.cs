@@ -23,6 +23,8 @@ public sealed class SqlTransactionLocker(AppDbContext db) : ITransactionLocker
     public Task LockDocumentSequenceAsync(string prefix, int yearMonth, int warehouseId, CancellationToken ct) =>
         AcquireAsync($"docseq:{prefix}:{yearMonth}:{warehouseId}", ct);
 
+    public Task LockRolesAsync(CancellationToken ct) => AcquireAsync("roles", ct);
+
     private async Task AcquireAsync(string resource, CancellationToken ct)
     {
         // An application lock owned by the transaction needs one. Outside a transaction there is nothing to hold it for.

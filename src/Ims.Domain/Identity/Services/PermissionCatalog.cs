@@ -59,7 +59,20 @@ public static class PermissionCatalog
     // First entry wins on a duplicate code: the catalog tests report the duplicate instead of the type failing to initialise.
     private static readonly Dictionary<string, PermissionDefinition> ByCode = All.GroupBy(p => p.Code, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
 
+    private static readonly Dictionary<string, int> Position = Codes.Select((c, i) => (c, i)).GroupBy(x => x.c, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().i, StringComparer.Ordinal);
+
     public static bool IsKnown(string code) => ByCode.ContainsKey(code);
+
+    /// <summary>The codes in catalog order (the order of the role editor); a code the catalog does not know goes last.</summary>
+    public static IReadOnlyList<string> InOrder(IEnumerable<string> codes) => codes.OrderBy(c => Position.GetValueOrDefault(c, int.MaxValue)).ToList();
+
+    /// <summary>The first permission of the set that needs another one the set lacks (the set must be closed under <c>Requires</c>), as (code, required); null when the set is closed.</summary>
+    public static (string Code, string Required)? FirstMissingRequirement(IReadOnlyCollection<string> codes)
+    {
+        foreach (var code in InOrder(codes))
+            if (Find(code)?.Requires.FirstOrDefault(r => !codes.Contains(r, StringComparer.Ordinal)) is { } required) return (code, required);
+        return null;
+    }
 
     public static PermissionDefinition? Find(string code) => ByCode.GetValueOrDefault(code);
 }

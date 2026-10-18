@@ -15,11 +15,15 @@ public static class EndpointCatalog
     private static readonly HttpMethod Get = HttpMethod.Get;
     private static readonly HttpMethod Post = HttpMethod.Post;
     private static readonly HttpMethod Put = HttpMethod.Put;
+    private static readonly HttpMethod Delete = HttpMethod.Delete;
 
     public static readonly IReadOnlyList<EndpointCase> All =
     [
         // ----- reads -----
         new("GET users", Get, Permissions.UsersRead, _ => "/api/users"),
+        new("GET roles", Get, Permissions.RolesRead, _ => "/api/roles"),
+        new("GET role", Get, Permissions.RolesRead, _ => $"/api/roles/{MissingPublicId}", OkWhenAllowed: false),
+        new("GET permissions", Get, Permissions.RolesRead, _ => "/api/permissions"),
         new("GET products", Get, Permissions.MasterDataRead, _ => "/api/products"),
         new("GET product", Get, Permissions.MasterDataRead, r => $"/api/products/{r.DemoProductId}"),
         new("GET product lookup", Get, Permissions.MasterDataRead, _ => "/api/products/lookup?code=9556000000011"),
@@ -47,6 +51,7 @@ public static class EndpointCatalog
         // ----- writes that can succeed with a valid body -----
         new("POST users", Post, Permissions.UsersManage, _ => "/api/users", r => new UserSaveRequest(
             Unique.Username("rbac"), Unique.Email(Unique.Username("rbac")), "Rbac user", Roles.Clerk, true, "Rbac-Passw0rd!", [r.DefaultWarehouseId])),
+        new("POST roles", Post, Permissions.RolesManage, _ => "/api/roles", _ => new Ims.Application.Features.Roles.RoleCreateRequest(Unique.Name("Role"))),
         new("POST products", Post, Permissions.MasterDataManage, _ => "/api/products", r => new ProductBuilder(r).Build()),
         new("POST categories", Post, Permissions.MasterDataManage, _ => "/api/categories", _ => new CategorySaveRequest(Unique.Name("Cat"))),
         new("POST units", Post, Permissions.MasterDataManage, _ => "/api/units", _ => new UomSaveRequest(Unique.Code("U"), "Test unit")),
@@ -65,6 +70,9 @@ public static class EndpointCatalog
         // ----- writes whose result depends on data: only "access was not denied" is checked -----
         new("PUT users/{id}", Put, Permissions.UsersManage, _ => $"/api/users/{MissingPublicId}",
             r => new UserSaveRequest("ghost", "ghost@example.test", "Ghost", Roles.Clerk, true, null, [r.DefaultWarehouseId]), OkWhenAllowed: false),
+        new("PUT roles/{id}", Put, Permissions.RolesManage, _ => $"/api/roles/{MissingPublicId}", _ => new Ims.Application.Features.Roles.RoleUpdateRequest("Role x", null, true), OkWhenAllowed: false),
+        new("PUT roles/{id}/permissions", Put, Permissions.RolesManage, _ => $"/api/roles/{MissingPublicId}/permissions", _ => new Ims.Application.Features.Roles.RolePermissionsRequest([]), OkWhenAllowed: false),
+        new("DELETE roles/{id}", Delete, Permissions.RolesManage, _ => $"/api/roles/{MissingPublicId}", OkWhenAllowed: false),
         new("PUT products/{id}", Put, Permissions.MasterDataManage, _ => $"/api/products/{MissingPublicId}", r => new ProductBuilder(r).Build(), OkWhenAllowed: false),
         new("PUT categories/{id}", Put, Permissions.MasterDataManage, _ => $"/api/categories/{MissingPublicId}", _ => new CategorySaveRequest("x"), OkWhenAllowed: false),
         new("PUT units/{id}", Put, Permissions.MasterDataManage, _ => $"/api/units/{MissingPublicId}", _ => new UomSaveRequest("X", "x"), OkWhenAllowed: false),

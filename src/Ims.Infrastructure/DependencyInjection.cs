@@ -2,6 +2,7 @@ using Ims.Application;
 using Ims.Application.Features.Attachments;
 using Ims.Application.Features.Documents;
 using Ims.Application.Features.Reports;
+using Ims.Application.Features.Roles;
 using Ims.Application.Features.Stock;
 using Ims.Domain;
 using Ims.Infrastructure.Excel;
@@ -60,6 +61,7 @@ public static class DependencyInjection
         services.AddScoped<IMovementReader, EfMovementReader>();
         services.AddScoped<IDocumentTextMatcher, EfDocumentTextMatcher>();
         services.AddScoped<ITransactionLocker, SqlTransactionLocker>();
+        services.AddScoped<IRoleUsageReader, EfRoleUsageReader>();
         services.AddSingleton<IExceptionMapper, SqlExceptionMapper>();
         services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
         return services;
