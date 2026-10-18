@@ -112,17 +112,31 @@ public class RoleTests
     }
 
     [Fact]
-    public void ASystemRoleCannotBeDeactivatedOrDeleted_ACustomRoleCanBeBoth()
+    public void ASystemRoleCannotBeRenamedDeactivatedOrDeleted_ACustomRoleCanBeAllThree()
     {
         var system = Role.Create(Roles.Clerk, "Clerk", null, true, []);
         var custom = Role.Create("Packer", "Packer", null, false, []);
 
-        Assert.Equal(Messages.SystemRoleProtected, Assert.Throws<DomainException>(() => system.SetActive(false)).Message);
-        Assert.Equal(Messages.SystemRoleProtected, Assert.Throws<DomainException>(system.Delete).Message);
+        Assert.Equal(Messages.SystemRoleProtected, Assert.Throws<LockedRoleException>(() => system.SetActive(false)).Message);
+        Assert.Equal(Messages.SystemRoleProtected, Assert.Throws<LockedRoleException>(system.Delete).Message);
+        Assert.Equal(Messages.SystemRoleProtected, Assert.Throws<LockedRoleException>(() => system.UpdateText("Other", null)).Message);
+        custom.UpdateText("Packers", null);
         custom.SetActive(false);
         custom.Delete();
         Assert.False(custom.IsActive);
         Assert.True(custom.RecDeleted);
+    }
+
+    [Fact]
+    public void ThePermissionsOfARoleThatHoldsEveryAdminCorePermissionCannotBeReplaced_EvenWithTheSameSet()
+    {
+        var admin = Role.Create(Roles.Admin, "Administrator", null, true, PermissionCatalog.Codes);
+        var owner = Role.Create(Roles.Owner, "Owner", null, true, SystemRoleDefaults.For(Roles.Owner));
+
+        Assert.Equal(Messages.AdminRoleLocked, Assert.Throws<LockedRoleException>(() => admin.SetPermissions([Permissions.StockRead])).Message);
+        Assert.Throws<LockedRoleException>(() => admin.SetPermissions(PermissionCatalog.Codes));
+        Assert.Equal(PermissionCatalog.Codes.Count, admin.Grants.Count);
+        owner.SetPermissions([Permissions.StockRead]);   // the other system roles keep editable permissions
     }
 
     [Fact]
@@ -143,5 +157,32 @@ public class RoleTests
         Assert.Null(PermissionCatalog.FirstMissingRequirement([Permissions.UsersManage, Permissions.UsersRead]));
         Assert.Null(PermissionCatalog.FirstMissingRequirement([Permissions.DocumentApproveLarge])); // the tiers need nothing from each other
         Assert.Null(PermissionCatalog.FirstMissingRequirement([Permissions.DocumentApprove]));
+    }
+
+    [Theory]
+    [InlineData("Night clerk", true)]
+    [InlineData("Caf\u00E9 \u4E2D\u6587", true)]
+    [InlineData("a\0b", false)]
+    [InlineData("a\r\nb", false)]
+    [InlineData("a\tb", false)]
+    [InlineData("a\u202Eb", false)]   // right-to-left override
+    [InlineData("a\u2067b", false)]   // right-to-left isolate
+    [InlineData("a\u200Bb", false)]   // zero-width space
+    [InlineData("a\u2028b", false)]   // line separator
+    public void IsPlainText_RefusesControlFormatAndSeparatorCharacters(string text, bool plain)
+    {
+        Assert.Equal(plain, Role.IsPlainText(text));
+        if (!plain) Assert.Throws<DomainException>(() => Role.Create("Packer", text, null, false, []));
+    }
+
+    [Fact]
+    public void PermissionsLocked_IsTrueOnlyForASystemRoleThatHoldsEveryAdminCorePermission()
+    {
+        var adminCore = PermissionCatalog.All.Where(p => p.AdminCore).Select(p => p.Code).ToList();
+
+        Assert.True(Role.Create(SystemRoleCodes.Admin, "Administrator", null, true, PermissionCatalog.Codes).PermissionsLocked);
+        Assert.False(Role.Create(SystemRoleCodes.Owner, "Owner", null, true, SystemRoleDefaults.For(SystemRoleCodes.Owner)).PermissionsLocked);
+        Assert.False(Role.Create("Copy", "Copy", null, false, PermissionCatalog.Codes).PermissionsLocked);        // custom: never
+        Assert.False(Role.Create("Almost", "Almost", null, true, adminCore.Skip(1)).PermissionsLocked);           // missing one
     }
 }

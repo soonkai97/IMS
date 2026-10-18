@@ -12,9 +12,8 @@ public class ReplaceRolePermissionsHandler(IRepository<Role> roles, IReadReposit
     {
         var wanted = cmd.Data.Permissions;
         var role = await roles.FirstOrDefaultAsync(new RoleForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.RoleNotFound);
-        RoleContainment.CheckEditable(role, await users.FirstOrDefaultAsync(new RoleIdOfUserSpec(current.UserId), ct), current);
+        await RoleContainment.CheckEditableAsync(role, users, current, ct);
         RoleContainment.CheckGrantable(wanted, current);
-        if (role.Code == SystemRoleCodes.Admin) throw new ConflictException(Messages.AdminRoleLocked);
         version.EnsureCurrent(role, cmd.IfMatch);
 
         var (added, removed) = role.SetPermissions(wanted);

@@ -40,6 +40,7 @@ public class RolesController(IDispatcher dispatcher) : ApiControllerBase(dispatc
     }
 
     [HttpDelete(ApiRoutes.PublicId), Authorize(Policy = Permissions.RolesManage)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await Send(new DeleteRoleCommand(id));

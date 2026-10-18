@@ -13,17 +13,23 @@ internal static class RoleContainment
     public static void CheckGrantable(IEnumerable<string> permissions, ICurrentUser caller)
     {
         var rights = caller.Rights();
-        if (permissions.Any(p => !rights.Has(p))) throw new ForbiddenException(Messages.GrantBeyondYourAccess);
+        if (!rights.HoldsAll(permissions)) throw new ForbiddenException(Messages.GrantBeyondYourAccess);
     }
-
-    /// <summary>Changing or deleting a role that holds more than the caller is a takeover of that access; changing the caller's own role is self-service on their own rights.</summary>
-    /// <param name="callerRoleId">The role the caller holds now, from the database.</param>
+    /// <summary>
+    /// Changing or deleting a role that holds more than the caller is a takeover of that access; changing the caller's own role is self-service on their own rights; and a role held by
+    /// someone who sees more warehouses than the caller is a way to change what that person may do, which the user save refuses the caller too (<see cref="Users.UserContainment.CheckTarget"/>).
+    /// </summary>
     /// <exception cref="ConflictException">The role is the caller's own.</exception>
-    /// <exception cref="ForbiddenException">The role holds a permission the caller lacks.</exception>
-    public static void CheckEditable(Role role, int callerRoleId, ICurrentUser caller)
+    /// <exception cref="ForbiddenException">The role holds a permission the caller lacks, or a user who sees more than the caller holds it.</exception>
+    public static async Task CheckEditableAsync(Role role, IReadRepository<User> users, ICurrentUser caller, CancellationToken ct)
     {
+        // The role the caller holds now, from the database (the role claim of the token can be a few minutes old).
+        var callerRoleId = await users.FirstOrDefaultAsync(new RoleIdOfUserSpec(caller.UserId), ct);
         if (role.Id == callerRoleId || string.Equals(role.Code, caller.Role, StringComparison.Ordinal)) throw new ConflictException(Messages.CannotChangeOwnRole);
         var rights = caller.Rights();
-        if (role.Grants.Any(g => !rights.Has(g.PermissionCode))) throw new ForbiddenException(Messages.RoleEditBeyondYourAccess);
+        if (!rights.HoldsAll(role.Grants.Select(g => g.PermissionCode))) throw new ForbiddenException(Messages.RoleEditBeyondYourAccess);
+        if (caller.AllWarehouses) return;
+        var holders = await users.ListAsync(new UsersOfRoleSpec(role.Id), ct);
+        if (holders.Any(u => u.AllWarehouses || u.Warehouses.Any(w => !caller.CanAccessWarehouse(w.WarehouseId)))) throw new ForbiddenException(Messages.RoleHeldBeyondYourScope);
     }
 }

@@ -21,13 +21,13 @@ public class RoleContainmentTests(ApiFixture fixture)
 
     private static readonly string[] DelegateHolds = [Permissions.RolesRead, Permissions.RolesManage, Permissions.StockRead, Permissions.ReportsRead];
 
-    private async Task<Delegate> NewDelegateAsync()
+    private async Task<Delegate> NewDelegateAsync(string[]? holds = null, bool allWarehouses = false)
     {
         var admin = await fixture.AsAsync(Roles.Admin);
-        var role = (await admin.CreateAsync(Unique.Name("Role manager"), DelegateHolds)).Data<RoleDto>();
+        var role = (await admin.CreateAsync(Unique.Name("Role manager"), holds ?? DelegateHolds)).Data<RoleDto>();
         var username = Unique.Username("rm");
         var password = $"Pw-{Guid.NewGuid():N}-1!";
-        (await admin.Users.CreateAsync(new UserSaveRequest(username, Unique.Email(username), "Role manager", role.Code, true, password, [fixture.Reference.DefaultWarehouseId]))).ShouldBeOk();
+        (await admin.Users.CreateAsync(new UserSaveRequest(username, Unique.Email(username), "Role manager", role.Code, true, password, [fixture.Reference.DefaultWarehouseId], allWarehouses))).ShouldBeOk();
         var client = fixture.CreateClient();
         client.AccessToken = (await client.Auth.LoginAsync(username, password)).Data<AuthResult>().AccessToken;
         return new Delegate(client, role);
@@ -113,5 +113,33 @@ public class RoleContainmentTests(ApiFixture fixture)
         (await reader.DeleteRoleAsync(role)).ShouldBeProblem(HttpStatusCode.Forbidden);
         (await clerk.GetAsync("/api/roles")).ShouldBeProblem(HttpStatusCode.Forbidden);
         (await clerk.GetAsync($"/api/roles/{role.Id}")).ShouldBeProblem(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task A_delegate_who_sees_fewer_warehouses_cannot_change_a_role_held_by_someone_who_sees_more()
+    {
+        var d = await NewDelegateAsync();
+        var admin = await fixture.AsAsync(Roles.Admin);
+        var shared = (await admin.CreateAsync(Unique.Name("Shared"), Permissions.StockRead)).Data<RoleDto>();   // inside the delegate's rights
+        var holder = Unique.Username("sh");
+        (await admin.Users.CreateAsync(new UserSaveRequest(holder, Unique.Email(holder), "Holder", shared.Code, true, $"Pw-{Guid.NewGuid():N}-1!", [fixture.Reference.DefaultWarehouseId], true))).ShouldBeOk();
+
+        (await d.Client.UpdateRoleAsync(shared, name: Unique.Name("Taken over"))).ShouldBeProblem(HttpStatusCode.Forbidden);
+        (await d.Client.ReplaceAsync(shared, [Permissions.StockRead, Permissions.ReportsRead])).ShouldBeProblem(HttpStatusCode.Forbidden);
+        (await d.Client.DeleteRoleAsync(shared)).ShouldBeProblem(HttpStatusCode.Forbidden);
+        (await admin.UpdateRoleAsync(shared, name: Unique.Name("Renamed"))).ShouldBeOk();   // the administrator sees every warehouse
+    }
+
+    [Fact]
+    public async Task The_administrator_role_cannot_be_renamed_or_emptied_even_by_someone_who_holds_every_permission()
+    {
+        var everything = await NewDelegateAsync([.. PermissionCatalog.Codes], allWarehouses: true);
+        var admin = (await everything.Client.GetAsync("/api/roles")).Data<List<RoleDto>>().Single(r => r.Code == Roles.Admin);
+
+        (await everything.Client.UpdateRoleAsync(admin, name: Unique.Name("Not admin"))).ShouldBeProblem(HttpStatusCode.Conflict);
+        (await everything.Client.ReplaceAsync(admin, [Permissions.StockRead])).ShouldBeProblem(HttpStatusCode.Conflict);
+        (await everything.Client.UpdateRoleAsync(admin, active: false)).ShouldBeProblem(HttpStatusCode.Conflict);
+        (await everything.Client.DeleteRoleAsync(admin)).ShouldBeProblem(HttpStatusCode.Conflict);
+        Assert.Equal(admin.Name, (await ReadAsync(admin.Id)).Name);
     }
 }

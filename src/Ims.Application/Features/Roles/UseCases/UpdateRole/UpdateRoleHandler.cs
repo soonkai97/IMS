@@ -13,20 +13,22 @@ public class UpdateRoleHandler(IRepository<Role> roles, IReadRepository<User> us
         var r = cmd.Data;
         var name = r.Name.Trim();
         var role = await roles.FirstOrDefaultAsync(new RoleForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.RoleNotFound);
-        RoleContainment.CheckEditable(role, await users.FirstOrDefaultAsync(new RoleIdOfUserSpec(current.UserId), ct), current);
+        await RoleContainment.CheckEditableAsync(role, users, current, ct);
         version.EnsureCurrent(role, cmd.IfMatch);
 
-        if (!r.IsActive && role.IsSystem) throw new ConflictException(Messages.SystemRoleProtected);
+        var before = new { role.Name, role.Description, role.IsActive };
+        var wasActive = role.IsActive;
+        var active = r.IsActive ?? wasActive;
+        // The aggregate decides first what a system role allows, so that refusal is not hidden by the in-use count below.
+        role.UpdateText(name, r.Description ?? role.Description);
+        role.SetActive(active);
         if (await roles.AnyAsync(new RoleNameTakenSpec(name, role.Id), ct)) throw new ConflictException(Messages.RoleNameTaken(name));
-        if (!r.IsActive && role.IsActive)
+        if (!active && wasActive)
         {
             await locker.LockRolesAsync(ct);
             if ((await usage.CountUsersAsync([role.Id], ct)).GetValueOrDefault(role.Id) is > 0 and var inUse) throw new ConflictException(Messages.RoleInUse(inUse));
         }
 
-        var before = new { role.Name, role.Description, role.IsActive };
-        role.UpdateText(name, r.Description);
-        role.SetActive(r.IsActive);
         audit.Record(AuditActions.RoleUpdated, AuditEntities.Role, role.PublicId.ToString(), before, new { role.Code, role.Name, role.Description, role.IsActive });
         await uow.SaveChangesAsync(ct);
         return (await reader.FindAsync(role.PublicId, ct))!;

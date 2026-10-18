@@ -165,6 +165,7 @@ public class RolesApiTests(ApiFixture fixture)
 
         (await admin.DeleteRoleAsync(clerk)).ShouldBeProblem(HttpStatusCode.Conflict);
         (await admin.UpdateRoleAsync(clerk, active: false)).ShouldBeProblem(HttpStatusCode.Conflict);
+        (await admin.UpdateRoleAsync(clerk, name: Unique.Name("Clerks"))).ShouldBeProblem(HttpStatusCode.Conflict);            // a system role keeps its name even when it has users
         (await admin.ReplaceAsync(adminRole, [Permissions.StockRead])).ShouldBeProblem(HttpStatusCode.Conflict);
 
         Assert.Equal(PermissionCatalog.Codes, (await admin.GetAsync($"/api/roles/{adminRole.Id}")).Data<RoleDto>().Permissions);
@@ -254,5 +255,49 @@ public class RolesApiTests(ApiFixture fixture)
         (await person.GetAsync("/api/stock")).ShouldBeOk();                          // the token in hand still says yes
         person.AccessToken = (await person.Auth.RefreshAsync(login.RefreshToken)).Data<AuthResult>().AccessToken;
         (await person.GetAsync("/api/stock")).ShouldBeProblem(HttpStatusCode.Forbidden); // the refreshed one does not
+    }
+
+    [Fact]
+    public async Task An_update_that_leaves_out_the_description_or_the_state_keeps_them()
+    {
+        var admin = await fixture.AsAsync(Roles.Admin);
+        var made = (await admin.PostAsync("/api/roles", new RoleCreateRequest(Unique.Name("Keeper"), "Keeps things."))).Data<RoleDto>();
+
+        var renamed = (await admin.PutAsync($"/api/roles/{made.Id}", new { name = Unique.Name("Keeper 2") })).Data<RoleDto>();
+
+        Assert.Equal("Keeps things.", renamed.Description);
+        Assert.True(renamed.IsActive);
+    }
+
+    [Theory]
+    [InlineData("\u202E")]   // right-to-left override
+    [InlineData("\u200B")]   // zero-width space
+    [InlineData("\0")]
+    public async Task A_name_or_description_with_control_or_direction_characters_is_refused(string bad)
+    {
+        var admin = await fixture.AsAsync(Roles.Admin);
+        var role = await NewRoleAsync(admin);
+        var name = Unique.Name("Night") + bad + "x";
+
+        (await admin.PostAsync("/api/roles", new RoleCreateRequest(name))).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await admin.PostAsync("/api/roles", new RoleCreateRequest(Unique.Name("Night"), "line" + bad + "two"))).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await admin.UpdateRoleAsync(role, name: name)).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await admin.PutAsync($"/api/roles/{role.Id}", new { name = role.Name, description = "line" + bad + "two" })).ShouldBeProblem(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task A_huge_permission_list_is_refused_with_a_short_answer()
+    {
+        var admin = await fixture.AsAsync(Roles.Admin);
+        var role = await NewRoleAsync(admin);
+        var bad = Enumerable.Range(0, 20_000).Select(i => $"bad.code.{i}").ToArray();
+
+        var tooLong = await admin.ReplaceAsync(role, bad);
+        var fewBad = await admin.ReplaceAsync(role, [.. bad.Take(15), Permissions.StockRead]);
+
+        tooLong.ShouldBeProblem(HttpStatusCode.BadRequest);
+        fewBad.ShouldBeProblem(HttpStatusCode.BadRequest);
+        Assert.True(tooLong.Bytes.Length < 2_000 && fewBad.Bytes.Length < 4_000, $"{tooLong.Bytes.Length} and {fewBad.Bytes.Length} bytes");
+        Assert.Contains("5 more permission", fewBad.Body);
     }
 }

@@ -55,10 +55,14 @@ public static class Messages
     public static string RoleNameTaken(string name) => $"A role named '{name}' already exists.";
     public static string DuplicatePermission(string code) => $"Permission '{code}' is listed more than once.";
     public static string PermissionNeedsAnother(string code, string required) => $"'{code}' also needs '{required}'.";
+    public const string RoleTextNotPlain = "A role name and description cannot contain control or direction-changing characters.";
+    public const string TooManyPermissions = "A role cannot hold more permissions than the catalog has.";
+    public static string MorePermissionsRefused(int count) => $"{count} more permission(s) are not valid either.";
     public const string RoleCopyAndPermissions = "Give either a role to copy or a list of permissions, not both.";
     public const string RoleCopySourceMissing = "The role to copy does not exist.";
     public const string GrantBeyondYourAccess = "You can only grant permissions you hold yourself.";
     public const string RoleEditBeyondYourAccess = "You cannot change a role that holds more permissions than you.";
+    public const string RoleHeldBeyondYourScope = "You cannot change a role that is held by a user who sees more warehouses than you.";
     public const string CannotChangeOwnRole = "You cannot change your own role. Ask another administrator.";
     public const string SystemRoleProtected = "System roles cannot be deleted or deactivated.";
     public const string AdminRoleLocked = "The Administrator role always holds every permission and cannot be changed.";
