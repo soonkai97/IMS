@@ -41,7 +41,7 @@ public class RolesApiTests(ApiFixture fixture)
         var admin = await fixture.AsAsync(Roles.Admin);
 
         var created = await admin.CreateAsync(Unique.Name("Night clerk"), Permissions.StockRead, Permissions.DocumentCreate);
-        created.ShouldBe(HttpStatusCode.Created);
+        created.ShouldBeOk();
         var role = created.Read<RoleDto>();
         Assert.Matches("^NightClerk[A-Za-z0-9]*$", role.Code);                                // made from the name, never chosen by the client
         Assert.False(role.IsSystem);
@@ -149,8 +149,8 @@ public class RolesApiTests(ApiFixture fixture)
         var other = (await admin.CreateAsync(Unique.Name("Other"))).Data<RoleDto>();
         Assert.Contains("already exists", (await admin.UpdateRoleAsync(other, name: name.ToLowerInvariant())).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
 
-        var lookAlike = (await admin.CreateAsync("admin")).Data<RoleDto>();   // would make the code "Admin", which the Administrator role has
-        Assert.NotEqual(Roles.Admin, lookAlike.Code);
+        var lookAlike = (await admin.CreateAsync("a-dmin")).Data<RoleDto>();   // would make the code "ADmin", which the database takes for the Administrator role code "Admin"
+        Assert.False(string.Equals(Roles.Admin, lookAlike.Code, StringComparison.OrdinalIgnoreCase));
         var sameLetters = (await admin.CreateAsync(name.Replace(' ', '-'))).Data<RoleDto>(); // another name with the same letters: the code gets a number
         Assert.NotEqual(first.Code, sameLetters.Code);
     }

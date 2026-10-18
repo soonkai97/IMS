@@ -22,13 +22,8 @@ public class RolesController(IDispatcher dispatcher) : ApiControllerBase(dispatc
     public async Task<IActionResult> Get(Guid id) => WithETag(await Send(new GetRoleQuery(id)));
 
     [HttpPost, Authorize(Policy = Permissions.RolesManage)]
-    [ProducesResponseType<RoleDto>(StatusCodes.Status201Created)]
-    public async Task<IActionResult> Create([FromBody] RoleCreateRequest body)
-    {
-        var role = await Send(new CreateRoleCommand(body));
-        Response.Headers[HeaderNames.ETag] = ETagOf(role);
-        return CreatedAtAction(nameof(Get), new { id = role.Id }, role);
-    }
+    [ProducesResponseType<RoleDto>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Create([FromBody] RoleCreateRequest body) => WithETag(await Send(new CreateRoleCommand(body)));
 
     [HttpPut(ApiRoutes.PublicId), Authorize(Policy = Permissions.RolesManage)]
     [ProducesResponseType<RoleDto>(StatusCodes.Status200OK)]
