@@ -232,6 +232,7 @@ public static class Messages
     public const string ServiceBusy = "The system is busy. Please try again in a moment.";
     public const string RequestTimedOutTitle = "Request timed out";
     public const string ServiceUnavailableTitle = "Service unavailable";
+    public const string LockBusy = "Another change to users or roles is still being saved. Try again in a moment.";
     public const string ConcurrencyConflict = "The data changed while you were working on it. Reload and try again.";
     public const string PublicIdInUse = "The record could not be saved because its identifier was already taken. Try again.";
     public static string DocumentChangedByAnother(string no) => $"{no} was changed by someone else since you opened it. Reload to see the latest version. Your changes were not saved.";

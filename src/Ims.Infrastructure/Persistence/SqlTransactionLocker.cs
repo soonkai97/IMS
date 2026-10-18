@@ -1,5 +1,6 @@
 using Ims.Application;
 using Ims.Domain;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ims.Infrastructure.Persistence;
@@ -9,7 +10,8 @@ namespace Ims.Infrastructure.Persistence;
 /// item) or a busy number sequence is processed one writer at a time, so throughput stays steady and no request starves. The resource
 /// name is always a parameter, never concatenated into SQL.
 /// </summary>
-public sealed class SqlTransactionLocker(AppDbContext db) : ITransactionLocker
+/// <param name="rolesLockTimeoutMs">How long the roles lock waits; tests shorten it to prove the 409 without a long sleep.</param>
+public sealed class SqlTransactionLocker(AppDbContext db, int rolesLockTimeoutMs = Limits.RolesLockTimeoutMs) : ITransactionLocker
 {
     /// <summary>sp_getapplock returns 0 or 1 when the lock is granted and a negative number when it is not (timeout, cancelled, deadlock victim, error).</summary>
     private const int NotGranted = 0;
@@ -17,24 +19,34 @@ public sealed class SqlTransactionLocker(AppDbContext db) : ITransactionLocker
     public async Task LockStockAsync(int warehouseId, IReadOnlyCollection<int> productIds, CancellationToken ct)
     {
         foreach (var productId in productIds.Distinct().Order()) // ascending: the global lock order
-            await AcquireAsync($"stock:{warehouseId}:{productId}", ct);
+            await AcquireAsync($"stock:{warehouseId}:{productId}", Limits.StockLockTimeoutMs, retry: true, ct);
     }
 
     public Task LockDocumentSequenceAsync(string prefix, int yearMonth, int warehouseId, CancellationToken ct) =>
-        AcquireAsync($"docseq:{prefix}:{yearMonth}:{warehouseId}", ct);
+        AcquireAsync($"docseq:{prefix}:{yearMonth}:{warehouseId}", Limits.StockLockTimeoutMs, retry: true, ct);
 
-    public Task LockRolesAsync(CancellationToken ct) => AcquireAsync("roles", ct);
+    public Task LockRolesAsync(CancellationToken ct) => AcquireAsync("roles", rolesLockTimeoutMs, retry: false, ct);
 
-    private async Task AcquireAsync(string resource, CancellationToken ct)
+    private async Task AcquireAsync(string resource, int timeoutMs, bool retry, CancellationToken ct)
     {
         // An application lock owned by the transaction needs one. Outside a transaction there is nothing to hold it for.
         if (db.Database.CurrentTransaction is null) return;
 
-        var result = (await db.Database.SqlQuery<int>($"""
-            DECLARE @r int;
-            EXEC @r = sp_getapplock @Resource = {resource}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = {Limits.StockLockTimeoutMs};
-            SELECT @r AS Value
-            """).ToListAsync(ct)).Single();
-        if (result < NotGranted) throw new ConcurrencyException(Messages.ConcurrencyConflict);
+        int result;
+        try
+        {
+            result = (await db.Database.SqlQuery<int>($"""
+                DECLARE @r int;
+                EXEC @r = sp_getapplock @Resource = {resource}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = {timeoutMs};
+                SELECT @r AS Value
+                """).ToListAsync(ct)).Single();
+        }
+        catch (SqlException) when (ct.IsCancellationRequested)
+        {
+            // The request timed out or the caller left while the wait was on: the driver reports it as a SqlException, which would end as a 500.
+            throw new OperationCanceledException(ct);
+        }
+        if (result >= NotGranted) return;
+        throw retry ? new ConcurrencyException(Messages.ConcurrencyConflict) : new LockTimeoutException(Messages.LockBusy);
     }
 }
