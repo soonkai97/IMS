@@ -1,7 +1,9 @@
+@use 'sass:map';
 @use '../variables/palette.var' as palette;
 @use '../variables/shape.var' as shape;
 
-@mixin emit($tokens, $shadows) {
+// The scrim behind a dialog or sheet: the overlay colour at 50% in light, 60% in dark (visual spec 3.6). Content never sits on it.
+@mixin emit($tokens, $shadows, $scrim) {
   @each $name, $value in $tokens {
     --ims-color-#{$name}: #{$value};
   }
@@ -9,25 +11,27 @@
   @each $level, $value in $shadows {
     --ims-shadow-#{$level}: #{$value};
   }
+
+  --ims-scrim: #{color-mix(in srgb, map.get($tokens, 'overlay') $scrim, transparent)};
 }
 
 // Light is the default. Dark follows the OS unless the user forced a theme with <html data-theme="light|dark">.
 :root {
   color-scheme: light;
 
-  @include emit(palette.$light, shape.$shadows-light);
+  @include emit(palette.$light, shape.$shadows-light, 50%);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
 
-    @include emit(palette.$dark, shape.$shadows-dark);
+    @include emit(palette.$dark, shape.$shadows-dark, 60%);
   }
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  @include emit(palette.$dark, shape.$shadows-dark);
+  @include emit(palette.$dark, shape.$shadows-dark, 60%);
 }

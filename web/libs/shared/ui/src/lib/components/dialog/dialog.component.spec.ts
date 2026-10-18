@@ -57,3 +57,58 @@ describe('UiDialogComponent modal state', () => {
     expect(modal.$isOpen()).toBe(false);
   });
 });
+
+describe('UiDialogComponent naming and long values (R13)', () => {
+  let spectator: SpectatorHost<UiDialogComponent, { open: boolean; heading: string; text: string }>;
+  const createHost = createHostFactory({ component: UiDialogComponent });
+  const LONG = `Delete ${'W'.repeat(500)}`;
+
+  function create(open: boolean): void {
+    spectator = createHost(
+      `<app-dialog [(open)]="open" [heading]="heading"><p class="body">{{ text }}</p></app-dialog>`,
+      { hostProps: { open, heading: LONG, text: 'W'.repeat(500) } }
+    );
+    spectator.detectChanges();
+  }
+
+  async function createAndSettle(): Promise<void> {
+    create(true);
+    await spectator.fixture.whenStable();
+    spectator.detectChanges();
+  }
+
+  it('has no aria-labelledby while closed, so nothing dangles (ER-20)', () => {
+    create(false);
+
+    const dialog = spectator.query('dialog');
+    expect(dialog?.hasAttribute('aria-labelledby')).toBe(false);
+    expect(spectator.query('.ui-dialog-title')).toBeNull();
+  });
+
+  it('names itself by its title while open', () => {
+    create(true);
+
+    const dialog = spectator.query('dialog');
+    const title = spectator.query('.ui-dialog-title');
+    expect(title?.id).toBeTruthy();
+    expect(dialog?.getAttribute('aria-labelledby')).toBe(title?.id);
+  });
+
+  it('shows a 500-character heading and body whole, never cut or titled', async () => {
+    await createAndSettle();
+
+    const title = spectator.query('.ui-dialog-title');
+    expect(title?.textContent?.trim()).toBe(LONG);
+    expect(title?.hasAttribute('title')).toBe(false);
+    expect(spectator.query('.ui-dialog-body')?.textContent?.trim().length).toBe(500);
+  });
+
+  it('closes from the close button and again removes the name', () => {
+    create(true);
+
+    spectator.click('.ui-dialog-header button');
+
+    expect(spectator.hostComponent.open).toBe(false);
+    expect(spectator.query('dialog')?.hasAttribute('aria-labelledby')).toBe(false);
+  });
+});

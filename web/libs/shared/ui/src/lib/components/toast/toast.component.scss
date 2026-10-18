@@ -1,9 +1,11 @@
 @use 'libs' as *;
 
+// Floating, so it sits on `surface-raised` with shadow(2) (visual spec 3.7). The state is the icon, the word and the 3px edge in the
+// state colour, never the colour alone.
 :host {
-  --toast-bg: #{color('surface')};
+  --toast-bg: #{color('surface-raised')};
   --toast-fg: #{color('text')};
-  --toast-accent: #{color('primary')};
+  --toast-accent: #{color('info')};
 
   display: flex;
   gap: space(1);
@@ -12,12 +14,12 @@
   color: var(--toast-fg);
   background: var(--toast-bg);
   border: border-width('thin') solid color('border');
-  border-left: border-width('focus') solid var(--toast-accent);
+  border-inline-start: border-width('edge') solid var(--toast-accent);
   border-radius: border-radius('md');
   box-shadow: shadow(2);
 
   &.--success {
-    --toast-accent: #{color('on-success-soft')};
+    --toast-accent: #{color('success')};
   }
 
   &.--error {

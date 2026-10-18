@@ -1,26 +1,57 @@
 @use 'libs' as *;
 
+// Dialog (>= 600px) and bottom sheet (< 600px) share one native <dialog> (R13). Content sits on `surface-raised`, never on the
+// scrim. Motion: the entrance only, from `@starting-style` (Chrome 117, Safari 17.5, Firefox 129; elsewhere the dialog simply
+// appears, which is still correct). There is no exit animation: the panel leaves the DOM with the close, so there is nothing left
+// to fade, and a scanner user gets the page back at once. Focus, Esc and the trap are the browser's and are not touched here.
+// Every duration, easing, distance and scale is a token that prefers-reduced-motion and data-motion="off" turn into a plain fade.
 .ui-dialog {
   width: min(100% - #{space(4)}, #{width('dialog')});
   max-height: calc(100dvh - #{space(4)});
   padding: 0;
   overflow: hidden;
   color: color('text');
-  background: color('surface');
+  background: color('surface-raised');
   border: border-width('thin') solid color('border');
   border-radius: border-radius('lg');
   box-shadow: shadow(3);
 
+  &[open] {
+    opacity: 1;
+    transition:
+      opacity duration('base') easing('out'),
+      transform duration('slow') easing('out');
+
+    @starting-style {
+      opacity: 0;
+      transform: translateY(move('md')) scale(pop-scale());
+    }
+  }
+
   &::backdrop {
-    background: color-alpha('overlay', 55%);
+    background: scrim();
+  }
+
+  &[open]::backdrop {
+    transition: opacity duration('base') easing('out');
+
+    @starting-style {
+      opacity: 0;
+    }
   }
 
   @include media-phone {
     width: 100%;
     max-width: none;
+    max-height: 90dvh;
     margin: auto 0 0;
-    border-bottom-right-radius: 0;
-    border-bottom-left-radius: 0;
+    border-radius: border-radius('sheet') border-radius('sheet') 0 0;
+
+    &[open] {
+      @starting-style {
+        transform: translateY(slide-distance());
+      }
+    }
   }
 }
 
@@ -28,6 +59,11 @@
   display: flex;
   flex-direction: column;
   max-height: calc(100dvh - #{space(4)});
+  padding-bottom: var(--ims-safe-bottom);
+
+  @include media-phone {
+    max-height: 90dvh;
+  }
 }
 
 .ui-dialog-header {
@@ -39,7 +75,10 @@
   border-bottom: border-width('thin') solid color('border');
 }
 
+// A long heading (a partner name in "Delete ..."): wrap it anywhere, it never pushes the close button out of the dialog.
 .ui-dialog-title {
+  @include wrap-anywhere;
+
   font-size: font-size(4);
 }
 

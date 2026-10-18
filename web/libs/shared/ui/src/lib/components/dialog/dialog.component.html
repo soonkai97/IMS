@@ -1,4 +1,9 @@
-<dialog #dialog class="ui-dialog" [attr.aria-labelledby]="titleId" (close)="onNativeClose()">
+<dialog
+  #dialog
+  class="ui-dialog"
+  [attr.aria-labelledby]="$open() ? titleId : null"
+  (close)="onNativeClose()"
+>
   @if ($open()) {
     <div class="ui-dialog-panel">
       <header class="ui-dialog-header">

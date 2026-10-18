@@ -67,6 +67,20 @@ $easings: (
 $press-scale: 0.97;
 $no-press-scale: 1;
 
+// Overlay entrance geometry (R13). A dialog starts `md` below its place and at `pop` size; a bottom sheet starts one `slide` (its own
+// height) below. Emitted as --ims-move-md, --ims-scale-pop and --ims-slide; under prefers-reduced-motion and data-motion="off" the
+// 'no-' values replace them, so nothing travels or grows and only the opacity changes.
+$moves: (
+  'md': 12px
+);
+$pop-scale: 0.94;
+$slide: 100%;
+$no-moves: (
+  'md': 0px
+);
+$no-pop-scale: 1;
+$no-slide: 0%;
+
 // What every duration becomes under prefers-reduced-motion and <html data-motion="off">. 1ms, not 0: a zero duration fires no
 // transitionend / animationend, and code that waits for them would hang.
 $collapsed-duration: 1ms;
@@ -110,6 +124,22 @@ $collapsed-duration: 1ms;
 
 @function press-scale() {
   @return var(--ims-scale-press);
+}
+
+@function move($name) {
+  @if not map.has-key($moves, $name) {
+    @error 'Unknown move "#{$name}".';
+  }
+
+  @return var(--ims-move-#{$name});
+}
+
+@function pop-scale() {
+  @return var(--ims-scale-pop);
+}
+
+@function slide-distance() {
+  @return var(--ims-slide);
 }
 
 @function duration($name) {

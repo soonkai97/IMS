@@ -1,9 +1,11 @@
 @use 'libs' as *;
 
+// Inline message (visual spec 3.7): the tint of its kind, a 3px edge on the inline start, the icon, and the heading or the sentence
+// say what it is, so the colour is never the only cue. It appears and disappears at once: no disclosure, no height animation.
 :host {
   --banner-bg: #{color('info-soft')};
   --banner-fg: #{color('on-info-soft')};
-  --banner-border: #{color('primary')};
+  --banner-border: #{color('info')};
 
   display: flex;
   flex-wrap: wrap;
@@ -12,13 +14,13 @@
   padding: space(1) space(2);
   color: var(--banner-fg);
   background: var(--banner-bg);
-  border-left: border-width('focus') solid var(--banner-border);
+  border-inline-start: border-width('edge') solid var(--banner-border);
   border-radius: border-radius('md');
 
   &.--warning {
     --banner-bg: #{color('warning-soft')};
     --banner-fg: #{color('on-warning-soft')};
-    --banner-border: #{color('warning-border')};
+    --banner-border: #{color('warning')};
   }
 
   &.--danger {
@@ -30,15 +32,20 @@
   &.--success {
     --banner-bg: #{color('success-soft')};
     --banner-fg: #{color('on-success-soft')};
-    --banner-border: #{color('on-success-soft')};
+    --banner-border: #{color('success')};
   }
 }
 
+.ui-banner-icon {
+  color: var(--banner-border);
+}
+
 // A button next to a long sentence would squeeze it into a narrow column on a phone: below about 15rem of text the
-// actions wrap under it (the icon stays with the text).
+// actions wrap under it (the icon stays with the text). A long unbroken value in the sentence breaks anywhere.
 .ui-banner-content {
+  @include wrap-anywhere;
+
   flex: 1 1 12rem;
-  min-width: 0;
 }
 
 .ui-banner-heading {
@@ -47,6 +54,7 @@
 
 .ui-banner-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: space(1);
   margin-inline-start: auto;
 
