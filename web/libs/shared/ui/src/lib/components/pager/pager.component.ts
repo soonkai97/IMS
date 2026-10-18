@@ -5,15 +5,11 @@ import { UiIconComponent } from '../icon/icon.component';
 
 let nextPagerId = 0;
 
-/** Where the focus goes after a page change: the table above the pager (its caption). */
-export interface PagerFocusTarget {
-  focusCaption(): void;
-}
-
 /**
  * Server-side paging: "1-25 of 142" with previous / next. A pager whose container is wide (a desktop) also has First and Last
- * and, when `pageSizes` is given, a "Rows per page" select; a phone keeps the range and the two arrows. A page change moves
- * the focus to `table` (the pressed button may be disabled by the new page) and is announced once, as "Page 3 of 14, 51-75 of 333".
+ * and, when `pageSizes` is given, a "Rows per page" select; a phone keeps the range and the two arrows. A change is announced
+ * once, as "Page 3 of 14, 51-75 of 333". The focus never moves: a button the new page cannot use (Last on the last page) is
+ * aria-disabled, not disabled, so it keeps the focus and a keyboard user pages on from where they are.
  */
 @Component({
   selector: 'app-pager',
@@ -30,8 +26,6 @@ export class UiPagerComponent {
   $total = input.required<number>({ alias: 'total' });
   /** The choices of the "Rows per page" select. None (the default) = no select. */
   $pageSizes = input<readonly number[]>([], { alias: 'pageSizes' });
-  /** The table this pager pages: it takes the focus after a change. */
-  $table = input<PagerFocusTarget | undefined>(undefined, { alias: 'table' });
 
   $pageChange = output<number>({ alias: 'pageChange' });
   $pageSizeChange = output<number>({ alias: 'pageSizeChange' });
@@ -53,22 +47,25 @@ export class UiPagerComponent {
   });
   $pageLabel = computed(() => this.uiText().pageStatus(this.$page(), this.$pages()));
   /** The one polite announcement of a change. */
-  $announcement = computed(() => [this.$pageLabel(), this.$range()].filter(Boolean).join(', '));
+  $announcement = computed(() => {
+    const range = this.$range();
+    return range ? this.uiText().pageAnnouncement(this.$pageLabel(), range) : this.$pageLabel();
+  });
 
   onFirst(): void {
-    this.goTo(1);
+    this.$pageChange.emit(1);
   }
 
   onPrevious(): void {
-    this.goTo(this.$page() - 1);
+    this.$pageChange.emit(this.$page() - 1);
   }
 
   onNext(): void {
-    this.goTo(this.$page() + 1);
+    this.$pageChange.emit(this.$page() + 1);
   }
 
   onLast(): void {
-    this.goTo(this.$pages());
+    this.$pageChange.emit(this.$pages());
   }
 
   onPageSize(event: Event): void {
@@ -76,11 +73,5 @@ export class UiPagerComponent {
       return;
     }
     this.$pageSizeChange.emit(Number(event.target.value));
-    this.$table()?.focusCaption();
-  }
-
-  private goTo(page: number): void {
-    this.$pageChange.emit(page);
-    this.$table()?.focusCaption();
   }
 }

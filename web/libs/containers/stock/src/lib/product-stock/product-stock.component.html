@@ -28,7 +28,6 @@
   <h2 class="product-stock-page-subheading">{{ 'ledger.title' | t }}</h2>
 
   <app-table
-    #table
     columnMenu
     [columns]="$columns()"
     [rows]="$ledger()?.items ?? []"
@@ -49,7 +48,6 @@
 
   @if ($ledger(); as ledger) {
     <app-pager
-      [table]="table"
       [pageSizes]="pageSizes"
       (pageSizeChange)="onPageSizeChange($event)"
       [page]="ledger.page"

@@ -69,8 +69,6 @@ const NO_KEYS: ReadonlySet<string> = new Set();
 })
 export class UiTableComponent<Row extends object> {
   private readonly uiText = inject(UI_TEXT);
-  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-  private readonly caption = viewChild<ElementRef<HTMLElement>>('caption');
   private readonly menu = viewChild<ElementRef<HTMLElement>>('menu');
   private readonly menuButton = viewChild<ElementRef<HTMLElement>>('menuButton');
   private menuListeners: AbortController | undefined;
@@ -174,18 +172,6 @@ export class UiTableComponent<Row extends object> {
     inject(DestroyRef).onDestroy(() => this.menuListeners?.abort());
   }
 
-  /** Moves the focus to the caption (the table's name) and brings the top of the table into view: what a page change does. */
-  focusCaption(): void {
-    const caption = this.caption()?.nativeElement;
-    if (!caption) {
-      return;
-    }
-    caption.focus({ preventScroll: true });
-    if (this.host.nativeElement.getBoundingClientRect().top < 0) {
-      this.host.nativeElement.scrollIntoView({ block: 'start' });
-    }
-  }
-
   onColumnToggle(key: string, visible: boolean): void {
     this.$hidden.update(hidden => {
       const next = new Set(hidden);
@@ -200,6 +186,21 @@ export class UiTableComponent<Row extends object> {
 
   onShowAllColumns(): void {
     this.$hidden.set(new Set());
+  }
+
+  /** Tab out of the menu closes it: a popover that stays open behind the focus would be left hanging. */
+  onMenuFocusOut(event: FocusEvent): void {
+    const menu = this.menu()?.nativeElement;
+    const next = event.relatedTarget;
+    // The Columns button is not "elsewhere": its own click closes the menu, and a close here would let that click reopen it.
+    if (
+      menu &&
+      next instanceof Node &&
+      !menu.contains(next) &&
+      next !== this.menuButton()?.nativeElement
+    ) {
+      menu.hidePopover();
+    }
   }
 
   /** A popover sits in the top layer at fixed coordinates: put it under its button, and close it when the page moves. */

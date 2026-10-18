@@ -17,7 +17,7 @@
   <app-button
     class="ui-pager-wide"
     variant="ghost"
-    [disabled]="!$hasPrevious()"
+    [ariaDisabled]="!$hasPrevious()"
     [ariaLabel]="$text().firstPage"
     (clicked)="onFirst()"
   >
@@ -25,7 +25,7 @@
   </app-button>
   <app-button
     variant="ghost"
-    [disabled]="!$hasPrevious()"
+    [ariaDisabled]="!$hasPrevious()"
     [ariaLabel]="$text().previousPage"
     (clicked)="onPrevious()"
   >
@@ -34,7 +34,7 @@
   <span class="ui-pager-page">{{ $pageLabel() }}</span>
   <app-button
     variant="ghost"
-    [disabled]="!$hasNext()"
+    [ariaDisabled]="!$hasNext()"
     [ariaLabel]="$text().nextPage"
     (clicked)="onNext()"
   >
@@ -43,7 +43,7 @@
   <app-button
     class="ui-pager-wide"
     variant="ghost"
-    [disabled]="!$hasNext()"
+    [ariaDisabled]="!$hasNext()"
     [ariaLabel]="$text().lastPage"
     (clicked)="onLast()"
   >

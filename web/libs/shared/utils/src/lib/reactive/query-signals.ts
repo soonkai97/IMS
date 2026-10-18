@@ -37,12 +37,9 @@ export interface PageState {
 }
 
 /** Page number that resets itself when any filter or sort changes, without effects or manual resets. */
-export function createPageState(
-  filterKey: Signal<string>,
-  initialPageSize: number = DEFAULT_PAGE_SIZE
-): PageState {
+export function createPageState(filterKey: Signal<string>): PageState {
   const state = signal({ key: '', page: FIRST_PAGE });
-  const pageSize = signal(initialPageSize);
+  const pageSize = signal(DEFAULT_PAGE_SIZE);
   return {
     $page: computed(() => (state().key === filterKey() ? state().page : FIRST_PAGE)),
     $pageSize: pageSize.asReadonly(),

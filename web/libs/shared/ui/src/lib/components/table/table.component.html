@@ -17,13 +17,7 @@
 } @else {
   @if ($menuColumns().length > 0) {
     <div class="ui-table-toolbar">
-      <button
-        #menuButton
-        type="button"
-        class="ui-table-menu-button"
-        [attr.popovertarget]="$menuId"
-        aria-haspopup="true"
-      >
+      <button #menuButton type="button" class="ui-table-menu-button" [attr.popovertarget]="$menuId">
         <app-icon name="columns" [size]="20" />
         {{ $text().columns }}
       </button>
@@ -36,6 +30,7 @@
         [id]="$menuId"
         [attr.aria-label]="$text().columns"
         (toggle)="onMenuToggle($event)"
+        (focusout)="onMenuFocusOut($event)"
       >
         @for (item of $menuColumns(); track item.key) {
           <app-checkbox
@@ -59,7 +54,7 @@
   <!-- A table wider than its box scrolls here, never the page (L00); only then is this a focusable, named region. -->
   <div class="ui-table-scroll" [appScrollRegion]="$caption()">
     <table class="ui-table-grid" [attr.aria-busy]="$loading()">
-      <caption #caption class="sr-only" tabindex="-1">
+      <caption class="sr-only">
         {{
           $caption()
         }}

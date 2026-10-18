@@ -46,6 +46,21 @@ describe('UI text for the kit', () => {
   });
 
   it.each([
+    ['en', 'Page 1 of 17, 1-25 of 415'],
+    ['zh', '第 1 页，共 17 页，第 1-25 条，共 415 条'],
+    ['ms', 'Halaman 1 daripada 17, 1-25 daripada 415']
+  ] as const)(
+    'TB: in %s the page and the range are one sentence joined as the language joins',
+    async (language, sentence) => {
+      await TestBed.inject(I18nService).setLanguage(language);
+
+      expect(
+        text().pageAnnouncement(text().pageStatus(1, 17), text().rangeStatus(1, 25, 415))
+      ).toBe(sentence);
+    }
+  );
+
+  it.each([
     ['zh', '日/月/年', '请输入日期（日/月/年），例如 09/10/2026。'],
     ['ms', 'hh/bb/tttt', 'Masukkan tarikh sebagai hh/bb/tttt, contohnya 09/10/2026.']
   ] as const)(

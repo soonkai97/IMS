@@ -1,5 +1,5 @@
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
-import { PagerFocusTarget, UiPagerComponent } from './pager.component';
+import { UiPagerComponent } from './pager.component';
 
 describe('UiPagerComponent', () => {
   let spectator: Spectator<UiPagerComponent>;
@@ -40,16 +40,31 @@ describe('UiPagerComponent', () => {
     }
   });
 
-  it('disables First and Previous on the first page, Next and Last on the last of 14 pages', () => {
+  it('marks First and Previous unusable on the first page, Next and Last on the last of 14 pages, and keeps them focusable', () => {
+    const unusable = (name: string): boolean =>
+      button(name).getAttribute('aria-disabled') === 'true';
     render({ page: 1 });
-    expect(button('First page').disabled).toBe(true);
-    expect(button('Previous page').disabled).toBe(true);
-    expect(button('Next page').disabled).toBe(false);
+    expect(unusable('First page')).toBe(true);
+    expect(unusable('Previous page')).toBe(true);
+    expect(unusable('Next page')).toBe(false);
 
     spectator.setInput('page', 14);
-    expect(button('Next page').disabled).toBe(true);
-    expect(button('Last page').disabled).toBe(true);
-    expect(button('First page').disabled).toBe(false);
+    expect(unusable('Next page')).toBe(true);
+    expect(unusable('Last page')).toBe(true);
+    expect(unusable('First page')).toBe(false);
+    // aria-disabled, not disabled: the pressed button keeps the focus when the new page cannot use it.
+    expect(button('Last page').disabled).toBe(false);
+  });
+
+  it('an unusable button emits nothing', () => {
+    render({ page: 14 });
+    const emitted: number[] = [];
+    spectator.output<number>('$pageChange').subscribe(page => emitted.push(page));
+
+    spectator.click(button('Next page'));
+    spectator.click(button('Last page'));
+
+    expect(emitted).toEqual([]);
   });
 
   it.each([
@@ -79,13 +94,15 @@ describe('UiPagerComponent', () => {
     expect(emitted).toEqual([14, 13]);
   });
 
-  it('moves the focus to the table after a page change, so a button the new page disables never holds it', () => {
-    const table: PagerFocusTarget = { focusCaption: jest.fn() };
-    render({ table });
+  it('never moves the focus: the pressed button keeps it, even when the new page makes it unusable', () => {
+    render({ pageSizes: [25, 50, 100] });
+    const last = button('Last page');
+    last.focus();
 
-    spectator.click(button('Last page'));
+    spectator.click(last);
+    spectator.setInput('page', 14);
 
-    expect(table.focusCaption).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(last);
   });
 
   it('shows no page size select unless sizes are given', () => {
@@ -105,16 +122,18 @@ describe('UiPagerComponent', () => {
     expect(select.value).toBe('50');
   });
 
-  it('emits the new size as a number and moves the focus to the table', () => {
-    const table: PagerFocusTarget = { focusCaption: jest.fn() };
-    render({ pageSizes: [25, 50, 100], table });
+  it('emits the new size as a number and leaves the focus on the select (ArrowDown must reach 100)', () => {
+    render({ pageSizes: [25, 50, 100] });
+    const select = spectator.query('select') as HTMLSelectElement;
+    select.focus();
     const emitted: number[] = [];
     spectator.output<number>('$pageSizeChange').subscribe(size => emitted.push(size));
 
-    spectator.selectOption(spectator.query('select') as HTMLSelectElement, '100');
+    spectator.selectOption(select, '50');
+    spectator.selectOption(select, '100');
 
-    expect(emitted).toEqual([100]);
-    expect(table.focusCaption).toHaveBeenCalledTimes(1);
+    expect(emitted).toEqual([50, 100]);
+    expect(document.activeElement).toBe(select);
   });
 
   it('shows no range for an empty list', () => {

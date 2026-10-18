@@ -71,9 +71,16 @@ test.describe("TB Paging on a table with room", () => {
     await pager.getByRole("button", { name: "Last page" }).click();
     await expect(range).toHaveText("326-333 of 333");
     expect(asked.at(-1)).toEqual([14, 25]);
-    // The pressed button is disabled by the new page; the focus is on the table's caption, not lost.
-    await expect(page.locator("app-table caption")).toBeFocused();
-    await expect(pager.getByRole("button", { name: "Next page" })).toBeDisabled();
+    // The new page cannot use Last and Next: they are aria-disabled, so the pressed button keeps the focus.
+    await expect(
+      pager.getByRole("button", { name: "Last page" }),
+    ).toBeFocused();
+    await expect(
+      pager.getByRole("button", { name: "Last page" }),
+    ).toHaveAttribute("aria-disabled", "true");
+    await expect(
+      pager.getByRole("button", { name: "Next page" }),
+    ).toHaveAttribute("aria-disabled", "true");
     await expect(pager.getByRole("navigation")).toHaveAccessibleName(
       "Page 14 of 14",
     );
@@ -93,6 +100,28 @@ test.describe("TB Paging on a table with room", () => {
     await expect(range).toHaveText("301-333 of 333");
     await pager.getByRole("button", { name: "First page" }).click();
     await expect(range).toHaveText("1-50 of 333");
+  });
+
+  test("given Rows per page has the focus, when ArrowDown is pressed twice, then it goes 25, 50, 100 and the focus stays on the select", async ({
+    page,
+    signIn,
+  }) => {
+    await signIn("admin");
+    const asked = await openAudit(page);
+    const size = page.locator("app-pager").getByLabel("Rows per page");
+
+    await size.focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(page.locator("app-pager .ui-pager-range")).toHaveText(
+      "1-50 of 333",
+    );
+    await expect(size).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(page.locator("app-pager .ui-pager-range")).toHaveText(
+      "1-100 of 333",
+    );
+    await expect(size).toBeFocused();
+    expect(asked.at(-1)).toEqual([1, 100]);
   });
 
   test("given a page change, then a screen reader hears one polite sentence with the page and the range", async ({
@@ -133,7 +162,9 @@ test.describe("TB Paging on a table with room", () => {
     await expect(menu.getByRole("checkbox").first()).toBeFocused();
     // The identifier and the action column are not offered.
     await expect(menu.getByRole("checkbox", { name: "When" })).toHaveCount(0);
-    await expect(menu.getByRole("checkbox", { name: "Details" })).toHaveCount(0);
+    await expect(menu.getByRole("checkbox", { name: "Details" })).toHaveCount(
+      0,
+    );
 
     await menu.getByRole("checkbox", { name: "Object" }).uncheck();
     await expect(entity).toHaveCount(0);
@@ -149,9 +180,41 @@ test.describe("TB Paging on a table with room", () => {
     await page.getByRole("heading", { level: 1 }).click();
     await expect(menu).toBeHidden();
 
+    // Tab out of the last item closes it (it never stays open behind the focus).
+    await button.click();
+    await expect(menu).toBeVisible();
+    await menu.getByRole("button", { name: "Show all columns" }).focus();
+    await page.keyboard.press("Tab");
+    await expect(menu).toBeHidden();
+
     await button.click();
     await menu.getByRole("button", { name: "Show all columns" }).click();
     await expect(entity).toBeVisible();
+  });
+
+  test("given a column is hidden at 1280, when the window narrows to a phone, then the card shows that column again and there is no Columns button", async ({
+    page,
+    signIn,
+  }) => {
+    await signIn("admin");
+    await openAudit(page);
+    await page.getByRole("button", { name: "Columns" }).click();
+    await page
+      .getByRole("group", { name: "Columns" })
+      .getByRole("checkbox", { name: "Object" })
+      .uncheck();
+    await expect(
+      page.getByRole("columnheader", { name: "Object" }),
+    ).toHaveCount(0);
+    await page.keyboard.press("Escape");
+
+    await page.setViewportSize({ width: 360, height: 740 });
+
+    // A card list: every cell carries its label, the hidden column's too.
+    await expect(
+      page.locator('app-table td[data-label="Object"]:visible').first(),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Columns" })).toBeHidden();
   });
 });
 
@@ -170,9 +233,15 @@ test.describe("TB Paging on a phone", () => {
     await openAudit(page);
     const pager = page.locator("app-pager");
 
-    await expect(pager.getByRole("button", { name: "Next page" })).toBeVisible();
-    await expect(pager.getByRole("button", { name: "Previous page" })).toBeVisible();
-    await expect(pager.getByRole("button", { name: "First page" })).toBeHidden();
+    await expect(
+      pager.getByRole("button", { name: "Next page" }),
+    ).toBeVisible();
+    await expect(
+      pager.getByRole("button", { name: "Previous page" }),
+    ).toBeVisible();
+    await expect(
+      pager.getByRole("button", { name: "First page" }),
+    ).toBeHidden();
     await expect(pager.getByRole("button", { name: "Last page" })).toBeHidden();
     await expect(pager.getByLabel("Rows per page")).toBeHidden();
     await expect(page.getByRole("button", { name: "Columns" })).toBeHidden();

@@ -18,8 +18,6 @@
   position: relative;
   display: block;
   container: ims-table / inline-size;
-  // A page change brings the top of the table back under the top bar, not behind it.
-  scroll-margin-top: calc(#{height('bar')} + var(--ims-safe-top));
 
   &.--refreshing .ui-table-grid {
     opacity: 0.6;
@@ -200,10 +198,13 @@
 
 // Table: the box has room.
 @include table-wide {
-  .ui-table-toolbar {
-    display: flex;
-    justify-content: flex-end;
-    padding-bottom: space(1);
+  // Browsers without the popover attribute (before Chrome 114, Safari 17, Firefox 125) get no menu and every column.
+  @supports selector(:popover-open) {
+    .ui-table-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      padding-bottom: space(1);
+    }
   }
 
   .ui-table-header.--user-hidden,

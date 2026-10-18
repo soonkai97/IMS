@@ -33,8 +33,4 @@ describe('createPageState', () => {
     expect(state.$pageSize()).toBe(100);
     expect(state.$page()).toBe(1);
   });
-
-  it('takes the first size from the caller', () => {
-    expect(createPageState(signal('a'), 50).$pageSize()).toBe(50);
-  });
 });

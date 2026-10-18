@@ -10,7 +10,6 @@
 </app-page-header>
 
 <app-table
-  #table
   columnMenu
   [columns]="$columns()"
   [rows]="$page()?.items ?? []"
@@ -46,7 +45,6 @@
 
 @if ($page(); as page) {
   <app-pager
-    [table]="table"
     [pageSizes]="pageSizes"
     (pageSizeChange)="onPageSizeChange($event)"
     [page]="page.page"

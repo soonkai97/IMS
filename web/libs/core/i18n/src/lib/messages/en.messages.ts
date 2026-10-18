@@ -51,6 +51,7 @@ export const EN_MESSAGES = {
   'ui.lastPage': 'Last page',
   'ui.loading': 'Loading',
   'ui.nextPage': 'Next page',
+  'ui.pageAnnouncement': '{status}, {range}',
   'ui.pageSize': 'Rows per page',
   'ui.pageStatus': 'Page {page} of {pages}',
   'ui.previousPage': 'Previous page',

@@ -62,7 +62,6 @@
 </div>
 
 <app-table
-  #table
   columnMenu
   appTabPanel="document-list-panel"
   [labelledByTab]="$scope()"
@@ -109,7 +108,6 @@
 
 @if ($page(); as page) {
   <app-pager
-    [table]="table"
     [pageSizes]="pageSizes"
     (pageSizeChange)="onPageSizeChange($event)"
     [page]="page.page"

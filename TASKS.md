@@ -84,6 +84,7 @@ session routes. New agent types register after a session reload; until then they
 - #55 accepted gap: no horizontal scroll at 1280 and the `15-reports-range` e2e are deferred to slice L04 (table column priorities).
 - #55 minors not done: cancel an in-flight request when the range turns invalid; `format.pipes.ts` holds five pipes (one type per file).
 - #52: `docs/dba/08-reconcile-drill.sql` check 3 uses `ISNULL` sentinels (-1, -2); two practically impossible cases are missed.
+- e2e is not a PR gate (found in the #121 review: CI was green while `15-containment` had a regression). Proposal for the owner: make the key specs (`10-phone`, `11-accessibility`, `12-low-stock`, `13-cost-visibility`, `15-containment`, `31-table-toolbar`) a required CI job on a clean database, or at least a nightly run that notifies on failure; CI is not changed here.
 - Run the full e2e suite once after F1 and R04 merge (it runs only manually and weekly); watch `12-low-stock` ("New receipt line never appeared" once).
 - Deferred: backend text limits (partner 120, product 80); `includeTotal=false` once a screen shows no total; Dependabot retries for stylelint 17 (needs `stylelint-config-standard-scss` support) and the .NET group (Microsoft.CodeAnalysis 5.9.0 conflict).
 - Owner spot-check: on a phone, tap a quantity field on a receipt and type; the value should be replaced (R27, untested on real iOS and Android).

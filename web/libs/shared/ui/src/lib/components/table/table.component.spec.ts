@@ -291,13 +291,29 @@ describe('UiTableComponent column menu (TB)', () => {
     expect(spectator.query('.ui-table-toolbar')).toBeNull();
   });
 
-  it('moves the focus to the caption, which a script can focus and Tab skips', () => {
+  it('does not claim a menu popup: the popover is a group of checkboxes', () => {
     const spectator = render();
-    const caption = spectator.query('caption') as HTMLElement;
 
-    spectator.component.focusCaption();
+    expect(spectator.query('.ui-table-menu-button')?.hasAttribute('aria-haspopup')).toBe(false);
+  });
 
-    expect(caption.getAttribute('tabindex')).toBe('-1');
-    expect(document.activeElement).toBe(caption);
+  it('closes when the focus leaves it, but not for its own button (that click toggles it)', () => {
+    const spectator = render();
+    const menu = spectator.query('.ui-table-menu') as HTMLElement;
+    const hide = jest.fn();
+    menu.hidePopover = hide;
+    const outside = document.createElement('button');
+    document.body.append(outside);
+
+    menu.dispatchEvent(new FocusEvent('focusout', { relatedTarget: menu.querySelector('input') }));
+    menu.dispatchEvent(
+      new FocusEvent('focusout', { relatedTarget: spectator.query('.ui-table-menu-button') })
+    );
+    menu.dispatchEvent(new FocusEvent('focusout', { relatedTarget: null }));
+    expect(hide).not.toHaveBeenCalled();
+
+    menu.dispatchEvent(new FocusEvent('focusout', { relatedTarget: outside }));
+    expect(hide).toHaveBeenCalledTimes(1);
+    outside.remove();
   });
 });

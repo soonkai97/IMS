@@ -5,8 +5,7 @@ import {
   OnInit,
   computed,
   inject,
-  signal,
-  viewChild
+  signal
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -127,8 +126,6 @@ export class ReportsPageComponent implements OnInit {
   // The sentence under To explains the empty screen, so no table (and no "No data for these filters.") shows with it.
   $blocked = computed(() => this.$rangeInvalid() || this.$serverToError() !== null);
   readonly rangeHintId = 'reports-range-hint';
-  /** The movements table (it sits inside a block of its own): the pager gives it the focus after a page change. */
-  readonly $table = viewChild(UiTableComponent);
   // A bad range or a failed call shows no old rows and no old "1-6 of 6" footer.
   $page = computed(() =>
     this.$rangeInvalid() || this.store.movements.$isFailed()

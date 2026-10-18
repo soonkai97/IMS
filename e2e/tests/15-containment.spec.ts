@@ -342,7 +342,7 @@ test.describe('L00 Content containment', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await goTo(page, '/stock');
     const search = await page.getByRole('searchbox', { name: 'Search stock' }).boundingBox();
-    const category = await page.getByLabel('Category').boundingBox();
+    const category = await page.getByRole('combobox', { name: 'Category' }).boundingBox();
     expect(search).not.toBeNull();
     expect(category).not.toBeNull();
     expect(

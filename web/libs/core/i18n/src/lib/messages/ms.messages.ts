@@ -46,6 +46,7 @@ export const MS_MESSAGES: Messages = {
   'ui.lastPage': 'Halaman terakhir',
   'ui.loading': 'Memuatkan',
   'ui.nextPage': 'Halaman seterusnya',
+  'ui.pageAnnouncement': '{status}, {range}',
   'ui.pageSize': 'Baris setiap halaman',
   'ui.pageStatus': 'Halaman {page} daripada {pages}',
   'ui.previousPage': 'Halaman sebelumnya',

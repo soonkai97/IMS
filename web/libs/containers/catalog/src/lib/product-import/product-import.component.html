@@ -80,12 +80,7 @@
           {{ 'import.errorsOnly' | t }}
         </app-checkbox>
 
-        <app-table
-          #table
-          [columns]="$columns()"
-          [rows]="$pageRows()"
-          [caption]="'import.step3' | t"
-        >
+        <app-table [columns]="$columns()" [rows]="$pageRows()" [caption]="'import.step3' | t">
           <ng-template appCell="status" let-row>
             @switch (row.status) {
               @case (rowStatus.New) {
@@ -106,7 +101,6 @@
           <app-empty-state empty icon="check" [message]="'import.noErrors' | t" />
         </app-table>
         <app-pager
-          [table]="table"
           [page]="$page()"
           [pageSize]="pageSize"
           [total]="$rows().length"

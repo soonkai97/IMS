@@ -46,6 +46,7 @@ export const ZH_MESSAGES: Messages = {
   'ui.lastPage': '最后一页',
   'ui.loading': '加载中',
   'ui.nextPage': '下一页',
+  'ui.pageAnnouncement': '{status}，{range}',
   'ui.pageSize': '每页行数',
   'ui.pageStatus': '第 {page} 页，共 {pages} 页',
   'ui.previousPage': '上一页',

@@ -38,6 +38,7 @@ export function provideUiText(): EnvironmentProviders {
           errorTitle: i18n.t('ui.errorTitle'),
           reasonTooShort: length => i18n.t('validation.reasonMinLength', { length }),
           pageStatus: (page, pages) => i18n.t('ui.pageStatus', { page, pages }),
+          pageAnnouncement: (status, range) => i18n.t('ui.pageAnnouncement', { status, range }),
           rangeStatus: (from, to, total) => i18n.t('ui.rangeStatus', { from, to, total }),
           validationMessage: (key, error) => validationMessage(i18n, key, error)
         });
