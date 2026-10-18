@@ -22,6 +22,17 @@
   --ims-scale-press: #{$value};
 }
 
+// The overlay entrance geometry (R13): how far a dialog lifts, how small it starts, how far a sheet slides. Reduced motion and the
+// test switch pass the 'no-' values, so only the opacity changes.
+@mixin emit-overlay-geometry($moves, $pop-scale, $slide) {
+  @each $name, $distance in $moves {
+    --ims-move-#{$name}: #{$distance};
+  }
+
+  --ims-scale-pop: #{$pop-scale};
+  --ims-slide: #{$slide};
+}
+
 // The safety net for animations written with a literal duration or an infinite count. Without the iteration count, a duration of
 // 0.01ms on an infinite animation restarts it every frame and flickers (the bug this replaces).
 /* stylelint-disable declaration-no-important -- reduced motion must win over every component animation */
@@ -40,6 +51,7 @@
 :root {
   @include emit-durations;
   @include emit-press-scale(layout.$press-scale);
+  @include emit-overlay-geometry(layout.$moves, layout.$pop-scale, layout.$slide);
 
   @each $name, $curve in layout.$easings {
     --ims-ease-#{$name}: #{$curve};
@@ -50,6 +62,7 @@
   :root {
     @include emit-durations(layout.$collapsed-duration);
     @include emit-press-scale(layout.$no-press-scale);
+    @include emit-overlay-geometry(layout.$no-moves, layout.$no-pop-scale, layout.$no-slide);
   }
 
   @include stop-animations;
@@ -59,5 +72,6 @@
 :root[data-motion='off'] {
   @include emit-durations(layout.$collapsed-duration);
   @include emit-press-scale(layout.$no-press-scale);
+  @include emit-overlay-geometry(layout.$no-moves, layout.$no-pop-scale, layout.$no-slide);
   @include stop-animations;
 }

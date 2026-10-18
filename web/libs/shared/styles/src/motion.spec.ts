@@ -91,3 +91,92 @@ describe('no infinite animation under reduced motion or in tests', () => {
     expect(skeleton).not.toContain('infinite');
   });
 });
+
+describe('overlay geometry tokens (R13)', () => {
+  const root = block(':root {\n  --ims-dur-fast');
+
+  it('lifts a dialog 12px, starts it at 0.94 and slides a sheet 100% in the normal case', () => {
+    expect(root).toContain('--ims-move-md: 12px');
+    expect(root).toContain('--ims-scale-pop: 0.94');
+    expect(root).toContain('--ims-slide: 100%');
+  });
+
+  it.each([
+    ['prefers-reduced-motion', OS_SETTING],
+    ['data-motion=off', SWITCH_TOKENS]
+  ])('moves, grows and slides nothing under %s, so only the opacity changes', (_name, tokens) => {
+    expect(tokens).toContain('--ims-move-md: 0px');
+    expect(tokens).toContain('--ims-scale-pop: 1');
+    expect(tokens).toContain('--ims-slide: 0%');
+  });
+});
+
+describe('overlay components animate through tokens only (R13)', () => {
+  const UI = join(SRC, '../../ui/src/lib/components');
+  const HOST = join(SRC, '../../../core/notification/src/lib/components/toast-host.component.scss');
+  const DIALOG = join(UI, 'dialog/dialog.component.scss');
+  const FILES = [
+    DIALOG,
+    join(UI, 'toast/toast.component.scss'),
+    join(UI, 'banner/banner.component.scss'),
+    join(UI, 'card/card.component.scss'),
+    join(UI, 'empty-state/empty-state.component.scss'),
+    HOST
+  ];
+
+  it.each(FILES)('%s has no literal duration, curve, distance or scale', file => {
+    const scss = readFileSync(file, 'utf8');
+
+    expect(scss).not.toMatch(/\d(ms|s)\b/);
+    expect(scss).not.toContain('cubic-bezier');
+    expect(scss).not.toMatch(/translate[XYZ]?\(\s*-?[\d.]/);
+    expect(scss).not.toMatch(/scale\(\s*[\d.]/);
+    expect(scss).not.toMatch(/transition:\s*all|will-change/);
+  });
+
+  const dialog = compile(DIALOG, { loadPaths: [SRC] }).css;
+
+  it('the dialog enters from @starting-style with a token pop and a themed scrim', () => {
+    expect(dialog).toMatch(/\.ui-dialog\[open\] \{[^}]*transition: opacity var\(--ims-dur-base\)/);
+    expect(dialog).toContain(
+      'transform: translateY(var(--ims-move-md)) scale(var(--ims-scale-pop))'
+    );
+    expect(dialog).toContain('@starting-style');
+    expect(dialog).toContain('background: var(--ims-scrim)');
+  });
+
+  it('the phone sheet starts one sheet-height below and has the 16px top radius', () => {
+    const phone = dialog.slice(dialog.indexOf('@media (max-width: 599px)'));
+
+    expect(phone).toContain('transform: translateY(var(--ims-slide))');
+    expect(phone).toContain('border-radius: 16px 16px 0 0');
+  });
+
+  it('the dialog has no exit transition (the panel leaves the DOM with the close)', () => {
+    expect(dialog).not.toMatch(/allow-discrete|overlay /);
+  });
+
+  it('the toast host fades only: no transform in either keyframe', () => {
+    const host = readFileSync(HOST, 'utf8');
+    const keyframes = host.slice(host.indexOf('@keyframes ims-toast-in'));
+
+    expect(keyframes).toContain('opacity: 0');
+    expect(keyframes).not.toContain('transform');
+  });
+
+  it.each([
+    ['dialog title', DIALOG, '.ui-dialog-title'],
+    ['banner content', join(UI, 'banner/banner.component.scss'), '.ui-banner-content'],
+    ['card heading', join(UI, 'card/card.component.scss'), '.ui-card-heading'],
+    [
+      'empty-state message',
+      join(UI, 'empty-state/empty-state.component.scss'),
+      '.ui-empty-state-message'
+    ]
+  ])('%s breaks a long unbroken value anywhere (L00)', (_name, file, selector) => {
+    const css = compile(file, { loadPaths: [SRC] }).css;
+    const rule = css.slice(css.indexOf(`${selector} {`));
+
+    expect(rule.slice(0, rule.indexOf('}'))).toContain('overflow-wrap: anywhere');
+  });
+});

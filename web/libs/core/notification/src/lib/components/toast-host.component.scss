@@ -58,7 +58,8 @@
   }
 }
 
-// Fade in with a small rise, fade out (UX 7.6). The leaving toast cannot be clicked; under reduced motion the durations collapse.
+// A toast only fades: in over `base`, out over `fast` (lean motion set, R13). The leaving toast cannot be clicked. Under reduced motion
+// the durations collapse and the change is instant.
 .toast-host-enter {
   animation: ims-toast-in duration('base') easing('out');
 }
@@ -71,7 +72,6 @@
 @keyframes ims-toast-in {
   from {
     opacity: 0;
-    transform: translateY(#{space(1)});
   }
 }
 

@@ -1,9 +1,12 @@
 @use 'libs' as *;
 
+// Flat: a 1px border on `surface`, no shadow, in both themes (visual spec 3.5). `min-width: 0` lets it shrink inside a grid or
+// flex row, and a long unbroken heading wraps inside it.
 :host {
   display: flex;
   flex-direction: column;
   gap: space(2);
+  min-width: 0;
   padding: space(2);
   background: color('surface');
   border: border-width('thin') solid color('border');
@@ -11,5 +14,8 @@
 }
 
 .ui-card-heading {
+  @include wrap-anywhere;
+
   font-size: font-size(4);
+  font-weight: font-weight('bold');
 }
