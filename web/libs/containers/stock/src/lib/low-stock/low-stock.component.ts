@@ -13,7 +13,7 @@ import { AppQtyPipe, I18nService, TranslatePipe } from '@ims/core/i18n';
 import { PermissionService } from '@ims/core/identity';
 import { ReportsStore } from '@ims/features/reports';
 import { LowStockQuery, StockStore } from '@ims/features/stock';
-import { DEFAULT_PAGE_SIZE, PERMISSION } from '@ims/models';
+import { PAGE_SIZES, PERMISSION } from '@ims/models';
 import {
   TableColumn,
   UiButtonComponent,
@@ -54,11 +54,12 @@ export class LowStockPageComponent implements OnInit {
   private readonly reports = inject(ReportsStore);
   private readonly store = inject(StockStore);
 
+  readonly pageSizes = PAGE_SIZES;
   private readonly pageState = createPageState(computed(() => 'low-stock'));
 
   readonly $query = computed<LowStockQuery>(() => ({
     page: this.pageState.$page(),
-    pageSize: DEFAULT_PAGE_SIZE
+    pageSize: this.pageState.$pageSize()
   }));
 
   $page = this.store.lowStock.$data;
@@ -121,6 +122,10 @@ export class LowStockPageComponent implements OnInit {
 
   onPageChange(page: number): void {
     this.pageState.set(page);
+  }
+
+  onPageSizeChange(pageSize: number): void {
+    this.pageState.setPageSize(pageSize);
   }
 
   onRetry(): void {

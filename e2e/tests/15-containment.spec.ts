@@ -17,6 +17,8 @@ async function settled(page: Page): Promise<void> {
   await page.waitForFunction(
     () => document.querySelector('[aria-busy="true"], .ui-table-progress') === null
   );
+  // A route change crossfades (view transition): until it ends, elementFromPoint answers with the root element for every point.
+  await page.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
 }
 
 /** The page is not wider than the window, and every element that scrolls sideways is a focusable, named scroll region. */
@@ -340,7 +342,7 @@ test.describe('L00 Content containment', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await goTo(page, '/stock');
     const search = await page.getByRole('searchbox', { name: 'Search stock' }).boundingBox();
-    const category = await page.getByLabel('Category').boundingBox();
+    const category = await page.getByRole('combobox', { name: 'Category' }).boundingBox();
     expect(search).not.toBeNull();
     expect(category).not.toBeNull();
     expect(

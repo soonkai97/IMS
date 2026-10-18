@@ -1,0 +1,23 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.roles-page-filters {
+  @include filter-row(2fr 1fr);
+}
+
+.roles-page-view-only,
+.roles-page-kind {
+  @include keep-whole;
+
+  display: inline-flex;
+  align-items: center;
+  gap: space(1);
+}
+
+.roles-page-view-only {
+  font-size: font-size(1);
+  color: color('text-muted');
+}

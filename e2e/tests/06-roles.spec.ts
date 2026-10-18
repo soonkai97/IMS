@@ -15,7 +15,8 @@ const MENU: Record<Role, string[]> = {
     ...STOCK,
     ...READ_MASTER_DATA,
     'Reports',
-    'Users and roles',
+    'Users',
+    'Roles',
     'Settings',
     'Audit log'
   ],
