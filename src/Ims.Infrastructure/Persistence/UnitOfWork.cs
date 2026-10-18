@@ -65,6 +65,7 @@ public class UnitOfWork(AppDbContext db) : IUnitOfWork
 
     internal static bool IsRetriable(Exception e) => e switch
     {
+        LockTimeoutException => false,   // the lock holder is slow: answer 409 now instead of waiting the same time again
         ConcurrencyException => true,
         DbUpdateConcurrencyException => true,
         SqlException s => IsDeadlockOrTimeout(s) || IsUniqueViolation(s),

@@ -71,6 +71,7 @@ public class ApiExceptionHandler(ILogger<ApiExceptionHandler> log, IProblemDetai
             case PreconditionRequiredException: return Expected(StatusCodes.Status428PreconditionRequired, Messages.PreconditionRequiredTitle, ex);
             case InsufficientStockException: return Expected(StatusCodes.Status409Conflict, Messages.InsufficientStockTitle, ex);
             case ReversalBlockedException: return Expected(StatusCodes.Status409Conflict, Messages.ReversalBlockedTitle, ex);
+            case LockTimeoutException: return Expected(StatusCodes.Status409Conflict, Messages.ConflictTitle, ex);
             case ConcurrencyException:
                 // The message chain of a concurrency exception carries internals; the client gets the plain sentence.
                 return new Outcome(StatusCodes.Status409Conflict, Messages.ConflictTitle, Messages.ConcurrencyConflict, true);
