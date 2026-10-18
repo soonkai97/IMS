@@ -92,7 +92,7 @@ public class MoneyPrecisionTests(ApiFixture fixture)
     {
         var s = await StockScenario.CreateAsync(fixture);
 
-        var refused = await s.Admin.Settings.CreateRuleAsync(new ApprovalRuleSaveRequest(DocumentType.Issue, 100.005m, null, Roles.Supervisor, IsActive: false));
+        var refused = await s.Admin.Settings.CreateRuleAsync(new ApprovalRuleSaveRequest(DocumentType.Issue, 100.005m, null, IsActive: false, ApproverTier: ApproverTier.Standard));
 
         Assert.Equal([Messages.AmountTooPrecise], refused.ShouldBeProblem(HttpStatusCode.BadRequest).ErrorsFor("AmountThreshold"));
         await using var _ = await ApprovalRuleScope.AddAsync(s.Admin, DocumentType.Issue, 100.50m, null, Roles.Supervisor);

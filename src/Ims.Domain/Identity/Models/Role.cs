@@ -27,11 +27,15 @@ public class Role : PublicEntity
     /// </summary>
     public bool PermissionsLocked => IsSystem && HoldsAdminCore(Grants.Select(g => g.PermissionCode));
 
-    private static bool HoldsAdminCore(IEnumerable<string> codes)
+    /// <summary>Whether the set holds every permission of the administration core.</summary>
+    public static bool HoldsAdminCore(IEnumerable<string> codes)
     {
         var held = codes.ToHashSet(StringComparer.Ordinal);
-        return PermissionCatalog.All.Where(p => p.AdminCore).All(p => held.Contains(p.Code));
+        return PermissionCatalog.AdminCoreCodes.All(held.Contains);
     }
+
+    /// <summary>The holders of this role can administer the system: it is live (active, not deleted) and holds the whole administration core, whether it is a system role or a custom one.</summary>
+    public bool Administers => IsActive && !RecDeleted && HoldsAdminCore(Grants.Select(g => g.PermissionCode));
 
     /// <summary>The permissions the role holds, one row each (the live rows: a revoked grant is a soft-deleted row and is not loaded).</summary>
     public IReadOnlyList<RolePermission> Grants => _grants.Where(g => !g.RecDeleted).ToList();
