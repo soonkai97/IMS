@@ -42,7 +42,7 @@ $progress-sweep: 1.2s;
     min-height: height('touch-min');
     margin: 0;
     padding: space(1.5) space(2);
-    clip: auto;
+    clip-path: none;
     font-weight: font-weight('medium');
     background: color('surface');
     border-radius: border-radius('md');
