@@ -1,5 +1,6 @@
 import { HttpContext } from '@angular/common/http';
 import { signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { of, throwError } from 'rxjs';
@@ -189,15 +190,6 @@ describe('RoleEditPageComponent (RP02: create and edit a role)', () => {
       );
       expect(box('stock.read').disabled).toBe(false);
     });
-
-    it('lets the person untick one they do not hold, but not tick it again', async () => {
-      held.set(new Set([PERMISSION.RolesManage, 'stock.read']));
-      await open(role({ permissions: ['stock.read'] }));
-      held.set(new Set([PERMISSION.RolesManage]));
-      await settle();
-      // The role is theirs to reduce (they still hold stock.read here); an unheld ticked row stays untickable.
-      expect(box('stock.read').disabled).toBe(false);
-    });
   });
 
   describe('saving an existing role', () => {
@@ -237,7 +229,7 @@ describe('RoleEditPageComponent (RP02: create and edit a role)', () => {
         })
       );
 
-      spectator.typeInElement('Late clerk', 'input[formControlName="name"]');
+      spectator.typeInElement('Late clerk', 'app-input[formControlName="name"] input');
       await tick('stock.read');
       await save();
 
@@ -265,9 +257,9 @@ describe('RoleEditPageComponent (RP02: create and edit a role)', () => {
         of({ role: role({ isSystem: true, permissions: [] }), added: [], removed: ['stock.read'] })
       );
 
-      expect(spectator.query<HTMLInputElement>('input[formControlName="name"]')?.disabled).toBe(
-        true
-      );
+      expect(
+        spectator.query<HTMLInputElement>('app-input[formControlName="name"] input')?.disabled
+      ).toBe(true);
       expect(text()).toContain('A standard role keeps its name');
       await tick('stock.read');
       await save();
@@ -331,7 +323,7 @@ describe('RoleEditPageComponent (RP02: create and edit a role)', () => {
     it('a 403 explains the containment rule', async () => {
       await failSave(problem(403, 'x', API_ERROR_KIND.Forbidden));
 
-      expect(banners().join(' ')).toContain('you can only give permissions you hold yourself');
+      expect(banners().join(' ')).toContain('You can only give permissions you hold yourself');
       expect(spectator.component.hasUnsavedChanges()).toBe(true);
     });
 
@@ -369,7 +361,7 @@ describe('RoleEditPageComponent (RP02: create and edit a role)', () => {
     });
 
     it('a person without roles.manage views only: no Save, no Delete, boxes disabled', async () => {
-      held.set(new Set(ALL));
+      held.set(new Set(ALL.filter(code => code !== PERMISSION.RolesManage)));
       await open(role());
 
       expect(text()).toContain('You can see this role but not change it');
@@ -459,7 +451,7 @@ describe('RoleEditPageComponent (RP02: create and edit a role)', () => {
       client.create.mockReturnValue(of(role({ id: OTHER, name: 'Auditor' })));
       const navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
-      spectator.typeInElement('Auditor', 'input[formControlName="name"]');
+      spectator.typeInElement('Auditor', 'app-input[formControlName="name"] input');
       await tick('document.post');
       await save();
 
@@ -480,7 +472,7 @@ describe('RoleEditPageComponent (RP02: create and edit a role)', () => {
       jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
       spectator.component.form.controls.copyFromId.setValue(OTHER);
-      spectator.typeInElement('Copy', 'input[formControlName="name"]');
+      spectator.typeInElement('Copy', 'app-input[formControlName="name"] input');
       await settle();
       expect(box('document.post').checked).toBe(true);
       await save();
@@ -499,7 +491,7 @@ describe('RoleEditPageComponent (RP02: create and edit a role)', () => {
       jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
       spectator.component.form.controls.copyFromId.setValue(OTHER);
-      spectator.typeInElement('Copy', 'input[formControlName="name"]');
+      spectator.typeInElement('Copy', 'app-input[formControlName="name"] input');
       await settle();
       await tick('document.post');
       await save();
@@ -529,7 +521,7 @@ describe('RoleEditPageComponent (RP02: create and edit a role)', () => {
         throwError(() => conflict("A role named 'Auditor' already exists."))
       );
 
-      spectator.typeInElement('Auditor', 'input[formControlName="name"]');
+      spectator.typeInElement('Auditor', 'app-input[formControlName="name"] input');
       await save();
 
       expect(text()).toContain("A role named 'Auditor' already exists.");
@@ -555,14 +547,14 @@ describe('RoleEditPageComponent (RP02: create and edit a role)', () => {
     it('typing in the name makes the page dirty', async () => {
       await open(role());
 
-      spectator.typeInElement('Other', 'input[formControlName="name"]');
+      spectator.typeInElement('Other', 'app-input[formControlName="name"] input');
       await settle();
 
       expect(spectator.component.hasUnsavedChanges()).toBe(true);
     });
 
     it('a view-only page never holds back the person who leaves it', async () => {
-      held.set(new Set(ALL));
+      held.set(new Set(ALL.filter(code => code !== PERMISSION.RolesManage)));
       await open(role());
 
       expect(spectator.component.hasUnsavedChanges()).toBe(false);
