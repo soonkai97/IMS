@@ -61,6 +61,9 @@ public static class PermissionCatalog
 
     private static readonly Dictionary<string, int> Position = Codes.Select((c, i) => (c, i)).GroupBy(x => x.c, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().i, StringComparer.Ordinal);
 
+    /// <summary>The administration core: whoever holds all of it can manage users and roles, so the system always keeps at least one active holder (<see cref="User.IsAdministrator"/>).</summary>
+    public static readonly IReadOnlyList<string> AdminCoreCodes = All.Where(p => p.AdminCore).Select(p => p.Code).ToArray();
+
     public static bool IsKnown(string code) => ByCode.ContainsKey(code);
 
     /// <summary>The codes in catalog order (the order of the role editor); a code the catalog does not know goes last.</summary>

@@ -154,58 +154,42 @@ public class RoleColumnsTests(ApiFixture fixture)
         Assert.False((await UserRowAsync(granted.Username)).AllWarehouses);
     }
 
-    // ----- Approval rules: the tier is the only record; roleRequired is a deprecated way to say and to read it -----
+    // ----- Approval rules: the tier is the only record; roleRequired is shown in responses for one more release and is no longer read -----
     private Task<T> RuleColumnAsync<T>(Guid publicId, string column) =>
         fixture.Database.ScalarAsync<T>($"SELECT [{column}] FROM ApprovalRule WHERE PublicId = @p", ("@p", publicId));
 
     [Theory]
-    [InlineData(Roles.Admin, ApproverTier.Large)]
-    [InlineData(Roles.Owner, ApproverTier.Large)]
-    [InlineData(Roles.Supervisor, ApproverTier.Standard)]
-    [InlineData(Roles.WarehouseStaff, ApproverTier.Standard)]
-    [InlineData(Roles.Clerk, ApproverTier.Standard)]
-    public async Task A_rule_saved_with_the_deprecated_role_name_stores_its_tier_and_shows_the_role_that_holds_the_tier(string role, ApproverTier tier)
+    [InlineData(ApproverTier.Standard, Roles.Supervisor)]
+    [InlineData(ApproverTier.Large, Roles.Owner)]
+    public async Task A_rule_saved_with_a_tier_stores_it_and_shows_the_role_that_holds_the_tier_by_default(ApproverTier tier, string shown)
     {
         var admin = await fixture.AsAsync(Roles.Admin);
-        var other = tier == ApproverTier.Standard ? Roles.Owner : Roles.Supervisor;
-        var shown = tier == ApproverTier.Large ? Roles.Owner : Roles.Supervisor;
+        var other = tier == ApproverTier.Standard ? ApproverTier.Large : ApproverTier.Standard;
 
         // Inactive from the start, so the rule never changes what another test's documents need.
-        var created = (await admin.Settings.CreateRuleAsync(new ApprovalRuleSaveRequest(DocumentType.Receipt, 123_456m, null, role, IsActive: false))).Data<ApprovalRuleDto>();
+        var created = (await admin.Settings.CreateRuleAsync(new ApprovalRuleSaveRequest(DocumentType.Receipt, 123_456m, null, IsActive: false, ApproverTier: tier))).Data<ApprovalRuleDto>();
         Assert.Equal((tier, shown), (created.ApproverTier, created.RoleRequired));
         Assert.Equal((int)tier, await RuleColumnAsync<int>(created.Id, "Tier"));
 
-        var flipped = (await admin.Settings.UpdateRuleAsync(created.Id, new ApprovalRuleSaveRequest(DocumentType.Receipt, 123_456m, null, other, IsActive: false))).Data<ApprovalRuleDto>();
-        Assert.NotEqual(tier, flipped.ApproverTier);
-        Assert.Equal((int)flipped.ApproverTier, await RuleColumnAsync<int>(created.Id, "Tier"));
+        var flipped = (await admin.Settings.UpdateRuleAsync(created.Id, new ApprovalRuleSaveRequest(DocumentType.Receipt, 123_456m, null, IsActive: false, ApproverTier: other))).Data<ApprovalRuleDto>();
+        Assert.Equal(other, flipped.ApproverTier);
+        Assert.Equal((int)other, await RuleColumnAsync<int>(created.Id, "Tier"));
 
         var listed = (await admin.Settings.ListRulesAsync()).Data<List<ApprovalRuleDto>>().Single(r => r.Id == created.Id);
         Assert.Equal((flipped.ApproverTier, flipped.RoleRequired), (listed.ApproverTier, listed.RoleRequired));
     }
 
-    [Theory]
-    [InlineData(ApproverTier.Standard)]
-    [InlineData(ApproverTier.Large)]
-    public async Task A_rule_saved_with_a_tier_and_no_role_stores_the_tier(ApproverTier tier)
-    {
-        var admin = await fixture.AsAsync(Roles.Admin);
-
-        var created = (await admin.Settings.CreateRuleAsync(new ApprovalRuleSaveRequest(DocumentType.Receipt, 123_457m, null, null, IsActive: false, ApproverTier: tier))).Data<ApprovalRuleDto>();
-
-        Assert.Equal(tier, created.ApproverTier);
-        Assert.Equal((int)tier, await RuleColumnAsync<int>(created.Id, "Tier"));
-    }
-
     [Fact]
-    public async Task A_rule_must_say_its_tier_once_and_without_contradiction()
+    public async Task A_rule_must_name_a_tier_and_the_deprecated_roleRequired_is_ignored_not_read()
     {
         var admin = await fixture.AsAsync(Roles.Admin);
-        ApprovalRuleSaveRequest Rule(string? role, ApproverTier? tier) => new(DocumentType.Receipt, 123_458m, null, role, IsActive: false, ApproverTier: tier);
+        ApprovalRuleSaveRequest Rule(ApproverTier? tier) => new(DocumentType.Receipt, 123_458m, null, IsActive: false, ApproverTier: tier);
 
-        (await admin.Settings.CreateRuleAsync(Rule(null, null))).ShouldBeProblem(HttpStatusCode.BadRequest);                       // says nothing
-        (await admin.Settings.CreateRuleAsync(Rule("Janitor", null))).ShouldBeProblem(HttpStatusCode.BadRequest);                 // a role that is no system role
-        (await admin.Settings.CreateRuleAsync(Rule(null, (ApproverTier)99))).ShouldBeProblem(HttpStatusCode.BadRequest);          // a tier that does not exist
-        (await admin.Settings.CreateRuleAsync(Rule(Roles.Owner, ApproverTier.Standard))).ShouldBeProblem(HttpStatusCode.BadRequest); // two answers that disagree
-        (await admin.Settings.CreateRuleAsync(Rule(Roles.Owner, ApproverTier.Large))).ShouldBeOk();                               // two answers that agree
+        (await admin.Settings.CreateRuleAsync(Rule(null))).ShouldBeProblem(HttpStatusCode.BadRequest);                  // says nothing
+        (await admin.Settings.CreateRuleAsync(Rule((ApproverTier)99))).ShouldBeProblem(HttpStatusCode.BadRequest);      // a tier that does not exist
+        // An old client that sends only a role name is refused (it says no tier); one that sends both gets the tier it named, whatever the text.
+        (await admin.PostAsync("/api/approval-rules", new { docType = DocumentType.Receipt, qtyThreshold = 5, roleRequired = Roles.Owner, isActive = false })).ShouldBeProblem(HttpStatusCode.BadRequest);
+        var created = (await admin.PostAsync("/api/approval-rules", new { docType = DocumentType.Receipt, qtyThreshold = 5, roleRequired = "Janitor", approverTier = ApproverTier.Large, isActive = false })).Data<ApprovalRuleDto>();
+        Assert.Equal(ApproverTier.Large, created.ApproverTier);
     }
 }

@@ -65,6 +65,9 @@ public class User : PublicEntity
             _warehouses.Add(UserWarehouse.For(id));
     }
 
+    /// <summary>An active person whose role administers the system (<see cref="Role.Administers"/>); the system must always keep at least one. Needs the role and its grants loaded.</summary>
+    public bool IsAdministrator => IsActive && Role.Administers;
+
     public bool IsLockedOut(DateTime utcNow) => LockoutUntil is { } until && until > utcNow;
 
     /// <summary>AUTH-01: the fifth wrong password in a row locks the account for a while.</summary>

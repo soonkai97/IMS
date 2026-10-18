@@ -213,7 +213,7 @@ public partial class DocumentFlipTests(ApiFixture fixture)
     public async Task An_approval_rule_is_addressed_by_its_public_id_and_its_audit_rows_name_it_by_it()
     {
         var s = await StockScenario.CreateAsync(fixture);
-        var request = new ApprovalRuleSaveRequest(DocumentType.Issue, 987654.32m, null, Roles.Supervisor, IsActive: false);
+        var request = new ApprovalRuleSaveRequest(DocumentType.Issue, 987654.32m, null, IsActive: false, ApproverTier: ApproverTier.Standard);
 
         var created = (await s.Admin.Settings.CreateRuleAsync(request)).Data<ApprovalRuleDto>();
         var stored = await fixture.Database.ScalarAsync<Guid>("SELECT PublicId FROM ApprovalRule WHERE AmountThreshold = 987654.32 AND REC_DELETED = 0 AND IsActive = 0");
