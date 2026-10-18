@@ -192,3 +192,112 @@ describe('UiTableComponent long values (L00)', () => {
     expect(box?.hasAttribute('tabindex')).toBe(false);
   });
 });
+
+describe('UiTableComponent column menu (TB)', () => {
+  const rows: Row[] = [{ no: 'RCV-1', partner: 'Acme', status: 'Draft' }];
+  const createComponent = createComponentFactory({
+    component: UiTableComponent<Row>,
+    providers: [provideRouter([])],
+    detectChanges: false
+  });
+  const columns: TableColumn<Row>[] = [
+    { key: 'no', header: 'No.', value: row => row.no, primary: true },
+    { key: 'partner', header: 'Partner', value: row => row.partner },
+    { key: 'status', header: 'Status', value: row => row.status, type: 'status' },
+    { key: 'open', header: 'Open', type: 'action' }
+  ];
+
+  function render(props: Record<string, unknown> = {}): Spectator<UiTableComponent<Row>> {
+    const spectator = createComponent({
+      props: { columns, rows, caption: 'Receipts', columnMenu: true, ...props } as never
+    });
+    spectator.detectChanges();
+    return spectator;
+  }
+
+  const items = (spectator: Spectator<UiTableComponent<Row>>): string[] =>
+    spectator.queryAll('.ui-table-menu app-checkbox').map(item => item.textContent?.trim() ?? '');
+
+  it('offers no menu unless asked, so existing tables are unchanged', () => {
+    const spectator = render({ columnMenu: false });
+
+    expect(spectator.query('.ui-table-menu')).toBeNull();
+    expect(spectator.query('.ui-table-menu-button')).toBeNull();
+  });
+
+  it('is a button that opens a native popover, named Columns', () => {
+    const spectator = render();
+    const button = spectator.query('.ui-table-menu-button') as HTMLElement;
+    const menu = spectator.query('.ui-table-menu') as HTMLElement;
+
+    expect(button.textContent?.trim()).toBe('Columns');
+    expect(button.getAttribute('popovertarget')).toBe(menu.id);
+    expect(menu.hasAttribute('popover')).toBe(true);
+    expect(menu.getAttribute('role')).toBe('group');
+    expect(menu.getAttribute('aria-label')).toBe('Columns');
+  });
+
+  it('lists every column but the identifier and the action column', () => {
+    const spectator = render();
+
+    expect(items(spectator)).toEqual(['Partner', 'Status']);
+  });
+
+  it('hides a column header and its cells when it is switched off, and shows it again', () => {
+    const spectator = render();
+    const hidden = (): string[] =>
+      spectator.queryAll('th.--user-hidden').map(header => header.textContent?.trim() ?? '');
+
+    spectator.component.onColumnToggle('partner', false);
+    spectator.detectChanges();
+
+    expect(hidden()).toEqual(['Partner']);
+    expect(spectator.queryAll('td.--user-hidden')).toHaveLength(1);
+    expect(spectator.query('td.--user-hidden')?.getAttribute('data-label')).toBe('Partner');
+
+    spectator.component.onColumnToggle('partner', true);
+    spectator.detectChanges();
+
+    expect(hidden()).toEqual([]);
+  });
+
+  it('Show all columns brings every column back, and stays on the page (aria-disabled) while nothing is hidden', () => {
+    const spectator = render();
+    const reset = spectator.query('.ui-table-menu-reset') as HTMLElement;
+    expect(reset.getAttribute('aria-disabled')).toBe('true');
+
+    spectator.component.onColumnToggle('partner', false);
+    spectator.component.onColumnToggle('status', false);
+    spectator.detectChanges();
+    expect(reset.hasAttribute('aria-disabled')).toBe(false);
+
+    spectator.click(reset);
+
+    expect(spectator.queryAll('th.--user-hidden')).toHaveLength(0);
+  });
+
+  it('ignores a hidden key the columns no longer have', () => {
+    const spectator = render();
+    spectator.component.onColumnToggle('gone', false);
+    spectator.detectChanges();
+
+    expect(spectator.queryAll('th.--user-hidden')).toHaveLength(0);
+    expect(items(spectator)).toEqual(['Partner', 'Status']);
+  });
+
+  it('offers no menu when every column is locked', () => {
+    const spectator = render({ columns: [columns[0], columns[3]] });
+
+    expect(spectator.query('.ui-table-toolbar')).toBeNull();
+  });
+
+  it('moves the focus to the caption, which a script can focus and Tab skips', () => {
+    const spectator = render();
+    const caption = spectator.query('caption') as HTMLElement;
+
+    spectator.component.focusCaption();
+
+    expect(caption.getAttribute('tabindex')).toBe('-1');
+    expect(document.activeElement).toBe(caption);
+  });
+});

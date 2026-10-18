@@ -18,6 +18,8 @@
   position: relative;
   display: block;
   container: ims-table / inline-size;
+  // A page change brings the top of the table back under the top bar, not behind it.
+  scroll-margin-top: calc(#{height('bar')} + var(--ims-safe-top));
 
   &.--refreshing .ui-table-grid {
     opacity: 0.6;
@@ -129,8 +131,86 @@
   }
 }
 
+// The column menu is offered to a table that has room; a card list shows every column.
+.ui-table-toolbar {
+  display: none;
+}
+
+.ui-table-menu-button {
+  @include reset-button;
+
+  display: inline-flex;
+  gap: space(1);
+  align-items: center;
+  min-height: height('touch-min');
+  padding: 0 space(2);
+  font-weight: font-weight('medium');
+  background: color('surface');
+  border: border-width('thin') solid color('border-strong');
+  border-radius: border-radius('md');
+
+  &:hover {
+    background: color('surface-sunken');
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+// A native popover sits in the top layer. The browser centres it; onMenuToggle puts it under its button (top, right).
+// No `display` here: the browser hides a closed popover with it.
+.ui-table-menu {
+  inset: auto;
+  min-width: 14rem;
+  max-width: min(24rem, calc(100vw - #{space(4)}));
+  max-height: min(24rem, 70dvh);
+  margin: 0;
+  padding: space(1);
+  overflow-y: auto;
+  color: color('text');
+  background: color('surface');
+  border: border-width('thin') solid color('border');
+  border-radius: border-radius('md');
+  box-shadow: shadow(2);
+}
+
+.ui-table-menu-reset {
+  @include reset-button;
+
+  display: block;
+  width: 100%;
+  min-height: height('touch-min');
+  margin-top: space(0);
+  padding: 0 space(1);
+  text-align: start;
+  border-top: border-width('thin') solid color('border');
+
+  &[aria-disabled='true'] {
+    color: color('text-muted');
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+
+    outline-offset: -2px;
+  }
+}
+
 // Table: the box has room.
 @include table-wide {
+  .ui-table-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    padding-bottom: space(1);
+  }
+
+  .ui-table-header.--user-hidden,
+  .ui-table-cell.--user-hidden {
+    display: none;
+  }
+
   // Frame and rounded corners. `clip` hides what does not fit without making a scroll box, so the header below sticks to
   // the page (under the top bar). When the columns need more than the box, appScrollRegion turns it into a scroll box
   // (`data-scroll-region`): it scrolls both ways inside the window height and the header and first column stick in it.

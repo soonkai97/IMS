@@ -15,10 +15,51 @@
     <ng-content select="[empty]" />
   </div>
 } @else {
+  @if ($menuColumns().length > 0) {
+    <div class="ui-table-toolbar">
+      <button
+        #menuButton
+        type="button"
+        class="ui-table-menu-button"
+        [attr.popovertarget]="$menuId"
+        aria-haspopup="true"
+      >
+        <app-icon name="columns" [size]="20" />
+        {{ $text().columns }}
+      </button>
+      <!-- Native popover: Esc and a click outside close it and the focus returns to the button. -->
+      <div
+        #menu
+        popover
+        class="ui-table-menu"
+        role="group"
+        [id]="$menuId"
+        [attr.aria-label]="$text().columns"
+        (toggle)="onMenuToggle($event)"
+      >
+        @for (item of $menuColumns(); track item.key) {
+          <app-checkbox
+            [ngModel]="item.visible"
+            (ngModelChange)="onColumnToggle(item.key, $event)"
+            >{{ item.header }}</app-checkbox
+          >
+        }
+        <!-- Stays in place (aria-disabled) so pressing it never drops the focus. -->
+        <button
+          type="button"
+          class="ui-table-menu-reset"
+          [attr.aria-disabled]="$hiddenCount() === 0 || null"
+          (click)="$hiddenCount() > 0 && onShowAllColumns()"
+        >
+          {{ $text().showAllColumns }}
+        </button>
+      </div>
+    </div>
+  }
   <!-- A table wider than its box scrolls here, never the page (L00); only then is this a focusable, named region. -->
   <div class="ui-table-scroll" [appScrollRegion]="$caption()">
     <table class="ui-table-grid" [attr.aria-busy]="$loading()">
-      <caption class="sr-only">
+      <caption #caption class="sr-only" tabindex="-1">
         {{
           $caption()
         }}
@@ -36,6 +77,7 @@
               [class]="'--' + column.type"
               [class.--end]="column.alignEnd"
               [class.--phone-hidden]="column.hideOnPhone"
+              [class.--user-hidden]="column.hidden"
               [attr.aria-sort]="column.ariaSort"
             >
               @if (column.sortKey) {
@@ -67,6 +109,7 @@
                 [class.--primary]="cell.primary"
                 [class.--end]="cell.alignEnd"
                 [class.--phone-hidden]="cell.hideOnPhone"
+                [class.--user-hidden]="cell.hidden"
                 [class.--phone-end]="cell.phoneEnd"
                 [class.--phone-inline]="cell.phoneInline"
                 [class.--empty]="cell.empty"

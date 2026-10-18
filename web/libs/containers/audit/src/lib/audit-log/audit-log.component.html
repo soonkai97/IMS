@@ -25,6 +25,8 @@
 </div>
 
 <app-table
+  #table
+  columnMenu
   [columns]="$columns()"
   [rows]="$page()?.items ?? []"
   [caption]="'audit.title' | t"
@@ -59,6 +61,9 @@
 
 @if ($page(); as page) {
   <app-pager
+    [table]="table"
+    [pageSizes]="pageSizes"
+    (pageSizeChange)="onPageSizeChange($event)"
     [page]="page.page"
     [pageSize]="page.pageSize"
     [total]="page.total"

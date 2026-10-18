@@ -2,7 +2,7 @@ import { Signal, computed, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl } from '@angular/forms';
 import { debounceTime, startWith, tap } from 'rxjs';
-import { FIRST_PAGE, SEARCH_DEBOUNCE_MS } from '@ims/models';
+import { DEFAULT_PAGE_SIZE, FIRST_PAGE, SEARCH_DEBOUNCE_MS } from '@ims/models';
 
 /** A signal that follows `source` after it stayed quiet for `ms` (type-ahead search boxes). Injection context only. */
 export function debouncedSignal<Value>(
@@ -30,14 +30,26 @@ export function loadOnChange<Query>(query: Signal<Query>, load: (query: Query) =
 export interface PageState {
   /** Current page; falls back to 1 as soon as the filters (and so `filterKey`) change. */
   readonly $page: Signal<number>;
+  /** Rows per page. It survives a filter change; changing it goes back to page 1. */
+  readonly $pageSize: Signal<number>;
   set(page: number): void;
+  setPageSize(pageSize: number): void;
 }
 
 /** Page number that resets itself when any filter or sort changes, without effects or manual resets. */
-export function createPageState(filterKey: Signal<string>): PageState {
+export function createPageState(
+  filterKey: Signal<string>,
+  initialPageSize: number = DEFAULT_PAGE_SIZE
+): PageState {
   const state = signal({ key: '', page: FIRST_PAGE });
+  const pageSize = signal(initialPageSize);
   return {
     $page: computed(() => (state().key === filterKey() ? state().page : FIRST_PAGE)),
-    set: page => state.set({ key: filterKey(), page })
+    $pageSize: pageSize.asReadonly(),
+    set: page => state.set({ key: filterKey(), page }),
+    setPageSize: size => {
+      pageSize.set(size);
+      state.set({ key: filterKey(), page: FIRST_PAGE });
+    }
   };
 }

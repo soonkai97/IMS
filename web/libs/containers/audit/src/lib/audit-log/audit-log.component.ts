@@ -10,7 +10,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { AuditLogDto } from '@ims/api';
 import { AppDatePipe, I18nService, MessageKey, TranslatePipe } from '@ims/core/i18n';
 import { AuditQuery, AuditStore } from '@ims/features/audit';
-import { DEFAULT_PAGE_SIZE } from '@ims/models';
+import { PAGE_SIZES } from '@ims/models';
 import {
   SelectOption,
   TableColumn,
@@ -86,6 +86,7 @@ export class AuditLogPageComponent implements OnInit {
   private readonly $actor = debouncedSignal(controlSignal(this.actorControl));
   private readonly $from = controlSignal(this.fromControl);
   private readonly $to = controlSignal(this.toControl);
+  readonly pageSizes = PAGE_SIZES;
   private readonly pageState = createPageState(
     computed(() =>
       JSON.stringify([this.$search(), this.$action(), this.$actor(), this.$from(), this.$to()])
@@ -99,7 +100,7 @@ export class AuditLogPageComponent implements OnInit {
     from: this.$from() || undefined,
     to: this.$to() || undefined,
     page: this.pageState.$page(),
-    pageSize: DEFAULT_PAGE_SIZE
+    pageSize: this.pageState.$pageSize()
   }));
 
   /** What the API knows how to filter by: a dropdown instead of guessing technical names. */
@@ -173,6 +174,10 @@ export class AuditLogPageComponent implements OnInit {
 
   onPageChange(page: number): void {
     this.pageState.set(page);
+  }
+
+  onPageSizeChange(pageSize: number): void {
+    this.pageState.setPageSize(pageSize);
   }
 
   onRetry(): void {

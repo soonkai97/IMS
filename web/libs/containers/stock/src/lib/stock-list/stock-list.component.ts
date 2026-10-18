@@ -17,7 +17,7 @@ import { CatalogStore } from '@ims/features/catalog';
 import { ReportsStore } from '@ims/features/reports';
 import { StockQuery, StockStore } from '@ims/features/stock';
 import { WarehousesStore } from '@ims/features/warehousing';
-import { DEFAULT_PAGE_SIZE, PERMISSION, PublicId } from '@ims/models';
+import { PAGE_SIZES, PERMISSION, PublicId } from '@ims/models';
 import {
   SelectOption,
   TableColumn,
@@ -100,6 +100,7 @@ export class StockListPageComponent implements OnInit {
       this.$sort()
     ])
   );
+  readonly pageSizes = PAGE_SIZES;
   private readonly pageState = createPageState(this.$filterKey);
 
   readonly $query = computed<StockQuery>(() => ({
@@ -108,7 +109,7 @@ export class StockListPageComponent implements OnInit {
     categoryId: this.$categoryId() ?? undefined,
     lowOnly: this.$lowOnly() || undefined,
     page: this.pageState.$page(),
-    pageSize: DEFAULT_PAGE_SIZE,
+    pageSize: this.pageState.$pageSize(),
     sortBy: this.sortKey(this.$sort()),
     desc: this.$sort()?.desc
   }));
@@ -200,6 +201,10 @@ export class StockListPageComponent implements OnInit {
 
   onPageChange(page: number): void {
     this.pageState.set(page);
+  }
+
+  onPageSizeChange(pageSize: number): void {
+    this.pageState.setPageSize(pageSize);
   }
 
   onSortChange(sort: TableSort): void {

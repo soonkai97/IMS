@@ -15,6 +15,13 @@ export interface UiText {
   readonly showPassword: string;
   readonly previousPage: string;
   readonly nextPage: string;
+  readonly firstPage: string;
+  readonly lastPage: string;
+  /** The name of the page size select: "Rows per page". */
+  readonly pageSize: string;
+  /** The name of the column menu button and its group, and its reset button. */
+  readonly columns: string;
+  readonly showAllColumns: string;
   readonly clear: string;
   readonly retry: string;
   /** The word a button shows for 1.5s after a save that stays on the screen. */
@@ -47,6 +54,11 @@ const DEFAULT_UI_TEXT: UiText = {
   showPassword: 'Show password',
   previousPage: 'Previous page',
   nextPage: 'Next page',
+  firstPage: 'First page',
+  lastPage: 'Last page',
+  pageSize: 'Rows per page',
+  columns: 'Columns',
+  showAllColumns: 'Show all columns',
   clear: 'Clear',
   retry: 'Retry',
   saved: 'Saved',
