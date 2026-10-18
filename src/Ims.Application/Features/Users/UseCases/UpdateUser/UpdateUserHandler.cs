@@ -7,23 +7,23 @@ public class UpdateUserHandler(IRepository<User> users, IReadRepository<Role> ro
     public Task<UserDto> HandleAsync(UpdateUserCommand cmd, CancellationToken ct) => uow.ExecuteAsync(async () =>
     {
         var r = cmd.Data;
+        // First, before anything is read: the roles lock serialises every write that can change who administers the system or which role a person holds, so what is read below is what
+        // stays true until the commit (the role cannot be deleted or deactivated, and the other administrators cannot change, between this look-up and the save).
+        await locker.LockRolesAsync(ct);
         var user = await users.FirstOrDefaultAsync(new UserWithWarehousesByPublicIdSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.UserNotFound);
         if (await users.AnyAsync(new UserTakenSpec(r.Username, r.Email, user.Id), ct)) throw new ConflictException(Messages.UserExists);
         var wanted = await UserWarehouses.ResolveAsync(warehouseIds, r.WarehouseIds, ct);
-        // Under the roles lock, so the role cannot be deleted or deactivated between this look-up and the save.
-        await locker.LockRolesAsync(ct);
         var role = UserContainment.ExactRole(await roles.FirstOrDefaultAsync(new RoleForAssignmentSpec(r.Role), ct), r.Role);
 
         // Nobody gets more than they have: not a user who sees or holds more than the caller, not a role or warehouses beyond the caller's own.
         UserContainment.CheckTarget(user, current);
         UserContainment.CheckAssignment(role, wanted, current);
 
-        // Nobody may lock the system out of administration: not themselves, and not the last active administrator.
-        var losesAdmin = user.Role.Code == SystemRoleCodes.Admin && user.IsActive && (!r.IsActive || role.Code != SystemRoleCodes.Admin);
-        if (losesAdmin)
+        // Nobody may lock the system out of administration: not themselves, and not the last active administrator (a person whose role holds the whole administration core, whatever the role is called).
+        if (user.IsAdministrator && !(r.IsActive && role.Administers))
         {
             if (user.Id == current.UserId) throw new ConflictException(Messages.CannotLockOutSelf);
-            if (!await users.AnyAsync(new ActiveAdminsSpec(user.Id), ct)) throw new ConflictException(Messages.LastAdminRequired);
+            await AdministrabilityGuard.EnsureAnotherAsync(users, new ActiveAdministratorsSpec(exceptUserId: user.Id), ct);
         }
 
         var before = new { user.Username, Role = user.Role.Code, user.AllWarehouses, user.IsActive, Warehouses = user.Warehouses.Select(w => w.WarehouseId).ToList() };

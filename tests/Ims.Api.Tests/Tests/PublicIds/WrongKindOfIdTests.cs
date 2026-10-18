@@ -36,7 +36,7 @@ public class WrongKindOfIdTests(ApiFixture fixture)
             ["categories"] = new CategorySaveRequest(Unique.Name("Cat")),
             ["units"] = new UomSaveRequest(Unique.Code("U"), "Test unit"),
             ["users"] = new UserSaveRequest(account.Username, account.Email, "Renamed", Roles.Clerk, true, null, account.WarehouseIds.ToList()),
-            ["approval-rules"] = new ApprovalRuleSaveRequest(DocumentType.Issue, 1000m, null, Roles.Supervisor, true)
+            ["approval-rules"] = new ApprovalRuleSaveRequest(DocumentType.Issue, 1000m, null, true, ApproverTier.Standard)
         };
 
         foreach (var (route, body) in routes)

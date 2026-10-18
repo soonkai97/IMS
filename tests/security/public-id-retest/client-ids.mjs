@@ -44,7 +44,7 @@ await createAndCheck('POST /api/products', '/api/products', admin, evil({ sku: '
   check('POST /api/units: supplied id unused', c.status < 300 ? c.data.id !== body.id && c.data.id !== body.publicId : true, `status ${c.status}`);
   const c2 = await raw('POST', '/api/categories', { token: admin, body: evil({ name: 'ci ' + Date.now() }) });
   check('POST /api/categories: supplied id unused', c2.status < 300 ? c2.data.id !== c2.data.publicId : true, `status ${c2.status}`);
-  const c3 = await raw('POST', '/api/approval-rules', { token: admin, body: evil({ docType: 'Issue', amountThreshold: 12345, qtyThreshold: null, roleRequired: 'Supervisor' }) });
+  const c3 = await raw('POST', '/api/approval-rules', { token: admin, body: evil({ docType: 'Issue', amountThreshold: 12345, qtyThreshold: null, approverTier: 'Standard' }) });
   check('POST /api/approval-rules: supplied id unused', c3.status < 300 ? true : true, `status ${c3.status}`);
 }
 // user: role in body is legitimate for admin; id / createdById are not

@@ -44,7 +44,7 @@ public static class Messages
     public const string RoleBeyondYourAccess = "You can only give a role whose permissions you hold yourself.";
     public const string WarehouseOutsideYourScope = "You can only assign warehouses you can reach yourself.";
     public const string UnknownApproverTier = "Unknown approver tier.";
-    public const string ApproverTierRequired = "Choose the approver tier (standard or large); a role named with it must match.";
+    public const string ApproverTierRequired = "Choose the approver tier (standard or large).";
     public static readonly string RoleCodeInvalid = $"A role needs a code of up to {Limits.RoleMaxLength} characters.";
     public static readonly string RoleNameInvalid = $"A role name needs {Limits.RoleNameMinLength} to {Limits.RoleNameMaxLength} characters.";
     public static readonly string RoleDescriptionTooLong = $"A role description can have at most {Limits.RoleDescriptionMaxLength} characters.";

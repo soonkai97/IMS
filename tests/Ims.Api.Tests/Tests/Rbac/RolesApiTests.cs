@@ -192,6 +192,23 @@ public class RolesApiTests(ApiFixture fixture)
     }
 
     [Fact]
+    public async Task A_user_whose_role_row_is_gone_is_still_listed_and_can_be_moved_to_a_live_role()
+    {
+        // The API refuses to delete a role in use; this is the state a manual edit or an older release can leave. Such a user used to vanish from the list and answer 404 to a save.
+        var admin = await fixture.AsAsync(Roles.Admin);
+        var role = await NewRoleAsync(admin, Permissions.StockRead);
+        var user = (await admin.Users.CreateAsync(NewUser(role.Code))).Data<UserDto>();
+        await fixture.Database.ExecuteAsync("UPDATE [Role] SET REC_DELETED = 1 WHERE PublicId = @p", ("@p", role.Id));
+
+        var listed = (await admin.GetAsync($"/api/users?search={user.Username}")).Data<Ims.Application.PagedResult<UserDto>>();
+        Assert.Equal((1, role.Code), (listed.Total, Assert.Single(listed.Items).Role));
+        Assert.Equal(user.WarehouseIds, listed.Items[0].WarehouseIds);
+        (await admin.Users.UpdateAsync(user.Id, Move(user, role.Code))).ShouldBeProblem(HttpStatusCode.BadRequest);   // the deleted role cannot be given again
+        Assert.Equal(Roles.Clerk, (await admin.Users.UpdateAsync(user.Id, Move(user, Roles.Clerk))).Data<UserDto>().Role);
+        Assert.Equal(Roles.Clerk, (await admin.GetAsync($"/api/users?search={user.Username}")).Data<Ims.Application.PagedResult<UserDto>>().Items.Single().Role);
+    }
+
+    [Fact]
     public async Task A_role_that_users_hold_cannot_be_deleted_or_deactivated_and_the_refusal_counts_them_without_naming_them()
     {
         var admin = await fixture.AsAsync(Roles.Admin);

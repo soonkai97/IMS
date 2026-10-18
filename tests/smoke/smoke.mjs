@@ -154,7 +154,7 @@ r = await api('POST', '/api/documents/issues', { token: supervisor, body: doc(cu
 const mine = r.body;
 r = await api('POST', `/api/documents/${mine.id}/submit`, { token: supervisor });
 // 100 x 10 = 1000 < 5000 so no approval; force one with a qty rule instead
-const rule = (await api('POST', '/api/approval-rules', { token: admin, body: { docType: 'Issue', qtyThreshold: 100, roleRequired: 'Supervisor', isActive: true } })).body;
+const rule = (await api('POST', '/api/approval-rules', { token: admin, body: { docType: 'Issue', qtyThreshold: 100, approverTier: 'Standard', isActive: true } })).body;
 r = await api('POST', '/api/documents/issues', { token: supervisor, body: doc(customer.id, [{ productId: p1.id, qty: 150 }]) });
 const mine2 = r.body;
 await api('POST', `/api/documents/${mine2.id}/submit`, { token: supervisor });
@@ -162,7 +162,7 @@ r = await api('POST', `/api/documents/${mine2.id}/approve`, { token: supervisor 
 check('submitter cannot approve own document', r.status === 400 && /submitted/i.test(r.body.detail), JSON.stringify(r.body));
 r = await api('POST', `/api/documents/${mine2.id}/reject`, { token: admin, body: { reason: 'smoke reject' } });
 check('reject returns to Draft and keeps the reason', r.body.status === 'Draft' && r.body.rejectionReason === 'smoke reject', JSON.stringify(r.body));
-await api('PUT', `/api/approval-rules/${rule.id}`, { token: admin, body: { docType: 'Issue', qtyThreshold: 100, roleRequired: 'Supervisor', isActive: false } });
+await api('PUT', `/api/approval-rules/${rule.id}`, { token: admin, body: { docType: 'Issue', qtyThreshold: 100, approverTier: 'Standard', isActive: false } });
 
 console.log('Reversal');
 const before = await stockOf(p1.id);
