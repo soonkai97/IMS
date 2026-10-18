@@ -70,6 +70,11 @@ export const APP_ROUTES: Routes = [
           import('@ims/containers/administration').then(module => module.USER_ROUTES)
       },
       {
+        path: 'roles',
+        loadChildren: () =>
+          import('@ims/containers/administration').then(module => module.ROLE_ROUTES)
+      },
+      {
         path: 'settings',
         loadChildren: () =>
           import('@ims/containers/administration').then(module => module.SETTINGS_ROUTES)

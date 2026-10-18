@@ -102,6 +102,14 @@ export const MENU_ITEMS: readonly MenuItem[] = [
     group: 'admin'
   },
   {
+    id: 'roles',
+    labelKey: 'nav.roles',
+    icon: 'shield',
+    route: '/roles',
+    permissions: [PERMISSION.RolesRead],
+    group: 'admin'
+  },
+  {
     id: 'settings',
     labelKey: 'nav.settings',
     icon: 'settings',

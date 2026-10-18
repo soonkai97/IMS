@@ -81,8 +81,20 @@ describe('NavigationService (menus follow the permissions)', () => {
     ]);
   });
 
+  it('Roles follows roles.read alone: users.manage does not show it, a reader of roles does', () => {
+    granted.set([PERMISSION.UsersManage, PERMISSION.UsersRead]);
+    expect(ids()).toContain('users');
+    expect(ids()).not.toContain('roles');
+
+    granted.set([PERMISSION.RolesRead]);
+    expect(ids()).toContain('roles');
+    expect(ids()).not.toContain('users');
+  });
+
   it('admin sees everything', () => {
-    expect(ids()).toEqual(expect.arrayContaining(['users', 'settings', 'audit', 'approvals']));
+    expect(ids()).toEqual(
+      expect.arrayContaining(['users', 'roles', 'settings', 'audit', 'approvals'])
+    );
   });
 
   it('phone tabs come from the permissions and the rest moves under More', () => {

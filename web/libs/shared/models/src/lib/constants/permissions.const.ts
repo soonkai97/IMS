@@ -2,6 +2,10 @@
 export const PERMISSION = {
   UsersManage: 'users.manage',
   UsersRead: 'users.read',
+  /** See the roles and what they allow (read-only screens). */
+  RolesRead: 'roles.read',
+  /** Create, change, retire and delete roles. */
+  RolesManage: 'roles.manage',
   MasterDataManage: 'masterdata.manage',
   MasterDataRead: 'masterdata.read',
   /** Create a partner (Clerk, Supervisor, Admin). Editing and deactivating need MasterDataManage. */
