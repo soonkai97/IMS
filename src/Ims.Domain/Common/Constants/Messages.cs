@@ -66,6 +66,7 @@ public static class Messages
     public const string CannotChangeOwnRole = "You cannot change your own role. Ask another administrator.";
     public const string SystemRoleProtected = "System roles cannot be deleted or deactivated.";
     public const string AdminRoleLocked = "The Administrator role always holds every permission and cannot be changed.";
+    public const string AdminCoreIsAdministratorOnly = "Only the Administrator role holds the whole administration core (users and roles, read and manage).";
     public static string RoleInUse(int users) => $"{users} user(s) still have this role. Move them to another role first.";
     public const string RoleChangedByOther = "The role was changed by someone else. Reload it and try again.";
 

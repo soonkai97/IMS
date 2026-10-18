@@ -139,6 +139,30 @@ public class RoleTests
         owner.SetPermissions([Permissions.StockRead]);   // the other system roles keep editable permissions
     }
 
+    [Theory]
+    [InlineData(Roles.Owner)]
+    [InlineData(Roles.Supervisor)]
+    [InlineData(Roles.Clerk)]
+    [InlineData(Roles.WarehouseStaff)]
+    public void NoSystemRoleButTheAdministratorCanBeGivenTheWholeAdminCore_AndNoneIsTrappedBelowIt(string code)
+    {
+        var core = PermissionCatalog.All.Where(p => p.AdminCore).Select(p => p.Code).ToList();
+        var role = Role.Create(code, code, null, true, SystemRoleDefaults.For(code));
+
+        Assert.Equal(Messages.AdminCoreIsAdministratorOnly, Assert.Throws<LockedRoleException>(() => role.SetPermissions([.. role.Grants.Select(g => g.PermissionCode), .. core])).Message);
+        Assert.False(role.PermissionsLocked);
+
+        role.SetPermissions([.. core.Take(core.Count - 1), Permissions.StockRead]);   // all but one is allowed
+        Assert.False(role.PermissionsLocked);
+        role.SetPermissions([.. core.Take(1), Permissions.ReportsRead]);              // and can be reduced again, other permissions too
+        role.SetPermissions([]);
+        Assert.Empty(role.Grants);
+
+        var custom = Role.Create("Everything", "Everything", null, false, []);
+        custom.SetPermissions(PermissionCatalog.Codes);                                // a custom role may hold the lot
+        Assert.False(custom.PermissionsLocked);
+    }
+
     [Fact]
     public void UpdateText_KeepsTheCodeAndChecksTheName()
     {

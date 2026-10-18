@@ -17,6 +17,8 @@ namespace Ims.Api.Tests.Tests.Rbac;
 [Collection(ApiCollection.Name)]
 public class RolesApiTests(ApiFixture fixture)
 {
+    private static readonly string[] AdminCore = [.. PermissionCatalog.All.Where(p => p.AdminCore).Select(p => p.Code)];
+
     private async Task<RoleDto> NewRoleAsync(ApiClient admin, params string[] permissions) => (await admin.CreateAsync(Unique.Name("Role"), permissions)).Data<RoleDto>();
 
     private async Task<List<AuditLog>> AuditOfAsync(string action, Guid roleId)
@@ -163,10 +165,13 @@ public class RolesApiTests(ApiFixture fixture)
         var clerk = roles.Single(r => r.Code == Roles.Clerk);
         var adminRole = roles.Single(r => r.Code == Roles.Admin);
 
-        (await admin.DeleteRoleAsync(clerk)).ShouldBeProblem(HttpStatusCode.Conflict);
-        (await admin.UpdateRoleAsync(clerk, active: false)).ShouldBeProblem(HttpStatusCode.Conflict);
-        (await admin.UpdateRoleAsync(clerk, name: Unique.Name("Clerks"))).ShouldBeProblem(HttpStatusCode.Conflict);            // a system role keeps its name even when it has users
-        (await admin.ReplaceAsync(adminRole, [Permissions.StockRead])).ShouldBeProblem(HttpStatusCode.Conflict);
+        Assert.True(clerk.UserCount > 0);   // in use, so the order of the checks shows in the answer: the system role is refused for what it is, not for its users
+        Assert.Equal(Messages.SystemRoleProtected, (await admin.DeleteRoleAsync(clerk)).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
+        Assert.Equal(Messages.SystemRoleProtected, (await admin.UpdateRoleAsync(clerk, active: false)).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
+        Assert.Equal(Messages.SystemRoleProtected, (await admin.UpdateRoleAsync(clerk, name: Unique.Name("Clerks"))).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
+        foreach (var other in roles.Where(r => r.Code != Roles.Admin && r.IsSystem))   // the whole administration core belongs to the Administrator role alone
+            Assert.Equal(Messages.AdminCoreIsAdministratorOnly, (await admin.ReplaceAsync(other, [.. other.Permissions.Union(AdminCore)]))
+                .ShouldBeProblem(HttpStatusCode.Conflict).Detail);
 
         Assert.Equal(PermissionCatalog.Codes, (await admin.GetAsync($"/api/roles/{adminRole.Id}")).Data<RoleDto>().Permissions);
     }
@@ -286,18 +291,31 @@ public class RolesApiTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task A_huge_permission_list_is_refused_with_a_short_answer()
+    public async Task A_permission_list_longer_than_the_catalog_is_refused_whole_and_without_echo()
     {
         var admin = await fixture.AsAsync(Roles.Admin);
         var role = await NewRoleAsync(admin);
-        var bad = Enumerable.Range(0, 20_000).Select(i => $"bad.code.{i}").ToArray();
 
-        var tooLong = await admin.ReplaceAsync(role, bad);
-        var fewBad = await admin.ReplaceAsync(role, [.. bad.Take(15), Permissions.StockRead]);
+        var answer = await admin.ReplaceAsync(role, Enumerable.Range(0, 20_000).Select(i => $"bad.code.{i}").ToArray());
 
-        tooLong.ShouldBeProblem(HttpStatusCode.BadRequest);
-        fewBad.ShouldBeProblem(HttpStatusCode.BadRequest);
-        Assert.True(tooLong.Bytes.Length < 2_000 && fewBad.Bytes.Length < 4_000, $"{tooLong.Bytes.Length} and {fewBad.Bytes.Length} bytes");
-        Assert.Contains("5 more permission", fewBad.Body);
+        Assert.Equal(Messages.TooManyPermissions, answer.ShouldBeProblem(HttpStatusCode.BadRequest).Errors!.Values.Single().Single());
+        Assert.DoesNotContain("bad.code.", answer.Body);
+        Assert.True(answer.Bytes.Length < 2_000, $"{answer.Bytes.Length} bytes");
+    }
+
+    [Fact]
+    public async Task A_short_list_names_ten_bad_codes_cut_to_64_characters_and_counts_the_rest()
+    {
+        var admin = await fixture.AsAsync(Roles.Admin);
+        var role = await NewRoleAsync(admin);
+        var long1 = new string('x', 300);
+
+        var answer = await admin.ReplaceAsync(role, [long1, .. Enumerable.Range(1, 14).Select(i => $"bad.code.{i}"), Permissions.StockRead]);   // 15 bad codes, within the catalog size
+
+        var messages = answer.ShouldBeProblem(HttpStatusCode.BadRequest).Errors!.Values.SelectMany(m => m).ToList();
+        Assert.Equal(11, messages.Count);                                                       // ten named, one count
+        Assert.Contains(Messages.MorePermissionsRefused(5), messages);
+        Assert.Contains(Messages.UnknownPermission(new string('x', 64) + "..."), messages);       // the long code is cut, not echoed whole
+        Assert.DoesNotContain(long1, answer.Body);
     }
 }

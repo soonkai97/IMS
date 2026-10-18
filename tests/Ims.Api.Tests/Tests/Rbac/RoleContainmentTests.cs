@@ -136,8 +136,8 @@ public class RoleContainmentTests(ApiFixture fixture)
         var everything = await NewDelegateAsync([.. PermissionCatalog.Codes], allWarehouses: true);
         var admin = (await everything.Client.GetAsync("/api/roles")).Data<List<RoleDto>>().Single(r => r.Code == Roles.Admin);
 
-        (await everything.Client.UpdateRoleAsync(admin, name: Unique.Name("Not admin"))).ShouldBeProblem(HttpStatusCode.Conflict);
-        (await everything.Client.ReplaceAsync(admin, [Permissions.StockRead])).ShouldBeProblem(HttpStatusCode.Conflict);
+        Assert.Equal(Messages.SystemRoleProtected, (await everything.Client.UpdateRoleAsync(admin, name: Unique.Name("Not admin"))).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
+        Assert.Equal(Messages.AdminRoleLocked, (await everything.Client.ReplaceAsync(admin, [Permissions.StockRead])).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
         (await everything.Client.UpdateRoleAsync(admin, active: false)).ShouldBeProblem(HttpStatusCode.Conflict);
         (await everything.Client.DeleteRoleAsync(admin)).ShouldBeProblem(HttpStatusCode.Conflict);
         Assert.Equal(admin.Name, (await ReadAsync(admin.Id)).Name);

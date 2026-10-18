@@ -22,10 +22,16 @@ public class Role : PublicEntity
     private readonly List<RolePermission> _grants = [];
 
     /// <summary>
-    /// A system role that holds every admin-core permission of the catalog always holds all it has, so the system can always be administered: its permission set cannot be replaced. It is a fact
+    /// A system role that holds every admin-core permission of the catalog always holds all it has, so the system can always be administered: its permission set cannot be replaced (and no other system role can be given the whole core, so none is locked by mistake). It is a fact
     /// of the role's data, not a name (the seeded Administrator role is the one that qualifies).
     /// </summary>
-    public bool PermissionsLocked => IsSystem && PermissionCatalog.All.Where(p => p.AdminCore).All(p => Grants.Any(g => g.PermissionCode == p.Code));
+    public bool PermissionsLocked => IsSystem && HoldsAdminCore(Grants.Select(g => g.PermissionCode));
+
+    private static bool HoldsAdminCore(IEnumerable<string> codes)
+    {
+        var held = codes.ToHashSet(StringComparer.Ordinal);
+        return PermissionCatalog.All.Where(p => p.AdminCore).All(p => held.Contains(p.Code));
+    }
 
     /// <summary>The permissions the role holds, one row each (the live rows: a revoked grant is a soft-deleted row and is not loaded).</summary>
     public IReadOnlyList<RolePermission> Grants => _grants.Where(g => !g.RecDeleted).ToList();
@@ -83,6 +89,8 @@ public class Role : PublicEntity
     {
         if (PermissionsLocked) throw new LockedRoleException(Messages.AdminRoleLocked);
         var wanted = permissionCodes.ToHashSet(StringComparer.Ordinal);
+        // Holding the whole admin core locks a system role for good, so only the role that is seeded with it may reach it: no other system role is given it, and none is trapped.
+        if (IsSystem && HoldsAdminCore(wanted)) throw new LockedRoleException(Messages.AdminCoreIsAdministratorOnly);
         var unknown = wanted.FirstOrDefault(c => !PermissionCatalog.IsKnown(c));
         if (unknown is not null) throw new DomainException(Messages.UnknownPermission(unknown));
 
