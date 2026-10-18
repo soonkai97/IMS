@@ -153,6 +153,17 @@ async function expectFits(locator: Locator, label: string): Promise<void> {
   expect(box.overflow, `${label}: scrolls sideways inside itself`).toBeLessThanOrEqual(0);
 }
 
+/** Nothing inside the product picker sticks out past its own box (the sheet clips it, so the sheet alone would not show it). */
+async function expectPickerInside(sheet: Locator, label: string): Promise<void> {
+  const outside = await sheet.locator('app-product-picker').evaluate(picker => {
+    const right = picker.getBoundingClientRect().right;
+    return Array.from(picker.querySelectorAll<HTMLElement>('*'))
+      .filter(element => element.getBoundingClientRect().right > right + 0.5)
+      .map(element => `${element.tagName.toLowerCase()}.${element.className}`);
+  });
+  expect(outside, `${label}: parts of the product list outside its box`).toEqual([]);
+}
+
 test.describe('L00 Content containment', () => {
   test.setTimeout(300_000);
 
@@ -294,6 +305,7 @@ test.describe('L00 Content containment', () => {
       await sheet.getByRole('searchbox', { name: 'Find a product' }).fill(mark);
       await expect(sheet.getByText(mark).first()).toBeVisible();
       await expectFits(sheet, at('Add item sheet'));
+      await expectPickerInside(sheet, at('Add item sheet'));
       await expectContained(page, at('Add item sheet'));
       await sheet.getByRole('button', { name: 'Done' }).click();
       await expect(sheet).toBeHidden();
