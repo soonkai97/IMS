@@ -104,6 +104,22 @@ public class AdministrabilityTests : IAsyncLifetime
         Assert.Equal(Messages.LastAdminRequired, (await SetAsync(_a, Roles.Supervisor, true)).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
     }
 
+    [Theory]
+    [InlineData(Permissions.UsersRead)]                                                                                  // one of the four
+    [InlineData(Permissions.UsersRead, Permissions.UsersManage, Permissions.RolesRead)]                                  // three of the four
+    public async Task A_role_that_holds_only_some_of_the_core_does_not_make_an_administrator(params string[] part)
+    {
+        await SetUpAsync();
+        (await SetAsync(_b, Roles.Admin, false)).ShouldBeOk();                       // A is the only administrator
+        var partial = (await _caller.CreateAsync(Unique.Name("Partial"), [.. part, Permissions.StockRead])).Data<RoleDto>();
+        var holderName = Unique.Username("partial");
+        (await _caller.Users.CreateAsync(new UserSaveRequest(holderName, Unique.Email(holderName), "Partial", partial.Code, true, $"Pw-{Guid.NewGuid():N}-1!", [_fixture.Reference.DefaultWarehouseId]))).ShouldBeOk();
+
+        Assert.Equal(1, await AdministratorsAsync());
+        Assert.Equal(Messages.LastAdminRequired, (await SetAsync(_a, Roles.Supervisor, true)).ShouldBeProblem(HttpStatusCode.Conflict).Detail);   // the part-holder is not left to administer
+        Assert.Equal(Messages.LastAdminRequired, (await SetAsync(_a, Roles.Admin, false)).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
+    }
+
     [Fact]
     public async Task Two_writes_that_each_remove_the_other_administrator_never_leave_the_system_without_one()
     {
