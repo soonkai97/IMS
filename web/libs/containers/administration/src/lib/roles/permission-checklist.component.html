@@ -1,0 +1,39 @@
+@for (group of $groups(); track group.group) {
+  <fieldset class="permission-checklist-group">
+    <legend class="permission-checklist-legend">
+      <h2 class="permission-checklist-heading">{{ groupLabel(group.group) }}</h2>
+      <span class="permission-checklist-count">{{
+        'roleEdit.groupCount' | t: { count: count(group), total: group.permissions.length }
+      }}</span>
+    </legend>
+    <ul class="permission-checklist-list">
+      @for (permission of group.permissions; track permission.code) {
+        <li class="permission-checklist-row" [attr.data-permission]="permission.code">
+          <app-checkbox
+            [ngModel]="isOn(permission)"
+            [ngModelOptions]="{ standalone: true }"
+            [disabled]="isDisabled(permission)"
+            (ngModelChange)="onToggle(permission, $event)"
+          >
+            <span class="permission-checklist-name">{{ label(permission) }}</span>
+            @if (permission.isDangerous) {
+              <app-status-chip flag="warning" [label]="'roleEdit.highImpact' | t" />
+            }
+            <span class="permission-checklist-help">{{ permission.description }}</span>
+            @if (permission.requires.length > 0) {
+              <span class="permission-checklist-help">{{
+                'roleEdit.requires' | t: { names: requires(permission) }
+              }}</span>
+            }
+            @if (notHeld(permission) && !$readOnly()) {
+              <span class="permission-checklist-reason">
+                <app-icon name="lock" [size]="16" />
+                {{ 'roleEdit.notHeld' | t }}
+              </span>
+            }
+          </app-checkbox>
+        </li>
+      }
+    </ul>
+  </fieldset>
+}

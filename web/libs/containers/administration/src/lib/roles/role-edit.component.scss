@@ -1,0 +1,47 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.role-edit-page-form {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  max-width: width('form-max');
+}
+
+.role-edit-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+}
+
+.role-edit-page-chip {
+  @include keep-whole;
+
+  display: inline-flex;
+  gap: space(1);
+  align-items: center;
+  font-size: font-size(1);
+  color: color('text-muted');
+}
+
+.role-edit-page-muted {
+  margin: 0;
+  color: color('text-muted');
+}
+
+.role-edit-page-failure {
+  display: block;
+  margin-bottom: space(2);
+}
+
+// The live region is for speech only: it takes no room when empty.
+.role-edit-page-live {
+  margin: 0;
+
+  &:empty {
+    @include visually-hidden;
+  }
+}
