@@ -10,10 +10,11 @@
 
 .roles-page-view-only,
 .roles-page-kind {
+  @include keep-whole;
+
   display: inline-flex;
   align-items: center;
   gap: space(1);
-  white-space: nowrap;
 }
 
 .roles-page-view-only {

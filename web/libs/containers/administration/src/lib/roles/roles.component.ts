@@ -3,7 +3,13 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RoleDto } from '@ims/api';
 import { PermissionService } from '@ims/core/identity';
 import { I18nService, TranslatePipe } from '@ims/core/i18n';
-import { RoleKind, RoleQuery, RolesStore, kindOfRole } from '@ims/features/administration';
+import {
+  RoleKind,
+  RoleQuery,
+  RolesStore,
+  kindOfRole,
+  sortRoles
+} from '@ims/features/administration';
 import { PAGE_SIZES, PERMISSION } from '@ims/models';
 import {
   TableColumn,
@@ -18,6 +24,9 @@ import {
   UiTableComponent
 } from '@ims/ui';
 import { controlSignal, createPageState, debouncedSignal, loadOnChange } from '@ims/utils';
+
+/** The API refuses a longer search (Limits.SearchMaxLength). */
+const MAX_SEARCH_LENGTH = 100;
 
 /** The kind column: icon + words, never colour alone. */
 const KIND_ICON: Record<RoleKind, 'lock' | 'shield' | 'pencil'> = {
@@ -51,6 +60,7 @@ const KIND_LABEL = {
     UiStatusChipComponent,
     UiTableComponent
   ],
+  providers: [RolesStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './roles.component.html',
   styleUrl: './roles.component.scss'
@@ -70,21 +80,26 @@ export class RolesPageComponent {
   );
 
   readonly $query = computed<RoleQuery>(() => ({
-    search: this.$search().trim() || undefined,
+    search: this.$search().trim().slice(0, MAX_SEARCH_LENGTH) || undefined,
     includeInactive: this.$includeInactive()
   }));
 
-  $isLoading = this.store.list.$isLoading;
-  $failed = this.store.list.$isFailed;
+  /** The list is shown once the permission catalog is there too: the locked marker and the counts need it. */
+  $isLoading = computed(() => this.store.list.$isLoading() || this.store.catalog.$isLoading());
+  $failed = computed(() => this.store.list.$isFailed() || this.store.catalog.$isFailed());
+  readonly searchMaxLength = MAX_SEARCH_LENGTH;
   $canManage = computed(() => this.permissions.has(PERMISSION.RolesManage));
   $isSearching = computed(() => this.$query().search !== undefined);
   readonly pageSizes = PAGE_SIZES;
   $pageSize = computed(() => this.pageState.$pageSize());
   $page = computed(() => this.pageState.$page());
-  $total = computed(() => this.store.list.$data()?.length ?? 0);
+  private readonly $sorted = computed(() =>
+    this.$catalog() === undefined ? [] : sortRoles(this.store.list.$data() ?? [])
+  );
+  $total = computed(() => this.$sorted().length);
   $rows = computed<readonly RoleDto[]>(() => {
     const start = (this.$page() - 1) * this.$pageSize();
-    return (this.store.list.$data() ?? []).slice(start, start + this.$pageSize());
+    return this.$sorted().slice(start, start + this.$pageSize());
   });
   $catalog = this.store.catalog.$data;
   $columns = computed<readonly TableColumn<RoleDto>[]>(() => [
@@ -142,9 +157,9 @@ export class RolesPageComponent {
   }
 
   private permissionCount(role: RoleDto): string {
-    const total = this.$catalog()?.length;
-    return total === undefined
-      ? String(role.permissions.length)
-      : this.i18n.t('roles.permissionsOf', { count: role.permissions.length, total });
+    return this.i18n.t('roles.permissionsOf', {
+      count: role.permissions.length,
+      total: this.$catalog()?.length ?? 0
+    });
   }
 }

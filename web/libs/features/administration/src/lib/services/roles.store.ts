@@ -7,7 +7,8 @@ export interface RoleQuery {
   readonly includeInactive: boolean;
 }
 
-@Injectable({ providedIn: 'root' })
+/** Provided by the roles page (not the root): what one signed-in person read is gone with the page. */
+@Injectable()
 export class RolesStore {
   private readonly roles = inject(RolesClient);
   private readonly permissions = inject(PermissionsClient);

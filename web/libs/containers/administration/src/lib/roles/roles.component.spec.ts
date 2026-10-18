@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
-import { PermissionDto, PermissionGroup, RoleDto } from '@ims/api';
+import { NEVER, of } from 'rxjs';
+import { PermissionDto, PermissionGroup, PermissionsClient, RoleDto, RolesClient } from '@ims/api';
 import { PermissionService } from '@ims/core/identity';
 import { provideUiText } from '@ims/core/i18n';
 import { RolesStore } from '@ims/features/administration';
@@ -36,25 +37,40 @@ const role = (name: string, permissions: string[], extra: Partial<RoleDto> = {})
 describe('RolesPageComponent (RP01: a read-only list, kinds decided by the data)', () => {
   let spectator: Spectator<RolesPageComponent>;
   const roles = signal<RoleDto[] | undefined>(undefined);
+  const catalog = signal<PermissionDto[] | undefined>(CATALOG);
+  const listFailed = signal(false);
+  const catalogFailed = signal(false);
+  const catalogLoading = signal(false);
   const held = signal<string[]>([PERMISSION.RolesRead]);
   const load = jest.fn();
+  const listReload = jest.fn();
+  const catalogReload = jest.fn();
   const createComponent = createComponentFactory({
     component: RolesPageComponent,
     detectChanges: false,
     providers: [
       provideUiText(),
-      { provide: PermissionService, useValue: { has: (code: string) => held().includes(code) } },
+      { provide: PermissionService, useValue: { has: (code: string) => held().includes(code) } }
+    ],
+    // The page provides its own store, so a test replaces it at the component.
+    componentProviders: [
       {
         provide: RolesStore,
         useValue: {
           list: {
             $data: roles,
             $isLoading: signal(false),
-            $isFailed: signal(false),
+            $isFailed: listFailed,
             load,
-            reload: jest.fn()
+            reload: listReload
           },
-          catalog: { $data: signal(CATALOG), load: jest.fn(), reload: jest.fn() }
+          catalog: {
+            $data: catalog,
+            $isLoading: catalogLoading,
+            $isFailed: catalogFailed,
+            load: jest.fn(),
+            reload: catalogReload
+          }
         }
       }
     ]
@@ -71,7 +87,13 @@ describe('RolesPageComponent (RP01: a read-only list, kinds decided by the data)
   beforeEach(() => {
     jest.useFakeTimers();
     load.mockClear();
+    listReload.mockClear();
+    catalogReload.mockClear();
     held.set([PERMISSION.RolesRead]);
+    catalog.set(CATALOG);
+    listFailed.set(false);
+    catalogFailed.set(false);
+    catalogLoading.set(false);
     roles.set([
       role('Chief', ['users.manage', 'roles.manage', 'stock.read'], { isSystem: true }),
       role('Standard', ['stock.read'], { isSystem: true }),
@@ -88,6 +110,30 @@ describe('RolesPageComponent (RP01: a read-only list, kinds decided by the data)
     expect(rowOf('Night clerk')?.textContent).toContain('Custom');
     expect(rowOf('Night clerk')?.textContent).toContain('Inactive');
     expect(rowOf('Standard')?.textContent).toContain('2');
+  });
+
+  it('lists the standard roles first (the most powerful first), then the created ones', () => {
+    roles.set([
+      role('Zed', ['stock.read']),
+      role('Small', ['stock.read'], { isSystem: true }),
+      role('Chief', ['users.manage', 'roles.manage', 'stock.read'], { isSystem: true }),
+      role('Alpha', [])
+    ]);
+    spectator.detectChanges();
+
+    const names = Array.from(spectator.element.querySelectorAll('tbody tr')).map(row =>
+      row.querySelector('th, td')?.textContent?.trim()
+    );
+    expect(names).toEqual(['Chief', 'Small', 'Alpha', 'Zed']);
+  });
+
+  it('shows no role, and so never a wrong kind, until the permission catalog is there', () => {
+    catalog.set(undefined);
+    catalogLoading.set(true);
+    spectator.detectChanges();
+
+    expect(rowOf('Chief')).toBeUndefined();
+    expect(text()).not.toContain('System');
   });
 
   it('says that a role change applies within about 5 minutes', () => {
@@ -121,6 +167,19 @@ describe('RolesPageComponent (RP01: a read-only list, kinds decided by the data)
     expect(load).toHaveBeenLastCalledWith({ search: 'clerk', includeInactive: false });
   });
 
+  it('never sends more than the 100 characters the API accepts, and the box says so', () => {
+    spectator.component.$searchInput.set('x'.repeat(130));
+    spectator.detectChanges();
+    jest.advanceTimersByTime(1000);
+    spectator.detectChanges();
+
+    const [{ search }] = load.mock.calls[load.mock.calls.length - 1] as [{ search: string }];
+    expect(search.length).toBe(100);
+    expect(spectator.element.querySelector('input[type="search"]')?.getAttribute('maxlength')).toBe(
+      '100'
+    );
+  });
+
   it('shows 25 roles to a page and the pager', () => {
     roles.set(Array.from({ length: 30 }, (_, i) => role(`Role ${i}`, [])));
     spectator.detectChanges();
@@ -145,5 +204,54 @@ describe('RolesPageComponent (RP01: a read-only list, kinds decided by the data)
     spectator.detectChanges();
 
     expect(text()).toContain('No role matches "zzz".');
+  });
+
+  it.each([
+    ['the roles', listFailed],
+    ['the permission catalog', catalogFailed]
+  ])('a failed load of %s shows the error and Retry loads both again', (_what, failed) => {
+    failed.set(true);
+    spectator.detectChanges();
+
+    expect(rowOf('Chief')).toBeUndefined();
+    const retry = Array.from(spectator.element.querySelectorAll('button')).find(button =>
+      button.textContent?.includes('Retry')
+    );
+    expect(retry).toBeDefined();
+
+    retry?.click();
+
+    expect(listReload).toHaveBeenCalledTimes(1);
+    expect(catalogReload).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('RolesPageComponent store (what one signed-in person read is not shown to the next)', () => {
+  const rolesClient = { list: jest.fn() };
+  const permissionsClient = { list: jest.fn() };
+  const createComponent = createComponentFactory({
+    component: RolesPageComponent,
+    detectChanges: false,
+    providers: [
+      provideUiText(),
+      { provide: PermissionService, useValue: { has: () => false } },
+      { provide: RolesClient, useValue: rolesClient },
+      { provide: PermissionsClient, useValue: permissionsClient }
+    ]
+  });
+
+  it('gives every page its own store: a new page starts empty while the answer is slow', () => {
+    rolesClient.list.mockReturnValueOnce(of([role('Previous user role', ['stock.read'])]));
+    permissionsClient.list.mockReturnValue(of(CATALOG));
+    const first = createComponent();
+    first.detectChanges();
+    expect(first.element.textContent).toContain('Previous user role');
+    first.fixture.destroy();
+
+    rolesClient.list.mockReturnValueOnce(NEVER);
+    const second = createComponent();
+    second.detectChanges();
+
+    expect(second.element.textContent).not.toContain('Previous user role');
   });
 });

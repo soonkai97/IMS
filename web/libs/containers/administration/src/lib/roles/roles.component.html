@@ -12,6 +12,7 @@
     [(value)]="$searchInput"
     [label]="'roles.searchLabel' | t"
     [placeholder]="'roles.searchPlaceholder' | t"
+    [maxLength]="searchMaxLength"
   />
   <app-checkbox [formControl]="includeInactive">{{ 'roles.showInactive' | t }}</app-checkbox>
 </div>
