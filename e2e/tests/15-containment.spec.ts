@@ -17,6 +17,8 @@ async function settled(page: Page): Promise<void> {
   await page.waitForFunction(
     () => document.querySelector('[aria-busy="true"], .ui-table-progress') === null
   );
+  // A route change crossfades (view transition): until it ends, elementFromPoint answers with the root element for every point.
+  await page.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
 }
 
 /** The page is not wider than the window, and every element that scrolls sideways is a focusable, named scroll region. */
