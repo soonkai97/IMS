@@ -1,0 +1,56 @@
+<app-page-header
+  [heading]="$heading()"
+  [backLink]="['/roles']"
+  [backLabel]="'roles.title' | t"
+  [subtitle]="$role() ? ('roles.appliesLater' | t) : ''"
+>
+  @if ($role()) {
+    <span chips class="role-page-chips">
+      <span class="role-page-chip">
+        {{ $kindLabel() }}
+      </span>
+      <span class="role-page-chip">
+        <app-icon name="eye" [size]="16" />
+        {{ 'roles.viewOnly' | t }}
+      </span>
+    </span>
+  }
+</app-page-header>
+
+@if ($notFound()) {
+  <app-empty-state icon="shield" [message]="'notFound.body' | t" />
+} @else if ($loadFailed()) {
+  <app-banner kind="danger">
+    {{ 'error.generic' | t }}
+    <app-button bannerActions (clicked)="onRetry()">{{ 'ui.retry' | t }}</app-button>
+  </app-banner>
+} @else if (!$role() || !$catalog()) {
+  <app-skeleton [count]="4" />
+} @else {
+  @if ($isLocked()) {
+    <app-banner kind="info">{{ 'rolePage.readOnly.locked' | t }}</app-banner>
+  }
+
+  <div class="role-page-body">
+    <app-card [heading]="'rolePage.details' | t">
+      @if ($role()?.description; as description) {
+        <p class="role-page-text">{{ description }}</p>
+      }
+      <p class="role-page-muted">
+        {{ 'rolePage.people' | t: { count: $role()?.userCount ?? 0 } }}
+      </p>
+      <app-status-chip
+        [label]="($role()?.isActive ? 'product.active' : 'product.inactive') | t"
+        [status]="$role()?.isActive ? 'posted' : 'cancelled'"
+      />
+    </app-card>
+
+    <app-card [heading]="'rolePage.permissions' | t">
+      <app-permission-list
+        [groups]="$groups()"
+        [catalog]="$catalog() ?? []"
+        [selected]="$selected()"
+      />
+    </app-card>
+  </div>
+}

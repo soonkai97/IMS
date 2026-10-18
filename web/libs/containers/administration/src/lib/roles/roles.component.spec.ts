@@ -1,4 +1,5 @@
 import { signal } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { NEVER, of } from 'rxjs';
 import { PermissionDto, PermissionGroup, PermissionsClient, RoleDto, RolesClient } from '@ims/api';
@@ -49,6 +50,7 @@ describe('RolesPageComponent (RP01: a read-only list, kinds decided by the data)
     component: RolesPageComponent,
     detectChanges: false,
     providers: [
+      provideRouter([]),
       provideUiText(),
       { provide: PermissionService, useValue: { has: (code: string) => held().includes(code) } }
     ],
@@ -149,6 +151,10 @@ describe('RolesPageComponent (RP01: a read-only list, kinds decided by the data)
     expect(text()).not.toContain('View only');
   });
 
+  it('opens a role from its row, for a person who may only read', () => {
+    expect(spectator.component.rowLink(role('Night clerk', []))).toEqual(['/roles', 'Night clerk']);
+  });
+
   it('loads the active roles first and the inactive ones when the box is ticked', () => {
     expect(load).toHaveBeenLastCalledWith({ search: undefined, includeInactive: false });
 
@@ -233,6 +239,7 @@ describe('RolesPageComponent store (what one signed-in person read is not shown 
     component: RolesPageComponent,
     detectChanges: false,
     providers: [
+      provideRouter([]),
       provideUiText(),
       { provide: PermissionService, useValue: { has: () => false } },
       { provide: RolesClient, useValue: rolesClient },
