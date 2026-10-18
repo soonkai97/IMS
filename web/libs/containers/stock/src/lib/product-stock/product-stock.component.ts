@@ -10,7 +10,7 @@ import {
 import { ProductsStore } from '@ims/features/catalog';
 import { routeForDocumentNo } from '@ims/features/documents';
 import { LedgerQuery, StockStore } from '@ims/features/stock';
-import { DEFAULT_PAGE_SIZE } from '@ims/models';
+import { PAGE_SIZES } from '@ims/models';
 import {
   TableColumn,
   UiCardComponent,
@@ -51,12 +51,13 @@ export class ProductStockPageComponent implements OnInit {
   /** The id as the API writes it; undefined for an old bookmark (`/stock/123`), which is a not-found page, no request. */
   private readonly $id = computed(() => normalizePublicId(this.$productId()));
   readonly $notFound = computed(() => this.$id() === undefined);
+  readonly pageSizes = PAGE_SIZES;
   private readonly pageState = createPageState(this.$productId);
 
   readonly $query = computed<LedgerQuery>(() => ({
     productId: this.$id(),
     page: this.pageState.$page(),
-    pageSize: DEFAULT_PAGE_SIZE
+    pageSize: this.pageState.$pageSize()
   }));
 
   $product = this.products.detail.$data;
@@ -107,6 +108,10 @@ export class ProductStockPageComponent implements OnInit {
 
   onPageChange(page: number): void {
     this.pageState.set(page);
+  }
+
+  onPageSizeChange(pageSize: number): void {
+    this.pageState.setPageSize(pageSize);
   }
 
   onRetry(): void {

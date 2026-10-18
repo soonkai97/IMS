@@ -12,7 +12,7 @@ import { ProductDto, ProductSort } from '@ims/api';
 import { AppQtyPipe, TranslatePipe, I18nService } from '@ims/core/i18n';
 import { PermissionService } from '@ims/core/identity';
 import { CatalogStore, ProductQuery, ProductsStore } from '@ims/features/catalog';
-import { DEFAULT_PAGE_SIZE, PERMISSION, PublicId } from '@ims/models';
+import { PAGE_SIZES, PERMISSION, PublicId } from '@ims/models';
 import {
   SelectOption,
   TableColumn,
@@ -78,6 +78,7 @@ export class ProductsPageComponent implements OnInit {
   private readonly $filterKey = computed(() =>
     JSON.stringify([this.$search(), this.$categoryId(), this.$status(), this.$sort()])
   );
+  readonly pageSizes = PAGE_SIZES;
   private readonly pageState = createPageState(this.$filterKey);
 
   readonly $query = computed<ProductQuery>(() => ({
@@ -85,7 +86,7 @@ export class ProductsPageComponent implements OnInit {
     categoryId: this.$categoryId() ?? undefined,
     active: this.activeFlag(this.$status()),
     page: this.pageState.$page(),
-    pageSize: DEFAULT_PAGE_SIZE,
+    pageSize: this.pageState.$pageSize(),
     sortBy: SORT_KEYS[this.$sort()?.sortBy ?? ''],
     desc: this.$sort()?.desc
   }));
@@ -144,6 +145,10 @@ export class ProductsPageComponent implements OnInit {
 
   onPageChange(page: number): void {
     this.pageState.set(page);
+  }
+
+  onPageSizeChange(pageSize: number): void {
+    this.pageState.setPageSize(pageSize);
   }
 
   onSortChange(sort: TableSort): void {

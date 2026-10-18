@@ -37,6 +37,7 @@ export const EN_MESSAGES = {
 
   // UI kit
   'ui.chooseDate': 'Choose date',
+  'ui.columns': 'Columns',
   'ui.datePlaceholder': 'dd/mm/yyyy',
   'ui.chooseFile': 'Choose file',
   'ui.clear': 'Clear',
@@ -46,8 +47,12 @@ export const EN_MESSAGES = {
   'ui.showLess': 'Show less',
   'ui.dropFile': 'or drop a file here',
   'ui.errorTitle': 'Something went wrong.',
+  'ui.firstPage': 'First page',
+  'ui.lastPage': 'Last page',
   'ui.loading': 'Loading',
   'ui.nextPage': 'Next page',
+  'ui.pageAnnouncement': '{status}, {range}',
+  'ui.pageSize': 'Rows per page',
   'ui.pageStatus': 'Page {page} of {pages}',
   'ui.previousPage': 'Previous page',
   'ui.rangeStatus': '{from}-{to} of {total}',
@@ -55,6 +60,7 @@ export const EN_MESSAGES = {
   'ui.retry': 'Retry',
   'ui.saved': 'Saved',
   'ui.selectPlaceholder': 'Select...',
+  'ui.showAllColumns': 'Show all columns',
   'ui.showPassword': 'Show password',
 
   // Forms

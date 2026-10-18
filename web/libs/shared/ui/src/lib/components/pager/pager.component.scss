@@ -1,13 +1,24 @@
 @use 'libs' as *;
 
+// First, Last and the page size are for a pager with room (its own width, like the table): a phone keeps the range and the two arrows.
 :host {
   display: flex;
   flex-wrap: wrap;
-  gap: space(1);
+  gap: space(1) space(2);
   align-items: center;
   justify-content: space-between;
   padding: space(1) 0;
   color: color('text-muted');
+  container: ims-pager / inline-size;
+}
+
+.ui-pager-range {
+  margin-inline-end: auto;
+}
+
+// Read out on a change, not seen: the range and the page are already on screen.
+.ui-pager-announce {
+  @include visually-hidden;
 }
 
 .ui-pager-nav {
@@ -18,4 +29,43 @@
 
 .ui-pager-page {
   font-size: font-size(2);
+}
+
+.ui-pager-size,
+.ui-pager-wide {
+  display: none;
+}
+
+.ui-pager-size-box {
+  position: relative;
+}
+
+.ui-pager-size-control {
+  @include control-base;
+
+  width: auto;
+  padding-right: height('touch');
+  appearance: none;
+  cursor: pointer;
+}
+
+.ui-pager-size-arrow {
+  position: absolute;
+  top: 50%;
+  right: space(1);
+  color: color('text-muted');
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+@container ims-pager (min-width: #{width('table-wide')}) {
+  .ui-pager-size {
+    display: flex;
+    gap: space(1);
+    align-items: center;
+  }
+
+  .ui-pager-wide {
+    display: inline-flex;
+  }
 }

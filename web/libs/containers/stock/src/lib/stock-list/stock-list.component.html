@@ -35,6 +35,7 @@
 </div>
 
 <app-table
+  columnMenu
   [columns]="$columns()"
   [rows]="$page()?.items ?? []"
   [caption]="'stock.title' | t"
@@ -77,6 +78,8 @@
 
 @if ($page(); as page) {
   <app-pager
+    [pageSizes]="pageSizes"
+    (pageSizeChange)="onPageSizeChange($event)"
     [page]="page.page"
     [pageSize]="page.pageSize"
     [total]="page.total"
