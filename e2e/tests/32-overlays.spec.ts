@@ -7,6 +7,11 @@ import { expect, test } from '../src/fixtures';
 
 const NO_MOVE = ['none', 'matrix(1, 0, 0, 1, 0, 0)'];
 
+/** Waits until the entrance transition has ended, so a measurement does not catch the dialog half way in. */
+async function settled(dialog: import('@playwright/test').Locator): Promise<void> {
+  await dialog.evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)));
+}
+
 /** The tokens and the dialog's own transition, as the browser resolved them. */
 async function readMotion(dialog: import('@playwright/test').Locator) {
   return dialog.evaluate(element => {
@@ -34,11 +39,11 @@ test.describe('R13 Dialog on a 1280px desktop', () => {
   }) => {
     await signIn('staff');
     const dialog = await shell.openAccount();
-    await expect(dialog).toHaveCSS('opacity', '1');
+    await settled(dialog);
 
     const motion = await readMotion(dialog);
     expect(motion.move).toBe('12px');
-    expect(motion.pop).toBe('0.94');
+    expect(Number(motion.pop)).toBe(0.94);
     expect(motion.properties).toBe('opacity, transform');
     expect(motion.durations).toBe('0.2s, 0.28s');
     expect(NO_MOVE).toContain(motion.transform);
@@ -56,12 +61,16 @@ test.describe('R13 Dialog on a 1280px desktop', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await signIn('staff');
     const dialog = await shell.openAccount();
+    await settled(dialog);
 
     const motion = await readMotion(dialog);
     expect(motion.move).toBe('0px');
-    expect(motion.pop).toBe('1');
+    expect(Number(motion.pop)).toBe(1);
     expect(motion.slide).toBe('0%');
-    expect(motion.durations).toBe('0.001s, 0.001s');
+    // The safety net of globals/_motion.scss makes every transition 0.01ms long.
+    for (const seconds of motion.durations.split(',').map(parseFloat)) {
+      expect(seconds).toBeLessThan(0.001);
+    }
     expect(motion.opacity).toBe('1');
     expect(NO_MOVE).toContain(motion.transform);
   });
@@ -96,7 +105,7 @@ for (const width of [360, 320]) {
     }) => {
       await signIn('staff');
       const dialog = await shell.openAccount();
-      await expect(dialog).toHaveCSS('opacity', '1');
+      await settled(dialog);
 
       const sheet = await dialog.evaluate(element => {
         const box = element.getBoundingClientRect();

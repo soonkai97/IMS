@@ -75,10 +75,13 @@
   border-bottom: border-width('thin') solid color('border');
 }
 
-// A long heading (a partner name in "Delete ..."): wrap it anywhere, it never pushes the close button out of the dialog.
+// A long heading (a partner name in "Delete ..."): wrap it anywhere and let it scroll inside a third of the window, so it never
+// pushes the close button or the body out of the dialog.
 .ui-dialog-title {
   @include wrap-anywhere;
 
+  max-height: 33dvh;
+  overflow-y: auto;
   font-size: font-size(4);
 }
 

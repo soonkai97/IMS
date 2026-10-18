@@ -29,7 +29,11 @@
   }
 }
 
+// The icon stays beside the first line of a long message instead of floating in the middle of it (centred against the 44px
+// buttons, which is where a one-line message sits too).
 .ui-toast-icon {
+  align-self: flex-start;
+  margin-block: calc((#{height('touch-min')} - 1.5rem) / 2);
   color: var(--toast-accent);
 }
 
