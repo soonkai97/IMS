@@ -684,6 +684,8 @@ test.describe('A02 Table: sticky header and first column, cards by container wid
         if (!more) {
           continue;
         }
+        // The fourth row sits at the bottom edge of a 700 px window: bring the button on screen first, or the hit test has no target.
+        more.scrollIntoView({ block: 'center', inline: 'nearest' });
         region.scrollLeft +=
           more.getBoundingClientRect().left - pinned.getBoundingClientRect().left - 40;
         const button = more.getBoundingClientRect();
