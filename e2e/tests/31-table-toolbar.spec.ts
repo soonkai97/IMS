@@ -88,6 +88,9 @@ test.describe("TB Paging on a table with room", () => {
     expect(asked.at(-1)).toEqual([1, 50]);
     await expect(pager.getByLabel("Rows per page")).toHaveValue("50");
 
+    // 333 rows at 50 a page are 7 pages: Last shows 301-333, First is page 1 again.
+    await pager.getByRole("button", { name: "Last page" }).click();
+    await expect(range).toHaveText("301-333 of 333");
     await pager.getByRole("button", { name: "First page" }).click();
     await expect(range).toHaveText("1-50 of 333");
   });
@@ -120,7 +123,7 @@ test.describe("TB Paging on a table with room", () => {
     await openAudit(page);
     const button = page.getByRole("button", { name: "Columns" });
     const menu = page.getByRole("group", { name: "Columns" });
-    const entity = page.getByRole("columnheader", { name: "Entity" });
+    const entity = page.getByRole("columnheader", { name: "Object" });
     await expect(entity).toBeVisible();
     await expect(menu).toBeHidden();
 
@@ -129,10 +132,10 @@ test.describe("TB Paging on a table with room", () => {
     // The first item has the focus, so the keyboard needs no extra Tab.
     await expect(menu.getByRole("checkbox").first()).toBeFocused();
     // The identifier and the action column are not offered.
-    await expect(menu.getByRole("checkbox", { name: "Date" })).toHaveCount(0);
+    await expect(menu.getByRole("checkbox", { name: "When" })).toHaveCount(0);
     await expect(menu.getByRole("checkbox", { name: "Details" })).toHaveCount(0);
 
-    await menu.getByRole("checkbox", { name: "Entity" }).uncheck();
+    await menu.getByRole("checkbox", { name: "Object" }).uncheck();
     await expect(entity).toHaveCount(0);
 
     await page.keyboard.press("Escape");

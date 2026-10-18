@@ -138,7 +138,7 @@ export class AuditLogPageComponent implements OnInit {
       header: this.i18n.t('audit.entity'),
       value: row => this.entityOf(row)
     },
-    { key: 'details', header: this.i18n.t('audit.details'), align: 'end' }
+    { key: 'details', type: 'action', header: this.i18n.t('audit.details'), align: 'end' }
   ]);
 
   /** "Product #12": what the entry is about. */
