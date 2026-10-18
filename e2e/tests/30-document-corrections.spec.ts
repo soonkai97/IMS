@@ -195,7 +195,7 @@ test.describe('RQ4 / NR-02 / PR-02 Correct a document before it posts (R28, R31)
       docType: 'Issue',
       amountThreshold: null,
       qtyThreshold: LARGE_QTY,
-      roleRequired: 'Owner',
+      approverTier: 'Large',
       isActive
     });
     const rules = await admin.call<
