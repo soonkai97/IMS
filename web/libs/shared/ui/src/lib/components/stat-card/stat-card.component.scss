@@ -1,26 +1,50 @@
 @use 'libs' as *;
 
 :host {
-  position: relative;
-  display: flex;
-  gap: space(2);
-  align-items: center;
-  padding: space(2);
+  display: block;
   background: color('surface');
   border: border-width('thin') solid color('border');
   border-radius: border-radius('md');
+  transition: transform duration('fast') easing('standard');
 
+  // The warning colour is never the only signal: the alert icon beside the value says it too (FR-08).
   &.--attention {
     border-color: color('warning-border');
   }
+
+  &:has(.ui-stat-card-link:hover) {
+    box-shadow: shadow(1);
+    transform: translateY(-1px);
+  }
 }
 
-.ui-stat-card-icon {
-  color: color('primary');
+// With a link the body is the link: the whole card is the tap target and its name is the label and the number ("Waiting for approval 3").
+.ui-stat-card-body {
+  display: flex;
+  gap: space(2);
+  align-items: center;
+  min-height: height('touch');
+  padding: space(2);
+  color: inherit;
+  text-decoration: none;
+  border-radius: inherit;
+}
+
+.ui-stat-card-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: height('touch');
+  height: height('touch');
+  color: color('on-accent-soft');
+  background: color('accent-soft');
+  border-radius: border-radius('md');
 }
 
 .ui-stat-card-text {
   display: flex;
+  flex: 1;
   flex-direction: column;
   min-width: 0;
 }
@@ -30,22 +54,19 @@
   color: color('text-muted');
 }
 
-// The ::after covers the whole card, so the card is the tap target; the link itself is at least 24px high too (EA-21).
-.ui-stat-card-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.5rem;
-  text-decoration: none;
-
-  &::after {
-    position: absolute;
-    inset: 0;
-    content: '';
-  }
-}
-
 .ui-stat-card-value {
   font-size: font-size(5);
   font-weight: font-weight('bold');
+  font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
+}
+
+.ui-stat-card-alert {
+  flex: none;
+  color: color('on-warning-soft');
+}
+
+.ui-stat-card-chevron {
+  flex: none;
+  color: color('text-muted');
 }

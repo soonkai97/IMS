@@ -22,6 +22,52 @@
         <app-button bannerActions (clicked)="onRetry()">{{ 'ui.retry' | t }}</app-button>
       </app-banner>
     } @else {
+      @if ($canCreate() && ($counts()?.returnedToMe ?? 0) > 0) {
+        <section class="home-page-returned" aria-labelledby="home-returned-heading">
+          <div class="home-page-section-head">
+            <h2 id="home-returned-heading" class="home-page-section-title">
+              {{ 'home.returnedToMe' | t }} ({{ $counts()?.returnedToMe | appQty }})
+            </h2>
+            <a class="ui-link-button" [routerLink]="$returnedLink()">{{ 'home.seeAll' | t }}</a>
+          </div>
+          <p class="home-page-hint">{{ 'home.returnedHint' | t }}</p>
+          @if ($feedLoading()) {
+            <app-skeleton [count]="2" />
+          } @else if ($feedFailed()) {
+            <app-banner kind="danger">
+              {{ $feedError() || ('error.generic' | t) }}
+              <app-button bannerActions (clicked)="onRetryFeed()">{{ 'ui.retry' | t }}</app-button>
+            </app-banner>
+          } @else if ($returnedRows().length > 0) {
+            <ul class="home-page-rows">
+              @for (row of $returnedRows(); track row.id) {
+                <li>
+                  <a class="home-page-row" [routerLink]="documentLink(row)">
+                    <app-icon [name]="isIssue(row) ? 'issue' : 'receipt'" />
+                    <span class="home-page-row-text">
+                      <span class="home-page-row-no">
+                        <span class="home-page-sr-only"
+                          >{{ row.type | enumLabel: typeLabels }}
+                        </span>
+                        {{ row.no }}
+                      </span>
+                      <span class="home-page-row-meta">
+                        {{ row.partnerName || row.warehouseName }} ·
+                        {{ row.createdAt | appDate: false }}
+                      </span>
+                    </span>
+                    <app-status-chip flag="warning" [label]="'doc.returned' | t" />
+                    <app-icon class="home-page-row-chevron" name="chevron-right" [size]="16" />
+                  </a>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="home-page-hint">{{ 'home.returnedOlder' | t }}</p>
+          }
+        </section>
+      }
+
       <section class="home-page-stats" [attr.aria-label]="'home.stats' | t">
         @if ($counts(); as counts) {
           @if ($canCreate()) {
@@ -29,12 +75,14 @@
               icon="undo"
               [label]="'home.returnedToMe' | t"
               [value]="counts.returnedToMe | appQty"
+              [link]="$returnedLink()"
               [attention]="counts.returnedToMe > 0"
             />
             <app-stat-card
               icon="pencil"
               [label]="'home.myDrafts' | t"
               [value]="counts.myDrafts | appQty"
+              [link]="$draftsLink()"
             />
           }
           @if ($canApprove()) {
@@ -51,6 +99,7 @@
               icon="check"
               [label]="'home.postedToday' | t"
               [value]="counts.postedToday | appQty"
+              [link]="$postedTodayLink()"
             />
           }
         }
@@ -68,12 +117,14 @@
               icon="stock"
               [label]="'home.stockValue' | t"
               [value]="summary.totalValue | appMoney"
+              [link]="['/stock']"
             />
           </ng-container>
           <app-stat-card
             icon="tag"
             [label]="'home.skuCount' | t"
             [value]="summary.skuCount | appQty"
+            [link]="['/stock']"
           />
         }
       </section>
