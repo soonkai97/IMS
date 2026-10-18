@@ -51,10 +51,10 @@ public partial class EndpointCoverageTests
     }
 
     [Fact]
-    public void Only_attachments_can_be_deleted_everything_else_is_deactivated()
+    public void Only_attachments_and_roles_can_be_deleted_everything_else_is_deactivated()
     {
-        // Attachments are files hung on a document or product, not master data, so they may be removed.
-        var verbs = typeof(Program).Assembly.GetTypes().Where(t => typeof(ControllerBase).IsAssignableFrom(t) && t.Name != "AttachmentsController")
+        // Attachments are files hung on a document or product, not master data, so they may be removed. A role is configuration with no history of its own beyond the audit trail; it is deleted only when nobody holds it (ADR roles-permissions 5).
+        var verbs = typeof(Program).Assembly.GetTypes().Where(t => typeof(ControllerBase).IsAssignableFrom(t) && t.Name is not ("AttachmentsController" or "RolesController"))
             .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             .SelectMany(m => m.GetCustomAttributes<HttpMethodAttribute>())
             .SelectMany(a => a.HttpMethods)

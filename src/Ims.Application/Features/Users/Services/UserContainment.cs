@@ -20,7 +20,7 @@ internal static class UserContainment
         var rights = caller.Rights();
         var sawMore = (target.AllWarehouses && !caller.AllWarehouses)
                       || (!target.AllWarehouses && target.Warehouses.Any(w => !caller.CanAccessWarehouse(w.WarehouseId)))
-                      || target.Role.Grants.Any(g => !rights.Has(g.PermissionCode));
+                      || !rights.HoldsAll(target.Role.Grants.Select(g => g.PermissionCode));
         if (sawMore) throw new ForbiddenException(Messages.UserBeyondYourAccess);
     }
 
@@ -29,7 +29,7 @@ internal static class UserContainment
     public static void CheckAssignment(Role role, IReadOnlyCollection<int> warehouseIds, ICurrentUser caller)
     {
         var rights = caller.Rights();
-        if (role.Grants.Any(g => !rights.Has(g.PermissionCode))) throw new ForbiddenException(Messages.RoleBeyondYourAccess);
+        if (!rights.HoldsAll(role.Grants.Select(g => g.PermissionCode))) throw new ForbiddenException(Messages.RoleBeyondYourAccess);
         if (warehouseIds.Any(id => !caller.CanAccessWarehouse(id))) throw new ForbiddenException(Messages.WarehouseOutsideYourScope);
     }
 }

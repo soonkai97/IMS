@@ -4,6 +4,7 @@ namespace Ims.Domain;
 public static class AuditEntities
 {
     public const string User = nameof(Ims.Domain.User);
+    public const string Role = nameof(Ims.Domain.Role);
     public const string StockDocument = nameof(Ims.Domain.StockDocument);
     public const string SystemSetting = nameof(Ims.Domain.SystemSetting);
     public const string Product = nameof(Ims.Domain.Product);
