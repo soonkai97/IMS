@@ -1,9 +1,23 @@
-<app-icon class="ui-stat-card-icon" [name]="$icon()" />
-<div class="ui-stat-card-text">
-  @if ($link(); as link) {
-    <a class="ui-stat-card-label ui-stat-card-link" [routerLink]="link">{{ $label() }}</a>
-  } @else {
+<ng-template #body>
+  <span class="ui-stat-card-badge"><app-icon [name]="$icon()" /></span>
+  <span class="ui-stat-card-text">
     <span class="ui-stat-card-label">{{ $label() }}</span>
+    <span class="ui-stat-card-value">{{ $value() }}</span>
+  </span>
+  @if ($attention()) {
+    <app-icon class="ui-stat-card-alert" name="alert" [size]="16" />
   }
-  <span class="ui-stat-card-value">{{ $value() }}</span>
-</div>
+  @if ($link()) {
+    <app-icon class="ui-stat-card-chevron" name="chevron-right" [size]="16" />
+  }
+</ng-template>
+
+@if ($link(); as link) {
+  <a class="ui-stat-card-body ui-stat-card-link" [routerLink]="link">
+    <ng-container *ngTemplateOutlet="body" />
+  </a>
+} @else {
+  <div class="ui-stat-card-body">
+    <ng-container *ngTemplateOutlet="body" />
+  </div>
+}

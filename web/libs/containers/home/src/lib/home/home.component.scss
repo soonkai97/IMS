@@ -28,8 +28,94 @@
   }
 }
 
+.home-page-returned {
+  margin-bottom: space(3);
+}
+
+.home-page-section-head {
+  display: flex;
+  gap: space(2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home-page-section-title {
+  margin: 0;
+  font-size: font-size(4);
+}
+
+.home-page-hint {
+  margin: space(1) 0;
+  font-size: font-size(2);
+  color: color('text-muted');
+}
+
+.home-page-rows {
+  display: grid;
+  gap: space(1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.home-page-row {
+  display: flex;
+  gap: space(1);
+  align-items: center;
+  min-height: height('touch');
+  padding: space(1) space(2);
+  color: inherit;
+  text-decoration: none;
+  background: color('surface');
+  border: border-width('thin') solid color('border');
+  border-radius: border-radius('md');
+
+  &:hover {
+    background: color('surface-sunken');
+  }
+}
+
+.home-page-row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+// The number never breaks; the chip drops under it when the line is too narrow (a 360px phone).
+.home-page-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(0) space(1);
+  align-items: center;
+}
+
+.home-page-row-no {
+  @include keep-whole;
+
+  font-weight: font-weight('bold');
+}
+
+// Two lines at most: a very long partner name must not push the tiles off the screen (the full text stays in the DOM).
+.home-page-row-meta {
+  @include clamp-lines(2);
+
+  overflow-wrap: anywhere;
+  font-size: font-size(2);
+  color: color('text-muted');
+}
+
+.home-page-row-chevron {
+  flex: none;
+  color: color('text-muted');
+}
+
+.home-page-sr-only {
+  @include visually-hidden;
+}
+
 .home-page-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
   gap: space(2);
 }

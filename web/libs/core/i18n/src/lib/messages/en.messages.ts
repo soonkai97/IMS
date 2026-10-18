@@ -181,7 +181,11 @@ export const EN_MESSAGES = {
   'home.noWarehouse': "You aren't assigned to a warehouse yet. Ask an Admin.",
   'home.postedToday': 'Posted today',
   'home.receive': 'Receive stock',
+  'home.returnedHint': 'A reviewer sent these back. Fix them, then send them again.',
+  'home.returnedOlder':
+    'Your returned drafts are older than the newest 25. Open the list to see them.',
   'home.returnedToMe': 'Returned to me',
+  'home.seeAll': 'See all',
   'home.skuCount': 'Products with stock',
   'home.stats': 'Overview',
   'home.stockValue': 'Stock value ({currency})',
