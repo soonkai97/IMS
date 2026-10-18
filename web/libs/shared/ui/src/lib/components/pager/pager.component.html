@@ -1,9 +1,32 @@
-<p class="ui-pager-range" aria-live="polite">{{ $range() }}</p>
+<p class="ui-pager-range">{{ $range() }}</p>
+<span class="ui-pager-announce" aria-live="polite" aria-atomic="true">{{ $announcement() }}</span>
+@if ($pageSizes().length > 0) {
+  <div class="ui-pager-size">
+    <label class="ui-pager-size-label" [for]="sizeId">{{ $text().pageSize }}</label>
+    <div class="ui-pager-size-box">
+      <select class="ui-pager-size-control" [id]="sizeId" (change)="onPageSize($event)">
+        @for (size of $pageSizes(); track size) {
+          <option [value]="size" [selected]="size === $pageSize()">{{ size }}</option>
+        }
+      </select>
+      <app-icon class="ui-pager-size-arrow" name="chevron-down" />
+    </div>
+  </div>
+}
 <nav class="ui-pager-nav" [attr.aria-label]="$pageLabel()">
   <app-button
+    class="ui-pager-wide"
     variant="ghost"
-    [disabled]="!$hasPrevious()"
-    [ariaLabel]="$previousLabel()"
+    [ariaDisabled]="!$hasPrevious()"
+    [ariaLabel]="$text().firstPage"
+    (clicked)="onFirst()"
+  >
+    <app-icon name="chevrons-left" />
+  </app-button>
+  <app-button
+    variant="ghost"
+    [ariaDisabled]="!$hasPrevious()"
+    [ariaLabel]="$text().previousPage"
     (clicked)="onPrevious()"
   >
     <app-icon name="chevron-left" />
@@ -11,10 +34,19 @@
   <span class="ui-pager-page">{{ $pageLabel() }}</span>
   <app-button
     variant="ghost"
-    [disabled]="!$hasNext()"
-    [ariaLabel]="$nextLabel()"
+    [ariaDisabled]="!$hasNext()"
+    [ariaLabel]="$text().nextPage"
     (clicked)="onNext()"
   >
     <app-icon name="chevron-right" />
+  </app-button>
+  <app-button
+    class="ui-pager-wide"
+    variant="ghost"
+    [ariaDisabled]="!$hasNext()"
+    [ariaLabel]="$text().lastPage"
+    (clicked)="onLast()"
+  >
+    <app-icon name="chevrons-right" />
   </app-button>
 </nav>

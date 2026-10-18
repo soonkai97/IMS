@@ -44,6 +44,15 @@ Page (container)  ->  feature store (signals)  ->  NSwag client (@ims/api)  ->  
   side effects go in `tap`.
 - Paging is server-side everywhere a list can grow (`PagedQuery { page, pageSize, sortBy?, desc? }`); `app-table` shows server
   sort, `app-pager` the range. Seek paging (opaque `cursor` / `nextCursor`, never parsed) exists for ledger / documents / audit and is not needed for the current grids.
+- Table toolbar contract (TB). `app-pager`: First / Previous / Next / Last and, with `pageSizes` (`PAGE_SIZES` 25/50/100) plus
+  `(pageSizeChange)`, a "Rows per page" select; First, Last and the select appear only when the pager's own box is 45rem or wider.
+  `createPageState` owns page and size (a new size goes back to page 1). The focus never moves on a page or size change: a button the
+  new page cannot use is `aria-disabled` (still focusable), so a keyboard user pages on from the button, and a polite live region
+  announces "Page 2 of 14, 26-50 of 333" once (the join is the `ui.pageAnnouncement` message). `app-table` `columnMenu` (opt-in): a
+  "Columns" button opens a native `popover` with one checkbox per column except the `primary` column and `type: 'action'` columns
+  (give every button column that type). Hidden columns apply to the wide table only; the card list shows all. Not remembered yet
+  (persistence belongs to the saved-state slice). Browser floor for the popover: Chrome 114, Safari 17, Firefox 125; below it the
+  toolbar is hidden (`@supports selector(:popover-open)`), so every column shows and nothing breaks.
 - Documents: the server sends `allowedActions[]`; `app-document-actions` renders **only** those buttons (D3). The UI never
   re-implements who may do what. `DocumentEditorViewService` holds the typed reactive form (header + `FormArray` of line groups),
   totals and shortfall maths (`features-documents/lines`). Insufficient stock: E1 inline per line (blocked) or E2 (override needed when the

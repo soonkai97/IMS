@@ -45,6 +45,8 @@ export interface TableCell {
   readonly primary: boolean;
   readonly alignEnd: boolean;
   readonly hideOnPhone: boolean;
+  /** Switched off in the column menu (a wide table only). */
+  readonly hidden: boolean;
   readonly phoneEnd: boolean;
   readonly phoneInline: boolean;
   /** Nothing to show: dropped from the card instead of leaving a blank row. */
@@ -57,6 +59,7 @@ export interface TableHeader {
   readonly header: string;
   readonly alignEnd: boolean;
   readonly hideOnPhone: boolean;
+  readonly hidden: boolean;
   readonly sortKey: string | undefined;
   /** aria-sort value for the header cell. */
   readonly ariaSort: 'ascending' | 'descending' | 'none' | undefined;
@@ -66,6 +69,18 @@ export interface TableItem<Row> {
   readonly row: Row;
   readonly link: readonly unknown[] | null;
   readonly cells: readonly TableCell[];
+}
+
+/** A line of the column menu. */
+export interface TableMenuColumn {
+  readonly key: string;
+  readonly header: string;
+  readonly visible: boolean;
+}
+
+/** The identifier (the row link) and an action column cannot be hidden: without them a row cannot be told apart or used. */
+export function isColumnLocked<Row>(column: TableColumn<Row>): boolean {
+  return column.primary === true || columnTypeOf(column) === 'action';
 }
 
 /** The column type to use: the declared one, else derived from `align` and `primary`. */

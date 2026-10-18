@@ -15,6 +15,13 @@ export interface UiText {
   readonly showPassword: string;
   readonly previousPage: string;
   readonly nextPage: string;
+  readonly firstPage: string;
+  readonly lastPage: string;
+  /** The name of the page size select: "Rows per page". */
+  readonly pageSize: string;
+  /** The name of the column menu button and its group, and its reset button. */
+  readonly columns: string;
+  readonly showAllColumns: string;
   readonly clear: string;
   readonly retry: string;
   /** The word a button shows for 1.5s after a save that stays on the screen. */
@@ -34,6 +41,8 @@ export interface UiText {
   /** "Enter a reason of at least {length} characters." for a reason box that is empty or too short. */
   reasonTooShort(length: number): string;
   pageStatus(page: number, pages: number): string;
+  /** The page and the range in one sentence, joined the way the language joins clauses: "Page 2 of 14, 26-50 of 333". */
+  pageAnnouncement(status: string, range: string): string;
   rangeStatus(from: number, to: number, total: number): string;
   validationMessage(key: string, error: unknown): string;
 }
@@ -47,6 +56,11 @@ const DEFAULT_UI_TEXT: UiText = {
   showPassword: 'Show password',
   previousPage: 'Previous page',
   nextPage: 'Next page',
+  firstPage: 'First page',
+  lastPage: 'Last page',
+  pageSize: 'Rows per page',
+  columns: 'Columns',
+  showAllColumns: 'Show all columns',
   clear: 'Clear',
   retry: 'Retry',
   saved: 'Saved',
@@ -61,6 +75,7 @@ const DEFAULT_UI_TEXT: UiText = {
   errorTitle: 'Something went wrong',
   reasonTooShort: length => `Enter a reason of at least ${length} characters.`,
   pageStatus: (page, pages) => `Page ${page} of ${pages}`,
+  pageAnnouncement: (status, range) => `${status}, ${range}`,
   rangeStatus: (from, to, total) => `${from}-${to} of ${total}`,
   validationMessage: (key, error) => (typeof error === 'string' ? error : `Invalid value (${key}).`)
 };

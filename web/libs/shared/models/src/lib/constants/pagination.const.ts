@@ -1,4 +1,6 @@
 export const DEFAULT_PAGE_SIZE = 25;
+/** Page sizes a desktop list offers (all below the API's 200 maximum). */
+export const PAGE_SIZES: readonly number[] = [25, 50, 100];
 export const FIRST_PAGE = 1;
 /** Debounce for type-ahead search boxes (milliseconds). */
 export const SEARCH_DEBOUNCE_MS = 300;

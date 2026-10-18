@@ -11,7 +11,10 @@ export const ICON_PATHS = {
   'chevron-left': 'M15 6l-6 6 6 6',
   'chevron-right': 'M9 6l6 6-6 6',
   'chevron-up': 'M6 15l6-6 6 6',
+  'chevrons-left': 'M11 6l-6 6 6 6 M18 6l-6 6 6 6',
+  'chevrons-right': 'M6 6l6 6-6 6 M13 6l6 6-6 6',
   clock: 'M12 7v5l3 2 M12 3a9 9 0 100 18 9 9 0 000-18z',
+  columns: 'M4 5h16v14H4z M9 5v14 M15 5v14',
   download: 'M12 4v11 M7 11l5 5 5-5 M4 15v5h16v-5',
   eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 9a3 3 0 100 6 3 3 0 000-6z',
   'eye-off':

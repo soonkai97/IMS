@@ -19,6 +19,11 @@ export function provideUiText(): EnvironmentProviders {
           showPassword: i18n.t('ui.showPassword'),
           previousPage: i18n.t('ui.previousPage'),
           nextPage: i18n.t('ui.nextPage'),
+          firstPage: i18n.t('ui.firstPage'),
+          lastPage: i18n.t('ui.lastPage'),
+          pageSize: i18n.t('ui.pageSize'),
+          columns: i18n.t('ui.columns'),
+          showAllColumns: i18n.t('ui.showAllColumns'),
           clear: i18n.t('ui.clear'),
           retry: i18n.t('ui.retry'),
           saved: i18n.t('ui.saved'),
@@ -33,6 +38,7 @@ export function provideUiText(): EnvironmentProviders {
           errorTitle: i18n.t('ui.errorTitle'),
           reasonTooShort: length => i18n.t('validation.reasonMinLength', { length }),
           pageStatus: (page, pages) => i18n.t('ui.pageStatus', { page, pages }),
+          pageAnnouncement: (status, range) => i18n.t('ui.pageAnnouncement', { status, range }),
           rangeStatus: (from, to, total) => i18n.t('ui.rangeStatus', { from, to, total }),
           validationMessage: (key, error) => validationMessage(i18n, key, error)
         });
