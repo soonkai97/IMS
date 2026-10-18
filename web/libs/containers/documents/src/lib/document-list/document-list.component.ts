@@ -30,7 +30,7 @@ import {
   STATUS_TONE
 } from '@ims/features/documents';
 import { WarehousesStore } from '@ims/features/warehousing';
-import { API_MIN_SEARCH_LENGTH, DEFAULT_PAGE_SIZE, PERMISSION, PublicId } from '@ims/models';
+import { API_MIN_SEARCH_LENGTH, PAGE_SIZES, PERMISSION, PublicId } from '@ims/models';
 import {
   SelectOption,
   StatusTone,
@@ -132,6 +132,7 @@ export class DocumentListPageComponent implements OnInit {
       this.$to()
     ])
   );
+  readonly pageSizes = PAGE_SIZES;
   private readonly pageState = createPageState(this.$filterKey);
 
   readonly $query = computed<DocumentQuery>(() => ({
@@ -143,7 +144,7 @@ export class DocumentListPageComponent implements OnInit {
     to: this.$to() || undefined,
     search: this.$search() || undefined,
     page: this.pageState.$page(),
-    pageSize: DEFAULT_PAGE_SIZE
+    pageSize: this.pageState.$pageSize()
   }));
 
   // The sentence under To: no request is sent for a reversed range (the API would answer 400), and no old rows stay.
@@ -245,6 +246,10 @@ export class DocumentListPageComponent implements OnInit {
 
   onPageChange(page: number): void {
     this.pageState.set(page);
+  }
+
+  onPageSizeChange(pageSize: number): void {
+    this.pageState.setPageSize(pageSize);
   }
 
   onScopeChange(scope: string): void {

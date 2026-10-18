@@ -53,6 +53,22 @@ function declarations(selector: string): string {
   return found.join('\n');
 }
 
+describe('app-table styles (TB column menu)', () => {
+  it('hides a switched-off column only in the wide table: a card list always shows every column', () => {
+    expect(declarations('.ui-table-header.--user-hidden')).toContain('display: none');
+    expect(declarations('.ui-table-cell.--user-hidden')).toContain('display: none');
+    expect(NARROW).not.toContain('--user-hidden');
+  });
+
+  it('offers the toolbar only where the popover attribute exists, and only in the wide table', () => {
+    expect(css).toMatch(/\.ui-table-toolbar\s*{\s*display: none/);
+    expect(WIDE).toMatch(
+      /@supports selector\(:popover-open\)\s*{\s*\.ui-table-toolbar\s*{[^}]*display: flex/
+    );
+    expect(NARROW).not.toContain('.ui-table-toolbar');
+  });
+});
+
 describe('app-table styles (A02)', () => {
   it('is its own size container, so it answers to its box and not to the window', () => {
     expect(css).toMatch(/:host\s*{[^}]*container: ims-table ?\/ ?inline-size/);
