@@ -32,6 +32,8 @@ public static class Limits
     public const int MaxRetryAttempts = 5;
     /// <summary>How long a posting waits for another posting of the same product to finish before giving up (and being retried).</summary>
     public const int StockLockTimeoutMs = 10_000;
+    /// <summary>How long a user or role write waits for the roles lock before answering 409 (not retried: those writes are short, so a longer wait means a stuck holder).</summary>
+    public const int RolesLockTimeoutMs = 5_000;
     /// <summary>Back-off before a retry = attempt x (base + random jitter), so colliding requests do not retry in lockstep.</summary>
     public const int RetryBaseDelayMs = 25;
     public const int RetryJitterMs = 50;
