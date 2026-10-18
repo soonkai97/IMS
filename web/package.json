@@ -53,13 +53,13 @@
     "@swc/core": "^1.13.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.19.0",
-    "angular-eslint": "^22.5.0",
+    "angular-eslint": "^22.6.0",
     "eslint": "^10.12.0",
     "eslint-config-prettier": "^10.1.0",
     "husky": "^9.1.7",
     "jest": "^30.0.0",
     "jest-environment-jsdom": "^30.0.0",
-    "jest-preset-angular": "^17.0.2",
+    "jest-preset-angular": "^17.0.3",
     "jsonc-eslint-parser": "^3.3.0",
     "lint-staged": "^17.6.0",
     "nswag": "^14.7.1",
@@ -70,7 +70,7 @@
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.40.0"
+    "typescript-eslint": "^8.71.2"
   },
   "overrides": {
     "undici": "^7.30.0",
