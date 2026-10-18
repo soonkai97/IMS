@@ -6,6 +6,15 @@ public class UserTests
 {
     private static User NewUser(string role = Roles.Clerk) => User.Create("alice", "alice@example.com", "Alice", NewRole(role), "hash");
 
+    [Theory]
+    [InlineData(Roles.Admin, true, true)]
+    [InlineData(Roles.Admin, false, false)]      // a deactivated person administers nothing
+    [InlineData(Roles.Owner, true, false)]       // a live role without the whole core
+    public void IsAdministrator_IsTheRolesCoreAndTheUsersActivity_NotTheRoleName(string role, bool active, bool expected)
+    {
+        Assert.Equal(expected, User.Create("alice", "alice@example.com", "Alice", NewRole(role), "hash", isActive: active).IsAdministrator);
+    }
+
     // ----- Create / profile -----
     [Fact]
     public void Create_TrimsFieldsAndKeepsHashAndRole()

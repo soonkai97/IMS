@@ -2,6 +2,8 @@ using System.Net;
 using Ims.Api.Tests.Builders;
 using Ims.Api.Tests.Clients;
 using Ims.Api.Tests.Harness;
+using Ims.Api.Tests.Support;
+using Ims.Application.Features.Roles;
 using Ims.Application.Features.Catalog;
 using Ims.Application.Features.Documents;
 using Ims.Domain;
@@ -166,6 +168,32 @@ public class ApprovalTests(ApiFixture fixture)
         Assert.Contains("cannot approve a document you submitted", self.ShouldBeProblem(HttpStatusCode.BadRequest).Detail);
         Assert.Equal(DocumentStatus.Submitted, (await s.GetAsync(submitted.Id)).Status);
         (await s.Admin.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();
+    }
+
+    [Theory]
+    [InlineData(false)]   // a rule of the standard tier: the submitter holds document.approve
+    [InlineData(true)]    // a rule of the large tier: the submitter holds document.approve.large (through a custom role: the Owner cannot create documents)
+    public async Task A_submitter_who_holds_the_approval_permission_of_the_rules_tier_is_still_refused_their_own_document(bool large)
+    {
+        var s = await StockScenario.CreateAsync(fixture);
+        var product = await s.NewProductAsync();
+        await s.ReceiveAsync(Warehouse, new Line(product.Id, 500, 1m));
+        await using var _ = await ApprovalRuleScope.AddAsync(s.Admin, DocumentType.Issue, null, 400, large ? Roles.Owner : Roles.Supervisor);
+        var submitter = large ? await SignInWithAsync(s, Permissions.DocumentCreate, Permissions.DocumentApproveLarge, Permissions.StockRead) : s.Supervisor;
+        var submitted = await s.SubmitAsync(submitter, await s.DraftIssueAsync(submitter, Warehouse, new Line(product.Id, 400)));
+
+        var self = await submitter.Documents.ApproveAsync(submitted.Id);
+
+        Assert.Contains("cannot approve a document you submitted", self.ShouldBeProblem(HttpStatusCode.BadRequest).Detail);
+        Assert.Equal(DocumentStatus.Submitted, (await s.GetAsync(submitted.Id)).Status);
+        (await s.Admin.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();
+    }
+
+    private async Task<ApiClient> SignInWithAsync(StockScenario s, params string[] permissions)
+    {
+        var role = (await s.Admin.CreateAsync(Unique.Name("Submitter"), permissions)).Data<RoleDto>();
+        var account = await new AccountFactory(fixture).CreateAsync(role.Code);
+        return (await new AccountFactory(fixture).SignInAsync(account)).Client;
     }
 
     [Fact]

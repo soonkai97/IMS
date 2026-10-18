@@ -6,7 +6,9 @@ internal static class UserFilters
 {
     public static void Apply(ISpecificationBuilder<User> query, UserFilter f)
     {
-        query.AsNoTracking();
+        // A user is listed whatever the state of their role: the global filter would drop a user whose role row is soft-deleted (the required join), who could then neither be seen nor moved
+        // to a live role. So the filters are off here and only the user's own deletion is applied.
+        query.AsNoTracking().IgnoreQueryFilters().Where(u => !u.RecDeleted);
         if (!string.IsNullOrWhiteSpace(f.Search))
         {
             var s = f.Search.Trim();

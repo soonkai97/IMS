@@ -45,7 +45,7 @@ const prods = must(await raw('GET', '/api/products?pageSize=100', { token: T.adm
 const p1 = prods.find((p) => p.sku === 'DEMO-001');
 const goneProd = prods.find((p) => p.sku === 'ZZ-GONE') ?? must(await raw('POST', '/api/products', { token: T.admin, body: { sku: 'ZZ-GONE', name: 'Gone product', baseUomId: pcs.id, safetyStock: 0, isActive: true, barcodes: [], conversions: [] } }), 'prod');
 const rules = must(await raw('GET', '/api/approval-rules', { token: T.admin }), 'rules');
-const goneRule = rules.find((r) => r.amountThreshold === 77777) ?? must(await raw('POST', '/api/approval-rules', { token: T.admin, body: { docType: 'Issue', amountThreshold: 77777, qtyThreshold: null, roleRequired: 'Supervisor', isActive: true } }), 'rule');
+const goneRule = rules.find((r) => r.amountThreshold === 77777) ?? must(await raw('POST', '/api/approval-rules', { token: T.admin, body: { docType: 'Issue', amountThreshold: 77777, qtyThreshold: null, approverTier: 'Standard', isActive: true } }), 'rule');
 
 const line = (qty = 10) => ({ productId: p1.id, qty, uomId: null, unitCost: 2, remark: null });
 const receipt = async (tok, wh, remark) => must(await raw('POST', '/api/documents/receipts', { token: tok, body: { warehouseId: wh.id, partnerId: sup.id, purpose: null, remark, lines: [line()] } }), 'receipt ' + remark);

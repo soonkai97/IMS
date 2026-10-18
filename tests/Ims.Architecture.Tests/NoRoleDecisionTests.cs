@@ -39,9 +39,7 @@ public class NoRoleDecisionTests
         ["Ims.Domain/Identity/Services/SystemRoleDefaults.cs"] = "the table of default grants of the system roles (read by tests; the migration seeds a frozen copy)",
         ["Ims.Infrastructure/SeedDefaults.cs"] = "names the roles of the demo users it seeds",
         ["Ims.Infrastructure/Persistence/Seeder.cs"] = "seeds the first administrator when none exists (bootstrap, not an access decision)",
-        ["Ims.Application/Common/ApproverTierNames.cs"] = "maps the deprecated roleRequired text of a rule request to a tier and back; removed with that field (P04)",
-        ["Ims.Application/Features/Users/UseCases/UpdateUser/UpdateUserHandler.cs"] = "last-administrator guard, a safety rail on a write; RP-6 replaces it with the administrability core",
-        ["Ims.Application/Features/Users/Specifications/ActiveAdminsSpec.cs"] = "the query behind the last-administrator guard; RP-6 replaces it"
+        ["Ims.Application/Common/ApproverTierNames.cs"] = "shows the deprecated roleRequired text in the rule and trigger responses (output only); removed with those fields when the web stops printing them"
     };
 
     [Fact]

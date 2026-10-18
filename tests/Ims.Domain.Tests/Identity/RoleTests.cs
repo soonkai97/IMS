@@ -209,4 +209,31 @@ public class RoleTests
         Assert.False(Role.Create("Copy", "Copy", null, false, PermissionCatalog.Codes).PermissionsLocked);        // custom: never
         Assert.False(Role.Create("Almost", "Almost", null, true, adminCore.Skip(1)).PermissionsLocked);           // missing one
     }
+
+    [Fact]
+    public void Administers_IsTrueForALiveRoleThatHoldsTheWholeCore_SystemOrCustom_AndForNothingElse()
+    {
+        var core = PermissionCatalog.AdminCoreCodes;
+
+        Assert.True(Role.Create(SystemRoleCodes.Admin, "Administrator", null, true, PermissionCatalog.Codes).Administers);
+        Assert.True(Role.Create("Deputy", "Deputy", null, false, core).Administers);                              // custom, nothing but the core
+        Assert.False(Role.Create("Almost", "Almost", null, false, core.Skip(1)).Administers);                     // missing one
+        Assert.False(Role.Create(SystemRoleCodes.Owner, "Owner", null, true, SystemRoleDefaults.For(SystemRoleCodes.Owner)).Administers);
+
+        var inactive = Role.Create("Gone", "Gone", null, false, core);
+        inactive.SetActive(false);
+        Assert.False(inactive.Administers);
+        var deleted = Role.Create("Deleted", "Deleted", null, false, core);
+        deleted.Delete();
+        Assert.False(deleted.Administers);
+    }
+
+    [Fact]
+    public void HoldsAdminCore_NeedsEveryCoreCodeExactly()
+    {
+        Assert.True(Role.HoldsAdminCore(PermissionCatalog.Codes));
+        Assert.False(Role.HoldsAdminCore([]));
+        Assert.False(Role.HoldsAdminCore(PermissionCatalog.AdminCoreCodes.Select(c => c.ToUpperInvariant())));
+        Assert.Equal([Permissions.UsersRead, Permissions.UsersManage, Permissions.RolesRead, Permissions.RolesManage], PermissionCatalog.AdminCoreCodes);
+    }
 }
