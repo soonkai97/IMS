@@ -45,18 +45,20 @@
                   <a class="home-page-row" [routerLink]="documentLink(row)">
                     <app-icon [name]="isIssue(row) ? 'issue' : 'receipt'" />
                     <span class="home-page-row-text">
-                      <span class="home-page-row-no">
-                        <span class="home-page-sr-only"
-                          >{{ row.type | enumLabel: typeLabels }}
+                      <span class="home-page-row-head">
+                        <span class="home-page-row-no">
+                          <span class="home-page-sr-only"
+                            >{{ row.type | enumLabel: typeLabels }}
+                          </span>
+                          {{ row.no }}
                         </span>
-                        {{ row.no }}
+                        <app-status-chip flag="warning" [label]="'doc.returned' | t" />
                       </span>
                       <span class="home-page-row-meta">
                         {{ row.partnerName || row.warehouseName }} ·
                         {{ row.createdAt | appDate: false }}
                       </span>
                     </span>
-                    <app-status-chip flag="warning" [label]="'doc.returned' | t" />
                     <app-icon class="home-page-row-chevron" name="chevron-right" [size]="16" />
                   </a>
                 </li>
