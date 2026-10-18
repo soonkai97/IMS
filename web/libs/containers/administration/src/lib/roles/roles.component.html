@@ -1,0 +1,58 @@
+<app-page-header [heading]="'roles.title' | t" [subtitle]="'roles.appliesLater' | t">
+  @if (!$canManage()) {
+    <span chips class="roles-page-view-only">
+      <app-icon name="eye" [size]="16" />
+      {{ 'roles.viewOnly' | t }}
+    </span>
+  }
+</app-page-header>
+
+<div class="roles-page-filters">
+  <app-search-input
+    [(value)]="$searchInput"
+    [label]="'roles.searchLabel' | t"
+    [placeholder]="'roles.searchPlaceholder' | t"
+    [maxLength]="searchMaxLength"
+  />
+  <app-checkbox [formControl]="includeInactive">{{ 'roles.showInactive' | t }}</app-checkbox>
+</div>
+
+<app-table
+  [columns]="$columns()"
+  [rows]="$rows()"
+  [caption]="'roles.title' | t"
+  [loading]="$isLoading()"
+  [failed]="$failed()"
+  (retried)="onRetry()"
+>
+  <ng-template appCell="kind" let-row>
+    <span class="roles-page-kind">
+      <app-icon [name]="kindIcon(row)" [size]="16" />
+      {{ kindLabel(row) }}
+    </span>
+  </ng-template>
+  <ng-template appCell="status" let-row>
+    <app-status-chip
+      [label]="(row.isActive ? 'product.active' : 'product.inactive') | t"
+      [status]="row.isActive ? 'posted' : 'cancelled'"
+    />
+  </ng-template>
+  <app-empty-state
+    empty
+    icon="shield"
+    [message]="
+      ($isSearching() ? 'roles.emptySearch' : 'roles.empty') | t: { query: $query().search ?? '' }
+    "
+  />
+</app-table>
+
+@if ($total() > 0) {
+  <app-pager
+    [pageSizes]="pageSizes"
+    (pageSizeChange)="onPageSizeChange($event)"
+    [page]="$page()"
+    [pageSize]="$pageSize()"
+    [total]="$total()"
+    (pageChange)="onPageChange($event)"
+  />
+}
