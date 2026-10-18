@@ -52,7 +52,7 @@
     "@swc-node/register": "^1.10.0",
     "@swc/core": "^1.13.0",
     "@types/jest": "^30.0.0",
-    "@types/node": "^20.19.0",
+    "@types/node": "^26.6.5",
     "angular-eslint": "^22.6.0",
     "eslint": "^10.12.0",
     "eslint-config-prettier": "^10.1.0",
