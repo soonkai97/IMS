@@ -4,29 +4,18 @@
   [backLabel]="'roles.title' | t"
   [subtitle]="$notFound() ? '' : ('roles.appliesLater' | t)"
 >
-  @if (!$isNew() && $baseline()) {
-    <span chips class="role-edit-page-chip">
-      <app-icon [name]="$baseline()?.isSystem ? 'lock' : 'pencil'" [size]="16" />
-      {{ $kindLabel() }}
+  @if ($role()) {
+    <span chips class="role-edit-page-chips">
+      <span class="role-edit-page-chip">
+        <app-icon [name]="$role()?.isSystem ? 'lock' : 'pencil'" [size]="16" />
+        {{ $kindLabel() }}
+      </span>
+      <span class="role-edit-page-chip">
+        <app-icon name="eye" [size]="16" />
+        {{ 'roles.viewOnly' | t }}
+      </span>
     </span>
   }
-  <div actions class="role-edit-page-actions">
-    @if ($editable() && $dirty()) {
-      <app-button variant="ghost" [disabled]="$isSaving()" (clicked)="onDiscard()">{{
-        'roleEdit.discard' | t
-      }}</app-button>
-    }
-    @if ($canDelete()) {
-      <app-button variant="danger-outline" [loading]="$isDeleting()" (clicked)="onDelete()">{{
-        'roleEdit.delete' | t
-      }}</app-button>
-    }
-    @if ($editable()) {
-      <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
-        'common.save' | t
-      }}</app-button>
-    }
-  </div>
 </app-page-header>
 
 @if ($notFound()) {
@@ -34,80 +23,35 @@
 } @else if ($loadFailed()) {
   <app-banner kind="danger">
     {{ 'error.generic' | t }}
-    <app-button bannerActions (clicked)="onRetryLoad()">{{ 'ui.retry' | t }}</app-button>
+    <app-button bannerActions (clicked)="onRetry()">{{ 'ui.retry' | t }}</app-button>
   </app-banner>
-} @else if ($isLoading() || !$catalog()) {
+} @else if (!$role() || !$catalog()) {
   <app-skeleton [count]="4" />
 } @else {
-  @if ($readOnlyReason()) {
-    <app-banner kind="info">{{ $readOnlyText() }}</app-banner>
-  } @else if ($isStandard()) {
-    <app-banner kind="info">{{ 'roleEdit.standardNote' | t }}</app-banner>
-  }
-  @if ($failure(); as failure) {
-    <app-banner kind="danger" class="role-edit-page-failure">
-      {{ failureText(failure) }}
-      @if (failure.kind === 'stale') {
-        <app-button bannerActions (clicked)="onReload()">{{ 'roleEdit.reload' | t }}</app-button>
-      }
-    </app-banner>
+  @if ($isLocked()) {
+    <app-banner kind="info">{{ 'roleEdit.readOnly.locked' | t }}</app-banner>
   }
 
-  <form class="role-edit-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
-    @if ($editable()) {
-      <app-form-legend />
-    }
-
+  <div class="role-edit-page-body">
     <app-card [heading]="'roleEdit.details' | t">
-      @if (!$isNew()) {
-        <p class="role-edit-page-muted">
-          {{ 'roleEdit.people' | t: { count: $baseline()?.userCount ?? 0 } }}
-        </p>
+      @if ($role()?.description; as description) {
+        <p class="role-edit-page-text">{{ description }}</p>
       }
-      <app-form-field
-        [label]="'roleEdit.name' | t"
-        [required]="$textEditable()"
-        [control]="form.controls.name"
-      >
-        <app-input formControlName="name" [maxLength]="nameMaxLength" />
-      </app-form-field>
-      <app-form-field [label]="'roleEdit.description' | t" [control]="form.controls.description">
-        <app-textarea formControlName="description" [maxLength]="descriptionMaxLength" />
-      </app-form-field>
-      @if (!$isNew()) {
-        <app-checkbox formControlName="isActive">{{ 'roleEdit.active' | t }}</app-checkbox>
-        @if ($textEditable()) {
-          <p class="role-edit-page-muted">{{ 'roleEdit.activeHint' | t }}</p>
-        }
-      } @else {
-        <app-form-field
-          [label]="'roleEdit.copyFrom' | t"
-          [hint]="'roleEdit.copyHint' | t"
-          [control]="form.controls.copyFromId"
-        >
-          <app-select
-            formControlName="copyFromId"
-            [options]="$copyOptions()"
-            [placeholder]="'roleEdit.copyBlank' | t"
-          />
-        </app-form-field>
-      }
+      <p class="role-edit-page-muted">
+        {{ 'roleEdit.people' | t: { count: $role()?.userCount ?? 0 } }}
+      </p>
+      <app-status-chip
+        [label]="($role()?.isActive ? 'product.active' : 'product.inactive') | t"
+        [status]="$role()?.isActive ? 'posted' : 'cancelled'"
+      />
     </app-card>
 
     <app-card [heading]="'roleEdit.permissions' | t">
-      @if ($editable()) {
-        <p class="role-edit-page-muted">{{ 'roleEdit.permissionsHint' | t }}</p>
-      }
       <app-permission-checklist
         [groups]="$groups()"
         [catalog]="$catalog() ?? []"
         [selected]="$selected()"
-        [held]="$held()"
-        [readOnly]="!$editable()"
-        (toggled)="onToggle($event)"
       />
     </app-card>
-  </form>
-
-  <p class="role-edit-page-live" role="status" aria-live="polite">{{ $announcement() }}</p>
+  </div>
 }

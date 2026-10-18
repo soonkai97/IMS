@@ -5,11 +5,6 @@
       {{ 'roles.viewOnly' | t }}
     </span>
   }
-  <div actions>
-    @if ($canManage()) {
-      <a class="ui-link-button --primary" routerLink="/roles/new">{{ 'roles.new' | t }}</a>
-    }
-  </div>
 </app-page-header>
 
 <div class="roles-page-filters">

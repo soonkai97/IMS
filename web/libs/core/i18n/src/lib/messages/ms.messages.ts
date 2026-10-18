@@ -562,54 +562,16 @@ export const MS_MESSAGES: Messages = {
   'roles.title': 'Peranan',
   'roles.users': 'Pengguna',
   'roles.viewOnly': 'Lihat sahaja',
-  // TODO-review: machine draft (role editor, RP02).
-  'roles.new': 'Peranan baharu',
-  'roleEdit.active': 'Aktif',
-  'roleEdit.activeHint': 'Peranan tidak aktif tidak boleh diberikan kepada sesiapa yang baharu.',
-  'roleEdit.alsoOff': 'Turut dimatikan: {names}.',
-  'roleEdit.alsoOn': 'Turut dihidupkan: {names}.',
-  'roleEdit.copyBlank': 'Peranan kosong, tiada kebenaran',
-  'roleEdit.copyFrom': 'Mula daripada',
-  'roleEdit.copyHint':
-    'Kebenaran disalin sekali sahaja dan peranan baharu tidak dipautkan kepada yang asal. Anda boleh mengubahnya di bawah sebelum menyimpan.',
-  'roleEdit.copyHolds': 'mempunyai kebenaran yang anda tiada',
-  'roleEdit.created': 'Peranan "{name}" dicipta.',
-  'roleEdit.delete': 'Padam peranan',
-  'roleEdit.deleteBody': 'Ini tidak boleh dibatalkan. Log audit menyimpan sejarahnya.',
-  'roleEdit.deleteTitle': 'Padam "{name}"?',
-  'roleEdit.deleted': 'Peranan "{name}" dipadam.',
-  'roleEdit.description': 'Penerangan',
+  // TODO-review: machine draft (role page, RP02).
   'roleEdit.details': 'Butiran',
-  'roleEdit.discard': 'Buang perubahan',
-  'roleEdit.failure.containment':
-    'Anda tidak boleh berbuat demikian. Anda hanya boleh memberi kebenaran yang anda miliki, dan hanya mengubah peranan yang tidak mempunyai lebih daripada anda.',
-  'roleEdit.failure.inUse':
-    '{count, plural, one {# orang mempunyai} other {# orang mempunyai}} peranan ini. Pindahkan mereka ke peranan lain dahulu.',
-  'roleEdit.failure.stale':
-    'Seseorang telah mengubah peranan ini semasa anda menyunting. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',
   'roleEdit.groupCount': '{count} daripada {total} dihidupkan',
   'roleEdit.highImpact': 'Impak tinggi',
-  'roleEdit.name': 'Nama',
-  'roleEdit.newTitle': 'Peranan baharu',
-  'roleEdit.notHeld': 'Anda tidak boleh memberi kebenaran yang anda tidak miliki.',
   'roleEdit.people':
     '{count, plural, one {# orang mempunyai} other {# orang mempunyai}} peranan ini.',
   'roleEdit.permissions': 'Kebenaran',
-  'roleEdit.permissionsHint':
-    'Tandakan apa yang boleh dilakukan oleh orang yang mempunyai peranan ini. Satu kebenaran juga menghidupkan yang diperlukannya.',
-  'roleEdit.readOnly.holdsMore':
-    'Peranan ini mempunyai kebenaran yang anda tiada, jadi anda tidak boleh mengubahnya.',
   'roleEdit.readOnly.locked':
     'Peranan ini sentiasa mempunyai semua kebenaran dan tidak boleh diubah.',
-  'roleEdit.readOnly.ownRole':
-    'Ini peranan anda sendiri. Anda tidak boleh mengubahnya; minta pentadbir lain.',
-  'roleEdit.readOnly.viewOnly': 'Anda boleh melihat peranan ini tetapi tidak boleh mengubahnya.',
-  'roleEdit.reload': 'Muat semula peranan',
   'roleEdit.requires': 'Memerlukan: {names}',
-  'roleEdit.saved': 'Disimpan.',
-  'roleEdit.savedPermissions': 'Disimpan. {added} kebenaran ditambah, {removed} kebenaran dibuang.',
-  'roleEdit.standardNote':
-    'Peranan standard mengekalkan namanya. Anda boleh mengubah kebenarannya.',
   'perm.group.Administration': 'Pentadbiran',
   'perm.group.CostAndValue': 'Kos dan nilai',
   'perm.group.Documents': 'Dokumen',

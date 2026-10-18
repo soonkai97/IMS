@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { requirePermission } from '@ims/core/identity';
-import { unsavedChangesGuard } from '@ims/core/navigation';
 import { PERMISSION } from '@ims/models';
 import { RoleEditPageComponent } from './roles/role-edit.component';
 import { RolesPageComponent } from './roles/roles.component';
@@ -16,7 +15,6 @@ export const USER_ROUTES: Routes = [
   }
 ];
 
-/** /roles/**: the list and the editor read with roles.read; creating a role needs roles.manage. The editor asks before leaving unsaved edits. */
 export const ROLE_ROUTES: Routes = [
   {
     path: '',
@@ -25,18 +23,10 @@ export const ROLE_ROUTES: Routes = [
     canActivate: [requirePermission(PERMISSION.RolesRead)]
   },
   {
-    path: 'new',
-    component: RoleEditPageComponent,
-    title: 'roleEdit.newTitle',
-    canActivate: [requirePermission(PERMISSION.RolesManage)],
-    canDeactivate: [unsavedChangesGuard]
-  },
-  {
     path: ':id',
     component: RoleEditPageComponent,
     title: 'roles.title',
-    canActivate: [requirePermission(PERMISSION.RolesRead)],
-    canDeactivate: [unsavedChangesGuard]
+    canActivate: [requirePermission(PERMISSION.RolesRead)]
   }
 ];
 

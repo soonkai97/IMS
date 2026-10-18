@@ -4,17 +4,17 @@
   display: block;
 }
 
-.role-edit-page-form {
+.role-edit-page-body {
   display: flex;
   flex-direction: column;
   gap: space(2);
   max-width: width('form-max');
 }
 
-.role-edit-page-actions {
-  display: flex;
+.role-edit-page-chips {
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: space(1);
+  gap: space(2);
 }
 
 .role-edit-page-chip {
@@ -27,21 +27,12 @@
   color: color('text-muted');
 }
 
+.role-edit-page-text {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .role-edit-page-muted {
   margin: 0;
   color: color('text-muted');
-}
-
-.role-edit-page-failure {
-  display: block;
-  margin-bottom: space(2);
-}
-
-// The live region is for speech only: it takes no room when empty.
-.role-edit-page-live {
-  margin: 0;
-
-  &:empty {
-    @include visually-hidden;
-  }
 }

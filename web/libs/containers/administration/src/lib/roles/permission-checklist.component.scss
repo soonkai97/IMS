@@ -41,10 +41,9 @@
   border-top: border-width('thin') solid color('border');
 }
 
-// The label holds the name, the flag, the help and the reason, so a screen reader reads them with the box.
+// The label holds the name, the flag and the help, so a screen reader reads them with the box.
 .permission-checklist-name,
-.permission-checklist-help,
-.permission-checklist-reason {
+.permission-checklist-help {
   display: block;
   overflow-wrap: anywhere;
 }
@@ -54,14 +53,6 @@
 }
 
 .permission-checklist-help {
-  font-size: font-size(2);
-  color: color('text-muted');
-}
-
-.permission-checklist-reason {
-  display: inline-flex;
-  gap: space(0);
-  align-items: center;
   font-size: font-size(2);
   color: color('text-muted');
 }

@@ -12,8 +12,7 @@
           <app-checkbox
             [ngModel]="isOn(permission)"
             [ngModelOptions]="{ standalone: true }"
-            [disabled]="isDisabled(permission)"
-            (ngModelChange)="onToggle(permission, $event)"
+            [disabled]="true"
           >
             <span class="permission-checklist-name">{{ label(permission) }}</span>
             @if (permission.isDangerous) {
@@ -24,12 +23,6 @@
               <span class="permission-checklist-help">{{
                 'roleEdit.requires' | t: { names: requires(permission) }
               }}</span>
-            }
-            @if (notHeld(permission) && !$readOnly()) {
-              <span class="permission-checklist-reason">
-                <app-icon name="lock" [size]="16" />
-                {{ 'roleEdit.notHeld' | t }}
-              </span>
             }
           </app-checkbox>
         </li>
