@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { requirePermission } from '@ims/core/identity';
 import { PERMISSION } from '@ims/models';
+import { RolesPageComponent } from './roles/roles.component';
 import { SettingsPageComponent } from './settings/settings.component';
 import { UsersPageComponent } from './users/users.component';
 
@@ -10,6 +11,15 @@ export const USER_ROUTES: Routes = [
     component: UsersPageComponent,
     title: 'users.title',
     canActivate: [requirePermission(PERMISSION.UsersManage)]
+  }
+];
+
+export const ROLE_ROUTES: Routes = [
+  {
+    path: '',
+    component: RolesPageComponent,
+    title: 'roles.title',
+    canActivate: [requirePermission(PERMISSION.RolesRead)]
   }
 ];
 

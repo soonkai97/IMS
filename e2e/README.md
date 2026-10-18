@@ -12,6 +12,7 @@ through the real login form, and create their data through the public API with u
 | `04-reversal` | reversal blocked (message lists the products), unblocked by reversing the later issue; plain reversal; staff has no Reverse | BR-02, E6, PS-01 |
 | `05-stale-document` | two sessions edit one draft: stale banner, locked buttons, Reload | BR-12, E4, PS-08 |
 | `06-roles` | menu per role, polite forbidden page, deep link, Clerk creates but cannot edit a partner (409 duplicate sentence) | AUTH-02, E8 |
+| `32-roles-list` | Roles from the menu: the five standard roles with their kind in words (Admin "System, locked"), the 5-minute note, search and its empty sentence; the Clerk and the Owner have no Roles item and `/roles` is the forbidden page; 360 px cards without sideways scroll | AUTH-02, RPN-01, RPN-03, RPL-01 |
 | `07-scan` | barcode / SKU + Enter hit, repeat, miss, deactivated; search box focused on open | D8, NV-03, PS-05 |
 | `08-session` | wrong password (E7), the banner goes away on any edit and never sits with empty-field messages or survives a reload, reload restores the session from the cookie, no token in web storage, return URL | AUTH-01, SEC-34, D3, NR-06 |
 | `09-language` | en / zh / ms switch keeps the half-filled form; choice survives a reload | PRD 9 |

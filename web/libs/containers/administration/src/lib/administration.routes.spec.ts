@@ -1,0 +1,55 @@
+import { TestBed } from '@angular/core/testing';
+import {
+  ActivatedRouteSnapshot,
+  CanActivateFn,
+  RouterStateSnapshot,
+  UrlTree,
+  provideRouter
+} from '@angular/router';
+import { PermissionService } from '@ims/core/identity';
+import { PERMISSION } from '@ims/models';
+import { ROLE_ROUTES } from './administration.routes';
+
+describe('ROLE_ROUTES (the gate is roles.read, nothing else)', () => {
+  const held = new Set<string>();
+
+  const run = (): boolean | UrlTree => {
+    const guards = ROLE_ROUTES[0].canActivate as CanActivateFn[] | undefined;
+    expect(guards).toHaveLength(1);
+    return TestBed.runInInjectionContext(() =>
+      (guards as CanActivateFn[])[0]({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot)
+    ) as boolean | UrlTree;
+  };
+
+  beforeEach(() => {
+    held.clear();
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: PermissionService,
+          useValue: { hasAny: (codes: string[]) => codes.some(code => held.has(code)) }
+        }
+      ]
+    });
+  });
+
+  it('lets a holder of roles.read in', () => {
+    held.add(PERMISSION.RolesRead);
+
+    expect(run()).toBe(true);
+  });
+
+  it.each([
+    ['nothing', []],
+    ['users.manage and masterdata.manage', [PERMISSION.UsersManage, PERMISSION.MasterDataManage]],
+    ['roles.manage without roles.read', [PERMISSION.RolesManage]]
+  ])('sends a person holding %s to the forbidden page', (_label, codes) => {
+    codes.forEach(code => held.add(code));
+
+    const result = run();
+
+    expect(result).toBeInstanceOf(UrlTree);
+    expect(String(result)).toBe('/forbidden');
+  });
+});
