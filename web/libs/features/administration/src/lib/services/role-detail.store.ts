@@ -10,7 +10,7 @@ import { RolesStore } from './roles.store';
  * gone with the page.
  */
 @Injectable()
-export class RoleEditorStore {
+export class RoleDetailStore {
   private readonly client = inject(RolesClient);
   private readonly shared = inject(RolesStore);
 

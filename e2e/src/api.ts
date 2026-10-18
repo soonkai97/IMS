@@ -2,9 +2,9 @@
  * Test data through the public API (never the database). Every call signs in with the real login endpoint using the demo
  * password of a role; the access token stays in memory. Data is created with unique names so scenarios stay independent.
  */
-import { randomBytes, randomInt } from "node:crypto";
-import { API_URL, passwordFor, type Role } from "./config";
-import { spendLoginBudget } from "./rate-limit";
+import { randomBytes, randomInt } from 'node:crypto';
+import { API_URL, passwordFor, type Role } from './config';
+import { spendLoginBudget } from './rate-limit';
 
 /** The id of an entity on the wire: an opaque GUID string, never parsed or compared as a number. */
 export type PublicId = string;
@@ -58,31 +58,25 @@ async function signIn(role: Role): Promise<string> {
   for (let attempt = 1; ; attempt++) {
     await spendLoginBudget(1);
     const response = await fetch(`${API_URL}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: role, password: passwordFor(role) }),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: role, password: passwordFor(role) })
     });
     if (response.status === 429 && attempt < 4) {
-      const wait = Number(response.headers.get("Retry-After")) || 30;
-      await new Promise((resolve) =>
-        setTimeout(resolve, Math.min(wait, 65) * 1000),
-      );
+      const wait = Number(response.headers.get('Retry-After')) || 30;
+      await new Promise(resolve => setTimeout(resolve, Math.min(wait, 65) * 1000));
       continue;
     }
     if (!response.ok) {
-      throw new Error(
-        `API sign-in as ${role} failed (HTTP ${response.status}).`,
-      );
+      throw new Error(`API sign-in as ${role} failed (HTTP ${response.status}).`);
     }
-    const token = ((await response.json()) as { accessToken: string })
-      .accessToken;
+    const token = ((await response.json()) as { accessToken: string }).accessToken;
     tokens.set(role, token);
     return token;
   }
 }
 
-const DOCUMENT_COMMAND =
-  /^\/api\/documents\/[0-9a-f-]{36}(\/(submit|approve|reject|recall|cancel|post|reverse))?$/;
+const DOCUMENT_COMMAND = /^\/api\/documents\/[0-9a-f-]{36}(\/(submit|approve|reject|recall|cancel|post|reverse))?$/;
 
 export class ImsApi {
   constructor(private readonly role: Role) {}
@@ -91,45 +85,36 @@ export class ImsApi {
   async raw<T = unknown>(
     method: string,
     path: string,
-    body?: unknown,
+    body?: unknown
   ): Promise<{ status: number; body: T }> {
-    const needsIfMatch = DOCUMENT_COMMAND.test(path) && method !== "GET";
+    const needsIfMatch = DOCUMENT_COMMAND.test(path) && method !== 'GET';
     for (const attempt of [0, 1]) {
       const token = tokens.get(this.role) ?? (await signIn(this.role));
       const response = await fetch(`${API_URL}${path}`, {
         method,
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
-          ...(needsIfMatch ? { "If-Match": "*" } : {}),
+          ...(needsIfMatch ? { 'If-Match': '*' } : {})
         },
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: body === undefined ? undefined : JSON.stringify(body)
       });
       if (response.status === 401 && attempt === 0) {
         tokens.delete(this.role);
         continue;
       }
       const text = await response.text();
-      return {
-        status: response.status,
-        body: (text ? JSON.parse(text) : null) as T,
-      };
+      return { status: response.status, body: (text ? JSON.parse(text) : null) as T };
     }
-    throw new Error("unreachable");
+    throw new Error('unreachable');
   }
 
   /** Like raw, but a non-2xx answer fails the test with the server's sentence. */
-  async call<T = unknown>(
-    method: string,
-    path: string,
-    body?: unknown,
-  ): Promise<T> {
+  async call<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
     const result = await this.raw<T>(method, path, body);
     if (result.status >= 300) {
-      const detail = (result.body as { detail?: string } | null)?.detail ?? "";
-      throw new Error(
-        `${method} ${path} as ${this.role}: HTTP ${result.status} ${detail}`,
-      );
+      const detail = (result.body as { detail?: string } | null)?.detail ?? '';
+      throw new Error(`${method} ${path} as ${this.role}: HTTP ${result.status} ${detail}`);
     }
     return result.body;
   }
@@ -139,151 +124,120 @@ export class ImsApi {
   /** The seeded "Main warehouse", where the demo staff, supervisor and clerk work. */
   private async warehouseId(): Promise<PublicId> {
     if (mainWarehouseId === undefined) {
-      const list = await new ImsApi("admin").call<
-        { id: PublicId; name: string }[]
-      >("GET", "/api/warehouses");
-      mainWarehouseId = (list.find((w) => /main/i.test(w.name)) ?? list[0])!.id;
+      const list = await new ImsApi('admin').call<{ id: PublicId; name: string }[]>(
+        'GET',
+        '/api/warehouses'
+      );
+      mainWarehouseId = (list.find(w => /main/i.test(w.name)) ?? list[0])!.id;
     }
     return mainWarehouseId;
   }
 
   async createDocument(
-    kind: "receipts" | "issues",
+    kind: 'receipts' | 'issues',
     lines: DocumentLine[],
-    options: {
-      partnerId?: PublicId | null;
-      remark?: string;
-      warehouseId?: PublicId;
-    } = {},
+    options: { partnerId?: PublicId | null; remark?: string; warehouseId?: PublicId } = {}
   ): Promise<ApiDocument> {
-    return this.call<ApiDocument>("POST", `/api/documents/${kind}`, {
+    return this.call<ApiDocument>('POST', `/api/documents/${kind}`, {
       warehouseId: options.warehouseId ?? (await this.warehouseId()),
       partnerId: options.partnerId ?? null,
-      purpose: kind === "issues" ? "Sale" : null,
+      purpose: kind === 'issues' ? 'Sale' : null,
       remark: options.remark ?? null,
-      lines,
+      lines
     });
   }
 
   command(
     id: PublicId,
-    name: "submit" | "approve" | "recall" | "post" | "cancel",
-    body?: object,
+    name: 'submit' | 'approve' | 'recall' | 'post' | 'cancel',
+    body?: object
   ): Promise<ApiDocument> {
-    return this.call<ApiDocument>(
-      "POST",
-      `/api/documents/${id}/${name}`,
-      body ?? {},
-    );
+    return this.call<ApiDocument>('POST', `/api/documents/${id}/${name}`, body ?? {});
   }
 
   reverse(id: PublicId, reason: string): Promise<ApiDocument> {
-    return this.call<ApiDocument>("POST", `/api/documents/${id}/reverse`, {
-      reason,
-    });
+    return this.call<ApiDocument>('POST', `/api/documents/${id}/reverse`, { reason });
   }
 
   /** Create, submit and post a document in one go (only for documents that need no approval). */
-  async post(
-    kind: "receipts" | "issues",
-    lines: DocumentLine[],
-  ): Promise<ApiDocument> {
+  async post(kind: 'receipts' | 'issues', lines: DocumentLine[]): Promise<ApiDocument> {
     const draft = await this.createDocument(kind, lines);
-    await this.command(draft.id, "submit");
-    return this.command(draft.id, "post");
+    await this.command(draft.id, 'submit');
+    return this.command(draft.id, 'post');
   }
 
   getDocument(id: PublicId): Promise<ApiDocument> {
-    return this.call<ApiDocument>("GET", `/api/documents/${id}`);
+    return this.call<ApiDocument>('GET', `/api/documents/${id}`);
   }
 
   /** How many documents of a kind the signed-in user created (any status, or one status). */
-  async countMine(
-    kind: "receipts" | "issues",
-    status?: string,
-  ): Promise<number> {
-    const type = kind === "receipts" ? "Receipt" : "Issue";
-    const query = `Type=${type}&Mine=true&PageSize=1&IncludeTotal=true${status ? `&Status=${status}` : ""}`;
-    return (
-      await this.call<{ total: number }>("GET", `/api/documents?${query}`)
-    ).total;
+  async countMine(kind: 'receipts' | 'issues', status?: string): Promise<number> {
+    const type = kind === 'receipts' ? 'Receipt' : 'Issue';
+    const query = `Type=${type}&Mine=true&PageSize=1&IncludeTotal=true${status ? `&Status=${status}` : ''}`;
+    return (await this.call<{ total: number }>('GET', `/api/documents?${query}`)).total;
   }
 
   // Master data and stock ----------------------------------------------------------------------------------------
 
   async createProduct(
-    options: {
-      safetyStock?: number;
-      isActive?: boolean;
-      name?: string;
-      sku?: string;
-    } = {},
+    options: { safetyStock?: number; isActive?: boolean; name?: string; sku?: string } = {}
   ): Promise<ApiProduct> {
     const token = unique();
-    const units = await this.call<{ id: PublicId; code: string }[]>(
-      "GET",
-      "/api/units",
-    );
-    return this.call<ApiProduct>("POST", "/api/products", {
+    const units = await this.call<{ id: PublicId; code: string }[]>('GET', '/api/units');
+    return this.call<ApiProduct>('POST', '/api/products', {
       sku: options.sku ?? `E2E-${token}`,
       name: options.name ?? `E2E Widget ${token}`,
       categoryId: null,
-      baseUomId: (units.find((u) => u.code === "PCS") ?? units[0])!.id,
+      baseUomId: (units.find(u => u.code === 'PCS') ?? units[0])!.id,
       safetyStock: options.safetyStock ?? 0,
       isActive: options.isActive ?? true,
       // 13 digits: the counter is in them (cut off before, so two products made within 10 ms shared a barcode).
-      barcodes: [
-        `9${String(Date.now()).slice(-8)}${String(counter).padStart(4, "0")}`,
-      ],
-      conversions: [],
+      barcodes: [`9${String(Date.now()).slice(-8)}${String(counter).padStart(4, '0')}`],
+      conversions: []
     });
   }
 
   async createPartner(
-    type: "Supplier" | "Customer",
-    options: { name?: string; contact?: string } = {},
+    type: 'Supplier' | 'Customer',
+    options: { name?: string; contact?: string } = {}
   ): Promise<ApiPartner> {
-    return this.call<ApiPartner>("POST", "/api/partners", {
+    return this.call<ApiPartner>('POST', '/api/partners', {
       type,
       name: options.name ?? `E2E ${type} ${unique()}`,
       contact: options.contact ?? null,
-      isActive: true,
+      isActive: true
     });
   }
 
   /** A warehouse nobody but Admin and Owner is assigned to (the demo staff, supervisor and clerk work in the Main warehouse only). */
   async createWarehouse(): Promise<{ id: PublicId; name: string }> {
     const token = unique();
-    return this.call<{ id: PublicId; name: string }>(
-      "POST",
-      "/api/warehouses",
-      {
-        code: `E${token}`.slice(0, 20),
-        name: `E2E Warehouse ${token}`,
-        contact: null,
-        notes: null,
-        isActive: true,
-      },
-    );
+    return this.call<{ id: PublicId; name: string }>('POST', '/api/warehouses', {
+      code: `E${token}`.slice(0, 20),
+      name: `E2E Warehouse ${token}`,
+      contact: null,
+      notes: null,
+      isActive: true
+    });
   }
 
   /** A throw-away Clerk with a made-up password, so a wrong-password test never touches a demo account. */
   async createUser(
-    options: { displayName?: string; role?: string } = {},
+    options: { displayName?: string; role?: string } = {}
   ): Promise<{ username: string; password: string }> {
     const token = unique().toLowerCase();
     const user = {
       username: `e2e-${token}`,
-      password: `Aa1!${randomBytes(9).toString("base64url")}-xYz`,
+      password: `Aa1!${randomBytes(9).toString('base64url')}-xYz`
     };
-    await this.call("POST", "/api/users", {
+    await this.call('POST', '/api/users', {
       username: user.username,
       email: `${user.username}@example.test`,
       displayName: options.displayName ?? `E2E ${token}`,
-      role: options.role ?? "Clerk",
+      role: options.role ?? 'Clerk',
       isActive: true,
       password: user.password,
-      warehouseIds: [],
+      warehouseIds: []
     });
     return user;
   }
@@ -292,17 +246,17 @@ export class ImsApi {
   async stockedProduct(
     qty: number,
     unitCost = 1,
-    options: { safetyStock?: number } = {},
+    options: { safetyStock?: number } = {}
   ): Promise<ApiProduct> {
     const product = await this.createProduct(options);
-    await this.post("receipts", [{ productId: product.id, qty, unitCost }]);
+    await this.post('receipts', [{ productId: product.id, qty, unitCost }]);
     return product;
   }
 
   async onHand(productId: PublicId): Promise<number> {
     const page = await this.call<{ items: { qtyOnHand: number }[] }>(
-      "GET",
-      `/api/stock?productId=${productId}`,
+      'GET',
+      `/api/stock?productId=${productId}`
     );
     return page.items.reduce((sum, row) => sum + Number(row.qtyOnHand), 0);
   }
@@ -311,27 +265,17 @@ export class ImsApi {
 
   /** A custom role holding exactly these permissions (admin only). */
   async createRole(name: string, permissions: string[]): Promise<ApiRole> {
-    return this.call<ApiRole>("POST", "/api/roles", {
-      name,
-      description: "",
-      permissions,
-    });
+    return this.call<ApiRole>('POST', '/api/roles', { name, description: '', permissions });
   }
 
   // Settings -----------------------------------------------------------------------------------------------------
 
   /** Switch "allow negative stock" (admin only). Returns a function that puts the previous settings back. */
   async setNegativeStock(allowed: boolean): Promise<() => Promise<void>> {
-    const before = await this.call<Record<string, unknown>>(
-      "GET",
-      "/api/settings",
-    );
-    await this.call("PUT", "/api/settings", {
-      ...before,
-      allowNegativeStock: allowed,
-    });
+    const before = await this.call<Record<string, unknown>>('GET', '/api/settings');
+    await this.call('PUT', '/api/settings', { ...before, allowNegativeStock: allowed });
     return async () => {
-      await this.call("PUT", "/api/settings", before);
+      await this.call('PUT', '/api/settings', before);
     };
   }
 }

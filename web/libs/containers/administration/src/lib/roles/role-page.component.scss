@@ -4,20 +4,20 @@
   display: block;
 }
 
-.role-edit-page-body {
+.role-page-body {
   display: flex;
   flex-direction: column;
   gap: space(2);
   max-width: width('form-max');
 }
 
-.role-edit-page-chips {
+.role-page-chips {
   display: inline-flex;
   flex-wrap: wrap;
   gap: space(2);
 }
 
-.role-edit-page-chip {
+.role-page-chip {
   @include keep-whole;
 
   display: inline-flex;
@@ -27,12 +27,12 @@
   color: color('text-muted');
 }
 
-.role-edit-page-text {
+.role-page-text {
   margin: 0;
   overflow-wrap: anywhere;
 }
 
-.role-edit-page-muted {
+.role-page-muted {
   margin: 0;
   color: color('text-muted');
 }

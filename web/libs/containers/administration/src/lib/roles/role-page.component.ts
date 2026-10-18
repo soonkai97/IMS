@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { I18nService, TranslatePipe } from '@ims/core/i18n';
 import {
-  RoleEditorStore,
+  RoleDetailStore,
   RolesStore,
   groupPermissions,
   isLockedRole,
@@ -27,7 +27,7 @@ import {
   UiStatusChipComponent
 } from '@ims/ui';
 import { normalizePublicId } from '@ims/utils';
-import { PermissionChecklistComponent } from './permission-checklist.component';
+import { PermissionListComponent } from './permission-list.component';
 
 /**
  * A role and what it allows (RP02, view only): its text, its state and the permissions by section, each with the API's
@@ -35,10 +35,10 @@ import { PermissionChecklistComponent } from './permission-checklist.component';
  * is a standard one comes from the data, never from a role name.
  */
 @Component({
-  selector: 'app-role-edit-page',
+  selector: 'app-role-page',
   imports: [
     TranslatePipe,
-    PermissionChecklistComponent,
+    PermissionListComponent,
     UiBannerComponent,
     UiButtonComponent,
     UiCardComponent,
@@ -48,14 +48,14 @@ import { PermissionChecklistComponent } from './permission-checklist.component';
     UiSkeletonComponent,
     UiStatusChipComponent
   ],
-  providers: [RolesStore, RoleEditorStore],
+  providers: [RolesStore, RoleDetailStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './role-edit.component.html',
-  styleUrl: './role-edit.component.scss'
+  templateUrl: './role-page.component.html',
+  styleUrl: './role-page.component.scss'
 })
-export class RoleEditPageComponent {
+export class RolePageComponent {
   private readonly i18n = inject(I18nService);
-  private readonly store = inject(RoleEditorStore);
+  private readonly store = inject(RoleDetailStore);
 
   /** Route parameter. */
   $id = input<string | undefined>(undefined, { alias: 'id' });
@@ -85,9 +85,13 @@ export class RoleEditPageComponent {
     const role = this.$role();
     return role !== undefined && isLockedRole(role, this.$catalog());
   });
-  $heading = computed(() =>
-    this.$notFound() ? this.i18n.t('notFound.title') : (this.$role()?.name ?? '')
-  );
+  /** The page always has a heading: the role's name once it is there, the list's title while it loads or when it fails. */
+  $heading = computed(() => {
+    if (this.$notFound()) {
+      return this.i18n.t('notFound.title');
+    }
+    return this.$role()?.name ?? this.i18n.t('roles.title');
+  });
   $kindLabel = computed(() => {
     const role = this.$role();
     return role === undefined ? '' : this.i18n.t(`roles.kind.${kindOfRole(role, this.$catalog())}`);

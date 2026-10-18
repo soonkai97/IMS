@@ -1,22 +1,22 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { PermissionDto } from '@ims/api';
 import { I18nService, TranslatePipe, isMessageKey } from '@ims/core/i18n';
 import { PermissionGroupView } from '@ims/features/administration';
-import { UiCheckboxComponent, UiStatusChipComponent } from '@ims/ui';
+import { UiIconComponent, UiStatusChipComponent } from '@ims/ui';
 
 /**
- * The permissions of a role as ticked rows, one `fieldset` with a `legend` per section. The boxes are disabled: the page is
- * view-only for now, and a disabled box still reads as "checked" or "not checked" to a screen reader.
+ * What a role allows, by catalog section: a read-only list where every permission says "Allowed" or "Not allowed" in words
+ * with an icon, never by colour alone (docs/design/roles-permissions-ux.md 3.12). Names and sentences are translated by code
+ * (`perm.<code>`, `perm.<code>.help`); a permission added by a newer API has no text yet and shows the API's own sentence.
  */
 @Component({
-  selector: 'app-permission-checklist',
-  imports: [FormsModule, TranslatePipe, UiCheckboxComponent, UiStatusChipComponent],
+  selector: 'app-permission-list',
+  imports: [TranslatePipe, UiIconComponent, UiStatusChipComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './permission-checklist.component.html',
-  styleUrl: './permission-checklist.component.scss'
+  templateUrl: './permission-list.component.html',
+  styleUrl: './permission-list.component.scss'
 })
-export class PermissionChecklistComponent {
+export class PermissionListComponent {
   private readonly i18n = inject(I18nService);
 
   $groups = input.required<readonly PermissionGroupView[]>({ alias: 'groups' });
@@ -32,9 +32,13 @@ export class PermissionChecklistComponent {
     return isMessageKey(key) ? this.i18n.t(key) : group;
   }
 
-  /** The translated name; a permission added by a newer API has no key yet and shows the API's own sentence. */
   label(permission: PermissionDto): string {
     const key = `perm.${permission.code}`;
+    return isMessageKey(key) ? this.i18n.t(key) : permission.description;
+  }
+
+  help(permission: PermissionDto): string {
+    const key = `perm.${permission.code}.help`;
     return isMessageKey(key) ? this.i18n.t(key) : permission.description;
   }
 

@@ -2,15 +2,14 @@
   [heading]="$heading()"
   [backLink]="['/roles']"
   [backLabel]="'roles.title' | t"
-  [subtitle]="$notFound() ? '' : ('roles.appliesLater' | t)"
+  [subtitle]="$role() ? ('roles.appliesLater' | t) : ''"
 >
   @if ($role()) {
-    <span chips class="role-edit-page-chips">
-      <span class="role-edit-page-chip">
-        <app-icon [name]="$role()?.isSystem ? 'lock' : 'pencil'" [size]="16" />
+    <span chips class="role-page-chips">
+      <span class="role-page-chip">
         {{ $kindLabel() }}
       </span>
-      <span class="role-edit-page-chip">
+      <span class="role-page-chip">
         <app-icon name="eye" [size]="16" />
         {{ 'roles.viewOnly' | t }}
       </span>
@@ -29,16 +28,16 @@
   <app-skeleton [count]="4" />
 } @else {
   @if ($isLocked()) {
-    <app-banner kind="info">{{ 'roleEdit.readOnly.locked' | t }}</app-banner>
+    <app-banner kind="info">{{ 'rolePage.readOnly.locked' | t }}</app-banner>
   }
 
-  <div class="role-edit-page-body">
-    <app-card [heading]="'roleEdit.details' | t">
+  <div class="role-page-body">
+    <app-card [heading]="'rolePage.details' | t">
       @if ($role()?.description; as description) {
-        <p class="role-edit-page-text">{{ description }}</p>
+        <p class="role-page-text">{{ description }}</p>
       }
-      <p class="role-edit-page-muted">
-        {{ 'roleEdit.people' | t: { count: $role()?.userCount ?? 0 } }}
+      <p class="role-page-muted">
+        {{ 'rolePage.people' | t: { count: $role()?.userCount ?? 0 } }}
       </p>
       <app-status-chip
         [label]="($role()?.isActive ? 'product.active' : 'product.inactive') | t"
@@ -46,8 +45,8 @@
       />
     </app-card>
 
-    <app-card [heading]="'roleEdit.permissions' | t">
-      <app-permission-checklist
+    <app-card [heading]="'rolePage.permissions' | t">
+      <app-permission-list
         [groups]="$groups()"
         [catalog]="$catalog() ?? []"
         [selected]="$selected()"

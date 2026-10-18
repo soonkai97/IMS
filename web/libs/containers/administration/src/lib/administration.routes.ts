@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { requirePermission } from '@ims/core/identity';
 import { PERMISSION } from '@ims/models';
-import { RoleEditPageComponent } from './roles/role-edit.component';
+import { RolePageComponent } from './roles/role-page.component';
 import { RolesPageComponent } from './roles/roles.component';
 import { SettingsPageComponent } from './settings/settings.component';
 import { UsersPageComponent } from './users/users.component';
@@ -24,7 +24,7 @@ export const ROLE_ROUTES: Routes = [
   },
   {
     path: ':id',
-    component: RoleEditPageComponent,
+    component: RolePageComponent,
     title: 'roles.title',
     canActivate: [requirePermission(PERMISSION.RolesRead)]
   }

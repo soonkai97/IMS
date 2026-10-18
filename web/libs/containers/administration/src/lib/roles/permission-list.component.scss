@@ -1,0 +1,63 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.permission-list-group {
+  min-width: 0;
+  margin: 0 0 space(2);
+}
+
+.permission-list-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  align-items: baseline;
+  margin: 0 0 space(1);
+  font-size: font-size(3);
+}
+
+.permission-list-count {
+  font-size: font-size(1);
+  font-weight: font-weight('regular');
+  color: color('text-muted');
+}
+
+.permission-list-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.permission-list-row {
+  display: flex;
+  flex-direction: column;
+  gap: space(0);
+  align-items: flex-start;
+  padding: space(1) 0;
+  overflow-wrap: anywhere;
+  border-top: border-width('thin') solid color('border');
+}
+
+.permission-list-state {
+  display: inline-flex;
+  gap: space(0);
+  align-items: center;
+  font-size: font-size(1);
+  color: color('text-muted');
+
+  &.--on {
+    font-weight: font-weight('medium');
+    color: color('text');
+  }
+}
+
+.permission-list-name {
+  font-weight: font-weight('medium');
+}
+
+.permission-list-help {
+  font-size: font-size(2);
+  color: color('text-muted');
+}
