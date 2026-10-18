@@ -4,7 +4,7 @@ import { RoleDto } from '@ims/api';
 import { PermissionService } from '@ims/core/identity';
 import { I18nService, TranslatePipe } from '@ims/core/i18n';
 import { RoleKind, RoleQuery, RolesStore, kindOfRole } from '@ims/features/administration';
-import { DEFAULT_PAGE_SIZE, PERMISSION } from '@ims/models';
+import { PAGE_SIZES, PERMISSION } from '@ims/models';
 import {
   TableColumn,
   UiCellDirective,
@@ -78,12 +78,13 @@ export class RolesPageComponent {
   $failed = this.store.list.$isFailed;
   $canManage = computed(() => this.permissions.has(PERMISSION.RolesManage));
   $isSearching = computed(() => this.$query().search !== undefined);
-  readonly pageSize = DEFAULT_PAGE_SIZE;
+  readonly pageSizes = PAGE_SIZES;
+  $pageSize = computed(() => this.pageState.$pageSize());
   $page = computed(() => this.pageState.$page());
   $total = computed(() => this.store.list.$data()?.length ?? 0);
   $rows = computed<readonly RoleDto[]>(() => {
-    const start = (this.$page() - 1) * DEFAULT_PAGE_SIZE;
-    return (this.store.list.$data() ?? []).slice(start, start + DEFAULT_PAGE_SIZE);
+    const start = (this.$page() - 1) * this.$pageSize();
+    return (this.store.list.$data() ?? []).slice(start, start + this.$pageSize());
   });
   $catalog = this.store.catalog.$data;
   $columns = computed<readonly TableColumn<RoleDto>[]>(() => [
@@ -129,6 +130,10 @@ export class RolesPageComponent {
 
   onPageChange(page: number): void {
     this.pageState.set(page);
+  }
+
+  onPageSizeChange(pageSize: number): void {
+    this.pageState.setPageSize(pageSize);
   }
 
   onRetry(): void {

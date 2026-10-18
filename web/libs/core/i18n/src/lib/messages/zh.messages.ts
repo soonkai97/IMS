@@ -36,13 +36,18 @@ export const ZH_MESSAGES: Messages = {
   'ui.chooseFile': '选择文件',
   'ui.clear': '清除',
   'ui.close': '关闭',
+  'ui.columns': '列',
   'ui.dismiss': '忽略',
   'ui.showMore': '显示更多',
   'ui.showLess': '收起',
   'ui.dropFile': '或将文件拖到此处',
   'ui.errorTitle': '出了点问题。',
+  'ui.firstPage': '第一页',
+  'ui.lastPage': '最后一页',
   'ui.loading': '加载中',
   'ui.nextPage': '下一页',
+  'ui.pageAnnouncement': '{status}，{range}',
+  'ui.pageSize': '每页行数',
   'ui.pageStatus': '第 {page} 页，共 {pages} 页',
   'ui.previousPage': '上一页',
   'ui.rangeStatus': '第 {from}-{to} 条，共 {total} 条',
@@ -51,6 +56,7 @@ export const ZH_MESSAGES: Messages = {
   // TODO-review: machine draft (saved state).
   'ui.saved': '已保存',
   'ui.selectPlaceholder': '请选择...',
+  'ui.showAllColumns': '显示所有列',
   'ui.showPassword': '显示密码',
 
   // TODO-review: machine draft (required marker legend).

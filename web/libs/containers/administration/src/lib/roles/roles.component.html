@@ -47,8 +47,10 @@
 
 @if ($total() > 0) {
   <app-pager
+    [pageSizes]="pageSizes"
+    (pageSizeChange)="onPageSizeChange($event)"
     [page]="$page()"
-    [pageSize]="pageSize"
+    [pageSize]="$pageSize()"
     [total]="$total()"
     (pageChange)="onPageChange($event)"
   />

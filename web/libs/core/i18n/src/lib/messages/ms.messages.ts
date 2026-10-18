@@ -36,13 +36,18 @@ export const MS_MESSAGES: Messages = {
   'ui.chooseFile': 'Pilih fail',
   'ui.clear': 'Kosongkan',
   'ui.close': 'Tutup',
+  'ui.columns': 'Lajur',
   'ui.dismiss': 'Tolak',
   'ui.showMore': 'Papar lagi',
   'ui.showLess': 'Papar kurang',
   'ui.dropFile': 'atau seret fail ke sini',
   'ui.errorTitle': 'Sesuatu tidak kena.',
+  'ui.firstPage': 'Halaman pertama',
+  'ui.lastPage': 'Halaman terakhir',
   'ui.loading': 'Memuatkan',
   'ui.nextPage': 'Halaman seterusnya',
+  'ui.pageAnnouncement': '{status}, {range}',
+  'ui.pageSize': 'Baris setiap halaman',
   'ui.pageStatus': 'Halaman {page} daripada {pages}',
   'ui.previousPage': 'Halaman sebelumnya',
   'ui.rangeStatus': '{from}-{to} daripada {total}',
@@ -51,6 +56,7 @@ export const MS_MESSAGES: Messages = {
   // TODO-review: machine draft (saved state).
   'ui.saved': 'Disimpan',
   'ui.selectPlaceholder': 'Pilih...',
+  'ui.showAllColumns': 'Papar semua lajur',
   'ui.showPassword': 'Tunjuk kata laluan',
 
   // TODO-review: machine draft (required marker legend).
