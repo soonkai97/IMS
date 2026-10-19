@@ -28,7 +28,7 @@ for (const who of ['dele','deleall','admcore','bigu','admin']) {
   const whIds = ['dele','admcore'].includes(who) ? [wh1] : [];
   const all_ = !['dele','admcore'].includes(who);
   for (const role of allRoles) {
-    const u = `p${sfx}${Math.random().toString(36).slice(2, 7)}`;
+    const u = `p${sfx}${globalThis.crypto.randomUUID().slice(0, 5)}`;
     const r = await call('POST', '/api/users', T[who], { username: u, email: `${u}@ims.local`, displayName: u, role: role.code, isActive: true, password: PROBE_PW, warehouseIds: whIds, allWarehouses: all_ });
     const ok = r.status === 200 || r.status === 201;
     if (ok) accepted++;

@@ -59,4 +59,4 @@ export const adminCount = () => Number(sql(`SELECT COUNT(*) FROM [User] u JOIN [
   WHERE u.IsActive=1 AND u.REC_DELETED=0 AND (SELECT COUNT(*) FROM RolePermission p WHERE p.RoleId=r.Id AND p.REC_DELETED=0 AND p.PermissionCode IN ('users.read','users.manage','roles.read','roles.manage'))=4`));
 export const adminNames = () => sql(`SELECT u.Username FROM [User] u JOIN [Role] r ON r.Id=u.RoleId AND r.REC_DELETED=0 AND r.IsActive=1
   WHERE u.IsActive=1 AND u.REC_DELETED=0 AND (SELECT COUNT(*) FROM RolePermission p WHERE p.RoleId=r.Id AND p.REC_DELETED=0 AND p.PermissionCode IN ('users.read','users.manage','roles.read','roles.manage'))=4`).split(/\r?\n/).filter(Boolean);
-export const sfx2 = () => Math.random().toString(36).slice(2, 7);
+export const sfx2 = () => globalThis.crypto.randomUUID().slice(0, 5);

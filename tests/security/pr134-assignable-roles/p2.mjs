@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { call, expect, failures, short, PROBE_PW, sfx, decode } from './lib.mjs';
 const F = JSON.parse(fs.readFileSync(`${process.env.RV_OUT ?? '.'}/fixtures.json`));
 const { T, wh1, R, U } = F;
-const nu = () => `q${sfx}${Math.random().toString(36).slice(2, 7)}`;
+const nu = () => `q${sfx}${globalThis.crypto.randomUUID().slice(0, 5)}`;
 const mk = (role, extra = {}) => { const u = nu(); return { username: u, email: `${u}@ims.local`, displayName: u, role, isActive: true, password: PROBE_PW, warehouseIds: [wh1], allWarehouses: false, ...extra }; };
 // (2) users.read-only caller: which role names does the user list reveal?
 const ul = await call('GET', '/api/users?pageSize=100', T.uread);
