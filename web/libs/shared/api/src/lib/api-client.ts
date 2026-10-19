@@ -24,7 +24,7 @@ export class PartnersClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -227,7 +227,7 @@ export class WarehousesClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -410,7 +410,7 @@ export class UsersClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -665,7 +665,7 @@ export class ImportClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -867,7 +867,7 @@ export class ReportsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -1316,7 +1316,7 @@ export class StockClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -1639,7 +1639,7 @@ export class ApprovalRulesClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -1817,7 +1817,7 @@ export class AuditClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -1996,7 +1996,7 @@ export class SettingsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -2116,7 +2116,7 @@ export class PermissionsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -2181,7 +2181,7 @@ export class RolesClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -2532,7 +2532,7 @@ export class DocumentsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -3331,7 +3331,7 @@ export class CategoriesClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -3509,7 +3509,7 @@ export class ProductsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -3834,7 +3834,7 @@ export class UnitsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -4012,7 +4012,7 @@ export class AuthClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
@@ -4294,7 +4294,7 @@ export class AttachmentsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5109/";
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
     }
 
     /**
