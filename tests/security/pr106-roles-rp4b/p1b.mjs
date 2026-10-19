@@ -1,0 +1,22 @@
+import { call, short, T } from './lib.mjs';
+const wh = (await call('GET', '/api/warehouses', T.admin)).json[0].id;
+const prod = ((await call('GET', '/api/products', T.admin)).json.items)[0];
+const log=console.log;
+const doc = async (qty, who="clerk") => {
+  const r = await call("POST", "/api/documents/receipts", T[who], { warehouseId: wh, lines: [{ productId: prod.id, qty, unitCost: 1 }] });
+  const s = await call("POST", `/api/documents/${r.json.id}/submit`, T[who], {}, {"If-Match": r.headers.get("etag")});
+  return { ...s.json, etag: s.headers.get("etag") };
+};
+const act = async (d, who, verb, body={}) => call("POST", `/api/documents/${d.id}/${verb}`, T[who], verb==="reject"?{reason:"not accepted"}:body, {"If-Match": d.etag});
+let d = await doc(600);
+log('large: reject by supervisor', short(await act(d,'supervisor','reject')), '| by clerk', short(await act(d,'clerk','reject')), '| by owner', short(await act(d,'owner','reject')));
+d = await doc(150);
+log('std: reject by owner', short(await act(d,'owner','reject')), '| by supervisor', short(await act(d,'supervisor','reject')));
+d = await doc(600);
+log('corrections: cancel submitted large by owner', short(await act(d,'owner','cancel',{reason:'wrong entry'})), '| by supervisor', short(await act(d,'supervisor','cancel',{reason:'wrong entry'})), '| recall by supervisor(not creator)', short(await act(d,'supervisor','recall')), '| recall by creator clerk', short(await act(d,'clerk','recall')));
+d = await doc(600);
+const ap = await act(d,'owner','approve'); const d2 = {...d, etag: ap.headers.get('etag')};
+log('approved large: cancel by clerk', short(await act(d2,'clerk','cancel',{reason:'wrong entry'})), '| by supervisor', short(await act(d2,'supervisor','cancel',{reason:'wrong entry'})), '| by owner', short(await act(d2,'owner','cancel',{reason:'wrong entry'})));
+d = await doc(150);
+const ap2 = await act(d,'supervisor','approve'); const d3 = {...d, etag: ap2.headers.get('etag')};
+log('approved std: cancel by owner', short(await act(d3,'owner','cancel',{reason:'wrong entry'})), '| by supervisor', short(await act(d3,'supervisor','cancel',{reason:'wrong entry'})));
