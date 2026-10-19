@@ -9,7 +9,7 @@ import {
   DocumentsClient,
   PagedResultOfDocumentListItem
 } from '@ims/api';
-import { withIfMatch } from '@ims/core/http';
+import { HANDLED_INLINE, withIfMatch } from '@ims/core/http';
 import { PagedQuery, PublicId } from '@ims/models';
 import { ApiCommand, QueryLoader } from '@ims/utils';
 
@@ -33,6 +33,11 @@ export interface DocumentQuery extends PagedQuery {
 export interface DocumentRef {
   readonly id: PublicId;
   readonly concurrencyToken?: string;
+}
+
+export interface PostArgs extends DocumentRef {
+  /** The screen announces a failure itself (the sentence of the error interceptor is not toasted): Submit & post does. */
+  readonly reportInline?: boolean;
 }
 
 export interface SaveDocumentArgs {
@@ -131,8 +136,17 @@ export class DocumentsStore {
     true
   );
   /** Posting takes no body: an override reason was given when the document was approved. */
-  readonly post: ApiCommand<DocumentRef, DocumentDto> = new ApiCommand(
-    ref => this.accept(this.client.post(ref.id, withIfMatch(ref.concurrencyToken)), this.post),
+  readonly post: ApiCommand<PostArgs, DocumentDto> = new ApiCommand(
+    ref =>
+      this.accept(
+        this.client.post(
+          ref.id,
+          ref.reportInline
+            ? withIfMatch(ref.concurrencyToken).set(HANDLED_INLINE, 'all')
+            : withIfMatch(ref.concurrencyToken)
+        ),
+        this.post
+      ),
     true
   );
   readonly reverse: ApiCommand<ReasonArgs, DocumentDto> = new ApiCommand(args =>

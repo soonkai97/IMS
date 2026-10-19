@@ -580,7 +580,10 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
       expect(body.name).toBe('Auditor');
       expect([...body.permissions].sort()).toEqual(['document.post', 'stock.read']);
       expect(body.copyFromRoleId).toBeUndefined();
-      expect(navigate).toHaveBeenCalledWith(['/roles', OTHER], { replaceUrl: true });
+      expect(navigate).toHaveBeenCalledWith(['/roles', OTHER], {
+        replaceUrl: true,
+        scroll: 'manual'
+      });
     });
 
     it('copying a role fills the ticks, and an untouched copy is sent as a copy', async () => {

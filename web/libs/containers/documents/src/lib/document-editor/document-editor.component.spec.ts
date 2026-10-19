@@ -763,7 +763,10 @@ describe('DocumentEditorPageComponent', () => {
       spectator.component.onAction(DOCUMENT_ACTION.Edit);
       spectator.detectChanges();
 
-      expect(navigate).toHaveBeenCalledWith(['/', 'issues', guid(31)], { replaceUrl: true });
+      expect(navigate).toHaveBeenCalledWith(['/', 'issues', guid(31)], {
+        replaceUrl: true,
+        scroll: 'manual'
+      });
       expect(dirtyWhenNavigating).toEqual([false]);
       // The real guard of the route lets the move through without asking.
       const guardAnswer = TestBed.runInInjectionContext(() =>
@@ -1313,6 +1316,8 @@ describe('DocumentEditorPageComponent', () => {
       expect(request?.confirmLabel).toBe('Submit & post');
       expect(request?.body).toContain('Stock will decrease for 1 line.');
       expect(request?.body).toContain('Includes DEMO-001 x 1 PCS.');
+      // Short lines (what happens, what is included, what an approval rule does), not one block.
+      expect(request?.body?.split('\n')).toHaveLength(3);
       expect(request?.body).toContain('If it needs approval, it goes to a supervisor first');
 
       confirm().confirm('');
@@ -1321,7 +1326,9 @@ describe('DocumentEditorPageComponent', () => {
       expect(confirm().$pending()).toBeUndefined();
       expect(calls['save']).toHaveLength(1);
       expect(calls['submit']).toEqual([{ id: guid(31), concurrencyToken: 'AAAA' }]);
-      expect(calls['post']).toEqual([{ id: guid(31), concurrencyToken: 'AAAA' }]);
+      expect(calls['post']).toEqual([
+        { id: guid(31), concurrencyToken: 'AAAA', reportInline: true }
+      ]);
       expect(toasts()).toEqual(['Posted. Stock updated.']);
     });
 
@@ -1394,6 +1401,71 @@ describe('DocumentEditorPageComponent', () => {
       expect(text()).not.toContain('Ready to post');
     });
 
+    describe('a post that fails after a successful submit says "Submitted, not posted"', () => {
+      const failure = (kind: string, status: number, message: string): ApiError => ({
+        isApiError: true,
+        kind: kind as ApiError['kind'],
+        status,
+        title: 'x',
+        detail: '',
+        message,
+        fieldErrors: {},
+        extensions: {}
+      });
+
+      for (const [name, error] of [
+        ['409', failure(API_ERROR_KIND.Conflict, 409, 'ISS-1 was changed by someone else.')],
+        ['403', failure(API_ERROR_KIND.Forbidden, 403, "You don't have permission to do that.")],
+        ['network', failure(API_ERROR_KIND.Network, 0, "Can't reach the server.")]
+      ] as const) {
+        it(`${name}: one announcement with the reason, the document stays Submitted`, async () => {
+          granted.add(PERMISSION.DocumentPost);
+          await startNewIssue();
+          responses['submit'] = submittedNoApproval();
+          failing.set('post', error);
+
+          spectator.component.onAction(DOCUMENT_ACTION.Submit);
+          confirm().confirm('');
+          spectator.detectChanges();
+
+          expect(calls['post']).toHaveLength(1);
+          expect(toasts()).toEqual([`Submitted, not posted: ${error.message}`]);
+          expect(spectator.component.$status()).toBe(DocumentStatus.Submitted);
+          expect(spectator.component.$isBusy()).toBe(false);
+        });
+      }
+
+      it('a plain Post that fails keeps the error toast of the interceptor and adds no sentence of its own', async () => {
+        granted.add(PERMISSION.DocumentPost);
+        await open(submittedNoApproval());
+        failing.set('post', failure(API_ERROR_KIND.Forbidden, 403, 'No.'));
+
+        spectator.component.onAction(DOCUMENT_ACTION.Post);
+        confirm().confirm('');
+
+        expect(toasts()).toEqual([]);
+      });
+    });
+
+    it('Back in the Submit & post dialog leaves the page where it was: the focus returns to the button, not to the title', async () => {
+      granted.add(PERMISSION.DocumentPost);
+      await startNewIssue();
+      const submit = [...spectator.queryAll('app-document-actions button')].find(button =>
+        button.textContent?.includes('Submit & post')
+      ) as HTMLElement;
+      submit.focus();
+
+      spectator.component.onAction(DOCUMENT_ACTION.Submit);
+      // Closing a dialog by its Back button leaves the focus on <body> (the opener is behind the modal).
+      submit.blur();
+      confirm().cancel();
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(window.document.activeElement).toBe(submit);
+      expect(window.document.activeElement?.tagName).not.toBe('H1');
+    });
+
     it('opening a Submitted document the person cannot post says who it waits for, not "Ready to post"', async () => {
       await open(
         document({
@@ -1461,8 +1533,10 @@ describe('DocumentEditorPageComponent', () => {
       const request = confirm().$pending()?.request;
       expect(request?.heading).toBe('Take ISS-WH01-2610-0001 back to draft?');
       expect(request?.confirmLabel).toBe('Back to draft');
-      expect(request?.cancelLabel).toBe('Back');
+      // Not "Back": two buttons starting with the same word are easy to misread on a phone.
+      expect(request?.cancelLabel).toBe('Keep as submitted');
       expect(request?.body).not.toContain('approval');
+      expect(request?.body).toContain('\n');
 
       confirm().cancel();
       expect(calls['recall']).toBeUndefined();

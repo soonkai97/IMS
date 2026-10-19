@@ -493,7 +493,7 @@ App-wide (desktop, when not typing in a field, except those marked "always"):
 | `/` | Focus the screen's search box (Stock, lists, Products, Audit) | single character key: see 6.6 |
 | `?` | Open "Keyboard shortcuts" dialog | single character key: see 6.6 |
 | Ctrl+S | Save draft in the document editor, Save in forms | always, `preventDefault` to stop the browser Save dialog; only where a Save button exists |
-| Ctrl+Enter | Primary action of the document editor (Submit & post or Submit; the Post confirm dialog still appears) | always; never bypasses a confirm dialog |
+| Ctrl+Enter | Primary action of the document editor (Submit & post or Submit; the "Submit & post?" confirm dialog still appears) | always; never bypasses a confirm dialog |
 | Esc | Close dialog or sheet (existing) | |
 | Up / Down on a row link in a table | Move to the previous/next row's link | table keeps `table` semantics; arrows are an addition |
 | Enter on a row link | Open the row | existing |
@@ -575,7 +575,7 @@ Not shown as a keyboard feature on phones (no key hint, no footer hints). The to
 | CP-13 | Opening the palette in a dirty editor does not show "Discard changes?"; navigating away from the dirty editor via a result does |
 | CP-14 | At 320px (phone) the palette sheet fills the screen, rows >= 48px, no horizontal scroll; at 400% zoom likewise |
 | CP-15 | `/` focuses the page search only when focus is not in a field; the "Single-key shortcuts" switch turns `/` and `?` off |
-| CP-16 | Ctrl+S saves a draft with the same result as the Save draft button; Ctrl+Enter never skips the Post confirm dialog |
+| CP-16 | Ctrl+S saves a draft with the same result as the Save draft button; Ctrl+Enter never skips the Submit & post confirm dialog |
 | CP-17 | Up/Down on a row link in a table moves to the neighbouring row's link; Enter opens it |
 
 Priority: palette core Should (S8), search groups Should (S9), phone button Should (S9), `/`, `?`, Ctrl+S, Ctrl+Enter, row arrows Could (S10).

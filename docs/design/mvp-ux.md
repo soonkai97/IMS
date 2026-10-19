@@ -191,10 +191,11 @@ Draft and Submitted can be cancelled. Approved cannot (Q3). Posted can only be r
 4. Type 2+ characters of SKU/name (or scan with a Bluetooth scanner and press Enter). Tap the product.
 5. Enter quantity on the numeric keypad (or +/- steppers). [Add and next] to add another, or [Add] to close.
 6. Repeat 3-5 per item. Lines list shows product, quantity, remove.
-7. [Submit & post]. {Server checks rules.}
-8. Confirm dialog "Post RCV-...?" -> [Post]. {Toast "Posted. Stock updated." Document opens read-only with chip Posted.}
-   - If approval is required: step 7 submits only; toast "Sent for approval: quantity reaches {threshold}." Chip Submitted, sub-label "Awaiting approval". No confirm dialog.
-   - Clerk (no Post right): button is [Submit]; toast "Submitted for approval."
+7. [Submit & post]. {One confirm dialog "Submit & post?" first, before anything is sent: what stock will do, the lines, and that an approval rule can stop it. Back sends nothing.}
+8. [Submit & post] in the dialog. {Save, submit and post run as one sequence: the button reads "Submitting..." then "Posting...", no second dialog. Toast "Posted. Stock updated." Document opens read-only with chip Posted.}
+   - If approval is required: the sequence stops after the submit; toast "Submitted for approval." Chip Submitted, sub-label "Awaiting approval".
+   - If the post fails after the submit: one toast "Submitted, not posted: {reason}"; the document stays Submitted with its Post button.
+   - Clerk (no Post right): button is [Submit], no dialog; toast "Submitted. Waiting for a warehouse user to post."
    - Leave early: [Save draft] anytime; unsaved-changes guard on back.
    - Error paths: deactivated or unknown product (E-table, section 6.4); network failure keeps the form and shows a retry toast.
 
@@ -220,8 +221,8 @@ B. Insufficient stock, negative stock allowed (Admin setting)
 ### 3.3 Submit, approve, reject
 
 Submit (creator): [Submit] / [Submit & post] -> server returns `requiresApproval`.
-- true: toast "Sent for approval. {reason}"; document read-only; creator can still [Cancel document] (recall).
-- false and creator may post: confirm and post (3.4). false and creator may not post (Clerk): toast "Submitted. A warehouse user or supervisor can post it."
+- true: toast "Submitted for approval."; document read-only; creator can still [Edit] (recall, asks first) or [Cancel document].
+- false and creator may post: the one confirm was asked before the submit (3.1), the post follows without a second dialog. false and creator may not post (Clerk): toast "Submitted. Waiting for a warehouse user to post."
 
 Approve (Supervisor / Admin; Owner for large):
 1. Home tile or menu badge -> (S14 Approvals) -> tap a row. Phone: card; desktop: [Review].

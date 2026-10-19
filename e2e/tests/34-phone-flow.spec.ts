@@ -1,4 +1,6 @@
 import type { Page } from '@playwright/test';
+import type { ImsApi } from '../src/api';
+import type { Role } from '../src/config';
 import { expect, test } from '../src/fixtures';
 import { DocumentEditor, DocumentListPage } from '../src/pages/documents';
 
@@ -35,6 +37,20 @@ const screenLog = (page: Page): Promise<{ dialogs: string[]; readyToPost: number
   page.evaluate(
     () => (window as unknown as { __seen: { dialogs: string[]; readyToPost: number } }).__seen
   );
+
+/** Opens a new receipt and adds `count` products to it, so that the page is long. */
+async function fillNewReceipt(
+  page: Page,
+  api: (role?: Role) => ImsApi,
+  count: number
+): Promise<DocumentEditor> {
+  const editor = new DocumentEditor(page);
+  await editor.openNew('receipts');
+  for (let i = 0; i < count; i++) {
+    await editor.addItem(await api().createProduct());
+  }
+  return editor;
+}
 
 test.describe('Phone QA: scroll, Submit & post, Edit and the empty-lines message', () => {
   for (const reducedMotion of ['no-preference', 'reduce'] as const) {
@@ -244,5 +260,47 @@ test.describe('Phone QA: scroll, Submit & post, Edit and the empty-lines message
     await expect(page.getByText('Enter a quantity above 0.')).toBeVisible();
 
     expect(await inCard()).toEqual(before);
+  });
+
+  test('given a long new receipt scrolled to the bottom, when staff saves the draft, then the page stays where it was (the first save only replaces the address)', async ({
+    page,
+    signIn,
+    shell,
+    api
+  }) => {
+    await signIn('staff');
+    const editor = await fillNewReceipt(page, api, 6);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const before = await scrollY(page);
+    expect(before).toBeGreaterThan(400);
+
+    await editor.action('Save draft').click();
+    await expect(shell.toast('Draft saved.')).toBeVisible();
+    await editor.savedId();
+
+    expect(await scrollY(page)).toBeGreaterThan(before - 150);
+  });
+
+  test('given a long new receipt scrolled to the bottom, when staff taps Submit & post and then Back, then nothing moves and the focus is on Submit & post, not on the title', async ({
+    page,
+    signIn,
+    shell,
+    api
+  }) => {
+    await signIn('staff');
+    const editor = await fillNewReceipt(page, api, 5);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const before = await scrollY(page);
+    expect(before).toBeGreaterThan(400);
+
+    await editor.action('Submit & post').click();
+    await shell
+      .dialog('Submit & post?')
+      .getByRole('button', { name: 'Back', exact: true })
+      .click();
+    await expect(shell.dialog('Submit & post?')).toBeHidden();
+
+    await expect(editor.action('Submit & post')).toBeFocused();
+    expect(await scrollY(page)).toBeGreaterThan(before - 150);
   });
 });

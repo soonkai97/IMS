@@ -205,6 +205,9 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   $sku = input<string | undefined>(undefined, { alias: 'sku' });
   $warehouseParam = input<string | undefined>(undefined, { alias: 'warehouseId' });
 
+  /** The button the last action came from: a dismissed dialog hands the focus back to it. */
+  private opener: HTMLElement | null = null;
+
   /** Id of the document this editor just created: the store already holds it, so the route change needs no reload. */
   private justCreatedId: PublicId | undefined;
 
@@ -881,6 +884,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   }
 
   onAction(action: DocumentAction): void {
+    this.opener = this.page.activeElement instanceof HTMLElement ? this.page.activeElement : null;
     this.$activeAction.set(action);
     switch (action) {
       case DOCUMENT_ACTION.Edit:
@@ -1152,7 +1156,9 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
           document.requiresApproval ? 'dialog.recall.body' : 'dialog.recall.bodyReady'
         ),
         confirmLabel: this.i18n.t('dialog.recall.confirm'),
-        cancelLabel: this.i18n.t(document.requiresApproval ? 'dialog.recall.keep' : 'common.back')
+        cancelLabel: this.i18n.t(
+          document.requiresApproval ? 'dialog.recall.keep' : 'dialog.recall.keepReady'
+        )
       })
       .pipe(
         switchMap(() => this.runRecall(document)),
@@ -1223,12 +1229,24 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   }
 
   /** The post itself: its button shows "Posting..." until the answer, then the page is the Posted document. */
-  private postDocument(document: DocumentDto): Observable<DocumentDto> {
+  private postDocument(document: DocumentDto, afterSubmit = false): Observable<DocumentDto> {
     this.$activeAction.set(DOCUMENT_ACTION.Post);
-    return this.documents.post.run(toDocumentRef(document)).pipe(
-      tap(() => this.toast.success(this.i18n.t('doc.toast.posted'))),
-      tap(() => this.afterChange(true))
-    );
+    return this.documents.post
+      .run({ ...toDocumentRef(document), ...(afterSubmit && { reportInline: true }) })
+      .pipe(
+        tap(() => this.toast.success(this.i18n.t('doc.toast.posted'))),
+        tap(() => this.afterChange(true)),
+        finalize(() => {
+          // The submit worked and the post did not: one sentence says so, with the reason, and the document stays Submitted.
+          const error = this.documents.post.$operation().error;
+          if (afterSubmit && error) {
+            this.toast.error(
+              this.i18n.t('doc.toast.notPosted', { reason: error.message ?? error.detail })
+            );
+            this.afterChange(false);
+          }
+        })
+      );
   }
 
   /**
@@ -1251,7 +1269,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         }),
         this.summaryOf(items),
         this.i18n.t('dialog.submitPost.approval')
-      ].join(' '),
+      ].join('\n'),
       confirmLabel: this.i18n.t('doc.action.submitAndPost'),
       cancelLabel: this.i18n.t('common.back')
     });
@@ -1268,7 +1286,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       return of(document);
     }
     if (toDocumentActions(document.allowedActions).has(DOCUMENT_ACTION.Post)) {
-      return this.postDocument(document);
+      return this.postDocument(document, true);
     }
     this.toast.success(this.i18n.t('doc.toast.submitted'));
     this.afterChange(false);
@@ -1330,15 +1348,19 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     this.$createdId.set(document.id);
     this.view.markPristine();
     void this.router.navigate(['/', DOCUMENT_ROUTE[this.$type()], document.id], {
-      replaceUrl: true
+      replaceUrl: true,
+      scroll: 'manual'
     });
   }
 
   /**
    * A command closes its dialog and then disables or removes the button that opened it, which leaves the focus on
-   * <body> and a keyboard user back at the top of the page (EA-07). Move it to the error banner, else to the title.
+   * <body> and a keyboard user back at the top of the page (EA-07). Move it to the error banner; a dialog that was dismissed
+   * ran nothing, so its button is still there and gets the focus back WITHOUT scrolling (a tap on Back used to throw the page
+   * to the top); else to the title.
    */
   private settleFocus(): void {
+    const opener = this.opener;
     afterNextRender(
       () => {
         const active = this.page.activeElement;
@@ -1346,10 +1368,16 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
           return;
         }
         // The error first (it comes after the title in the page, so one combined selector would pick the title).
-        const target =
-          this.page.querySelector<HTMLElement>('app-banner[role="alert"][tabindex]') ??
-          this.page.querySelector<HTMLElement>('app-page-header h1');
-        target?.focus();
+        const banner = this.page.querySelector<HTMLElement>('app-banner[role="alert"][tabindex]');
+        if (banner) {
+          banner.focus();
+          return;
+        }
+        if (opener?.isConnected && !opener.hasAttribute('disabled')) {
+          opener.focus({ preventScroll: true });
+          return;
+        }
+        this.page.querySelector<HTMLElement>('app-page-header h1')?.focus();
       },
       { injector: this.injector }
     );

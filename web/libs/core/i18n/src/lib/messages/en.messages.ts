@@ -497,11 +497,13 @@ export const EN_MESSAGES = {
   'doc.hint.approvedAskCancel': 'Wrong quantity? Ask {name} to cancel it.',
   'dialog.post.edit': 'Edit items',
   'dialog.recall.title': 'Take {docNo} back to draft?',
-  'dialog.recall.body': 'It leaves the approval queue. Submit it again when it is right.',
+  'dialog.recall.body': 'It leaves the approval queue.\nSubmit it again when it is right.',
   'dialog.recall.bodyReady':
-    'It becomes a draft again so you can edit it. Submit it again when it is right.',
+    'It becomes a draft again so you can edit it.\nSubmit it again when it is right.',
   'dialog.recall.confirm': 'Back to draft',
   'dialog.recall.keep': 'Keep waiting',
+  'dialog.recall.keepReady': 'Keep as submitted',
+  'doc.toast.notPosted': 'Submitted, not posted: {reason}',
   // One flow for Submit & post: ask once before it starts, then show one busy label until it ends (phone QA).
   'doc.action.submitting': 'Submitting...',
   'doc.action.posting': 'Posting...',

@@ -482,11 +482,13 @@ export const MS_MESSAGES: Messages = {
   'doc.hint.approvedAskCancel': 'Kuantiti salah? Minta {name} membatalkannya.',
   'dialog.post.edit': 'Sunting item',
   'dialog.recall.title': 'Kembalikan {docNo} kepada draf?',
-  'dialog.recall.body': 'Ia keluar daripada baris gilir kelulusan. Hantar semula apabila betul.',
+  'dialog.recall.body': 'Ia keluar daripada baris gilir kelulusan.\nHantar semula apabila betul.',
   'dialog.recall.bodyReady':
-    'Ia menjadi draf semula supaya anda boleh menyuntingnya. Hantar semula apabila betul.',
+    'Ia menjadi draf semula supaya anda boleh menyuntingnya.\nHantar semula apabila betul.',
   'dialog.recall.confirm': 'Kembali kepada draf',
   'dialog.recall.keep': 'Terus tunggu',
+  'dialog.recall.keepReady': 'Kekal dihantar',
+  'doc.toast.notPosted': 'Dihantar, tetapi belum diposkan: {reason}',
   // TODO-review: machine draft (one flow for Submit & post, phone QA).
   'doc.action.submitting': 'Menghantar...',
   'doc.action.posting': 'Memposkan...',

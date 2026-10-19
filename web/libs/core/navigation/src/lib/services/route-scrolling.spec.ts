@@ -43,7 +43,7 @@ describe('ROUTE_SCROLLING (phone QA: a new page opens at its top)', () => {
     app.bootstrap(RootComponent, host);
     const router = TestBed.inject(Router);
     await router.navigateByUrl('/a');
-    await app.whenStable();
+    await settle();
     scrollToPosition.mockClear();
     scrollToAnchor.mockClear();
     return router;
@@ -57,6 +57,8 @@ describe('ROUTE_SCROLLING (phone QA: a new page opens at its top)', () => {
 
   afterEach(() => window.document.querySelectorAll('app-scroll-root').forEach(e => e.remove()));
 
+  // This file tests the options and what the router does with them. That app.config.ts registers them
+  // (withInMemoryScrolling(ROUTE_SCROLLING)) is covered by e2e/tests/34-phone-flow.spec.ts, not by a unit test.
   it('is the option set the app registers: restore on Back, top for a new page, anchors on', () => {
     expect(ROUTE_SCROLLING).toEqual({
       scrollPositionRestoration: 'enabled',
@@ -71,6 +73,15 @@ describe('ROUTE_SCROLLING (phone QA: a new page opens at its top)', () => {
     await settle();
 
     expect(scrollToPosition).toHaveBeenCalledWith([0, 0]);
+  });
+
+  it('a navigation that replaces the address of the same page (the first save of a new document) does not scroll', async () => {
+    const router = await bootstrap(ROUTE_SCROLLING);
+
+    await router.navigateByUrl('/b', { replaceUrl: true, scroll: 'manual' });
+    await settle();
+
+    expect(scrollToPosition).not.toHaveBeenCalled();
   });
 
   it('leaves the position alone without the option (the bug this protects against)', async () => {
