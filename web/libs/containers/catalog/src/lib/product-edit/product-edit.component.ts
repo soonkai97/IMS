@@ -213,7 +213,10 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
           this.form.markAsPristine();
           this.toast.success(this.i18n.t('product.saved', { sku: product.sku }));
           if (this.$isNew()) {
-            void this.router.navigate(['/products', product.id], { replaceUrl: true });
+            void this.router.navigate(['/products', product.id], {
+              replaceUrl: true,
+              scroll: 'manual'
+            });
           }
         }),
         takeUntilDestroyed(this.destroyRef)

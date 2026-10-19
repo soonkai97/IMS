@@ -33,8 +33,8 @@ test.describe('OUT-02 / BR-07 Issue that needs approval with a stock override', 
     );
     await expect(page.getByText('Override needed')).toBeVisible();
     await expect(editor.action('Submit & post')).toBeEnabled();
-    await editor.action('Submit & post').click();
-    await expect(shell.toast('Sent for approval.')).toBeVisible();
+    await editor.submitAndPost();
+    await expect(shell.toast('Submitted for approval.')).toBeVisible();
     await expect(editor.status).toHaveText('Submitted');
     await expect(editor.action('Post')).toHaveCount(0);
     const { no } = await api('staff').getDocument(await editor.savedId());

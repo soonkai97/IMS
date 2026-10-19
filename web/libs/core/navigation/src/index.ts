@@ -6,3 +6,4 @@ export * from './lib/types/menu.types';
 export * from './lib/services/page-title.service';
 export * from './lib/services/page-title.strategy';
 export * from './lib/services/route-fade';
+export * from './lib/services/route-scrolling';

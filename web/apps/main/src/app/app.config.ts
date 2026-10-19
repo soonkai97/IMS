@@ -11,6 +11,7 @@ import {
   TitleStrategy,
   provideRouter,
   withComponentInputBinding,
+  withInMemoryScrolling,
   withViewTransitions
 } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -27,7 +28,12 @@ import {
 } from '@ims/core/http';
 import { I18nService, provideUiText } from '@ims/core/i18n';
 import { AuthService, authInterceptor } from '@ims/core/identity';
-import { NAV_BADGE_SOURCES, PageTitleStrategy, ROUTE_FADE } from '@ims/core/navigation';
+import {
+  NAV_BADGE_SOURCES,
+  PageTitleStrategy,
+  ROUTE_FADE,
+  ROUTE_SCROLLING
+} from '@ims/core/navigation';
 import { provideDialogFeedback } from '@ims/core/notification';
 import { PwaService, providePwa } from '@ims/core/pwa';
 import { ApprovalsStore } from '@ims/features/approvals';
@@ -53,7 +59,12 @@ function startUp(): Promise<void> {
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(APP_ROUTES, withComponentInputBinding(), withViewTransitions(ROUTE_FADE)),
+    provideRouter(
+      APP_ROUTES,
+      withComponentInputBinding(),
+      withInMemoryScrolling(ROUTE_SCROLLING),
+      withViewTransitions(ROUTE_FADE)
+    ),
     { provide: TitleStrategy, useExisting: PageTitleStrategy },
     // Order = request order. Error mapping is first so it sees failures after the auth interceptor tried to recover.
     provideHttpClient(

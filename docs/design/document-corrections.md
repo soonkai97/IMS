@@ -325,8 +325,8 @@ Counts and inbox (no code change expected, only tests): `ApprovalsWaiting` count
 
 Given/when/then titles, each named with the finding it protects, using the existing `api()`, `signIn`, `DocumentEditor` helpers (`editor.action('Edit')`, `editor.confirm(title, button, reason)`):
 
-1. NR-02 / DC-01..03: staff saves a receipt with 110 instead of 10, Submit & post, in the dialog taps "Edit items"; the editor opens on the same number, the quantity is fixed to 10, Submit & post, Post; stock rose by 10 and exactly one document exists for that number.
-2. NR-02 / DC-03: staff opens the Post dialog, presses Escape; the page is Submitted and shows Edit and Post; tapping Edit returns to Draft without a dialog.
+1. NR-02 / DC-01..03: staff has a Submitted receipt with 110 instead of 10, taps Post, in the dialog taps "Edit items"; the editor opens on the same number, the quantity is fixed to 10, Submit & post, confirm "Submit & post?"; stock rose by 10 and exactly one document exists for that number. (Since the phone QA amendment the wrong quantity is caught in the one question before the submit, or here when the document is already Submitted.)
+2. NR-02 / DC-03: staff opens the Post dialog, presses Escape; the page is Submitted and shows Edit and Post; tapping Edit asks "Take {docNo} back to draft?" and only then returns to Draft.
 3. DC-04, DC-05: staff submits an issue that needs approval; Edit dialog appears; confirm; the supervisor's inbox no longer lists it and the Home badge drops; the chip is Draft without Returned.
 4. DC-06: after that recall the staff lowers the quantity below the threshold and submits; no approval is needed any more.
 5. DC-07 (API): another user recalls (403), recall twice (second 200, one audit row), no `If-Match` (428).
@@ -376,3 +376,16 @@ These are business rules; each has the default used above, so the build does not
 3. Is a reason mandatory when cancelling an Approved document (5+ characters)? Default: yes, because stock-moving approvals are the audited step; Draft and Submitted cancel stay optional.
 
 Not a decision, noted for later: a "Approved, ready to post" list for the posting supervisor does not exist; after Send back or Cancel nobody is notified except through the creator's Returned count. Notifications are slice A18.
+
+## Amendment 2026-10-19 (phone QA, novice round on a 360 px phone)
+
+These replace the earlier text where they differ (items 7 and 9 of section 1, DC-01, DC-03, and the "Post dialog opened by Submit & post" wireframe).
+
+1. **Edit on a Submitted document always asks first**, approval or not: "Take {docNo} back to draft?" [Back] [Back to draft]. A document in an approver's list also says "It leaves the approval queue." The answer is one toast, "Back to draft. Fix it, then submit again.". A silent change of the page into a Draft was read as a glitch.
+2. **Submit & post is one sequence with one question, asked before anything is sent.** Whoever may post taps Submit & post and sees "Submit & post?" (what stock will do, the lines, and "If it needs approval, it goes to a supervisor first and stock does not change."). After [Submit & post] the button shows "Submitting..." and then "Posting...", and the page ends Posted. No second dialog follows the submit. Back sends nothing, so no document is created. A document that needs approval ends Submitted with the toast "Submitted for approval." Someone who cannot post (Clerk) is not asked; the toast reads "Submitted. Waiting for a warehouse user to post." and the page hint says the same, never "Ready to post". The Post button on a Submitted or Approved document keeps its own confirm (with Edit items), because there it is the only question.
+3. **Empty lines**: "Add at least one item." sits directly under the Add item button, and Add item has the focus. The footer counts the lines that exist ("1 line | 0 units" with an invalid quantity), like the Items heading.
+4. **Layout at 360 px**: Save draft, Submit & post and the More button share one row with each label on one line; the quantity error no longer moves the - and + buttons; every page opens at its top and Back restores the old position.
+
+Keys: `dialog.recall.title` is now "Take {docNo} back to draft?", `dialog.recall.body` "It leaves the approval queue. Submit it again when it is right.", new `dialog.recall.bodyReady`, `dialog.recall.confirm`, `dialog.submitPost.title`, `dialog.submitPost.approval`, `doc.action.submitting`, `doc.action.posting`, `doc.hint.waitingToPost`; `doc.toast.sentForApproval` is "Submitted for approval." and `doc.toast.submitted` "Submitted. Waiting for a warehouse user to post." zh and ms are machine drafts marked TODO-review in the catalogs.
+
+Review follow-ups (same PR): the dismiss button of the Edit dialog for an approval-free document is "Keep as submitted" (not "Back", which read like "Back to draft"); the dialog bodies are short lines (what happens, what you can do); a post that fails after a successful submit says "Submitted, not posted: {reason}" in one toast and the document stays Submitted; the first save of a new document replaces the address without scrolling (`scroll: 'manual'`); dismissing a confirm dialog returns the focus to its button without moving the page.

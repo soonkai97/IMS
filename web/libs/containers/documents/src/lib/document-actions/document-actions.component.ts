@@ -77,8 +77,16 @@ export class DocumentActionsComponent {
         this.$canPostDocument())
   );
   $moreOpen = signal(false);
-  $submitLabelKey = computed<MessageKey>(() =>
-    this.$canPost() ? 'doc.action.submitAndPost' : 'doc.action.submit'
+  /** The tapped button says what it is doing ("Submitting..."), not just spins behind the old label. */
+  $submitLabelKey = computed<MessageKey>(() => {
+    if (this.$busyAction() === DOCUMENT_ACTION.Submit) {
+      return 'doc.action.submitting';
+    }
+    return this.$canPost() ? 'doc.action.submitAndPost' : 'doc.action.submit';
+  });
+  /** Also the post that follows Submit & post: the person sees "Posting..." until the document is Posted. */
+  $postLabelKey = computed<MessageKey>(() =>
+    this.$busyAction() === DOCUMENT_ACTION.Post ? 'doc.action.posting' : 'doc.action.post'
   );
 
   onTrigger(action: DocumentAction): void {

@@ -483,7 +483,7 @@ export class RolePageComponent implements HasUnsavedChanges {
         tap(role => {
           this.reset(role);
           this.toast.success(this.i18n.t('rolePage.created', { name: role.name }));
-          void this.router.navigate(['/roles', role.id], { replaceUrl: true });
+          void this.router.navigate(['/roles', role.id], { replaceUrl: true, scroll: 'manual' });
         }),
         takeUntilDestroyed(this.destroyRef)
       )

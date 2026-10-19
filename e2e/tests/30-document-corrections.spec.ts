@@ -40,15 +40,14 @@ test.describe('RQ4 / NR-02 / PR-02 Correct a document before it posts (R28, R31)
     expect(await api().onHand(product.id)).toBe(0);
 
     await editor.setQty(product.sku, 10);
-    await editor.action('Submit & post').click();
-    await editor.confirm(/^Post /, 'Post');
+    await editor.submitAndPost();
     await expect(shell.toast('Posted. Stock updated.')).toBeVisible();
     await expect(editor.status).toHaveText('Posted');
     expect(await api().onHand(product.id)).toBe(10);
     expect(await staff.countMine('receipts')).toBe(receiptsBefore);
   });
 
-  test('given a submitted receipt, when staff closes the Post dialog with Escape and taps Edit, then it is a Draft again with no dialog (DC-03)', async ({
+  test('given a submitted receipt, when staff closes the Post dialog with Escape and taps Edit, then it asks first and only then is a Draft again (DC-03, phone QA 3)', async ({
     page,
     signIn,
     shell,
@@ -71,7 +70,15 @@ test.describe('RQ4 / NR-02 / PR-02 Correct a document before it posts (R28, R31)
     await expect(editor.action('Post')).toBeVisible();
 
     await editor.action('Edit').click();
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+    const ask = shell.dialog(`Take ${doc.no} back to draft?`);
+    await expect(ask).toBeVisible();
+    await ask.getByRole('button', { name: 'Keep as submitted', exact: true }).click();
+    await expect(editor.status).toHaveText('Submitted');
+    expect((await staff.getDocument(doc.id)).status).toBe('Submitted');
+
+    await editor.action('Edit').click();
+    await editor.confirm(`Take ${doc.no} back to draft?`, 'Back to draft');
+    await expect(shell.toast('Back to draft. Fix it, then submit again.')).toHaveCount(1);
     await expect(editor.status).toHaveText('Draft');
     await expect(editor.action('Save draft')).toBeVisible();
     expect((await staff.getDocument(doc.id)).status).toBe('Draft');
@@ -111,12 +118,12 @@ test.describe('RQ4 / NR-02 / PR-02 Correct a document before it posts (R28, R31)
     await expect(page.getByText('Need to change something? Tap Edit.')).toBeVisible();
     await expect(editor.action('Post')).toHaveCount(0);
     await editor.action('Edit').click();
-    const dialog = shell.dialog(`Edit ${doc.no}?`);
-    await expect(dialog).toContainText('leaves the approval list');
+    const dialog = shell.dialog(`Take ${doc.no} back to draft?`);
+    await expect(dialog).toContainText('leaves the approval queue');
     await dialog.getByRole('button', { name: 'Keep waiting', exact: true }).click();
     await expect(editor.status).toHaveText('Submitted');
     await editor.action('Edit').click();
-    await editor.confirm(`Edit ${doc.no}?`, 'Edit');
+    await editor.confirm(`Take ${doc.no} back to draft?`, 'Back to draft');
     await expect(shell.toast('Back to draft. Fix it, then submit again.')).toBeVisible();
     await expect(editor.status).toHaveText('Draft');
 
@@ -127,8 +134,7 @@ test.describe('RQ4 / NR-02 / PR-02 Correct a document before it posts (R28, R31)
     await supervisor.context.close();
 
     await editor.setQty(product.sku, 10);
-    await editor.action('Submit & post').click();
-    await editor.confirm(/^Post /, 'Post');
+    await editor.submitAndPost();
     await expect(shell.toast('Posted. Stock updated.')).toBeVisible();
     expect(await api().onHand(product.id)).toBe(90);
   });
