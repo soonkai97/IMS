@@ -9,7 +9,8 @@ public static class PipelineSetup
     /// <summary>
     /// Middleware order matters: forwarded headers first (so the real client address is known), then the correlation id (every later log
     /// line carries it); request logging outside the exception handler (it sees the mapped status); authentication before the rate
-    /// limiter (so the per-user bucket applies) and before authorization; request timeouts last, right before the endpoint.
+    /// limiter (so the per-user bucket applies) and before authorization; the module gate between authentication and authorization (see <see cref="ModuleGateMiddleware"/>);
+    /// request timeouts last, right before the endpoint.
     /// </summary>
     public static WebApplication UsePresentation(this WebApplication app)
     {
@@ -45,6 +46,7 @@ public static class PipelineSetup
 
         app.UseAuthentication();
         app.UseRateLimiter();
+        app.UseMiddleware<ModuleGateMiddleware>(); // after authentication, before authorization: an off module answers 404 to every signed-in caller, never 403
         app.UseAuthorization();
         app.UseRequestTimeouts();
 

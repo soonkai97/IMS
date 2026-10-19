@@ -11,7 +11,8 @@ namespace Ims.Infrastructure.Persistence;
 /// name is always a parameter, never concatenated into SQL.
 /// </summary>
 /// <param name="rolesLockTimeoutMs">How long the roles lock waits; tests shorten it to prove the 409 without a long sleep.</param>
-public sealed class SqlTransactionLocker(AppDbContext db, int rolesLockTimeoutMs = Limits.RolesLockTimeoutMs) : ITransactionLocker
+/// <param name="modulesLockTimeoutMs">How long the modules lock waits; tests shorten it likewise.</param>
+public sealed class SqlTransactionLocker(AppDbContext db, int rolesLockTimeoutMs = Limits.RolesLockTimeoutMs, int modulesLockTimeoutMs = Limits.ModulesLockTimeoutMs) : ITransactionLocker
 {
     /// <summary>sp_getapplock returns 0 or 1 when the lock is granted and a negative number when it is not (timeout, cancelled, deadlock victim, error).</summary>
     private const int NotGranted = 0;
@@ -27,7 +28,9 @@ public sealed class SqlTransactionLocker(AppDbContext db, int rolesLockTimeoutMs
 
     public Task LockRolesAsync(CancellationToken ct) => AcquireAsync("roles", rolesLockTimeoutMs, retry: false, ct);
 
-    private async Task AcquireAsync(string resource, int timeoutMs, bool retry, CancellationToken ct)
+    public Task LockModulesAsync(CancellationToken ct) => AcquireAsync("modules", modulesLockTimeoutMs, retry: false, ct, Messages.ModulesLockBusy);
+
+    private async Task AcquireAsync(string resource, int timeoutMs, bool retry, CancellationToken ct, string busyMessage = Messages.LockBusy)
     {
         // An application lock owned by the transaction needs one. Outside a transaction there is nothing to hold it for.
         if (db.Database.CurrentTransaction is null) return;
@@ -47,6 +50,6 @@ public sealed class SqlTransactionLocker(AppDbContext db, int rolesLockTimeoutMs
             throw new OperationCanceledException(ct);
         }
         if (result >= NotGranted) return;
-        throw retry ? new ConcurrencyException(Messages.ConcurrencyConflict) : new LockTimeoutException(Messages.LockBusy);
+        throw retry ? new ConcurrencyException(Messages.ConcurrencyConflict) : new LockTimeoutException(busyMessage);
     }
 }

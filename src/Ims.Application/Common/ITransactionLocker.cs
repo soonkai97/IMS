@@ -19,4 +19,7 @@ public interface ITransactionLocker
     /// under a user who has just been given it. Taken by those writes only; never held together with a stock or document lock.
     /// </summary>
     Task LockRolesAsync(CancellationToken ct);
+
+    /// <summary>Serialises the switching of modules (a flip reads the row, writes it and audits it), so two flips never interleave. Taken by that write only; never held together with a stock or document lock.</summary>
+    Task LockModulesAsync(CancellationToken ct);
 }

@@ -25,6 +25,7 @@ public sealed class ApiClient
         Stock = new StockClient(this);
         Reports = new ReportsClient(this);
         Settings = new SettingsClient(this);
+        Modules = new ModulesClient(this);
         Audit = new AuditClient(this);
         Import = new ImportClient(this);
     }
@@ -43,6 +44,7 @@ public sealed class ApiClient
     public StockClient Stock { get; }
     public ReportsClient Reports { get; }
     public SettingsClient Settings { get; }
+    public ModulesClient Modules { get; }
     public AuditClient Audit { get; }
     public ImportClient Import { get; }
 

@@ -17,6 +17,8 @@ public static class Permissions
     public const string ReportsRead = "reports.read";
     public const string AuditRead = "audit.read";
     public const string SettingsManage = "settings.manage";
+    /// <summary>Turn a module on or off for the whole installation, with a reason (ADR modules-and-tracking-dimensions 4.6). Core, dangerous, held by the Administrator.</summary>
+    public const string ModulesManage = "modules.manage";
 
     /// <summary>
     /// See the cost of the documents one works on: unit cost, line cost, document totals and estimates, and the approval amounts and thresholds.

@@ -34,6 +34,8 @@ public static class Limits
     public const int StockLockTimeoutMs = 10_000;
     /// <summary>How long a user or role write waits for the roles lock before answering 409 (not retried: those writes are short, so a longer wait means a stuck holder).</summary>
     public const int RolesLockTimeoutMs = 5_000;
+    /// <summary>How long a module switch waits for the modules lock before answering 409 (not retried, like the roles lock).</summary>
+    public const int ModulesLockTimeoutMs = 5_000;
     /// <summary>Back-off before a retry = attempt x (base + random jitter), so colliding requests do not retry in lockstep.</summary>
     public const int RetryBaseDelayMs = 25;
     public const int RetryJitterMs = 50;
@@ -89,6 +91,8 @@ public static class Limits
     public const int AuditTextMaxLength = 100;
     public const int UomNameMaxLength = 100;
     public const int SettingKeyMaxLength = 100;
+    /// <summary>A module code such as <c>accounting</c>: the catalog keeps them at most this long, so <c>Module.&lt;code&gt;</c> always fits <see cref="SettingKeyMaxLength"/>.</summary>
+    public const int ModuleCodeMaxLength = 32;
     public const int PasswordMaxLength = 128;
     public const int MaxAttachmentsPerOwner = 20;
     public const int AttachmentNameMaxLength = 200;
