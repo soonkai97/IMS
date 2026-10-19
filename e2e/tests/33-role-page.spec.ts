@@ -277,6 +277,11 @@ test.describe('RP02 Role page', () => {
     await shell.nav.getByRole('link', { name: 'Roles' }).click();
     await page.getByRole('link', { name: 'New role' }).click();
     await expect(page).toHaveURL(/\/roles\/new$/);
+    // axe finds nothing serious on the new-role form.
+    const { violations } = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+    expect(violations.filter(v => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
 
     await nameBox(page).fill(name);
     await checkbox(page, 'document.post.approved').check();
