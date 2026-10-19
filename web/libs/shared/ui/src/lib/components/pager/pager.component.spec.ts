@@ -136,6 +136,63 @@ describe('UiPagerComponent', () => {
     expect(document.activeElement).toBe(select);
   });
 
+  describe('the table above it', () => {
+    const SCROLL_MARGIN = '56px';
+
+    /** An app-table before the pager whose top is at `top` pixels from the top of the window. */
+    function tableAt(top: number): jest.Mock {
+      const table = document.createElement('app-table');
+      table.style.scrollMarginTop = SCROLL_MARGIN;
+      table.getBoundingClientRect = () => ({ top }) as DOMRect;
+      const scrollIntoView = jest.fn();
+      table.scrollIntoView = scrollIntoView;
+      spectator.element.before(table);
+      return scrollIntoView;
+    }
+
+    it('is scrolled to the top of the window when a page change finds its top above the window', () => {
+      render({ page: 2 });
+      const scrolled = tableAt(-400);
+
+      spectator.click(button('Next page'));
+
+      expect(scrolled).toHaveBeenCalledWith({ block: 'start', behavior: 'instant' });
+    });
+
+    it('is scrolled after a new page size too', () => {
+      render({ pageSizes: [25, 50, 100] });
+      const scrolled = tableAt(-400);
+
+      spectator.selectOption(spectator.query('select') as HTMLSelectElement, '50');
+
+      expect(scrolled).toHaveBeenCalledTimes(1);
+    });
+
+    it('is left alone when its top is already in view under the top bar', () => {
+      render({ page: 2 });
+      const scrolled = tableAt(120);
+
+      spectator.click(button('Next page'));
+
+      expect(scrolled).not.toHaveBeenCalled();
+    });
+
+    it('is left alone when the page cannot change (a boundary button)', () => {
+      render({ page: 14 });
+      const scrolled = tableAt(-400);
+
+      spectator.click(button('Next page'));
+
+      expect(scrolled).not.toHaveBeenCalled();
+    });
+
+    it('does nothing, and does not fail, when there is no table before the pager', () => {
+      render({ page: 2 });
+
+      expect(() => spectator.click(button('Next page'))).not.toThrow();
+    });
+  });
+
   it('shows no range for an empty list', () => {
     render({ page: 1, total: 0 });
 

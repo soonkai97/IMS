@@ -19,6 +19,7 @@
 // With a link the body is the link: the whole card is the tap target and its name is the label and the number ("Waiting for approval 3").
 .ui-stat-card-body {
   display: flex;
+  flex-wrap: wrap;
   gap: space(2);
   align-items: center;
   min-height: height('touch');
@@ -40,9 +41,10 @@
   border-radius: border-radius('md');
 }
 
+// The text drops under the badge when the text is enlarged on a narrow phone, instead of pushing the chevron out (WCAG 1.4.10).
 .ui-stat-card-text {
   display: flex;
-  flex: 1;
+  flex: 1 1 6rem;
   flex-direction: column;
   min-width: 0;
 }

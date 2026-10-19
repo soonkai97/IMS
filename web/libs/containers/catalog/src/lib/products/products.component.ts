@@ -120,6 +120,7 @@ export class ProductsPageComponent implements OnInit {
       key: 'name',
       header: this.i18n.t('product.name'),
       value: row => row.name,
+      phoneInline: true,
       sortKey: ProductSort.Name
     },
     {
@@ -130,7 +131,7 @@ export class ProductsPageComponent implements OnInit {
     },
     { key: 'unit', header: this.i18n.t('product.baseUnit'), value: row => row.baseUomCode },
     { key: 'safety', header: this.i18n.t('product.safetyStock'), align: 'end', hideOnPhone: true },
-    { key: 'active', header: this.i18n.t('product.status') }
+    { key: 'active', header: this.i18n.t('product.status'), phoneEnd: true }
   ]);
 
   readonly rowLink = (row: ProductDto): readonly unknown[] => ['/products', row.id];
