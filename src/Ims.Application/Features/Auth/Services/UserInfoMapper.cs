@@ -9,10 +9,10 @@ public static class UserInfoMapper
     /// for the list). <c>Permissions</c> lists the codes of the token, in catalog order.
     /// </summary>
     public static async Task<UserInfo> ToInfoAsync(User u, string roleCode, string roleName, EffectivePermissions permissions, bool allWarehouses,
-        IReadOnlyCollection<int> warehouseIds, IIdMap<Warehouse> warehouses, CancellationToken ct)
+        IReadOnlyCollection<int> warehouseIds, IIdMap<Warehouse> warehouses, IReadOnlyList<string> modules, CancellationToken ct)
     {
         var publicIds = await warehouses.ToPublicAsync(allWarehouses ? [] : warehouseIds, ct);
         return new(u.PublicId, u.Username, u.DisplayName, roleCode, roleName, permissions.Codes.ToList(), allWarehouses,
-            (allWarehouses ? [] : warehouseIds).Select(id => publicIds[id]).ToList());
+            (allWarehouses ? [] : warehouseIds).Select(id => publicIds[id]).ToList(), modules);
     }
 }

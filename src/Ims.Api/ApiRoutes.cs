@@ -14,6 +14,7 @@ public static class ApiRoutes
     public const string Warehouses = Prefix + "/warehouses";
     public const string Partners = Prefix + "/partners";
     public const string Settings = Prefix + "/settings";
+    public const string Modules = Prefix + "/modules";
     public const string ApprovalRules = Prefix + "/approval-rules";
     public const string Documents = Prefix + "/documents";
     public const string Stock = Prefix + "/stock";

@@ -14,9 +14,9 @@ public partial class PermissionCatalogTests
         .Select(f => (string)f.GetRawConstantValue()!).ToList();
 
     [Fact]
-    public void TheCatalogHasTheTwentyOnePermissionsOfTheAdr()
+    public void TheCatalogHasTheTwentyTwoPermissions_TheTwentyOneOfTheAdrAndModulesManage()
     {
-        Assert.Equal(21, PermissionCatalog.All.Count);
+        Assert.Equal(22, PermissionCatalog.All.Count);
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public partial class PermissionCatalogTests
         Assert.Equal(
             new[]
             {
-                Permissions.AuditRead, Permissions.CostView, Permissions.DocumentReverse, Permissions.RolesManage, Permissions.SettingsManage,
+                Permissions.AuditRead, Permissions.CostView, Permissions.DocumentReverse, Permissions.ModulesManage, Permissions.RolesManage, Permissions.SettingsManage,
                 Permissions.StockNegativeOverride, Permissions.UsersManage, Permissions.ValuationView
             }.Order(StringComparer.Ordinal),
             PermissionCatalog.All.Where(p => p.IsDangerous).Select(p => p.Code).Order(StringComparer.Ordinal));
@@ -114,6 +114,20 @@ public partial class PermissionCatalogTests
         Assert.Equal(Permissions.CostView, PermissionCatalog.Find(Permissions.CostView)!.Code);
         Assert.Null(PermissionCatalog.Find("cost.edit"));
         Assert.False(PermissionCatalog.IsKnown("COST.VIEW"));
+    }
+
+    [Fact]
+    public void ModulesManage_IsDangerousAdministration_OutsideTheAdministrabilityCore_AndOnlyTheAdminHoldsIt()
+    {
+        var entry = PermissionCatalog.Find(Permissions.ModulesManage)!;
+
+        Assert.Equal(PermissionGroup.Administration, entry.Group);
+        Assert.True(entry.IsDangerous);
+        Assert.False(entry.AdminCore); // the last-administrator guard is about users and roles, not about modules
+        Assert.Empty(entry.Requires);
+        Assert.Contains(Permissions.ModulesManage, SystemRoleDefaults.For(Roles.Admin));
+        foreach (var role in Roles.All.Where(r => r != Roles.Admin))
+            Assert.DoesNotContain(Permissions.ModulesManage, SystemRoleDefaults.For(role));
     }
 
     // ----- the defaults of the system roles -----

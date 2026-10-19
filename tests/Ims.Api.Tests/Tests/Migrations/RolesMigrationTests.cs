@@ -20,6 +20,9 @@ public class RolesMigrationTests
     private const string Latest = "20261016100511_AddRolesAndPermissions";
     private const string NotARole = "Janitor";
     private const string Widened = "approval-rules.widened";
+
+    /// <summary>The permissions the catalog gained after this migration, each with a data migration of its own: a database at this migration does not hold them yet.</summary>
+    private static readonly string[] AddedLater = [Permissions.ModulesManage];
     private const int Standard = (int)ApproverTier.Standard;
     private const int Large = (int)ApproverTier.Large;
 
@@ -77,14 +80,14 @@ public class RolesMigrationTests
         {
             Assert.Equal(1, await database.ScalarAsync<int>("SELECT COUNT(*) FROM Role WHERE Code = @c", ("@c", code)));
             var held = await PermissionsOfAsync(database, code);
-            Assert.True(held.SetEquals(SystemRoleDefaults.For(code)), $"{code} holds {string.Join(',', held.Order())}");
+            Assert.True(held.SetEquals(SystemRoleDefaults.For(code).Except(AddedLater)), $"{code} holds {string.Join(',', held.Order())}");
             expectedGrants += held.Count;
         }
         Assert.Equal(expectedGrants, await database.ScalarAsync<int>("SELECT COUNT(*) FROM RolePermission WHERE REC_DELETED = 0"));
         Assert.Equal(0, await database.ScalarAsync<int>("SELECT COUNT(*) FROM RolePermission p JOIN Role r ON r.Id = p.RoleId WHERE r.REC_DELETED = 1"));
 
         // The guard the lean scope asks for in place of a sync: a release that adds a permission to the catalog must ship a migration that gives it to Admin.
-        Assert.True((await PermissionsOfAsync(database, Roles.Admin)).SetEquals(PermissionCatalog.Codes), "Admin must hold every permission of the catalog.");
+        Assert.True((await PermissionsOfAsync(database, Roles.Admin)).SetEquals(PermissionCatalog.Codes.Except(AddedLater)), "Admin must hold every permission of the catalog that existed at this migration.");
     }
 
     /// <summary>

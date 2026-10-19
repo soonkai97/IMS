@@ -46,7 +46,8 @@ public partial class EndpointCoverageTests
 
         Assert.Equal(
             ["AttachmentsController.Delete", "AttachmentsController.Download", "AttachmentsController.List", "AttachmentsController.Upload",
-             "AuthController.ChangePassword", "AuthController.Login", "AuthController.Logout", "AuthController.Me", "AuthController.Refresh"],
+             "AuthController.ChangePassword", "AuthController.Login", "AuthController.Logout", "AuthController.Me", "AuthController.Refresh",
+             "ModulesController.List"],
             withoutPolicy);
     }
 
@@ -89,6 +90,7 @@ public partial class EndpointCoverageTests
         var withoutQuery = path.Split('?')[0];
         var generic = GuidSegment().Replace(IdSegment().Replace(withoutQuery, "/{id}"), "/{id}");
         generic = TemplateKind().Replace(generic, "/templates/{kind}");
+        generic = ModuleCodeSegment().Replace(generic, "/modules/{code}");
         return Regex.Replace(generic, @"\{id:(int|guid)\}", "{id}");
     }
 
@@ -100,4 +102,7 @@ public partial class EndpointCoverageTests
 
     [GeneratedRegex(@"/templates/[a-z\-]+$")]
     private static partial Regex TemplateKind();
+
+    [GeneratedRegex(@"/modules/([a-z]+|\{code\})$")]
+    private static partial Regex ModuleCodeSegment();
 }

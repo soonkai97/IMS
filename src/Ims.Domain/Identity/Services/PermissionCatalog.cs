@@ -19,6 +19,8 @@ public static class PermissionCatalog
             { IsDangerous = true, AdminCore = true, Requires = [Permissions.RolesRead] },
         new(Permissions.SettingsManage, PermissionGroup.Administration, "Change the system settings and the approval rules.")
             { IsDangerous = true },
+        new(Permissions.ModulesManage, PermissionGroup.Administration, "Turn modules on or off for the whole installation, with a reason.")
+            { IsDangerous = true },
         new(Permissions.AuditRead, PermissionGroup.Administration, "Read the audit log.")
             { IsDangerous = true },
 

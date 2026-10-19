@@ -50,6 +50,11 @@ public static class Messages
     public static readonly string RoleDescriptionTooLong = $"A role description can have at most {Limits.RoleDescriptionMaxLength} characters.";
     public static string UnknownPermission(string code) => $"Unknown permission '{code}'.";
 
+    // ----- Modules -----
+    public const string ModuleNotFound = "Module not found.";
+    public const string ModuleStateRequired = "Say whether the module is to be turned on or off.";
+    public const string ModuleReasonRequired = "A reason is required to turn a module on or off.";
+
     // ----- Roles -----
     public const string RoleNotFound = "Role not found.";
     public static string RoleNameTaken(string name) => $"A role named '{name}' already exists.";
@@ -233,6 +238,7 @@ public static class Messages
     public const string RequestTimedOutTitle = "Request timed out";
     public const string ServiceUnavailableTitle = "Service unavailable";
     public const string LockBusy = "Another change to users or roles is still being saved. Try again in a moment.";
+    public const string ModulesLockBusy = "Another module change is still being saved. Try again in a moment.";
     public const string ConcurrencyConflict = "The data changed while you were working on it. Reload and try again.";
     public const string PublicIdInUse = "The record could not be saved because its identifier was already taken. Try again.";
     public static string DocumentChangedByAnother(string no) => $"{no} was changed by someone else since you opened it. Reload to see the latest version. Your changes were not saved.";

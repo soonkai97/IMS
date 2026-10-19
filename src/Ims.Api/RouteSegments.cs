@@ -32,4 +32,5 @@ public static class RouteSegments
     public const string Products = "products";
     public const string OpeningStock = "opening-stock";
     public const string Templates = "templates/{kind}";
+    public const string ModuleCode = "{code}";
 }
