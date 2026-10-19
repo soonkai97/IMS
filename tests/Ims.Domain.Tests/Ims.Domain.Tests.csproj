@@ -19,9 +19,10 @@
     <Using Include="Ims.Domain.SystemRoleCodes" Alias="Roles" />
   </ItemGroup>
 
-  <!-- The roles-and-permissions oracle: answers of the pre-roles code, read by Identity/Oracle tests. -->
+  <!-- The roles-and-permissions oracle: answers of the pre-roles code, read by Identity/Oracle tests; Stock/Oracle holds the posting engine's (PL1.0). -->
   <ItemGroup>
     <None Include="Identity\Oracle\*.csv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Stock\Oracle\*.csv" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
