@@ -28,7 +28,7 @@
         <app-input formControlName="sku" [maxLength]="64" />
       </app-form-field>
       <app-form-field [label]="'product.name' | t" [required]="true" [control]="form.controls.name">
-        <app-input formControlName="name" [maxLength]="256" />
+        <app-input formControlName="name" [maxLength]="maxNameLength" />
       </app-form-field>
       <app-form-field [label]="'product.category' | t" [control]="form.controls.categoryId">
         <app-select

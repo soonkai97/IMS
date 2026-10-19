@@ -72,7 +72,7 @@ export class DocumentEditor {
     await this.warehouse.selectOption({ label: name });
   }
 
-  async choosePurpose(label: 'Sale' | 'Use' | 'Scrap'): Promise<void> {
+  async choosePurpose(label: 'Sale' | 'Internal use' | 'Scrap'): Promise<void> {
     await this.page.getByRole('radio', { name: label }).check();
   }
 

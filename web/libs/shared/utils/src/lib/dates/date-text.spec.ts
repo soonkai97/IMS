@@ -71,6 +71,17 @@ describe('parseDateText (R23)', () => {
     }
   });
 
+  it('reads eight digits without slashes as day, month, year', () => {
+    expect(parseDateText('17102026', EN)).toBe('2026-10-17');
+    expect(parseDateText('01012026', EN)).toBe('2026-01-01');
+  });
+
+  it('does not read eight digits that are no calendar day', () => {
+    expect(parseDateText('31022026', EN)).toBeNull();
+    expect(parseDateText('17132026', EN)).toBeNull();
+    expect(parseDateText('1710202', EN)).toBeNull();
+  });
+
   it('reads an ISO date', () => {
     expect(parseDateText('2026-10-09', EN)).toBe('2026-10-09');
   });

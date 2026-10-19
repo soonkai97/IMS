@@ -2,7 +2,10 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  Injector,
   OnInit,
+  afterNextRender,
   computed,
   effect,
   untracked,
@@ -20,7 +23,7 @@ import { HasUnsavedChanges } from '@ims/core/navigation';
 import { ToastService } from '@ims/core/notification';
 import { I18nService } from '@ims/core/i18n';
 import { CatalogStore, ProductsStore } from '@ims/features/catalog';
-import { NO_PUBLIC_ID, PERMISSION, PublicId } from '@ims/models';
+import { MAX_PRODUCT_NAME_LENGTH, NO_PUBLIC_ID, PERMISSION, PublicId } from '@ims/models';
 import {
   SelectOption,
   UiBannerComponent,
@@ -36,7 +39,7 @@ import {
   UiSelectComponent,
   UiSkeletonComponent
 } from '@ims/ui';
-import { applyFieldErrors, normalizePublicId } from '@ims/utils';
+import { applyFieldErrors, focusFirstInvalid, normalizePublicId } from '@ims/utils';
 
 type ConversionGroup = FormGroup<{
   fromUomId: FormControl<PublicId | null>;
@@ -70,7 +73,9 @@ const MAX_SAFETY_STOCK = 1_000_000_000;
 export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
   private readonly catalog = inject(CatalogStore);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly i18n = inject(I18nService);
+  private readonly injector = inject(Injector);
   private readonly permissions = inject(PermissionService);
   private readonly router = inject(Router);
   private readonly store = inject(ProductsStore);
@@ -79,6 +84,7 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
   /** Route parameter; absent on /products/new. */
   $id = input<string | undefined>(undefined, { alias: 'id' });
 
+  readonly maxNameLength = MAX_PRODUCT_NAME_LENGTH;
   readonly newBarcode = new FormControl('', { nonNullable: true });
   readonly form = new FormGroup({
     sku: new FormControl('', {
@@ -203,6 +209,12 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
 
   onSave(): void {
     this.form.markAllAsTouched();
+    if (this.form.invalid) {
+      // The focus goes to the first field to fix, not to stay on Save (WCAG 3.3.1).
+      afterNextRender(() => focusFirstInvalid(this.host.nativeElement), {
+        injector: this.injector
+      });
+    }
     if (this.form.invalid || !this.$canManage() || this.$notFound()) {
       return;
     }

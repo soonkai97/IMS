@@ -80,4 +80,25 @@ describe('ProductEditPageComponent follows the URL (EA-20)', () => {
     expect(reset).toHaveBeenCalled();
     expect(load).not.toHaveBeenCalled();
   });
+
+  it('QA edge 9: Save with an empty SKU moves the focus to the SKU field, not on Save', async () => {
+    spectator = createComponent();
+    await settle();
+
+    spectator.component.onSave();
+    await settle();
+
+    const sku = spectator.query('app-input[formControlName="sku"] input');
+    expect(sku?.getAttribute('aria-invalid')).toBe('true');
+    expect(document.activeElement).toBe(sku);
+  });
+
+  it('a product name takes up to the 300 characters the API accepts', async () => {
+    spectator = createComponent();
+    await settle();
+
+    expect(
+      spectator.query('app-input[formControlName="name"] input')?.getAttribute('maxlength')
+    ).toBe('300');
+  });
 });

@@ -338,7 +338,7 @@ describe('DocumentEditorPageComponent', () => {
   it('shows the flags and how short each line is, from the line itself (no stock query)', async () => {
     await open(document({ requiresOverride: true, isLarge: true }));
 
-    expect(text()).toContain('Override');
+    expect(text()).toContain('Stock override');
     expect(text()).toContain('Large');
     expect(text()).toContain('Short by 5 (on hand 10)');
   });

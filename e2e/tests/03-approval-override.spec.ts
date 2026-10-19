@@ -43,7 +43,7 @@ test.describe('OUT-02 / BR-07 Issue that needs approval with a stock override', 
     const supervisor = await openSession(browser, 'supervisor');
     const inbox = new ApprovalsPage(supervisor.page);
     await inbox.open();
-    await expect(inbox.row(no)).toContainText('Override');
+    await expect(inbox.row(no)).toContainText('Stock override');
     await inbox.review(no);
     const review = new DocumentEditor(supervisor.page);
     await expect(review.status).toHaveText('Submitted');
