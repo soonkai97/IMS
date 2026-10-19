@@ -24,7 +24,7 @@ export class PartnersClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -227,7 +227,7 @@ export class WarehousesClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -410,7 +410,7 @@ export class UsersClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -545,6 +545,58 @@ export class UsersClient {
     }
 
     /**
+     * The active roles the caller may give to a user (they hold every permission of the role), for the user form. Needs `users.manage`, not `roles.read`.
+     * @return OK
+     */
+    assignableRoles(httpContext?: HttpContext): Observable<AssignableRoleDto[]> {
+        let url_ = this.baseUrl + "/api/users/assignable-roles";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processAssignableRoles(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processAssignableRoles(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<AssignableRoleDto[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<AssignableRoleDto[]>;
+        }));
+    }
+
+    protected processAssignableRoles(response: HttpResponseBase): Observable<AssignableRoleDto[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as AssignableRoleDto[];
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
      * @return OK
      */
     update(id: string, body: UserSaveRequest, httpContext?: HttpContext): Observable<UserDto> {
@@ -613,7 +665,7 @@ export class ImportClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -815,7 +867,7 @@ export class ReportsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -1264,7 +1316,7 @@ export class StockClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -1587,7 +1639,7 @@ export class ApprovalRulesClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -1765,7 +1817,7 @@ export class AuditClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -1944,7 +1996,7 @@ export class SettingsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -2064,7 +2116,7 @@ export class PermissionsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -2129,7 +2181,7 @@ export class RolesClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -2480,7 +2532,7 @@ export class DocumentsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -3279,7 +3331,7 @@ export class CategoriesClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -3457,7 +3509,7 @@ export class ProductsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -3782,7 +3834,7 @@ export class UnitsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -3960,7 +4012,7 @@ export class AuthClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -4242,7 +4294,7 @@ export class AttachmentsClient {
 
     constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
         this.http = http;
-        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+        this.baseUrl = baseUrl ?? "http://localhost:5109/";
     }
 
     /**
@@ -4514,8 +4566,6 @@ export interface ApprovalRuleSaveRequest {
     docType: DocumentType;
     amountThreshold: number | undefined;
     qtyThreshold: number | undefined;
-    /** Deprecated (ADR roles-permissions 2.7): a system role name, mapped to a tier (Owner and Admin Large, the other system roles Standard). Send ApproverTier instead; one of the two is required, and when both are sent they must agree. */
-    roleRequired?: string | undefined;
     isActive?: boolean;
     approverTier?: ApproverTier | undefined;
 }
@@ -4538,6 +4588,12 @@ export interface ApproveRequest {
 export enum ApproverTier {
     Standard = "Standard",
     Large = "Large",
+}
+
+/** A role the caller may give to a user: the code the user is saved with and the name people read. No permission list: a user manager need not see what a role holds. */
+export interface AssignableRoleDto {
+    code: string;
+    name: string;
 }
 
 export interface AttachmentDto {
@@ -5184,6 +5240,7 @@ export interface UserDto {
     email: string;
     displayName: string;
     role: string;
+    roleName: string;
     isActive: boolean;
     warehouseIds: string[];
     allWarehouses: boolean;

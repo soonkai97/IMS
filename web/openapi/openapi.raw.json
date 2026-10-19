@@ -463,6 +463,46 @@
         }
       }
     },
+    "/api/users/assignable-roles": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "The active roles the caller may give to a user (they hold every permission of the role), for the user form. Needs `users.manage`, not `roles.read`.",
+        "operationId": "Users_assignableRoles",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssignableRoleDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssignableRoleDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssignableRoleDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/users/{id}": {
       "put": {
         "tags": [
@@ -3910,13 +3950,6 @@
             ],
             "format": "double"
           },
-          "roleRequired": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "Deprecated (ADR roles-permissions 2.7): a system role name, mapped to a tier (Owner and Admin Large, the other system roles Standard). Send ApproverTier instead; one of the two is required, and when both are sent they must agree."
-          },
           "isActive": {
             "type": "boolean",
             "default": true
@@ -3927,6 +3960,7 @@
                 "type": "null"
               },
               {
+                "description": "Required (the validator refuses a request without one): the approval a document that fires the rule needs. The deprecated `roleRequired` of earlier releases is no longer read; a client that still sends it is ignored.",
                 "$ref": "#/components/schemas/ApproverTier"
               }
             ]
@@ -3991,6 +4025,22 @@
         ],
         "type": "string",
         "description": "Who may satisfy an approval rule: a holder of string Permissions.DocumentApprove (Standard) or of string Permissions.DocumentApproveLarge (Large).\r\nTwo levels by design; a third is a new permission and a migration. The values are what the rule stores once it keeps a tier (ADR roles-permissions 4.1)."
+      },
+      "AssignableRoleDto": {
+        "required": [
+          "code",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "description": "A role the caller may give to a user: the code the user is saved with and the name people read. No permission list: a user manager need not see what a role holds."
       },
       "AttachmentDto": {
         "required": [
@@ -6241,6 +6291,7 @@
           "email",
           "displayName",
           "role",
+          "roleName",
           "isActive",
           "warehouseIds",
           "allWarehouses"
@@ -6261,6 +6312,9 @@
             "type": "string"
           },
           "role": {
+            "type": "string"
+          },
+          "roleName": {
             "type": "string"
           },
           "isActive": {

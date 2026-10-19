@@ -25,19 +25,3 @@ export const PERMISSION = {
   /** Average cost, stock value, the stock total and ledger cost (Supervisor, Owner, Admin). */
   ValuationView: 'valuation.view'
 } as const;
-
-export const ROLE = {
-  Admin: 'Admin',
-  Owner: 'Owner',
-  Supervisor: 'Supervisor',
-  WarehouseStaff: 'WarehouseStaff',
-  Clerk: 'Clerk'
-} as const;
-
-export const ALL_ROLES = [
-  ROLE.Admin,
-  ROLE.Owner,
-  ROLE.Supervisor,
-  ROLE.WarehouseStaff,
-  ROLE.Clerk
-] as const;

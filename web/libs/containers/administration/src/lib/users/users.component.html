@@ -81,8 +81,19 @@
     <app-form-field [label]="'user.email' | t" [required]="true" [control]="form.controls.email">
       <app-input type="email" formControlName="email" autocomplete="off" [maxLength]="256" />
     </app-form-field>
-    <app-form-field [label]="'user.role' | t" [required]="true" [control]="form.controls.role">
-      <app-select formControlName="role" [options]="$roleOptions()" [placeholder]="''" />
+    @if ($rolesFailed()) {
+      <app-banner kind="danger">
+        {{ 'user.rolesFailed' | t }}
+        <app-button (clicked)="onRolesRetry()">{{ 'ui.retry' | t }}</app-button>
+      </app-banner>
+    }
+    <app-form-field
+      [label]="'user.role' | t"
+      [required]="true"
+      [hint]="$roleLocked() ? ('user.roleLocked' | t) : undefined"
+      [control]="form.controls.role"
+    >
+      <app-select formControlName="role" [options]="$formRoleOptions()" [placeholder]="''" />
     </app-form-field>
     <app-form-field
       [label]="($isEditing() ? 'user.newPassword' : 'user.password') | t"
@@ -97,13 +108,16 @@
         [maxLength]="maxPasswordLength"
       />
     </app-form-field>
-    <fieldset class="users-page-warehouses">
+    <fieldset class="users-page-warehouses" (change)="$noWarehouse.set(false)">
       <legend>{{ 'user.warehouses' | t }}</legend>
       <app-checkbox formControlName="allWarehouses">{{ 'user.allWarehouses' | t }}</app-checkbox>
       @for (choice of $warehouseChoices(); track choice.id) {
         <app-checkbox [formControl]="choice.control">{{ choice.label }}</app-checkbox>
       }
       <p class="users-page-hint">{{ 'user.warehousesHint' | t }}</p>
+      @if ($noWarehouse()) {
+        <app-banner kind="danger">{{ 'user.noWarehouse' | t }}</app-banner>
+      }
     </fieldset>
     <app-checkbox formControlName="isActive">{{ 'product.active' | t }}</app-checkbox>
   </form>
