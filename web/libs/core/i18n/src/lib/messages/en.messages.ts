@@ -425,8 +425,8 @@ export const EN_MESSAGES = {
   'doc.toast.posted': 'Posted. Stock updated.',
   'doc.toast.returned': 'Returned to {name} for changes.',
   'doc.toast.reversed': 'Reversed. Stock adjusted.',
-  'doc.toast.sentForApproval': 'Sent for approval.',
-  'doc.toast.submitted': 'Submitted. A warehouse user or supervisor can post it.',
+  'doc.toast.sentForApproval': 'Submitted for approval.',
+  'doc.toast.submitted': 'Submitted. Waiting for a warehouse user to post.',
   'doc.totalQty': 'Total qty',
   'doc.totals':
     '{lines, plural, one {1 line} other {# lines}} | {qty, plural, one {# unit} other {# units}}',
@@ -496,10 +496,19 @@ export const EN_MESSAGES = {
   'doc.hint.recallReady': 'Wrong quantity? Tap Edit.',
   'doc.hint.approvedAskCancel': 'Wrong quantity? Ask {name} to cancel it.',
   'dialog.post.edit': 'Edit items',
-  'dialog.recall.title': 'Edit {docNo}?',
-  'dialog.recall.body':
-    'It leaves the approval list and goes back to draft. Submit it again when it is right.',
+  'dialog.recall.title': 'Take {docNo} back to draft?',
+  'dialog.recall.body': 'It leaves the approval queue. Submit it again when it is right.',
+  'dialog.recall.bodyReady':
+    'It becomes a draft again so you can edit it. Submit it again when it is right.',
+  'dialog.recall.confirm': 'Back to draft',
   'dialog.recall.keep': 'Keep waiting',
+  // One flow for Submit & post: ask once before it starts, then show one busy label until it ends (phone QA).
+  'doc.action.submitting': 'Submitting...',
+  'doc.action.posting': 'Posting...',
+  'doc.hint.waitingToPost': 'Waiting for a warehouse user to post.',
+  'dialog.submitPost.title': 'Submit & post?',
+  'dialog.submitPost.approval':
+    'If it needs approval, it goes to a supervisor first and stock does not change.',
   'dialog.cancelApproved.body':
     "It is approved but not posted yet. Stock does not change. This can't be undone.",
   'doc.cannotPost.title': "Can't be posted now",

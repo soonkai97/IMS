@@ -96,6 +96,6 @@
     (clicked)="onTrigger(action.Post)"
   >
     <app-icon name="check-double" />
-    {{ 'doc.action.post' | t }}
+    {{ $postLabelKey() | t }}
   </app-button>
 }

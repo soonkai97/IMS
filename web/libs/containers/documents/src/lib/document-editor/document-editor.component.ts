@@ -48,6 +48,7 @@ import {
   DEFAULT_QTY,
   DocumentsStore,
   LineGroup,
+  LineValue,
   NEW_DOCUMENT_ID,
   STATUS_TONE,
   isReversalBlockedError,
@@ -557,9 +558,14 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     const document = this.$document();
     switch (document?.status) {
       case DocumentStatus.Submitted:
-        return document.requiresApproval || this.$stockConflict() !== undefined
-          ? undefined
-          : { key: 'doc.hint.readyToPost' };
+        // A running command says what it is doing on its button; a hint saying "Ready to post" beside "Posting..." contradicts it.
+        if (document.requiresApproval || this.$stockConflict() !== undefined || this.$isBusy()) {
+          return undefined;
+        }
+        // "Ready to post" is for someone who can post it: a clerk is told whom the document waits for.
+        return this.$actions().has(DOCUMENT_ACTION.Post)
+          ? { key: 'doc.hint.readyToPost' }
+          : { key: 'doc.hint.waitingToPost' };
       case DocumentStatus.Approved:
         return {
           key: 'doc.hint.approvedBy',
@@ -602,7 +608,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   readonly $recallHintKey = computed<MessageKey | undefined>(() => {
     if (
       this.$status() !== DocumentStatus.Submitted ||
-      !this.$actions().has(DOCUMENT_ACTION.Recall)
+      !this.$actions().has(DOCUMENT_ACTION.Recall) ||
+      this.$isBusy()
     ) {
       return undefined;
     }
@@ -895,7 +902,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         this.recall();
         break;
       case DOCUMENT_ACTION.Post:
-        this.runPost(this.$document())
+        this.confirmAndPost(this.$document())
           .pipe(
             finalize(() => this.settleFocus()),
             takeUntilDestroyed(this.destroyRef)
@@ -958,11 +965,13 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
 
   /** The last chance to catch a wrong quantity: say what is being posted, not just how many lines (NV-19). */
   private postSummary(document: DocumentDto): string {
-    const items = document.lines
-      .slice(0, POST_SUMMARY_LINES)
-      .map(line => `${line.sku} x ${line.qty} ${line.uomCode}`)
-      .join(', ');
-    const more = document.lines.length - POST_SUMMARY_LINES;
+    return this.summaryOf(document.lines.map(line => `${line.sku} x ${line.qty} ${line.uomCode}`));
+  }
+
+  /** "Includes A x 1 PCS, B x 2 PCS and 3 more." for lines already written as text. */
+  private summaryOf(lines: readonly string[]): string {
+    const items = lines.slice(0, POST_SUMMARY_LINES).join(', ');
+    const more = lines.length - POST_SUMMARY_LINES;
     return more > 0
       ? this.i18n.t('dialog.post.summaryMore', { items, count: more })
       : this.i18n.t('dialog.post.summary', { items });
@@ -1015,8 +1024,10 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     if (!this.validate()) {
       return;
     }
-    this.save()
+    // One question, asked before anything is sent: after Submit & post the sequence runs to its end without another dialog.
+    this.confirmSubmitAndPost()
       .pipe(
+        switchMap(() => this.save()),
         switchMap(document => this.documents.submit.run(toDocumentRef(document))),
         switchMap(document => this.afterSubmit(document)),
         finalize(() => this.settleFocus()),
@@ -1126,23 +1137,23 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   }
 
   /**
-   * The submitter takes a Submitted document back to Draft (same number, same lines). Someone else's work is affected only
-   * when the document waits in an approver's list, so only then is the user asked first.
+   * The submitter takes a Submitted document back to Draft (same number, same lines). The page changes shape (buttons, fields),
+   * so the person is always asked first; a document in an approver's list also says it leaves that queue.
    */
   private recall(): void {
     const document = this.$document();
     if (!document) {
       return;
     }
-    const confirmed$ = document.requiresApproval
-      ? this.confirm.ask({
-          heading: this.i18n.t('dialog.recall.title', { docNo: document.no }),
-          body: this.i18n.t('dialog.recall.body'),
-          confirmLabel: this.i18n.t('doc.action.recall'),
-          cancelLabel: this.i18n.t('dialog.recall.keep')
-        })
-      : of('');
-    confirmed$
+    this.confirm
+      .ask({
+        heading: this.i18n.t('dialog.recall.title', { docNo: document.no }),
+        body: this.i18n.t(
+          document.requiresApproval ? 'dialog.recall.body' : 'dialog.recall.bodyReady'
+        ),
+        confirmLabel: this.i18n.t('dialog.recall.confirm'),
+        cancelLabel: this.i18n.t(document.requiresApproval ? 'dialog.recall.keep' : 'common.back')
+      })
       .pipe(
         switchMap(() => this.runRecall(document)),
         finalize(() => this.settleFocus()),
@@ -1186,7 +1197,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   }
 
   /** Confirm, then post. Posting takes no reason: a stock override was explained when the document was approved. */
-  private runPost(document: DocumentDto | undefined): Observable<DocumentDto> {
+  private confirmAndPost(document: DocumentDto | undefined): Observable<DocumentDto> {
     if (!document) {
       return of();
     }
@@ -1206,14 +1217,48 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       })
       .pipe(
         switchMap(answer =>
-          answer.choice === 'alternate'
-            ? this.runRecall(document)
-            : this.documents.post.run(toDocumentRef(document)).pipe(
-                tap(() => this.toast.success(this.i18n.t('doc.toast.posted'))),
-                tap(() => this.afterChange(true))
-              )
+          answer.choice === 'alternate' ? this.runRecall(document) : this.postDocument(document)
         )
       );
+  }
+
+  /** The post itself: its button shows "Posting..." until the answer, then the page is the Posted document. */
+  private postDocument(document: DocumentDto): Observable<DocumentDto> {
+    this.$activeAction.set(DOCUMENT_ACTION.Post);
+    return this.documents.post.run(toDocumentRef(document)).pipe(
+      tap(() => this.toast.success(this.i18n.t('doc.toast.posted'))),
+      tap(() => this.afterChange(true))
+    );
+  }
+
+  /**
+   * Submit & post is one question, asked up front: whoever may post is told what it does (and that an approval rule can stop
+   * it at Submitted) before anything is sent. Whoever cannot post just submits.
+   */
+  private confirmSubmitAndPost(): Observable<unknown> {
+    if (!this.$canPost()) {
+      return of(true);
+    }
+    const increase = this.$type() === DocumentType.Receipt;
+    const items = this.$values().map(
+      value => `${value.sku} x ${value.qty ?? 0} ${this.unitCode(value)}`
+    );
+    return this.confirm.ask({
+      heading: this.i18n.t('dialog.submitPost.title'),
+      body: [
+        this.i18n.t(increase ? 'dialog.post.bodyIncrease' : 'dialog.post.bodyDecrease', {
+          count: items.length
+        }),
+        this.summaryOf(items),
+        this.i18n.t('dialog.submitPost.approval')
+      ].join(' '),
+      confirmLabel: this.i18n.t('doc.action.submitAndPost'),
+      cancelLabel: this.i18n.t('common.back')
+    });
+  }
+
+  private unitCode(value: LineValue): string {
+    return value.uomOptions.find(option => option.uomId === value.uomId)?.code ?? value.baseUomCode;
   }
 
   private afterSubmit(document: DocumentDto): Observable<DocumentDto> {
@@ -1223,7 +1268,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       return of(document);
     }
     if (toDocumentActions(document.allowedActions).has(DOCUMENT_ACTION.Post)) {
-      return this.runPost(document);
+      return this.postDocument(document);
     }
     this.toast.success(this.i18n.t('doc.toast.submitted'));
     this.afterChange(false);
@@ -1261,6 +1306,12 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         const target =
           invalid ?? this.page.querySelector<HTMLElement>('.document-editor-lines-header button');
         target?.focus();
+        // No line at all: the message sits under the Add item button; make sure it is on screen, not just the button (phone QA).
+        if (!invalid) {
+          this.page
+            .querySelector<HTMLElement>('.document-editor-lines > .document-editor-error')
+            ?.scrollIntoView?.({ block: 'nearest' });
+        }
       },
       { injector: this.injector }
     );

@@ -232,10 +232,11 @@
         (setToAvailable)="onSetToAvailable($event)"
       />
       @if ($noLines()) {
-        <app-empty-state icon="stock" [message]="'doc.noLines' | t" />
+        <!-- Right under the Add item button, above the empty-state picture: below it the message sat off screen on a phone. -->
         @if ($showLineError()) {
           <p class="document-editor-error" role="alert">{{ 'doc.linesRequired' | t }}</p>
         }
+        <app-empty-state icon="stock" [message]="'doc.noLines' | t" />
       }
     </section>
   } @else if ($document(); as document) {

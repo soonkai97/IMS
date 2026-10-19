@@ -411,7 +411,7 @@ export const MS_MESSAGES: Messages = {
   'doc.toast.returned': 'Dikembalikan kepada {name} untuk pindaan.',
   'doc.toast.reversed': 'Dibalikkan. Stok dilaraskan.',
   'doc.toast.sentForApproval': 'Dihantar untuk kelulusan.',
-  'doc.toast.submitted': 'Dihantar. Pengguna gudang atau penyelia boleh memposkannya.',
+  'doc.toast.submitted': 'Dihantar. Menunggu pengguna gudang untuk memposkan.',
   'doc.totalQty': 'Jumlah kuantiti',
   'doc.totals': '{lines} baris | {qty} unit',
   'doc.type': 'Jenis',
@@ -481,10 +481,19 @@ export const MS_MESSAGES: Messages = {
   'doc.hint.recallReady': 'Kuantiti salah? Ketik Sunting.',
   'doc.hint.approvedAskCancel': 'Kuantiti salah? Minta {name} membatalkannya.',
   'dialog.post.edit': 'Sunting item',
-  'dialog.recall.title': 'Sunting {docNo}?',
-  'dialog.recall.body':
-    'Ia keluar daripada senarai kelulusan dan kembali menjadi draf. Hantar semula apabila betul.',
+  'dialog.recall.title': 'Kembalikan {docNo} kepada draf?',
+  'dialog.recall.body': 'Ia keluar daripada baris gilir kelulusan. Hantar semula apabila betul.',
+  'dialog.recall.bodyReady':
+    'Ia menjadi draf semula supaya anda boleh menyuntingnya. Hantar semula apabila betul.',
+  'dialog.recall.confirm': 'Kembali kepada draf',
   'dialog.recall.keep': 'Terus tunggu',
+  // TODO-review: machine draft (one flow for Submit & post, phone QA).
+  'doc.action.submitting': 'Menghantar...',
+  'doc.action.posting': 'Memposkan...',
+  'doc.hint.waitingToPost': 'Menunggu pengguna gudang untuk memposkan.',
+  'dialog.submitPost.title': 'Hantar & poskan?',
+  'dialog.submitPost.approval':
+    'Jika perlu kelulusan, ia dihantar kepada penyelia dahulu dan stok tidak berubah.',
   'dialog.cancelApproved.body':
     'Dokumen ini sudah diluluskan tetapi belum diposkan. Stok tidak berubah. Ini tidak boleh dibatalkan semula.',
   'doc.cannotPost.title': 'Tidak boleh diposkan sekarang',
