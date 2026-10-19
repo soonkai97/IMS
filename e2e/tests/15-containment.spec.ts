@@ -234,12 +234,17 @@ test.describe('L00 Content containment', () => {
       // L00.3: a cut name is readable in full without a pointer: a real button, reachable by keyboard.
       const more = page.getByRole('button', { name: 'Show more' }).first();
       await expect(more).toBeVisible();
-      await more.focus();
-      await page.keyboard.press('Enter');
-      await expect(page.getByRole('button', { name: 'Show less' }).first()).toHaveAttribute(
-        'aria-expanded',
-        'true'
-      );
+      // One unit, retried: when the list redraws between the focus and the key (the focused button is replaced), the key is lost.
+      await expect(async () => {
+        await more.focus();
+        await expect(more).toBeFocused({ timeout: 1000 });
+        await page.keyboard.press('Enter');
+        await expect(page.getByRole('button', { name: 'Show less' }).first()).toHaveAttribute(
+          'aria-expanded',
+          'true',
+          { timeout: 3000 }
+        );
+      }).toPass({ timeout: 15_000 });
       await expectContained(page, at('Partners, name expanded'));
 
       // A dialog that holds the long values.
@@ -340,8 +345,8 @@ test.describe('L00 Content containment', () => {
       await expect(toast).toBeVisible();
       await expectFits(toast, `Toast at ${width}px`);
       await expectContained(page, `Toast at ${width}px`);
+      // Closing the dialog takes the errors it showed with it (toast host), so the toast goes without a click on Dismiss.
       await dialog.getByRole('button', { name: 'Cancel' }).click();
-      await toast.getByRole('button').last().click();
       await expect(toast).toBeHidden();
     }
   });
@@ -696,6 +701,8 @@ test.describe('A02 Table: sticky header and first column, cards by container wid
         if (!more) {
           continue;
         }
+        // The fourth row sits at the bottom edge of a 700 px window: bring the button on screen first, or the hit test has no target.
+        more.scrollIntoView({ block: 'center', inline: 'nearest' });
         region.scrollLeft +=
           more.getBoundingClientRect().left - pinned.getBoundingClientRect().left - 40;
         const button = more.getBoundingClientRect();

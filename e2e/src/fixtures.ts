@@ -7,7 +7,8 @@ import {
 } from '@playwright/test';
 import { API_URL, WEB_URL, type Role } from './config';
 import { apiAs, type ImsApi } from './api';
-import { Shell, LoginPage, signInThroughForm } from './pages/shell';
+import { Shell, LoginPage, signIn } from './pages/shell';
+import { keepSession } from './session-cache';
 
 /** Points the app at IMS_API_URL, whatever API address the build was made with (assets/config.json is runtime config). */
 async function pointAtApi(context: BrowserContext): Promise<void> {
@@ -37,7 +38,13 @@ export async function openSession(
   });
   await pointAtApi(context);
   const page = await context.newPage();
-  await signInThroughForm(page, role);
+  await signIn(page, role);
+  // Closing the context hands its newest session back to the cache, so the next scenario of this role does not sign in.
+  const close = context.close.bind(context);
+  context.close = async options => {
+    await keepSession(role, context);
+    await close(options);
+  };
   return { context, page, shell: new Shell(page) };
 }
 
@@ -55,8 +62,15 @@ export const test = base.extend<Fixtures>({
     await pointAtApi(context);
     await use(context);
   },
-  signIn: async ({ page }, use) => {
-    await use(role => signInThroughForm(page, role));
+  signIn: async ({ page, context }, use) => {
+    let last: Role | undefined;
+    await use(async role => {
+      last = role;
+      await signIn(page, role);
+    });
+    if (last !== undefined) {
+      await keepSession(last, context);
+    }
   },
   shell: async ({ page }, use) => use(new Shell(page)),
   login: async ({ page }, use) => use(new LoginPage(page)),
