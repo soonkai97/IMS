@@ -3,20 +3,20 @@
 Owner: project-manager. Re-baselined 2026-10-12 after the product owner approved `docs/design/lean-scope.md` ("no over-engineering"). Version 1 (98-slice plan, 72 working days, 915 agent-hours) is in git history (`git log -- docs/pm/ROADMAP.md`); do not plan from it.
 Clock: WD n = the n-th working day, WD 1 = Monday 12 October 2026, five working days a week, no holidays or leave counted (the year-end break adds one to two weeks to anything after WD 50).
 Scope rule: **`docs/design/lean-scope.md` is the scope.** Slice contents, sizes, deferred triggers (its section 4), dropped items (section 5) and simplified designs (section 6) are there and are not copied here. This file holds the schedule, the migration and client-batch rules, risks and decisions.
-Verified 2026-10-12 with `gh pr list`: R01 (#49) and R02 (#50) merged; #44, #45 and #51 open; #46 open (superseded by #51). Nothing was rebuilt for this document.
+Refreshed 2026-10-19 (WD 6) against `origin/main` at `7fdbbc8` (#133), `gh pr list` (open: #130, #134, #135) and `docs/team/HANDOFFS.md`. #44, #45 and #51 are merged and #46 is closed (superseded). Nothing was rebuilt for this document; a statement marked "unverified" was not checked against code or CI. Text below that describes the 12 October state and is kept as history says so.
 
 ## 0. The first page
 
 **Totals.** 32 frontend slices, about 17,600 changed lines, in 16 waves (at most 3 builds each, usually 2); backend track of section 3.4; about 415 agent-hours (about 520 with the 25% rework allowance); about 38 working days (range 30 to 50), i.e. M6 on about Wed 2 Dec 2026. Against version 1: slices -67%, lines -74%, hours -55%, calendar -47%.
 
-**Done.** R01 palette (#49) and R02 required marker (#50) are merged (1,000 of the 17,600 lines). PR #44 (average cost on reversal) is being merged. PR #45 (2-decimal money) and PR #51 (the replacement for #46: per-warehouse low stock, uncapped search, ledger balance) are in fix and review. The MVP tasks T01 to T19, T21, T22 are built; T20 is folded into the QA rounds.
+**Done (2026-10-19).** The MVP tasks T01 to T19, T21, T22 are built; T20 is folded into the QA rounds. Of the lean plan: EP01 (#44, #45, #51, #52), EP03 corrections (backend #85, web #92), EP04 public ids (PR-1..PR-3 on `main`, PR-4..PR-9 as #78, retests #79, #81, #82) and EP06 roles backend (RP-0..RP-6, RP-8: #84, #89, #90, #102, #104, #106, #118, #119, #124, #126) are merged. Web: waves 1 to 3, 7 to 9 and 13 are merged; wave 4 except Q1; wave 5 except L02; wave 6 (R13 #125, TB #121, R25 #88); wave 10 except R14+R15; wave 11 has HOME (#120); wave 12 has RP01 (#123); RP02a, b, c (#127, #131, #133). The schedule is ahead of the baseline (RP01 and RP02, planned after M4 at WD 25, are merged on WD 6); the WD 10 re-estimate decides the new dates.
 
-**Next, in order.**
-1. Merge #44, then #45, then #51, one at a time (each needs a fresh CI run after the one before it merges). Close #46 as superseded. If #51 carries a migration, it must sort after #44's `20261011030307` (section 3.2).
-2. Web: wave 1 now has only L00 left (R01, R02 are in); then wave 2 (R27, R03, R33). R33 starts when #44 to #51 are on `main` (client batch CS1).
-3. Backend slot 2 starts the corrections backend (B21, B22 lean) and GUID PR-0; GUID PR-1 starts only after #44 and #51 are merged (it pins the schema).
+**Left, in order.**
+1. Review and merge the QA-round fixes in flight: #134 (Users custom roles, no-warehouse warning), #135 (no API data in the service worker, keep work on session expiry), and the phone-flow PR (not open when this was written). #130 (ADR, modules and tracking dimensions) is docs only and not on this path.
+2. Web slices not started: L02 and Q1 (they block M2), R14+R15 (blocks M3), A07, R26 (partly met by #135), R29+R30 (M4), then the P04 web part, R24 after one release of soak.
+3. Backend: EP02 hardening (not started, 12 h), the Standard-approval guidance hint (decided 2026-10-19), then the QA findings list of `TASKS.md`. EP09 waits for the hosting decision.
 
-**Owner answers still needed** (section 8.2): hosting direction (O3, by WD 10), the `large-change` label for the one id-switch merge (O4, by WD 15), the three corrections confirmations (O1, defaults exist), native speakers for zh and ms (O10). Answered by the lean-scope approval: roles first with exceptions deferred, the lean table set, the lean motion set, date field and `Partner.Code` "not now", roles defaults (O2).
+**Owner answers still needed** (section 8.2): hosting direction (O3, by WD 10, Fri 23 Oct), native speakers for zh and ms (O10), and whether the e2e smoke set becomes a required PR check (`docs/team/E2E-HEALTH.md`). Taken: the corrections confirmations (O1, defaults built in #85), the `large-change` label (O4, applied to #78), the lean-scope approval (roles first with exceptions deferred, the lean table and motion sets, `Partner.Code` "not now", roles defaults O2), and on 2026-10-19 the Standard approval rule (section 8.1, item 17).
 
 **Three rules that keep this from colliding** (details in section 3):
 - One database migration open at a time, always created after the previous one is on `main`; the id-switch integration branch contains no migration.
@@ -30,6 +30,7 @@ EP01 (money and QA backend) lands first because it changes the schema and the DT
 The id switch (EP04) is the hinge. Its schema half (`AddPublicIds`, PR-3) is additive and goes to `main`; its wire half (PR-4 to PR-7, then the web G01) lives on `feature/public-ids` and reaches `main` in one step (PR-9). HOME, A07 and the roles screens wait for G02; the roles backend RP-3 onward waits for PR-9. Everything else in the refresh (palette, tokens, controls, shell, table, overlays, sign-in page, layout) is independent of ids and runs beside the backend flip.
 
 ```
+(12 October picture; status in sections 0 and 3.1)
 main + #44 -> #45 -> #51 (EP01)
    |
    +-> R02/R01 (merged) -> R27, R03, R33 -> R04, F1, RP00 -> R08, R10, Q1 -> R11, L02, A02 -> R13, TB, R25   (M1, M2)
@@ -47,16 +48,16 @@ Hours include build, fix and the independent review. "Plan" = version 1 of this 
 
 | ID | Epic | Lean content | Plan h | Lean h | Owner role | Status |
 |---|---|---|---|---|---|---|
-| EP01 | Money and QA backend (#44, #45, #51) | Finish as planned (B4, B5, B6 close here) | 16 | 16 | be-framework, be-dba, integration-test-engineer | in progress |
-| EP02 | Backend hardening | Bug and security items only: ER-06, ER-07, ER-08, ER-14, ER-21, SEC-08. B1-B3, B18, B20 deferred | 27 | 12 | be-framework, be-architect | not started (partly deferred) |
-| EP03 | Document corrections | Recall (Edit button) and cancel on Approved with a reason; send back deferred. [design](../design/document-corrections.md), lean-scope 6.3 | 30 | 20 | be-framework, fe-framework | not started |
-| EP04 | Public GUID ids (hybrid) | Trimmed chain PR-0..PR-10 (`lean-scope.md` 6.2); includes G01, G02; `Partner.Code` and MG4 deferred | 85 | 74 | be-framework, be-dba, fe-framework | not started |
-| EP05 | UI refresh, lean | 25 slices: R 18 (incl. HOME), F1, L 2, Q1, A 3 (lean-scope 3.1). The lean motion set is inside these numbers | 365 | 90 (EP05 + EP08) | fe-framework, behavior-test-engineer | in progress (R01, R02 merged) |
-| EP06 | Roles backend | RP-0..RP-6, RP-8 simplified (lean-scope 6.1); RP-7 overrides deferred, RP-9 dropped | 167 | 120 | be-framework, be-dba, security-engineer | not started |
-| EP07 | Roles screens | RP00, RP01, RP02, RP03, RP05+RP11; RP04, RP06 to RP10 deferred or dropped | 80 | 22 | fe-framework | not started |
+| EP01 | Money and QA backend (#44, #45, #51) | Finish as planned (B4, B5, B6 close here) | 16 | 16 | be-framework, be-dba, integration-test-engineer | done (#44, #45, #51, #52) |
+| EP02 | Backend hardening | Bug and security items only: ER-06, ER-07, ER-08, ER-14, ER-21, SEC-08. B1-B3, B18, B20 deferred | 27 | 12 | be-framework, be-architect | not started (partly deferred; unverified: no merged commit names its items) |
+| EP03 | Document corrections | Recall (Edit button) and cancel on Approved with a reason; send back deferred. [design](../design/document-corrections.md), lean-scope 6.3 | 30 | 20 | be-framework, fe-framework | done (B21, B22 #85; R28, R31 #92) |
+| EP04 | Public GUID ids (hybrid) | Trimmed chain PR-0..PR-10 (`lean-scope.md` 6.2); includes G01, G02; `Partner.Code` and MG4 deferred | 85 | 74 | be-framework, be-dba, fe-framework | done (PR-9 #78; retests #79, #81) |
+| EP05 | UI refresh, lean | 25 slices: R 18 (incl. HOME), F1, L 2, Q1, A 3 (lean-scope 3.1). The lean motion set is inside these numbers | 365 | 90 (EP05 + EP08) | fe-framework, behavior-test-engineer | in progress (open: L02, Q1, R14+R15, A07, R26, R29+R30, R24) |
+| EP06 | Roles backend | RP-0..RP-6, RP-8 simplified (lean-scope 6.1); RP-7 overrides deferred, RP-9 dropped | 167 | 120 | be-framework, be-dba, security-engineer | done (RP-0..RP-6, RP-8; follow-ups in TASKS.md) |
+| EP07 | Roles screens | RP00, RP01, RP02, RP03, RP05+RP11; RP04, RP06 to RP10 deferred or dropped | 80 | 22 | fe-framework | in progress (RP00, RP01, RP02a-c merged; #134 in PR) |
 | EP08 | Motion language | Replaced by the lean motion set; M02, M04, M06, M07, M08 dropped | 56 | (in EP05) | fe-designer | replaced |
 | EP09 | Deployment and security follow-ups (Q14) | Unchanged scope; waits for the hosting decision (O3) | 32 | 30 | security-engineer, orchestrator | decision open |
-| EP10 | Release gate | 4 QA rounds, 3 gates; native review of zh and ms stays `TODO-review` until O10 | 60 | 30 | qa-* personas, fe-designer | not started |
+| EP10 | Release gate | 4 QA rounds, 3 gates; native review of zh and ms stays `TODO-review` until O10 | 60 | 30 | qa-* personas, fe-designer | in progress (a three-persona round ran 2026-10-19; gates open) |
 | | **Total** | | **about 915** | **about 415 (520 with 25% rework)** | | |
 
 Deferred and dropped items are listed with their triggers in `lean-scope.md` sections 4 and 5. A deferred slice is built only after the project-manager records its trigger in `docs/team/HANDOFFS.md`; a new request enters through the project-manager with a stated requirement (the checklist, section 8.1 item 14).
@@ -69,44 +70,47 @@ Slots: BE-1 (id and schema lane), BE-2 (feature lane), WEB-1, WEB-2, plus floati
 
 | Wave | Builds (lines) | Gate | Status |
 |---|---|---|---|
-| 1 | R02 (550) / L00 (500) / R01 (450) | merged, CI green | R01, R02 merged; L00 open |
-| 2 | R27 (450) / R03 (350) / R33 (200) | merged | not started (R33 needs #44, #45, #51) |
-| 3 | R04 (450) / F1 (650) / RP00 (300) | M1; QA round 1 (one persona, on a phone) | not started |
-| 4 | R08 (700) / R10 (550) / Q1 (600) | merged | not started |
-| 5 | R11 (650) / L02 (600) / A02 (650) | merged | not started |
-| 6 | R13 (600) / TB (600) / R25 (750) | M2; QA round 2; designer checks motion on one real low-end Android phone | not started |
-| 7 | R28 (600) | merged (needs B22) | not started |
-| 8 | R31 (450) | merged | not started |
-| 9 | G01 (900), exclusive | lanes T and E frozen (about 1.5 days) | not started |
-| 10 | G02 (300) / R14+R15 (750) | M3; IDOR retest by security; QA round 3 | not started |
-| 11 | HOME (450) / A07 (500) / R26 (400) | merged | not started |
-| 12 | R29+R30 (750) / RP01 (450) | M4 | not started |
-| 13 | RP02 (550) | merged | not started |
-| 14 | RP03 (1,000) | merged | not started |
-| 15 | RP05+RP11 (700) | M5; QA round 4 with the edge persona leading | not started |
+| 1 | R02 (550) / L00 (500) / R01 (450) | merged, CI green | done (R01 #49, R02 #50, L00 #54) |
+| 2 | R27 (450) / R03 (350) / R33 (200) | merged | done (R27 #53, R03 #55, R33 #57) |
+| 3 | R04 (450) / F1 (650) / RP00 (300) | M1; QA round 1 (one persona, on a phone) | done (R04 #60, F1 #59, RP00 #63); M1 reached on content |
+| 4 | R08 (700) / R10 (550) / Q1 (600) | merged | done except Q1 (R08 #65, R10 #68); Q1 not started |
+| 5 | R11 (650) / L02 (600) / A02 (650) | merged | done except L02 (R11 #74, A02 #73); L02 not started |
+| 6 | R13 (600) / TB (600) / R25 (750) | M2; QA round 2; designer checks motion on one real low-end Android phone | built (R13 #125, TB #121, R25 #88); gate open: QA round and the real low-end phone motion check |
+| 7 | R28 (600) | merged (needs B22) | done (R28 #92) |
+| 8 | R31 (450) | merged | done (R31 #92) |
+| 9 | G01 (900), exclusive | lanes T and E frozen (about 1.5 days) | done (G01 inside #78) |
+| 10 | G02 (300) / R14+R15 (750) | M3; IDOR retest by security; QA round 3 | G02 inside #78 and the IDOR retest (#79) done; R14+R15 not started, so M3 is open |
+| 11 | HOME (450) / A07 (500) / R26 (400) | merged | HOME done (#120); A07 and R26 not started (#135 meets part of R26) |
+| 12 | R29+R30 (750) / RP01 (450) | M4 | RP01 done (#123); R29+R30 not started (a phone-flow PR is being prepared) |
+| 13 | RP02 (550) | merged | done (RP02a #127, RP02b #131, RP02c #133) |
+| 14 | RP03 (1,000) | merged | content built inside RP02b and RP02c; whether a slice remains is unverified |
+| 15 | RP05+RP11 (700) | M5; QA round 4 with the edge persona leading | RP11 and the warehouse switch done in #108; custom-role select #134 in PR; QA round 4 open |
 | 16 | R24 (200) | M6; final pass; one release of soak before this wave | not started |
 
 Waves 7, 8 and 13 to 15 are narrow on purpose: they follow backend readiness (corrections, ids, roles). The orchestrator fills a spare slot with fixes found by QA.
 
+Statuses of the table above refreshed 2026-10-19 from `git log origin/main` and the HANDOFFS entries; a QA round is "open" when no report newer than 2026-10-11 is in `docs/qa/` (the 2026-10-19 round is described in `TASKS.md`).
+
 ### 3.2 One linear migration order
 
-Existing chain on `main`: `Initial` (20261009135544) through `AddDocumentReversedAt` (20261010145459). A new migration is created only by the holder of the baton (one open PR with a migration at a time), after rebasing on `main`, by the agent who writes the entity change; be-dba reviews every one (Up, Down, up-down-up, data).
+Chain on `main` (verified 2026-10-19, 18 migrations): `Initial` (20261009135544) through `DropLegacyRoleColumns` (20261017125040); the table shows the ones this plan owns. A new migration is created only by the holder of the baton (one open PR with a migration at a time), after rebasing on `main`, by the agent who writes the entity change; be-dba reviews every one (Up, Down, up-down-up, data).
 
 | # | Migration | Epic and PR | When | Notes |
 |---|---|---|---|---|
-| MG1 | `AverageCostMarkersAndCostScale` (20261011030307) | EP01 #44 | first | Money precision and the average-cost markers. |
-| MG2 | search index and `ReversedBy` (replacement for `DocumentSearchIndexAndReversedBy`) | EP01 #51 | after MG1 merges | The old timestamp (20261011021255) is older than MG1's. After #44 merges: `dotnet ef migrations remove`, rebase, `migrations add` again; never hand-merge the snapshot. |
-| - | (no migration) corrections | EP03 B21, B22 lean | before MG3 | The design says no new columns. If review finds one is needed, it takes this slot. |
-| MG3 | `AddPublicIds` | EP04 PR-3 | on `main` | `PublicId` on 9 tables, unique unfiltered index, fill factor 90, backfill, `Down`. Inert until PR-4. |
+| MG1 | `AverageCostMarkersAndCostScale` (20261011030307) | EP01 #44 | merged (#44) | Money precision and the average-cost markers. |
+| MG2 | As built, three migrations: `StoredLineAmount` (20261011063707, #45), `AddDocumentReversedBy` (20261011072009, #51, replacement for the old `DocumentSearchIndexAndReversedBy`) and `AddLedgerBalanceAfter` (20261011133108, #52) | EP01 | merged in that order | The old timestamp (20261011021255) is older than MG1's. After #44 merges: `dotnet ef migrations remove`, rebase, `migrations add` again; never hand-merge the snapshot. |
+| - | (no migration) corrections | EP03 B21, B22 lean | merged (no migration; #85) | The design says no new columns. If review finds one is needed, it takes this slot. |
+| MG3 | `AddPublicIds` | EP04 PR-3 | merged (#64) | `PublicId` on 9 tables, unique unfiltered index, fill factor 90, backfill, `Down`. Inert until PR-4. |
 | MG4 | `AddPartnerCode` | | **deferred** ("not now", lean-scope 4) | Built only when a customer needs partner codes. |
-| MG5 | `AddRolesAndPermissions` | EP06 RP-2 | on `main` after MG3 | `Role` is a public-id table from day one; `RolePermission`, `User.AllWarehouses`, approval-rule tier. Rights-parity test on a fresh and a migrated database. |
+| MG5 | `AddRolesAndPermissions` | EP06 RP-2 | merged (#90) | `Role` is a public-id table from day one; `RolePermission`, `User.AllWarehouses`, approval-rule tier. Rights-parity test on a fresh and a migrated database. |
+| MG5b | `DropLegacyRoleColumns` (20261017125040) | EP06 RP-4b | merged (#106) | Drops `User.Role` and `ApprovalRule.RoleRequired` after RP-4a stopped reading them; `Down` tested as a generated script as well as through the runner. Not in the 12 October plan. |
 | MG6, MG7 | stock value snapshot, user preferences | | **dropped** | Charts and preference roaming are not built (lean-scope 5). |
 
 Rules that make collisions impossible:
 1. `feature/public-ids` contains no migration. All schema for the id switch lands on `main` first; PR-4 to PR-7 are code only. Reverting PR-9 needs no database change.
 2. One migration PR open at a time. The orchestrator hands the baton in HANDOFFS ("baton: EP04 PR-3"); the next does not start `migrations add` until the previous one is merged.
 3. Snapshot conflicts (`AppDbContextModelSnapshot.cs`, `*.Designer.cs`) are never merged by hand: remove your migration, rebase, add it again.
-4. A test that fails when the model and the snapshot differ (`Database.HasPendingModelChanges()`) is required; none exists in `tests/` today. Owner: integration-test-engineer, with PR-1.
+4. A test that fails when the model and the snapshot differ (`Database.HasPendingModelChanges()`) is required; it exists (`tests/Ims.Api.Tests/Tests/Schema/SchemaShapeTests.cs`).
 5. Migration `Down` is tested; the 1M-tier copy is used for any migration that touches a large table (none above does).
 6. A release that adds a permission ships a migration granting it to Admin; a test on a fresh database fails the build otherwise (lean-scope 6.1).
 
@@ -121,6 +125,8 @@ The client (`web/libs/shared/api`, `web/openapi`) is generated by `npm run api:g
 | CS3 (inside G01, on the integration branch) | ids as uuid strings; `DocumentLineDto.id`, `LedgerRow.id`, `AuditLogDto.id` removed; problem-details `productId` as string | ids to string in about 100 files, routes, stores | fe-framework, once, in G01 only |
 | CS4 | `returned` filter, ascending order, `updatedAt` (B1 to B3) | HOME variants | **deferred** with B1 to B3 |
 | CS5 (when RP-5, RP-6 are on `main`) | roles, permissions, `PermissionCode`, `UserInfo` additive fields, approval rule tier | RP01 to RP05 | fe-framework |
+
+Status 2026-10-19: CS1 merged in R33 (#57); CS2 is in the client (recall is in `api-client.ts`; which PR carried it is unverified); CS3 merged inside G01 (#78); CS4 deferred; CS5 merged (#122). PR #134 regenerates the OpenAPI and the client itself (new `assignable-roles`, `roleName`, `roleRequired` removed), outside a named batch: a protocol exception to check at review.
 
 Protocol for every batch:
 1. Merge the batch's backend PRs first. The orchestrator writes "contract freeze CSn" in HANDOFFS.
@@ -141,7 +147,9 @@ Protocol for every batch:
 
 Build order inside the ids step: SEC-11 (404 for out-of-scope ids) first; the flip before the roles endpoints are written so they use string ids from the first line.
 
-### 3.5 The integration branch for the id switch
+Status 2026-10-19: P0 EP01 done (the EP02 items are not started); corrections done; ids done (PR-0 not found as its own commit, unverified); roles RP-0..RP-6 and RP-8 done. The remaining backend work is EP02, the QA findings of `TASKS.md` and the Standard-approval hint.
+
+### 3.5 The integration branch for the id switch (finished: PR-9 merged as #78 on 2026-10-13; kept as the rule set for a future branch of this kind)
 
 - **Cut.** `feature/public-ids` is created from `main` right after PR-3 (columns are on `main`, the API still speaks integers).
 - **Stack.** PR-4 to PR-8 target the integration branch, not `main`. CI and the PR guard run on any pull request; each keeps its own review. Required checks apply only to `main`, so the merge captain (orchestrator) enforces "CI green plus review verdict recorded" by hand.
@@ -188,9 +196,11 @@ Databases and ports (instance `ImsDev`; confirm against `e2e/README.md`): BE-1 `
 | M6 | Lean refresh complete | 16 | WD 38, Wed 2 Dec | The compatibility layer is gone; final QA pass | R24 merged after one release of soak; 3 gates passed; full real-API e2e suite green; zh and ms either reviewed or marked `TODO-review` with the owner's consent |
 | M7 | Deployment | spare slot | about WD 40 (PM estimate) | The released image runs on the chosen host and passes the smoke check | Hosting decided; `deploy.yml` deploys a `release.yml` image with a smoke check and tested rollback; web headers verified; `Auth__ReturnRefreshTokenInBody=false` after the web uses the cookie (Q14); backup and restore drill; demo seeding off; first DAST run triaged; no secrets in the repository |
 
+**Status 2026-10-19 (WD 6).** M1: reached on content (EP01 merged, R01 to R04, R27, R33, F1; the QA round 1 report is not in `docs/qa/`, so the acceptance check "QA round 1" is unverified). M2: open because of Q1, L02 and the real low-end phone motion check; the rest of waves 4 to 6 is merged. M3: corrections and ids are merged and retested (#79, #81); open: R14+R15 (Saved state, skeletons) and the QA round 3 gate. M4: open: A07 (Home tiles open unfiltered lists), R26, R29+R30; HOME and RP01 are in. M5: open: #134, the P04 web part, QA round 4. M6, M7: not started; M7 waits for O3.
+
 ## 7. Risk register (top 10)
 
-L = likelihood, I = impact (H/M/L). Risks specific to going lean: `lean-scope.md` section 7 (not repeated).
+L = likelihood, I = impact (H/M/L). Ratings are those of 12 October and were not re-assessed on 2026-10-19 (risks 1 and 3 name events that have passed: #44/#46 and the PR-9 merge). Risks specific to going lean: `lean-scope.md` section 7 (not repeated).
 
 | # | Risk | L / I | Mitigation | Owner |
 |---|---|---|---|---|
@@ -223,15 +233,17 @@ L = likelihood, I = impact (H/M/L). Risks specific to going lean: `lean-scope.md
 12. The independent review gate before merge (`docs/team/PR-REVIEW.md` section 8) for every PR over about 200 lines and for any PR touching money, permissions, authentication, migrations, posting or CI/CD.
 13. Taste questions (look, wording, motion details) are decided by the designers, not the owner. The repository is public and `main` is protected by a ruleset (PR required, four required checks, strict up-to-date, squash only, linear history). No bulk state-changing actions (N8); commands are never queued offline (N9); no drafts in browser storage.
 14. **Review checklist for every slice and PR:** "Which stated requirement needs this? Is there a simpler way? Does it add a dependency or a configuration surface?" Added to `docs/team/PR-REVIEW.md` section 8 as "flag over-engineering: unneeded abstraction, speculative generality, configuration nobody will change, a new dependency without a stated requirement".
+15. **Corrections confirmations taken (O1).** The defaults were built in B22 (#85): only the approver undoes an approval; the Owner and an Administrator may cancel a Large approved document; a reason of 5 or more characters cancels an Approved document.
+16. **The `large-change` label (O4).** Applied to the id-switch merge #78, merged 2026-10-13.
+17. **Standard approval (decided 2026-10-19).** A Standard-tier document is approved by a Supervisor; there is no Owner fallback. When a submitter cannot approve their own document the screen says "another Supervisor or an Administrator can approve this" (to build; `TASKS.md`, QA round findings).
 
 ### 8.2 Open owner decisions, with my recommended default
 
 | # | Decision | Recommended default | Needed by | Cost of waiting |
 |---|---|---|---|---|
-| O1 | Corrections confirmations: only the approver undoes an approval; Owner and Admin may cancel a Large approved document; reason of 5+ characters to cancel an Approved document | Yes to all three | WD 5 | B22 codes the defaults; a later change is a small edit |
 | O3 | Hosting direction | One small VM with Docker Compose and Caddy (about US$6 to 24 a month); free tier only for a data-free demo; managed cloud (about US$100 to 200 a month) when a customer needs availability guarantees | WD 10 for a demo environment; WD 30 for production | M7 slips; no other work waits |
-| O4 | The `large-change` label for the one id-switch merge (PR-9) | Yes, applied by the owner on the day, after the real-API e2e passes | WD 15 (wave 9 ends about WD 17; PM estimate, confirm at the WD 10 re-estimate) | PR-9 cannot merge |
 | O10 | Native speakers for zh and ms review | Named before M6; until then `TODO-review` stays | WD 30 | M6 acceptance wording |
+| O11 | Make the e2e smoke set (10 files, about 2.5 minutes) a required PR check and run the full suite nightly (`docs/team/E2E-HEALTH.md`) | Yes, the smoke set required; nightly full run with a notification | Before M2 | A browser regression can again pass a green CI (found in the #121 review) |
 
 Closed by the lean approval: O2 roles defaults (taken), O5 text limits (B20 deferred), O6 charts and polish (dropped), O7 motion (lean set), O8 refresh questions P1 to P11 (moot for dropped slices; plan defaults for kept ones), O9 `Partner.Code` (not now).
 
