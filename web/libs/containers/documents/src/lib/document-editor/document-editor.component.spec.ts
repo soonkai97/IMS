@@ -1670,25 +1670,16 @@ describe('DocumentEditorPageComponent', () => {
           `ims.draft.${guid(9)}.${KEY}`,
           JSON.stringify({ savedAt: Date.now(), value })
         );
-      const tampered: unknown[] = [
-        {
-          header: { warehouseId: 'zzz', partnerId: null, purpose: null, remark: '' },
-          lines: [],
-          version: 1,
-          basedOn: null
-        },
-        {
-          header: { warehouseId: null, partnerId: null, purpose: null, remark: '' },
-          lines: 'boom',
-          version: 1,
-          basedOn: null
-        },
-        {
-          header: { warehouseId: null, partnerId: null, purpose: null, remark: 'x'.repeat(4000) },
-          lines: [],
-          version: 1,
-          basedOn: null
-        }
+      const draft = (header: object, lines: unknown = []) => ({
+        version: 1,
+        header: { warehouseId: null, partnerId: null, purpose: null, remark: '', ...header },
+        lines,
+        basedOn: null
+      });
+      const tampered = [
+        draft({ warehouseId: 'zzz' }),
+        draft({}, 'boom'),
+        draft({ remark: 'x'.repeat(4000) })
       ];
 
       for (const value of tampered) {

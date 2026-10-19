@@ -13,6 +13,11 @@ public class UsersController(IDispatcher dispatcher) : ApiControllerBase(dispatc
     [ProducesResponseType<PagedResult<UserDto>>(StatusCodes.Status200OK)]
     public Task<IActionResult> List([FromQuery] UserFilter filter) => SendOk(new ListUsersQuery(filter));
 
+    /// <summary>The active roles the caller may give to a user (they hold every permission of the role), for the user form. Needs <c>users.manage</c>, not <c>roles.read</c>.</summary>
+    [HttpGet("assignable-roles"), Authorize(Policy = Permissions.UsersManage)]
+    [ProducesResponseType<IReadOnlyList<AssignableRoleDto>>(StatusCodes.Status200OK)]
+    public Task<IActionResult> AssignableRoles() => SendOk(new ListAssignableRolesQuery());
+
     [HttpPost, Authorize(Policy = Permissions.UsersManage)]
     [ProducesResponseType<UserDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Create([FromBody] UserSaveRequest body) => SendOk(new CreateUserCommand(body));

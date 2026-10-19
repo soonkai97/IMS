@@ -30,19 +30,19 @@ function numberOrNull(value: unknown, min: number, max: number): number | null |
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-/** An id kept on the device is read through normalizePublicId (frontend.md decision 16); null stays null. */
-function idOrNull(value: unknown): PublicId | null | undefined {
-  if (value === null) {
-    return null;
-  }
-  return typeof value === 'string' ? normalizePublicId(value) : undefined;
-}
+/** An id kept on the device is read through normalizePublicId (frontend.md decision 16); undefined when it is not a GUID. */
+const idOf = (value: unknown): PublicId | undefined =>
+  typeof value === 'string' ? normalizePublicId(value) : undefined;
+
+/** Like idOf, and null stays null. */
+const idOrNull = (value: unknown): PublicId | null | undefined =>
+  value === null ? null : idOf(value);
 
 function uomOptionOf(value: unknown): UomOption | undefined {
   if (!isObject(value)) {
     return undefined;
   }
-  const uomId = typeof value['uomId'] === 'string' ? normalizePublicId(value['uomId']) : undefined;
+  const uomId = idOf(value['uomId']);
   const code = text(value['code'], MAX_CODE_LENGTH);
   const factor = numberOrNull(value['factorToBase'], 0, Number.MAX_SAFE_INTEGER);
   return uomId && code !== undefined && typeof factor === 'number' && factor > 0
@@ -54,9 +54,8 @@ function lineOf(value: unknown): LineValue | undefined {
   if (!isObject(value)) {
     return undefined;
   }
-  const productId =
-    typeof value['productId'] === 'string' ? normalizePublicId(value['productId']) : undefined;
-  const uomId = typeof value['uomId'] === 'string' ? normalizePublicId(value['uomId']) : undefined;
+  const productId = idOf(value['productId']);
+  const uomId = idOf(value['uomId']);
   const sku = text(value['sku'], MAX_TEXT_LENGTH);
   const productName = text(value['productName'], MAX_TEXT_LENGTH);
   const remark = text(value['remark'], MAX_REMARK_LENGTH);
