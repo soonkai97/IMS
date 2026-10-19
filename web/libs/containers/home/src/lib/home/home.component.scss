@@ -6,7 +6,7 @@
 
 .home-page-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
   gap: space(2);
   margin-bottom: space(3);
 }
@@ -34,6 +34,7 @@
 
 .home-page-section-head {
   display: flex;
+  flex-wrap: wrap;
   gap: space(2);
   align-items: center;
   justify-content: space-between;
@@ -52,6 +53,7 @@
 
 .home-page-rows {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: space(1);
   padding: 0;
   margin: 0;
@@ -82,7 +84,8 @@
   min-width: 0;
 }
 
-// The number never breaks; the chip drops under it when the line is too narrow (a 360px phone).
+// The chip drops under the number when the line is too narrow (a 360px phone); a number longer than the line (320px, text
+// at 200%) breaks inside rather than push the row out of the window (WCAG 1.4.10).
 .home-page-row-head {
   display: flex;
   flex-wrap: wrap;
@@ -91,8 +94,8 @@
 }
 
 .home-page-row-no {
-  @include keep-whole;
-
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-weight: font-weight('bold');
 }
 

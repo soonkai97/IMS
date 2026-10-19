@@ -2,6 +2,7 @@
 
 :host {
   display: block;
+  container: stat-card / inline-size;
   background: color('surface');
   border: border-width('thin') solid color('border');
   border-radius: border-radius('md');
@@ -67,4 +68,22 @@
 .ui-stat-card-chevron {
   flex: none;
   color: color('text-muted');
+}
+
+// A card narrower than the grid's own minimum (14rem: the text enlarged on a 320px phone) puts the text on a line under the badge
+// and the alert, and drops the chevron (a decoration: the whole card is the link), instead of pushing it out of the card or onto a
+// line of its own (WCAG 1.4.10). A card with its normal room never wraps.
+@container stat-card (width < 14rem) {
+  .ui-stat-card-body {
+    flex-wrap: wrap;
+  }
+
+  .ui-stat-card-text {
+    order: 1;
+    flex: 1 1 100%;
+  }
+
+  .ui-stat-card-chevron {
+    display: none;
+  }
 }

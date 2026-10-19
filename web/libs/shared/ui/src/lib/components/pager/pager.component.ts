@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  computed,
+  inject,
+  input,
+  output
+} from '@angular/core';
 import { UI_TEXT } from '../../tokens/ui-text.token';
 import { UiButtonComponent } from '../button/button.component';
 import { UiIconComponent } from '../icon/icon.component';
@@ -9,7 +17,9 @@ let nextPagerId = 0;
  * Server-side paging: "1-25 of 142" with previous / next. A pager whose container is wide (a desktop) also has First and Last
  * and, when `pageSizes` is given, a "Rows per page" select; a phone keeps the range and the two arrows. A change is announced
  * once, as "Page 3 of 14, 51-75 of 333". The focus never moves: a button the new page cannot use (Last on the last page) is
- * aria-disabled, not disabled, so it keeps the focus and a keyboard user pages on from where they are.
+ * aria-disabled, not disabled, so it keeps the focus and a keyboard user pages on from where they are. A change also brings the
+ * top of the table above the pager back into view when it was scrolled away (a phone page of cards is long): the table is
+ * scrolled to the top of the window at once, never focused.
  */
 @Component({
   selector: 'app-pager',
@@ -20,6 +30,7 @@ let nextPagerId = 0;
 })
 export class UiPagerComponent {
   private readonly uiText = inject(UI_TEXT);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   $page = input.required<number>({ alias: 'page' });
   $pageSize = input.required<number>({ alias: 'pageSize' });
@@ -52,20 +63,20 @@ export class UiPagerComponent {
     return range ? this.uiText().pageAnnouncement(this.$pageLabel(), range) : this.$pageLabel();
   });
 
-  onFirst(): void {
-    this.$pageChange.emit(1);
+  onFirst(event: MouseEvent): void {
+    this.changePage(1, event);
   }
 
-  onPrevious(): void {
-    this.$pageChange.emit(this.$page() - 1);
+  onPrevious(event: MouseEvent): void {
+    this.changePage(this.$page() - 1, event);
   }
 
-  onNext(): void {
-    this.$pageChange.emit(this.$page() + 1);
+  onNext(event: MouseEvent): void {
+    this.changePage(this.$page() + 1, event);
   }
 
-  onLast(): void {
-    this.$pageChange.emit(this.$pages());
+  onLast(event: MouseEvent): void {
+    this.changePage(this.$pages(), event);
   }
 
   onPageSize(event: Event): void {
@@ -73,5 +84,45 @@ export class UiPagerComponent {
       return;
     }
     this.$pageSizeChange.emit(Number(event.target.value));
+    // ArrowDown in the select is a keyboard change: the select must stay where it is.
+    if (!this.keyboardFocus()) {
+      this.revealTable();
+    }
+  }
+
+  private changePage(page: number, event: MouseEvent): void {
+    this.$pageChange.emit(page);
+    // A click made with Enter or Space has no click count (detail 0): that person is in the pager, and moving the table
+    // under the pager would take the focused button off the screen.
+    if (event.detail > 0) {
+      this.revealTable();
+    }
+  }
+
+  /** A control of this pager has the focus the way a keyboard gives it (:focus-visible). */
+  private keyboardFocus(): boolean {
+    try {
+      return this.host.nativeElement.querySelector(':focus-visible') !== null;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * The table is the closest `app-table` before this pager. When its top is scrolled out of the window (or under the top bar,
+   * its `scroll-margin-top`), it is scrolled to the top of the window, so the new page starts at its first row.
+   */
+  private revealTable(): void {
+    let table = this.host.nativeElement.previousElementSibling;
+    while (table && table.tagName !== 'APP-TABLE') {
+      table = table.previousElementSibling;
+    }
+    if (!table) {
+      return;
+    }
+    const margin = parseFloat(getComputedStyle(table).scrollMarginTop) || 0;
+    if (table.getBoundingClientRect().top < margin) {
+      table.scrollIntoView?.({ block: 'start', behavior: 'instant' });
+    }
   }
 }

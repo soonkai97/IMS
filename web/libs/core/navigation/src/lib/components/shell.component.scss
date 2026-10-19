@@ -261,6 +261,12 @@ $progress-sweep: 1.2s;
   background: color('surface');
   border-top: border-width('thin') solid color('border');
 
+  // A bar narrower than five cells of 4rem (320px with the text at 125% or more): the cells keep their labels whole and the
+  // bar scrolls sideways instead of cutting them (a toolbar may scroll, WCAG 1.4.10).
+  overflow: auto hidden;
+  scrollbar-width: thin;
+  container: ims-tabbar / inline-size;
+
   @include media-tablet {
     display: none;
   }
@@ -303,6 +309,11 @@ $progress-sweep: 1.2s;
     transition: transform duration('fast') easing('out');
   }
 
+  // The bar clips what leaves its box, so the ring is drawn inside the tab (the usual 2px offset would be cut off).
+  &:focus-visible {
+    outline-offset: calc(-1 * #{border-width('ring')});
+  }
+
   &.--active {
     font-weight: font-weight('bold');
     color: color('accent');
@@ -318,10 +329,31 @@ $progress-sweep: 1.2s;
   }
 }
 
+// A label wraps (two lines at most) instead of being cut to "H...". When the cells are too narrow for their words (the text
+// enlarged on a 320px phone) the bar scrolls and the labels stay whole (WCAG 1.4.4, 1.4.10).
 .shell-tab-label {
+  @include clamp-lines(2);
+
   max-width: 100%;
   padding: 0 space(0);
-  @include truncate-line;
+  line-height: 1.2;
+  text-align: center;
+}
+
+@container ims-tabbar (width < 20rem) {
+  .shell-tab {
+    flex: 0 0 auto;
+    min-width: 5rem;
+    padding: 0 space(1);
+  }
+
+  .shell-tab-label {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: none;
+    line-clamp: none;
+    white-space: nowrap;
+  }
 }
 
 .shell-more-link {

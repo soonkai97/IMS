@@ -19,6 +19,9 @@
   display: block;
   container: ims-table / inline-size;
 
+  // The pager scrolls the table to the top of the window after a page change: clear of the top bar (read by app-pager).
+  scroll-margin-top: calc(#{height('bar')} + var(--ims-safe-top) + #{space(1)});
+
   &.--refreshing .ui-table-grid {
     opacity: 0.6;
   }
