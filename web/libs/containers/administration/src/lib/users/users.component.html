@@ -60,7 +60,11 @@
 
 <app-dialog [(open)]="$dialogOpen" [heading]="$dialogHeading()">
   <form class="users-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
-    <app-form-legend />
+    @if ($viewOnly()) {
+      <app-banner kind="info">{{ 'user.viewOnly' | t }}</app-banner>
+    } @else {
+      <app-form-legend />
+    }
     @for (message of $serverErrors(); track message) {
       <app-banner kind="danger">{{ message }}</app-banner>
     }
@@ -81,8 +85,14 @@
     <app-form-field [label]="'user.email' | t" [required]="true" [control]="form.controls.email">
       <app-input type="email" formControlName="email" autocomplete="off" [maxLength]="256" />
     </app-form-field>
+    @if ($rolesFailed()) {
+      <app-banner kind="danger">
+        {{ 'user.rolesFailed' | t }}
+        <app-button (clicked)="onRolesRetry()">{{ 'ui.retry' | t }}</app-button>
+      </app-banner>
+    }
     <app-form-field [label]="'user.role' | t" [required]="true" [control]="form.controls.role">
-      <app-select formControlName="role" [options]="$roleOptions()" [placeholder]="''" />
+      <app-select formControlName="role" [options]="$formRoleOptions()" [placeholder]="''" />
     </app-form-field>
     <app-form-field
       [label]="($isEditing() ? 'user.newPassword' : 'user.password') | t"
@@ -97,20 +107,27 @@
         [maxLength]="maxPasswordLength"
       />
     </app-form-field>
-    <fieldset class="users-page-warehouses">
+    <fieldset class="users-page-warehouses" (change)="$noWarehouse.set(false)">
       <legend>{{ 'user.warehouses' | t }}</legend>
       <app-checkbox formControlName="allWarehouses">{{ 'user.allWarehouses' | t }}</app-checkbox>
       @for (choice of $warehouseChoices(); track choice.id) {
         <app-checkbox [formControl]="choice.control">{{ choice.label }}</app-checkbox>
       }
       <p class="users-page-hint">{{ 'user.warehousesHint' | t }}</p>
+      @if ($noWarehouse()) {
+        <app-banner #noWarehouseBanner kind="danger">{{ 'user.noWarehouse' | t }}</app-banner>
+      }
     </fieldset>
     <app-checkbox formControlName="isActive">{{ 'product.active' | t }}</app-checkbox>
   </form>
   <div dialogActions>
-    <app-button (clicked)="$dialogOpen.set(false)">{{ 'common.cancel' | t }}</app-button>
-    <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
-      'common.save' | t
+    <app-button (clicked)="$dialogOpen.set(false)">{{
+      ($viewOnly() ? 'ui.close' : 'common.cancel') | t
     }}</app-button>
+    @if (!$viewOnly()) {
+      <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
+        'common.save' | t
+      }}</app-button>
+    }
   </div>
 </app-dialog>

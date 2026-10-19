@@ -559,6 +559,11 @@ export const EN_MESSAGES = {
   'user.warehousesHint':
     'Leave this off to limit the person to the warehouses ticked here. You can only give warehouses you can reach yourself, and only change people who do not see more than you.',
   'user.allWarehouses': 'Sees every warehouse',
+  'user.noWarehouse':
+    'This user will see no warehouse. Pick at least one or tick Sees every warehouse.',
+  'user.rolesFailed': 'Could not load the roles you can assign.',
+  'user.viewOnly':
+    'You can only view this user: their role gives more access than yours, so you cannot change them.',
   'roles.appliesLater':
     'A change to a role applies to people who are signed in within about 5 minutes.',
   'roles.description': 'Description',
