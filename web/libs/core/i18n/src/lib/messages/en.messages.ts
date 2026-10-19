@@ -586,31 +586,13 @@ export const EN_MESSAGES = {
   'rolePage.permissions': 'Permissions',
   'rolePage.readOnly.locked': 'This role always holds every permission and cannot be changed.',
   'rolePage.requires': 'Needs: {names}',
-  'roles.new': 'New role',
-  'rolePage.active': 'Active',
-  'rolePage.activeHint': 'An inactive role cannot be given to anyone new.',
   'rolePage.alsoOff': 'Also turned off: {names}.',
   'rolePage.alsoOn': 'Also turned on: {names}.',
-  'rolePage.copyBlank': 'Blank role, no permissions',
-  'rolePage.copyFrom': 'Start from',
-  'rolePage.copyHint':
-    'The permissions are copied once and the new role is not linked to the original. You can change them below before saving.',
-  'rolePage.copyHolds': 'has permissions you do not have',
-  'rolePage.created': 'Role "{name}" created.',
-  'rolePage.delete': 'Delete role',
-  'rolePage.deleteBody': "This can't be undone. The audit log keeps its history.",
-  'rolePage.deleteTitle': 'Delete "{name}"?',
-  'rolePage.deleted': 'Role "{name}" deleted.',
-  'rolePage.description': 'Description',
   'rolePage.discard': 'Discard changes',
   'rolePage.failure.containment':
     "You can't do this. You can only give permissions you hold yourself, and only change a role that holds nothing more than you do.",
-  'rolePage.failure.inUse':
-    '{count, plural, one {# person has} other {# people have}} this role. Move them to another role first.',
   'rolePage.failure.stale':
     'Someone changed this role while you were editing. Reload to see the latest version. Your changes were not saved.',
-  'rolePage.name': 'Name',
-  'rolePage.newTitle': 'New role',
   'rolePage.notHeld': "You can't give a permission you don't have.",
   'rolePage.permissionsHint':
     'Tick what people with this role may do. A permission also turns on the ones it needs.',
@@ -620,10 +602,8 @@ export const EN_MESSAGES = {
     "This is your own role. You can't change it; ask another administrator.",
   'rolePage.readOnly.viewOnly': 'You can see this role but not change it.',
   'rolePage.reload': 'Reload the role',
-  'rolePage.saved': 'Saved.',
-  'rolePage.savedPermissions':
+  'rolePage.saved':
     'Saved. {added, plural, one {# permission} other {# permissions}} added, {removed, plural, one {# permission} other {# permissions}} removed.',
-  'rolePage.standardNote': 'A standard role keeps its name. You can change its permissions.',
   'perm.group.Administration': 'Administration',
   'perm.group.CostAndValue': 'Cost and value',
   'perm.group.Documents': 'Documents',

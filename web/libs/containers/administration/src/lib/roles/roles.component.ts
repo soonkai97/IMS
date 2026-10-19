@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { RoleDto } from '@ims/api';
 import { PermissionService } from '@ims/core/identity';
 import { I18nService, TranslatePipe } from '@ims/core/i18n';
@@ -42,7 +41,7 @@ const KIND_LABEL = {
 } as const;
 
 /**
- * Roles (RP01, RP02): the list; a row opens the role page and a person with `roles.manage` can add a role. The menu and the route need `roles.read`; a person without
+ * Roles (RP01, RP02): a read-only list; a row opens the role page. The menu and the route need `roles.read`; a person without
  * `roles.manage` sees the "View only" note. Which role is locked and which is a standard one comes from the data (the API's
  * `isSystem` and the admin-core flags of the permission catalog), never from a role name.
  */
@@ -50,7 +49,6 @@ const KIND_LABEL = {
   selector: 'app-roles-page',
   imports: [
     ReactiveFormsModule,
-    RouterLink,
     TranslatePipe,
     UiCellDirective,
     UiCheckboxComponent,

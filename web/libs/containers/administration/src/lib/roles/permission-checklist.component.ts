@@ -26,7 +26,7 @@ export interface PermissionToggle {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './permission-checklist.component.html',
-  styleUrl: './permission-checklist.component.scss'
+  styleUrl: './permission-list.component.scss'
 })
 export class PermissionChecklistComponent {
   private readonly i18n = inject(I18nService);

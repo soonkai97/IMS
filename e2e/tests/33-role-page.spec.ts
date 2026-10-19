@@ -7,7 +7,6 @@ import { LoginPage, Shell, goTo } from '../src/pages/shell';
 // docs/design/roles-permissions-ux.md 3.2 (the permission list), 3.12 (special roles, view only), 6.2 (accessibility); lean scope RP02.
 const checkbox = (page: Page, code: string) => page.locator(`[data-permission="${code}"] input`);
 const saveButton = (page: Page) => page.getByRole('button', { name: 'Save', exact: true });
-const nameBox = (page: Page) => page.getByRole('textbox', { name: /^Name/ });
 const state = (page: Page, code: string) =>
   page.locator(`[data-permission="${code}"] .permission-list-state`);
 
@@ -101,12 +100,6 @@ test.describe('RP02 Role page', () => {
       await expect(page.locator('section h3').first()).toBeVisible();
       await expect(page.getByRole('checkbox')).toHaveCount(0);
       await expect(page.getByRole('button', { name: /Save|Delete/ })).toHaveCount(0);
-
-      // Reading is all this person may do: no New role, and the new-role address is the forbidden page.
-      await goTo(page, '/roles');
-      await expect(page.getByRole('link', { name: 'New role' })).toHaveCount(0);
-      await goTo(page, '/roles/new');
-      await expect(page).toHaveURL(/\/forbidden$/);
     } finally {
       await session.close();
     }
@@ -144,7 +137,7 @@ test.describe('RP02 Role page', () => {
     await expect(page.locator('section h3')).toHaveCount(0);
   });
 
-  test('given a 360 px phone, then the new-role form, a role form and the read-only list have no sideways scroll and every permission is named', async ({
+  test('given a 360 px phone, then a role form and the read-only list have no sideways scroll and every permission is named', async ({
     page,
     signIn,
     api
@@ -159,11 +152,9 @@ test.describe('RP02 Role page', () => {
           document.body.scrollWidth <= window.innerWidth
       );
 
-    for (const path of ['/roles/new', `/roles/${role.id}`]) {
-      await goTo(page, path);
-      await expect(page.locator('fieldset').first()).toBeVisible();
-      expect(await noOverflow()).toBe(true);
-    }
+    await goTo(page, `/roles/${role.id}`);
+    await expect(page.locator('fieldset').first()).toBeVisible();
+    expect(await noOverflow()).toBe(true);
     const unnamed = await page
       .locator('fieldset input[type="checkbox"]')
       .evaluateAll(
@@ -186,35 +177,6 @@ test.describe('RP02 Role page', () => {
       .allInnerTexts()) {
       expect(['Allowed', 'Not allowed']).toContain(text.trim());
     }
-  });
-
-  test('given the Admin adds a role and ticks Post approved documents, then Post documents comes with it, the role is created and the API holds both', async ({
-    page,
-    signIn,
-    shell,
-    api
-  }) => {
-    const name = `E2E new ${unique()}`;
-    await signIn('admin');
-    await shell.nav.getByRole('link', { name: 'Roles' }).click();
-    await page.getByRole('link', { name: 'New role' }).click();
-    await expect(page).toHaveURL(/\/roles\/new$/);
-
-    await nameBox(page).fill(name);
-    await checkbox(page, 'document.post.approved').check();
-    await expect(checkbox(page, 'document.post')).toBeChecked();
-    await expect(page.getByRole('status').filter({ hasText: 'Also turned on' })).toContainText(
-      'Post documents'
-    );
-    await saveButton(page).click();
-
-    await expect(shell.toast(`Role "${name}" created.`)).toBeVisible();
-    await expect(page).toHaveURL(/\/roles\/[0-9a-f-]{36}$/);
-    await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
-    const id = page.url().split('/').pop() as string;
-    const role = await api('admin').getRole(id);
-    created.push(role);
-    expect([...role.permissions].sort()).toEqual(['document.post', 'document.post.approved']);
   });
 
   test('given the Admin opens a role, unticks a permission and saves, then the toast says what changed and the API agrees', async ({
@@ -275,7 +237,7 @@ test.describe('RP02 Role page', () => {
     const { page } = session;
 
     try {
-      await goTo(page, '/roles/new');
+      await goTo(page, `/roles/${editable.id}`);
       await expect(checkbox(page, 'document.post')).toBeDisabled();
       await expect(
         page.locator('[data-permission="document.post"]').getByText("You can't give a permission")
@@ -287,6 +249,7 @@ test.describe('RP02 Role page', () => {
       await expect(saveButton(page)).toHaveCount(0);
 
       await goTo(page, `/roles/${editable.id}`);
+
       await expect(checkbox(page, 'stock.read')).toBeEnabled();
       await checkbox(page, 'stock.read').uncheck();
       // Meanwhile the role grows beyond what the manager holds: the server refuses and the page says why.
@@ -299,7 +262,7 @@ test.describe('RP02 Role page', () => {
     }
   });
 
-  test('given a standard role, then its name is fixed, its permissions are editable and there is no Delete', async ({
+  test('given a standard role, then the Admin can tick its permissions (nothing is saved here) and Save waits for a change', async ({
     page,
     signIn,
     shell
@@ -312,55 +275,8 @@ test.describe('RP02 Role page', () => {
       .first()
       .click();
 
-    await expect(page.getByText('A standard role keeps its name')).toBeVisible();
-    await expect(nameBox(page)).toBeDisabled();
-    await expect(page.getByRole('button', { name: 'Delete role' })).toHaveCount(0);
     await expect(checkbox(page, 'stock.read')).toBeEnabled();
-  });
-
-  test('given a role that people still have, then Delete asks first and the refusal counts the people; once they are moved, it deletes', async ({
-    page,
-    signIn,
-    shell,
-    api
-  }) => {
-    const admin = api('admin');
-    const role = await makeRole(admin, ['stock.read'], 'busy');
-    await makeUser(admin, role);
-    await signIn('admin');
-    await goTo(page, `/roles/${role.id}`);
-
-    await page.getByRole('button', { name: 'Delete role' }).click();
-    await shell
-      .dialog(`Delete "${role.name}"?`)
-      .getByRole('button', { name: 'Delete role' })
-      .click();
-    await expect(page.getByRole('alert')).toContainText('1 person has this role');
-    await expect(page).toHaveURL(new RegExp(`/roles/${role.id}$`));
-
-    // The throw-away user goes back to Clerk, then the same Delete works.
-    const [found] = (
-      await admin.call<{ items: { id: string; username: string }[] }>(
-        'GET',
-        `/api/users?search=${users[users.length - 1]}`
-      )
-    ).items;
-    await admin.call('PUT', `/api/users/${found.id}`, {
-      username: found.username,
-      email: `${found.username}@example.test`,
-      displayName: found.username,
-      role: 'Clerk',
-      isActive: false,
-      warehouseIds: []
-    });
-    await page.getByRole('button', { name: 'Delete role' }).click();
-    await shell
-      .dialog(`Delete "${role.name}"?`)
-      .getByRole('button', { name: 'Delete role' })
-      .click();
-
-    await expect(page).toHaveURL(/\/roles$/);
-    await expect(shell.toast(`Role "${role.name}" deleted.`)).toBeVisible();
+    await expect(page.getByText('View only')).toHaveCount(0);
   });
 
   test('given unsaved ticks, then leaving asks first: Keep editing stays, Discard leaves', async ({

@@ -16,20 +16,12 @@ export const USER_ROUTES: Routes = [
   }
 ];
 
-/** /roles/**: the list and a role read with roles.read; a new role needs roles.manage. The role page asks before leaving unsaved edits. */
 export const ROLE_ROUTES: Routes = [
   {
     path: '',
     component: RolesPageComponent,
     title: 'roles.title',
     canActivate: [requirePermission(PERMISSION.RolesRead)]
-  },
-  {
-    path: 'new',
-    component: RolePageComponent,
-    title: 'rolePage.newTitle',
-    canActivate: [requirePermission(PERMISSION.RolesManage)],
-    canDeactivate: [unsavedChangesGuard]
   },
   {
     path: ':id',

@@ -15,7 +15,7 @@ const error = (
   fieldErrors: {},
   extensions: {}
 });
-const none = { roleChangedSince: false, removing: false };
+const none = { roleChangedSince: false };
 
 describe('classifyRoleFailure (the API gives no code, so the screen tells the 409s apart)', () => {
   it('a 409 on a role that changed since it was opened is a stale edit', () => {
@@ -35,24 +35,6 @@ describe('classifyRoleFailure (the API gives no code, so the screen tells the 40
       kind: 'conflict',
       message: 'System roles cannot be deleted or deactivated.'
     });
-  });
-
-  it('a 409 that counts people is "in use", with the count from the sentence', () => {
-    const failure = classifyRoleFailure(
-      error(409, '3 user(s) still have this role. Move them to another role first.'),
-      { ...none, removing: true, knownUserCount: 9 }
-    );
-    expect(failure.kind).toBe('inUse');
-    expect(failure.count).toBe(3);
-  });
-
-  it('falls back to the count the screen knows when the sentence has none', () => {
-    const failure = classifyRoleFailure(error(409, 'Conflict.'), {
-      ...none,
-      removing: true,
-      knownUserCount: 2
-    });
-    expect(failure).toEqual({ kind: 'inUse', message: 'Conflict.', count: 2 });
   });
 
   it('a 409 with no people (a name that is taken) is a plain conflict', () => {
