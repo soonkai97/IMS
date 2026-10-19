@@ -49,6 +49,12 @@ describe('ROUTE_SCROLLING (phone QA: a new page opens at its top)', () => {
     return router;
   }
 
+  /** The router hands the scroll to the browser after the page rendered, outside the zone: let it run. */
+  async function settle(): Promise<void> {
+    await TestBed.inject(ApplicationRef).whenStable();
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+
   afterEach(() => window.document.querySelectorAll('app-scroll-root').forEach(e => e.remove()));
 
   it('is the option set the app registers: restore on Back, top for a new page, anchors on', () => {
@@ -62,7 +68,7 @@ describe('ROUTE_SCROLLING (phone QA: a new page opens at its top)', () => {
     const router = await bootstrap(ROUTE_SCROLLING);
 
     await router.navigateByUrl('/b');
-    await TestBed.inject(ApplicationRef).whenStable();
+    await settle();
 
     expect(scrollToPosition).toHaveBeenCalledWith([0, 0]);
   });
@@ -71,7 +77,7 @@ describe('ROUTE_SCROLLING (phone QA: a new page opens at its top)', () => {
     const router = await bootstrap({});
 
     await router.navigateByUrl('/b');
-    await TestBed.inject(ApplicationRef).whenStable();
+    await settle();
 
     expect(scrollToPosition).not.toHaveBeenCalled();
   });
@@ -80,7 +86,7 @@ describe('ROUTE_SCROLLING (phone QA: a new page opens at its top)', () => {
     const router = await bootstrap(ROUTE_SCROLLING);
 
     await router.navigateByUrl('/b#details');
-    await TestBed.inject(ApplicationRef).whenStable();
+    await settle();
 
     expect(scrollToAnchor).toHaveBeenCalledWith('details');
   });
