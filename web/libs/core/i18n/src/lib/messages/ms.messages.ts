@@ -563,17 +563,61 @@ export const MS_MESSAGES: Messages = {
   'roles.users': 'Pengguna',
   'roles.viewOnly': 'Lihat sahaja',
   // TODO-review: machine draft (role page, RP02).
-  'rolePage.details': 'Butiran',
+  // TODO-review: machine draft (role page, RP02).
   'rolePage.allowed': 'Dibenarkan',
-  'rolePage.notAllowed': 'Tidak dibenarkan',
+  'rolePage.details': 'Butiran',
+  'rolePage.failure.partial':
+    'Nama dan penerangan telah disimpan. Kebenaran tidak disimpan: {reason}',
   'rolePage.groupCount': '{count} daripada {total} dihidupkan',
   'rolePage.highImpact': 'Impak tinggi',
+  'rolePage.notAllowed': 'Tidak dibenarkan',
   'rolePage.people':
     '{count, plural, one {# orang mempunyai} other {# orang mempunyai}} peranan ini.',
   'rolePage.permissions': 'Kebenaran',
   'rolePage.readOnly.locked':
     'Peranan ini sentiasa mempunyai semua kebenaran dan tidak boleh diubah.',
+  'rolePage.replace': 'Ganti',
+  'rolePage.replaceBody':
+    'Anda menukar tanda secara manual. Memulakan daripada peranan lain akan menggantikannya.',
+  'rolePage.replaceTitle': 'Ganti tanda anda?',
   'rolePage.requires': 'Memerlukan: {names}',
+  'roles.new': 'Peranan baharu',
+  'rolePage.active': 'Aktif',
+  'rolePage.activeHint': 'Peranan tidak aktif tidak boleh diberikan kepada sesiapa yang baharu.',
+  'rolePage.copyBlank': 'Peranan kosong, tiada kebenaran',
+  'rolePage.copyFrom': 'Mula daripada',
+  'rolePage.copyHint':
+    'Kebenaran disalin sekali sahaja dan peranan baharu tidak dipautkan kepada yang asal. Anda boleh mengubahnya di bawah sebelum menyimpan.',
+  'rolePage.copyHolds': 'mempunyai kebenaran yang anda tiada',
+  'rolePage.created': 'Peranan "{name}" dicipta.',
+  'rolePage.delete': 'Padam peranan',
+  'rolePage.deleteBody': 'Ini tidak boleh dibatalkan. Log audit menyimpan sejarahnya.',
+  'rolePage.deleteTitle': 'Padam "{name}"?',
+  'rolePage.deleted': 'Peranan "{name}" dipadam.',
+  'rolePage.description': 'Penerangan',
+  'rolePage.failure.inUse':
+    '{count, plural, one {# orang mempunyai} other {# orang mempunyai}} peranan ini. Pindahkan mereka ke peranan lain dahulu.',
+  'rolePage.name': 'Nama',
+  'rolePage.newTitle': 'Peranan baharu',
+  'rolePage.standardNote':
+    'Peranan standard mengekalkan namanya. Anda boleh mengubah kebenarannya.',
+  'rolePage.savedDetails': 'Disimpan.',
+  // TODO-review: machine draft (role editor, RP02b).
+  'rolePage.alsoOff': 'Turut dimatikan: {names}.',
+  'rolePage.alsoOn': 'Turut dihidupkan: {names}.',
+  'rolePage.discard': 'Buang perubahan',
+  'rolePage.failure.stale':
+    'Seseorang telah mengubah peranan ini semasa anda menyunting. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',
+  'rolePage.notHeld': 'Anda tidak boleh memberi kebenaran yang anda tidak miliki.',
+  'rolePage.permissionsHint':
+    'Tandakan apa yang boleh dilakukan oleh orang yang mempunyai peranan ini. Menanda satu kebenaran juga menanda yang diperlukannya; menyahtanda satu juga menyahtanda yang bergantung padanya.',
+  'rolePage.readOnly.holdsMore':
+    'Peranan ini mempunyai kebenaran yang anda tiada, jadi anda tidak boleh mengubahnya.',
+  'rolePage.readOnly.ownRole':
+    'Ini peranan anda sendiri. Anda tidak boleh mengubahnya; minta pentadbir lain.',
+  'rolePage.readOnly.viewOnly': 'Anda boleh melihat peranan ini tetapi tidak boleh mengubahnya.',
+  'rolePage.reload': 'Muat semula peranan',
+  'rolePage.saved': 'Disimpan. {added} kebenaran ditambah, {removed} kebenaran dibuang.',
   'perm.group.Administration': 'Pentadbiran',
   'perm.group.CostAndValue': 'Kos dan nilai',
   'perm.group.Documents': 'Dokumen',

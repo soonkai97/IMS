@@ -17,7 +17,7 @@ import { UiIconComponent, UiStatusChipComponent } from '@ims/ui';
   styleUrl: './permission-list.component.scss'
 })
 export class PermissionListComponent {
-  private readonly i18n = inject(I18nService);
+  protected readonly i18n = inject(I18nService);
 
   $groups = input.required<readonly PermissionGroupView[]>({ alias: 'groups' });
   $catalog = input.required<readonly PermissionDto[]>({ alias: 'catalog' });

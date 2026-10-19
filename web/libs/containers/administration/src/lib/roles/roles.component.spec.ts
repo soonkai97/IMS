@@ -155,6 +155,16 @@ describe('RolesPageComponent (RP01: a read-only list, kinds decided by the data)
     expect(spectator.component.rowLink(role('Night clerk', []))).toEqual(['/roles', 'Night clerk']);
   });
 
+  it('offers New role (to /roles/new) only to a person with roles.manage', () => {
+    const link = () => spectator.element.querySelector('a[href="/roles/new"]');
+    expect(link()).toBeNull();
+
+    held.set([PERMISSION.RolesRead, PERMISSION.RolesManage]);
+    spectator.detectChanges();
+
+    expect(link()?.textContent).toContain('New role');
+  });
+
   it('loads the active roles first and the inactive ones when the box is ticked', () => {
     expect(load).toHaveBeenLastCalledWith({ search: undefined, includeInactive: false });
 

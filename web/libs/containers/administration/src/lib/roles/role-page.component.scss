@@ -36,3 +36,23 @@
   margin: 0;
   color: color('text-muted');
 }
+
+.role-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+}
+
+.role-page-failure {
+  display: block;
+  margin-bottom: space(2);
+}
+
+// The live region is for speech only: it takes no room when empty.
+.role-page-live {
+  margin: 0;
+
+  &:empty {
+    @include visually-hidden;
+  }
+}

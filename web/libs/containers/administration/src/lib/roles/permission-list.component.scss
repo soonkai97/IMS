@@ -4,9 +4,12 @@
   display: block;
 }
 
+// Shared with the checklist (a fieldset there, a section here).
 .permission-list-group {
   min-width: 0;
+  padding: 0;
   margin: 0 0 space(2);
+  border: 0;
 }
 
 .permission-list-heading {
@@ -16,6 +19,19 @@
   align-items: baseline;
   margin: 0 0 space(1);
   font-size: font-size(3);
+}
+
+.permission-list-title {
+  margin: 0;
+  font-size: inherit;
+}
+
+.permission-list-reason {
+  display: inline-flex;
+  gap: space(0);
+  align-items: center;
+  font-size: font-size(2);
+  color: color('text-muted');
 }
 
 .permission-list-count {
@@ -51,6 +67,15 @@
     font-weight: font-weight('medium');
     color: color('text');
   }
+}
+
+// The sentences under a name: each on its own line.
+.permission-list-details {
+  display: flex;
+  flex-direction: column;
+  gap: space(0);
+  align-items: flex-start;
+  padding-inline-start: 2rem;
 }
 
 .permission-list-name {

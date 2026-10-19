@@ -8,6 +8,7 @@ import {
 } from '@angular/router';
 import { PermissionService } from '@ims/core/identity';
 import { PERMISSION } from '@ims/models';
+import { unsavedChangesGuard } from '@ims/core/navigation';
 import { ROLE_ROUTES } from './administration.routes';
 
 const routeAt = (path: string) => ROLE_ROUTES.find(route => route.path === path);
@@ -63,5 +64,22 @@ describe('ROLE_ROUTES (the list and a role are gated by roles.read, nothing else
     held.add(PERMISSION.RolesRead);
 
     expect(run(':id')).toBe(true);
+  });
+
+  it('opens the new-role form only with roles.manage: roles.read alone is not enough', () => {
+    held.add(PERMISSION.RolesRead);
+    expect(String(run('new'))).toBe('/forbidden');
+
+    held.add(PERMISSION.RolesManage);
+
+    expect(run('new')).toBe(true);
+  });
+
+  it('puts new before :id, so /roles/new is never read as a role id', () => {
+    expect(ROLE_ROUTES.map(route => route.path)).toEqual(['', 'new', ':id']);
+  });
+
+  it.each(['new', ':id'])('asks before leaving unsaved edits on %s', path => {
+    expect(routeAt(path)?.canDeactivate).toEqual([unsavedChangesGuard]);
   });
 });
