@@ -251,7 +251,9 @@ test.describe('RP02 Role page', () => {
       await admin.setRolePermissions(editable.id, ['stock.read', 'document.post']);
       await saveButton(page).click();
 
-      await expect(page.getByRole('alert')).toContainText('You can only give permissions you hold');
+      await expect(page.getByRole('alert')).toContainText(
+        'You cannot change a role that holds more permissions than you.'
+      );
     } finally {
       await session.close();
     }

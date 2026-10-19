@@ -282,7 +282,9 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
       'You cannot change a role that holds more permissions than you.',
       'You cannot change a role that is held by a user who sees more warehouses than you.'
     ])('a 403 shows the server sentence for its own cause: %s', async sentence => {
-      await failSave(problem(403, sentence, API_ERROR_KIND.Forbidden));
+      // The error interceptor replaces `message` by its generic sentence; the page shows the server's.
+      const refused = { ...problem(403, sentence, API_ERROR_KIND.Forbidden), message: 'Generic.' };
+      await failSave(refused);
 
       expect(banners().join(' ')).toContain(sentence);
       expect(spectator.component.hasUnsavedChanges()).toBe(true);

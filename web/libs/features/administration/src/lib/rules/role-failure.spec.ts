@@ -32,6 +32,11 @@ describe('classifyRoleFailure (the API gives no code, so the screen tells the 40
       none
     );
     expect(forbidden).toEqual({ kind: 'containment', message: 'Own sentence.' });
+    const generic = {
+      ...error(403, 'Own sentence.', API_ERROR_KIND.Forbidden),
+      message: 'No permission.'
+    };
+    expect(classifyRoleFailure(generic, none).message).toBe('Own sentence.');
     expect(classifyRoleFailure(error(404, 'x', API_ERROR_KIND.NotFound), none).kind).toBe(
       'notFound'
     );

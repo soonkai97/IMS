@@ -27,7 +27,8 @@ export function classifyRoleFailure(
   const message = error.message ?? error.detail;
   switch (error.status) {
     case HTTP_STATUS.Forbidden:
-      return { kind: 'containment', message };
+      // The error interceptor puts its own generic sentence in `message`; the server's says which rule was hit.
+      return { kind: 'containment', message: error.detail || message };
     case HTTP_STATUS.NotFound:
       return { kind: 'notFound', message };
     case HTTP_STATUS.BadRequest:
