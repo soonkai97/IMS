@@ -3,7 +3,7 @@ import { API_ERROR_KIND, ApiError, HTTP_STATUS } from '@ims/models';
 /**
  * What went wrong with a role write, as the screen explains it:
  * - `stale`: the role changed since it was opened (a 409 and a different concurrency token on the server);
- * - `containment`: a 403, the caller may not give or change what they do not hold (the server sentence says which);
+ * - `containment`: a 403; the API has no code for its three causes (grant beyond your own, a role that holds more, a role held by someone who sees more warehouses), so the server's sentence is shown;
  * - `conflict`: any other 409, such as a locked or standard role, the person's own role, or a name that is taken;
  * - `invalid`: a 400; `notFound`: a 404; `other`: anything else.
  */

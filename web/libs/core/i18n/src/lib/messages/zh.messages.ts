@@ -554,13 +554,11 @@ export const ZH_MESSAGES: Messages = {
   'rolePage.alsoOff': '同时关闭：{names}。',
   'rolePage.alsoOn': '同时开启：{names}。',
   'rolePage.discard': '放弃更改',
-  'rolePage.failure.containment':
-    '您无法执行此操作。您只能授予自己拥有的权限，也只能修改权限不超过您的角色。',
   'rolePage.failure.stale':
     '您编辑期间有人修改了此角色。请重新加载以查看最新版本。您的更改未保存。',
   'rolePage.notHeld': '您不能授予自己没有的权限。',
   'rolePage.permissionsHint':
-    '勾选拥有此角色的人可以做的事。开启一项权限时，也会开启它所需要的权限。',
+    '勾选拥有此角色的人可以做的事。勾选一项权限会同时勾选它所需要的权限；取消勾选则会同时取消依赖它的权限。',
   'rolePage.readOnly.holdsMore': '此角色含有您没有的权限，因此您无法修改。',
   'rolePage.readOnly.ownRole': '这是您自己的角色，您无法修改；请另一位管理员操作。',
   'rolePage.readOnly.viewOnly': '您可以查看此角色，但不能修改。',

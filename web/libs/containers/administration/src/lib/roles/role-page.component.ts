@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   computed,
   effect,
   inject,
@@ -10,6 +11,7 @@ import {
   untracked
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgTemplateOutlet } from '@angular/common';
 import { of, tap } from 'rxjs';
 import { RoleDto } from '@ims/api';
 import { I18nService, MessageKey, TranslatePipe, isMessageKey } from '@ims/core/i18n';
@@ -59,6 +61,7 @@ const READ_ONLY_TEXT: Record<RoleReadOnlyReason, MessageKey> = {
 @Component({
   selector: 'app-role-page',
   imports: [
+    NgTemplateOutlet,
     TranslatePipe,
     PermissionChecklistComponent,
     PermissionListComponent,
@@ -79,22 +82,20 @@ const READ_ONLY_TEXT: Record<RoleReadOnlyReason, MessageKey> = {
 })
 export class RolePageComponent implements HasUnsavedChanges {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly i18n = inject(I18nService);
   private readonly permissions = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly store = inject(RoleDetailStore);
 
-  /** Route parameter. */
   $id = input<string | undefined>(undefined, { alias: 'id' });
 
   /** The id in the URL as the API writes it; undefined for anything that is not a GUID (an old bookmark). */
   $roleId = computed(() => normalizePublicId(this.$id()));
-  /** The role as last read or saved: what the unsaved ticks are compared with. */
   readonly $baseline = signal<RoleDto | undefined>(undefined);
-  /** The ticked permissions, including the unsaved ones. */
   readonly $selected = signal<ReadonlySet<string>>(new Set());
   readonly $failure = signal<RoleFailure | undefined>(undefined);
-  /** The one polite live region: dependency notices and the result of a save. */
+  /** The page's polite live region: the note of what a tick also turned on or off. */
   readonly $announcement = signal('');
   private readonly $vanished = signal(false);
 
@@ -201,7 +202,9 @@ export class RolePageComponent implements HasUnsavedChanges {
     );
   }
 
+  /** The Discard button goes away with the ticks, so focus moves to the page heading first (never to the body). */
   onDiscard(): void {
+    this.host.nativeElement.querySelector('h1')?.focus();
     this.reset(this.$baseline());
   }
 
@@ -219,8 +222,6 @@ export class RolePageComponent implements HasUnsavedChanges {
     switch (failure.kind) {
       case 'stale':
         return this.i18n.t('rolePage.failure.stale');
-      case 'containment':
-        return this.i18n.t('rolePage.failure.containment');
       default:
         return failure.message;
     }
@@ -243,8 +244,8 @@ export class RolePageComponent implements HasUnsavedChanges {
             removed: saved.removed.length
           });
           this.reset(saved.role);
+          // The toast is the one announcement of the result (it is a live region itself).
           this.toast.success(message);
-          this.$announcement.set(message);
         }),
         takeUntilDestroyed(this.destroyRef)
       )

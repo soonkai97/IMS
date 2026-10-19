@@ -1,10 +1,8 @@
-import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { NEVER, of, throwError } from 'rxjs';
 import { PermissionDto, PermissionGroup, PermissionsClient, RoleDto, RolesClient } from '@ims/api';
 import { provideUiText } from '@ims/core/i18n';
-import { PermissionService } from '@ims/core/identity';
 import { API_ERROR_KIND, ApiError } from '@ims/models';
 import { RolePageComponent } from './role-page.component';
 
@@ -55,7 +53,7 @@ const problem = (status: number, kind: ApiError['kind']): ApiError => ({
   extensions: {}
 });
 
-describe('RolePageComponent for a person who may only read (RP02a: the read-only list)', () => {
+describe('RolePageComponent (RP02a: a role and what it allows, view only)', () => {
   let spectator: Spectator<RolePageComponent>;
   const client = { get: jest.fn() };
   const catalogList = jest.fn();
@@ -65,15 +63,6 @@ describe('RolePageComponent for a person who may only read (RP02a: the read-only
     providers: [
       provideRouter([]),
       provideUiText(),
-      // A person who may only read: the page is the read-only list.
-      {
-        provide: PermissionService,
-        useValue: {
-          has: () => false,
-          $permissions: signal(new Set<string>()),
-          $role: signal(undefined)
-        }
-      },
       { provide: RolesClient, useValue: client },
       { provide: PermissionsClient, useValue: { list: catalogList } }
     ]

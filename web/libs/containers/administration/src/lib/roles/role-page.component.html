@@ -17,14 +17,7 @@
   }
   @if ($editable()) {
     <div actions class="role-page-actions">
-      @if ($dirty()) {
-        <app-button variant="ghost" [disabled]="$isSaving()" (clicked)="onDiscard()">{{
-          'rolePage.discard' | t
-        }}</app-button>
-      }
-      <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
-        'common.save' | t
-      }}</app-button>
+      <ng-container [ngTemplateOutlet]="saveBar" />
     </div>
   }
 </app-page-header>
@@ -68,6 +61,7 @@
     <app-card [heading]="'rolePage.permissions' | t">
       @if ($editable()) {
         <p class="role-page-muted">{{ 'rolePage.permissionsHint' | t }}</p>
+        <p class="role-page-live" role="status" aria-live="polite">{{ $announcement() }}</p>
         <app-permission-checklist
           [groups]="$groups()"
           [catalog]="$catalog() ?? []"
@@ -75,6 +69,9 @@
           [held]="$held()"
           (toggled)="onToggle($event)"
         />
+        <div class="role-page-actions">
+          <ng-container [ngTemplateOutlet]="saveBar" />
+        </div>
       } @else {
         <app-permission-list
           [groups]="$groups()"
@@ -84,6 +81,15 @@
       }
     </app-card>
   </div>
-
-  <p class="role-page-live" role="status" aria-live="polite">{{ $announcement() }}</p>
 }
+
+<ng-template #saveBar>
+  @if ($dirty()) {
+    <app-button variant="ghost" [disabled]="$isSaving()" (clicked)="onDiscard()">{{
+      'rolePage.discard' | t
+    }}</app-button>
+  }
+  <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
+    'common.save' | t
+  }}</app-button>
+</ng-template>

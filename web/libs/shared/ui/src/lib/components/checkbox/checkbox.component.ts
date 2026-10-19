@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, forwardRef, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, forwardRef, input, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 /** Checkbox with its label as projected content. The whole label row is the touch target. */
@@ -12,6 +12,8 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
   ]
 })
 export class UiCheckboxComponent implements ControlValueAccessor {
+  /** Id of the element that describes the box (a sentence read after its name, not part of it). */
+  $describedBy = input<string | undefined>(undefined, { alias: 'describedBy' });
   $checked = signal(false);
   $disabled = signal(false);
 

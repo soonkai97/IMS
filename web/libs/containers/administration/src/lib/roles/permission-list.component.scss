@@ -69,6 +69,15 @@
   }
 }
 
+// The sentences under a name: each on its own line.
+.permission-list-details {
+  display: flex;
+  flex-direction: column;
+  gap: space(0);
+  align-items: flex-start;
+  padding-inline-start: 2rem;
+}
+
 .permission-list-name {
   font-weight: font-weight('medium');
 }

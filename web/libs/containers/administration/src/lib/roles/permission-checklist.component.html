@@ -13,9 +13,13 @@
             [ngModel]="isOn(permission)"
             [ngModelOptions]="{ standalone: true }"
             [disabled]="notHeld(permission)"
+            [describedBy]="descriptionId(permission)"
             (ngModelChange)="onToggle(permission, $event)"
           >
-            <span class="permission-list-name">{{ label(permission) }}</span>
+            {{ label(permission) }}
+          </app-checkbox>
+          <!-- Read after the name by assistive technology: the sentences stay apart from the name. -->
+          <div class="permission-list-details" [id]="descriptionId(permission)">
             @if (permission.isDangerous) {
               <app-status-chip flag="warning" [label]="'rolePage.highImpact' | t" />
             }
@@ -31,7 +35,7 @@
                 {{ 'rolePage.notHeld' | t }}
               </span>
             }
-          </app-checkbox>
+          </div>
         </li>
       }
     </ul>

@@ -589,13 +589,11 @@ export const EN_MESSAGES = {
   'rolePage.alsoOff': 'Also turned off: {names}.',
   'rolePage.alsoOn': 'Also turned on: {names}.',
   'rolePage.discard': 'Discard changes',
-  'rolePage.failure.containment':
-    "You can't do this. You can only give permissions you hold yourself, and only change a role that holds nothing more than you do.",
   'rolePage.failure.stale':
     'Someone changed this role while you were editing. Reload to see the latest version. Your changes were not saved.',
   'rolePage.notHeld': "You can't give a permission you don't have.",
   'rolePage.permissionsHint':
-    'Tick what people with this role may do. A permission also turns on the ones it needs.',
+    'Tick what people with this role may do. Ticking a permission also ticks what it needs; unticking one also unticks what needs it.',
   'rolePage.readOnly.holdsMore':
     'This role holds permissions you do not have, so you cannot change it.',
   'rolePage.readOnly.ownRole':

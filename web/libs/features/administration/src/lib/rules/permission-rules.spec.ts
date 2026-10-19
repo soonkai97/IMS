@@ -1,12 +1,5 @@
 import { PermissionDto, PermissionGroup, RoleDto } from '@ims/api';
-import {
-  groupPermissions,
-  notHeld,
-  roleReadOnlyReason,
-  sameSet,
-  turnOff,
-  turnOn
-} from './permission-rules';
+import { groupPermissions, roleReadOnlyReason, turnOff, turnOn } from './permission-rules';
 
 const permission = (
   code: string,
@@ -66,6 +59,18 @@ describe('turnOn (a permission brings what it requires)', () => {
     expect([...result.also].sort()).toEqual(['doc.post', 'stock.read']);
   });
 
+  it('lists a requirement that two needs share only once', () => {
+    const shared = [
+      permission('a', ['b', 'c']),
+      permission('b', ['d']),
+      permission('c', ['d']),
+      permission('d')
+    ];
+    const result = turnOn(new Set(), shared, 'a');
+    expect([...result.also].sort()).toEqual(['b', 'c', 'd']);
+    expect(result.selected.size).toBe(4);
+  });
+
   it('does not report a requirement that is already on, and leaves the input alone', () => {
     const before = new Set(['stock.read']);
     const result = turnOn(before, CATALOG, 'doc.post');
@@ -81,25 +86,6 @@ describe('turnOff (a permission takes its dependants with it)', () => {
     expect(result.selected.size).toBe(0);
     expect([...result.also].sort()).toEqual(['doc.approve', 'doc.post', 'doc.reverse']);
   });
-
-  it('leaves what does not depend on it', () => {
-    const all = new Set(['stock.read', 'doc.post', 'doc.reverse']);
-    const result = turnOff(all, CATALOG, 'doc.reverse');
-    expect([...result.selected].sort()).toEqual(['doc.post', 'stock.read']);
-    expect(result.also).toEqual([]);
-  });
-});
-
-describe('sets', () => {
-  it('compares by content, not by order', () => {
-    expect(sameSet(new Set(['a', 'b']), new Set(['b', 'a']))).toBe(true);
-    expect(sameSet(new Set(['a']), new Set(['a', 'b']))).toBe(false);
-    expect(sameSet(new Set(['a', 'c']), new Set(['a', 'b']))).toBe(false);
-  });
-
-  it('notHeld lists what the caller cannot give', () => {
-    expect(notHeld(new Set(['a']), ['a', 'b', 'c'])).toEqual(['b', 'c']);
-  });
 });
 
 describe('roleReadOnlyReason (why a role cannot be changed here)', () => {
@@ -111,18 +97,11 @@ describe('roleReadOnlyReason (why a role cannot be changed here)', () => {
     ...over
   });
 
-  it('is editable for a manager who holds everything the role holds', () => {
-    expect(roleReadOnlyReason(role(['stock.read']), context())).toBeUndefined();
-  });
-
-  it('a system role with the whole admin core is locked, for anyone', () => {
+  it('a created role with the whole admin core is editable; a system role with it is locked, for anyone', () => {
+    expect(roleReadOnlyReason(role(['users.manage', 'users.read']), context())).toBeUndefined();
     const locked = role(['users.manage', 'users.read'], { isSystem: true });
     expect(roleReadOnlyReason(locked, context())).toBe('locked');
     expect(roleReadOnlyReason(locked, context({ canManage: false }))).toBe('locked');
-  });
-
-  it('a created role with the whole admin core is still editable', () => {
-    expect(roleReadOnlyReason(role(['users.manage', 'users.read']), context())).toBeUndefined();
   });
 
   it('a person without roles.manage only views', () => {

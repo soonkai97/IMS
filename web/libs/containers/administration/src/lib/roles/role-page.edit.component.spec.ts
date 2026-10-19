@@ -2,7 +2,7 @@ import { HttpContext } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
-import { of, throwError } from 'rxjs';
+import { NEVER, of, throwError } from 'rxjs';
 import { PermissionDto, PermissionGroup, PermissionsClient, RoleDto, RolesClient } from '@ims/api';
 import { IF_MATCH } from '@ims/core/http';
 import { provideUiText } from '@ims/core/i18n';
@@ -80,6 +80,7 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
     get: jest.fn(),
     replacePermissions: jest.fn()
   };
+  const catalogList = jest.fn();
   const toast = { success: jest.fn(), error: jest.fn(), dismissErrors: jest.fn() };
   const createComponent = createComponentFactory({
     component: RolePageComponent,
@@ -88,7 +89,7 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
       provideUiText(),
       provideRouter([]),
       { provide: RolesClient, useValue: client },
-      { provide: PermissionsClient, useValue: { list: () => of(CATALOG) } },
+      { provide: PermissionsClient, useValue: { list: catalogList } },
       { provide: ToastService, useValue: toast },
       {
         provide: PermissionService,
@@ -136,6 +137,7 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
 
   beforeEach(() => {
     jest.resetAllMocks();
+    catalogList.mockReturnValue(of(CATALOG));
     held.set(new Set([...ALL.filter(code => code !== 'document.reverse'), PERMISSION.RolesManage]));
     ownRole.set('mine');
   });
@@ -148,11 +150,23 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
       expect(legends).toEqual(['Administration', 'Stock and reports', 'Documents']);
       expect(box('stock.read').checked).toBe(true);
       expect(box('document.post').checked).toBe(false);
-      expect(row('document.reverse').textContent).toContain('High impact');
-      expect(row('document.post').textContent).toContain('Needs: See stock');
-      expect(row('stock.read').textContent).toContain(
-        'See stock levels, the ledger and the low-stock list.'
-      );
+    });
+
+    it('names a box by the permission alone and describes it by separate sentences', async () => {
+      await open(role());
+
+      const input = box('document.reverse');
+      expect(input.disabled).toBe(true);
+      expect(box('stock.read').disabled).toBe(false);
+      const description = spectator.query(
+        `[id="${input.getAttribute('aria-describedby')}"]`
+      ) as HTMLElement;
+      expect(input.closest('label')?.textContent?.trim()).toBe('Reverse posted documents');
+      expect(description.textContent).toContain('High impact');
+      expect(description.textContent).toContain('Needs: Post documents');
+      expect(description.textContent).toContain('Reverse a posted document, with a reason.');
+      expect(description.textContent).toContain("You can't give a permission you don't have.");
+      expect(description.children.length).toBeGreaterThanOrEqual(3);
     });
 
     it('turning a permission on also turns on what it needs, and says so once in the live region', async () => {
@@ -165,16 +179,6 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
       expect(spectator.query('[role="status"]')?.textContent).toContain(
         'Also turned on: See stock'
       );
-    });
-
-    it('shows a permission the person does not hold disabled, with the reason in words', async () => {
-      await open(role());
-
-      expect(box('document.reverse').disabled).toBe(true);
-      expect(row('document.reverse').textContent).toContain(
-        "You can't give a permission you don't have."
-      );
-      expect(box('stock.read').disabled).toBe(false);
     });
   });
 
@@ -200,15 +204,25 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
       expect(toast.success).toHaveBeenCalledWith(
         'Saved. 1 permission added, 0 permissions removed.'
       );
+      expect(toast.success).toHaveBeenCalledTimes(1);
+      expect(spectator.query('[role="status"]')?.textContent?.trim()).toBe('');
       expect(spectator.component.hasUnsavedChanges()).toBe(false);
     });
 
-    it('does not call the API when nothing changed', async () => {
+    it('a second click on Save while the first is on its way sends nothing more', async () => {
       await open(role());
+      client.replacePermissions.mockReturnValue(NEVER);
 
-      await save();
+      await tick('document.post');
+      const saves = spectator
+        .queryAll<HTMLButtonElement>('button')
+        .filter(b => b.textContent?.trim() === 'Save');
+      expect(saves.length).toBe(2);
+      saves[0].click();
+      saves[1].click();
+      await settle();
 
-      expect(client.replacePermissions).not.toHaveBeenCalled();
+      expect(client.replacePermissions).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -263,10 +277,14 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
       expect(button('Reload the role')).toBeUndefined();
     });
 
-    it('a 403 explains the containment rule', async () => {
-      await failSave(problem(403, 'x', API_ERROR_KIND.Forbidden));
+    it.each([
+      'You can only grant permissions you hold yourself.',
+      'You cannot change a role that holds more permissions than you.',
+      'You cannot change a role that is held by a user who sees more warehouses than you.'
+    ])('a 403 shows the server sentence for its own cause: %s', async sentence => {
+      await failSave(problem(403, sentence, API_ERROR_KIND.Forbidden));
 
-      expect(banners().join(' ')).toContain('You can only give permissions you hold yourself');
+      expect(banners().join(' ')).toContain(sentence);
       expect(spectator.component.hasUnsavedChanges()).toBe(true);
     });
 
@@ -279,45 +297,39 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
   });
 
   describe('who can change a role', () => {
-    it('the locked role is the read-only list: no Save, no box, the reason in words', async () => {
-      await open(
-        role({
-          isSystem: true,
-          permissions: ['users.read', 'users.manage', 'roles.read', 'roles.manage']
-        })
-      );
+    const CORE = ['users.read', 'users.manage', 'roles.read', 'roles.manage'];
+    it.each([
+      [
+        'the locked role',
+        role({ isSystem: true, permissions: CORE }),
+        'cannot be changed',
+        'mine',
+        true
+      ],
+      ['a role seen without roles.manage', role(), 'but not change it', 'mine', false],
+      ['their own role', role(), 'your own role', 'night', true],
+      [
+        'a role that holds more than they do',
+        role({ permissions: ['document.reverse'] }),
+        'permissions you do not have',
+        'mine',
+        true
+      ]
+    ])(
+      '%s is the read-only list: no Save, no box, the reason in words',
+      async (_label, current, reason, ownCode, canManage) => {
+        if (!canManage) {
+          held.set(new Set(ALL.filter(code => code !== PERMISSION.RolesManage)));
+        }
+        ownRole.set(ownCode);
+        await open(current);
 
-      expect(text()).toContain('always holds every permission and cannot be changed');
-      expect(button('Save')).toBeUndefined();
-      expect(spectator.queryAll('input').length).toBe(0);
-      expect(spectator.query('[data-permission="roles.manage"]')?.textContent).toContain('Allowed');
-    });
-
-    it('a person without roles.manage gets the read-only list: no Save, no box', async () => {
-      held.set(new Set(ALL.filter(code => code !== PERMISSION.RolesManage)));
-      await open(role());
-
-      expect(text()).toContain('You can see this role but not change it');
-      expect(button('Save')).toBeUndefined();
-      expect(spectator.queryAll('input').length).toBe(0);
-    });
-
-    it('a person cannot change the role they hold', async () => {
-      ownRole.set('night');
-      await open(role());
-
-      expect(text()).toContain('your own role');
-      expect(button('Save')).toBeUndefined();
-      expect(spectator.queryAll('input').length).toBe(0);
-    });
-
-    it('a person cannot change a role that holds more than they do', async () => {
-      await open(role({ permissions: ['stock.read', 'document.reverse'] }));
-
-      expect(text()).toContain('holds permissions you do not have');
-      expect(button('Save')).toBeUndefined();
-      expect(spectator.queryAll('input').length).toBe(0);
-    });
+        expect(text()).toContain(reason);
+        expect(button('Save')).toBeUndefined();
+        expect(spectator.queryAll('input').length).toBe(0);
+        expect(spectator.component.hasUnsavedChanges()).toBe(false);
+      }
+    );
   });
 
   describe('unsaved changes', () => {
@@ -333,13 +345,21 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
 
       expect(spectator.component.hasUnsavedChanges()).toBe(false);
       expect(box('document.post').checked).toBe(false);
+      expect(document.activeElement).toBe(spectator.query('h1'));
     });
 
-    it('a view-only page never holds back the person who leaves it', async () => {
-      held.set(new Set(ALL.filter(code => code !== PERMISSION.RolesManage)));
+    it('leaving the page by closing it asks first only while there are unsaved ticks', async () => {
       await open(role());
+      const leave = () => {
+        const event = new Event('beforeunload', { cancelable: true });
+        window.dispatchEvent(event);
+        return event.defaultPrevented;
+      };
+      expect(leave()).toBe(false);
 
-      expect(spectator.component.hasUnsavedChanges()).toBe(false);
+      await tick('document.post');
+
+      expect(leave()).toBe(true);
     });
   });
 });

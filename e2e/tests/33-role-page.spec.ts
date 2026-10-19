@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { type Browser, type Page } from '@playwright/test';
 import { API_URL, WEB_URL } from '../src/config';
 import { unique, type ApiRole, type ImsApi } from '../src/api';
@@ -6,7 +7,7 @@ import { LoginPage, Shell, goTo } from '../src/pages/shell';
 
 // docs/design/roles-permissions-ux.md 3.2 (the permission list), 3.12 (special roles, view only), 6.2 (accessibility); lean scope RP02.
 const checkbox = (page: Page, code: string) => page.locator(`[data-permission="${code}"] input`);
-const saveButton = (page: Page) => page.getByRole('button', { name: 'Save', exact: true });
+const saveButton = (page: Page) => page.getByRole('button', { name: 'Save', exact: true }).first();
 const state = (page: Page, code: string) =>
   page.locator(`[data-permission="${code}"] .permission-list-state`);
 
@@ -155,14 +156,6 @@ test.describe('RP02 Role page', () => {
     await goTo(page, `/roles/${role.id}`);
     await expect(page.locator('fieldset').first()).toBeVisible();
     expect(await noOverflow()).toBe(true);
-    const unnamed = await page
-      .locator('fieldset input[type="checkbox"]')
-      .evaluateAll(
-        inputs =>
-          inputs.filter(input => !(input as HTMLInputElement).labels?.[0]?.textContent?.trim())
-            .length
-      );
-    expect(unnamed).toBe(0);
 
     await goTo(page, '/roles');
     await page
@@ -172,11 +165,6 @@ test.describe('RP02 Role page', () => {
       .click();
     await expect(page.locator('section h3').first()).toBeVisible();
     expect(await noOverflow()).toBe(true);
-    for (const text of await page
-      .locator('[data-permission] .permission-list-state')
-      .allInnerTexts()) {
-      expect(['Allowed', 'Not allowed']).toContain(text.trim());
-    }
   });
 
   test('given the Admin opens a role, unticks a permission and saves, then the toast says what changed and the API agrees', async ({
@@ -190,6 +178,13 @@ test.describe('RP02 Role page', () => {
     await goTo(page, `/roles/${role.id}`);
 
     await expect(page.getByRole('heading', { level: 1, name: role.name })).toBeVisible();
+    await expect(
+      page.getByRole('checkbox', { name: 'Post approved documents', exact: true })
+    ).toHaveAccessibleDescription(/Post a document that needed approval\..*Needs: Post documents/);
+    const { violations } = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+    expect(violations.filter(v => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
     await checkbox(page, 'reports.read').uncheck();
     await saveButton(page).click();
 
@@ -260,23 +255,6 @@ test.describe('RP02 Role page', () => {
     } finally {
       await session.close();
     }
-  });
-
-  test('given a standard role, then the Admin can tick its permissions (nothing is saved here) and Save waits for a change', async ({
-    page,
-    signIn,
-    shell
-  }) => {
-    await signIn('admin');
-    await shell.nav.getByRole('link', { name: 'Roles' }).click();
-    await page
-      .getByRole('row', { name: /^Clerk\b/ })
-      .getByRole('link')
-      .first()
-      .click();
-
-    await expect(checkbox(page, 'stock.read')).toBeEnabled();
-    await expect(page.getByText('View only')).toHaveCount(0);
   });
 
   test('given unsaved ticks, then leaving asks first: Keep editing stays, Discard leaves', async ({

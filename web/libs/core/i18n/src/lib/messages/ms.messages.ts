@@ -578,13 +578,11 @@ export const MS_MESSAGES: Messages = {
   'rolePage.alsoOff': 'Turut dimatikan: {names}.',
   'rolePage.alsoOn': 'Turut dihidupkan: {names}.',
   'rolePage.discard': 'Buang perubahan',
-  'rolePage.failure.containment':
-    'Anda tidak boleh berbuat demikian. Anda hanya boleh memberi kebenaran yang anda miliki, dan hanya mengubah peranan yang tidak mempunyai lebih daripada anda.',
   'rolePage.failure.stale':
     'Seseorang telah mengubah peranan ini semasa anda menyunting. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',
   'rolePage.notHeld': 'Anda tidak boleh memberi kebenaran yang anda tidak miliki.',
   'rolePage.permissionsHint':
-    'Tandakan apa yang boleh dilakukan oleh orang yang mempunyai peranan ini. Satu kebenaran juga menghidupkan yang diperlukannya.',
+    'Tandakan apa yang boleh dilakukan oleh orang yang mempunyai peranan ini. Menanda satu kebenaran juga menanda yang diperlukannya; menyahtanda satu juga menyahtanda yang bergantung padanya.',
   'rolePage.readOnly.holdsMore':
     'Peranan ini mempunyai kebenaran yang anda tiada, jadi anda tidak boleh mengubahnya.',
   'rolePage.readOnly.ownRole':

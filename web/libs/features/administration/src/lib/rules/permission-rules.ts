@@ -34,17 +34,15 @@ export function turnOn(
   catalog: readonly PermissionDto[],
   code: string
 ): ToggleResult {
-  const next = new Set(selected);
+  const next = new Set(selected).add(code);
   const also: string[] = [];
   const pending = [code];
   while (pending.length > 0) {
     const current = pending.pop() as string;
-    if (next.has(current) && current !== code) {
-      continue;
-    }
-    next.add(current);
     for (const required of catalog.find(p => p.code === current)?.requires ?? []) {
+      // Added at once, so a requirement that two permissions share is listed once.
       if (!next.has(required)) {
+        next.add(required);
         also.push(required);
         pending.push(required);
       }
