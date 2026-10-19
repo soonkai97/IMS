@@ -1,0 +1,17 @@
+import { call, short, T, decode } from './lib.mjs';
+import { execSync } from 'node:child_process';
+const log = console.log;
+const PW = 'Probe#Pass12345';
+const sql = (q) => execSync(`sqlcmd -S "(localdb)\\ImsDev" -d Ims_Rv106 -E -I -b -Q "${q}"`, { encoding: 'utf8' });
+const H = { 'X-Requested-With': 'XMLHttpRequest', Origin: 'http://localhost:4200' };
+const peek = (await call('GET', '/api/users?pageSize=200', T.admin)).json.items.find((x) => x.role === 'Peek');
+const l = await call('POST', '/api/auth/login', null, { username: peek.username, password: PW });
+const A = l.json.accessToken, C = l.cookie;
+log('before: /api/stock', (await call('GET', '/api/stock?pageSize=1', A)).status);
+sql("UPDATE Role SET IsActive=0 WHERE Code=N'Peek'");
+log('role inactive -> new login', short(await call('POST', '/api/auth/login', null, { username: peek.username, password: PW })), '| refresh', short(await call('POST', '/api/auth/refresh', null, {}, { Cookie: C, ...H })), '| old access token still', (await call('GET', '/api/stock?pageSize=1', A)).status);
+sql("UPDATE Role SET IsActive=1, REC_DELETED=1 WHERE Code=N'Peek'");
+log('role soft-deleted -> new login', short(await call('POST', '/api/auth/login', null, { username: peek.username, password: PW })), '| list users shows role of that user:', JSON.stringify((await call('GET', '/api/users?search=' + peek.username, T.admin)).json));
+sql("UPDATE Role SET REC_DELETED=0 WHERE Code=N'Peek'");
+log('restored -> login', (await call('POST', '/api/auth/login', null, { username: peek.username, password: PW })).status);
+log('user list filter role=peek (case) ->', (await call('GET', '/api/users?role=peek', T.admin)).json.total, '| role=Peek ->', (await call('GET', '/api/users?role=Peek', T.admin)).json.total, '| role=Peek%25 ->', (await call('GET', '/api/users?role=Peek%25', T.admin)).json.total);

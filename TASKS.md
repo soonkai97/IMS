@@ -70,10 +70,27 @@ Scope: [docs/design/lean-scope.md](docs/design/lean-scope.md) (32 frontend slice
 - [ ] EP09 Deployment and security follow-ups (M7, spare slot): hosting decision (owner), `deploy.yml`, Q14 (web on the refresh cookie, headers, AV hook, DAST triage). About 30 h
 - [ ] EP10 Release gate: 4 QA rounds (three personas, one at a time), 3 gates, native review of zh and ms (stays `TODO-review` until named), R24 after soak. Folds in T20. About 30 h. A three-persona round ran on 2026-10-19 (findings below); no QA report in `docs/qa/` is newer than 2026-10-11, so which numbered round it counts as is unverified
 
+## Pilot slices (small trading / wholesale; owner decisions and ADR accepted 2026-10-19)
+Scope beyond the "Phase 0 + 1" pass: the owner pulled these PRD items forward for the pilot. ADR: [adr-modules-and-tracking-dimensions.md](docs/architecture/adr-modules-and-tracking-dimensions.md) (sections 8, 12, 13). Plan and acceptance criteria of PL1: [docs/pm/pilot-slice-1-plan.md](docs/pm/pilot-slice-1-plan.md). Order is fixed by the owner: PL1, PL2, PL3, PL4; batch/expiry and serial come later. Days are agent-days with the 25% rework allowance (lines at the roadmap rates, 6 productive hours a day); part-time at three days a week multiply the calendar by about 1.6. Each sub-slice needs its review tier (Full or Standard, plan section 8) and one migration at a time (baton). Open owner questions (5, with defaults): plan section 11.
+- [ ] PL1 Module foundation + tax-ready fields + accounting export. Requirement: PRD 2.1 and INT-01 (one fixed layout, owner Q7), PRD 2.2 (data for invoices), ADR R1; the foundation is built inside it (ADR 8 row 0). About 4,800 lines, 14.5 days, about 13 working days end to end:
+  - [ ] PL1.0 Oracle fixtures + statement-count test, tests only (1.5 d, Standard; must merge before PL3 or PL4)
+  - [ ] PL1.1 Module foundation backend: `ModuleCatalog`, `Module.<code>` settings, `GET/PUT /api/modules` with a reason, `modules.manage`, 404 gate middleware, `UserInfo.modules`, audit (900 lines, 2.5 d, **Full**; migration 1)
+  - [ ] PL1.2 Module-aware roles + `accounting.export` permission, hidden grants kept on role save (600 lines, 2.0 d, **Full**; migration 2)
+  - [ ] PL1.3 Client regeneration CS6 (0.5 d; "contract freeze CS6" first)
+  - [ ] PL1.4 Web foundation: modules store, menu and route gating, Settings > Modules screen (800 lines, 1.5 d, **Full**)
+  - [ ] PL1.5 Tax-ready fields: `AddTaxReadyFields` (nullable `Product.HsCode`, `SstCode`, `Partner.Tin`, `SstRegNo`), shape rules, API, import columns (800 lines, 2.5 d, **Full**; migration 3)
+  - [ ] PL1.6 Accounting export: fixed `.xlsx` layout, signed reversal rows, refuses above the row cap, audit event, DBA timing (700 lines, 2.0 d, **Full**)
+  - [ ] PL1.7 Client regeneration CS7 (0.5 d)
+  - [ ] PL1.8 Web accounting: tax fields in forms, export screen, e2e (800 lines, 1.5 d, Standard)
+- [ ] PL2 Purchase orders, receive against PO, reorder. Requirement: PRD IN-01 (receipt from purchase order), PRD Phase 2 purchase orders, AI-02 in its simplest form, ADR R2. About 3,500 lines, 10.5 d (ADR band L; refined at its start). Needs PL1 merged. Adds `Requires` and `CanDisable` to the catalog. Decision at start: approval via the two tiers or `po.approve`
+- [ ] PL3 Delivery / sales orders, price lists (second slice) and returns. Requirement: ADR R4, R9, R6; PRD OUT-01 (Sale), OUT-04. No PRD id exists for sales orders or returns: the business-analyst records ids with the owner. About 4,500 lines, 13.5 d. Follows PL2 in the owner's order; needs PL1.0 merged
+- [ ] PL4 Stocktake with the `Adjust` strategy and signed line direction. Requirement: PRD CNT-01..CNT-04, BR-08, ADR R3. About 5,000 lines, 15 d (touches posting; needs PL1.0 and a DBA review). Conflict to settle at its start: CNT-03 (counts kept offline) against rule N9 (no queued commands offline)
+- [-] Later, design kept in the ADR: batch/expiry (FEFO), serial, assembly. Trigger: a pilot customer needs expiry or serial numbers
+
 Milestones (lean, roadmap section 6): [x] M1 calm palette, money and quantity basics (WD 6, 19 Oct; reached on content: EP01 merged, R01-R04, R27, R33; the QA round 1 report is not in `docs/qa/`) · [ ] M2 new look and tables (WD 12, 27 Oct; open: Q1, L02, the real-phone motion check) · [ ] M3 corrections and public ids (WD 20, 6 Nov; open: R14+R15) · [ ] M4 Home, filters, phone (WD 25, 13 Nov; open: A07, R26, R29+R30) · [ ] M5 configurable roles (WD 33, 25 Nov; open: #134, the P04 web part, RP05 check, QA round 4) · [ ] M6 lean refresh complete (WD 38, 2 Dec) · [ ] M7 deployment (about WD 40, depends on hosting). Acceptance checks: roadmap section 6.
 
 ## QA round 2026-10-19 findings (open)
-Three personas (novice on a 360 px phone, supervisor/admin through the API, edge/accessibility) against `main` at `7fdbbc8`. The reports are not committed (`D:\ClaudeTemp\qa-round\novice.md`, `supervisor.md`, `edge.md` on the owner's machine). Severity is the persona's. "In PR" = fix open, not merged.
+Three personas (novice on a 360 px phone, supervisor/admin through the API, edge/accessibility) against `main` at `7fdbbc8`. The reports are in [novice](docs/qa/2026-10-19-qa-round-novice.md), [supervisor](docs/qa/2026-10-19-qa-round-supervisor.md) and [edge](docs/qa/2026-10-19-qa-round-edge.md) (the testers' scripts and screenshots stay on their machine). Severity is the persona's. "In PR" = fix open, not merged.
 - In PR #134 (Users custom roles and no-warehouse): Users form cannot assign a custom role, list shows the raw code (Major); a user saved with no warehouse and not "Sees every warehouse" (Minor, fixed in the form only, the API is unchanged).
 - In PR #135 (service worker cache and session expiry): service worker serves cached API data without a token after sign-out (Medium, security); stale master data for up to 12 h (Major); Save with an expired session shows "Discard changes?" in a loop and loses the draft (Major). Not in #135: product, partner, user and role forms keep nothing on expiry.
 - In the phone-flow PR (not yet open when this was written; its contents are unverified, so the next four may or may not be in it): scroll position kept when changing page (Major); "Submit & post" shows "Submitted" then a second "Post?" dialog with no spinner (Major); "Edit" on a Submitted document turns it into a Draft with no confirm or toast (Major); the empty-lines error renders below the fold (Minor).
@@ -103,8 +120,8 @@ Every role can review a PR (`node scripts/pr-roles.mjs main` picks the reviewers
 session routes. New agent types register after a session reload; until then they run as general-purpose agents that load their definition file.
 
 ## Backlog (not in this pass)
-- Phase 2: scanning (IScanInput), stocktake, transfers, purchase orders, offline sync, push, print templates, UoM conversion UI, label printing
-- Phase 3: accounting export, API keys/webhooks, e-commerce, OCR drafts, reorder suggestions
+- Phase 2: scanning (IScanInput), stocktake (pulled forward as PL4), transfers, purchase orders (pulled forward as PL2), offline sync, push, print templates, UoM conversion UI, label printing
+- Phase 3: accounting export (pulled forward as PL1), API keys/webhooks, e-commerce, OCR drafts, reorder suggestions (simplest form in PL2)
 - Phase 4: batch/expiry, serial, multi-company, BOM/FIFO, RFID, NL queries, owner dashboard
 
 ## Review follow-ups (minor, none blocking; found 2026-10-12)
@@ -119,6 +136,7 @@ session routes. New agent types register after a session reload; until then they
 - Watch `12-low-stock` ("New receipt line never appeared" once); the health pass above ran the full suite (131 of 131).
 - Deferred: backend text limits (partner 120, product 80); `includeTotal=false` once a screen shows no total; Dependabot retries for the .NET group (Microsoft.CodeAnalysis 5.9.0 conflict; #116 dropped the stray pin) — the stylelint 17 bump merged in #117.
 - Owner spot-check: on a phone, tap a quantity field on a receipt and type; the value should be replaced (R27, untested on real iOS and Android).
+- Adjust and Transfer documents show "Stock will increase" in the Post and Submit & post dialogs (`stockDirectionKey` in `document-editor.component.ts`); an Adjust that removes stock should say decrease, and a Transfer is net zero (fe-framework, small).
 
 - Session expiry keeps only the document editor's unsent changes (frontend.md decision 19). Follow-up, about 150 lines each: let the product, partner, user and role forms keep and restore theirs through `SessionDraftService` (same pattern: `sessionExpiring$` to save, validate and restore once on open); until then their sign-in notice says unsaved work is lost. Also a restored issue shows stock figures from the time of the draft (the server checks on submit).
 

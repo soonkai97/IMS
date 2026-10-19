@@ -1,0 +1,21 @@
+// Is the password hashed before authorization / validation / containment? Latency of refused requests that carry a password (a hash costs about 100-200 ms).
+import { load, state, body, call, login, tokenOf, sql, PROBE_PW } from './adm.mjs';
+const fx = load();
+sql("UPDATE [User] SET IsActive=1, LockoutUntil=NULL WHERE Username='admin'");
+const admin = (await login('admin')).token, staff = (await login('staff')).token;
+state(fx, ['adm2', 'del3', 'dep']);
+const del3 = await tokenOf('del3');
+const url = (u) => `/api/users/${fx.users[u].id}`;
+const t = async (label, f, n = 5) => { const xs = []; let st; for (let i = 0; i < n; i++) { const s = Date.now(); const r = await f(); st = r.status; xs.push(Date.now() - s); } xs.sort((a, b) => a - b); console.log(`${label}: ${st}, median ${xs[Math.floor(n / 2)]} ms`); };
+const pw = { password: 'Probe#Pass12345' };
+await t('success save with password (200)', () => call('PUT', url('dep'), admin, body(fx, 'dep', pw)));
+await t('success save without password (200)', () => call('PUT', url('dep'), admin, body(fx, 'dep')));
+await t('anonymous with password', () => call('PUT', url('dep'), null, body(fx, 'dep', pw)));
+await t('staff (no users.manage) with password', () => call('PUT', url('dep'), staff, body(fx, 'dep', pw)));
+await t('invalid body (bad email) with password', () => call('PUT', url('dep'), admin, body(fx, 'dep', { ...pw, email: 'x' })));
+await t('unknown user id with password (404)', () => call('PUT', '/api/users/00000000-0000-0000-0000-000000000000', admin, body(fx, 'dep', pw)));
+await t('containment refusal (del3 on an administrator) with password', () => call('PUT', url('adm2'), del3, body(fx, 'adm2', pw)));
+await t('create: anonymous', () => call('POST', '/api/users', null, { ...body(fx, 'dep'), username: 'zz1', email: 'zz1@ims.local', password: PROBE_PW }));
+await t('create: staff', () => call('POST', '/api/users', staff, { ...body(fx, 'dep'), username: 'zz1', email: 'zz1@ims.local', password: PROBE_PW }));
+await t('create: duplicate username (409)', () => call('POST', '/api/users', admin, { ...body(fx, 'dep'), username: 'dep', email: 'zz2@ims.local', password: PROBE_PW }));
+await t('create: missing password (400)', () => call('POST', '/api/users', admin, { ...body(fx, 'dep'), username: 'zz3', email: 'zz3@ims.local' }));
