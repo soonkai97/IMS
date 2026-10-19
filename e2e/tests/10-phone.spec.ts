@@ -42,8 +42,7 @@ test.describe('D1 Phone 360x740', () => {
     await expect(shell.dialog('Discard changes?')).toHaveCount(0);
 
     await editor.open('receipts', id);
-    await editor.action('Submit & post').click();
-    await editor.confirm(/^Post /, 'Post');
+    await editor.submitAndPost();
     await expect(shell.toast('Posted. Stock updated.')).toBeVisible();
     await expect(editor.status).toHaveText('Posted');
     expect(await api().onHand(product.id)).toBe(12);

@@ -469,7 +469,7 @@ describe('DocumentEditorPageComponent', () => {
       expect(text()).toContain('Enter a quantity above 0.');
     });
 
-    it('ER-12: 0.0001 is accepted, 0.00001 says "Use at most 4 decimals." and is left out of the totals line', async () => {
+    it('ER-12: 0.0001 is accepted, 0.00001 says "Use at most 4 decimals." and is left out of the units (the line still counts, like the Items heading)', async () => {
       await openNew();
       fillNewIssue();
       const quantity = spectator.component.view.lines.at(0).controls.qty;
@@ -484,7 +484,7 @@ describe('DocumentEditorPageComponent', () => {
       spectator.detectChanges();
       expect(text()).toContain('Use at most 4 decimals.');
       expect(text()).not.toContain('Enter a quantity above 0.');
-      expect(text()).toContain('0 lines | 0 units');
+      expect(text()).toContain('1 line | 0 units');
     });
 
     it('EA-27: every control of a line names its product', async () => {

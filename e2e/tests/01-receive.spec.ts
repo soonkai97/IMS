@@ -36,8 +36,7 @@ test.describe('IN-01 Receive stock (Warehouse staff)', () => {
     expect(await api().onHand(product.id)).toBe(0);
 
     await editor.open('receipts', id);
-    await editor.action('Submit & post').click();
-    await editor.confirm(/^Post /, 'Post');
+    await editor.submitAndPost();
     await expect(shell.toast('Posted. Stock updated.')).toBeVisible();
     await expect(editor.status).toHaveText('Posted');
     await expect(editor.action('Save draft')).toHaveCount(0);
@@ -107,7 +106,7 @@ test.describe('IN-01 Receive stock (Warehouse staff)', () => {
     expect(saves).toHaveLength(1);
   });
 
-  test('given a filled receipt, when staff closes the Post dialog and posts again, then only one document is created (NV-02)', async ({
+  test('given a filled receipt, when staff closes the Submit & post dialog and tries again, then only one document is created (NV-02)', async ({
     page,
     signIn,
     shell,
@@ -123,19 +122,18 @@ test.describe('IN-01 Receive stock (Warehouse staff)', () => {
     await editor.addItem(product);
     await editor.setQty(product.sku, 5);
 
+    // The one question comes before anything is sent: closing it leaves the form as it was and creates nothing (phone QA 2).
     await editor.action('Submit & post').click();
-    await expect(shell.dialog(/^Post /)).toBeVisible();
-    // The submitter may take the document back, so the left button reads "Edit items" (R28); Escape just closes the dialog.
-    await expect(
-      shell.dialog(/^Post /).getByRole('button', { name: 'Edit items', exact: true })
-    ).toBeVisible();
+    const dialog = shell.dialog('Submit & post?');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Back', exact: true })).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(shell.dialog(/^Post /)).toBeHidden();
-    await expect(editor.status).toHaveText('Submitted');
-    await expect(editor.action('Edit')).toBeVisible();
+    await expect(dialog).toBeHidden();
+    await expect(editor.action('Save draft')).toBeVisible();
+    expect(await staff.countMine('receipts')).toBe(receiptsBefore);
 
-    await editor.action('Post').click();
-    await editor.confirm(/^Post /, 'Post');
+    await editor.submitAndPost();
+    await expect(shell.dialog(/^Post /)).toHaveCount(0);
     await expect(shell.toast('Posted. Stock updated.')).toBeVisible();
     await expect(editor.status).toHaveText('Posted');
 

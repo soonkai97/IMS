@@ -52,10 +52,19 @@
   color: color('text-muted');
 }
 
+// The cells are aligned to the top, so the error line under the quantity (it can take three lines at 360 px) grows the field
+// downwards and never moves the - and + buttons. They get the label's height as a top margin, like the filter row does.
 .line-editor-qty {
+  $label-block: font-size(2) * $line-height + space(0);
+
   display: flex;
   gap: space(0);
-  align-items: flex-end;
+  align-items: flex-start;
+
+  > app-button {
+    // The box is touch high and the button touch-min: half the difference keeps their centres level.
+    margin-top: $label-block + (height('touch') - height('touch-min')) * 0.5;
+  }
 }
 
 .line-editor-qty-field {
@@ -68,8 +77,11 @@
 }
 
 .line-editor-unit-code {
-  align-self: center;
+  display: flex;
+  align-items: center;
   min-width: 2.5rem;
+  min-height: height('touch');
+  margin-top: font-size(2) * $line-height + space(0);
   color: color('text-muted');
 }
 

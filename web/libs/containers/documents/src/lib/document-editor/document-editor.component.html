@@ -334,7 +334,7 @@
     >
       @if ($editable()) {
         <p class="document-editor-totals" aria-live="polite">
-          {{ 'doc.totals' | t: { lines: $totals().validLineCount, qty: $totals().totalQty } }}
+          {{ 'doc.totals' | t: { lines: $totals().lineCount, qty: $totals().totalQty } }}
           <ng-container *appCan="'cost.view'">
             @if (!$isIssue() && $totals().totalAmount > 0) {
               · {{ $totals().totalAmount | appMoney }}

@@ -12,10 +12,14 @@
   }
 }
 
-// Phone: the buttons share the row equally (48px high, the primary last = right); they wrap at 320px when the labels do not fit.
+// Phone: the buttons share the row (48px high, the primary last = right), each as wide as its label at least and the label on one
+// line ("Submit & post" next to Save draft and the More button used to wrap at 360 px); they wrap to a second row when the labels
+// do not fit (320px, longer words in another language).
 app-button:not(.document-actions-more) {
   @include media-phone {
-    flex: 1 1 7rem;
+    flex: 1 1 auto;
+    min-width: 7rem;
+    white-space: nowrap;
   }
 }
 
@@ -37,4 +41,9 @@ app-button:not(.document-actions-more) {
   font-size: font-size(2);
   color: color('text-muted');
   text-align: end;
+}
+
+// The "more" sheet is a modal <dialog> in the top layer; its (empty) host must not take a place, or a gap, in the row of buttons.
+app-dialog {
+  display: contents;
 }

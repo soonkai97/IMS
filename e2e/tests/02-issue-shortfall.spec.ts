@@ -31,8 +31,7 @@ test.describe('OUT-01 Issue stock below available (BR-03, UX error E1)', () => {
     await expect(page.getByText('is short on stock')).toHaveCount(0);
     await expect(editor.action('Submit & post')).toBeEnabled();
 
-    await editor.action('Submit & post').click();
-    await editor.confirm(/^Post /, 'Post');
+    await editor.submitAndPost();
     await expect(shell.toast('Posted. Stock updated.')).toBeVisible();
     await expect(editor.status).toHaveText('Posted');
     expect(await api().onHand(product.id)).toBe(0);

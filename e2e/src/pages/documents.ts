@@ -122,6 +122,12 @@ export class DocumentEditor {
     return this.page.getByRole('button', { name, exact: true });
   }
 
+  /** Submit & post is one question asked up front; after the answer the document is submitted and posted with no second dialog. */
+  async submitAndPost(): Promise<void> {
+    await this.action('Submit & post').click();
+    await this.confirm('Submit & post?', 'Submit & post');
+  }
+
   /** Answers the confirm dialog that follows an action: optional reason, then the confirm button. */
   async confirm(title: string | RegExp, button: string, reason?: string): Promise<void> {
     const dialog = this.shell.dialog(title);
