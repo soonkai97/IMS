@@ -983,7 +983,7 @@
 ### 2026-10-19 be-system-designer -> orchestrator, be-architect, be-dba, integration-test-engineer (ADR: tracking dimensions and module switches)
 - Produced (branch `docs/adr-modules-tracking-dimensions`, docs only): `docs/architecture/adr-modules-and-tracking-dimensions.md` (Proposed), pointer in `docs/architecture/backend.md`. Design: nullable `LotId` on the ledger plus `StockLot`, `StockLotBalance` and a line child table; `StockBalance`, the moving average per product and the `stock:{warehouse}:{product}` lock unchanged; module catalog in code plus `Module.<code>` rows in `SystemSetting`; off = 404, permissions unassignable, data kept, posting ignores the switch.
 - Needs from the owner: Q1 to Q8 in section 12 (defaults apply). Needs from be-architect: confirm the `StockBalance`-unchanged choice and the strategy-interface stays. From be-dba: measure section 3.9 on the 1M seed when the batch slice starts. From integration-test-engineer: the oracle fixtures and statement-count test (step 0) before any ledger change.
-- Decisions others must respect (once accepted): no cost per lot; no negative stock for tracked products; a switch gates the surface, never ledger semantics; mode change only at zero stock or through the conversion posting.
+- Decisions others must respect (once accepted): no cost per lot; no negative stock for tracked products; a switch gates the surface, never ledger semantics; mode change only at zero stock (no conversion in v1, ADR 3.6).
 - Open conflicts: none. Unverified assumptions are listed at the end of section 1.
 
 ### 2026-10-19 be-system-designer -> orchestrator, be-architect (ADR modules: review amendments, PR #130)
