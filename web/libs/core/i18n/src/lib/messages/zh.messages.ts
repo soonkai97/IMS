@@ -383,7 +383,7 @@ export const ZH_MESSAGES: Messages = {
   'doc.stockChanged': '库存已变化',
   'doc.stockChangedBody':
     '{sku} 的库存现为 {available} {uom}，但单据需要 {requested}。请调整数量后重试。',
-  'doc.draftOutdated': '未恢复您尚未提交的修改，因为这张单据在此期间已被修改。',
+  'doc.draftOutdated': '未恢复您尚未提交的修改，因为这张单据在此期间已被修改，或已无法再编辑。',
   'doc.draftRestored': '登录过期前尚未提交的修改已恢复。请检查后保存。',
   'doc.stale': '{docNo} 在您打开后已被修改',
   'doc.staleBody': '其他人修改了这张单据。请重新加载以查看最新版本。您的修改未保存。',

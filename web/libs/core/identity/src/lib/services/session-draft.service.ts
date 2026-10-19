@@ -14,7 +14,11 @@ export class SessionDraftService {
   /** True when the draft was kept (a user is signed in and storage accepted it). */
   save(key: string, value: unknown): boolean {
     const user = this.auth.$user();
-    return user !== undefined && saveDraft(user.id, key, value);
+    const kept = user !== undefined && saveDraft(user.id, key, value);
+    if (kept) {
+      this.auth.noteDraftKept();
+    }
+    return kept;
   }
 
   /** The draft of the signed-in user for this key, removed from storage; undefined when there is none. */
