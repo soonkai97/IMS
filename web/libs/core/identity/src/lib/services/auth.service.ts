@@ -26,10 +26,12 @@ import {
   LOGIN_ROUTE,
   REFRESH_RETRY,
   RETURN_URL_PARAM,
+  SESSION_EXPIRED_KEPT_REASON,
   SESSION_EXPIRED_REASON,
   SESSION_REASON_PARAM
 } from '../constants/identity.const';
 import { removeLegacyRefreshToken } from './legacy-refresh-token';
+import { clearDrafts, hasDrafts } from './session-draft-storage';
 
 /** The refresh token travels in an HttpOnly cookie; the body of refresh and logout stays empty. */
 const COOKIE_ONLY_BODY = { refreshToken: undefined } as const;
@@ -77,6 +79,9 @@ function retryDelayMs(error: unknown, attempt: number): number {
  *  - When the server refuses the refresh (401, 403, or any answer that is not transient) the session ends and the user is sent to the
  *    login page with a return URL. A transient failure (429, 408, 5xx, no network) is retried a little later, for at most
  *    REFRESH_RETRY.budgetMs in all, and if it persists the user stays signed in.
+ *  - When the session expires, screens that hold unsent work keep it first (sessionExpiring$, SessionDraftService) and the guard that
+ *    asks "Discard changes?" stands aside ($sessionExpired): the user is told the session ended, not asked about a page they cannot
+ *    save any more. An explicit sign-out removes every kept draft; a sign-in removes those of other users.
  *  - Logout, a session end and a new sign-in cancel a pending retry and discard the result of a refresh already sent.
  */
 @Injectable({ providedIn: 'root' })
@@ -87,15 +92,21 @@ export class AuthService {
   private accessToken: string | undefined;
   private refreshInFlight: Observable<AuthResult> | undefined;
   private readonly sessionEnded = new Subject<void>();
+  private readonly sessionExpiring = new Subject<void>();
   /** Fires when the session ends or a new one starts: a refresh still waiting or running for the old session is dropped. */
   private readonly sessionChanged = new Subject<void>();
 
   private readonly $currentUser = signal<UserInfo | undefined>(undefined);
+  private readonly $expired = signal(false);
 
   readonly $user = this.$currentUser.asReadonly();
   readonly $isAuthenticated = computed(() => this.$currentUser() !== undefined);
   /** Emits when the session ends (logout or expiry): caches holding user data should be dropped. */
   readonly sessionEnded$ = this.sessionEnded.asObservable();
+  /** Emits when the session has expired, while the user is still known: a screen with unsent work keeps it now. */
+  readonly sessionExpiring$ = this.sessionExpiring.asObservable();
+  /** True from an expiry until the next sign-in: the page the user is on can no longer save, so leaving it needs no question. */
+  readonly $sessionExpired = this.$expired.asReadonly();
 
   readonly login = new ApiCommand<LoginRequest, UserInfo>(credentials =>
     // The sign-in banner shows every answer (401 sentence, lockout, rate limit, server, network), so none raises a toast.
@@ -139,6 +150,14 @@ export class AuthService {
 
   /** Clears the session; `expired` adds the "session expired" notice and remembers where the user was. */
   endSession(expired: boolean): void {
+    const userId = this.$currentUser()?.id;
+    if (expired) {
+      this.$expired.set(true);
+      this.sessionExpiring.next();
+    } else {
+      clearDrafts();
+    }
+    const draftKept = expired && userId !== undefined && hasDrafts(userId);
     this.accessToken = undefined;
     this.$currentUser.set(undefined);
     this.refreshInFlight = undefined;
@@ -147,7 +166,7 @@ export class AuthService {
     const queryParams = expired
       ? {
           [RETURN_URL_PARAM]: this.router.url,
-          [SESSION_REASON_PARAM]: SESSION_EXPIRED_REASON
+          [SESSION_REASON_PARAM]: draftKept ? SESSION_EXPIRED_KEPT_REASON : SESSION_EXPIRED_REASON
         }
       : {};
     void this.router.navigate([LOGIN_ROUTE], { queryParams });
@@ -189,6 +208,8 @@ export class AuthService {
   }
 
   private acceptTokens(result: AuthResult): void {
+    this.$expired.set(false);
+    clearDrafts(result.user.id);
     this.accessToken = result.accessToken;
     this.$currentUser.set(result.user);
   }

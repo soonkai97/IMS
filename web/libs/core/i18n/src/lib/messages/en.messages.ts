@@ -167,7 +167,10 @@ export const EN_MESSAGES = {
   'login.point.audit': 'Approvals with a full audit trail',
   'login.point.devices': 'Made for barcode scanners and phones',
   'login.point.warehouses': 'Every warehouse in one live view',
-  'login.sessionExpired': 'Your session expired. Sign in again.',
+  'login.sessionExpired':
+    'Your session expired. Sign in again. Anything you had not saved on the last screen is lost.',
+  'login.sessionExpiredKept':
+    'Your session expired. Sign in again. Your unsent changes are kept in this browser tab for 15 minutes, until you sign out or close it.',
   'login.submit': 'Sign in',
   'login.subtitle': 'Enter your email or username and password.',
   'login.tagline': 'Know what is on every shelf',
@@ -409,6 +412,10 @@ export const EN_MESSAGES = {
   'doc.stockChanged': 'Stock changed',
   'doc.stockChangedBody':
     'Stock for {sku} is now {available} {uom}, but the document needs {requested}. Adjust the quantity and try again.',
+  'doc.draftOutdated':
+    'Your unsent changes were not restored because this document changed in the meantime.',
+  'doc.draftRestored':
+    'Your unsent changes from before the session ended are back. Check them, then save.',
   'doc.stale': '{docNo} changed since you opened it',
   'doc.staleBody':
     'Someone else changed this document. Reload to see the latest version. Your changes were not saved.',

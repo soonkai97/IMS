@@ -578,6 +578,7 @@ Same scope, now A05 (paging toolbar), which adds the density button and the 10,0
 - API: none.
 - Size: 450. Depends on: R25, R14, R11.
 - Acceptance: with a dirty receipt and a 401 on refresh (the e2e makes the refresh call fail) the user sees the dialog, signs in, keeps all lines, presses Save once and the document saves; the old "Discard changes?" loop cannot be reproduced; focus returns to the control that had it; nothing is written to `localStorage` or `sessionStorage` (cost data would remain on a shared device); a different user cannot see the previous user's lines; one `role=alert` per failure.
+- SUPERSEDE (2026-10-19, PR #135, decided by the coordinator): the sessionStorage ban above is lifted for the editor draft: per user id, TTL 15 minutes, validated on restore, cleared at sign-out. PR #135 keeps the unsent receipt or issue in sessionStorage when the session expires, so ER-01 is already answered in part (no "Discard changes?" loop, the form comes back after sign-in). R26 (re-sign-in in place) remains the preferred long-term fix and will remove the need for the stored draft.
 - Tests: dialog spec (states, banner rules, focus), guard spec (session ended vs normal navigation), identity spec; e2e `26-resign-in` (same user, different user, wrong password, leave without saving).
 - Re-check: edge (ER-01 primary), power, novice.
 

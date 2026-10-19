@@ -1,4 +1,6 @@
+import type { Page, Route } from '@playwright/test';
 import { expect, test } from '../src/fixtures';
+import { DocumentEditor } from '../src/pages/documents';
 import { loadPage, signInThroughForm } from '../src/pages/shell';
 import { spendLoginBudget } from '../src/rate-limit';
 
@@ -118,5 +120,85 @@ test.describe('AUTH-01 Sign in, sign out and session restore (UX error E7, SEC-3
     await loadPage(page, '/stock');
     await expect(page).toHaveURL(/\/login/);
     await expect(shell.account).toHaveCount(0);
+  });
+
+  /** The save is refused (401) and the refresh cookie is not accepted any more: the session is over; then Save draft is pressed. */
+  async function expireOnSave(page: Page, editor: DocumentEditor, save: string, method: string) {
+    const refuse = (route: Route) =>
+      route.fulfill({ status: 401, json: { status: 401, title: 'Unauthorized' } });
+    await page.route(save, route =>
+      route.request().method() === method ? refuse(route) : route.fallback()
+    );
+    await page.route('**/api/auth/refresh', refuse);
+    await editor.action('Save draft').click();
+    return async () => {
+      await page.unroute(save);
+      await page.unroute('**/api/auth/refresh');
+    };
+  }
+
+  const BACK = 'Your unsent changes from before the session ended are back.';
+
+  test('given a session that expires while a receipt is being written, when Save draft is pressed, then no "Discard changes?" shows, the sign-in page says the changes are kept, and after signing in the receipt is back (QA defect 1)', async ({
+    page,
+    signIn,
+    login,
+    api
+  }) => {
+    await signIn('clerk');
+    const product = await api().createProduct();
+    const editor = new DocumentEditor(page);
+    await editor.openNew('receipts');
+    await editor.addItem(product);
+    await editor.setQty(product.sku, 7);
+
+    const restore = await expireOnSave(page, editor, '**/api/documents/receipts', 'POST');
+
+    await expect(page).toHaveURL(/\/login\?.*reason=expired-kept/);
+    expect(new URL(page.url()).searchParams.get('returnUrl')).toBe('/receipts/new');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(login.notice).toContainText('Your session expired. Sign in again.');
+    await expect(login.notice).toContainText('Your unsent changes are kept in this browser tab');
+
+    await restore();
+    // Through the form on purpose: the return URL is what takes the user back to the receipt.
+    await signInThroughForm(page, 'clerk');
+
+    await expect(page).toHaveURL(/\/receipts\/new$/);
+    await expect(page.getByText(BACK)).toBeVisible();
+    await expect(editor.line(product.sku)).toBeVisible();
+    await expect(editor.qty(product.sku)).toHaveValue('7');
+  });
+
+  test('given a saved draft edited when the session expires, when the user signs in again inside the app, then the edited quantity is back and stays (QA defect 1, saved document)', async ({
+    page,
+    signIn,
+    api
+  }) => {
+    const product = await api().createProduct();
+    const draft = await api('clerk').createDocument('receipts', [
+      { productId: product.id, qty: 2, unitCost: 1 }
+    ]);
+    await signIn('clerk');
+    const editor = new DocumentEditor(page);
+    await editor.open('receipts', draft.id);
+    await expect(editor.qty(product.sku)).toHaveValue('2');
+    await editor.setQty(product.sku, 9);
+
+    const restore = await expireOnSave(page, editor, `**/api/documents/${draft.id}`, 'PUT');
+
+    await expect(page).toHaveURL(/\/login\?.*reason=expired-kept/);
+    expect(new URL(page.url()).searchParams.get('returnUrl')).toBe(`/receipts/${draft.id}`);
+
+    await restore();
+    // Inside the app on purpose (no page load): the store still holds the copy opened before, which used to overwrite the draft.
+    await signInThroughForm(page, 'clerk');
+
+    await expect(page).toHaveURL(new RegExp(`/receipts/${draft.id}$`));
+    await expect(page.getByText(BACK)).toBeVisible();
+    await expect(editor.qty(product.sku)).toHaveValue('9');
+    // Still there once the reloaded copy has had time to arrive.
+    await expect(editor.status).toBeVisible();
+    await expect(editor.qty(product.sku)).toHaveValue('9');
   });
 });

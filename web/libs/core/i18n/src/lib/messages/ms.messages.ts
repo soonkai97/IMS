@@ -159,7 +159,10 @@ export const MS_MESSAGES: Messages = {
   'login.point.audit': 'Kelulusan dengan jejak audit penuh',
   'login.point.devices': 'Dibuat untuk pengimbas kod bar dan telefon',
   'login.point.warehouses': 'Semua gudang dalam satu paparan langsung',
-  'login.sessionExpired': 'Sesi anda telah tamat. Log masuk semula.',
+  'login.sessionExpired':
+    'Sesi anda telah tamat. Log masuk semula. Apa yang belum disimpan pada skrin terakhir telah hilang.',
+  'login.sessionExpiredKept':
+    'Sesi anda telah tamat. Log masuk semula. Perubahan anda yang belum dihantar disimpan dalam tab pelayar ini selama 15 minit, sehingga anda log keluar atau menutupnya.',
   'login.submit': 'Log masuk',
   'login.subtitle': 'Masukkan e-mel atau nama pengguna dan kata laluan anda.',
   'login.tagline': 'Tahu apa yang ada di setiap rak',
@@ -394,6 +397,10 @@ export const MS_MESSAGES: Messages = {
   'doc.stockChanged': 'Stok telah berubah',
   'doc.stockChangedBody':
     'Stok untuk {sku} kini {available} {uom}, tetapi dokumen memerlukan {requested}. Laraskan kuantiti dan cuba lagi.',
+  'doc.draftOutdated':
+    'Perubahan anda yang belum dihantar tidak dipulihkan kerana dokumen ini telah berubah sementara itu.',
+  'doc.draftRestored':
+    'Perubahan anda yang belum dihantar sebelum sesi tamat telah dipulihkan. Semak, kemudian simpan.',
   'doc.stale': '{docNo} telah berubah sejak anda membukanya',
   'doc.staleBody':
     'Orang lain telah mengubah dokumen ini. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',

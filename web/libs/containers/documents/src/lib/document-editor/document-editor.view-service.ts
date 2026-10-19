@@ -20,9 +20,26 @@ import { MAX_DOCUMENT_LINES, NO_PUBLIC_ID, PublicId } from '@ims/models';
 import { Observable } from 'rxjs';
 
 /** The API refuses a longer remark; the form must not offer more than it accepts (EA-18). */
-const MAX_REMARK_LENGTH = 500;
+export const MAX_REMARK_LENGTH = 500;
 const QUANTITY_STEP = 1;
 const MIN_STEPPED_QUANTITY = 0.001;
+
+/** What the editor keeps when the session expires with unsent changes, and takes back after the next sign-in. */
+/** Raise it when the shape of EditorDraft changes: a draft of another version is dropped, not guessed at. */
+export const EDITOR_DRAFT_VERSION = 1;
+
+export interface EditorDraft {
+  readonly version: typeof EDITOR_DRAFT_VERSION;
+  readonly header: {
+    readonly warehouseId: PublicId | null;
+    readonly partnerId: PublicId | null;
+    readonly purpose: IssuePurpose | null;
+    readonly remark: string;
+  };
+  readonly lines: readonly LineValue[];
+  /** Concurrency token of the document the changes were made on; null for a new document. */
+  readonly basedOn: string | null;
+}
 
 /** What `addProduct` did: a new line, or one more of an existing line. */
 export interface AddedLine {
@@ -179,6 +196,27 @@ export class DocumentEditorViewService {
     for (const group of this.lines.controls) {
       group.controls.available.setValue(null);
     }
+  }
+
+  /** The form as plain data, to keep across a session expiry. */
+  snapshot(basedOn: string | null): EditorDraft {
+    return {
+      version: EDITOR_DRAFT_VERSION,
+      header: this.header.getRawValue(),
+      lines: this.lines.getRawValue(),
+      basedOn
+    };
+  }
+
+  /** Puts a kept draft back on the form (as unsaved changes, so leaving the page still asks). */
+  restore(draft: EditorDraft): void {
+    this.header.patchValue(draft.header);
+    this.lines.clear();
+    for (const line of draft.lines) {
+      this.lines.push(createLineGroup(line));
+    }
+    this.header.markAsDirty();
+    this.lines.markAsDirty();
   }
 
   hasUnsavedChanges(): boolean {

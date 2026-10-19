@@ -120,6 +120,8 @@ session routes. New agent types register after a session reload; until then they
 - Deferred: backend text limits (partner 120, product 80); `includeTotal=false` once a screen shows no total; Dependabot retries for the .NET group (Microsoft.CodeAnalysis 5.9.0 conflict; #116 dropped the stray pin) — the stylelint 17 bump merged in #117.
 - Owner spot-check: on a phone, tap a quantity field on a receipt and type; the value should be replaced (R27, untested on real iOS and Android).
 
+- Session expiry keeps only the document editor's unsent changes (frontend.md decision 19). Follow-up, about 150 lines each: let the product, partner, user and role forms keep and restore theirs through `SessionDraftService` (same pattern: `sessionExpiring$` to save, validate and restore once on open); until then their sign-in notice says unsaved work is lost. Also a restored issue shows stock figures from the time of the draft (the server checks on submit).
+
 ## Review follow-ups, round 2 (minor, none blocking; found 2026-10-12)
 - #60 nits: line amounts of about 90 trillion and above lose cent precision in a double (the API allows 1,000 trillion); `lineAmount` throws on NaN/Infinity if called directly. Chrome rewrites pasted "1,5" to 15 before the badInput check runs (a paste handler is a follow-up); the footer total skips blank-cost lines, so "Items (n)" and "n lines" can disagree.
 - UX doc roles-permissions-ux 2.3 says retiring a role that people still have is allowed; the API refuses it (409 with the number of people) and the role page follows the API: correct the doc (found in the RP02c review)

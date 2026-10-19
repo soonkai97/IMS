@@ -19,7 +19,11 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 import { tap } from 'rxjs';
 import { I18nService, LanguageSelectComponent, MessageKey, TranslatePipe } from '@ims/core/i18n';
-import { AuthService, SESSION_EXPIRED_REASON } from '@ims/core/identity';
+import {
+  AuthService,
+  SESSION_EXPIRED_KEPT_REASON,
+  SESSION_EXPIRED_REASON
+} from '@ims/core/identity';
 import { ToastHostComponent } from '@ims/core/notification';
 import { MAX_PASSWORD_LENGTH, MAX_USERNAME_LENGTH } from '@ims/models';
 import {
@@ -93,7 +97,9 @@ export class LoginPageComponent implements OnInit {
   private readonly $navigating = signal(false);
   $isRunning = this.auth.login.$isRunning;
   $busy = computed(() => this.$isRunning() || this.$navigating());
-  $sessionExpired = computed(() => this.$reason() === SESSION_EXPIRED_REASON);
+  /** The session ended by expiry (the sentence says whether unsent work was kept). */
+  $draftKept = computed(() => this.$reason() === SESSION_EXPIRED_KEPT_REASON);
+  $sessionExpired = computed(() => this.$reason() === SESSION_EXPIRED_REASON || this.$draftKept());
   /** The failure as data; the sentence is made from it below, so a language change rewrites the banner. */
   $failure = computed<LoginFailure | undefined>(() => {
     const error = this.auth.login.$operation().error;

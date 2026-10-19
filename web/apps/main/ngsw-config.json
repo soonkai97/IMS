@@ -17,56 +17,5 @@
         "files": ["/**/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|otf|ttf|woff|woff2)"]
       }
     }
-  ],
-  "dataGroups": [
-    {
-      "name": "master-data",
-      "version": 2,
-      "urls": [
-        "http://**/api/products",
-        "http://**/api/products?**",
-        "http://**/api/products/**",
-        "https://**/api/products",
-        "https://**/api/products?**",
-        "https://**/api/products/**",
-        "http://**/api/categories",
-        "http://**/api/categories?**",
-        "http://**/api/categories/**",
-        "https://**/api/categories",
-        "https://**/api/categories?**",
-        "https://**/api/categories/**",
-        "http://**/api/units",
-        "http://**/api/units?**",
-        "http://**/api/units/**",
-        "https://**/api/units",
-        "https://**/api/units?**",
-        "https://**/api/units/**",
-        "http://**/api/warehouses",
-        "http://**/api/warehouses?**",
-        "http://**/api/warehouses/**",
-        "https://**/api/warehouses",
-        "https://**/api/warehouses?**",
-        "https://**/api/warehouses/**",
-        "http://**/api/partners",
-        "http://**/api/partners?**",
-        "http://**/api/partners/**",
-        "https://**/api/partners",
-        "https://**/api/partners?**",
-        "https://**/api/partners/**",
-        "http://**/api/settings",
-        "http://**/api/settings?**",
-        "http://**/api/settings/**",
-        "https://**/api/settings",
-        "https://**/api/settings?**",
-        "https://**/api/settings/**"
-      ],
-      "cacheConfig": {
-        "strategy": "performance",
-        "maxSize": 100,
-        "maxAge": "12h",
-        "refreshAhead": "12h",
-        "timeout": "3s"
-      }
-    }
   ]
 }
