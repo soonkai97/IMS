@@ -31,7 +31,7 @@ import {
   SESSION_REASON_PARAM
 } from '../constants/identity.const';
 import { removeLegacyRefreshToken } from './legacy-refresh-token';
-import { clearDrafts, hasDrafts } from './session-draft-storage';
+import { clearDrafts } from './session-draft-storage';
 
 /** The refresh token travels in an HttpOnly cookie; the body of refresh and logout stays empty. */
 const COOKIE_ONLY_BODY = { refreshToken: undefined } as const;
@@ -93,6 +93,8 @@ export class AuthService {
   private refreshInFlight: Observable<AuthResult> | undefined;
   private readonly sessionEnded = new Subject<void>();
   private readonly sessionExpiring = new Subject<void>();
+  /** Drafts kept while sessionExpiring$ was being delivered (SessionDraftService reports each one). */
+  private draftsKept = 0;
   /** Fires when the session ends or a new one starts: a refresh still waiting or running for the old session is dropped. */
   private readonly sessionChanged = new Subject<void>();
 
@@ -148,16 +150,22 @@ export class AuthService {
     );
   }
 
+  /** Called by SessionDraftService when it kept a draft; endSession counts those made while a session expires. */
+  noteDraftKept(): void {
+    this.draftsKept++;
+  }
+
   /** Clears the session; `expired` adds the "session expired" notice and remembers where the user was. */
   endSession(expired: boolean): void {
-    const userId = this.$currentUser()?.id;
+    // The notice says "kept" only for drafts saved NOW, not for an older one that happens to sit in storage.
+    this.draftsKept = 0;
     if (expired) {
       this.$expired.set(true);
       this.sessionExpiring.next();
     } else {
       clearDrafts();
     }
-    const draftKept = expired && userId !== undefined && hasDrafts(userId);
+    const draftKept = expired && this.draftsKept > 0;
     this.accessToken = undefined;
     this.$currentUser.set(undefined);
     this.refreshInFlight = undefined;

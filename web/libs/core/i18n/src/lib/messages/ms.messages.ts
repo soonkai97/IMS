@@ -398,7 +398,7 @@ export const MS_MESSAGES: Messages = {
   'doc.stockChangedBody':
     'Stok untuk {sku} kini {available} {uom}, tetapi dokumen memerlukan {requested}. Laraskan kuantiti dan cuba lagi.',
   'doc.draftOutdated':
-    'Perubahan anda yang belum dihantar tidak dipulihkan kerana dokumen ini telah berubah sementara itu.',
+    'Perubahan anda yang belum dihantar tidak dipulihkan kerana dokumen ini telah berubah sementara itu atau tidak boleh diedit lagi.',
   'doc.draftRestored':
     'Perubahan anda yang belum dihantar sebelum sesi tamat telah dipulihkan. Semak, kemudian simpan.',
   'doc.stale': '{docNo} telah berubah sejak anda membukanya',

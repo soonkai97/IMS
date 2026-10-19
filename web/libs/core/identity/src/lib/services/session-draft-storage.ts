@@ -78,12 +78,19 @@ export function hasDrafts(userId: string): boolean {
   }
 }
 
-/** Removes the drafts of everyone but `keepUserId` (all of them when it is undefined). */
+/**
+ * Removes the drafts of everyone but `keepUserId` (all of them when it is undefined), and also any entry, of whoever, that can no
+ * longer be read: expired, too large or not in the stored form.
+ */
 export function clearDrafts(keepUserId?: string): void {
   try {
     const kept = keepUserId === undefined ? undefined : keyOf(keepUserId, '');
     for (const key of draftKeys()) {
-      if (kept === undefined || !key.startsWith(kept)) {
+      if (
+        kept === undefined ||
+        !key.startsWith(kept) ||
+        readFresh(sessionStorage.getItem(key)) === undefined
+      ) {
         sessionStorage.removeItem(key);
       }
     }

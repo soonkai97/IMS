@@ -413,7 +413,7 @@ export const EN_MESSAGES = {
   'doc.stockChangedBody':
     'Stock for {sku} is now {available} {uom}, but the document needs {requested}. Adjust the quantity and try again.',
   'doc.draftOutdated':
-    'Your unsent changes were not restored because this document changed in the meantime.',
+    'Your unsent changes were not restored because this document changed in the meantime or can no longer be edited.',
   'doc.draftRestored':
     'Your unsent changes from before the session ended are back. Check them, then save.',
   'doc.stale': '{docNo} changed since you opened it',
