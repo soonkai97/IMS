@@ -1,0 +1,31 @@
+// Setup: five seeded tokens, custom roles and users for the RP-5 probes. Writes tokens.json next to RV_OUT (default ./).
+import fs from 'node:fs';
+import { call, login, short, PROBE_PW, ALL } from './lib.mjs';
+const out = process.env.RV_OUT ?? '.';
+const T = {};
+for (const u of ['admin', 'owner', 'supervisor', 'clerk', 'staff']) T[u] = (await login(u)).token;
+const wh = (await call('GET', '/api/warehouses', T.admin)).json;
+const wh1 = (Array.isArray(wh) ? wh : wh.items)[0].id;
+console.log('warehouse', wh1);
+const mkRole = async (name, perms) => { const r = await call('POST', '/api/roles', T.admin, { name, permissions: perms }); console.log('role', name, short(r)); return r.json; };
+const R = {};
+R.delegate = await mkRole('Delegate', ['roles.read','roles.manage','users.read','users.manage','stock.read','masterdata.read','cost.view']);
+R.narrow   = await mkRole('Narrow',   ['roles.read','roles.manage','stock.read']);
+R.reader   = await mkRole('Reader',   ['roles.read']);
+R.big      = await mkRole('Big',      [...ALL]);
+R.holds    = await mkRole('Holds More', ['roles.read','roles.manage','users.read','users.manage','stock.read','masterdata.read','cost.view','valuation.view']);
+R.sub      = await mkRole('Sub Of Delegate', ['stock.read','cost.view']);
+const mkUser = async (name, role, extra = {}) => {
+  const r = await call('POST', '/api/users', T.admin, { username: name, email: `${name}@ims.local`, displayName: name, role, isActive: true, password: PROBE_PW, warehouseIds: [wh1], allWarehouses: false, ...extra });
+  console.log('user', name, role, short(r)); return r.json;
+};
+const U = {};
+U.delegate = await mkUser('dele', 'Delegate');
+U.narrow = await mkUser('narrow', 'Narrow');
+U.reader = await mkUser('reader', 'Reader');
+U.big = await mkUser('bigu', 'Big', { allWarehouses: true });
+U.holder = await mkUser('holder', 'SubOfDelegate');
+for (const n of ['dele', 'narrow', 'reader', 'bigu']) T[n] = (await login(n, PROBE_PW)).token;
+fs.writeFileSync(`${out}/tokens.json`, JSON.stringify(T));
+fs.writeFileSync(`${out}/fixtures.json`, JSON.stringify({ wh1, R, U }));
+console.log('ok');
