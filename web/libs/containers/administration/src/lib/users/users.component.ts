@@ -51,6 +51,7 @@ import {
   controlSignal,
   createPageState,
   debouncedSignal,
+  focusFirstInvalid,
   loadOnChange
 } from '@ims/utils';
 
@@ -90,6 +91,7 @@ interface WarehouseChoice {
 })
 export class UsersPageComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly i18n = inject(I18nService);
   private readonly injector = inject(Injector);
   private readonly roles = inject(AssignableRolesStore);
@@ -265,8 +267,13 @@ export class UsersPageComponent implements OnInit {
       !this.form.controls.allWarehouses.value &&
       warehouseIds.length === 0;
     this.$noWarehouse.set(noWarehouse);
-    if (noWarehouse) {
-      // The sentence sits beside the boxes, which can be a long way above the Save button on a phone: focus takes the person to it.
+    // A field with an error comes first (WCAG 3.3.1); otherwise the sentence about the boxes. Either can be a long way above the
+    // Save button on a phone: focus takes the person to it.
+    if (this.form.invalid) {
+      afterNextRender(() => focusFirstInvalid(this.host.nativeElement), {
+        injector: this.injector
+      });
+    } else if (noWarehouse) {
       afterNextRender(() => this.$noWarehouseBanner()?.nativeElement.focus(), {
         injector: this.injector
       });

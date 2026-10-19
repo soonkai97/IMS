@@ -90,7 +90,7 @@ export class LowStockPageComponent implements OnInit {
     },
     { key: 'onHand', header: this.i18n.t('stock.onHand'), align: 'end' },
     { key: 'safety', header: this.i18n.t('product.safetyStock'), align: 'end', hideOnPhone: true },
-    { key: 'short', header: this.i18n.t('lowStock.shortBy'), align: 'end', phoneEnd: true },
+    { key: 'short', header: this.i18n.t('lowStock.shortBy'), align: 'end' },
     {
       key: 'actions',
       type: 'action',

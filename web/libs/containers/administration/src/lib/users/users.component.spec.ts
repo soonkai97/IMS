@@ -236,6 +236,21 @@ describe('UsersPageComponent', () => {
     });
   });
 
+  describe('a refused Save (QA edge 9)', () => {
+    it('moves the focus to the first field to fix, not on Save', () => {
+      spectator.component.onAdd();
+      spectator.detectChanges();
+
+      spectator.component.onSave();
+      spectator.detectChanges();
+
+      const username = spectator.query('app-input[formControlName="username"] input');
+      expect(username?.getAttribute('aria-invalid')).toBe('true');
+      expect(document.activeElement).toBe(username);
+      expect(saveRun).not.toHaveBeenCalled();
+    });
+  });
+
   describe('a user who would see no warehouse', () => {
     beforeEach(() => fillNewUser());
 

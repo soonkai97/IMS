@@ -17,4 +17,6 @@ export const MAX_QUANTITY_DECIMALS = 4;
 /** Largest unit cost a receipt line takes (API Limits.MaxUnitCost). */
 export const MAX_UNIT_COST = 1_000_000_000;
 export const MAX_USERNAME_LENGTH = 256;
+/** The API's `Limits.NameMaxLength`: a product name. */
+export const MAX_PRODUCT_NAME_LENGTH = 300;
 export const MAX_PASSWORD_LENGTH = 128;
