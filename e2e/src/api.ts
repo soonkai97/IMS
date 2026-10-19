@@ -25,6 +25,16 @@ export interface ApiProduct {
   name: string;
   barcodes: string[];
 }
+export interface ApiRole {
+  id: PublicId;
+  code: string;
+  name: string;
+  isSystem: boolean;
+  permissions: string[];
+  userCount: number;
+  concurrencyToken: string;
+}
+
 export interface ApiPartner {
   id: PublicId;
   name: string;
@@ -229,7 +239,7 @@ export class ImsApi {
 
   /** A throw-away Clerk with a made-up password, so a wrong-password test never touches a demo account. */
   async createUser(
-    options: { displayName?: string } = {}
+    options: { displayName?: string; role?: string } = {}
   ): Promise<{ username: string; password: string }> {
     const token = unique().toLowerCase();
     const user = {
@@ -240,7 +250,7 @@ export class ImsApi {
       username: user.username,
       email: `${user.username}@example.test`,
       displayName: options.displayName ?? `E2E ${token}`,
-      role: 'Clerk',
+      role: options.role ?? 'Clerk',
       isActive: true,
       password: user.password,
       warehouseIds: []
@@ -265,6 +275,13 @@ export class ImsApi {
       `/api/stock?productId=${productId}`
     );
     return page.items.reduce((sum, row) => sum + Number(row.qtyOnHand), 0);
+  }
+
+  // Roles -------------------------------------------------------------------------------------------------------
+
+  /** A custom role holding exactly these permissions (admin only). */
+  async createRole(name: string, permissions: string[]): Promise<ApiRole> {
+    return this.call<ApiRole>('POST', '/api/roles', { name, description: '', permissions });
   }
 
   // Settings -----------------------------------------------------------------------------------------------------

@@ -1,0 +1,30 @@
+@for (group of $groups(); track group.group) {
+  <section class="permission-list-group">
+    <h3 class="permission-list-heading">
+      {{ groupLabel(group.group) }}
+      <span class="permission-list-count">{{
+        'rolePage.groupCount' | t: { count: count(group), total: group.permissions.length }
+      }}</span>
+    </h3>
+    <ul class="permission-list-list">
+      @for (permission of group.permissions; track permission.code) {
+        <li class="permission-list-row" [attr.data-permission]="permission.code">
+          <span class="permission-list-state" [class.--on]="isOn(permission)">
+            <app-icon [name]="isOn(permission) ? 'check' : 'minus'" [size]="16" />
+            {{ (isOn(permission) ? 'rolePage.allowed' : 'rolePage.notAllowed') | t }}
+          </span>
+          <span class="permission-list-name">{{ label(permission) }}</span>
+          @if (permission.isDangerous) {
+            <app-status-chip flag="warning" [label]="'rolePage.highImpact' | t" />
+          }
+          <span class="permission-list-help">{{ help(permission) }}</span>
+          @if (permission.requires.length > 0) {
+            <span class="permission-list-help">{{
+              'rolePage.requires' | t: { names: requires(permission) }
+            }}</span>
+          }
+        </li>
+      }
+    </ul>
+  </section>
+}

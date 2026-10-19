@@ -41,9 +41,9 @@ const KIND_LABEL = {
 } as const;
 
 /**
- * Roles (RP01): a read-only list. The menu and the route need `roles.read`; a person without `roles.manage` sees the
- * "View only" note. Which role is locked and which is a standard one comes from the data (the API's `isSystem` and
- * the admin-core flags of the permission catalog), never from a role name.
+ * Roles (RP01, RP02): a read-only list; a row opens the role page. The menu and the route need `roles.read`; a person without
+ * `roles.manage` sees the "View only" note. Which role is locked and which is a standard one comes from the data (the API's
+ * `isSystem` and the admin-core flags of the permission catalog), never from a role name.
  */
 @Component({
   selector: 'app-roles-page',
@@ -125,6 +125,8 @@ export class RolesPageComponent {
     },
     { key: 'status', type: 'status', header: this.i18n.t('product.status'), phoneInline: true }
   ]);
+
+  readonly rowLink = (row: RoleDto): readonly unknown[] => ['/roles', row.id];
 
   constructor() {
     loadOnChange(this.$query, query => this.store.list.load(query));
