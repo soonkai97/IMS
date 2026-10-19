@@ -16,6 +16,10 @@ public class ModuleProbeController : ControllerBase
     [HttpGet("accounting"), RequiresModule(ModuleCodes.Accounting), Authorize(Policy = Permissions.StockRead)]
     public IActionResult Accounting() => Ok();
 
+    /// <summary>Allows anonymous callers AND belongs to a module: the gate must still answer 404 while the module is off.</summary>
+    [HttpGet("anonymous"), AllowAnonymous, RequiresModule(ModuleCodes.Accounting)]
+    public IActionResult Anonymous() => Ok();
+
     [HttpGet("unregistered"), RequiresModule("unregistered"), Authorize(Policy = Permissions.StockRead)]
     public IActionResult Unregistered() => Ok();
 

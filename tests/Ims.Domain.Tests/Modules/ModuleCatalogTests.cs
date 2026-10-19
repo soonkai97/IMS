@@ -54,6 +54,12 @@ public partial class ModuleCatalogTests
     }
 
     [Fact]
+    public void NoModuleRequiresAnotherYet_SoTheSwitchDoesNotNeedToEnforceIt()
+    {
+        Assert.All(ModuleCatalog.All, m => Assert.True(m.Requires.Count == 0, $"{m.Code}: enforce Requires in SwitchModuleHandler first."));
+    }
+
+    [Fact]
     public void RequiresPointsToRealCodes_NeverToItself_AndHasNoCycle()
     {
         foreach (var module in ModuleCatalog.All)

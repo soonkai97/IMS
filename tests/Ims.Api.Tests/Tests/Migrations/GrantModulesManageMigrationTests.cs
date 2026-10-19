@@ -19,6 +19,9 @@ public class GrantModulesManageMigrationTests
     private const string Before = "20261017125040_DropLegacyRoleColumns";
     private const string Latest = "20261019133035_GrantModulesManage";
 
+    /// <summary>The permissions the catalog gains after this migration, each with a data migration of its own (PL1.2 adds accounting.export): a database at this migration does not hold them yet.</summary>
+    private static readonly string[] AddedLater = [];
+
     private static async Task MigrateAsync(TestDatabase database, string target)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(database.ConnectionString).Options;
@@ -72,9 +75,9 @@ public class GrantModulesManageMigrationTests
 
         Assert.Equal(1, await GrantsOfAsync(database));
         Assert.Equal(grantsBefore + 1, await TotalGrantsAsync(database));
-        Assert.True((await PermissionsOfAsync(database, Roles.Admin)).SetEquals(PermissionCatalog.Codes), "Admin must hold every permission of the catalog.");
+        Assert.True((await PermissionsOfAsync(database, Roles.Admin)).SetEquals(PermissionCatalog.Codes.Except(AddedLater)), "Admin must hold every permission of the catalog that existed at this migration.");
         foreach (var role in Roles.All.Where(r => r != Roles.Admin))
-            Assert.True((await PermissionsOfAsync(database, role)).SetEquals(SystemRoleDefaults.For(role)), $"{role} must hold what the defaults say, and nothing more.");
+            Assert.True((await PermissionsOfAsync(database, role)).SetEquals(SystemRoleDefaults.For(role).Except(AddedLater)), $"{role} must hold what the defaults say, and nothing more.");
     });
 
     [Fact]

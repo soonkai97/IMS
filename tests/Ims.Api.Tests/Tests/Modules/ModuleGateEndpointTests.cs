@@ -106,6 +106,17 @@ public class ModuleGateEndpointTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task An_endpoint_that_allows_anonymous_callers_is_still_gated_404_while_the_module_is_off_for_everyone_and_open_when_it_is_on()
+    {
+        (await Probe(Caller(), "anonymous")).ShouldBeProblem(HttpStatusCode.NotFound);
+        (await Probe(Caller(await PermittedAsync()), "anonymous")).ShouldBeProblem(HttpStatusCode.NotFound);
+
+        (await _admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, Reason)).ShouldBeOk();
+
+        (await Probe(Caller(), "anonymous")).ShouldBeOk();
+    }
+
+    [Fact]
     public async Task The_core_is_never_gated_with_every_module_off_or_on()
     {
         var caller = Caller(await PermittedAsync());

@@ -1,4 +1,5 @@
 using Ims.Application.Features.Modules;
+using Microsoft.AspNetCore.Authorization;
 namespace Ims.Api;
 
 /// <summary>
@@ -12,7 +13,9 @@ public class ModuleGateMiddleware(RequestDelegate next)
     public async Task InvokeAsync(HttpContext http, IModuleSwitches switches)
     {
         var required = http.GetEndpoint()?.Metadata.GetOrderedMetadata<RequiresModuleAttribute>();
-        if (required is not { Count: > 0 } || http.User.Identity?.IsAuthenticated != true)
+        // A caller with no valid token goes on to authorization (401), except on an endpoint that allows anonymous callers: there authorization would let them in, so the gate must decide.
+        var anonymousAllowed = http.GetEndpoint()?.Metadata.GetMetadata<IAllowAnonymous>() is not null;
+        if (required is not { Count: > 0 } || (http.User.Identity?.IsAuthenticated != true && !anonymousAllowed))
         {
             await next(http);
             return;
