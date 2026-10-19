@@ -129,9 +129,9 @@ The cost per base unit and the average are INTERNAL numbers, not money: every am
 - **Repair.** `docs/dba/15-repair-reversal-average.sql` recomputes, once, the average of the balances that the old reversal left contaminated (report first, then `-v Apply=1`).
 - `PostingEngine.FindReversalDeficits` still decides, by quantity, whether a reversal is allowed. The rule and its examples are in `docs/design/mvp-ux.md` 1.5; the tests are `ReceiptReversalCostingTests` (domain) and `ReceiptReversalCostTests` (API).
 
-## Modules and tracking dimensions (proposed)
+## Modules and tracking dimensions (accepted)
 
-Optional lot/serial tracking on the ledger and switch-on modules (accounting hand-off, stocktake, batch, purchasing, sales, returns, assembly, serial) are designed in [adr-modules-and-tracking-dimensions.md](adr-modules-and-tracking-dimensions.md). Status: proposed, nothing built; `StockBalance` and the per-(warehouse, product) lock stay as they are.
+Optional lot/serial tracking on the ledger and switch-on modules (accounting hand-off, stocktake, batch, purchasing, sales, returns, assembly, serial) are designed in [adr-modules-and-tracking-dimensions.md](adr-modules-and-tracking-dimensions.md). Status: accepted 2026-10-19 (owner), nothing built; pilot order: accounting export with the module foundation, purchasing, sales and returns, stocktake, then batch and serial; `StockBalance` and the per-(warehouse, product) lock stay as they are.
 
 ## Data, concurrency and performance rules
 

@@ -1,6 +1,6 @@
 # ADR: Tracking dimensions and module switches
 
-Status: **Proposed** (2026-10-19). Author: be-system-designer. Nothing here is built; the owner approves the order in section 12 before any slice starts (lean scope: a slice needs a named owner requirement).
+Status: **Accepted** (2026-10-19, owner decision: all recommended defaults of section 12 accepted). Author: be-system-designer. Nothing here is built. Each module slice still needs its requirement id in `TASKS.md` and the review gate before it is built (lean scope).
 Inputs: `backend.md`, `data-and-performance-rules.md` (sections 4, 5, 9, 11), `docs/dba/README.md` (1M tier, P95 < 1 s, migration timings), `docs/design/lean-scope.md`, `docs/pm/ROADMAP.md`, `adr-roles-permissions.md`, `adr-guid-keys.md`, and the code at `origin/main` 2148028: `StockBalance`, `StockLedgerEntry`, `StockDocumentLine`, `PostingEngine`, `IssuePostingStrategy`, `ReceiptPostingStrategy`, `BalanceLoader`, `SqlTransactionLocker`, `SystemSetting`, `UpdateSettingsHandler`, `PermissionCatalog`, `UserInfo`, `menu.const.ts`, `requirePermission`.
 Scope: design only. The goal is a small core plus switch-on modules for Malaysian SMEs (trading, F&B, light manufacturing, retail) **without painting the stock ledger into a corner**. The ledger is the one part that is expensive to change later, so most of this note is about it.
 
@@ -13,7 +13,7 @@ Scope: design only. The goal is a small core plus switch-on modules for Malaysia
 5. **Issues allocate FEFO** (earliest expiry first, then oldest lot) at posting time under the lock, unless the person picked a lot. A lot never goes negative. For a tracked product, **available = not expired** quantity (section 3.4).
 6. **Module switches** are a code catalog (`ModuleCatalog`, like `PermissionCatalog`) plus one `SystemSetting` row per module (`Module.<code>`). Installation = company: there is no tenant or company id anywhere in `src/` (checked by search), so the switch is installation-wide.
 7. **A switch gates the surface, never ledger semantics.** Off means: endpoints answer 404, permissions of the module are unassignable, menu and routes are gone, data is kept. The posting engine reads product data, never the switch, so flipping a switch can not corrupt stock.
-8. **Module order:** accounting hand-off (carrying the switch foundation with it, no stand-alone infrastructure slice), stocktake, batch/lot, purchasing, sales and price lists, then returns, assembly, serial as targets only. Pilot default: trading/wholesale (section 8, 12).
+8. **Module order for the trading / wholesale pilot (Q1):** (1) accounting export plus tax-ready fields, carrying the module foundation (catalog entry and switch); (2) purchase orders with receive-against-PO; (3) delivery / sales orders (price lists in a second slice) and returns; (4) stocktake. Batch/expiry (FEFO) and serial are later, because trading does not need them first; their design below stays as written. Assembly is a target only.
 9. **Not built:** full accounting, POS, payroll, e-invoice submission, marketplaces (section 9).
 10. **Proof:** the old posting behaviour is frozen as oracle fixtures before any change (section 10).
 
@@ -289,9 +289,19 @@ Dependencies on the tracking dimension are marked. "First hit" is the module tha
 
 Rows 6 to 8 (`returns`, `assembly`, `serial`) are **targets only**: they are listed so the tracking design leaves room for them (lot-aware returns, lots consumed by a work order, a serial as a lot of one), and nothing more is designed here until the owner approves them.
 
-First hit by segment: trading and wholesale `accounting`, then `purchasing` and `sales`; F&B and central kitchen `batch`, then `stocktake` per lot; light manufacturing `assembly`, then `purchasing`; retail `stocktake` (POS is not built, section 9).
+**Order for the trading / wholesale pilot (decided, Q1).**
 
-**Why this order.** The first approved module carries the switch foundation. `accounting` changes no ledger column. `stocktake` builds the Adjust strategy and the signed line direction that later modules (`assembly`, `returns`) need. `batch` is the only module that touches the ledger and posting, so it comes once the oracle fixtures exist and before the larger document modules (`purchasing`, `sales`), which would otherwise be built twice, once without lots and once with. If the pilot is F&B, `batch` moves first and carries the foundation; the design above does not change.
+| Step | Module | Why here |
+|---|---|---|
+| 1 | `accounting`: fixed export layout plus `HsCode`, `SstCode`, `Partner.Tin`, `Partner.SstRegNo`; **carries the module foundation** (catalog with one entry, `IModuleSwitches`, `GET/PUT /api/modules`, gate middleware, `modules.manage`, web gating) | R1 is the owner's first need, changes no ledger column, and gives the foundation its first consumer (lean scope). |
+| 2 | `purchasing`: purchase order, receive against PO, reorder suggestions | R2; a receipt linked to PO lines, no ledger change. |
+| 3 | `sales` (delivery / sales orders; price lists as a second slice) and `returns` | R4, R9, R6; a delivery posts an Issue, a return posts a Receipt or Issue linked to the original document. |
+| 4 | `stocktake` (Adjust strategy, signed line direction) | R3; sized L, comes when the daily document flow is in use. |
+| later | `batch`, then `serial` | R5, R7: not needed by trading first. Built when a pilot customer needs expiry or serials; the oracle fixtures (step 0 of the rollout) and the design of section 3 are ready for it. `assembly` stays a target. |
+
+If a later pilot is F&B, `batch` moves up and carries the foundation instead; nothing else in the design changes. Light manufacturing would start with `assembly`, retail with `stocktake` (POS is not built, section 9).
+
+**Why this order.** The first module carries the switch foundation. `accounting` changes no ledger column. `stocktake` builds the Adjust strategy and the signed line direction that later modules (`assembly`, `returns`) need. `batch` is the only module that touches the ledger and posting, so it comes once the oracle fixtures exist and before the larger document modules (`purchasing`, `sales`), which would otherwise be built twice, once without lots and once with. If the pilot is F&B, `batch` moves first and carries the foundation; the design above does not change.
 
 ## 9. What we will not build, and when to revisit
 
@@ -325,18 +335,20 @@ First hit by segment: trading and wholesale `accounting`, then `purchasing` and 
 | 4 | Scope creep: each module grows toward accounting or ERP | H / M | Section 9; every module slice names its requirement id and size before it starts (lean scope); modules ship in slices of at most 1,500 lines. |
 | 5 | Mixed-version deploy writes a tracked ledger row without a lot | L / H | Module off until all instances run the new build; invariant 2 in the reconcile drill; deploy note in the runbook. |
 
-## 12. Questions for the owner (each has a default that applies if no answer comes)
+## 12. Decisions (owner, 2026-10-19: every recommended default accepted)
 
-| # | Question | Recommended default |
-|---|---|---|
-| Q1 | Which pilot segment first? | Trading / wholesale: its first modules need no ledger change, so the lot design gets measured while customers already use the product. |
-| Q2 | Do serials and batches need to coexist on one product? | No: one mode per product. A serial inside a batch is rare for SMEs. |
-| Q3 | Is a weighted average cost per product acceptable for tracked goods (no cost per lot)? | Yes; confirm with one accountant. |
-| Q4 | May expired stock leave only by a Scrap issue (which, with no picks, takes every lot earliest expiry first)? | Yes. |
-| Q5 | May a tracked product ever go negative (posting, reversal or the setting `AllowNegativeStock`)? | No: tracked lines ignore the setting on all three paths (3.4); revisit on the first complaint. |
-| Q6 | Who may switch modules? | Admin only (`modules.manage`), with a reason, audited. |
-| Q7 | Is the accounting hand-off a file in one fixed layout enough, or is a target package (SQL Account, AutoCount, Xero) named? | One fixed layout first; adapt it to the first customer's package. |
-| Q8 | Do lots need their own permissions? | No; use the document permissions. |
+| # | Question | Decision | Consequence |
+|---|---|---|---|
+| Q1 | Which pilot segment first? | Small trading / wholesale | The first modules need no ledger change; batch and serial wait, the design stays (section 8, order below). |
+| Q2 | Serials and batches on one product? | No: one tracking mode per product | `TrackingMode` is None, Batch or Serial; a serial inside a batch is not modelled. |
+| Q3 | Cost per lot? | One weighted-average cost per product, also for tracked goods | `StockBalance` costing code stays untouched (3.7). |
+| Q4 | How does expired stock leave? | Only through a Scrap issue | Ordinary issues never take an expired lot; Scrap without picks takes every lot, earliest expiry first (3.4). |
+| Q5 | May a tracked product go negative? | No | Tracked lines ignore `AllowNegativeStock` in post, reversal and deficit check (3.4). |
+| Q6 | Who may switch modules? | Admin only (`modules.manage`), with a reason, audited | Dangerous, core, not AdminCore (4.2, 4.6). |
+| Q7 | Accounting hand-off? | One fixed export layout is enough | A file, not an integration; no per-package adapter until a customer names one (module 1). |
+| Q8 | Permissions for lots? | None of their own | Lots use the document permissions (module 3). |
+
+Status of the design: accepted as the direction. Each module slice still needs its own requirement id in `TASKS.md` and the review gate before it is built (lean scope).
 
 ## 13. Rollout
 
@@ -344,10 +356,10 @@ First hit by segment: trading and wholesale `accounting`, then `purchasing` and 
 |---|---|---|---|
 | 0 | Oracle fixtures and statement-count test on current `main` (tests only) | S | Merged before anything else |
 | 1 | First approved module (default `accounting`) with the module foundation inside it (section 8, row 0) | M to L together | Owner yes on R1; review gate; migrations in this order, one at a time: the `modules.manage` grant for Admin, then `AddTaxReadyFields` (nullable `Product.HsCode`, `Product.SstCode`, `Partner.Tin`, `Partner.SstRegNo`: metadata-only adds, carried by the accounting module); later `AddProductTrackingMode`, `AddStockLots` |
-| 2 | `stocktake` (Adjust strategy, signed direction) | L | Owner yes on R3 |
-| 3 | `batch` slice 1: mode, lots, posting, reversal, locks, migration | L | DBA measurement, oracle green, concurrency tests |
-| 4 | `batch` slice 2: web and import | M | e2e |
-| 5 | `batch` slice 3: reports (expiring, expired, lot trace), indexes | M | 1M-tier numbers |
-| 6+ | `purchasing`, `sales`, `returns`, `assembly`, `serial` in the order above | L, L, M, L, M | Each: owner yes, id in `TASKS.md`, review gate |
+| 2 | `purchasing`, then `sales` and `returns`, then `stocktake` (Adjust strategy, signed direction, L) | L, L, M, L | Each: owner yes, id in `TASKS.md`, review gate |
+| later | `batch` slice 1: mode, lots, posting, reversal, locks, migration | L | DBA measurement, oracle green, concurrency tests |
+| later | `batch` slice 2: web and import | M | e2e |
+| later | `batch` slice 3: reports (expiring, expired, lot trace), indexes | M | 1M-tier numbers |
+| later | `serial`, then `assembly` | M, L | Each: owner yes, id in `TASKS.md`, review gate |
 
-Docs to update when step 1 and step 3 merge: `backend.md` (a "Modules" and a "Tracking" section, short), `data-and-performance-rules.md` section 9 (the new indexes), `docs/dba/README.md` (the measurements), `TASKS.md`.
+Docs to update when step 1 and the first `batch` slice merge: `backend.md` (a "Modules" and a "Tracking" section, short), `data-and-performance-rules.md` section 9 (the new indexes), `docs/dba/README.md` (the measurements), `TASKS.md`.
