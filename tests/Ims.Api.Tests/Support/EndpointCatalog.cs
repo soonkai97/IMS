@@ -21,6 +21,7 @@ public static class EndpointCatalog
     [
         // ----- reads -----
         new("GET users", Get, Permissions.UsersRead, _ => "/api/users"),
+        new("GET users assignable-roles", Get, Permissions.UsersManage, _ => "/api/users/assignable-roles"),
         new("GET roles", Get, Permissions.RolesRead, _ => "/api/roles"),
         new("GET role", Get, Permissions.RolesRead, _ => $"/api/roles/{MissingPublicId}", OkWhenAllowed: false),
         new("GET permissions", Get, Permissions.RolesRead, _ => "/api/permissions"),
