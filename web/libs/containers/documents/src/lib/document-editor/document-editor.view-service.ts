@@ -20,12 +20,16 @@ import { MAX_DOCUMENT_LINES, NO_PUBLIC_ID, PublicId } from '@ims/models';
 import { Observable } from 'rxjs';
 
 /** The API refuses a longer remark; the form must not offer more than it accepts (EA-18). */
-const MAX_REMARK_LENGTH = 500;
+export const MAX_REMARK_LENGTH = 500;
 const QUANTITY_STEP = 1;
 const MIN_STEPPED_QUANTITY = 0.001;
 
 /** What the editor keeps when the session expires with unsent changes, and takes back after the next sign-in. */
+/** Raise it when the shape of EditorDraft changes: a draft of another version is dropped, not guessed at. */
+export const EDITOR_DRAFT_VERSION = 1;
+
 export interface EditorDraft {
+  readonly version: typeof EDITOR_DRAFT_VERSION;
   readonly header: {
     readonly warehouseId: PublicId | null;
     readonly partnerId: PublicId | null;
@@ -197,6 +201,7 @@ export class DocumentEditorViewService {
   /** The form as plain data, to keep across a session expiry. */
   snapshot(basedOn: string | null): EditorDraft {
     return {
+      version: EDITOR_DRAFT_VERSION,
       header: this.header.getRawValue(),
       lines: this.lines.getRawValue(),
       basedOn

@@ -157,7 +157,7 @@ export const ZH_MESSAGES: Messages = {
   'login.point.warehouses': '所有仓库，一个实时视图',
   'login.sessionExpired': '您的登录已过期，请重新登录。上一个页面中尚未保存的内容已丢失。',
   'login.sessionExpiredKept':
-    '您的登录已过期，请重新登录。尚未提交的修改会保留在此浏览器标签页中，直到您退出登录或关闭该标签页。',
+    '您的登录已过期，请重新登录。尚未提交的修改会在此浏览器标签页中保留 15 分钟，直到您退出登录或关闭该标签页。',
   'login.submit': '登录',
   'login.subtitle': '请输入邮箱或用户名和密码。',
   'login.tagline': '掌握每个货架上的库存',

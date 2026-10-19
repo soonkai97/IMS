@@ -170,7 +170,7 @@ export const EN_MESSAGES = {
   'login.sessionExpired':
     'Your session expired. Sign in again. Anything you had not saved on the last screen is lost.',
   'login.sessionExpiredKept':
-    'Your session expired. Sign in again. Your unsent changes are kept in this browser tab until you sign out or close it.',
+    'Your session expired. Sign in again. Your unsent changes are kept in this browser tab for 15 minutes, until you sign out or close it.',
   'login.submit': 'Sign in',
   'login.subtitle': 'Enter your email or username and password.',
   'login.tagline': 'Know what is on every shelf',

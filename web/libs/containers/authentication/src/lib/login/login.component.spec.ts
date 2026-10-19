@@ -252,6 +252,23 @@ describe('LoginPageComponent failure messages', () => {
       expect(notice).toContain('is lost');
     });
 
+    it('ties the notice to the focused username field with aria-describedby, and only while it shows', () => {
+      operation.set(IDLE_OPERATION);
+      spectator = createComponent({ props: { reason: 'expired' } as never });
+      spectator.detectChanges();
+
+      const notice = spectator.query('app-banner[role=status]');
+      const username = spectator.query(USERNAME);
+      expect(notice?.id).toBe('login-session-notice');
+      expect(username?.getAttribute('aria-describedby')).toContain('login-session-notice');
+
+      spectator = createComponent();
+      spectator.detectChanges();
+      expect(spectator.query(USERNAME)?.getAttribute('aria-describedby') ?? '').not.toContain(
+        'login-session-notice'
+      );
+    });
+
     it('says the unsent changes are kept when a screen kept them', () => {
       operation.set(IDLE_OPERATION);
       spectator = createComponent({ props: { reason: 'expired-kept' } as never });

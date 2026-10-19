@@ -1651,6 +1651,58 @@ describe('DocumentEditorPageComponent', () => {
       expect(spectator.component.hasUnsavedChanges()).toBe(true);
     });
 
+    it('starts from nothing when it opens a saved document, because the store may still hold an older copy of it (the form is filled once)', async () => {
+      await open(draftOf(40), DocumentType.Receipt);
+
+      const store = spectator.inject(DocumentsStore) as unknown as {
+        detail: { reset: jest.Mock; load: jest.Mock };
+      };
+      expect(store.detail.reset).toHaveBeenCalled();
+      const lastReset = Math.max(...store.detail.reset.mock.invocationCallOrder);
+      const load = store.detail.load.mock.invocationCallOrder[0];
+      expect(store.detail.load).toHaveBeenCalledWith(guid(40), expect.anything());
+      expect(lastReset).toBeLessThan(load);
+    });
+
+    it('drops a draft that was tampered with in storage, and says so, instead of restoring it', async () => {
+      const stored = (value: unknown): void =>
+        sessionStorage.setItem(
+          `ims.draft.${guid(9)}.${KEY}`,
+          JSON.stringify({ savedAt: Date.now(), value })
+        );
+      const tampered: unknown[] = [
+        {
+          header: { warehouseId: 'zzz', partnerId: null, purpose: null, remark: '' },
+          lines: [],
+          version: 1,
+          basedOn: null
+        },
+        {
+          header: { warehouseId: null, partnerId: null, purpose: null, remark: '' },
+          lines: 'boom',
+          version: 1,
+          basedOn: null
+        },
+        {
+          header: { warehouseId: null, partnerId: null, purpose: null, remark: 'x'.repeat(4000) },
+          lines: [],
+          version: 1,
+          basedOn: null
+        }
+      ];
+
+      for (const value of tampered) {
+        stored(value);
+        await openNew();
+
+        expect(spectator.component.view.lines.length).toBe(0);
+        expect(spectator.component.view.header.controls.remark.value).toBe('');
+        expect(text()).toContain('were not restored');
+        expect(sessionStorage.length).toBe(0);
+        spectator.fixture.destroy();
+      }
+    });
+
     it('drops them, and says so, when the saved document changed meanwhile', async () => {
       await open(draftOf(40), DocumentType.Receipt);
       spectator.component.view.header.controls.remark.setValue('Counted twice');

@@ -23,7 +23,14 @@ const apiUrl = process.env.API_URL;
 const NO_CACHE = ['ngsw.json', 'config.json', 'index.html', 'ngsw-worker.js'];
 
 createServer((request, response) => {
-  const urlPath = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+  let urlPath;
+  try {
+    urlPath = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+  } catch {
+    // A malformed escape (GET /%) is the client's mistake, not a reason to stop the server.
+    response.writeHead(400).end();
+    return;
+  }
   if (apiUrl && urlPath === '/assets/config.json') {
     response.writeHead(200, { 'Content-Type': types['.json'], 'Cache-Control': 'no-cache' });
     response.end(JSON.stringify({ apiBaseUrl: apiUrl }));

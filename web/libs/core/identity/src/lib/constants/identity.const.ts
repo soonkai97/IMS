@@ -28,5 +28,9 @@ export const REFRESH_RETRY = {
 /** Same as SESSION_EXPIRED_REASON, and a screen kept what the user had not sent (SessionDraftService). */
 export const SESSION_EXPIRED_KEPT_REASON = 'expired-kept';
 
+/** How long a kept draft stays valid (the sign-in notice says so), and the most one draft may take in storage. */
+export const DRAFT_TTL_MS = 15 * 60 * 1000;
+export const DRAFT_MAX_CHARS = 1_000_000;
+
 /** sessionStorage key prefix of unsent work kept across a session expiry: `ims.draft.<userId>.<screen key>`. */
 export const DRAFT_STORAGE_PREFIX = 'ims.draft.';

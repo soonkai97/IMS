@@ -162,7 +162,7 @@ export const MS_MESSAGES: Messages = {
   'login.sessionExpired':
     'Sesi anda telah tamat. Log masuk semula. Apa yang belum disimpan pada skrin terakhir telah hilang.',
   'login.sessionExpiredKept':
-    'Sesi anda telah tamat. Log masuk semula. Perubahan anda yang belum dihantar disimpan dalam tab pelayar ini sehingga anda log keluar atau menutupnya.',
+    'Sesi anda telah tamat. Log masuk semula. Perubahan anda yang belum dihantar disimpan dalam tab pelayar ini selama 15 minit, sehingga anda log keluar atau menutupnya.',
   'login.submit': 'Log masuk',
   'login.subtitle': 'Masukkan e-mel atau nama pengguna dan kata laluan anda.',
   'login.tagline': 'Tahu apa yang ada di setiap rak',

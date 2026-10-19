@@ -163,4 +163,50 @@ test.describe('AUTH-01 Sign in, sign out and session restore (UX error E7, SEC-3
     await expect(editor.line(product.sku)).toBeVisible();
     await expect(editor.qty(product.sku)).toHaveValue('7');
   });
+
+  test('given a saved draft edited when the session expires, when the user signs in again inside the app, then the edited quantity is back and stays (QA defect 1, saved document)', async ({
+    page,
+    signIn,
+    login,
+    api
+  }) => {
+    const product = await api().createProduct();
+    const draft = await api('clerk').createDocument('receipts', [
+      { productId: product.id, qty: 2, unitCost: 1 }
+    ]);
+    await signIn('clerk');
+    const editor = new DocumentEditor(page);
+    await editor.open('receipts', draft.id);
+    await expect(editor.qty(product.sku)).toHaveValue('2');
+    await editor.setQty(product.sku, 9);
+
+    const save = `**/api/documents/${draft.id}`;
+    await page.route(save, route =>
+      route.request().method() === 'PUT'
+        ? route.fulfill({ status: 401, json: { status: 401, title: 'Unauthorized' } })
+        : route.fallback()
+    );
+    await page.route('**/api/auth/refresh', route =>
+      route.fulfill({ status: 401, json: { status: 401, title: 'Unauthorized' } })
+    );
+    await editor.action('Save draft').click();
+
+    await expect(page).toHaveURL(/\/login\?.*reason=expired-kept/);
+    expect(new URL(page.url()).searchParams.get('returnUrl')).toBe(`/receipts/${draft.id}`);
+    await expect(login.notice).toContainText('Your unsent changes are kept');
+
+    await page.unroute(save);
+    await page.unroute('**/api/auth/refresh');
+    // Inside the app on purpose (no page load): the store still holds the copy opened before, which used to overwrite the draft.
+    await signInThroughForm(page, 'clerk');
+
+    await expect(page).toHaveURL(new RegExp(`/receipts/${draft.id}$`));
+    await expect(
+      page.getByText('Your unsent changes from before the session ended are back.')
+    ).toBeVisible();
+    await expect(editor.qty(product.sku)).toHaveValue('9');
+    // Still there once the reloaded copy has had time to arrive.
+    await expect(editor.status).toBeVisible();
+    await expect(editor.qty(product.sku)).toHaveValue('9');
+  });
 });

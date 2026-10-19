@@ -103,7 +103,8 @@ import {
 import { applyFieldErrors, controlSignal, isDefined, normalizePublicId } from '@ims/utils';
 import { DocumentActionsComponent } from '../document-actions/document-actions.component';
 import { DocumentLineEditorComponent } from '../line-editor/line-editor.component';
-import { DocumentEditorViewService, EditorDraft } from './document-editor.view-service';
+import { parseEditorDraft } from './document-editor.draft';
+import { DocumentEditorViewService } from './document-editor.view-service';
 
 const TAB_ITEMS = 'items';
 const TAB_HISTORY = 'history';
@@ -667,6 +668,9 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       } else if (id === this.justCreatedId) {
         this.justCreatedId = undefined;
       } else {
+        // The store outlives this page and may still hold an older copy of this very document: showing it first would fill the
+        // form (and take a kept draft) and the answer would then overwrite it. Start from nothing so the form is filled once.
+        this.documents.detail.reset();
         this.documents.detail.load(id, handledInline());
       }
     });
@@ -775,15 +779,18 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
    * says so.
    */
   private restoreDraft(opened: { token: string; editable: boolean } | undefined): void {
-    const draft = this.drafts.take<EditorDraft>(this.draftKey());
-    if (draft === undefined) {
+    const stored = this.drafts.take<unknown>(this.draftKey());
+    if (stored === undefined) {
       return;
     }
+    // What storage holds is untrusted: a draft that fails the check is dropped like one made on another version.
+    const draft = parseEditorDraft(stored);
     const usable =
-      opened === undefined
+      draft !== undefined &&
+      (opened === undefined
         ? draft.basedOn === null
-        : opened.editable && draft.basedOn === opened.token;
-    if (usable) {
+        : opened.editable && draft.basedOn === opened.token);
+    if (usable && draft) {
       this.view.restore(draft);
     }
     this.$draftNotice.set(usable ? 'doc.draftRestored' : 'doc.draftOutdated');
