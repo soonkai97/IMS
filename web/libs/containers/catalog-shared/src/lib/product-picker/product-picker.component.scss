@@ -37,7 +37,12 @@
   }
 }
 
+// A long unbroken SKU (up to 64 characters) wraps inside a column of at most 12rem, so it neither pushes the name out of a
+// 360 px sheet nor leaves it no room.
 .product-picker-sku {
+  @include wrap-anywhere;
+
+  max-inline-size: 12rem;
   font-weight: font-weight('bold');
 }
 
