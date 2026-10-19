@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { RoleDto } from '@ims/api';
 import { PermissionService } from '@ims/core/identity';
 import { I18nService, TranslatePipe } from '@ims/core/i18n';
@@ -49,6 +50,7 @@ const KIND_LABEL = {
   selector: 'app-roles-page',
   imports: [
     ReactiveFormsModule,
+    RouterLink,
     TranslatePipe,
     UiCellDirective,
     UiCheckboxComponent,

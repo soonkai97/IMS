@@ -1,17 +1,19 @@
 import { HttpContext } from '@angular/common/http';
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { TestBed } from '@angular/core/testing';
+import { Router, provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { NEVER, of, throwError } from 'rxjs';
 import { PermissionDto, PermissionGroup, PermissionsClient, RoleDto, RolesClient } from '@ims/api';
 import { IF_MATCH } from '@ims/core/http';
 import { provideUiText } from '@ims/core/i18n';
 import { PermissionService } from '@ims/core/identity';
-import { ToastService } from '@ims/core/notification';
+import { ConfirmService, ToastService } from '@ims/core/notification';
 import { API_ERROR_KIND, ApiError, ApiErrorKind, PERMISSION } from '@ims/models';
 import { RolePageComponent } from './role-page.component';
 
 const ID = '00000000-0000-4000-8000-000000000011';
+const OTHER = '00000000-0000-4000-8000-000000000012';
 
 const permission = (
   code: string,
@@ -78,7 +80,11 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
   const ownRole = signal<string | undefined>('mine');
   const client = {
     get: jest.fn(),
-    replacePermissions: jest.fn()
+    list: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    replacePermissions: jest.fn(),
+    delete: jest.fn()
   };
   const catalogList = jest.fn();
   const toast = { success: jest.fn(), error: jest.fn(), dismissErrors: jest.fn() };
@@ -138,6 +144,7 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
   beforeEach(() => {
     jest.resetAllMocks();
     catalogList.mockReturnValue(of(CATALOG));
+    client.list.mockReturnValue(of([role()]));
     held.set(new Set([...ALL.filter(code => code !== 'document.reverse'), PERMISSION.RolesManage]));
     ownRole.set('mine');
   });
@@ -226,6 +233,49 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
     });
   });
 
+  describe('the text of a role', () => {
+    it('saves the text first and sends the permissions with the token that save returned', async () => {
+      await open(role());
+      client.update.mockReturnValue(of(role({ name: 'Late clerk', concurrencyToken: 'v2' })));
+      client.replacePermissions.mockReturnValue(
+        of({
+          role: role({ name: 'Late clerk', permissions: [], concurrencyToken: 'v3' }),
+          added: [],
+          removed: ['stock.read']
+        })
+      );
+
+      spectator.typeInElement('Late clerk', 'app-input[formControlName="name"] input');
+      await tick('stock.read');
+      await save();
+
+      expect(tokenOf(client.update.mock.calls[0][2])).toBe('v1');
+      expect(client.update.mock.calls[0][1]).toEqual({
+        name: 'Late clerk',
+        description: 'Works at night',
+        isActive: true
+      });
+      expect(tokenOf(client.replacePermissions.mock.calls[0][2])).toBe('v2');
+    });
+
+    it('a standard role keeps its text: only its permissions are sent', async () => {
+      await open(role({ isSystem: true, name: 'Supervisor', code: 'standard' }));
+      client.replacePermissions.mockReturnValue(
+        of({ role: role({ isSystem: true, permissions: [] }), added: [], removed: ['stock.read'] })
+      );
+
+      expect(
+        spectator.query<HTMLInputElement>('app-input[formControlName="name"] input')?.disabled
+      ).toBe(true);
+      expect(text()).toContain('A standard role keeps its name');
+      await tick('stock.read');
+      await save();
+
+      expect(client.update).not.toHaveBeenCalled();
+      expect(client.replacePermissions).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('refusals are explained in words', () => {
     async function failSave(error: ApiError): Promise<void> {
       await open(role());
@@ -290,6 +340,23 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
       expect(spectator.component.hasUnsavedChanges()).toBe(true);
     });
 
+    it('retiring a role that people still have is refused with the number of people', async () => {
+      client.get.mockReset();
+      client.get.mockReturnValue(of(role({ userCount: 2 })));
+      await open(undefined, ID);
+      client.update.mockReturnValue(
+        throwError(() =>
+          conflict('2 user(s) still have this role. Move them to another role first.')
+        )
+      );
+
+      spectator.click(spectator.query('app-checkbox[formControlName="isActive"] input') as Element);
+      await save();
+
+      expect(banners().join(' ')).toContain('2 people have this role. Move them to another role');
+      expect(button('Reload the role')).toBeUndefined();
+    });
+
     it('a 404 turns the page into "not found" (the role was deleted meanwhile)', async () => {
       await failSave(problem(404, 'Role not found.', API_ERROR_KIND.NotFound));
 
@@ -332,6 +399,149 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
         expect(spectator.component.hasUnsavedChanges()).toBe(false);
       }
     );
+  });
+
+  describe('deleting', () => {
+    const confirmDelete = async () => {
+      button('Delete role')?.click();
+      await settle();
+      TestBed.inject(ConfirmService).confirm('');
+      await settle();
+    };
+
+    it('asks first, then deletes and goes back to the list', async () => {
+      await open(role());
+      client.delete.mockReturnValue(of(undefined));
+      const navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+      await confirmDelete();
+
+      expect(client.delete).toHaveBeenCalledWith(ID, expect.anything());
+      expect(navigate).toHaveBeenCalledWith(['/roles']);
+    });
+
+    it('does nothing when the person keeps the role', async () => {
+      await open(role());
+      button('Delete role')?.click();
+      await settle();
+      TestBed.inject(ConfirmService).cancel();
+      await settle();
+
+      expect(client.delete).not.toHaveBeenCalled();
+    });
+
+    it('a role in use is refused with the count of people', async () => {
+      await open(role({ userCount: 3 }));
+      client.delete.mockReturnValue(
+        throwError(() =>
+          conflict('3 user(s) still have this role. Move them to another role first.')
+        )
+      );
+
+      await confirmDelete();
+
+      expect(banners().join(' ')).toContain('3 people have this role. Move them to another role');
+      expect(button('Delete role')).toBeDefined();
+    });
+
+    it('a standard role has no Delete button', async () => {
+      await open(role({ isSystem: true }));
+
+      expect(button('Delete role')).toBeUndefined();
+    });
+  });
+
+  describe('creating a role', () => {
+    it('needs a name before it calls the API', async () => {
+      await open(undefined);
+
+      await save();
+
+      expect(client.create).not.toHaveBeenCalled();
+      expect(text()).toContain('required');
+    });
+
+    it('sends the ticked permissions and opens the new role', async () => {
+      await open(undefined);
+      client.create.mockReturnValue(of(role({ id: OTHER, name: 'Auditor' })));
+      const navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+      spectator.typeInElement('Auditor', 'app-input[formControlName="name"] input');
+      await tick('document.post');
+      await save();
+
+      expect(client.create).toHaveBeenCalledTimes(1);
+      const body = client.create.mock.calls[0][0];
+      expect(body.name).toBe('Auditor');
+      expect([...body.permissions].sort()).toEqual(['document.post', 'stock.read']);
+      expect(body.copyFromRoleId).toBeUndefined();
+      expect(navigate).toHaveBeenCalledWith(['/roles', OTHER], { replaceUrl: true });
+    });
+
+    it('copying a role fills the ticks, and an untouched copy is sent as a copy', async () => {
+      client.list.mockReturnValue(
+        of([role({ id: OTHER, name: 'Source', permissions: ['stock.read', 'document.post'] })])
+      );
+      await open(undefined);
+      client.create.mockReturnValue(of(role({ id: ID })));
+      jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+      spectator.component.form.controls.copyFromId.setValue(OTHER);
+      spectator.typeInElement('Copy', 'app-input[formControlName="name"] input');
+      await settle();
+      expect(box('document.post').checked).toBe(true);
+      await save();
+
+      const body = client.create.mock.calls[0][0];
+      expect(body.copyFromRoleId).toBe(OTHER);
+      expect(body.permissions).toBeUndefined();
+    });
+
+    it('a copy that was edited is sent as a list', async () => {
+      client.list.mockReturnValue(
+        of([role({ id: OTHER, name: 'Source', permissions: ['stock.read', 'document.post'] })])
+      );
+      await open(undefined);
+      client.create.mockReturnValue(of(role({ id: ID })));
+      jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+      spectator.component.form.controls.copyFromId.setValue(OTHER);
+      spectator.typeInElement('Copy', 'app-input[formControlName="name"] input');
+      await settle();
+      await tick('document.post');
+      await save();
+
+      const body = client.create.mock.calls[0][0];
+      expect(body.copyFromRoleId).toBeUndefined();
+      expect(body.permissions).toEqual(['stock.read']);
+    });
+
+    it('does not offer a role that holds more than the person (it would be refused)', async () => {
+      client.list.mockReturnValue(
+        of([
+          role({ id: OTHER, name: 'Too much', permissions: ['document.reverse'] }),
+          role({ id: ID, name: 'Fine' })
+        ])
+      );
+      await open(undefined);
+
+      const options = spectator.component.$copyOptions();
+      expect(options.find(o => o.label.startsWith('Too much'))?.disabled).toBe(true);
+      expect(options.find(o => o.label === 'Fine')?.disabled).toBe(false);
+    });
+
+    it('a name that is taken lands on the Name field', async () => {
+      await open(undefined);
+      client.create.mockReturnValue(
+        throwError(() => conflict("A role named 'Auditor' already exists."))
+      );
+
+      spectator.typeInElement('Auditor', 'app-input[formControlName="name"] input');
+      await save();
+
+      expect(text()).toContain("A role named 'Auditor' already exists.");
+      expect(banners().join(' ')).not.toContain('already exists');
+    });
   });
 
   describe('unsaved changes', () => {
