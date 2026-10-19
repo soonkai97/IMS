@@ -554,6 +554,11 @@ export const MS_MESSAGES: Messages = {
   'user.warehousesHint':
     'Biarkan tidak ditanda untuk mengehadkan orang ini kepada gudang yang ditanda di sini. Anda hanya boleh memberi gudang yang anda sendiri boleh capai, dan hanya mengubah orang yang tidak melihat lebih daripada anda.',
   'user.allWarehouses': 'Melihat semua gudang',
+  'user.noWarehouse':
+    'Pengguna ini tidak akan melihat sebarang gudang. Pilih sekurang-kurangnya satu atau tanda Melihat semua gudang.',
+  'user.rolesFailed': 'Tidak dapat memuatkan peranan yang boleh anda berikan.',
+  'user.viewOnly':
+    'Anda hanya boleh melihat pengguna ini: peranannya memberi lebih akses daripada anda, jadi anda tidak boleh mengubahnya.',
   // TODO-review: machine draft (roles list, RP01).
   'roles.appliesLater':
     'Perubahan pada peranan terpakai kepada orang yang sudah log masuk dalam kira-kira 5 minit.',

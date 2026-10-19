@@ -9,6 +9,7 @@ import {
 } from '../constants/languages.const';
 import { DEFAULT_CURRENCY_LABEL } from '@ims/utils';
 import { EN_MESSAGES } from '../messages/en.messages';
+import { ROLE_LABELS } from '../messages/enum-labels';
 import { MessageParams, formatMessage } from '../messages/message-format';
 import { MessageKey, Messages } from '../messages/message.types';
 
@@ -65,6 +66,15 @@ export class I18nService {
     } catch {
       // Storage can be blocked (private mode); the choice then lasts for this session only.
     }
+  }
+
+  /**
+   * Display only, never a decision: the translated label of a standard role code, and for any other role the name the API gave.
+   * A custom role is data and has no translation; a standard role shows in the person's language, like the header does.
+   */
+  roleLabel(code: string, name: string): string {
+    const key = ROLE_LABELS[code];
+    return key ? this.t(key) : name;
   }
 
   /** Label of an enum-like server value ("Posted", "WarehouseStaff"); unknown values are shown as they are. */
