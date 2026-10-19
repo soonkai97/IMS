@@ -26,6 +26,15 @@ describe('classifyRoleFailure (the API gives no code, so the screen tells the 40
     expect(failure.kind).toBe('stale');
   });
 
+  it('a 409 that counts people (retiring or deleting a role in use) is "in use", with the count from the sentence', () => {
+    const failure = classifyRoleFailure(
+      error(409, '3 user(s) still have this role. Move them to another role first.'),
+      none
+    );
+    expect(failure.kind).toBe('inUse');
+    expect(failure.count).toBe(3);
+  });
+
   it('403 is containment, 404 not found, 400 invalid, anything else other', () => {
     const forbidden = classifyRoleFailure(
       error(403, 'Own sentence.', API_ERROR_KIND.Forbidden),

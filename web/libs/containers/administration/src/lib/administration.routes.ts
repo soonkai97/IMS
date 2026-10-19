@@ -24,6 +24,13 @@ export const ROLE_ROUTES: Routes = [
     canActivate: [requirePermission(PERMISSION.RolesRead)]
   },
   {
+    path: 'new',
+    component: RolePageComponent,
+    title: 'rolePage.newTitle',
+    canActivate: [requirePermission(PERMISSION.RolesManage)],
+    canDeactivate: [unsavedChangesGuard]
+  },
+  {
     path: ':id',
     component: RolePageComponent,
     title: 'roles.title',
