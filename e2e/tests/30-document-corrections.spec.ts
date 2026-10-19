@@ -72,7 +72,7 @@ test.describe('RQ4 / NR-02 / PR-02 Correct a document before it posts (R28, R31)
     await editor.action('Edit').click();
     const ask = shell.dialog(`Take ${doc.no} back to draft?`);
     await expect(ask).toBeVisible();
-    await ask.getByRole('button', { name: 'Back', exact: true }).click();
+    await ask.getByRole('button', { name: 'Keep as submitted', exact: true }).click();
     await expect(editor.status).toHaveText('Submitted');
     expect((await staff.getDocument(doc.id)).status).toBe('Submitted');
 
