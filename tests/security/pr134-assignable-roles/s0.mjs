@@ -1,0 +1,38 @@
+// Fixtures for PR 134: custom roles and callers. Writes fixtures.json to RV_OUT.
+import fs from 'node:fs';
+import { call, login, short, PROBE_PW, ALL } from './lib.mjs';
+const out = process.env.RV_OUT ?? '.';
+const A = (await login('admin')).token;
+const whs = (await call('GET', '/api/warehouses', A)).json; const wl = Array.isArray(whs) ? whs : whs.items;
+const wh1 = wl[0].id, wh2 = (wl[1] ?? wl[0]).id;
+console.log('warehouses', wl.length);
+const mk = async (name, perms) => { const r = await call('POST', '/api/roles', A, { name, permissions: perms }); console.log('role', name, short(r)); return r.json; };
+const R = {};
+R.delegate = await mk('Delegate', ['users.read','users.manage','stock.read','masterdata.read','cost.view']);
+R.rolesOnly = await mk('RolesOnly', ['roles.read']);
+R.usersOnlyRead = await mk('UsersReadOnly', ['users.read','stock.read']);
+R.weak = await mk('Weak', ['stock.read']);
+R.strong = await mk('Strong', ['stock.read','reports.read']);
+R.empty = await mk('Empty', []);
+R.inactive = await mk('Inactive', ['stock.read']);
+R.deleted = await mk('Deleted', ['stock.read']);
+R.adminCore = await mk('AdminCoreCustom', ['users.read','users.manage','roles.read','roles.manage']);
+R.big = await mk('Big', [...ALL]);
+console.log('deactivate', short(await call('PUT', `/api/roles/${R.inactive.id}`, A, { name: 'Inactive', description: null, isActive: false })));
+console.log('delete', short(await call('DELETE', `/api/roles/${R.deleted.id}`, A)));
+const mkUser = async (name, role, extra = {}) => {
+  const r = await call('POST', '/api/users', A, { username: name, email: `${name}@ims.local`, displayName: name, role, isActive: true, password: PROBE_PW, warehouseIds: [wh1], allWarehouses: false, ...extra });
+  console.log('user', name, role, short(r)); return r.json;
+};
+const U = {};
+U.dele = await mkUser('dele', R.delegate.code);
+U.deleAll = await mkUser('deleall', R.delegate.code, { allWarehouses: true, warehouseIds: [] });
+U.rolesOnly = await mkUser('ronly', R.rolesOnly.code);
+U.usersRead = await mkUser('uread', R.usersOnlyRead.code);
+U.adminCore = await mkUser('admcore', R.adminCore.code);
+U.big = await mkUser('bigu', R.big.code, { allWarehouses: true, warehouseIds: [] });
+const T = { admin: A };
+for (const u of ['owner','supervisor','clerk','staff']) T[u] = (await login(u)).token;
+for (const n of ['dele','deleall','ronly','uread','admcore','bigu']) T[n] = (await login(n, PROBE_PW)).token;
+fs.writeFileSync(`${out}/fixtures.json`, JSON.stringify({ wh1, wh2, R, U, T }));
+console.log('ok');
