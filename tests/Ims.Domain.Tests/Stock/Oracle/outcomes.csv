@@ -1,0 +1,153 @@
+# Frozen answers of the posting engine on main at c89b32b (before lots, modules and any pilot change), written by OracleGeneratorTests. Never regenerate from changed code:
+# a changed answer is a change of behaviour that must be announced and reviewed.
+# One row per step. outcome: Ok, or the exception type and message the engine raised. status: the document after the step (it keeps its status when a run is refused).
+# overrideUsed: the posting run recorded a negative-stock override (BR-03).
+scenario,step,op,doc,outcome,status,overrideUsed
+receipt-single,1,Receipt,R1,Ok,Posted,0
+receipt-single,2,Issue,I1,Ok,Posted,0
+weighted-average,1,Receipt,R1,Ok,Posted,0
+weighted-average,2,Receipt,R2,Ok,Posted,0
+weighted-average,3,Issue,I1,Ok,Posted,0
+weighted-average,4,Receipt,R3,Ok,Posted,0
+weighted-average,5,Issue,I2,Ok,Posted,0
+average-rounds-half-away-from-zero,1,Receipt,R1,Ok,Posted,0
+average-rounds-half-away-from-zero,2,Receipt,R2,Ok,Posted,0
+average-rounds-half-away-from-zero,3,Receipt,R3,Ok,Posted,0
+average-rounds-half-away-from-zero,4,Receipt,R4,Ok,Posted,0
+average-rounds-half-away-from-zero,5,Receipt,R5,Ok,Posted,0
+average-rounds-half-away-from-zero,6,Issue,I1,Ok,Posted,0
+average-at-an-exact-midpoint-rounds-away-from-zero,1,Receipt,R1,Ok,Posted,0
+average-at-an-exact-midpoint-rounds-away-from-zero,2,Issue,I1,Ok,Posted,0
+average-at-an-exact-midpoint-rounds-away-from-zero,3,Receipt,R2,Ok,Posted,0
+stock-coming-back-or-in-at-the-average-leaves-it,1,Receipt,R1,Ok,Posted,0
+stock-coming-back-or-in-at-the-average-leaves-it,2,Receipt,R2,Ok,Posted,0
+stock-coming-back-or-in-at-the-average-leaves-it,3,Issue,I1,Ok,Posted,0
+stock-coming-back-or-in-at-the-average-leaves-it,4,Reverse,I1,Ok,Reversed,0
+stock-coming-back-or-in-at-the-average-leaves-it,5,Receipt,R3,Ok,Posted,0
+stock-coming-back-or-in-at-the-average-leaves-it,6,Issue,I2,Ok,Posted,0
+stock-coming-back-or-in-at-the-average-leaves-it,7,Receipt,R4,Ok,Posted,0
+receipt-into-empty-stock-takes-the-new-cost,1,Receipt,R1,Ok,Posted,0
+receipt-into-empty-stock-takes-the-new-cost,2,Issue,I1,Ok,Posted,0
+receipt-into-empty-stock-takes-the-new-cost,3,Receipt,R2,Ok,Posted,0
+receipt-into-empty-stock-takes-the-new-cost,4,Issue,I2,Ok,Posted,0
+receipt-into-empty-stock-takes-the-new-cost,5,Receipt,R3,Ok,Posted,0
+receipt-without-a-cost,1,Receipt,R1,Ok,Posted,0
+receipt-without-a-cost,2,Receipt,R2,Ok,Posted,0
+receipt-without-a-cost,3,Issue,I1,Ok,Posted,0
+carton-converts-quantity-and-spreads-cost,1,Receipt,R1,Ok,Posted,0
+carton-converts-quantity-and-spreads-cost,2,Issue,I1,Ok,Posted,0
+carton-converts-quantity-and-spreads-cost,3,Issue,I2,Ok,Posted,0
+carton-converts-quantity-and-spreads-cost,4,Receipt,R2,Ok,Posted,0
+carton-of-seven-has-no-exact-piece-cost,1,Receipt,R1,Ok,Posted,0
+carton-of-seven-has-no-exact-piece-cost,2,Receipt,R2,Ok,Posted,0
+carton-of-seven-has-no-exact-piece-cost,3,Receipt,R3,Ok,Posted,0
+carton-of-seven-has-no-exact-piece-cost,4,Issue,I1,Ok,Posted,0
+carton-of-seven-has-no-exact-piece-cost,5,Issue,I2,Ok,Posted,0
+unit-without-a-conversion-is-refused,1,Receipt,R1,DomainException: No unit conversion is defined for this product and unit.,-,0
+unit-without-a-conversion-is-refused,2,Receipt,R2,Ok,Posted,0
+lines-of-the-same-product-post-in-line-order,1,Receipt,R1,Ok,Posted,0
+lines-of-the-same-product-post-in-line-order,2,Issue,I1,Ok,Posted,0
+lines-of-the-same-product-post-in-line-order,3,Receipt,R2,Ok,Posted,0
+issue-lines-of-the-same-product-fail-together,1,Receipt,R1,Ok,Posted,0
+issue-lines-of-the-same-product-fail-together,2,Issue,I1,"InsufficientStockException: Insufficient stock for product 1 in warehouse 1: available 2, requested 4.",Submitted,0
+issue-lines-of-the-same-product-fail-together,3,Issue,I2,Ok,Posted,0
+lines-post-in-ascending-product-order,1,Receipt,R1,Ok,Posted,0
+lines-post-in-ascending-product-order,2,Issue,I1,Ok,Posted,0
+insufficient-stock-is-refused-and-leaves-no-trace,1,Receipt,R1,Ok,Posted,0
+insufficient-stock-is-refused-and-leaves-no-trace,2,Issue,I1,"InsufficientStockException: Insufficient stock for product 1 in warehouse 1: available 1, requested 4.",Submitted,0
+insufficient-stock-is-refused-and-leaves-no-trace,3,Issue,I2,"InsufficientStockException: Insufficient stock for product 1 in warehouse 1: available 1, requested 4.",Approved,0
+insufficient-stock-is-refused-and-leaves-no-trace,4,Issue,I3,Ok,Posted,0
+negative-stock-with-an-override,1,Receipt,R1,Ok,Posted,0
+negative-stock-with-an-override,2,Issue,I1,Ok,Posted,1
+negative-stock-with-an-override,3,Issue,I2,Ok,Posted,1
+negative-stock-with-an-override,4,Receipt,R2,Ok,Posted,0
+negative-stock-with-an-override,5,Issue,I3,Ok,Posted,0
+negative-stock-needs-a-supervisor,1,Receipt,R1,Ok,Posted,0
+negative-stock-needs-a-supervisor,2,Issue,I1,DomainException: Posting below zero stock needs a supervisor override.,Approved,0
+negative-stock-needs-the-approvers-reason,1,Receipt,R1,Ok,Posted,0
+negative-stock-needs-the-approvers-reason,2,Issue,I1,"DomainException: Posting below zero stock needs an override reason, which the approver gives when approving.",Approved,0
+negative-stock-needs-the-approvers-reason,3,Issue,I2,"DomainException: Posting below zero stock needs an override reason, which the approver gives when approving.",Submitted,0
+issuing-exactly-what-is-on-hand-needs-no-override,1,Receipt,R1,Ok,Posted,0
+issuing-exactly-what-is-on-hand-needs-no-override,2,Issue,I1,Ok,Posted,0
+issuing-exactly-what-is-on-hand-needs-no-override,3,Issue,I2,Ok,Posted,1
+issuing-exactly-what-is-on-hand-needs-no-override,4,Issue,I3,Ok,Posted,1
+receipt-into-negative-stock-takes-the-new-cost,1,Receipt,R1,Ok,Posted,0
+receipt-into-negative-stock-takes-the-new-cost,2,Issue,I1,Ok,Posted,1
+receipt-into-negative-stock-takes-the-new-cost,3,Receipt,R2,Ok,Posted,0
+receipt-into-negative-stock-takes-the-new-cost,4,Receipt,R3,Ok,Posted,0
+a-document-waiting-for-approval-cannot-post,1,Receipt,R1,DomainException: This document requires approval before it can be posted.,Submitted,0
+a-document-waiting-for-approval-cannot-post,2,Receipt,R2,Ok,Posted,0
+a-document-waiting-for-approval-cannot-post,3,Reverse,R1,DomainException: Only a Posted document can be reversed.,Submitted,0
+a-document-waiting-for-approval-cannot-post,4,Reverse,R2,Ok,Reversed,0
+reversing-the-latest-receipt-restores-the-average,1,Receipt,R1,Ok,Posted,0
+reversing-the-latest-receipt-restores-the-average,2,Receipt,R2,Ok,Posted,0
+reversing-the-latest-receipt-restores-the-average,3,Reverse,R2,Ok,Reversed,0
+reversing-the-latest-receipt-restores-the-average,4,Issue,I1,Ok,Posted,0
+reversing-the-latest-receipt-restores-the-average,5,Reverse,R1,"ReversalBlockedException: Can't reverse R1. It would make P1 negative (-3 PCS). Reverse or adjust the later issues first, or ask an Admin.",Posted,0
+reversing-an-earlier-receipt-shares-out-the-value,1,Receipt,R1,Ok,Posted,0
+reversing-an-earlier-receipt-shares-out-the-value,2,Receipt,R2,Ok,Posted,0
+reversing-an-earlier-receipt-shares-out-the-value,3,Receipt,R3,Ok,Posted,0
+reversing-an-earlier-receipt-shares-out-the-value,4,Reverse,R1,Ok,Reversed,0
+reversing-an-earlier-receipt-shares-out-the-value,5,Reverse,R3,Ok,Reversed,0
+reversing-an-earlier-receipt-shares-out-the-value,6,Reverse,R2,Ok,Reversed,0
+reversing-an-earlier-receipt-after-issues-can-lift-the-average,1,Receipt,R1,Ok,Posted,0
+reversing-an-earlier-receipt-after-issues-can-lift-the-average,2,Receipt,R2,Ok,Posted,0
+reversing-an-earlier-receipt-after-issues-can-lift-the-average,3,Issue,I1,Ok,Posted,0
+reversing-an-earlier-receipt-after-issues-can-lift-the-average,4,Reverse,R1,Ok,Reversed,0
+reversing-an-earlier-receipt-after-issues-can-lift-the-average,5,Reverse,R2,"ReversalBlockedException: Can't reverse R2. It would make P1 negative (-2 PCS). Reverse or adjust the later issues first, or ask an Admin.",Posted,0
+reversing-an-earlier-receipt-after-issues-can-lift-the-average,6,Issue,I2,Ok,Posted,0
+reversing-a-receipt-that-stock-already-left-is-blocked,1,Receipt,R1,Ok,Posted,0
+reversing-a-receipt-that-stock-already-left-is-blocked,2,Issue,I1,Ok,Posted,0
+reversing-a-receipt-that-stock-already-left-is-blocked,3,Reverse,R1,"ReversalBlockedException: Can't reverse R1. It would make 2 products negative: P1 (-8 PCS), P4 (-9 PCS). Reverse or adjust the later issues first, or ask an Admin.",Posted,0
+reversing-a-receipt-that-stock-already-left-is-blocked,4,Reverse,R1,Ok,Reversed,0
+reversing-a-receipt-that-stock-already-left-is-blocked,5,Receipt,R2,Ok,Posted,0
+reversing-an-issue-puts-stock-back-at-its-cost,1,Receipt,R1,Ok,Posted,0
+reversing-an-issue-puts-stock-back-at-its-cost,2,Receipt,R2,Ok,Posted,0
+reversing-an-issue-puts-stock-back-at-its-cost,3,Issue,I1,Ok,Posted,0
+reversing-an-issue-puts-stock-back-at-its-cost,4,Reverse,I1,Ok,Reversed,0
+reversing-an-issue-puts-stock-back-at-its-cost,5,Reverse,R2,Ok,Reversed,0
+reversing-an-issue-puts-stock-back-at-its-cost,6,Reverse,R1,Ok,Reversed,0
+reversing-a-receipt-with-two-lines-of-the-same-product,1,Receipt,R1,Ok,Posted,0
+reversing-a-receipt-with-two-lines-of-the-same-product,2,Receipt,R2,Ok,Posted,0
+reversing-a-receipt-with-two-lines-of-the-same-product,3,Reverse,R2,Ok,Reversed,0
+reversing-a-receipt-with-two-lines-of-the-same-product,4,Issue,I1,Ok,Posted,0
+reversing-a-product-that-never-had-a-cost,1,Receipt,R1,Ok,Posted,0
+reversing-a-product-that-never-had-a-cost,2,Issue,I1,Ok,Posted,1
+reversing-a-product-that-never-had-a-cost,3,Reverse,R1,Ok,Reversed,0
+reversing-a-product-that-never-had-a-cost,4,Reverse,I1,Ok,Reversed,0
+reversal-is-refused-twice-for-a-short-reason-and-before-posting,1,Receipt,R1,Ok,Posted,0
+reversal-is-refused-twice-for-a-short-reason-and-before-posting,2,Receipt,R2,DomainException: This document requires approval before it can be posted.,Submitted,0
+reversal-is-refused-twice-for-a-short-reason-and-before-posting,3,Reverse,R1,DomainException: Enter a reason of at least 5 characters.,Posted,0
+reversal-is-refused-twice-for-a-short-reason-and-before-posting,4,Reverse,R1,DomainException: A reversal reason is required.,Posted,0
+reversal-is-refused-twice-for-a-short-reason-and-before-posting,5,Reverse,R2,DomainException: Only a Posted document can be reversed.,Submitted,0
+reversal-is-refused-twice-for-a-short-reason-and-before-posting,6,Reverse,R1,Ok,Reversed,0
+reversal-is-refused-twice-for-a-short-reason-and-before-posting,7,Reverse,R1,DomainException: Only a Posted document can be reversed.,Reversed,0
+two-products-keep-separate-balances,1,Receipt,R1,Ok,Posted,0
+two-products-keep-separate-balances,2,Receipt,R2,Ok,Posted,0
+two-products-keep-separate-balances,3,Issue,I1,"InsufficientStockException: Insufficient stock for product 5 in warehouse 1: available 0, requested 1.",Submitted,0
+two-products-keep-separate-balances,4,Issue,I2,Ok,Posted,0
+two-products-keep-separate-balances,5,Reverse,I2,Ok,Reversed,0
+lines-the-system-refuses-to-build,1,Receipt,R1,DomainException: Quantity must be greater than zero.,-,0
+lines-the-system-refuses-to-build,2,Receipt,R2,DomainException: Quantity must be greater than zero.,-,0
+lines-the-system-refuses-to-build,3,Receipt,R3,DomainException: Unit cost cannot be negative.,-,0
+lines-the-system-refuses-to-build,4,Receipt,R4,DomainException: Unit cost can have at most 2 decimal places.,-,0
+lines-the-system-refuses-to-build,5,Receipt,R5,"DomainException: Unit cost cannot be more than 1,000,000,000.",-,0
+lines-the-system-refuses-to-build,6,Receipt,R6,DomainException: Quantity is too large or has too many decimal places.,-,0
+lines-the-system-refuses-to-build,7,Receipt,R7,"DomainException: The amount of a line cannot be more than 999,999,999,999,999.",-,0
+lines-the-system-refuses-to-build,8,Receipt,R8,DomainException: No unit conversion is defined for this product and unit.,-,0
+lines-the-system-refuses-to-build,9,Receipt,R9,Ok,Posted,0
+an-issue-is-valued-at-the-average-and-capped,1,Receipt,R1,Ok,Posted,0
+an-issue-is-valued-at-the-average-and-capped,2,Receipt,R2,Ok,Posted,0
+an-issue-is-valued-at-the-average-and-capped,3,Issue,I1,Ok,Posted,0
+an-issue-is-valued-at-the-average-and-capped,4,Receipt,R3,Ok,Posted,0
+an-issue-is-valued-at-the-average-and-capped,5,Issue,I2,Ok,Posted,0
+many-small-receipts-and-issues-drift-nowhere,1,Receipt,R1,Ok,Posted,0
+many-small-receipts-and-issues-drift-nowhere,2,Receipt,R2,Ok,Posted,0
+many-small-receipts-and-issues-drift-nowhere,3,Receipt,R3,Ok,Posted,0
+many-small-receipts-and-issues-drift-nowhere,4,Issue,I1,Ok,Posted,0
+many-small-receipts-and-issues-drift-nowhere,5,Receipt,R4,Ok,Posted,0
+many-small-receipts-and-issues-drift-nowhere,6,Issue,I2,Ok,Posted,0
+many-small-receipts-and-issues-drift-nowhere,7,Receipt,R5,Ok,Posted,0
+many-small-receipts-and-issues-drift-nowhere,8,Reverse,R4,Ok,Reversed,0
+many-small-receipts-and-issues-drift-nowhere,9,Reverse,R3,Ok,Reversed,0
+many-small-receipts-and-issues-drift-nowhere,10,Reverse,I1,Ok,Reversed,0
