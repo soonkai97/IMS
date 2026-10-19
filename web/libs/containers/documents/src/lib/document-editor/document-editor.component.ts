@@ -114,6 +114,11 @@ const LEDGER_PAGE_SIZE = 100;
 /** How many lines the Post dialog names; the rest is "and N more". */
 const POST_SUMMARY_LINES = 3;
 
+/** What posting does to stock, for the confirm dialogs: an issue takes stock out, every other type puts it in. */
+function stockDirectionKey(type: DocumentType): MessageKey {
+  return type === DocumentType.Issue ? 'dialog.post.bodyDecrease' : 'dialog.post.bodyIncrease';
+}
+
 interface StatusHint {
   readonly key: MessageKey;
   readonly name?: string;
@@ -1265,16 +1270,14 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     if (!document) {
       return of();
     }
-    const direction = document.type === DocumentType.Issue ? 'decrease' : 'increase';
     // The last chance to catch a wrong quantity: whoever may take the document back gets "Edit items" instead of "Back".
     const mayRecall = toDocumentActions(document.allowedActions).has(DOCUMENT_ACTION.Recall);
     return this.confirm
       .choose({
         heading: this.i18n.t('dialog.post.title', { docNo: document.no }),
-        body: `${this.i18n.t(
-          direction === 'decrease' ? 'dialog.post.bodyDecrease' : 'dialog.post.bodyIncrease',
-          { count: document.lines.length }
-        )} ${this.postSummary(document)}`,
+        body: `${this.i18n.t(stockDirectionKey(document.type), {
+          count: document.lines.length
+        })} ${this.postSummary(document)}`,
         confirmLabel: this.i18n.t('doc.action.post'),
         cancelLabel: this.i18n.t('common.back'),
         ...(mayRecall && { alternateLabel: this.i18n.t('dialog.post.edit') })
@@ -1298,10 +1301,15 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
           // The submit worked and the post did not: one sentence says so, with the reason, and the document stays Submitted.
           const error = this.documents.post.$operation().error;
           if (afterSubmit && error) {
-            this.toast.error(
-              this.i18n.t('doc.toast.notPosted', { reason: error.message ?? error.detail })
-            );
             this.afterChange(false);
+            // A banner already says why (stock changed, someone else changed the document), and a lost session sends the person
+            // to sign in: a toast on top of either would be a second announcement.
+            const bannerShown = this.$stockConflict() !== undefined || this.$isStale();
+            if (!bannerShown && error.kind !== API_ERROR_KIND.Unauthorized) {
+              this.toast.error(
+                this.i18n.t('doc.toast.notPosted', { reason: error.message ?? error.detail })
+              );
+            }
           }
         })
       );
@@ -1315,14 +1323,13 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     if (!this.$canPost()) {
       return of(true);
     }
-    const increase = this.$type() === DocumentType.Receipt;
     const items = this.$values().map(
       value => `${value.sku} x ${value.qty ?? 0} ${this.unitCode(value)}`
     );
     return this.confirm.ask({
       heading: this.i18n.t('dialog.submitPost.title'),
       body: [
-        this.i18n.t(increase ? 'dialog.post.bodyIncrease' : 'dialog.post.bodyDecrease', {
+        this.i18n.t(stockDirectionKey(this.$type()), {
           count: items.length
         }),
         this.summaryOf(items),
