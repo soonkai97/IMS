@@ -8,6 +8,52 @@ import { goTo } from "../src/pages/shell";
 const sidewaysScroll = (page: Page): Promise<number> =>
   page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 
+/** Nothing is loading and no route is crossfading: geometry can be read. */
+async function settled(page: Page): Promise<void> {
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[aria-busy="true"], .ui-table-progress') ===
+        null && !document.documentElement.matches(":active-view-transition"),
+  );
+}
+
+const PRODUCTS_TOTAL = 80;
+
+/** The product list answers with 80 rows whatever the database holds: the page count and the card count are known. */
+async function stubProducts(page: Page): Promise<void> {
+  await page.route(/\/api\/products(\?|$)/, (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    const read = (name: string, fallback: number): number => {
+      for (const [key, value] of params) {
+        if (key.toLowerCase() === name) {
+          return Number(value) || fallback;
+        }
+      }
+      return fallback;
+    };
+    const number = read("page", 1);
+    const size = read("pagesize", 25);
+    const first = (number - 1) * size;
+    const items = Array.from(
+      { length: Math.max(0, Math.min(size, PRODUCTS_TOTAL - first)) },
+      (_, index) => ({
+        id: `00000000-0000-4000-8000-${String(first + index + 1).padStart(12, "0")}`,
+        sku: `REFLOW-${first + index + 1}`,
+        name: `Reflow product ${first + index + 1}`,
+        baseUomId: "00000000-0000-4000-8000-0000000000aa",
+        baseUomCode: "PCS",
+        safetyStock: 0,
+        isActive: true,
+        barcodes: [],
+        conversions: [],
+      }),
+    );
+    return route.fulfill({
+      json: { items, total: PRODUCTS_TOTAL, page: number, pageSize: size },
+    });
+  });
+}
+
 test.describe("Products list on a 360 px phone", () => {
   test.use({
     viewport: { width: 360, height: 740 },
@@ -19,11 +65,12 @@ test.describe("Products list on a 360 px phone", () => {
     page,
     signIn,
   }) => {
+    await stubProducts(page);
     await signIn("staff");
     await goTo(page, "/products");
     const cards = page.locator("app-table .ui-table-row");
     await expect(cards.first()).toBeVisible();
-    expect(await cards.count()).toBeGreaterThan(5);
+    await expect(cards).toHaveCount(25);
 
     const heights = await cards.evaluateAll((rows) =>
       rows.map((row) => row.getBoundingClientRect().height),
@@ -37,11 +84,12 @@ test.describe("Products list on a 360 px phone", () => {
     page,
     signIn,
   }) => {
+    await stubProducts(page);
     await signIn("staff");
     await goTo(page, "/products");
     const table = page.locator("app-table");
     const range = page.locator("app-pager .ui-pager-range");
-    await expect(range).toContainText("1-");
+    await expect(range).toHaveText("1-25 of 80");
     const first = (await range.textContent()) ?? "";
 
     await page.locator("app-pager").scrollIntoViewIfNeeded();
@@ -172,7 +220,7 @@ test.describe("320 px with the text at 200%", () => {
       await expect(
         page.getByRole("heading", { level: 1 }).first(),
       ).toBeVisible();
-      await page.waitForLoadState("networkidle");
+      await settled(page);
       await enlarge(page);
       expect(
         await sidewaysScroll(page),
@@ -203,5 +251,102 @@ test.describe("320 px with the text at 200%", () => {
             .length,
       );
     expect(overflow).toBe(0);
+  });
+});
+
+test.describe("Home stat cards keep their chevron beside the text", () => {
+  // The desktop sidebar at 1280 and 1024, the rail at 768, a phone at 360, and 320 with the text at 200%.
+  const SHAPES = [
+    { width: 1280, height: 800, text: "100%" },
+    { width: 1024, height: 768, text: "100%" },
+    { width: 768, height: 1024, text: "100%" },
+    { width: 360, height: 740, text: "100%" },
+    { width: 320, height: 640, text: "200%" },
+  ];
+
+  test("given the Admin Home at five window shapes, then no linked card puts its chevron on a line of its own and none scrolls sideways", async ({
+    page,
+    signIn,
+  }) => {
+    await signIn("admin");
+    await goTo(page, "/");
+    await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
+    await expect(page.locator(".ui-stat-card-link").first()).toBeVisible();
+
+    for (const shape of SHAPES) {
+      await page.setViewportSize({ width: shape.width, height: shape.height });
+      await page.evaluate(
+        (text) => (document.documentElement.style.fontSize = text),
+        shape.text,
+      );
+      await settled(page);
+      const alone = await page
+        .locator(".ui-stat-card-link")
+        .evaluateAll((cards) =>
+          cards
+            .filter((card) => {
+              const chevron = card.querySelector(".ui-stat-card-chevron");
+              // A card too narrow for it has no chevron at all (display none): nothing to be alone.
+              if (!chevron || chevron.getClientRects().length === 0) {
+                return false;
+              }
+              const at = chevron.getBoundingClientRect();
+              const others = [".ui-stat-card-badge", ".ui-stat-card-text"].map(
+                (selector) =>
+                  card.querySelector(selector)?.getBoundingClientRect(),
+              );
+              // On the line of the badge or of the text.
+              return !others.some(
+                (box) => box && at.top < box.bottom && at.bottom > box.top,
+              );
+            })
+            .map((card) => card.textContent?.trim() ?? ""),
+        );
+      expect(
+        alone,
+        `${shape.width}px at ${shape.text}: chevron alone on its line in ${alone.join(" | ")}`,
+      ).toEqual([]);
+      expect(
+        await sidewaysScroll(page),
+        `${shape.width}px at ${shape.text} scrolls sideways`,
+      ).toBeLessThanOrEqual(0);
+    }
+  });
+});
+
+test.describe("Tab bar focus", () => {
+  test.use({ viewport: { width: 360, height: 740 } });
+
+  test("given a keyboard user on the tab bar, then the focus ring of a tab is drawn inside the bar, not cut off by it", async ({
+    page,
+    signIn,
+  }) => {
+    await signIn("clerk");
+    await goTo(page, "/");
+    await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
+    await settled(page);
+
+    // A key press first, so the browser treats the focus that follows as the keyboard's.
+    await page.keyboard.press("Tab");
+    const tab = page.locator(".shell-tab").nth(1);
+    await tab.focus();
+    const ring = await tab.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const box = element.getBoundingClientRect();
+      const bar = element.closest(".shell-tabbar")!.getBoundingClientRect();
+      const width = parseFloat(style.outlineWidth);
+      const offset = parseFloat(style.outlineOffset);
+      return {
+        shown: style.outlineStyle !== "none" && width > 0,
+        // The ring spans from offset to offset + width outside the border box (negative: inside).
+        outerEdge: offset + width,
+        insideTop: box.top >= bar.top,
+        insideBottom: box.bottom <= bar.bottom,
+      };
+    });
+
+    expect(ring.shown).toBe(true);
+    expect(ring.outerEdge).toBeLessThanOrEqual(0);
+    expect(ring.insideTop && ring.insideBottom).toBe(true);
   });
 });

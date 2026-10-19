@@ -264,6 +264,7 @@ $progress-sweep: 1.2s;
   // A bar narrower than five cells of 4rem (320px with the text at 125% or more): the cells keep their labels whole and the
   // bar scrolls sideways instead of cutting them (a toolbar may scroll, WCAG 1.4.10).
   overflow: auto hidden;
+  scrollbar-width: thin;
   container: ims-tabbar / inline-size;
 
   @include media-tablet {
@@ -308,6 +309,11 @@ $progress-sweep: 1.2s;
     transition: transform duration('fast') easing('out');
   }
 
+  // The bar clips what leaves its box, so the ring is drawn inside the tab (the usual 2px offset would be cut off).
+  &:focus-visible {
+    outline-offset: calc(-1 * #{border-width('ring')});
+  }
+
   &.--active {
     font-weight: font-weight('bold');
     color: color('accent');
@@ -332,7 +338,6 @@ $progress-sweep: 1.2s;
   padding: 0 space(0);
   line-height: 1.2;
   text-align: center;
-  overflow-wrap: anywhere;
 }
 
 @container ims-tabbar (width < 20rem) {

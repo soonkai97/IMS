@@ -150,18 +150,25 @@ describe('UiPagerComponent', () => {
       return scrollIntoView;
     }
 
+    /** A press with a pointer or a finger: it has a click count. Enter and Space give a click with none (detail 0). */
+    function tap(name: string): void {
+      button(name).dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    }
+
     it('is scrolled to the top of the window when a page change finds its top above the window', () => {
       render({ page: 2 });
       const scrolled = tableAt(-400);
 
-      spectator.click(button('Next page'));
+      tap('Next page');
 
       expect(scrolled).toHaveBeenCalledWith({ block: 'start', behavior: 'instant' });
     });
 
-    it('is scrolled after a new page size too', () => {
+    it('is scrolled after a new page size chosen with the pointer', () => {
       render({ pageSizes: [25, 50, 100] });
       const scrolled = tableAt(-400);
+      // jsdom matches :focus-visible on any focused element: a pointer choice is a select that does not match it.
+      jest.spyOn(spectator.element, 'querySelector').mockReturnValue(null);
 
       spectator.selectOption(spectator.query('select') as HTMLSelectElement, '50');
 
@@ -172,7 +179,7 @@ describe('UiPagerComponent', () => {
       render({ page: 2 });
       const scrolled = tableAt(120);
 
-      spectator.click(button('Next page'));
+      tap('Next page');
 
       expect(scrolled).not.toHaveBeenCalled();
     });
@@ -181,7 +188,33 @@ describe('UiPagerComponent', () => {
       render({ page: 14 });
       const scrolled = tableAt(-400);
 
-      spectator.click(button('Next page'));
+      tap('Next page');
+
+      expect(scrolled).not.toHaveBeenCalled();
+    });
+
+    it('is left alone when the button was pressed with the keyboard, so the pressed button stays on the screen', () => {
+      render({ page: 2 });
+      const scrolled = tableAt(-400);
+
+      // Enter or Space on a button is a click with a count of 0.
+      button('Next page').click();
+      button('Last page').click();
+
+      expect(scrolled).not.toHaveBeenCalled();
+    });
+
+    it('is left alone when Rows per page was changed with the keyboard (ArrowDown)', () => {
+      render({ pageSizes: [25, 50, 100] });
+      const scrolled = tableAt(-400);
+      // jsdom does not know :focus-visible: the select reports it the way a browser does after a key.
+      jest
+        .spyOn(spectator.element, 'querySelector')
+        .mockImplementation(selector =>
+          selector === ':focus-visible' ? (spectator.query('select') as Element) : null
+        );
+
+      spectator.selectOption(spectator.query('select') as HTMLSelectElement, '50');
 
       expect(scrolled).not.toHaveBeenCalled();
     });
@@ -189,7 +222,7 @@ describe('UiPagerComponent', () => {
     it('does nothing, and does not fail, when there is no table before the pager', () => {
       render({ page: 2 });
 
-      expect(() => spectator.click(button('Next page'))).not.toThrow();
+      expect(() => tap('Next page')).not.toThrow();
     });
   });
 

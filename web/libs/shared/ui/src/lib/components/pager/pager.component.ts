@@ -63,20 +63,20 @@ export class UiPagerComponent {
     return range ? this.uiText().pageAnnouncement(this.$pageLabel(), range) : this.$pageLabel();
   });
 
-  onFirst(): void {
-    this.changePage(1);
+  onFirst(event: MouseEvent): void {
+    this.changePage(1, event);
   }
 
-  onPrevious(): void {
-    this.changePage(this.$page() - 1);
+  onPrevious(event: MouseEvent): void {
+    this.changePage(this.$page() - 1, event);
   }
 
-  onNext(): void {
-    this.changePage(this.$page() + 1);
+  onNext(event: MouseEvent): void {
+    this.changePage(this.$page() + 1, event);
   }
 
-  onLast(): void {
-    this.changePage(this.$pages());
+  onLast(event: MouseEvent): void {
+    this.changePage(this.$pages(), event);
   }
 
   onPageSize(event: Event): void {
@@ -84,12 +84,28 @@ export class UiPagerComponent {
       return;
     }
     this.$pageSizeChange.emit(Number(event.target.value));
-    this.revealTable();
+    // ArrowDown in the select is a keyboard change: the select must stay where it is.
+    if (!this.keyboardFocus()) {
+      this.revealTable();
+    }
   }
 
-  private changePage(page: number): void {
+  private changePage(page: number, event: MouseEvent): void {
     this.$pageChange.emit(page);
-    this.revealTable();
+    // A click made with Enter or Space has no click count (detail 0): that person is in the pager, and moving the table
+    // under the pager would take the focused button off the screen.
+    if (event.detail > 0) {
+      this.revealTable();
+    }
+  }
+
+  /** A control of this pager has the focus the way a keyboard gives it (:focus-visible). */
+  private keyboardFocus(): boolean {
+    try {
+      return this.host.nativeElement.querySelector(':focus-visible') !== null;
+    } catch {
+      return false;
+    }
   }
 
   /**
