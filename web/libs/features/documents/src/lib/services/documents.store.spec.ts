@@ -7,7 +7,7 @@ import {
   DocumentsClient,
   PagedResultOfDocumentListItem
 } from '@ims/api';
-import { IF_MATCH, handledInline, isHandledInline } from '@ims/core/http';
+import { HANDLED_INLINE, IF_MATCH, handledInline, isHandledInline } from '@ims/core/http';
 import { DocumentsStore, toDocumentRef } from './documents.store';
 
 const DOCUMENT_ID = '00000000-0000-4000-8000-000000000007';
@@ -115,6 +115,19 @@ describe('DocumentsStore', () => {
     expect(id).toBe(DOCUMENT_ID);
     expect(body).toEqual({ reason: 'Customer withdrew' });
     expect(tokenOf(context)).toBe('AAAA');
+  });
+
+  it('reportInline marks the post as announced by the screen (no interceptor toast); a plain post is not marked', async () => {
+    await firstValueFrom(
+      spectator.service.post.run({ ...toDocumentRef(DOCUMENT), reportInline: true })
+    );
+    await firstValueFrom(spectator.service.post.run(toDocumentRef(DOCUMENT)));
+
+    const [inline, plain] = client().post.mock.calls.map(call => call[1] as HttpContext);
+    expect(inline.get(HANDLED_INLINE)).toBe('all');
+    expect(isHandledInline(inline, 500)).toBe(true);
+    expect(tokenOf(inline)).toBe('AAAA');
+    expect(plain.get(HANDLED_INLINE)).toBeUndefined();
   });
 
   it('posts without a request body: the override reason is given at approval', async () => {

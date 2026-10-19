@@ -1423,7 +1423,6 @@ describe('DocumentEditorPageComponent', () => {
       });
 
       for (const [name, error] of [
-        ['409', failure(API_ERROR_KIND.Conflict, 409, 'ISS-1 was changed by someone else.')],
         ['403', failure(API_ERROR_KIND.Forbidden, 403, "You don't have permission to do that.")],
         ['network', failure(API_ERROR_KIND.Network, 0, "Can't reach the server.")]
       ] as const) {
@@ -1444,6 +1443,50 @@ describe('DocumentEditorPageComponent', () => {
         });
       }
 
+      /** Runs Submit & post with a post that fails, up to the moment the answer has arrived. */
+      async function submitAndFailToPost(error: ApiError): Promise<void> {
+        granted.add(PERMISSION.DocumentPost);
+        await startNewIssue();
+        responses['submit'] = submittedNoApproval();
+        failing.set('post', error);
+        spectator.component.onAction(DOCUMENT_ACTION.Submit);
+        confirm().confirm('');
+        spectator.detectChanges();
+      }
+
+      it('a stale 409 shows its banner only, no toast on top of it', async () => {
+        await submitAndFailToPost({
+          ...failure(API_ERROR_KIND.Conflict, 409, 'ISS-1 was changed by someone else.'),
+          extensions: { code: 'document_changed' }
+        });
+
+        expect(spectator.component.$isStale()).toBe(true);
+        expect(text()).toContain('changed since you opened it');
+        expect(toasts()).toEqual([]);
+      });
+
+      it('a stock-changed 409 shows its banner only, no toast on top of it', async () => {
+        await submitAndFailToPost({
+          ...failure(API_ERROR_KIND.Conflict, 409, 'Not enough stock.'),
+          extensions: {
+            code: 'insufficient_stock',
+            productId: guid(1),
+            available: 2,
+            requested: 15
+          }
+        });
+
+        expect(text()).toContain('Stock changed');
+        expect(toasts()).toEqual([]);
+      });
+
+      it('a lost session (401) is no toast: the person is sent to sign in', async () => {
+        await submitAndFailToPost(failure(API_ERROR_KIND.Unauthorized, 401, 'Sign in again.'));
+
+        expect(calls['post']).toHaveLength(1);
+        expect(toasts()).toEqual([]);
+      });
+
       it('a plain Post that fails keeps the error toast of the interceptor and adds no sentence of its own', async () => {
         granted.add(PERMISSION.DocumentPost);
         await open(submittedNoApproval());
@@ -1454,6 +1497,39 @@ describe('DocumentEditorPageComponent', () => {
 
         expect(toasts()).toEqual([]);
       });
+    });
+
+    it('the Post dialog and the Submit & post dialog say the same about stock for a type', async () => {
+      granted.add(PERMISSION.DocumentPost);
+      // Receipt: increase in both; Issue: decrease in both (the other two types use the Receipt wording in both too).
+      await open(
+        document({
+          type: DocumentType.Receipt,
+          requiresApproval: false,
+          allowedActions: [DOCUMENT_ACTION.Post]
+        }),
+        DocumentType.Receipt
+      );
+      spectator.component.onAction(DOCUMENT_ACTION.Post);
+      expect(confirm().$pending()?.request.body).toContain('Stock will increase');
+      confirm().cancel();
+
+      await openNew(DocumentType.Receipt);
+      spectator.component.onProductPicked({ product: WIDGET, available: null });
+      spectator.component.onAction(DOCUMENT_ACTION.Submit);
+      expect(confirm().$pending()?.request.body).toContain('Stock will increase');
+      confirm().cancel();
+
+      await open(
+        document({
+          type: DocumentType.Transfer,
+          requiresApproval: false,
+          allowedActions: [DOCUMENT_ACTION.Post]
+        }),
+        DocumentType.Transfer
+      );
+      spectator.component.onAction(DOCUMENT_ACTION.Post);
+      expect(confirm().$pending()?.request.body).toContain('Stock will increase');
     });
 
     it('Back in the Submit & post dialog leaves the page where it was: the focus returns to the button, not to the title', async () => {
