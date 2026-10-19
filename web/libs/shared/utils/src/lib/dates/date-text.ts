@@ -9,6 +9,8 @@ const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const CJK_DATE = /^(\d{4}) ?年 ?(\d{1,2}) ?月 ?(\d{1,2}) ?日$/u;
 // Day first, as everywhere in Malaysia: 09/10/2026 is 9 October.
 const NUMERIC_DATE = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/;
+// Eight digits with no separator, day first: 17102026 is 17 October 2026 (a phone keypad has no slash on its first page).
+const COMPACT_DATE = /^(\d{2})(\d{2})(\d{4})$/;
 const NAMED_DATE = /^(\d{1,2}) (\S+) (\d{4})$/u;
 
 const monthNameCache = new Map<string, readonly string[]>();
@@ -62,7 +64,7 @@ function toIso(year: number, month: number, day: number): string | null {
 
 /**
  * What the user typed, as yyyy-MM-dd, or null when it is no date. Accepts `09/10/2026` (day first, the app format),
- * `09 Oct 2026` (month name in the active language or English), `2026-10-09` and `2026年10月9日`.
+ * `09102026`, `09 Oct 2026` (month name in the active language or English), `2026-10-09` and `2026年10月9日`.
  */
 export function parseDateText(text: string, locale: string): string | null {
   const trimmed = text.trim().replace(/\s+/g, ' ');
@@ -73,6 +75,10 @@ export function parseDateText(text: string, locale: string): string | null {
   const numeric = NUMERIC_DATE.exec(trimmed);
   if (numeric) {
     return toIso(Number(numeric[3]), Number(numeric[2]), Number(numeric[1]));
+  }
+  const compact = COMPACT_DATE.exec(trimmed);
+  if (compact) {
+    return toIso(Number(compact[3]), Number(compact[2]), Number(compact[1]));
   }
   const cjk = CJK_DATE.exec(trimmed);
   if (cjk) {

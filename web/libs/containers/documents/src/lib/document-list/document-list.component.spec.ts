@@ -228,7 +228,7 @@ describe('DocumentListPageComponent Mine / All', () => {
       .queryAll('app-status-chip')
       .map(chip => (chip.textContent ?? '').trim());
 
-    expect(chips).toEqual(['Draft', 'Returned', 'Override', 'Large']);
+    expect(chips).toEqual(['Draft', 'Returned', 'Stock override', 'Large document']);
   });
 
   describe('on a phone (NV-08)', () => {

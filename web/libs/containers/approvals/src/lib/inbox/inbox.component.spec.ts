@@ -89,7 +89,7 @@ describe('ApprovalsInboxPageComponent', () => {
 
     expect(first).toContain('ISS-1');
     expect(first).toContain('Staff Member');
-    expect(first).toContain('Override');
+    expect(first).toContain('Stock override');
     expect(first).toContain('5 min');
     expect(second).toContain('Other Staff');
     expect(second).toContain('Large');
@@ -119,7 +119,7 @@ describe('ApprovalsInboxPageComponent', () => {
     const headers = spectator.queryAll('th').map(header => (header.textContent ?? '').trim());
     expect(headers).not.toContain('Amount (RM)');
     expect(rows()[0]).toContain('Large');
-    expect(rows()[0]).toContain('Override');
+    expect(rows()[0]).toContain('Stock override');
     expect(rows()[0]).not.toMatch(/\d\.\d{2}/);
     expect(spectator.queryAll('tbody tr:first-child td')).toHaveLength(headers.length);
   });
