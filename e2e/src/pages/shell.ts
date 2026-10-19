@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { passwordFor, type Role } from '../config';
 import { spendLoginBudget } from '../rate-limit';
+import { takeSession } from '../session-cache';
 
 /** The sign-in screen (S01). */
 export class LoginPage {
@@ -120,13 +121,37 @@ export async function goTo(page: Page, path: string): Promise<void> {
   }, path);
 }
 
-/** A full page load (typed address, reload): the app refreshes its session, which counts against the shared limit. */
+/** A full page load (typed address, reload): the app refreshes its session (not a sign-in, so it spends no sign-in budget). */
 export async function loadPage(page: Page, path: string): Promise<void> {
-  await spendLoginBudget(1);
   await page.goto(path);
 }
 
 const RATE_LIMITED = /too many (attempts|requests)/i;
+
+/**
+ * Signs a role in without spending a sign-in when a session of that role was kept by an earlier scenario (session-cache.ts):
+ * the refresh cookie is put in the browser context and the app restores the session on load. When none was kept, or the
+ * API no longer knows it (a new database), it signs in through the form.
+ */
+export async function signIn(page: Page, role: Role): Promise<void> {
+  const cookies = takeSession(role);
+  if (cookies !== undefined) {
+    await page.context().addCookies(cookies);
+    await page.goto('/');
+    const login = new LoginPage(page);
+    const shell = new Shell(page);
+    const outcome = await Promise.race([
+      shell.account.waitFor().then(() => 'in' as const),
+      login.username.waitFor().then(() => 'login' as const)
+    ]);
+    if (outcome === 'in') {
+      await expect(page.getByRole('link', { name: 'Home' }).first()).toBeAttached();
+      return;
+    }
+    await page.context().clearCookies();
+  }
+  await signInThroughForm(page, role);
+}
 
 /**
  * Signs in through the real login form. The API allows 20 sign-ins a minute per address, so a rate-limit answer waits and
@@ -136,7 +161,7 @@ export async function signInThroughForm(page: Page, role: Role): Promise<void> {
   const login = new LoginPage(page);
   const shell = new Shell(page);
   for (let attempt = 1; ; attempt++) {
-    await spendLoginBudget(2);
+    await spendLoginBudget(1);
     await login.open();
     await login.fill(role, passwordFor(role));
     const outcome = await Promise.race([

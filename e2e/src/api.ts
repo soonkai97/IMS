@@ -159,11 +159,27 @@ export class ImsApi {
     return this.call<ApiDocument>('POST', `/api/documents/${id}/reverse`, { reason });
   }
 
-  /** Create, submit and post a document in one go (only for documents that need no approval). */
+  /**
+   * Create, submit and post a document in one go. The suite does not own the approval rules (a database in use may hold a rule
+   * that covers this document), so a document that waits for approval is approved before it is posted: by the Supervisor, or by
+   * the Owner when the rule is for a Large document.
+   */
   async post(kind: 'receipts' | 'issues', lines: DocumentLine[]): Promise<ApiDocument> {
     const draft = await this.createDocument(kind, lines);
-    await this.command(draft.id, 'submit');
+    const submitted = await this.command(draft.id, 'submit');
+    if (submitted.requiresApproval) {
+      await this.approveByAnyReviewer(draft.id);
+    }
     return this.command(draft.id, 'post');
+  }
+
+  private async approveByAnyReviewer(id: PublicId): Promise<void> {
+    for (const reviewer of ['supervisor', 'owner'] as const) {
+      if (reviewer !== this.role && (await new ImsApi(reviewer).raw('POST', `/api/documents/${id}/approve`, {})).status < 300) {
+        return;
+      }
+    }
+    throw new Error(`Document ${id} needs approval and neither the Supervisor nor the Owner could approve it.`);
   }
 
   getDocument(id: PublicId): Promise<ApiDocument> {
