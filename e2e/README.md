@@ -14,8 +14,9 @@ through the real login form, and create their data through the public API with u
 | `06-roles` | menu per role, polite forbidden page, deep link, Clerk creates but cannot edit a partner (409 duplicate sentence) | AUTH-02, E8 |
 | `32-roles-list` | Roles from the menu: the five standard roles with their kind in words (Admin "System, locked"), the 5-minute note, search and its empty sentence; the Clerk and the Owner have no Roles item and `/roles` is the forbidden page; 360 px cards without sideways scroll | AUTH-02, RPN-01, RPN-03, RPL-01 |
 | `33-roles-editor` | the role page (RP02, view only), real API: a person holding only roles.read opens a role from the list and sees it as "View only" with the permissions ticked by section in disabled boxes and no Save or Delete; the Administrator role says it always holds every permission and cannot be changed; an address that names no role (a GUID nobody has, an old number) is "Page not found"; 360 px without sideways scroll and every box named | RP02, RPE view |
+| `34-service-worker` | the only file that runs with the service worker on (needs the production build served with `API_URL`, skips itself on the dev server): after master data was browsed and the user signed out, the same API addresses go to the server and are refused with 401, and no `:data:` cache exists; a product created through the API after a search found nothing shows in Add item after a reload | QA round S1, defect 2, frontend.md decision 18 |
 | `07-scan` | barcode / SKU + Enter hit, repeat, miss, deactivated; search box focused on open | D8, NV-03, PS-05 |
-| `08-session` | wrong password (E7), the banner goes away on any edit and never sits with empty-field messages or survives a reload, reload restores the session from the cookie, no token in web storage, return URL | AUTH-01, SEC-34, D3, NR-06 |
+| `08-session` | wrong password (E7), the banner goes away on any edit and never sits with empty-field messages or survives a reload, reload restores the session from the cookie, no token in web storage, return URL, a session that expires during Save draft (refresh refused): no "Discard changes?", the sign-in notice says the changes are kept, and the receipt is back after signing in | AUTH-01, SEC-34, D3, NR-06 |
 | `09-language` | en / zh / ms switch keeps the half-filled form; choice survives a reload | PRD 9 |
 | `10-phone` | scenario 1 at 360x740, no horizontal scroll on the main screens | D1, EA-04 |
 | `11-accessibility` | axe (WCAG 2.2 AA) finds no serious or critical violation on the main screens and on the sign-in page at 360 and 1280 px, light and dark, with and without a failure; exceptions need a finding id (`KNOWN` in the file, empty today) | EA-03, EA-21 |
@@ -55,7 +56,7 @@ dotnet build src/Ims.Api/Ims.Api.csproj -c Release
 # 2. start the API (fresh database: migrations and the dev seed run on start) and the web build, in the background
 (cd src/Ims.Api/bin/Release/net10.0 && ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=$API \
   Cors__Origins=$WEB "ConnectionStrings__Default=$DB" nohup dotnet Ims.Api.dll > /dev/null 2>&1 &)
-(cd web && PORT=5612 nohup npm run serve:prod > /dev/null 2>&1 &)
+(cd web && PORT=5612 API_URL=$API nohup npm run serve:prod > /dev/null 2>&1 &)
 until curl -fsS $API/health > /dev/null && curl -fsS $WEB/login > /dev/null; do sleep 2; done
 
 # 3. run everything (or name spec files, see docs/team/E2E-HEALTH.md for a smoke set)
@@ -96,7 +97,7 @@ Examples use the free ports 5611 (API) and 5612 (web); any ports work.
 
    ```bash
    cd web && npm ci && npm run build:prod       # Node 22.6: NODE_OPTIONS=--experimental-require-module
-   PORT=5612 npm run serve:prod                 # or: npm run dev (port 4200)
+   PORT=5612 API_URL=http://localhost:5611 npm run serve:prod   # or: npm run dev (port 4200); API_URL is for 34-service-worker
    ```
 
 3. **Tests**:

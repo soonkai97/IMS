@@ -1,4 +1,5 @@
 import { expect, test } from '../src/fixtures';
+import { DocumentEditor } from '../src/pages/documents';
 import { loadPage, signInThroughForm } from '../src/pages/shell';
 import { spendLoginBudget } from '../src/rate-limit';
 
@@ -118,5 +119,48 @@ test.describe('AUTH-01 Sign in, sign out and session restore (UX error E7, SEC-3
     await loadPage(page, '/stock');
     await expect(page).toHaveURL(/\/login/);
     await expect(shell.account).toHaveCount(0);
+  });
+
+  test('given a session that expires while a receipt is being written, when Save draft is pressed, then no "Discard changes?" shows, the sign-in page says the changes are kept, and after signing in the receipt is back (QA defect 1)', async ({
+    page,
+    signIn,
+    login,
+    api
+  }) => {
+    await signIn('clerk');
+    const product = await api().createProduct();
+    const editor = new DocumentEditor(page);
+    await editor.openNew('receipts');
+    await editor.addItem(product);
+    await editor.setQty(product.sku, 7);
+
+    // The access token is refused and the refresh cookie is not accepted any more: the session is over.
+    await page.route('**/api/documents/receipts', route =>
+      route.request().method() === 'POST'
+        ? route.fulfill({ status: 401, json: { status: 401, title: 'Unauthorized' } })
+        : route.fallback()
+    );
+    await page.route('**/api/auth/refresh', route =>
+      route.fulfill({ status: 401, json: { status: 401, title: 'Unauthorized' } })
+    );
+    await editor.action('Save draft').click();
+
+    await expect(page).toHaveURL(/\/login\?.*reason=expired-kept/);
+    expect(new URL(page.url()).searchParams.get('returnUrl')).toBe('/receipts/new');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(login.notice).toContainText('Your session expired. Sign in again.');
+    await expect(login.notice).toContainText('Your unsent changes are kept in this browser tab');
+
+    await page.unroute('**/api/documents/receipts');
+    await page.unroute('**/api/auth/refresh');
+    // Through the form on purpose: the return URL is what takes the user back to the receipt.
+    await signInThroughForm(page, 'clerk');
+
+    await expect(page).toHaveURL(/\/receipts\/new$/);
+    await expect(
+      page.getByText('Your unsent changes from before the session ended are back.')
+    ).toBeVisible();
+    await expect(editor.line(product.sku)).toBeVisible();
+    await expect(editor.qty(product.sku)).toHaveValue('7');
   });
 });

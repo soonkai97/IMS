@@ -181,7 +181,7 @@ Validate with `nginx -t`. Check the result with `curl -sI https://ims.example.co
 
 1. **No inline script.** True for the current `index.html`. Do not add inline `<script>` or inline event handlers; a script must be a file.
 2. **Critical CSS inlining.** The production build has Angular's default `optimization`, which inlines critical CSS and loads the full stylesheet with an `onload` attribute. An inline event handler is blocked by `script-src 'self'`, so the stylesheet would not apply. DONE: the production configuration of `web/apps/main/project.json` sets `"optimization": { "styles": { "inlineCritical": false } }`, so the built `index.html` has a plain `<link rel="stylesheet">`, no inline `<style>` and no `onload` (checked on the build output). Still verify once by running the production build behind the headers above.
-3. **Service worker.** `ngsw-worker.js` is a file, so `worker-src 'self'` suffices. The `dataGroups` in `ngsw-config.json` only match same-origin and API URLs; if a CDN, font host or analytics host is ever added, it must be added to the matching CSP directive deliberately.
+3. **Service worker.** `ngsw-worker.js` is a file, so `worker-src 'self'` suffices. `ngsw-config.json` has no `dataGroups` (the worker never caches or answers an API call, frontend.md decision 18); if a CDN, font host or analytics host is ever added, it must be added to the matching CSP directive deliberately.
 
 ## 6. Check list after deploying
 
