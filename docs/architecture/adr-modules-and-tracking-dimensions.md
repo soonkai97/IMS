@@ -35,7 +35,7 @@ Sizes: S = up to about 600 changed lines, M = up to about 1,500, L = more than t
 | Web: `MENU_ITEMS` with `permissions[]` (any-of), `requirePermission(...)` route guard, `PermissionService`. | `menu.const.ts`, `identity.guards.ts` |
 | Performance baseline: 1.0 M ledger rows, 175 k balances, 50 k products, 5 warehouses, every interactive endpoint under 1 s P95; the ledger row is about 110 bytes; a migration that rewrites the ledger costs about a minute per million rows. | `docs/dba/README.md` |
 
-Unverified (assumptions to confirm when the first slice starts): that `SystemSetting` rows are not row-audited (the settings handler writes an explicit event, so the module switch will too); that the movements report reads document lines, not ledger rows, so a line that splits into several ledger rows does not change its row count; whether the production SQL Server edition does a `NOT NULL DEFAULT` column add as a metadata-only change (it does not matter for `Product`, 50 k rows, seconds).
+Verified by the architecture review (PR #130): `SystemSetting` is not row-audited, so the flip handler writes its own event; the movements report reads document lines, not ledger rows (`PostingMovementsSpec`), while the ledger list and its export show one row per piece. Still unverified: whether the production SQL Server edition does a `NOT NULL DEFAULT` column add as a metadata-only change (it does not matter for `Product`, 50 k rows, seconds), and the time of the ledger FK validation at 1M rows (the DBA measures it).
 
 ## 2. Requirements this serves
 
@@ -203,7 +203,7 @@ Contract notes for the foundation slice: `GET /api/modules` has no permission po
 
 ### 4.4 Disabling safely
 
-Each module declares `CanDisable` (a query, run in the flip handler):
+Each module declares `CanDisable` (a query, run in the flip handler; added with the second module, the first has nothing to check):
 
 | Module | Refuse while |
 |---|---|
