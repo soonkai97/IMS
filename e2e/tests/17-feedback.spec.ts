@@ -105,6 +105,7 @@ test.describe("R11 A failure the screen shows in place", () => {
     await expect(page.getByRole("alert").filter({ hasText: OWN_SENTENCE })).toHaveCount(1);
     await expect(page.getByRole("alert").filter({ hasText: SENTENCE })).toHaveCount(0);
     await expect(page.locator("app-toast")).toHaveCount(0);
-    expect(await announcedBy(page)).toBe(1);
+    // The page's own sentence is the one announced (the server's line is never shown, so counting it would find none).
+    expect(await announcedBy(page, OWN_SENTENCE)).toBe(1);
   });
 });

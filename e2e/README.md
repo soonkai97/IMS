@@ -37,6 +37,41 @@ A scenario that finds a product bug is marked `test.fixme` with the finding id i
 
 ## Run it
 
+### The whole suite in one sequence (clean checkout, Git Bash, from the repository root)
+
+Takes about 5 minutes for the 131 scenarios on a fresh database, plus the one-off installs and builds (about 3 minutes).
+Use ports that are free on your machine; the database is a throw-away one that you drop at the end (never point this at a
+database somebody uses: the suite creates data and changes settings and approval rules while it runs).
+
+```bash
+export API=http://localhost:5611 WEB=http://localhost:5612
+DB='Server=(localdb)\ImsDev;Database=Ims_E2E;Trusted_Connection=True;TrustServerCertificate=True'   # or any SQL Server
+
+# 1. one-off: install and build
+dotnet build src/Ims.Api/Ims.Api.csproj -c Release
+(cd web && npm ci && npm run build:prod)
+(cd e2e && npm ci && npx playwright install chromium)
+
+# 2. start the API (fresh database: migrations and the dev seed run on start) and the web build, in the background
+(cd src/Ims.Api/bin/Release/net10.0 && ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=$API \
+  Cors__Origins=$WEB "ConnectionStrings__Default=$DB" nohup dotnet Ims.Api.dll > /dev/null 2>&1 &)
+(cd web && PORT=5612 nohup npm run serve:prod > /dev/null 2>&1 &)
+until curl -fsS $API/health > /dev/null && curl -fsS $WEB/login > /dev/null; do sleep 2; done
+
+# 3. run everything (or name spec files, see docs/team/E2E-HEALTH.md for a smoke set)
+(cd e2e && IMS_API_URL=$API IMS_WEB_URL=$WEB npm run test:local)
+
+# 4. stop the two servers, then drop the database
+sqlcmd -S "(localdb)\ImsDev" -Q "ALTER DATABASE Ims_E2E SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE Ims_E2E"
+```
+
+A run on a database that already holds data from an earlier run is supported and passes too (names are unique, the settings a
+scenario changes are put back, and posting through the API approves a document that an existing approval rule holds back).
+For a clean slate drop and recreate the database. The kept sessions in `e2e/.cache` of an earlier run do no harm: a session the API
+does not know is dropped and the form signs in.
+
+The numbered steps below explain each part.
+
 Needs Node 20+ (the web build needs the Node the web app asks for, see `web/README.md`), .NET 10, and a SQL Server the API can use.
 Examples use the free ports 5611 (API) and 5612 (web); any ports work.
 
@@ -88,11 +123,16 @@ Examples use the free ports 5611 (API) and 5612 (web); any ports work.
 
 - **One worker, on purpose.** Two scenarios switch the global setting "allow negative stock" (restored afterwards) and every
   sign-in shares the API's login limit. Run the suite against a database nobody else is using.
-- **Rate limit.** Sign-in is limited to 20 requests a minute per address (token refresh has its own limit of 300), and every full page load
-  of a signed-in app refreshes the session. The suite therefore navigates inside the app (`goTo`) and paces its sign-ins and page loads
-  (`src/rate-limit.ts`, which keeps a small log in the temp folder); a full run takes about five minutes because of it.
+- **Rate limit and kept sessions.** Sign-in is limited to 20 requests a minute per address (the token refresh a page load makes has its
+  own limit of 300). The suite does not sign in through the form for every scenario: a scenario hands the refresh cookie of its
+  role back to `e2e/.cache` when it ends (`src/session-cache.ts`), and the next scenario of that role starts from it (the API
+  rotates the cookie on every use, so an entry is single-use; a signed-out, expired or unknown one falls back to the form). What
+  still signs in through the form (the login scenarios, the first scenario of each role) spends from a paced budget of 15 a
+  minute (`src/rate-limit.ts`, its log is in `e2e/.cache` too). This took a full run from about 20 minutes to about 5. A
+  scenario about the form itself (return URL, wrong password) must use `signInThroughForm`, not the `signIn` fixture.
 - **Data.** Each scenario creates products, partners and documents with unique names (`E2E-<token>`) and leaves them; use a
-  throw-away database. Nothing is deleted through the API (posted documents are append-only by design).
+  throw-away database. Scenarios do not depend on what an earlier run left: the two that change a global setting restore it, the
+  approval rule one finds or creates one rule and switches it off, and `api.post` approves a document that a rule holds back. Nothing is deleted through the API (posted documents are append-only by design).
 - **Page objects** live in `src/pages` (`shell`, `documents`, `screens`), API seeding in `src/api.ts`, sign-in fixtures in
   `src/fixtures.ts`. Prefer roles and accessible names; the few CSS selectors are in the page objects with a reason.
 

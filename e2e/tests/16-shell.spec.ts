@@ -181,12 +181,17 @@ test.describe('R10 Top progress bar', () => {
     await goTo(page, '/issues');
     await expect(bar(page)).toBeVisible();
 
-    const animation = await bar(page).evaluate(element => {
-      const style = getComputedStyle(element, '::after');
-      return { count: style.animationIterationCount, transform: style.transform };
-    });
-    expect(animation.count).toBe('1');
-    expect(['none', 'matrix(1, 0, 0, 1, 0, 0)']).toContain(animation.transform);
+    const sweep = () =>
+      bar(page).evaluate(element => {
+        const style = getComputedStyle(element, '::after');
+        return { count: style.animationIterationCount, transform: style.transform };
+      });
+    expect((await sweep()).count).toBe('1');
+    // The 0.01ms animation may not have run its one frame when the bar first shows (the sample then reads the start keyframe):
+    // wait until it rests where an unmoving bar rests.
+    await expect
+      .poll(async () => (await sweep()).transform)
+      .toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
   });
 });
 
