@@ -979,3 +979,8 @@
 - Next (RP02b, after this merges; finished work on branch `feature/roles-web-rp02-full`): New role (copy from a role), editing with `If-Match`, Requires auto-tick, stale/containment/locked/in-use explanations, delete, unsaved-changes guard. The editable checklist will be a second component beside the read-only list. The API gives no code for its role 409s, so a 409 is called stale only when a second read shows another `concurrencyToken`.
 - Needs from fe-designer, qa-edge-accessibility: the app-wide focus after a route change (recorded in TASKS.md). Needs from behavior-test-engineer: scenarios 40..45 can reuse the API helpers.
 - Open conflicts: none.
+### 2026-10-19 behavior-test-engineer -> orchestrator, project-manager, fe-framework (e2e health pass)
+- Produced: PR #128 (`test/e2e-health`: kept sessions in `e2e/src/session-cache.ts`, approval-proof `api.post`, five test defects fixed, README with one command sequence), PR #129 (`fix/picker-sku-overflow`: Add item product list at 360 px), this PR (`docs/team/E2E-HEALTH.md`: failure table, smoke-set and nightly proposal, cost, flake risk). Full run 5 to 7 minutes (was 20.4) on one throw-away database; 131 of 131 pass on a used database.
+- Needs from project-manager / owner: decide on the proposal (a required smoke check, a nightly full run). CI is not changed.
+- Decisions others must respect: a scenario about the sign-in form itself must use `signInThroughForm`, not the `signIn` fixture (a kept session restores on Home and skips the form); scenarios may not depend on approval rules or settings left by another run.
+- Open conflicts: none.
