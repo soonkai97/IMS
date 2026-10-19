@@ -138,6 +138,33 @@ describe('AuthService', () => {
       });
     });
 
+    it('does not say "kept" for an older draft that was already in storage when nothing was saved now', async () => {
+      await signInAs();
+      TestBed.inject(SessionDraftService).save('document.Receipt.new', { remark: 'old' });
+
+      await expire();
+
+      expect(router().navigate).toHaveBeenCalledWith(['/login'], {
+        queryParams: { returnUrl: '/stock', reason: 'expired' }
+      });
+    });
+
+    it('does not say "kept" when storage refused the draft', async () => {
+      await signInAs();
+      const keeper = TestBed.inject(SessionDraftService);
+      spectator.service.sessionExpiring$.subscribe(() => keeper.save('k', { remark: 'x' }));
+      jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('QuotaExceededError');
+      });
+
+      await expire();
+      jest.restoreAllMocks();
+
+      expect(router().navigate).toHaveBeenCalledWith(['/login'], {
+        queryParams: { returnUrl: '/stock', reason: 'expired' }
+      });
+    });
+
     it('keeps the draft through the expiry and gives it back once to the same user after signing in again', async () => {
       await signInAs();
       const keeper = TestBed.inject(SessionDraftService);

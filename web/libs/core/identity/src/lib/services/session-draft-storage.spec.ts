@@ -81,6 +81,27 @@ describe('session draft storage (QA defect 1, review M2 and M3)', () => {
     expect(takeDraft(OTHER, 'k')).toBeUndefined();
   });
 
+  it('also removes entries that can no longer be read, of the user who stays too, and keeps the fresh one', () => {
+    saveDraft(USER, 'fresh', 1);
+    saveDraft(USER, 'old', 2);
+    sessionStorage.setItem(`${DRAFT_STORAGE_PREFIX}${USER}.broken`, 'not json');
+    sessionStorage.setItem(
+      `${DRAFT_STORAGE_PREFIX}${USER}.huge`,
+      JSON.stringify({ savedAt: 1_000_000, value: 'x'.repeat(DRAFT_MAX_CHARS) })
+    );
+    const oldKey = `${DRAFT_STORAGE_PREFIX}${USER}.old`;
+    const stored = JSON.parse(sessionStorage.getItem(oldKey) ?? '{}');
+    sessionStorage.setItem(
+      oldKey,
+      JSON.stringify({ ...stored, savedAt: 1_000_000 - DRAFT_TTL_MS - 1 })
+    );
+
+    clearDrafts(USER);
+
+    expect(sessionStorage.length).toBe(1);
+    expect(takeDraft(USER, 'fresh')).toBe(1);
+  });
+
   it('survives storage that refuses writes', () => {
     jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('QuotaExceededError');
