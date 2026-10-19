@@ -104,7 +104,7 @@ console.log('== concurrency tokens');
   console.log('   same role name created twice at once: outcomes', JSON.stringify(o3));
   const o4 = {};
   for (let i = 0; i < 10; i++) {
-    const [x, y] = await Promise.all([call('POST', '/api/roles', T.admin, { name: nm('Par4') + ' a' }), call('POST', '/api/roles', T.admin, { name: nm('Par4') + ' a'.replace('a', 'a') })]);
+    const [x, y] = await Promise.all([call('POST', '/api/roles', T.admin, { name: nm('Par4') + ' a' }), call('POST', '/api/roles', T.admin, { name: nm('Par4') + ' a' })]);
     void x; void y;
   }
   const o5 = {};
