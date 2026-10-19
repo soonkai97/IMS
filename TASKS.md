@@ -200,6 +200,17 @@ session routes. New agent types register after a session reload; until then they
 - #105 follow-ups (security review): purge `RefreshToken` rows that are revoked or expired for more than N days (every rotation adds a row, and the 300-per-minute refresh ceiling lets one session add them about 15 times faster than before); key the rate limits on the IPv6 /64 prefix instead of the full address (`Caller()` in `PresentationServices.cs`; a client holding a /64 can rotate addresses to get fresh sign-in and refresh buckets).
  (or provide them per page), with a spec per store. Also from #120: "My drafts" opens the list of the first draft's type, and the 25-row feed is now skipped when nothing is returned, so with no returned draft the tile always opens Receipts until the filters-in-URL slice (A07) lands.
 
+## Phone QA round (novice, 360 px, 2026-10-19): left for later
+Fixed in PR fix/phone-flow-qa: findings 1 (scroll reset), 3 (Submit & post sequence), 4 (Edit asks first, footer on one row), 7 (empty-lines message, steppers). Not fixed, in this order:
+- Products list at 360 px: 25 cards are about 7,000 px tall; rows-per-page, First and Last are hidden on phones, so the page cannot be made smaller (finding 2). Home tile filters (finding 5, A07) and table paging are a separate PR.
+- Draft cards are identical (number, date, warehouse, "Total qty 1"): show the first product or the remark (finding 6).
+- Jargon: purpose "Use", badges "Large", "Override", "Safety 100", and an unlabeled red number on Low stock cards (finding 9).
+- 12.5 PCS is accepted for a unit that counts whole pieces; no warning (finding 10).
+- The supplier dropdown (about 100 entries, long names) is not searchable (finding 10); Add item search ranks SKU-substring noise after the real match.
+- The date filter rejects a date typed without slashes (17102026); no auto-slash mask (finding 8); Malay placeholder hh/bb/tttt.
+- Console: NG05604 and "An unknown error occurred when fetching the script" (service worker?), plus 401s on the sign-in page (finding 12).
+- Nits: Low-stock tile icon equals the Receipts icon, faint "..." button, stock cards differ in layout, the More sheet scrolls the page behind, bare person icon for the account (finding 11).
+
 ## Open questions for the user (from PRD 14.3 and delivery)
 Defaults and deadlines for all owner decisions: [roadmap section 8.2](docs/pm/ROADMAP.md). Still open: O1 corrections confirmations (by WD 5), O3 hosting direction (by WD 10), O4 `large-change` label for the id-switch merge (by WD 15), O10 native speakers for zh and ms. Closed by the lean approval: roles defaults, tables, motion, date field and `Partner.Code` (not now).
 - Hosting model for deploy.yml: customer-owned servers, our cloud, or hybrid? Recommended default: one small VM (about US$6-24 a month) with Docker Compose; free-tier only for a data-free demo; managed always-on cloud is about US$100-200 a month
