@@ -368,8 +368,9 @@ export const ZH_MESSAGES: Messages = {
   'doc.no': '单号',
   'doc.noLines': '还没有商品。请添加商品开始。',
   'doc.overrideNeeded': '需要特批',
-  'doc.flag.override': '特批',
-  'doc.flag.large': '大额',
+  // TODO-review: machine draft (QA 2026-10-19: jargon).
+  'doc.flag.override': '库存特批',
+  'doc.flag.large': '大额单据',
   'doc.partner': '往来单位',
   'doc.post.title': '过账',
   'doc.purpose': '用途',
@@ -379,7 +380,8 @@ export const ZH_MESSAGES: Messages = {
   'doc.returnedBanner': '由 {name} 退回',
   'doc.reversedBanner': '已冲销',
   'doc.sections': '单据内容',
-  'doc.selfApproval': '这张单据由您提交，因此您不能批准。请让其他主管或管理员处理。',
+  // TODO-review: machine draft (QA 2026-10-19: who can approve).
+  'doc.selfApproval': '这张单据由您提交，因此您不能批准。其他主管或管理员可以批准。',
   'doc.stockChanged': '库存已变化',
   'doc.stockChangedBody':
     '{sku} 的库存现为 {available} {uom}，但单据需要 {requested}。请调整数量后重试。',

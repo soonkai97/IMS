@@ -45,7 +45,7 @@ test.describe("R23 Date filters use the app format", () => {
     await sent;
     await expect(fromBox(page)).toHaveValue(EXAMPLE);
 
-    for (const typed of ["2026-10-09", "09 Oct 2026", "9.10.2026"]) {
+    for (const typed of ["2026-10-09", "09 Oct 2026", "9.10.2026", "09102026"]) {
       await typeDate(page, fromBox(page), "01/01/2026");
       const again = page.waitForRequest(asksFor("from", "2026-10-09"));
       await typeDate(page, fromBox(page), typed);

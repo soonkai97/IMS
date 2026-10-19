@@ -156,6 +156,10 @@ describe('DocumentActionsComponent (buttons come from the server allowedActions)
     expect(approve?.getAttribute('aria-disabled')).toBe('true');
     const reasonId = approve?.getAttribute('aria-describedby') ?? '';
     expect(spectator.query(`#${reasonId}`)?.textContent).toContain("can't approve it");
+    // The Standard tier is the Supervisor's, with no Owner fallback: the sentence says who can (QA 2026-10-19).
+    expect(spectator.query(`#${reasonId}`)?.textContent).toContain(
+      'Another Supervisor or an Administrator can approve it.'
+    );
   });
 
   it('a blocked Approve does nothing when pressed', () => {

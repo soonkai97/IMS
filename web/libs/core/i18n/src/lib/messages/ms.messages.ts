@@ -129,7 +129,8 @@ export const MS_MESSAGES: Messages = {
   'docType.Transfer': 'Pemindahan',
   'docType.Adjust': 'Pelarasan',
   'purpose.Sale': 'Jualan',
-  'purpose.Use': 'Guna',
+  // TODO-review: machine draft (QA 2026-10-19: jargon).
+  'purpose.Use': 'Kegunaan dalaman',
   'purpose.Scrap': 'Lupus',
   'partnerType.Supplier': 'Pembekal',
   'partnerType.Customer': 'Pelanggan',
@@ -381,8 +382,8 @@ export const MS_MESSAGES: Messages = {
   'doc.no': 'No.',
   'doc.noLines': 'Belum ada item. Tambah item untuk bermula.',
   'doc.overrideNeeded': 'Perlu pengecualian',
-  'doc.flag.override': 'Pengecualian',
-  'doc.flag.large': 'Besar',
+  'doc.flag.override': 'Pengecualian stok',
+  'doc.flag.large': 'Dokumen besar',
   'doc.partner': 'Rakan niaga',
   'doc.post.title': 'Poskan',
   'doc.purpose': 'Tujuan',
@@ -393,7 +394,8 @@ export const MS_MESSAGES: Messages = {
   'doc.reversedBanner': 'Dibalikkan',
   'doc.sections': 'Bahagian dokumen',
   'doc.selfApproval':
-    'Anda menghantar dokumen ini, jadi anda tidak boleh meluluskannya. Minta penyelia lain atau Pentadbir.',
+    // TODO-review: machine draft (QA 2026-10-19: who can approve).
+    'Anda menghantar dokumen ini, jadi anda tidak boleh meluluskannya. Penyelia lain atau Pentadbir boleh meluluskannya.',
   'doc.stockChanged': 'Stok telah berubah',
   'doc.stockChangedBody':
     'Stok untuk {sku} kini {available} {uom}, tetapi dokumen memerlukan {requested}. Laraskan kuantiti dan cuba lagi.',
