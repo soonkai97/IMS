@@ -33,8 +33,8 @@
     </div>
 
     @if ($sessionExpired()) {
-      <app-banner class="login-page-notice" kind="warning">{{
-        'login.sessionExpired' | t
+      <app-banner id="login-session-notice" class="login-page-notice" kind="warning">{{
+        ($draftKept() ? 'login.sessionExpiredKept' : 'login.sessionExpired') | t
       }}</app-banner>
     }
     @if ($offlineNotice()) {
@@ -53,6 +53,7 @@
         <app-form-field
           [label]="'login.username' | t"
           [required]="true"
+          [extraDescription]="$sessionExpired() ? 'login-session-notice' : null"
           [control]="form.controls.username"
           [messages]="{ required: 'login.username.empty' | t }"
         >

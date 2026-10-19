@@ -10,6 +10,40 @@ import { UiSelectComponent } from '../select/select.component';
 import { UiTextareaComponent } from '../textarea/textarea.component';
 import { UiFormFieldComponent } from './form-field.component';
 
+describe('UiFormFieldComponent extra description (login notice)', () => {
+  const createComponent = createComponentFactory({
+    component: UiFormFieldComponent,
+    detectChanges: false
+  });
+
+  it('adds the id of a notice to what the control is described by, after the error', () => {
+    const control = new FormControl(null, [Validators.required]);
+    const spectator = createComponent({
+      props: { label: 'Name', control, extraDescription: 'page-notice' } as never
+    });
+    control.markAsTouched();
+    spectator.detectChanges();
+
+    expect(spectator.component.describedBy()).toBe(`${spectator.component.errorId} page-notice`);
+  });
+
+  it('describes the control by the notice alone when there is no hint or error', () => {
+    const spectator = createComponent({
+      props: { label: 'Name', extraDescription: 'page-notice' } as never
+    });
+    spectator.detectChanges();
+
+    expect(spectator.component.describedBy()).toBe('page-notice');
+  });
+
+  it('has no description at all by default', () => {
+    const spectator = createComponent({ props: { label: 'Name' } as never });
+    spectator.detectChanges();
+
+    expect(spectator.component.describedBy()).toBeNull();
+  });
+});
+
 describe('UiFormFieldComponent error wording', () => {
   let spectator: Spectator<UiFormFieldComponent>;
   const createComponent = createComponentFactory({

@@ -13,7 +13,7 @@ import {
   ProductDto
 } from '@ims/api';
 import { provideUiText } from '@ims/core/i18n';
-import { PermissionService } from '@ims/core/identity';
+import { AuthService, PermissionService, SessionDraftService } from '@ims/core/identity';
 import { PageTitleService, unsavedChangesGuard } from '@ims/core/navigation';
 import { ConfirmService, ToastService } from '@ims/core/notification';
 import { SystemSettingsStore } from '@ims/core/settings';
@@ -125,6 +125,9 @@ describe('DocumentEditorPageComponent', () => {
   const detailOperation = signal<ApiOperation>(IDLE_OPERATION);
   const lookup = jest.fn();
   const granted = new Set<string>([PERMISSION.StockRead]);
+  /** The signed-in user and the session-expiry signal of the AuthService. */
+  const signedIn = signal<{ id: string } | undefined>({ id: guid(9) });
+  const sessionExpiring = new Subject<void>();
   /** What a command answers instead of the opened document (a save that creates, a submit that moves on). */
   const responses: Record<string, DocumentDto | undefined> = {};
   /** Commands that fail like a dead network. */
@@ -150,6 +153,10 @@ describe('DocumentEditorPageComponent', () => {
     providers: [
       provideRouter([]),
       provideUiText(),
+      {
+        provide: AuthService,
+        useValue: { $user: signedIn.asReadonly(), sessionExpiring$: sessionExpiring.asObservable() }
+      },
       {
         provide: CatalogStore,
         useValue: { ensureLoaded: jest.fn(), $unitCodes: signal(new Map()) }
@@ -253,6 +260,8 @@ describe('DocumentEditorPageComponent', () => {
   const text = (): string => spectator.element.textContent?.replace(/\s+/g, ' ') ?? '';
 
   beforeEach(() => {
+    sessionStorage.clear();
+    signedIn.set({ id: guid(9) });
     for (const key of Object.keys(calls)) {
       delete calls[key];
     }
@@ -1569,6 +1578,138 @@ describe('DocumentEditorPageComponent', () => {
       spectator.detectChanges();
 
       expect(text()).not.toContain('changed since you opened it');
+    });
+  });
+
+  describe('a session that expires while the form holds unsent changes (QA defect 1)', () => {
+    const KEY = 'document.Issue.new';
+
+    it('keeps the unsent changes of a new document for the signed-in user, and nothing when the form is clean', async () => {
+      await openNew();
+      sessionExpiring.next();
+      expect(sessionStorage.length).toBe(0);
+
+      fillNewIssue();
+      sessionExpiring.next();
+
+      expect(sessionStorage.length).toBe(1);
+      expect(sessionStorage.key(0)).toBe(`ims.draft.${guid(9)}.${KEY}`);
+    });
+
+    it('puts the kept changes back after signing in again: lines, purpose and unsaved state, with a notice', async () => {
+      await openNew();
+      fillNewIssue();
+      sessionExpiring.next();
+      spectator.fixture.destroy();
+
+      await openNew();
+
+      expect(spectator.component.view.lines.length).toBe(1);
+      expect(spectator.component.view.header.controls.purpose.value).toBe(IssuePurpose.Sale);
+      expect(spectator.component.hasUnsavedChanges()).toBe(true);
+      expect(text()).toContain('Your unsent changes from before the session ended are back');
+      expect(sessionStorage.length).toBe(0);
+    });
+
+    it('restores only once: a later visit to the same page starts empty', async () => {
+      await openNew();
+      fillNewIssue();
+      sessionExpiring.next();
+      spectator.fixture.destroy();
+      await openNew();
+      spectator.fixture.destroy();
+
+      await openNew();
+
+      expect(spectator.component.view.lines.length).toBe(0);
+      expect(text()).not.toContain('unsent changes');
+    });
+
+    it('does not give one user the unsent changes of another', async () => {
+      await openNew();
+      fillNewIssue();
+      sessionExpiring.next();
+      spectator.fixture.destroy();
+      signedIn.set({ id: guid(10) });
+
+      await openNew();
+
+      expect(spectator.component.view.lines.length).toBe(0);
+      expect(spectator.inject(SessionDraftService).take(KEY)).toBeUndefined();
+    });
+
+    it('puts them back on the same saved draft when it has not changed meanwhile', async () => {
+      await open(draftOf(40), DocumentType.Receipt);
+      spectator.component.view.header.controls.remark.setValue('Counted twice');
+      spectator.component.view.header.markAsDirty();
+      sessionExpiring.next();
+      spectator.fixture.destroy();
+
+      await open(draftOf(40), DocumentType.Receipt);
+
+      expect(spectator.component.view.header.controls.remark.value).toBe('Counted twice');
+      expect(spectator.component.hasUnsavedChanges()).toBe(true);
+    });
+
+    it('starts from nothing when it opens a saved document, because the store may still hold an older copy of it (the form is filled once)', async () => {
+      await open(draftOf(40), DocumentType.Receipt);
+
+      const store = spectator.inject(DocumentsStore) as unknown as {
+        detail: { reset: jest.Mock; load: jest.Mock };
+      };
+      expect(store.detail.reset).toHaveBeenCalled();
+      const lastReset = Math.max(...store.detail.reset.mock.invocationCallOrder);
+      const load = store.detail.load.mock.invocationCallOrder[0];
+      expect(store.detail.load).toHaveBeenCalledWith(guid(40), expect.anything());
+      expect(lastReset).toBeLessThan(load);
+    });
+
+    it('drops a draft that was tampered with in storage, and says so, instead of restoring it', async () => {
+      const stored = (value: unknown): void =>
+        sessionStorage.setItem(
+          `ims.draft.${guid(9)}.${KEY}`,
+          JSON.stringify({ savedAt: Date.now(), value })
+        );
+      const draft = (header: object, lines: unknown = []) => ({
+        version: 1,
+        header: { warehouseId: null, partnerId: null, purpose: null, remark: '', ...header },
+        lines,
+        basedOn: null
+      });
+      const tampered = [
+        draft({ warehouseId: 'zzz' }),
+        draft({}, 'boom'),
+        draft({ remark: 'x'.repeat(4000) })
+      ];
+
+      for (const value of tampered) {
+        stored(value);
+        await openNew();
+
+        expect(spectator.component.view.lines.length).toBe(0);
+        expect(spectator.component.view.header.controls.remark.value).toBe('');
+        expect(text()).toContain('were not restored');
+        expect(sessionStorage.length).toBe(0);
+        spectator.fixture.destroy();
+      }
+    });
+
+    it('drops them, and says so, when the saved document changed meanwhile', async () => {
+      await open(draftOf(40), DocumentType.Receipt);
+      spectator.component.view.header.controls.remark.setValue('Counted twice');
+      spectator.component.view.header.markAsDirty();
+      sessionExpiring.next();
+      spectator.fixture.destroy();
+
+      await open(
+        { ...draftOf(40), concurrencyToken: 'ZZZZ', remark: 'Someone else' },
+        DocumentType.Receipt
+      );
+
+      expect(spectator.component.view.header.controls.remark.value).toBe('Someone else');
+      expect(spectator.component.hasUnsavedChanges()).toBe(false);
+      expect(text()).toContain('were not restored because this document changed');
+      expect(sessionStorage.length).toBe(0);
     });
   });
 });

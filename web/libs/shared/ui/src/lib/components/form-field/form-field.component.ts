@@ -43,6 +43,9 @@ export class UiFormFieldComponent implements FormFieldContext {
   /** Field-specific wording per error key ("min": "Enter a quantity above 0.") before the generic sentence. */
   $messages = input<Readonly<Record<string, string>>>({}, { alias: 'messages' });
 
+  /** Id of another element that describes this field too (a notice about the whole page), added to aria-describedby. */
+  $extraDescription = input<string | null>(null, { alias: 'extraDescription' });
+
   readonly inputId = `app-field-${nextFieldId++}`;
   readonly labelId = `${this.inputId}-label`;
   readonly hintId = `${this.inputId}-hint`;
@@ -71,7 +74,11 @@ export class UiFormFieldComponent implements FormFieldContext {
     return this.$messages()[key] ?? this.$text().validationMessage(key, value);
   });
   readonly describedBy = computed(() => {
-    const ids = [this.$hint() ? this.hintId : null, this.$errorText() ? this.errorId : null];
+    const ids = [
+      this.$hint() ? this.hintId : null,
+      this.$errorText() ? this.errorId : null,
+      this.$extraDescription()
+    ];
     const joined = ids.filter(Boolean).join(' ');
     return joined.length > 0 ? joined : null;
   });

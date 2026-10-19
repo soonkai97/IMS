@@ -84,7 +84,7 @@ jobs:
         run: |
           npm ci
           npm run build:prod
-          (PORT=4200 nohup npm run serve:prod > "$GITHUB_WORKSPACE/web.log" 2>&1 &)
+          (PORT=4200 API_URL=http://localhost:5109 nohup npm run serve:prod > "$GITHUB_WORKSPACE/web.log" 2>&1 &)
           for i in $(seq 1 30); do
             curl -fsS http://localhost:4200/login > /dev/null && exit 0
             sleep 1

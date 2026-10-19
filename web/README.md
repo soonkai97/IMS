@@ -126,6 +126,6 @@ key (compile-time check + a unit test that also compares placeholders).
 
 ## PWA
 
-`@angular/service-worker` (production builds): installable (manifest, icons), offline app shell, master-data GETs
-(products, categories, units, warehouses, partners, settings) are cached with a refresh-ahead (stale-while-revalidate)
-policy (`apps/main/ngsw-config.json`). No offline writes in Phase 1. The cached API data is dropped on sign-out.
+`@angular/service-worker` (production builds): installable (manifest, icons) and an offline app shell
+(`apps/main/ngsw-config.json`). The worker caches the shell only and never answers an API call, so nothing signed-in outlives the session
+and new data shows at once (docs/architecture/frontend.md decision 18). No offline reads of data and no offline writes in Phase 1.

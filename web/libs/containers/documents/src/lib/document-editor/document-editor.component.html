@@ -43,6 +43,11 @@
     <app-button bannerActions (clicked)="onRetryLoad()">{{ 'ui.retry' | t }}</app-button>
   </app-banner>
 } @else {
+  @if ($draftNotice(); as notice) {
+    <app-banner [kind]="notice === 'doc.draftRestored' ? 'info' : 'warning'">{{
+      notice | t
+    }}</app-banner>
+  }
   @if ($isStale()) {
     <app-banner kind="danger" [heading]="'doc.stale' | t: { docNo: $document()?.no ?? '' }">
       @if ($staleDetails(); as by) {

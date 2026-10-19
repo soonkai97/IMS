@@ -37,7 +37,12 @@ import {
   MessageKey,
   TranslatePipe
 } from '@ims/core/i18n';
-import { CanDirective, PermissionService } from '@ims/core/identity';
+import {
+  AuthService,
+  CanDirective,
+  PermissionService,
+  SessionDraftService
+} from '@ims/core/identity';
 import { HasUnsavedChanges, PageTitleService } from '@ims/core/navigation';
 import { handledInline } from '@ims/core/http';
 import { ConfirmService, ToastService } from '@ims/core/notification';
@@ -98,6 +103,7 @@ import {
 import { applyFieldErrors, controlSignal, isDefined, normalizePublicId } from '@ims/utils';
 import { DocumentActionsComponent } from '../document-actions/document-actions.component';
 import { DocumentLineEditorComponent } from '../line-editor/line-editor.component';
+import { parseEditorDraft } from './document-editor.draft';
 import { DocumentEditorViewService } from './document-editor.view-service';
 
 const TAB_ITEMS = 'items';
@@ -173,10 +179,12 @@ interface HistoryEvent {
   styleUrl: './document-editor.component.scss'
 })
 export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
+  private readonly auth = inject(AuthService);
   private readonly catalog = inject(CatalogStore);
   private readonly confirm = inject(ConfirmService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly documents = inject(DocumentsStore);
+  private readonly drafts = inject(SessionDraftService);
   private readonly i18n = inject(I18nService);
   private readonly injector = inject(Injector);
   private readonly page = inject(DOCUMENT);
@@ -211,6 +219,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   $addItemOpen = signal(false);
   $lastAdded = signal<string | undefined>(undefined);
   $showLineError = signal(false);
+  /** Said once after sign-in when unsent changes from before a session expiry were put back, or could not be. */
+  $draftNotice = signal<MessageKey | undefined>(undefined);
 
   /** The id in the URL; undefined on `/new` and when it is not a GUID. */
   private readonly $routeDocumentId = computed(() => {
@@ -654,9 +664,13 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         this.documents.detail.reset();
         this.view.startNew(null);
         this.prefillFromLink();
+        this.restoreDraft(undefined);
       } else if (id === this.justCreatedId) {
         this.justCreatedId = undefined;
       } else {
+        // The store outlives this page and may still hold an older copy of this very document: showing it first would fill the
+        // form (and take a kept draft) and the answer would then overwrite it. Start from nothing so the form is filled once.
+        this.documents.detail.reset();
         this.documents.detail.load(id, handledInline());
       }
     });
@@ -676,7 +690,10 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       return;
     }
     // The lines already carry `available` (stock on hand now), so opening a document needs no stock query.
-    untracked(() => this.view.populate(document, editable));
+    untracked(() => {
+      this.view.populate(document, editable);
+      this.restoreDraft({ token: document.concurrencyToken, editable });
+    });
   });
 
   private readonly preselectWarehouse = effect(() => {
@@ -736,6 +753,47 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
 
   constructor() {
     this.destroyRef.onDestroy(() => this.pageTitle.setDetail(undefined));
+    // The session expired while the form held unsent changes: keep them so the user can sign in and carry on (QA defect 1).
+    this.auth.sessionExpiring$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.keepDraft());
+  }
+
+  /** Where this editor keeps unsent changes: one entry per document type and document (or the new one). */
+  private draftKey(): string {
+    return `document.${this.$type()}.${this.$documentId() ?? NEW_DOCUMENT_ID}`;
+  }
+
+  private keepDraft(): void {
+    if (this.hasUnsavedChanges()) {
+      this.drafts.save(
+        this.draftKey(),
+        this.view.snapshot(this.$document()?.concurrencyToken ?? null)
+      );
+    }
+  }
+
+  /**
+   * Puts back the changes kept at a session expiry, once. A saved document takes them only if it is the version they were made
+   * on and still editable (the server decides what a Save does with anything else); otherwise they are dropped and the notice
+   * says so.
+   */
+  private restoreDraft(opened: { token: string; editable: boolean } | undefined): void {
+    const stored = this.drafts.take<unknown>(this.draftKey());
+    if (stored === undefined) {
+      return;
+    }
+    // What storage holds is untrusted: a draft that fails the check is dropped like one made on another version.
+    const draft = parseEditorDraft(stored);
+    const usable =
+      draft !== undefined &&
+      (opened === undefined
+        ? draft.basedOn === null
+        : opened.editable && draft.basedOn === opened.token);
+    if (usable && draft) {
+      this.view.restore(draft);
+    }
+    this.$draftNotice.set(usable ? 'doc.draftRestored' : 'doc.draftOutdated');
   }
 
   /**

@@ -1,9 +1,11 @@
+import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { createServiceFactory, mockProvider, SpectatorService } from '@ngneat/spectator/jest';
 import { Subject, firstValueFrom, of, throwError } from 'rxjs';
 import { AuthClient, AuthResult, UserInfo } from '@ims/api';
 import { LEGACY_REFRESH_TOKEN_STORAGE_KEY, REFRESH_RETRY } from '../constants/identity.const';
 import { AuthService } from './auth.service';
+import { SessionDraftService } from './session-draft.service';
 
 const USER: UserInfo = {
   id: '00000000-0000-4000-8000-000000000007',
@@ -41,6 +43,7 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     spectator = createService();
     router().navigate.mockClear();
   });
@@ -81,6 +84,105 @@ describe('AuthService', () => {
     expect(spectator.service.$isAuthenticated()).toBe(false);
     expect(router().navigate).toHaveBeenCalledWith(['/login'], {
       queryParams: { returnUrl: '/stock', reason: 'expired' }
+    });
+  });
+
+  describe('a session that expires while the user has unsent work (QA defect 1)', () => {
+    const OTHER_USER = '00000000-0000-4000-8000-000000000099';
+
+    async function signInAs(user = USER): Promise<void> {
+      client().refresh.mockReturnValueOnce(of({ ...authResult('a1'), user }));
+      await firstValueFrom(spectator.service.restoreSession());
+    }
+
+    async function expire(): Promise<void> {
+      client().refresh.mockReturnValue(throwError(() => ({ status: 401 })));
+      await expect(firstValueFrom(spectator.service.refresh())).rejects.toBeDefined();
+    }
+
+    it('tells screens before the user is cleared, so they can keep their work', async () => {
+      await signInAs();
+      let userSeen: string | undefined;
+      spectator.service.sessionExpiring$.subscribe(
+        () => (userSeen = spectator.service.$user()?.id)
+      );
+
+      await expire();
+
+      expect(userSeen).toBe(USER.id);
+      expect(spectator.service.$user()).toBeUndefined();
+    });
+
+    it('sends the user to sign-in with the return URL and the plain "expired" reason when nothing was kept', async () => {
+      await signInAs();
+
+      await expire();
+
+      expect(spectator.service.$sessionExpired()).toBe(true);
+      expect(router().navigate).toHaveBeenCalledWith(['/login'], {
+        queryParams: { returnUrl: '/stock', reason: 'expired' }
+      });
+    });
+
+    it('uses the "expired-kept" reason when a screen kept a draft while the session ended', async () => {
+      await signInAs();
+      const keeper = TestBed.inject(SessionDraftService);
+      spectator.service.sessionExpiring$.subscribe(() =>
+        keeper.save('document.Receipt.new', { remark: 'x' })
+      );
+
+      await expire();
+
+      expect(router().navigate).toHaveBeenCalledWith(['/login'], {
+        queryParams: { returnUrl: '/stock', reason: 'expired-kept' }
+      });
+    });
+
+    it('keeps the draft through the expiry and gives it back once to the same user after signing in again', async () => {
+      await signInAs();
+      const keeper = TestBed.inject(SessionDraftService);
+      spectator.service.sessionExpiring$.subscribe(() => keeper.save('k', { remark: 'x' }));
+      await expire();
+
+      await signInAs();
+
+      expect(keeper.take('k')).toEqual({ remark: 'x' });
+      expect(keeper.take('k')).toBeUndefined();
+      expect(spectator.service.$sessionExpired()).toBe(false);
+    });
+
+    it('does not give the draft to a different user who signs in next, and removes it', async () => {
+      await signInAs();
+      const keeper = TestBed.inject(SessionDraftService);
+      spectator.service.sessionExpiring$.subscribe(() => keeper.save('k', { remark: 'x' }));
+      await expire();
+
+      await signInAs({ ...USER, id: OTHER_USER });
+
+      expect(keeper.take('k')).toBeUndefined();
+      expect(sessionStorage.length).toBe(0);
+    });
+
+    it('removes every kept draft at an explicit sign-out and does not mark the session expired', async () => {
+      await signInAs();
+      TestBed.inject(SessionDraftService).save('k', { remark: 'x' });
+      client().logout.mockReturnValue(of(undefined));
+
+      await firstValueFrom(spectator.service.logout(), { defaultValue: undefined });
+
+      expect(sessionStorage.length).toBe(0);
+      expect(spectator.service.$sessionExpired()).toBe(false);
+      expect(router().navigate).toHaveBeenCalledWith(['/login'], { queryParams: {} });
+    });
+
+    it('survives storage that refuses writes', async () => {
+      await signInAs();
+      jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('QuotaExceededError');
+      });
+
+      expect(TestBed.inject(SessionDraftService).save('k', {})).toBe(false);
+      jest.restoreAllMocks();
     });
   });
 
