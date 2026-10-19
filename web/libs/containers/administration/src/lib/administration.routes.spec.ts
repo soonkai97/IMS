@@ -8,6 +8,7 @@ import {
 } from '@angular/router';
 import { PermissionService } from '@ims/core/identity';
 import { PERMISSION } from '@ims/models';
+import { unsavedChangesGuard } from '@ims/core/navigation';
 import { ROLE_ROUTES } from './administration.routes';
 
 const routeAt = (path: string) => ROLE_ROUTES.find(route => route.path === path);
@@ -63,5 +64,9 @@ describe('ROLE_ROUTES (the list and a role are gated by roles.read, nothing else
     held.add(PERMISSION.RolesRead);
 
     expect(run(':id')).toBe(true);
+  });
+
+  it('asks before leaving unsaved edits on a role', () => {
+    expect(routeAt(':id')?.canDeactivate).toEqual([unsavedChangesGuard]);
   });
 });

@@ -2,18 +2,23 @@
   [heading]="$heading()"
   [backLink]="['/roles']"
   [backLabel]="'roles.title' | t"
-  [subtitle]="$role() ? ('roles.appliesLater' | t) : ''"
+  [subtitle]="$baseline() ? ('roles.appliesLater' | t) : ''"
 >
-  @if ($role()) {
+  @if ($baseline()) {
     <span chips class="role-page-chips">
-      <span class="role-page-chip">
-        {{ $kindLabel() }}
-      </span>
-      <span class="role-page-chip">
-        <app-icon name="eye" [size]="16" />
-        {{ 'roles.viewOnly' | t }}
-      </span>
+      <span class="role-page-chip">{{ $kindLabel() }}</span>
+      @if (!$editable()) {
+        <span class="role-page-chip">
+          <app-icon name="eye" [size]="16" />
+          {{ 'roles.viewOnly' | t }}
+        </span>
+      }
     </span>
+  }
+  @if ($editable()) {
+    <div actions class="role-page-actions">
+      <ng-container [ngTemplateOutlet]="saveBar" />
+    </div>
   }
 </app-page-header>
 
@@ -22,35 +27,69 @@
 } @else if ($loadFailed()) {
   <app-banner kind="danger">
     {{ 'error.generic' | t }}
-    <app-button bannerActions (clicked)="onRetry()">{{ 'ui.retry' | t }}</app-button>
+    <app-button bannerActions (clicked)="onRetryLoad()">{{ 'ui.retry' | t }}</app-button>
   </app-banner>
-} @else if (!$role() || !$catalog()) {
+} @else if ($isLoading() || !$catalog()) {
   <app-skeleton [count]="4" />
 } @else {
-  @if ($isLocked()) {
-    <app-banner kind="info">{{ 'rolePage.readOnly.locked' | t }}</app-banner>
+  @if ($readOnlyReason()) {
+    <app-banner kind="info">{{ $readOnlyText() }}</app-banner>
+  }
+  @if ($failure(); as failure) {
+    <app-banner kind="danger" class="role-page-failure">
+      {{ failureText(failure) }}
+      @if (failure.kind === 'stale') {
+        <app-button bannerActions (clicked)="onReload()">{{ 'rolePage.reload' | t }}</app-button>
+      }
+    </app-banner>
   }
 
   <div class="role-page-body">
     <app-card [heading]="'rolePage.details' | t">
-      @if ($role()?.description; as description) {
+      @if ($baseline()?.description; as description) {
         <p class="role-page-text">{{ description }}</p>
       }
       <p class="role-page-muted">
-        {{ 'rolePage.people' | t: { count: $role()?.userCount ?? 0 } }}
+        {{ 'rolePage.people' | t: { count: $baseline()?.userCount ?? 0 } }}
       </p>
       <app-status-chip
-        [label]="($role()?.isActive ? 'product.active' : 'product.inactive') | t"
-        [status]="$role()?.isActive ? 'posted' : 'cancelled'"
+        [label]="($baseline()?.isActive ? 'product.active' : 'product.inactive') | t"
+        [status]="$baseline()?.isActive ? 'posted' : 'cancelled'"
       />
     </app-card>
 
     <app-card [heading]="'rolePage.permissions' | t">
-      <app-permission-list
-        [groups]="$groups()"
-        [catalog]="$catalog() ?? []"
-        [selected]="$selected()"
-      />
+      @if ($editable()) {
+        <p class="role-page-muted">{{ 'rolePage.permissionsHint' | t }}</p>
+        <p class="role-page-live" role="status" aria-live="polite">{{ $announcement() }}</p>
+        <app-permission-checklist
+          [groups]="$groups()"
+          [catalog]="$catalog() ?? []"
+          [selected]="$selected()"
+          [held]="$held()"
+          (toggled)="onToggle($event)"
+        />
+        <div class="role-page-actions">
+          <ng-container [ngTemplateOutlet]="saveBar" />
+        </div>
+      } @else {
+        <app-permission-list
+          [groups]="$groups()"
+          [catalog]="$catalog() ?? []"
+          [selected]="$selected()"
+        />
+      }
     </app-card>
   </div>
 }
+
+<ng-template #saveBar>
+  @if ($dirty()) {
+    <app-button variant="ghost" [disabled]="$isSaving()" (clicked)="onDiscard()">{{
+      'rolePage.discard' | t
+    }}</app-button>
+  }
+  <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
+    'common.save' | t
+  }}</app-button>
+</ng-template>

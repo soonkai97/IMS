@@ -574,6 +574,22 @@ export const MS_MESSAGES: Messages = {
   'rolePage.readOnly.locked':
     'Peranan ini sentiasa mempunyai semua kebenaran dan tidak boleh diubah.',
   'rolePage.requires': 'Memerlukan: {names}',
+  // TODO-review: machine draft (role editor, RP02b).
+  'rolePage.alsoOff': 'Turut dimatikan: {names}.',
+  'rolePage.alsoOn': 'Turut dihidupkan: {names}.',
+  'rolePage.discard': 'Buang perubahan',
+  'rolePage.failure.stale':
+    'Seseorang telah mengubah peranan ini semasa anda menyunting. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',
+  'rolePage.notHeld': 'Anda tidak boleh memberi kebenaran yang anda tidak miliki.',
+  'rolePage.permissionsHint':
+    'Tandakan apa yang boleh dilakukan oleh orang yang mempunyai peranan ini. Menanda satu kebenaran juga menanda yang diperlukannya; menyahtanda satu juga menyahtanda yang bergantung padanya.',
+  'rolePage.readOnly.holdsMore':
+    'Peranan ini mempunyai kebenaran yang anda tiada, jadi anda tidak boleh mengubahnya.',
+  'rolePage.readOnly.ownRole':
+    'Ini peranan anda sendiri. Anda tidak boleh mengubahnya; minta pentadbir lain.',
+  'rolePage.readOnly.viewOnly': 'Anda boleh melihat peranan ini tetapi tidak boleh mengubahnya.',
+  'rolePage.reload': 'Muat semula peranan',
+  'rolePage.saved': 'Disimpan. {added} kebenaran ditambah, {removed} kebenaran dibuang.',
   'perm.group.Administration': 'Pentadbiran',
   'perm.group.CostAndValue': 'Kos dan nilai',
   'perm.group.Documents': 'Dokumen',

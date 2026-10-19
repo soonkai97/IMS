@@ -4,6 +4,7 @@
     type="checkbox"
     [checked]="$checked()"
     [disabled]="$disabled()"
+    [attr.aria-describedby]="$describedBy() ?? null"
     (change)="onToggle($event)"
     (blur)="onBlur()"
   />

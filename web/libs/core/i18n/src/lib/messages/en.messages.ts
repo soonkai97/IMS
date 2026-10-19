@@ -586,6 +586,22 @@ export const EN_MESSAGES = {
   'rolePage.permissions': 'Permissions',
   'rolePage.readOnly.locked': 'This role always holds every permission and cannot be changed.',
   'rolePage.requires': 'Needs: {names}',
+  'rolePage.alsoOff': 'Also turned off: {names}.',
+  'rolePage.alsoOn': 'Also turned on: {names}.',
+  'rolePage.discard': 'Discard changes',
+  'rolePage.failure.stale':
+    'Someone changed this role while you were editing. Reload to see the latest version. Your changes were not saved.',
+  'rolePage.notHeld': "You can't give a permission you don't have.",
+  'rolePage.permissionsHint':
+    'Tick what people with this role may do. Ticking a permission also ticks what it needs; unticking one also unticks what needs it.',
+  'rolePage.readOnly.holdsMore':
+    'This role holds permissions you do not have, so you cannot change it.',
+  'rolePage.readOnly.ownRole':
+    "This is your own role. You can't change it; ask another administrator.",
+  'rolePage.readOnly.viewOnly': 'You can see this role but not change it.',
+  'rolePage.reload': 'Reload the role',
+  'rolePage.saved':
+    'Saved. {added, plural, one {# permission} other {# permissions}} added, {removed, plural, one {# permission} other {# permissions}} removed.',
   'perm.group.Administration': 'Administration',
   'perm.group.CostAndValue': 'Cost and value',
   'perm.group.Documents': 'Documents',

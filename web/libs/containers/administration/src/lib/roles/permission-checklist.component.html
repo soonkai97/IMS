@@ -1,0 +1,43 @@
+@for (group of $groups(); track group.group) {
+  <fieldset class="permission-list-group">
+    <legend class="permission-list-heading">
+      <h3 class="permission-list-title">{{ groupLabel(group.group) }}</h3>
+      <span class="permission-list-count">{{
+        'rolePage.groupCount' | t: { count: count(group), total: group.permissions.length }
+      }}</span>
+    </legend>
+    <ul class="permission-list-list">
+      @for (permission of group.permissions; track permission.code) {
+        <li class="permission-list-row" [attr.data-permission]="permission.code">
+          <app-checkbox
+            [ngModel]="isOn(permission)"
+            [ngModelOptions]="{ standalone: true }"
+            [disabled]="notHeld(permission)"
+            [describedBy]="descriptionId(permission)"
+            (ngModelChange)="onToggle(permission, $event)"
+          >
+            {{ label(permission) }}
+          </app-checkbox>
+          <!-- Read after the name by assistive technology: the sentences stay apart from the name. -->
+          <div class="permission-list-details" [id]="descriptionId(permission)">
+            @if (permission.isDangerous) {
+              <app-status-chip flag="warning" [label]="'rolePage.highImpact' | t" />
+            }
+            <span class="permission-list-help">{{ help(permission) }}</span>
+            @if (permission.requires.length > 0) {
+              <span class="permission-list-help">{{
+                'rolePage.requires' | t: { names: requires(permission) }
+              }}</span>
+            }
+            @if (notHeld(permission)) {
+              <span class="permission-list-reason">
+                <app-icon name="lock" [size]="16" />
+                {{ 'rolePage.notHeld' | t }}
+              </span>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  </fieldset>
+}
