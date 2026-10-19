@@ -3,6 +3,8 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  Injector,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -14,7 +16,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Observable, of, switchMap, tap } from 'rxjs';
+import { Observable, defaultIfEmpty, map, of, switchMap, tap } from 'rxjs';
 import { RoleCreateRequest, RoleDto, RolePermissionsResult } from '@ims/api';
 import { I18nService, MessageKey, TranslatePipe, isMessageKey } from '@ims/core/i18n';
 import { PermissionService } from '@ims/core/identity';
@@ -108,6 +110,7 @@ export class RolePageComponent implements HasUnsavedChanges {
   private readonly confirm = inject(ConfirmService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
   private readonly i18n = inject(I18nService);
   private readonly permissions = inject(PermissionService);
   private readonly router = inject(Router);
@@ -233,6 +236,9 @@ export class RolePageComponent implements HasUnsavedChanges {
   private readonly $source = computed(() =>
     (this.store.roleChoices.$data() ?? []).find(role => role.id === this.$copyFromId())
   );
+  /** The source the ticks were last filled from: what a hand-made change is measured against. */
+  private appliedSource: RoleDto | undefined;
+  private resetting = false;
 
   private readonly $permissionsDirty = computed(
     () => !sameSet(this.$selected(), new Set(this.$baseline()?.permissions ?? []))
@@ -240,6 +246,8 @@ export class RolePageComponent implements HasUnsavedChanges {
   $dirty = computed(
     () => this.$permissionsDirty() || this.$formDirty() || (this.$isNew() && !!this.$copyFromId())
   );
+  /** A role already saved has nothing to save until something changed; a new one always can (the form then says what is missing). */
+  $canSave = computed(() => this.$isNew() || this.$dirty());
 
   constructor() {
     this.store.catalog.load();
@@ -247,9 +255,8 @@ export class RolePageComponent implements HasUnsavedChanges {
       this.$formDirty.set(this.form.dirty);
     });
     this.form.controls.copyFromId.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
-      if (this.$isNew()) {
-        this.$selected.set(new Set(this.$source()?.permissions ?? []));
-        this.$announcement.set('');
+      if (this.$isNew() && !this.resetting) {
+        this.startFrom();
       }
     });
   }
@@ -300,6 +307,44 @@ export class RolePageComponent implements HasUnsavedChanges {
     }
   }
 
+  /**
+   * Choosing what a new role starts from fills the ticks. Ticks the person made by hand are not thrown away silently: the
+   * dialog asks first, and a refusal puts the previous choice back.
+   */
+  private startFrom(): void {
+    const next = this.$source();
+    const previous = this.appliedSource;
+    const handMade = !sameSet(this.$selected(), new Set(previous?.permissions ?? []));
+    const apply = (): void => {
+      this.appliedSource = next;
+      this.$selected.set(new Set(next?.permissions ?? []));
+      this.$announcement.set('');
+    };
+    if (!handMade || next === previous) {
+      apply();
+      return;
+    }
+    this.confirm
+      .ask({
+        heading: this.i18n.t('rolePage.replaceTitle'),
+        body: this.i18n.t('rolePage.replaceBody'),
+        confirmLabel: this.i18n.t('rolePage.replace'),
+        cancelLabel: this.i18n.t('common.cancel')
+      })
+      .pipe(
+        map(() => true),
+        defaultIfEmpty(false),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(confirmed => {
+        if (confirmed) {
+          apply();
+        } else {
+          this.form.controls.copyFromId.setValue(previous?.id ?? null, { emitEvent: false });
+        }
+      });
+  }
+
   onToggle(toggle: PermissionToggle): void {
     const catalog = this.$catalog();
     if (!this.$editable() || catalog === undefined) {
@@ -335,6 +380,11 @@ export class RolePageComponent implements HasUnsavedChanges {
   }
 
   failureText(failure: RoleFailure): string {
+    const reason = this.reasonText(failure);
+    return failure.textSaved ? this.i18n.t('rolePage.failure.partial', { reason }) : reason;
+  }
+
+  private reasonText(failure: RoleFailure): string {
     switch (failure.kind) {
       case 'stale':
         return this.i18n.t('rolePage.failure.stale');
@@ -350,7 +400,15 @@ export class RolePageComponent implements HasUnsavedChanges {
   onSave(): void {
     this.form.markAllAsTouched();
     const base = this.$baseline();
-    if (!this.$editable() || this.form.invalid || this.$isSaving() || (!this.$isNew() && !base)) {
+    if (this.form.invalid) {
+      this.host.nativeElement
+        .querySelector<HTMLElement>(
+          '[formControlName].ng-invalid input, [formControlName].ng-invalid textarea'
+        )
+        ?.focus();
+      return;
+    }
+    if (!this.$editable() || this.$isSaving() || (!this.$isNew() && !base)) {
       return;
     }
     this.$failure.set(undefined);
@@ -393,6 +451,12 @@ export class RolePageComponent implements HasUnsavedChanges {
           const error = this.store.remove.$operation().error;
           if (error) {
             this.explain(error, { removing: true });
+            // The dialog is gone: focus goes back to the button that opened it, never to the body.
+            afterNextRender(
+              () =>
+                this.host.nativeElement.querySelector<HTMLElement>('[data-delete] button')?.focus(),
+              { injector: this.injector }
+            );
           }
         }
       });
@@ -423,7 +487,10 @@ export class RolePageComponent implements HasUnsavedChanges {
         }),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe({ complete: () => this.afterWrite(this.store.create.$operation().error) });
+      .subscribe({
+        complete: () =>
+          this.afterWrite(this.store.create.$operation().error, { onName: true, textSaved: false })
+      });
   }
 
   /** Saves the text first (a standard role has none to save), then the permissions with the token of the previous answer. */
@@ -444,10 +511,14 @@ export class RolePageComponent implements HasUnsavedChanges {
       return;
     }
     let result: RolePermissionsResult | undefined;
+    let textSaved = false;
     const details$: Observable<unknown> = detailsChanged
-      ? this.store.saveDetails
-          .run({ id: base.id, token: base.concurrencyToken, body })
-          .pipe(tap(role => this.$baseline.set(role)))
+      ? this.store.saveDetails.run({ id: base.id, token: base.concurrencyToken, body }).pipe(
+          tap(role => {
+            textSaved = true;
+            this.$baseline.set(role);
+          })
+        )
       : of(undefined);
     details$
       .pipe(
@@ -472,11 +543,15 @@ export class RolePageComponent implements HasUnsavedChanges {
       )
       .subscribe({
         complete: () => {
-          const error =
-            this.store.saveDetails.$operation().error ??
-            this.store.savePermissions.$operation().error;
+          const detailsError = this.store.saveDetails.$operation().error;
+          const error = detailsError ?? this.store.savePermissions.$operation().error;
           if (error) {
-            this.afterWrite(error);
+            if (textSaved) {
+              // The text is the new baseline; only the ticks are still unsaved.
+              this.form.markAsPristine();
+              this.$formDirty.set(false);
+            }
+            this.afterWrite(error, { onName: detailsError !== undefined, textSaved });
             return;
           }
           this.reset(this.$baseline());
@@ -493,9 +568,12 @@ export class RolePageComponent implements HasUnsavedChanges {
       });
   }
 
-  private afterWrite(error: ApiError | undefined): void {
+  private afterWrite(
+    error: ApiError | undefined,
+    options: { onName: boolean; textSaved: boolean }
+  ): void {
     if (error) {
-      this.explain(error, { removing: false });
+      this.explain(error, { removing: false, ...options });
     }
   }
 
@@ -503,7 +581,10 @@ export class RolePageComponent implements HasUnsavedChanges {
    * Shows why a write was refused. A 409 is told apart by reading the role again: another concurrency token than the one the
    * save started from means someone changed it (the API gives no code). A name that is taken lands on the Name field.
    */
-  private explain(error: ApiError, options: { removing: boolean }): void {
+  private explain(
+    error: ApiError,
+    options: { removing: boolean; onName?: boolean; textSaved?: boolean }
+  ): void {
     const base = this.$baseline();
     const changed$ =
       error.status === HTTP_STATUS.Conflict && base !== undefined && !options.removing
@@ -513,7 +594,7 @@ export class RolePageComponent implements HasUnsavedChanges {
       const failure = classifyRoleFailure(error, { roleChangedSince });
       if (failure.kind === 'notFound' && !this.$isNew()) {
         this.$vanished.set(true);
-      } else if (failure.kind === 'conflict' && this.$isNew()) {
+      } else if (failure.kind === 'conflict' && options.onName) {
         this.form.controls.name.setErrors({ server: failure.message });
         this.form.controls.name.markAsTouched();
       } else if (failure.kind === 'invalid' && Object.keys(error.fieldErrors).length > 0) {
@@ -522,7 +603,7 @@ export class RolePageComponent implements HasUnsavedChanges {
           this.$failure.set({ ...failure, message: unmatched[0] });
         }
       } else {
-        this.$failure.set(failure);
+        this.$failure.set({ ...failure, textSaved: options.textSaved });
       }
     });
   }
@@ -530,12 +611,15 @@ export class RolePageComponent implements HasUnsavedChanges {
   /** Puts a role (or the empty form of a new role) on screen and clears every unsaved edit. */
   private reset(role: RoleDto | undefined): void {
     this.$baseline.set(role);
+    this.resetting = true;
     this.form.reset({
       name: role?.name ?? '',
       description: role?.description ?? '',
       isActive: role?.isActive ?? true,
       copyFromId: null
     });
+    this.resetting = false;
+    this.appliedSource = undefined;
     this.$formDirty.set(false);
     this.$selected.set(new Set(role?.permissions ?? []));
     this.$failure.set(undefined);

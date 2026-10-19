@@ -541,16 +541,20 @@ export const ZH_MESSAGES: Messages = {
   'roles.users': '用户',
   'roles.viewOnly': '仅查看',
   // TODO-review: machine draft (role page, RP02).
-  'rolePage.details': '详情',
+  // TODO-review: machine draft (role page, RP02).
   'rolePage.allowed': '允许',
-  'rolePage.notAllowed': '不允许',
+  'rolePage.details': '详情',
+  'rolePage.failure.partial': '名称和说明已保存，但权限未保存：{reason}',
   'rolePage.groupCount': '已开启 {count} / {total}',
   'rolePage.highImpact': '高影响',
+  'rolePage.notAllowed': '不允许',
   'rolePage.people': '有 {count} 人拥有此角色。',
   'rolePage.permissions': '权限',
   'rolePage.readOnly.locked': '此角色始终拥有全部权限，无法修改。',
+  'rolePage.replace': '替换',
+  'rolePage.replaceBody': '您手动更改了勾选项。选择其他起点会替换它们。',
+  'rolePage.replaceTitle': '替换您的勾选？',
   'rolePage.requires': '需要：{names}',
-  // TODO-review: machine draft (role editor, RP02c).
   'roles.new': '新建角色',
   'rolePage.active': '启用',
   'rolePage.activeHint': '停用的角色不能再分配给新的人员。',

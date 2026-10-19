@@ -258,6 +258,44 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
       expect(tokenOf(client.replacePermissions.mock.calls[0][2])).toBe('v2');
     });
 
+    it('a name that is taken lands on the Name field when editing too', async () => {
+      await open(role());
+      client.update.mockReturnValue(
+        throwError(() => conflict("A role named 'Clerk' already exists."))
+      );
+
+      spectator.typeInElement('Clerk', 'app-input[formControlName="name"] input');
+      await save();
+
+      expect(text()).toContain("A role named 'Clerk' already exists.");
+      expect(banners().join(' ')).not.toContain('already exists');
+    });
+
+    it('Save waits for a change: disabled while nothing differs, enabled by a tick', async () => {
+      await open(role());
+      const saves = () =>
+        spectator
+          .queryAll<HTMLButtonElement>('button')
+          .filter(b => b.textContent?.trim() === 'Save');
+      expect(saves().every(b => b.disabled)).toBe(true);
+
+      await tick('document.post');
+
+      expect(saves().every(b => !b.disabled)).toBe(true);
+    });
+
+    it('a Save the form refuses puts the focus on the first field to fix', async () => {
+      await open(role());
+      spectator.typeInElement('', 'app-input[formControlName="name"] input');
+      await settle();
+
+      await save();
+
+      expect(document.activeElement).toBe(
+        spectator.query('app-input[formControlName="name"] input')
+      );
+    });
+
     it('a standard role keeps its text: only its permissions are sent', async () => {
       await open(role({ isSystem: true, name: 'Supervisor', code: 'standard' }));
       client.replacePermissions.mockReturnValue(
@@ -273,6 +311,71 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
 
       expect(client.update).not.toHaveBeenCalled();
       expect(client.replacePermissions).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('the text is saved but the permissions are refused', () => {
+    const renameAndTick = async (error: ApiError): Promise<void> => {
+      client.get.mockReset();
+      client.get.mockReturnValue(of(role()));
+      await open(undefined, ID);
+      client.update.mockReturnValue(of(role({ name: 'Late clerk', concurrencyToken: 'v2' })));
+      client.replacePermissions.mockReturnValue(throwError(() => error));
+
+      spectator.typeInElement('Late clerk', 'app-input[formControlName="name"] input');
+      await tick('document.post');
+      await save();
+    };
+
+    it.each([
+      [
+        'a 403',
+        problem(
+          403,
+          'You cannot change a role that holds more permissions than you.',
+          API_ERROR_KIND.Forbidden
+        ),
+        'holds more permissions than you'
+      ],
+      ['a lost connection', problem(0, 'Network down.', API_ERROR_KIND.Network), 'Network down.']
+    ])(
+      'says the text was saved and why the permissions were not: %s',
+      async (_label, error, reason) => {
+        await renameAndTick(error);
+
+        const shown = banners().join(' ');
+        expect(shown).toContain('Name and description were saved. The permissions were not:');
+        expect(shown).toContain(reason);
+        // The saved text is the new baseline and the ticks are still there to retry; one alert, no toast.
+        expect(spectator.query('h1')?.textContent).toContain('Late clerk');
+        expect(box('document.post').checked).toBe(true);
+        expect(toast.success).not.toHaveBeenCalled();
+        expect(spectator.queryAll('app-banner[role="alert"]').length).toBe(1);
+      }
+    );
+
+    it('a stale 409 on the permissions keeps the saved text in the message and offers Reload', async () => {
+      await renameAndTick(conflict('The role was changed by someone else.'));
+
+      expect(banners().join(' ')).toContain('Name and description were saved.');
+      expect(banners().join(' ')).toContain('Someone changed this role');
+      expect(button('Reload the role')).toBeDefined();
+    });
+
+    it('only the ticks count as unsaved afterwards: the text is not asked about again', async () => {
+      await renameAndTick(problem(403, 'x', API_ERROR_KIND.Forbidden));
+      client.replacePermissions.mockReturnValue(
+        of({
+          role: role({ name: 'Late clerk', permissions: ['stock.read', 'document.post'] }),
+          added: ['document.post'],
+          removed: []
+        })
+      );
+
+      await save();
+
+      expect(client.update).toHaveBeenCalledTimes(1);
+      expect(client.replacePermissions).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -442,6 +545,8 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
 
       expect(banners().join(' ')).toContain('3 people have this role. Move them to another role');
       expect(button('Delete role')).toBeDefined();
+      // The dialog is gone: the focus is back on the button that opened it, not on the body.
+      expect(document.activeElement).toBe(button('Delete role'));
     });
 
     it('a standard role has no Delete button', async () => {
@@ -514,6 +619,29 @@ describe('RolePageComponent for a person who may change roles (RP02b: edit a rol
       const body = client.create.mock.calls[0][0];
       expect(body.copyFromRoleId).toBeUndefined();
       expect(body.permissions).toEqual(['stock.read']);
+    });
+
+    it('changing Start from asks first when ticks were made by hand, and a refusal keeps them', async () => {
+      client.list.mockReturnValue(
+        of([role({ id: OTHER, name: 'Source', permissions: ['stock.read', 'document.post'] })])
+      );
+      await open(undefined);
+      await tick('stock.read');
+
+      spectator.component.form.controls.copyFromId.setValue(OTHER);
+      await settle();
+      TestBed.inject(ConfirmService).cancel();
+      await settle();
+
+      expect(box('document.post').checked).toBe(false);
+      expect(spectator.component.form.controls.copyFromId.value).toBeNull();
+
+      spectator.component.form.controls.copyFromId.setValue(OTHER);
+      await settle();
+      TestBed.inject(ConfirmService).confirm('');
+      await settle();
+
+      expect(box('document.post').checked).toBe(true);
     });
 
     it('does not offer a role that holds more than the person (it would be refused)', async () => {

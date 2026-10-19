@@ -18,9 +18,13 @@
   @if ($editable()) {
     <div actions class="role-page-actions">
       @if ($canDelete()) {
-        <app-button variant="danger-outline" [loading]="$isDeleting()" (clicked)="onDelete()">{{
-          'rolePage.delete' | t
-        }}</app-button>
+        <app-button
+          data-delete
+          variant="danger-outline"
+          [loading]="$isDeleting()"
+          (clicked)="onDelete()"
+          >{{ 'rolePage.delete' | t }}</app-button
+        >
       }
       <ng-container [ngTemplateOutlet]="saveBar" />
     </div>
@@ -133,7 +137,11 @@
       'rolePage.discard' | t
     }}</app-button>
   }
-  <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
-    'common.save' | t
-  }}</app-button>
+  <app-button
+    variant="primary"
+    [disabled]="!$canSave()"
+    [loading]="$isSaving()"
+    (clicked)="onSave()"
+    >{{ 'common.save' | t }}</app-button
+  >
 </ng-template>

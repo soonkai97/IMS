@@ -17,6 +17,8 @@ export interface RoleFailure {
   readonly message: string;
   /** For `inUse`: how many people hold the role, as the server's sentence says. */
   readonly count?: number;
+  /** The name and description were saved before this refusal (the role on screen already carries them). */
+  readonly textSaved?: boolean;
 }
 
 /** The API sentence is "{n} user(s) still have this role. ...": the count is its only number. */

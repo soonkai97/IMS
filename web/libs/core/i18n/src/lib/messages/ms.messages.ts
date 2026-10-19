@@ -563,18 +563,24 @@ export const MS_MESSAGES: Messages = {
   'roles.users': 'Pengguna',
   'roles.viewOnly': 'Lihat sahaja',
   // TODO-review: machine draft (role page, RP02).
-  'rolePage.details': 'Butiran',
+  // TODO-review: machine draft (role page, RP02).
   'rolePage.allowed': 'Dibenarkan',
-  'rolePage.notAllowed': 'Tidak dibenarkan',
+  'rolePage.details': 'Butiran',
+  'rolePage.failure.partial':
+    'Nama dan penerangan telah disimpan. Kebenaran tidak disimpan: {reason}',
   'rolePage.groupCount': '{count} daripada {total} dihidupkan',
   'rolePage.highImpact': 'Impak tinggi',
+  'rolePage.notAllowed': 'Tidak dibenarkan',
   'rolePage.people':
     '{count, plural, one {# orang mempunyai} other {# orang mempunyai}} peranan ini.',
   'rolePage.permissions': 'Kebenaran',
   'rolePage.readOnly.locked':
     'Peranan ini sentiasa mempunyai semua kebenaran dan tidak boleh diubah.',
+  'rolePage.replace': 'Ganti',
+  'rolePage.replaceBody':
+    'Anda menukar tanda secara manual. Memulakan daripada peranan lain akan menggantikannya.',
+  'rolePage.replaceTitle': 'Ganti tanda anda?',
   'rolePage.requires': 'Memerlukan: {names}',
-  // TODO-review: machine draft (role editor, RP02c).
   'roles.new': 'Peranan baharu',
   'rolePage.active': 'Aktif',
   'rolePage.activeHint': 'Peranan tidak aktif tidak boleh diberikan kepada sesiapa yang baharu.',
