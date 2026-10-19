@@ -8,11 +8,12 @@ import {
 } from '@angular/router';
 import { PermissionService } from '@ims/core/identity';
 import { PERMISSION } from '@ims/models';
+import { unsavedChangesGuard } from '@ims/core/navigation';
 import { ROLE_ROUTES } from './administration.routes';
 
 const routeAt = (path: string) => ROLE_ROUTES.find(route => route.path === path);
 
-describe('ROLE_ROUTES (the list and a role are gated by roles.read, nothing else)', () => {
+describe('ROLE_ROUTES (the list and a role read with roles.read, a new role needs roles.manage)', () => {
   const held = new Set<string>();
 
   const run = (path = ''): boolean | UrlTree => {
@@ -55,13 +56,29 @@ describe('ROLE_ROUTES (the list and a role are gated by roles.read, nothing else
     expect(String(result)).toBe('/forbidden');
   });
 
-  it('opens a role (:id) with roles.read and sends anyone else to the forbidden page', () => {
+  it('puts new before :id, so the address /roles/new is never read as a role id', () => {
+    expect(ROLE_ROUTES.map(route => route.path)).toEqual(['', 'new', ':id']);
+  });
+
+  it('opens a role with roles.read and sends anyone else to the forbidden page', () => {
     expect(String(run(':id'))).toBe('/forbidden');
     held.add(PERMISSION.RolesManage);
     expect(String(run(':id'))).toBe('/forbidden');
-
     held.add(PERMISSION.RolesRead);
 
     expect(run(':id')).toBe(true);
+  });
+
+  it('opens the new-role form only with roles.manage: roles.read alone is not enough', () => {
+    held.add(PERMISSION.RolesRead);
+    expect(String(run('new'))).toBe('/forbidden');
+
+    held.add(PERMISSION.RolesManage);
+
+    expect(run('new')).toBe(true);
+  });
+
+  it.each(['new', ':id'])('asks before leaving unsaved edits on %s', path => {
+    expect(routeAt(path)?.canDeactivate).toEqual([unsavedChangesGuard]);
   });
 });

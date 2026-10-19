@@ -85,7 +85,8 @@ export class ImsApi {
   async raw<T = unknown>(
     method: string,
     path: string,
-    body?: unknown
+    body?: unknown,
+    headers: Record<string, string> = {}
   ): Promise<{ status: number; body: T }> {
     const needsIfMatch = DOCUMENT_COMMAND.test(path) && method !== 'GET';
     for (const attempt of [0, 1]) {
@@ -95,7 +96,8 @@ export class ImsApi {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
-          ...(needsIfMatch ? { 'If-Match': '*' } : {})
+          ...(needsIfMatch ? { 'If-Match': '*' } : {}),
+          ...headers
         },
         body: body === undefined ? undefined : JSON.stringify(body)
       });
@@ -110,8 +112,13 @@ export class ImsApi {
   }
 
   /** Like raw, but a non-2xx answer fails the test with the server's sentence. */
-  async call<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
-    const result = await this.raw<T>(method, path, body);
+  async call<T = unknown>(
+    method: string,
+    path: string,
+    body?: unknown,
+    headers: Record<string, string> = {}
+  ): Promise<T> {
+    const result = await this.raw<T>(method, path, body, headers);
     if (result.status >= 300) {
       const detail = (result.body as { detail?: string } | null)?.detail ?? '';
       throw new Error(`${method} ${path} as ${this.role}: HTTP ${result.status} ${detail}`);
@@ -266,6 +273,22 @@ export class ImsApi {
   /** A custom role holding exactly these permissions (admin only). */
   async createRole(name: string, permissions: string[]): Promise<ApiRole> {
     return this.call<ApiRole>('POST', '/api/roles', { name, description: '', permissions });
+  }
+
+  async getRole(id: PublicId): Promise<ApiRole> {
+    return this.call<ApiRole>('GET', `/api/roles/${id}`);
+  }
+
+  /** Replaces the permissions of a role the way the editor does: with the token of the version read now as If-Match. */
+  async setRolePermissions(id: PublicId, permissions: string[]): Promise<ApiRole> {
+    const current = await this.getRole(id);
+    const result = await this.call<{ role: ApiRole }>(
+      'PUT',
+      `/api/roles/${id}/permissions`,
+      { permissions },
+      { 'If-Match': `"${current.concurrencyToken}"` }
+    );
+    return result.role;
   }
 
   // Settings -----------------------------------------------------------------------------------------------------

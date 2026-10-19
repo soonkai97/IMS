@@ -151,6 +151,16 @@ describe('RolesPageComponent (RP01: a read-only list, kinds decided by the data)
     expect(text()).not.toContain('View only');
   });
 
+  it('offers New role (to /roles/new) only to a person with roles.manage', () => {
+    const link = () => spectator.element.querySelector('a[href="/roles/new"]');
+    expect(link()).toBeNull();
+
+    held.set([PERMISSION.RolesRead, PERMISSION.RolesManage]);
+    spectator.detectChanges();
+
+    expect(link()?.textContent).toContain('New role');
+  });
+
   it('opens a role from its row, for a person who may only read', () => {
     expect(spectator.component.rowLink(role('Night clerk', []))).toEqual(['/roles', 'Night clerk']);
   });

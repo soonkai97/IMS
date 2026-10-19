@@ -2,19 +2,36 @@
   [heading]="$heading()"
   [backLink]="['/roles']"
   [backLabel]="'roles.title' | t"
-  [subtitle]="$role() ? ('roles.appliesLater' | t) : ''"
+  [subtitle]="$isNew() || $baseline() ? ('roles.appliesLater' | t) : ''"
 >
-  @if ($role()) {
+  @if ($baseline()) {
     <span chips class="role-page-chips">
-      <span class="role-page-chip">
-        {{ $kindLabel() }}
-      </span>
-      <span class="role-page-chip">
-        <app-icon name="eye" [size]="16" />
-        {{ 'roles.viewOnly' | t }}
-      </span>
+      <span class="role-page-chip">{{ $kindLabel() }}</span>
+      @if (!$editable()) {
+        <span class="role-page-chip">
+          <app-icon name="eye" [size]="16" />
+          {{ 'roles.viewOnly' | t }}
+        </span>
+      }
     </span>
   }
+  <div actions class="role-page-actions">
+    @if ($editable() && $dirty()) {
+      <app-button variant="ghost" [disabled]="$isSaving()" (clicked)="onDiscard()">{{
+        'rolePage.discard' | t
+      }}</app-button>
+    }
+    @if ($canDelete()) {
+      <app-button variant="danger-outline" [loading]="$isDeleting()" (clicked)="onDelete()">{{
+        'rolePage.delete' | t
+      }}</app-button>
+    }
+    @if ($editable()) {
+      <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
+        'common.save' | t
+      }}</app-button>
+    }
+  </div>
 </app-page-header>
 
 @if ($notFound()) {
@@ -22,35 +39,100 @@
 } @else if ($loadFailed()) {
   <app-banner kind="danger">
     {{ 'error.generic' | t }}
-    <app-button bannerActions (clicked)="onRetry()">{{ 'ui.retry' | t }}</app-button>
+    <app-button bannerActions (clicked)="onRetryLoad()">{{ 'ui.retry' | t }}</app-button>
   </app-banner>
-} @else if (!$role() || !$catalog()) {
+} @else if ($isLoading() || !$catalog()) {
   <app-skeleton [count]="4" />
 } @else {
-  @if ($isLocked()) {
-    <app-banner kind="info">{{ 'rolePage.readOnly.locked' | t }}</app-banner>
+  @if ($readOnlyReason()) {
+    <app-banner kind="info">{{ $readOnlyText() }}</app-banner>
+  } @else if ($isStandard()) {
+    <app-banner kind="info">{{ 'rolePage.standardNote' | t }}</app-banner>
+  }
+  @if ($failure(); as failure) {
+    <app-banner kind="danger" class="role-page-failure">
+      {{ failureText(failure) }}
+      @if (failure.kind === 'stale') {
+        <app-button bannerActions (clicked)="onReload()">{{ 'rolePage.reload' | t }}</app-button>
+      }
+    </app-banner>
   }
 
-  <div class="role-page-body">
-    <app-card [heading]="'rolePage.details' | t">
-      @if ($role()?.description; as description) {
-        <p class="role-page-text">{{ description }}</p>
-      }
-      <p class="role-page-muted">
-        {{ 'rolePage.people' | t: { count: $role()?.userCount ?? 0 } }}
-      </p>
-      <app-status-chip
-        [label]="($role()?.isActive ? 'product.active' : 'product.inactive') | t"
-        [status]="$role()?.isActive ? 'posted' : 'cancelled'"
-      />
-    </app-card>
+  @if ($editable()) {
+    <form class="role-page-body" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
+      <app-form-legend />
 
-    <app-card [heading]="'rolePage.permissions' | t">
-      <app-permission-list
-        [groups]="$groups()"
-        [catalog]="$catalog() ?? []"
-        [selected]="$selected()"
-      />
-    </app-card>
-  </div>
+      <app-card [heading]="'rolePage.details' | t">
+        @if (!$isNew()) {
+          <p class="role-page-muted">
+            {{ 'rolePage.people' | t: { count: $baseline()?.userCount ?? 0 } }}
+          </p>
+        }
+        <app-form-field
+          [label]="'rolePage.name' | t"
+          [required]="$textEditable()"
+          [control]="form.controls.name"
+        >
+          <app-input formControlName="name" [maxLength]="nameMaxLength" />
+        </app-form-field>
+        <app-form-field [label]="'rolePage.description' | t" [control]="form.controls.description">
+          <app-textarea formControlName="description" [maxLength]="descriptionMaxLength" />
+        </app-form-field>
+        @if (!$isNew()) {
+          <app-checkbox formControlName="isActive">{{ 'rolePage.active' | t }}</app-checkbox>
+          @if ($textEditable()) {
+            <p class="role-page-muted">{{ 'rolePage.activeHint' | t }}</p>
+          }
+        } @else {
+          <app-form-field
+            [label]="'rolePage.copyFrom' | t"
+            [hint]="'rolePage.copyHint' | t"
+            [control]="form.controls.copyFromId"
+          >
+            <app-select
+              formControlName="copyFromId"
+              [options]="$copyOptions()"
+              [placeholder]="'rolePage.copyBlank' | t"
+            />
+          </app-form-field>
+        }
+      </app-card>
+
+      <app-card [heading]="'rolePage.permissions' | t">
+        <p class="role-page-muted">{{ 'rolePage.permissionsHint' | t }}</p>
+        <app-permission-checklist
+          [groups]="$groups()"
+          [catalog]="$catalog() ?? []"
+          [selected]="$selected()"
+          [held]="$held()"
+          (toggled)="onToggle($event)"
+        />
+      </app-card>
+    </form>
+  } @else {
+    <div class="role-page-body">
+      <app-card [heading]="'rolePage.details' | t">
+        @if ($baseline()?.description; as description) {
+          <p class="role-page-text">{{ description }}</p>
+        }
+        <p class="role-page-muted">
+          {{ 'rolePage.people' | t: { count: $baseline()?.userCount ?? 0 } }}
+        </p>
+        <app-status-chip
+          [label]="($baseline()?.isActive ? 'product.active' : 'product.inactive') | t"
+          [status]="$baseline()?.isActive ? 'posted' : 'cancelled'"
+        />
+      </app-card>
+
+      <app-card [heading]="'rolePage.permissions' | t">
+        <app-permission-list
+          [groups]="$groups()"
+          [catalog]="$catalog() ?? []"
+          [selected]="$selected()"
+        />
+      </app-card>
+    </div>
+  }
+
+  <p class="role-page-live" role="status" aria-live="polite">{{ $announcement() }}</p>
 }
