@@ -65,9 +65,11 @@
 <nav class="shell-tabbar" [attr.aria-label]="'shell.mainNavigation' | t">
   @for (entry of $phoneTabs(); track entry.id) {
     <a
+      #tab
       class="shell-tab"
       [routerLink]="entry.route"
       routerLinkActive="--active"
+      (isActiveChange)="onTabActive($event, tab)"
       ariaCurrentWhenActive="page"
       [routerLinkActiveOptions]="{ exact: entry.route === '/' }"
     >

@@ -100,6 +100,13 @@ export class ShellComponent implements OnInit {
     main.focus();
   }
 
+  /** The bar scrolls when its tabs do not fit (a narrow phone, enlarged text): the current page's tab is brought into view. */
+  onTabActive(active: boolean, tab: HTMLElement): void {
+    if (active) {
+      tab.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
+    }
+  }
+
   onOpenMore(): void {
     this.$moreOpen.set(true);
   }

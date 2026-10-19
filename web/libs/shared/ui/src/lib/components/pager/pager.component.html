@@ -19,7 +19,7 @@
     variant="ghost"
     [ariaDisabled]="!$hasPrevious()"
     [ariaLabel]="$text().firstPage"
-    (clicked)="onFirst()"
+    (clicked)="onFirst($event)"
   >
     <app-icon name="chevrons-left" />
   </app-button>
@@ -27,7 +27,7 @@
     variant="ghost"
     [ariaDisabled]="!$hasPrevious()"
     [ariaLabel]="$text().previousPage"
-    (clicked)="onPrevious()"
+    (clicked)="onPrevious($event)"
   >
     <app-icon name="chevron-left" />
   </app-button>
@@ -36,7 +36,7 @@
     variant="ghost"
     [ariaDisabled]="!$hasNext()"
     [ariaLabel]="$text().nextPage"
-    (clicked)="onNext()"
+    (clicked)="onNext($event)"
   >
     <app-icon name="chevron-right" />
   </app-button>
@@ -45,7 +45,7 @@
     variant="ghost"
     [ariaDisabled]="!$hasNext()"
     [ariaLabel]="$text().lastPage"
-    (clicked)="onLast()"
+    (clicked)="onLast($event)"
   >
     <app-icon name="chevrons-right" />
   </app-button>
