@@ -155,7 +155,9 @@ export const ZH_MESSAGES: Messages = {
   'login.point.audit': '审批流程，全程留痕',
   'login.point.devices': '支持扫码枪和手机',
   'login.point.warehouses': '所有仓库，一个实时视图',
-  'login.sessionExpired': '您的登录已过期，请重新登录。',
+  'login.sessionExpired': '您的登录已过期，请重新登录。上一个页面中尚未保存的内容已丢失。',
+  'login.sessionExpiredKept':
+    '您的登录已过期，请重新登录。尚未提交的修改会保留在此浏览器标签页中，直到您退出登录或关闭该标签页。',
   'login.submit': '登录',
   'login.subtitle': '请输入邮箱或用户名和密码。',
   'login.tagline': '掌握每个货架上的库存',
@@ -381,6 +383,8 @@ export const ZH_MESSAGES: Messages = {
   'doc.stockChanged': '库存已变化',
   'doc.stockChangedBody':
     '{sku} 的库存现为 {available} {uom}，但单据需要 {requested}。请调整数量后重试。',
+  'doc.draftOutdated': '未恢复您尚未提交的修改，因为这张单据在此期间已被修改。',
+  'doc.draftRestored': '登录过期前尚未提交的修改已恢复。请检查后保存。',
   'doc.stale': '{docNo} 在您打开后已被修改',
   'doc.staleBody': '其他人修改了这张单据。请重新加载以查看最新版本。您的修改未保存。',
   'doc.staleBodyBy': '{name} 于 {time} 修改了这张单据。请重新加载以查看最新版本。您的修改未保存。',

@@ -240,6 +240,28 @@ describe('LoginPageComponent failure messages', () => {
 
       expect(spectator.queryAll('app-banner[role=status]')).toHaveLength(1);
     });
+
+    it('says plainly that unsaved work is lost when the session expired and nothing was kept', () => {
+      operation.set(IDLE_OPERATION);
+      spectator = createComponent({ props: { reason: 'expired' } as never });
+      spectator.detectChanges();
+
+      const notice = spectator.query('app-banner[role=status]')?.textContent ?? '';
+      expect(notice).toContain('Your session expired. Sign in again.');
+      expect(notice).toContain('had not saved');
+      expect(notice).toContain('is lost');
+    });
+
+    it('says the unsent changes are kept when a screen kept them', () => {
+      operation.set(IDLE_OPERATION);
+      spectator = createComponent({ props: { reason: 'expired-kept' } as never });
+      spectator.detectChanges();
+
+      const notice = spectator.query('app-banner[role=status]')?.textContent ?? '';
+      expect(notice).toContain('Your session expired. Sign in again.');
+      expect(notice).toContain('unsent changes are kept');
+      expect(notice).not.toContain('is lost');
+    });
   });
 
   describe('R25: the password and the page after an attempt', () => {

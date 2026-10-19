@@ -24,3 +24,9 @@ export const REFRESH_RETRY = {
   budgetMs: 15_000,
   jitter: 0.25
 } as const;
+
+/** Same as SESSION_EXPIRED_REASON, and a screen kept what the user had not sent (SessionDraftService). */
+export const SESSION_EXPIRED_KEPT_REASON = 'expired-kept';
+
+/** sessionStorage key prefix of unsent work kept across a session expiry: `ims.draft.<userId>.<screen key>`. */
+export const DRAFT_STORAGE_PREFIX = 'ims.draft.';

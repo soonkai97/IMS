@@ -34,7 +34,7 @@
 
     @if ($sessionExpired()) {
       <app-banner class="login-page-notice" kind="warning">{{
-        'login.sessionExpired' | t
+        ($draftKept() ? 'login.sessionExpiredKept' : 'login.sessionExpired') | t
       }}</app-banner>
     }
     @if ($offlineNotice()) {

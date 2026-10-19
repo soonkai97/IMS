@@ -8,3 +8,4 @@ export * from './lib/services/auth.service';
 export * from './lib/services/permission.service';
 export * from './lib/services/legacy-refresh-token';
 export * from './lib/types/permission-profile.types';
+export * from './lib/services/session-draft.service';
