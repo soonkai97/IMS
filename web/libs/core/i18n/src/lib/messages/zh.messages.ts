@@ -524,7 +524,7 @@ export const ZH_MESSAGES: Messages = {
   'user.allWarehouses': '可查看全部仓库',
   'user.noWarehouse': '此用户将看不到任何仓库。请至少选择一个仓库，或勾选“可查看全部仓库”。',
   'user.rolesFailed': '无法加载你可分配的角色。',
-  'user.roleLocked': '你无法分配此角色，因此保持不变。',
+  'user.viewOnly': '你只能查看此用户：其角色的权限比你的多，因此你无法修改。',
   // TODO-review: machine draft (roles list, RP01).
   'roles.appliesLater': '角色的更改会在约 5 分钟内对已登录的人生效。',
   'roles.description': '说明',

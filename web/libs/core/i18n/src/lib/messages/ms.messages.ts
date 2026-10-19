@@ -546,7 +546,8 @@ export const MS_MESSAGES: Messages = {
   'user.noWarehouse':
     'Pengguna ini tidak akan melihat sebarang gudang. Pilih sekurang-kurangnya satu atau tanda Melihat semua gudang.',
   'user.rolesFailed': 'Tidak dapat memuatkan peranan yang boleh anda berikan.',
-  'user.roleLocked': 'Anda tidak boleh memberi peranan ini, jadi ia kekal seperti sedia ada.',
+  'user.viewOnly':
+    'Anda hanya boleh melihat pengguna ini: peranannya memberi lebih akses daripada anda, jadi anda tidak boleh mengubahnya.',
   // TODO-review: machine draft (roles list, RP01).
   'roles.appliesLater':
     'Perubahan pada peranan terpakai kepada orang yang sudah log masuk dalam kira-kira 5 minit.',

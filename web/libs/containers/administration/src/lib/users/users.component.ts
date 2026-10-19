@@ -2,11 +2,15 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  Injector,
   OnInit,
+  afterNextRender,
   computed,
   effect,
   inject,
-  signal
+  signal,
+  viewChild
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -87,6 +91,7 @@ interface WarehouseChoice {
 export class UsersPageComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly i18n = inject(I18nService);
+  private readonly injector = inject(Injector);
   private readonly roles = inject(AssignableRolesStore);
   private readonly store = inject(UsersStore);
   private readonly toast = inject(ToastService);
@@ -123,6 +128,10 @@ export class UsersPageComponent implements OnInit {
   private readonly $editingRole = signal<{ code: string; name: string } | undefined>(undefined);
   /** Set when a save is refused for lack of a warehouse; cleared as soon as the person ticks anything. */
   $noWarehouse = signal(false);
+  private readonly $noWarehouseBanner = viewChild<UiBannerComponent, ElementRef<HTMLElement>>(
+    'noWarehouseBanner',
+    { read: ElementRef }
+  );
   $warehouseChoices = signal<readonly WarehouseChoice[]>([]);
 
   private readonly $search = debouncedSignal(this.$searchInput);
@@ -149,12 +158,18 @@ export class UsersPageComponent implements OnInit {
     userRoleChoice(this.roles.list.$data(), this.$editingRole())
   );
   /** The roles the API lets this person assign (the filter), by name. */
-  $roleOptions = computed<readonly SelectOption[]>(
-    () => userRoleChoice(this.roles.list.$data(), undefined).options
+  $roleOptions = computed<readonly SelectOption[]>(() =>
+    this.labelled(userRoleChoice(this.roles.list.$data(), undefined).options)
   );
-  /** The form's roles: the same, plus the edited user's own role when it is not assignable (shown, not changeable). */
-  $formRoleOptions = computed<readonly SelectOption[]>(() => this.$roleChoice().options);
-  $roleLocked = computed(() => this.$roleChoice().locked);
+  /** The form's roles: the same, plus the edited user's own role when it is not assignable (it is then shown, and the user is view only). */
+  $formRoleOptions = computed<readonly SelectOption[]>(() =>
+    this.labelled(this.$roleChoice().options)
+  );
+  /**
+   * The edited user holds a role the signed-in person cannot assign. The API refuses every change to such a user (their access is
+   * beyond the caller's, ADR roles-permissions 10, RP-4b), so the dialog only shows them.
+   */
+  $viewOnly = computed(() => this.$roleChoice().locked);
   $columns = computed<readonly TableColumn<UserDto>[]>(() => [
     {
       key: 'username',
@@ -167,7 +182,7 @@ export class UsersPageComponent implements OnInit {
     {
       key: 'role',
       header: this.i18n.t('user.role'),
-      value: row => row.roleName
+      value: row => this.i18n.roleLabel(row.role, row.roleName)
     },
     { key: 'status', type: 'status', header: this.i18n.t('product.status') },
     { key: 'actions', type: 'action', header: this.i18n.t('common.actions'), align: 'end' }
@@ -182,12 +197,15 @@ export class UsersPageComponent implements OnInit {
       .flatMap(([, messages]) => messages);
   });
 
-  private readonly lockRole = effect(() => {
-    const role = this.form.controls.role;
-    if (this.$roleLocked()) {
-      role.disable({ emitEvent: false });
+  /** A view-only user: every field and warehouse box is read-only. Reads the boxes too, so it runs again for each user opened. */
+  private readonly lockForm = effect(() => {
+    const choices = this.$warehouseChoices();
+    if (this.$viewOnly()) {
+      this.form.disable({ emitEvent: false });
+      choices.forEach(choice => choice.control.disable({ emitEvent: false }));
     } else {
-      role.enable({ emitEvent: false });
+      this.form.enable({ emitEvent: false });
+      choices.forEach(choice => choice.control.enable({ emitEvent: false }));
     }
   });
 
@@ -204,7 +222,7 @@ export class UsersPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.warehouses.ensureLoaded();
-    this.roles.list.load();
+    this.roles.load();
   }
 
   onAdd(): void {
@@ -228,6 +246,9 @@ export class UsersPageComponent implements OnInit {
   }
 
   onSave(): void {
+    if (this.$viewOnly()) {
+      return;
+    }
     const isNew = !this.$isEditing();
     this.form.markAllAsTouched();
     const passwordMissing = isNew && this.form.controls.password.value.length === 0;
@@ -237,9 +258,19 @@ export class UsersPageComponent implements OnInit {
     const warehouseIds = this.$warehouseChoices()
       .filter(choice => choice.control.value)
       .map(choice => choice.id);
-    // A person with no warehouse and no 'every warehouse' sees an empty app: say so instead of saving it.
-    const noWarehouse = !this.form.controls.allWarehouses.value && warehouseIds.length === 0;
+    // An active person with no warehouse and no 'every warehouse' sees an empty app: say so instead of saving it. A person who is
+    // being turned off (or already is) needs no scope.
+    const noWarehouse =
+      this.form.controls.isActive.value &&
+      !this.form.controls.allWarehouses.value &&
+      warehouseIds.length === 0;
     this.$noWarehouse.set(noWarehouse);
+    if (noWarehouse) {
+      // The sentence sits beside the boxes, which can be a long way above the Save button on a phone: focus takes the person to it.
+      afterNextRender(() => this.$noWarehouseBanner()?.nativeElement.focus(), {
+        injector: this.injector
+      });
+    }
     if (this.form.invalid || noWarehouse) {
       return;
     }
@@ -266,6 +297,13 @@ export class UsersPageComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();
+  }
+
+  private labelled(options: readonly { value: string; label: string }[]): readonly SelectOption[] {
+    return options.map(option => ({
+      value: option.value,
+      label: this.i18n.roleLabel(option.value, option.label)
+    }));
   }
 
   private open(id: PublicId | undefined, user: UserDto | undefined): void {

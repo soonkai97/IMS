@@ -562,7 +562,8 @@ export const EN_MESSAGES = {
   'user.noWarehouse':
     'This user will see no warehouse. Pick at least one or tick Sees every warehouse.',
   'user.rolesFailed': 'Could not load the roles you can assign.',
-  'user.roleLocked': 'You cannot assign this role, so it stays as it is.',
+  'user.viewOnly':
+    'You can only view this user: their role gives more access than yours, so you cannot change them.',
   'roles.appliesLater':
     'A change to a role applies to people who are signed in within about 5 minutes.',
   'roles.description': 'Description',

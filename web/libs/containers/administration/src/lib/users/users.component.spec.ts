@@ -41,12 +41,8 @@ describe('UsersPageComponent', () => {
       {
         provide: AssignableRolesStore,
         useValue: {
-          list: {
-            $data: rolesData,
-            $isFailed: rolesFailed,
-            load: rolesLoad,
-            reload: rolesReload
-          }
+          load: rolesLoad,
+          list: { $data: rolesData, $isFailed: rolesFailed, reload: rolesReload }
         }
       }
     ],
@@ -147,7 +143,7 @@ describe('UsersPageComponent', () => {
 
     it('lets a custom-role user be saved again with the custom role', () => {
       spectator.component.onEdit(user());
-      expect(spectator.component.$roleLocked()).toBe(false);
+      expect(spectator.component.$viewOnly()).toBe(false);
       expect(spectator.component.form.controls.role.value).toBe('QARoleA');
 
       spectator.component.onSave();
@@ -164,27 +160,46 @@ describe('UsersPageComponent', () => {
       expect(sentBody().role).toBe('QARoleA');
     });
 
-    it('keeps a role the caller cannot assign: shown by name, locked, and sent unchanged', () => {
+    it('shows a user whose role the caller cannot assign as view only: every field read-only, no Save, and the reason', () => {
       rolesData.set([CLERK]);
 
       spectator.component.onEdit(user());
+      spectator.component.$dialogOpen.set(true);
       spectator.detectChanges();
 
-      expect(spectator.component.$roleLocked()).toBe(true);
-      expect(spectator.component.form.controls.role.disabled).toBe(true);
+      expect(spectator.component.$viewOnly()).toBe(true);
+      expect(spectator.component.form.disabled).toBe(true);
+      expect(spectator.component.$warehouseChoices().every(c => c.control.disabled)).toBe(true);
       expect(roleOptions()).toContainEqual(['QARoleA', 'QA role A']);
+      expect(spectator.query('app-dialog')?.textContent).toContain(
+        'You can only view this user: their role gives more access than yours'
+      );
+      expect(spectator.query('app-dialog')?.textContent).not.toContain('Save');
       spectator.component.onSave();
-      expect(sentBody().role).toBe('QARoleA');
+      expect(saveRun).not.toHaveBeenCalled();
     });
 
-    it('locks nothing and keeps the current role when the roles could not be loaded', () => {
+    it('makes the next user editable again after a view-only one', () => {
+      rolesData.set([CLERK]);
+      spectator.component.onEdit(user());
+      spectator.detectChanges();
+
+      spectator.component.onEdit(user(CLERK));
+      spectator.detectChanges();
+
+      expect(spectator.component.$viewOnly()).toBe(false);
+      expect(spectator.component.form.enabled).toBe(true);
+      expect(spectator.component.$warehouseChoices().every(c => c.control.enabled)).toBe(true);
+    });
+
+    it('is not view only, and keeps the current role when the roles could not be loaded', () => {
       rolesData.set(undefined);
       rolesFailed.set(true);
 
       spectator.component.onEdit(user());
       spectator.detectChanges();
 
-      expect(spectator.component.$roleLocked()).toBe(false);
+      expect(spectator.component.$viewOnly()).toBe(false);
       expect(roleOptions()).toEqual([['QARoleA', 'QA role A']]);
       expect(spectator.component.$rolesFailed()).toBe(true);
     });
@@ -251,6 +266,32 @@ describe('UsersPageComponent', () => {
 
       spectator.component.onSave();
 
+      expect(saveRun).toHaveBeenCalledTimes(1);
+    });
+
+    it('takes the focus to the sentence, so a phone does not leave it out of sight', () => {
+      spectator.component.onAdd();
+      spectator.detectChanges();
+      spectator.component.form.patchValue({
+        username: 'ann',
+        displayName: 'Ann',
+        email: 'ann@example.test',
+        role: 'Clerk',
+        password: 'Passw0rd-1234'
+      });
+
+      spectator.component.onSave();
+      spectator.detectChanges();
+
+      expect(document.activeElement).toBe(spectator.query('.users-page-warehouses app-banner'));
+    });
+
+    it('does not ask for a warehouse when the user is turned off', () => {
+      spectator.component.form.controls.isActive.setValue(false);
+
+      spectator.component.onSave();
+
+      expect(spectator.component.$noWarehouse()).toBe(false);
       expect(saveRun).toHaveBeenCalledTimes(1);
     });
 

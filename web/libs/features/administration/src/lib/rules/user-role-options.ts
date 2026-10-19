@@ -6,7 +6,7 @@ export interface UserRole {
 
 export interface UserRoleChoice {
   readonly options: readonly { readonly value: string; readonly label: string }[];
-  /** The user's current role is one the signed-in person cannot assign: it is shown as it is and cannot be changed. */
+  /** The user holds a role the signed-in person cannot assign: the API refuses every change to them, so the form only shows them. */
   readonly locked: boolean;
 }
 

@@ -60,7 +60,11 @@
 
 <app-dialog [(open)]="$dialogOpen" [heading]="$dialogHeading()">
   <form class="users-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
-    <app-form-legend />
+    @if ($viewOnly()) {
+      <app-banner kind="info">{{ 'user.viewOnly' | t }}</app-banner>
+    } @else {
+      <app-form-legend />
+    }
     @for (message of $serverErrors(); track message) {
       <app-banner kind="danger">{{ message }}</app-banner>
     }
@@ -87,12 +91,7 @@
         <app-button (clicked)="onRolesRetry()">{{ 'ui.retry' | t }}</app-button>
       </app-banner>
     }
-    <app-form-field
-      [label]="'user.role' | t"
-      [required]="true"
-      [hint]="$roleLocked() ? ('user.roleLocked' | t) : undefined"
-      [control]="form.controls.role"
-    >
+    <app-form-field [label]="'user.role' | t" [required]="true" [control]="form.controls.role">
       <app-select formControlName="role" [options]="$formRoleOptions()" [placeholder]="''" />
     </app-form-field>
     <app-form-field
@@ -116,15 +115,19 @@
       }
       <p class="users-page-hint">{{ 'user.warehousesHint' | t }}</p>
       @if ($noWarehouse()) {
-        <app-banner kind="danger">{{ 'user.noWarehouse' | t }}</app-banner>
+        <app-banner #noWarehouseBanner kind="danger">{{ 'user.noWarehouse' | t }}</app-banner>
       }
     </fieldset>
     <app-checkbox formControlName="isActive">{{ 'product.active' | t }}</app-checkbox>
   </form>
   <div dialogActions>
-    <app-button (clicked)="$dialogOpen.set(false)">{{ 'common.cancel' | t }}</app-button>
-    <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
-      'common.save' | t
+    <app-button (clicked)="$dialogOpen.set(false)">{{
+      ($viewOnly() ? 'ui.close' : 'common.cancel') | t
     }}</app-button>
+    @if (!$viewOnly()) {
+      <app-button variant="primary" [loading]="$isSaving()" (clicked)="onSave()">{{
+        'common.save' | t
+      }}</app-button>
+    }
   </div>
 </app-dialog>
