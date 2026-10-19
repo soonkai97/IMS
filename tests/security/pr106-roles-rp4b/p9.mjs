@@ -1,0 +1,12 @@
+import { call, short, T } from './lib.mjs';
+import { execSync } from 'node:child_process';
+const sql = (q) => execSync(`sqlcmd -S "(localdb)\\ImsDev" -d Ims_Rv106 -E -I -b -Q "${q}"`, { encoding: 'utf8' });
+const peek = (await call('GET', '/api/users?pageSize=200', T.admin)).json.items.find((x) => x.role === 'Peek');
+sql("UPDATE Role SET REC_DELETED=1 WHERE Code=N'Peek'");
+const r = await call('PUT', '/api/users/' + peek.id, T.admin, { username: peek.username, email: peek.email, displayName: 'x', role: 'Supervisor', isActive: true, warehouseIds: [] });
+console.log('PUT (re-role) user whose role is soft-deleted ->', short(r));
+const l = (await call('GET', '/api/users?pageSize=200', T.admin)).json;
+console.log('list total', l.total, 'items', l.items.length);
+sql("UPDATE Role SET REC_DELETED=0 WHERE Code=N'Peek'");
+const l2 = (await call('GET', '/api/users?pageSize=200', T.admin)).json;
+console.log('restored list total', l2.total, 'items', l2.items.length);

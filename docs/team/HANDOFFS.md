@@ -1035,6 +1035,12 @@
 - Decisions others must respect: the Post dialog after Submit & post is gone (Post on a Submitted or Approved document keeps its dialog with "Edit items"); `DocumentEditor.submitAndPost()` in the e2e page object is the helper for the new sequence; a navigation that only replaces the address of the same page must pass `scroll: 'manual'`; the footer line count is `lineCount`, units stay valid-only (ER-12).
 - Open conflicts: reverses two earlier decisions in `document-corrections.md` (Edit needs no dialog when no approval is needed; the Post dialog follows Submit & post); the amendment says so.
 
+### 2026-10-19 project-manager -> orchestrator, security-engineer, qa-novice-warehouse-staff, qa-power-supervisor, qa-edge-accessibility
+- Produced (branch `docs/qa-reports-and-artifacts`): the three QA round reports of 2026-10-19 in `docs/qa/2026-10-19-qa-round-{novice,supervisor,edge}.md` (TASKS.md now points there instead of the old scratch path); the PR #106 and #121 reviews in `docs/reviews/`; the manual security probes of PR #106, #124 and #134 in `tests/security/`. The #118 probes follow in a second PR because the guard limit is 1500 changed lines. One follow-up added to TASKS.md (Adjust/Transfer dialogs say "Stock will increase").
+- Needs from orchestrator: merge the two PRs when green (docs only). Needs from fe-framework: the `stockDirectionKey` follow-up when convenient.
+- Decisions others must respect: none. The probe folders are manual, not CI tests.
+- Open conflicts: none.
+
 ### 2026-10-19 project-manager -> orchestrator, be-architect, business-analyst, be-framework (pilot slice 1 plan)
 - Produced (branch `docs/pilot-slice-plan`, docs only): `docs/pm/pilot-slice-1-plan.md` (PL1 in nine sub-slices PL1.0 to PL1.8, about 4,800 lines, 14.5 agent-days with rework, about 13 working days end to end; acceptance criteria, API and database changes, risks, test plan, review tiers, five owner questions); `TASKS.md` gets the section "Pilot slices" (PL1 to PL4, requirement ids, sizes) and the two backlog lines point to it; `docs/pm/ROADMAP.md` gets EP11, migrations MG8 to MG10, client batches CS6 and CS7, and the stale "#130 not on this path" line corrected.
 - Needs from the owner: the five questions in plan section 11 (defaults apply): sequencing against the open refresh slices, the accountant's package and a sample file, cost-only amounts until PL3, posted-only export without an "exported" marker, default holders of `accounting.export` (Admin and Owner).
