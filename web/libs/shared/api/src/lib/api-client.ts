@@ -2536,7 +2536,7 @@ export class PurchaseOrdersClient {
     }
 
     /**
-     * Purchase orders, newest first, in the warehouses the caller may read. Prices and totals are absent for a caller without `cost.view`.
+     * Purchase orders, newest first, in the warehouses the caller may read. Prices and totals are null for a caller without `cost.view`.
      * @param status (optional) 
      * @param supplierId (optional) Orders of this supplier; an id that names no supplier matches nothing.
      * @param warehouseId (optional) Orders for this ship-to warehouse. A warehouse the caller may not read matches nothing.
@@ -5672,7 +5672,7 @@ export interface PurchaseOrderDto {
     createdBy: string;
     createdByName: string;
     createdAt: string;
-    /** The sum of the line amounts, in money. Absent for a caller without `cost.view`. */
+    /** The sum of the line amounts, in money. Null for a caller without `cost.view`. */
     totalAmount: number | undefined;
     lines: PurchaseOrderLineDto[];
     /** Changes whenever the order (header, status or lines) changes; opaque: compare it only for equality. Also sent as the ETag header; send it back as If-Match to refuse a stale save. */
@@ -5689,9 +5689,9 @@ export interface PurchaseOrderLineDto {
     uomId: string;
     uomCode: string;
     baseQty: number;
-    /** The price per ENTERED unit (the unit in `UomCode`), in money. Absent for a caller without `cost.view`. */
+    /** The price per ENTERED unit (the unit in `UomCode`), in money. Null for a caller without `cost.view`. */
     unitPrice: number | undefined;
-    /** The value of the line, in money: `round(qty x unitPrice, 2)`. The order total is the sum of these. Absent for a caller without `cost.view`. */
+    /** The value of the line, in money: `round(qty x unitPrice, 2)`. The order total is the sum of these. Null for a caller without `cost.view`. */
     amount: number | undefined;
     remark: string | undefined;
 }
@@ -5716,13 +5716,13 @@ export interface PurchaseOrderListItem {
     createdAt: string;
     createdBy: string;
     lineCount: number;
-    /** The sum of the line amounts, in money. Absent for a caller without `cost.view`. */
+    /** The sum of the line amounts, in money. Null for a caller without `cost.view`. */
     totalAmount: number | undefined;
     /** Same value as `concurrencyToken` on the full order: compare it to know whether an open order has gone stale. */
     concurrencyToken: string;
 }
 
-/** A whole purchase-order draft: every field is sent on every save (there is no "absent = unchanged"), and the lines replace the old ones. */
+/** A whole purchase-order draft: every field is sent on every save (there is no "absent = unchanged"), and the lines replace the old ones. The same product may appear on several lines (different units, prices or remarks): anything that refers to a line, such as receiving against the order (PL2.4, PL2.5), must use its line number, never the product. */
 export interface PurchaseOrderSaveRequest {
     /** The ship-to warehouse. It cannot change after the order is created: it carries the number. */
     warehouseId: string;

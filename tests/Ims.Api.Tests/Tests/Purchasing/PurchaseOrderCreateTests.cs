@@ -200,6 +200,17 @@ public class PurchaseOrderCreateTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_null_line_is_a_400_not_a_500()
+    {
+        var warehouse = await _p.NewWarehouseAsync();
+        var json = $$"""{"warehouseId":"{{warehouse.Id}}","supplierId":"{{fixture.Reference.SupplierId}}","lines":[null]}""";
+
+        var problem = (await _p.Admin.PostRawJsonAsync("/api/purchase-orders", json)).ShouldBeProblem(HttpStatusCode.BadRequest);
+
+        Assert.NotEmpty(problem.ErrorsFor("lines[0]"));
+    }
+
+    [Fact]
     public async Task A_price_of_zero_is_accepted_on_a_draft_and_a_unit_the_product_converts_is_accepted()
     {
         var warehouse = await _p.NewWarehouseAsync();

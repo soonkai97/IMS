@@ -14,7 +14,7 @@ namespace Ims.Api.Features.Purchasing;
 [Route(ApiRoutes.PurchaseOrders), RequiresModule(ModuleCodes.Purchasing)]
 public class PurchaseOrdersController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
-    /// <summary>Purchase orders, newest first, in the warehouses the caller may read. Prices and totals are absent for a caller without <c>cost.view</c>.</summary>
+    /// <summary>Purchase orders, newest first, in the warehouses the caller may read. Prices and totals are null for a caller without <c>cost.view</c>.</summary>
     [HttpGet, Authorize(Policy = Permissions.PoRead)]
     [ProducesResponseType<PagedResult<PurchaseOrderListItem>>(StatusCodes.Status200OK)]
     public Task<IActionResult> List([FromQuery] PurchaseOrderFilter filter) => SendOk(new ListPurchaseOrdersQuery(filter));

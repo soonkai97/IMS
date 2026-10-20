@@ -2136,7 +2136,7 @@
         "tags": [
           "PurchaseOrders"
         ],
-        "summary": "Purchase orders, newest first, in the warehouses the caller may read. Prices and totals are absent for a caller without `cost.view`.",
+        "summary": "Purchase orders, newest first, in the warehouses the caller may read. Prices and totals are null for a caller without `cost.view`.",
         "operationId": "PurchaseOrders_list",
         "parameters": [
           {
@@ -6391,7 +6391,7 @@
           },
           "totalAmount": {
             "type": "number",
-            "description": "The sum of the line amounts, in money. Absent for a caller without `cost.view`.",
+            "description": "The sum of the line amounts, in money. Null for a caller without `cost.view`.",
             "format": "double",
             "nullable": true
           },
@@ -6456,13 +6456,13 @@
           },
           "unitPrice": {
             "type": "number",
-            "description": "The price per ENTERED unit (the unit in `UomCode`), in money. Absent for a caller without `cost.view`.",
+            "description": "The price per ENTERED unit (the unit in `UomCode`), in money. Null for a caller without `cost.view`.",
             "format": "double",
             "nullable": true
           },
           "amount": {
             "type": "number",
-            "description": "The value of the line, in money: `round(qty x unitPrice, 2)`. The order total is the sum of these. Absent for a caller without `cost.view`.",
+            "description": "The value of the line, in money: `round(qty x unitPrice, 2)`. The order total is the sum of these. Null for a caller without `cost.view`.",
             "format": "double",
             "nullable": true
           },
@@ -6554,7 +6554,7 @@
           },
           "totalAmount": {
             "type": "number",
-            "description": "The sum of the line amounts, in money. Absent for a caller without `cost.view`.",
+            "description": "The sum of the line amounts, in money. Null for a caller without `cost.view`.",
             "format": "double",
             "nullable": true
           },
@@ -6595,7 +6595,7 @@
             }
           }
         },
-        "description": "A whole purchase-order draft: every field is sent on every save (there is no \"absent = unchanged\"), and the lines replace the old ones.",
+        "description": "A whole purchase-order draft: every field is sent on every save (there is no \"absent = unchanged\"), and the lines replace the old ones. The same product may appear on several lines (different units, prices or remarks): anything that refers to a line, such as receiving against the order (PL2.4, PL2.5), must use its line number, never the product.",
         "additionalProperties": false
       },
       "PurchaseOrderStatus": {

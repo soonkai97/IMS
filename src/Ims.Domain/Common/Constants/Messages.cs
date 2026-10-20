@@ -197,6 +197,7 @@ public static class Messages
 
     // ----- Purchase orders (module purchasing) -----
     public const string PurchaseOrderNotFound = "Purchase order not found.";
+    public const string PricesNeedCostView = "A purchase order carries prices, so saving one needs the permission to see costs.";
     public const string ChooseSupplier = "Choose a supplier.";
     public const string SupplierRequired = "A purchase order needs a supplier, not a customer.";
     public const string PriceNegative = "Unit price cannot be negative.";

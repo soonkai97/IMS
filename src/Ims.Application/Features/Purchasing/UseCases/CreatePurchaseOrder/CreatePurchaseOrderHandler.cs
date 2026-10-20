@@ -3,11 +3,13 @@ using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
 public class CreatePurchaseOrderHandler(IRepository<PurchaseOrder> orders, IReadRepository<Warehouse> warehouses, IReadRepository<Partner> partners,
-    IDocumentNumbering numbering, IPurchaseOrderLineBuilder lineBuilder, IPurchaseOrderAccess access, IPurchaseOrderReader reader,
+    IDocumentNumbering numbering, IPurchaseOrderLineBuilder lineBuilder, IPurchaseOrderAccess access, IPurchaseOrderReader reader, ICallerPermissions caller,
     ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreatePurchaseOrderCommand, PurchaseOrderDto>
 {
     public async Task<PurchaseOrderDto> HandleAsync(CreatePurchaseOrderCommand cmd, CancellationToken ct)
     {
+        // The price of a line is written as sent. A caller who may not see prices would send none (0.00) and overwrite every one, so the permission is asked here and not only by the catalog rule (po.manage requires cost.view).
+        if (!caller.Has(Permissions.CostView)) throw new ForbiddenException(Messages.PricesNeedCostView);
         // The whole body re-runs if two requests race for the same number (BR-11, BR-12).
         var publicId = await uow.ExecuteAsync(async () =>
         {

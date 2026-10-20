@@ -149,6 +149,24 @@ public class PurchaseOrderAccessTests(ApiFixture fixture) : IAsyncLifetime
         Assert.True(seen > 0, "the walk found no money key at all: it would pass for any body");
     }
 
+    [Fact]
+    public async Task A_caller_with_po_manage_but_without_cost_view_cannot_save_an_order_403_so_prices_they_cannot_see_are_never_overwritten()
+    {
+        var warehouse = await _p.NewWarehouseAsync();
+        var product = await _p.NewProductAsync();
+        var order = await _p.CreateAsync(warehouse.Id, product.Id);
+        var blind = Forged(EveryPermissionExcept(Permissions.CostView));
+        var request = _p.Request(warehouse.Id, product.Id).Build();
+        var before = await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM PurchaseOrder");
+
+        (await blind.PurchaseOrders.CreateAsync(request)).ShouldBeProblem(HttpStatusCode.Forbidden);
+        (await blind.PurchaseOrders.UpdateAsync(order.Id, request, order.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Forbidden);
+
+        Assert.Equal(before, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM PurchaseOrder"));
+        var after = (await _p.Admin.PurchaseOrders.GetAsync(order.Id)).Data<PurchaseOrderDto>();
+        Assert.Equal((order.TotalAmount, order.ConcurrencyToken), (after.TotalAmount, after.ConcurrencyToken)); // not one price moved
+    }
+
     // ----- acceptance 5: cost visibility -----
     [Fact]
     public async Task A_caller_without_cost_view_gets_no_price_no_amount_and_no_total_in_the_detail_the_list_or_the_raw_json()

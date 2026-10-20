@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
-/// <param name="TotalAmount">The sum of the line amounts, in money. Absent for a caller without <c>cost.view</c>.</param>
+/// <param name="TotalAmount">The sum of the line amounts, in money. Null for a caller without <c>cost.view</c>.</param>
 /// <param name="RowVersion">Source of <see cref="ConcurrencyToken"/>; not part of the JSON.</param>
 /// <param name="Key">The integer key of the order: the position the seek cursor of the list is made from; not part of the JSON.</param>
 public record PurchaseOrderListItem(Guid Id, string No, PurchaseOrderStatus Status, string WarehouseName, string SupplierName, DateTime CreatedAt, string CreatedBy,

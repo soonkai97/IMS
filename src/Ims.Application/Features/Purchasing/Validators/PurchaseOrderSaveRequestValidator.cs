@@ -12,7 +12,7 @@ public class PurchaseOrderSaveRequestValidator : AbstractValidator<PurchaseOrder
         RuleFor(x => x.Remark).MaximumLength(Limits.RemarkMaxLength);
         RuleFor(x => x.Lines).NotEmpty().WithMessage(Messages.AddLine)
             .Must(l => l is null || l.Count <= Limits.MaxDocumentLines).WithMessage(Messages.TooManyLines(Limits.MaxDocumentLines));
-        RuleForEach(x => x.Lines).ChildRules(line =>
+        RuleForEach(x => x.Lines).NotNull().WithMessage(Messages.RequestNotValid).ChildRules(line =>
         {
             line.RuleFor(l => l.ProductId).NotEqual(Guid.Empty).WithMessage(Messages.ChooseProduct);
             line.RuleFor(l => l.Qty).GreaterThan(0).WithMessage(Messages.QtyPositive)
