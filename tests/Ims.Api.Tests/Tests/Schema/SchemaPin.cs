@@ -3,7 +3,7 @@ namespace Ims.Api.Tests.Tests.Schema;
 /// <summary>
 /// The shape of the database as the migrations build it today (<see cref="SchemaShape"/> writes the same lines). Change it in the pull request
 /// that changes a key, a foreign key or a unique index, never to make a red test green. Order does not matter.
-/// 21 tables, 29 foreign keys, 26 unique indexes besides the primary keys, 2 append-only triggers. The ten <c>UX_&lt;Table&gt;_PublicId</c> indexes carry no
+/// 23 tables, 39 foreign keys, 28 unique indexes besides the primary keys, 2 append-only triggers. The eleven <c>UX_&lt;Table&gt;_PublicId</c> indexes carry no
 /// filter on purpose: a soft-deleted row keeps its public id, so an id is never handed out twice.
 /// </summary>
 public static class SchemaPin
@@ -16,6 +16,8 @@ public static class SchemaPin
         TABLE DocumentSequence PK(Prefix:nvarchar, YearMonth:int, WarehouseId:int) clustered
         TABLE Partner PK(Id:int identity) clustered
         TABLE Product PK(Id:int identity) clustered
+        TABLE PurchaseOrder PK(Id:int identity) clustered
+        TABLE PurchaseOrderLine PK(Id:int identity) clustered
         TABLE ProductBarcode PK(Id:int identity) clustered
         TABLE RefreshToken PK(Id:int identity) clustered
         TABLE Role PK(Id:int identity) clustered
@@ -34,6 +36,16 @@ public static class SchemaPin
         FK Product(BaseUomId) -> Uom(Id) on delete no_action
         FK Product(CategoryId) -> Category(Id) on delete no_action
         FK ProductBarcode(ProductId) -> Product(Id) on delete cascade
+        FK PurchaseOrder(ApprovedBy) -> User(Id) on delete no_action
+        FK PurchaseOrder(ClosedBy) -> User(Id) on delete no_action
+        FK PurchaseOrder(CreatedBy) -> User(Id) on delete no_action
+        FK PurchaseOrder(RejectedBy) -> User(Id) on delete no_action
+        FK PurchaseOrder(SubmittedBy) -> User(Id) on delete no_action
+        FK PurchaseOrder(SupplierId) -> Partner(Id) on delete no_action
+        FK PurchaseOrder(WarehouseId) -> Warehouse(Id) on delete no_action
+        FK PurchaseOrderLine(ProductId) -> Product(Id) on delete no_action
+        FK PurchaseOrderLine(PurchaseOrderId) -> PurchaseOrder(Id) on delete cascade
+        FK PurchaseOrderLine(UomId) -> Uom(Id) on delete no_action
         FK RefreshToken(UserId) -> User(Id) on delete cascade
         FK RolePermission(RoleId) -> Role(Id) on delete no_action
         FK StockBalance(ProductId) -> Product(Id) on delete no_action
@@ -69,6 +81,8 @@ public static class SchemaPin
         UNIQUE Product.IX_Product_Sku (Sku) where ([REC_DELETED]=(0))
         UNIQUE Product.UX_Product_PublicId (PublicId)
         UNIQUE ProductBarcode.IX_ProductBarcode_Barcode (Barcode) where ([REC_DELETED]=(0))
+        UNIQUE PurchaseOrder.IX_PurchaseOrder_No (No) where ([REC_DELETED]=(0))
+        UNIQUE PurchaseOrder.UX_PurchaseOrder_PublicId (PublicId)
         UNIQUE RefreshToken.IX_RefreshToken_TokenHash (TokenHash) where ([REC_DELETED]=(0))
         UNIQUE Role.IX_Role_Code (Code) where ([REC_DELETED]=(0))
         UNIQUE Role.IX_Role_Name (Name) where ([REC_DELETED]=(0))

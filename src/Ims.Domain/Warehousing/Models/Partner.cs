@@ -38,6 +38,13 @@ public class Partner : PublicEntity
         SstRegNo = reg;
     }
 
+    /// <summary>A purchase order is placed with an active supplier.</summary>
+    public void EnsureUsableAsSupplier()
+    {
+        if (!IsActive) throw new DomainException(Messages.PartnerInactive);
+        if (Type != PartnerType.Supplier) throw new DomainException(Messages.SupplierRequired);
+    }
+
     /// <summary>Receipts need a supplier, issues need a customer, and the partner must still be active.</summary>
     public void EnsureUsableFor(DocumentType documentType)
     {
