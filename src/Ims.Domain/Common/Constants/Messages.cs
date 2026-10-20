@@ -59,6 +59,7 @@ public static class Messages
     public const string RoleNotFound = "Role not found.";
     public static string RoleNameTaken(string name) => $"A role named '{name}' already exists.";
     public static string DuplicatePermission(string code) => $"Permission '{code}' is listed more than once.";
+    public static string PermissionNotAvailable(string code) => $"'{code}' is not available while its module is off.";
     public static string PermissionNeedsAnother(string code, string required) => $"'{code}' also needs '{required}'.";
     public const string RoleTextNotPlain = "A role name and description cannot contain control or direction-changing characters.";
     public const string TooManyPermissions = "A role cannot hold more permissions than the catalog has.";

@@ -2,6 +2,7 @@ using System.Net;
 using Ims.Api.Tests.Clients;
 using Ims.Api.Tests.Harness;
 using Ims.Api.Tests.Support;
+using Ims.Application.Features.Auth;
 using Ims.Domain;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -125,5 +126,34 @@ public class ModuleGateEndpointTests(ApiFixture fixture) : IAsyncLifetime
 
         (await _admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, Reason)).ShouldBeOk();
         (await Probe(caller, "core")).ShouldBeOk();
+    }
+
+    // ----- PL1.2 acceptance 7: the permission of the module in the token, the gate before the policy -----
+    [Fact]
+    public async Task A_person_who_holds_the_module_permission_while_the_module_is_off_still_has_the_claim_and_the_endpoint_answers_404_not_403()
+    {
+        var owner = await fixture.AsAsync(Roles.Owner);
+        var claims = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(owner.AccessToken).Claims.Where(c => c.Type == ClaimNames.Permission).Select(c => c.Value);
+        Assert.Contains(Permissions.AccountingExport, claims); // the claim is not filtered by the switch
+        Assert.Contains(Permissions.AccountingExport, (await owner.Auth.MeAsync()).Data<UserInfo>().Permissions);
+
+        (await Probe(Caller(owner.AccessToken), "export")).ShouldBeProblem(HttpStatusCode.NotFound);
+        (await Probe(Caller(await PermittedAsync(Roles.Supervisor)), "export")).ShouldBeProblem(HttpStatusCode.NotFound); // no claim, off: the same 404
+        (await Probe(Caller(), "export")).ShouldBeProblem(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task While_the_module_is_on_the_claim_decides_403_without_it_and_200_with_it_whatever_the_role_name_says()
+    {
+        (await _admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, Reason)).ShouldBeOk();
+        var withoutIt = ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Admin, permissions: PermissionCatalog.Codes.Except([Permissions.AccountingExport]));
+        var withIt = ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Clerk, permissions: [Permissions.AccountingExport]);
+
+        (await Probe(Caller(withoutIt), "export")).ShouldBeProblem(HttpStatusCode.Forbidden);
+        (await Probe(Caller(withIt), "export")).ShouldBeOk();
+        (await Probe(Caller((await fixture.AsAsync(Roles.Owner)).AccessToken), "export")).ShouldBeOk();
+        (await Probe(Caller((await fixture.AsAsync(Roles.Admin)).AccessToken), "export")).ShouldBeOk();
+        foreach (var role in new[] { Roles.Supervisor, Roles.WarehouseStaff, Roles.Clerk })
+            (await Probe(Caller((await fixture.AsAsync(role)).AccessToken), "export")).ShouldBeProblem(HttpStatusCode.Forbidden);
     }
 }

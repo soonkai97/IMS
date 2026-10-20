@@ -18,6 +18,6 @@ public class ModulesController(IDispatcher dispatcher) : ApiControllerBase(dispa
     public Task<IActionResult> List() => SendOk(new ListModulesQuery());
 
     [HttpPut(RouteSegments.ModuleCode), Authorize(Policy = Permissions.ModulesManage)]
-    [ProducesResponseType<ModuleDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ModuleSwitchResult>(StatusCodes.Status200OK)]
     public Task<IActionResult> Switch(string code, [FromBody] ModuleSwitchRequest body) => SendOk(new SwitchModuleCommand(code, body));
 }

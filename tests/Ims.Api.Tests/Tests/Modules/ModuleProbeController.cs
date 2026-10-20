@@ -16,6 +16,10 @@ public class ModuleProbeController : ControllerBase
     [HttpGet("accounting"), RequiresModule(ModuleCodes.Accounting), Authorize(Policy = Permissions.StockRead)]
     public IActionResult Accounting() => Ok();
 
+    /// <summary>Guarded by the module permission itself, as the accounting export endpoint (PL1.6) will be: the claim decides once the gate lets the caller through.</summary>
+    [HttpGet("export"), RequiresModule(ModuleCodes.Accounting), Authorize(Policy = Permissions.AccountingExport)]
+    public IActionResult Export() => Ok();
+
     /// <summary>Allows anonymous callers AND belongs to a module: the gate must still answer 404 while the module is off.</summary>
     [HttpGet("anonymous"), AllowAnonymous, RequiresModule(ModuleCodes.Accounting)]
     public IActionResult Anonymous() => Ok();

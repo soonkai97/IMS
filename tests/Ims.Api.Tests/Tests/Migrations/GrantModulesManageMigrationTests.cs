@@ -20,7 +20,7 @@ public class GrantModulesManageMigrationTests
     private const string Latest = "20261019133035_GrantModulesManage";
 
     /// <summary>The permissions the catalog gains after this migration, each with a data migration of its own (PL1.2 adds accounting.export): a database at this migration does not hold them yet.</summary>
-    private static readonly string[] AddedLater = [];
+    private static readonly string[] AddedLater = [Permissions.AccountingExport];
 
     private static async Task MigrateAsync(TestDatabase database, string target)
     {

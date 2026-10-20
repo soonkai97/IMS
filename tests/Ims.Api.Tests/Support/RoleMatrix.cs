@@ -16,12 +16,12 @@ public static class RoleMatrix
             Permissions.UsersManage, Permissions.UsersRead, Permissions.RolesManage, Permissions.RolesRead, Permissions.MasterDataManage, Permissions.MasterDataRead,
             Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.DocumentEditAny, Permissions.DocumentApprove, Permissions.DocumentApproveLarge,
             Permissions.DocumentPost, Permissions.DocumentPostApproved, Permissions.DocumentReverse, Permissions.StockNegativeOverride, Permissions.StockRead,
-            Permissions.ReportsRead, Permissions.AuditRead, Permissions.SettingsManage, Permissions.ModulesManage, Permissions.CostView, Permissions.ValuationView
+            Permissions.ReportsRead, Permissions.AuditRead, Permissions.SettingsManage, Permissions.ModulesManage, Permissions.CostView, Permissions.ValuationView, Permissions.AccountingExport
         ],
         [Roles.Owner] =
         [
             Permissions.MasterDataRead, Permissions.DocumentApproveLarge,
-            Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead, Permissions.CostView, Permissions.ValuationView
+            Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead, Permissions.CostView, Permissions.ValuationView, Permissions.AccountingExport
         ],
         [Roles.Supervisor] =
         [
