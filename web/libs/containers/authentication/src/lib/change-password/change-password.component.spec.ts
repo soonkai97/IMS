@@ -47,7 +47,10 @@ describe('ChangePasswordPageComponent', () => {
   };
   const createComponent = createComponentFactory({
     component: ChangePasswordPageComponent,
-    providers: [provideRouter([]), { provide: AuthService, useValue: { changePassword } }]
+    providers: [
+      provideRouter([]),
+      { provide: AuthService, useValue: { changePassword, $user: signal({ username: 'clerk' }) } }
+    ]
   });
 
   const input = (selector: string): HTMLInputElement =>
@@ -78,7 +81,7 @@ describe('ChangePasswordPageComponent', () => {
         .map(l => l.textContent?.replace(/\s+/g, ' ').trim());
 
       expect(labels).toEqual(['Current password *', 'New password *']);
-      expect(spectator.queryAll('input')).toHaveLength(2);
+      expect(spectator.queryAll('input:not([aria-hidden])')).toHaveLength(2);
       expect(input(CURRENT).type).toBe('password');
       expect(input(NEW).type).toBe('password');
       expect(input(CURRENT).getAttribute('name')).toBe('currentPassword');
@@ -252,10 +255,10 @@ describe('ChangePasswordPageComponent', () => {
       expect(input(NEW).value).toBe(NEW_PASSWORD);
     });
 
-    it('an unknown 400 sentence from the API is shown as it is, at the current password', () => {
+    it('every 400 without field errors is the wrong current password, said in our words whatever the API wrote', () => {
       show(error(API_ERROR_KIND.Validation, 400, 'Something the API said.'));
 
-      expect(fieldErrors()).toEqual(['Something the API said.']);
+      expect(fieldErrors()).toEqual(['The current password is not correct.']);
     });
 
     it('field errors of the API go to their fields', () => {
@@ -291,6 +294,17 @@ describe('ChangePasswordPageComponent', () => {
       expect(fieldErrors()).toHaveLength(0);
     });
 
+    it('a 401 without a sentence of the API (a refresh that failed on the way) is not called a lockout', () => {
+      show(
+        error(API_ERROR_KIND.Unauthorized, 401, '', {
+          message: 'Something went wrong. Try again.'
+        })
+      );
+
+      expect(banner()).toBe('Something went wrong. Try again.');
+      expect(spectator.query('app-banner')?.classList.contains('--warning')).toBe(true);
+    });
+
     it('a locked account (401) says to try again later, in our words', () => {
       show(error(API_ERROR_KIND.Unauthorized, 401, 'Email, username or password is wrong.'));
 
@@ -307,6 +321,18 @@ describe('ChangePasswordPageComponent', () => {
       expect(changePassword.reset).toHaveBeenCalled();
       expect(spectator.queryAll('app-banner')).toHaveLength(0);
     });
+  });
+
+  it('has a hidden read-only username for the password manager, holding the account name and no password', () => {
+    const hidden = spectator.query<HTMLInputElement>('input[autocomplete=username]');
+
+    expect(hidden?.value).toBe('clerk');
+    expect(hidden?.readOnly).toBe(true);
+    expect(hidden?.getAttribute('aria-hidden')).toBe('true');
+    expect(hidden?.tabIndex).toBe(-1);
+    fill(OLD_PASSWORD, NEW_PASSWORD);
+    expect(hidden?.value).toBe('clerk');
+    expect(spectator.queryAll('label')).toHaveLength(2);
   });
 
   it('writes nothing to web storage and puts nothing in the address', () => {

@@ -17,13 +17,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { I18nService, TranslatePipe } from '@ims/core/i18n';
 import { AuthService, HOME_ROUTE } from '@ims/core/identity';
-import {
-  API_ERROR_KIND,
-  ApiError,
-  HTTP_STATUS,
-  MAX_PASSWORD_LENGTH,
-  MIN_PASSWORD_LENGTH
-} from '@ims/models';
+import { API_ERROR_KIND, ApiError, MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from '@ims/models';
 import {
   UiBannerComponent,
   UiButtonComponent,
@@ -35,9 +29,6 @@ import {
 } from '@ims/ui';
 import { SERVER_ERROR_KEY, applyFieldErrors, focusFirstInvalid } from '@ims/utils';
 import { createChangePasswordForm } from './change-password-form';
-
-/** The API's sentence for a wrong current password (a 400 without field errors); ours takes its place, in the language in use. */
-const CURRENT_PASSWORD_WRONG_DETAIL = 'The current password is not correct.';
 
 /**
  * The signed-in user changes their own password (`/account/password`, entered from the Account dialog). The checks run first;
@@ -70,6 +61,9 @@ export class ChangePasswordPageComponent implements OnInit {
   private readonly injector = inject(Injector);
   private readonly router = inject(Router);
 
+  /** For the password manager only: it needs the account name next to a password it saves or updates. */
+  readonly $username = computed(() => this.auth.$user()?.username ?? '');
+
   private readonly $currentField = viewChild.required<UiInputComponent>('current');
   private readonly $newField = viewChild.required<UiInputComponent>('newPassword');
 
@@ -82,18 +76,24 @@ export class ChangePasswordPageComponent implements OnInit {
     () => this.auth.changePassword.$operation().error
   );
   /** A failure that belongs to no field: the network, a rate limit, a server error, a locked account. */
+  /**
+   * The answer of a locked account: a 401 that carries the API's own sentence. A 401 without one (a refresh that failed on the
+   * way) is not a lockout and gets the generic sentence; the session is ended and sign-in opens in that case.
+   */
+  private readonly $locked = computed(() => {
+    const error = this.$error();
+    return error?.kind === API_ERROR_KIND.Unauthorized && error.detail.length > 0;
+  });
   $banner = computed(() => {
     const error = this.$error();
     if (error === undefined || error.kind === API_ERROR_KIND.Validation) {
       return undefined;
     }
-    return error.status === HTTP_STATUS.Unauthorized
+    return this.$locked()
       ? this.i18n.t('account.password.error.locked')
       : (error.message ?? this.i18n.t('error.generic'));
   });
-  $bannerKind = computed(() =>
-    this.$error()?.status === HTTP_STATUS.Unauthorized ? 'danger' : 'warning'
-  );
+  $bannerKind = computed(() => (this.$locked() ? 'danger' : 'warning'));
 
   constructor() {
     // A refused request puts its sentence at the field it is about, and the focus goes there.
@@ -146,7 +146,7 @@ export class ChangePasswordPageComponent implements OnInit {
 
   /**
    * A 400 with field errors (the API repeating a client check) goes to those fields. A 400 with none is the wrong current
-   * password: the API's sentence goes under that field (ours, translated, when it is the known one).
+   * password: our sentence, translated, goes under that field (the API's own is English and may be reworded).
    */
   private showFieldError(error: ApiError): void {
     if (Object.keys(error.fieldErrors).length > 0) {
@@ -156,11 +156,9 @@ export class ChangePasswordPageComponent implements OnInit {
         this.form.controls.newPassword.markAsTouched();
       }
     } else {
-      const sentence =
-        error.detail === CURRENT_PASSWORD_WRONG_DETAIL || error.detail.length === 0
-          ? this.i18n.t('account.password.current.wrong')
-          : error.detail;
-      this.form.controls.currentPassword.setErrors({ [SERVER_ERROR_KEY]: sentence });
+      this.form.controls.currentPassword.setErrors({
+        [SERVER_ERROR_KEY]: this.i18n.t('account.password.current.wrong')
+      });
       this.form.controls.currentPassword.markAsTouched();
     }
     this.focusInvalid();

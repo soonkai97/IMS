@@ -84,8 +84,14 @@ test.describe('Change password', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Change password' })).toBeVisible();
     await expect(page).toHaveTitle(/Change password/);
     // Two fields and no repeat field; the first one has the focus.
-    await expect(page.getByRole('main').locator('input')).toHaveCount(2);
+    await expect(page.getByRole('main').locator('input:not([aria-hidden])')).toHaveCount(2);
     await expect(currentBox(page)).toBeFocused();
+    // A hidden read-only account name for the password manager: not announced, not a tab stop, no password in it.
+    const hidden = page.locator('input[autocomplete="username"]');
+    await expect(hidden).toHaveValue(user.username);
+    await expect(hidden).toHaveAttribute('aria-hidden', 'true');
+    await expect(hidden).toHaveAttribute('tabindex', '-1');
+    await expect(page.getByRole('textbox', { name: user.username })).toHaveCount(0);
     await expect(page.locator('input[autocomplete="current-password"]')).toHaveCount(1);
     await expect(page.locator('input[autocomplete="new-password"]')).toHaveCount(1);
 
