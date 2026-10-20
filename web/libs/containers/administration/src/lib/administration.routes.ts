@@ -3,6 +3,7 @@ import { requirePermission } from '@ims/core/identity';
 import { unsavedChangesGuard } from '@ims/core/navigation';
 import { PERMISSION } from '@ims/models';
 import { RolePageComponent } from './roles/role-page.component';
+import { ModulesPageComponent } from './modules/modules.component';
 import { RolesPageComponent } from './roles/roles.component';
 import { SettingsPageComponent } from './settings/settings.component';
 import { UsersPageComponent } from './users/users.component';
@@ -45,5 +46,11 @@ export const SETTINGS_ROUTES: Routes = [
     component: SettingsPageComponent,
     title: 'settings.title',
     canActivate: [requirePermission(PERMISSION.SettingsManage)]
+  },
+  {
+    path: 'modules',
+    component: ModulesPageComponent,
+    title: 'modules.title',
+    canActivate: [requirePermission(PERMISSION.ModulesManage)]
   }
 ];

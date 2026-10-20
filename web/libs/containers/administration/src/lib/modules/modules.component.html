@@ -1,0 +1,50 @@
+<app-page-header
+  [heading]="'modules.title' | t"
+  [backLink]="$backLink()"
+  [backLabel]="'nav.settings' | t"
+/>
+
+<p class="modules-page-intro">{{ 'modules.intro' | t }}</p>
+
+@if ($problem(); as problem) {
+  <app-banner kind="danger">{{ problem }}</app-banner>
+}
+
+@if ($loadFailed()) {
+  <app-banner kind="danger">
+    {{ 'modules.loadFailed' | t }}
+    <app-button variant="secondary" (clicked)="onLoad()">{{ 'ui.retry' | t }}</app-button>
+  </app-banner>
+} @else if ($showSkeleton()) {
+  <app-skeleton [count]="2" />
+} @else if ($rows().length === 0) {
+  <app-empty-state icon="settings" [message]="'modules.empty' | t" />
+} @else {
+  <ul class="modules-page-list" [attr.aria-label]="'modules.list' | t">
+    @for (row of $rows(); track row.module.code) {
+      <li class="modules-page-item">
+        <div class="modules-page-text">
+          <h2 class="modules-page-name" [id]="row.nameId">{{ row.name }}</h2>
+          <p class="modules-page-description">{{ row.description }}</p>
+          @if (row.requires) {
+            <p class="modules-page-detail">{{ 'modules.requires' | t: { names: row.requires } }}</p>
+          }
+          @if (row.blocked) {
+            <p class="modules-page-detail" [id]="row.hintId">{{ 'modules.notYet' | t }}</p>
+          }
+        </div>
+        <app-switch
+          class="modules-page-switch"
+          [checked]="row.module.enabled"
+          [labelledBy]="row.nameId"
+          [describedBy]="row.blocked ? row.hintId : undefined"
+          [onText]="'modules.on' | t"
+          [offText]="'modules.off' | t"
+          [disabled]="row.blocked"
+          [busy]="$isSwitching()"
+          (toggled)="onSwitch(row, $event)"
+        />
+      </li>
+    }
+  </ul>
+}

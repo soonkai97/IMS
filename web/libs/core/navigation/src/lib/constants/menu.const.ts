@@ -115,6 +115,15 @@ export const MENU_ITEMS: readonly MenuItem[] = [
     icon: 'settings',
     route: '/settings',
     permissions: [PERMISSION.SettingsManage],
+    group: 'admin',
+    exactMatch: true
+  },
+  {
+    id: 'modules',
+    labelKey: 'nav.modules',
+    icon: 'settings',
+    route: '/settings/modules',
+    permissions: [PERMISSION.ModulesManage],
     group: 'admin'
   },
   {

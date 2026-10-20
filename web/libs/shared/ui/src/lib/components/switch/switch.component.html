@@ -1,0 +1,16 @@
+<button
+  type="button"
+  class="ui-switch-control"
+  role="switch"
+  [attr.aria-checked]="$checked()"
+  [attr.aria-labelledby]="$labelledBy()"
+  [attr.aria-describedby]="$describedBy() ?? null"
+  [attr.aria-disabled]="$disabled() || $busy() || null"
+  [attr.aria-busy]="$busy() || null"
+  (click)="onClick()"
+>
+  <span class="ui-switch-track" aria-hidden="true">
+    <span class="ui-switch-thumb"></span>
+  </span>
+  <span class="ui-switch-text" aria-hidden="true">{{ $checked() ? $onText() : $offText() }}</span>
+</button>

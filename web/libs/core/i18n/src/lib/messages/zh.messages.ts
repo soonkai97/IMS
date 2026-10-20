@@ -154,7 +154,7 @@ export const ZH_MESSAGES: Messages = {
   'account.password.title': '修改密码',
 
   'login.about': '关于{name}',
-  'login.access': '需要开通账户或忘记密码？请联系管理员。',
+  'login.access': '需要开通账户或忘记密码？',
   'login.devHint': '开发环境：演示用户列在 src/Ims.Api/appsettings.Development.json 中。',
   'login.error.invalid': '邮箱、用户名或密码有误。',
   // TODO-review: machine draft (sign-in page, R25).
@@ -181,7 +181,7 @@ export const ZH_MESSAGES: Messages = {
   // TODO-review: machine draft (sign-in page, R25).
   'login.username.empty': '请输入邮箱或用户名。',
 
-  'forbidden.body': '您的角色（{role}）无法打开此页面。如需访问，请联系管理员。',
+  'forbidden.body': '您的角色（{role}）无法打开此页面。如需访问，',
   'forbidden.title': '您无权访问此页面。',
   'notFound.body': '此页面或单据不存在，或已被删除。',
   'notFound.title': '页面未找到',
@@ -189,7 +189,7 @@ export const ZH_MESSAGES: Messages = {
   'home.issue': '出库',
   'home.myDrafts': '我的草稿',
   'home.lowStock': '低库存',
-  'home.noWarehouse': '您尚未分配仓库，请联系管理员。',
+  'home.noWarehouse': '您尚未分配仓库，',
   'home.postedToday': '今日已过账',
   'home.receive': '入库',
   'home.returnedHint': '审批人把这些退回了。请修改后重新提交。',
@@ -703,5 +703,40 @@ export const ZH_MESSAGES: Messages = {
   'audit.searchPlaceholder': '单号或对象名称',
   'audit.show': '查看',
   'audit.showFor': '查看 {when} 对 {entity} 的 {action} 详情，记录 {number}',
-  'audit.title': '审计日志'
+  'audit.title': '审计日志',
+
+  // TODO-review: machine draft (modules screen, PL1.4).
+  'nav.modules': '模块',
+  'perm.modules.manage': '开启或关闭模块',
+  'perm.modules.manage.help': '为所有人开启或关闭系统的某些部分，需填写原因。',
+  'perm.accounting.export': '下载会计导出文件',
+  'perm.accounting.export.help': '下载已过账单据及其成本，供会计使用。',
+  'module.accounting.name': '会计',
+  'module.accounting.description':
+    '产品和往来单位上的税务字段，以及供会计使用的已过账单据导出文件。',
+  'modules.title': '模块',
+  'modules.intro':
+    '为所有人开启或关闭系统的某些部分。关闭模块会隐藏它的页面和字段。不会删除任何数据，重新开启后一切恢复。',
+  'modules.list': '模块',
+  'modules.requires': '需要：{names}',
+  'modules.on': '开',
+  'modules.off': '关',
+  'modules.empty': '没有可用的模块。',
+  'modules.loadFailed': '无法加载模块列表。',
+  'modules.notYet': '即将推出。使用它的页面尚未就绪，所以暂时不能开启。',
+  'modules.confirm.onTitle': '开启{name}？',
+  'modules.confirm.offTitle': '关闭{name}？',
+  'modules.confirm.onBody':
+    '有权使用的人都会看到它的页面和字段。已拥有它的权限的角色会立即恢复这些权限。',
+  'modules.confirm.offBody':
+    '所有人都看不到它的页面和字段，它的请求也会被拒绝。不会删除任何数据；重新开启即可恢复。',
+  'modules.confirm.on': '开启',
+  'modules.confirm.off': '关闭',
+  'modules.toast.on': '{name}已开启。',
+  'modules.toast.off': '{name}已关闭。',
+  'modules.toast.regain': '{count} 个角色恢复了已保存的权限。',
+  'modules.turnedOff': '该功能已被关闭：{names}。菜单已更新。',
+  'modules.error.forbidden': '你无权开启或关闭模块。',
+  'modules.error.notFound': '该模块已不可用。列表已刷新。',
+  'modules.error.busy': '另一项模块更改正在进行。请稍等片刻再试。'
 };

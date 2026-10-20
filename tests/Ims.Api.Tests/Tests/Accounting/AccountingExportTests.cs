@@ -27,7 +27,6 @@ namespace Ims.Api.Tests.Tests.Accounting;
 [Collection(ApiCollection.Name)]
 public class AccountingExportTests(ApiFixture fixture) : IAsyncLifetime
 {
-    private const string Why = "Accounting export test";
     private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(Limits.MalaysiaUtcOffsetHours));
 
     private StockScenario _s = null!;
@@ -36,12 +35,15 @@ public class AccountingExportTests(ApiFixture fixture) : IAsyncLifetime
     {
         await ResetAsync();
         _s = await StockScenario.CreateAsync(fixture);
-        (await _s.Admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, Why)).ShouldBeOk();
+        await TurnModuleOnAsync();
     }
 
     public Task DisposeAsync() => ResetAsync();
 
     private Task ResetAsync() => fixture.Database.ExecuteAsync("DELETE FROM SystemSetting WHERE [Key] LIKE N'Module.%'");
+
+    // The setting row is written straight into the database, not through PUT /api/modules, so these tests do not depend on whether the API lets the module be switched on yet.
+    private Task TurnModuleOnAsync() => fixture.Database.ExecuteAsync("INSERT SystemSetting ([Key], [Value]) VALUES (N'Module.accounting', N'true')");
 
     // ----- helpers -----
     private static string Url(DateOnly from, DateOnly to, Guid? warehouse = null) =>
@@ -97,7 +99,7 @@ public class AccountingExportTests(ApiFixture fixture) : IAsyncLifetime
     public async Task While_the_module_is_off_every_signed_in_caller_gets_404_even_the_ones_with_the_permission_and_an_anonymous_caller_still_gets_401()
     {
         var warehouse = await _s.NewWarehouseAsync();
-        (await _s.Admin.Modules.SwitchAsync(ModuleCodes.Accounting, false, Why)).ShouldBeOk();
+        await ResetAsync();
         var before = await AuditedExportsAsync();
 
         foreach (var who in new[] { _s.Admin, _s.Owner, _s.Supervisor, _s.Staff, _s.Clerk })

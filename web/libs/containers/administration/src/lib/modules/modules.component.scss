@@ -1,0 +1,58 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.modules-page-intro {
+  max-width: width('form-max');
+  margin-bottom: space(2);
+  color: color('text-muted');
+}
+
+.modules-page-list {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  max-width: width('form-max');
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.modules-page-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+  align-items: center;
+  justify-content: space-between;
+  padding: space(2);
+  background: color('surface');
+  border: border-width('thin') solid color('border');
+  border-radius: border-radius('md');
+}
+
+// The text first and the switch beside it; when the row is too narrow the switch drops under the text instead of squeezing it.
+.modules-page-text {
+  flex: 1 1 14rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.modules-page-name {
+  font-size: font-size(4);
+}
+
+.modules-page-description {
+  margin-top: space(0);
+}
+
+.modules-page-detail {
+  margin-top: space(0);
+  font-size: font-size(2);
+  color: color('text-muted');
+}
+
+.modules-page-switch {
+  flex: none;
+}

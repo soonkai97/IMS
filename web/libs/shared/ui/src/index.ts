@@ -25,6 +25,7 @@ export * from './lib/components/skeleton/skeleton.component';
 export * from './lib/components/spinner/spinner.component';
 export * from './lib/components/stat-card/stat-card.component';
 export * from './lib/components/status-chip/status-chip.component';
+export * from './lib/components/switch/switch.component';
 export * from './lib/components/table/cell.directive';
 export * from './lib/components/table/table.component';
 export * from './lib/components/table/table.types';

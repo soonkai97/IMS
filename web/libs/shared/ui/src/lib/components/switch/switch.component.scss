@@ -1,0 +1,110 @@
+@use 'libs' as *;
+
+:host {
+  display: inline-flex;
+}
+
+.ui-switch-control {
+  @include reset-button;
+
+  display: inline-flex;
+  gap: space(1);
+  align-items: center;
+  min-width: height('touch-min');
+  min-height: height('touch-min');
+  font-weight: font-weight('medium');
+  color: color('text');
+
+  &[aria-disabled='true'] {
+    color: color('text-muted');
+    cursor: not-allowed;
+  }
+
+  &[aria-busy='true'] {
+    cursor: progress;
+  }
+}
+
+// The track edge is the `border-strong` colour (3:1) in both themes; the thumb moves, so on and off differ by position and text too.
+// Only the thumb animates (a transform): colours change at once, like the other controls.
+.ui-switch-track {
+  position: relative;
+  flex: none;
+  width: 2.75rem;
+  height: 1.5rem;
+  background: color('surface');
+  border: border-width('thick') solid color('border-strong');
+  border-radius: 999px;
+
+  .ui-switch-control[aria-checked='true'] > & {
+    background: color('accent');
+    border-color: color('accent');
+  }
+
+  .ui-switch-control[aria-disabled='true'] > & {
+    background: color('surface-sunken');
+    border-color: color('border');
+  }
+
+  .ui-switch-control[aria-disabled='true'][aria-checked='true'] > & {
+    background: color('surface-strong');
+  }
+}
+
+.ui-switch-thumb {
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 1rem;
+  height: 1rem;
+  background: color('text');
+  border-radius: 50%;
+  transition: transform duration('fast') easing('standard');
+
+  .ui-switch-control[aria-checked='true'] & {
+    background: color('on-accent');
+    transform: translateX(1.25rem);
+  }
+
+  .ui-switch-control[aria-disabled='true'] & {
+    background: color('text-muted');
+  }
+}
+
+.ui-switch-text {
+  min-width: 2ch;
+}
+
+// Windows high contrast removes backgrounds: draw the track and the thumb with system colours.
+@media (forced-colors: active) {
+  .ui-switch-track {
+    forced-color-adjust: none;
+    border-color: ButtonText;
+  }
+
+  .ui-switch-thumb {
+    background: ButtonText;
+  }
+
+  .ui-switch-control[aria-checked='true'] .ui-switch-track {
+    background: Highlight;
+  }
+
+  .ui-switch-control[aria-checked='true'] .ui-switch-thumb {
+    background: HighlightText;
+  }
+
+  // A switch that cannot be used is grey in this mode too, whatever its state.
+  .ui-switch-control[aria-disabled='true'] {
+    color: GrayText;
+
+    .ui-switch-track {
+      background: Canvas;
+      border-color: GrayText;
+    }
+
+    .ui-switch-thumb {
+      background: GrayText;
+    }
+  }
+}

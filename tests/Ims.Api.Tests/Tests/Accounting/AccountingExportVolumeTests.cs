@@ -87,7 +87,7 @@ public class AccountingExportVolumeTests(ApiFixture fixture, ITestOutputHelper o
         var expectedRows = PostedOnlyDocuments * LinesPerDocument + ReversedDocuments * LinesPerDocument * 2;
         Assert.Equal(Limits.MaxExportRows, expectedRows);
         var admin = await fixture.AsAsync(Roles.Admin);
-        (await admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, "Volume test")).ShouldBeOk();
+        await fixture.Database.ExecuteAsync("INSERT SystemSetting ([Key], [Value]) VALUES (N'Module.accounting', N'true')"); // straight into the database: independent of the switch endpoint
 
         // The period at the cap: written whole.
         var clock = Stopwatch.StartNew();
