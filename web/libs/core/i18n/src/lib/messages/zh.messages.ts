@@ -739,6 +739,7 @@ export const ZH_MESSAGES: Messages = {
   'modules.error.notFound': '该模块已不可用。列表已刷新。',
   'modules.error.busy': '另一项模块更改正在进行。请稍等片刻再试。',
   // TODO-review: machine draft (PL1.8a: tax fields, import hint).
+  'taxFields.turnedOn': '打开后会计模块已被开启。已重新读取并带上税务编码：请检查后再保存。',
   'product.tax': '税务编码',
   'product.hsCode': 'HS 编码',
   'product.hsCodeHint': '请按文本输入，例如 0901.21。仅限数字和小数点，最多 {max} 个字符。',

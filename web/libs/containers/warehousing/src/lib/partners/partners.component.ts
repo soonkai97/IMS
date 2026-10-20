@@ -8,7 +8,8 @@ import {
   computed,
   effect,
   inject,
-  signal
+  signal,
+  untracked
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -136,6 +137,16 @@ export class PartnersPageComponent {
   $taxFields = computed(
     () => this.modules.isEnabled(MODULE_CODE.Accounting) || this.$openedWithTaxIds()
   );
+  /**
+   * The module was on when this partner was opened (the list said so, or the row carried a tax identifier). A row read while it was
+   * OFF came without its identifiers (the server leaves them out), so saving it after the module was turned on would send empty ones
+   * and clear the stored ones: that save is refused and the partner is read again instead.
+   */
+  private readonly $openedWhileOn = signal(false);
+  /** The save was refused because the module was turned on after the partner was read; it was read again and reopened. */
+  $taxIdsToCheck = signal(false);
+  /** The partner to open again once the list has been read again. */
+  private readonly $reopenId = signal<PublicId | undefined>(undefined);
 
   private readonly $search = debouncedSignal(this.$searchInput);
   private readonly $type = controlSignal(this.typeFilter);
@@ -203,6 +214,23 @@ export class PartnersPageComponent {
       .flatMap(([, messages]) => messages);
   });
 
+  private readonly reopenAfterReload = effect(() => {
+    const id = this.$reopenId();
+    if (id === undefined || this.store.list.$isLoading()) {
+      return;
+    }
+    const row = this.store.list.$data()?.items.find(item => item.id === id);
+    untracked(() => {
+      this.$reopenId.set(undefined);
+      if (row) {
+        this.open(row.id, this.formValueOf(row));
+        this.$taxIdsToCheck.set(true);
+      } else {
+        this.$dialogOpen.set(false);
+      }
+    });
+  });
+
   private readonly showServerErrors = effect(() => {
     const error = this.store.save.$operation().error;
     if (error) {
@@ -237,14 +265,18 @@ export class PartnersPageComponent {
   }
 
   onEdit(row: PartnerDto): void {
-    this.open(row.id, {
+    this.open(row.id, this.formValueOf(row));
+  }
+
+  private formValueOf(row: PartnerDto): PartnerFormValue {
+    return {
       type: row.type,
       name: row.name,
       contact: row.contact ?? '',
       isActive: row.isActive,
       tin: row.tin ?? '',
       sstRegNo: row.sstRegNo ?? ''
-    });
+    };
   }
 
   onPageChange(page: number): void {
@@ -262,6 +294,13 @@ export class PartnersPageComponent {
       afterNextRender(() => focusFirstInvalid(this.host.nativeElement), {
         injector: this.injector
       });
+      return;
+    }
+    const editing = this.$editingId();
+    if (editing !== undefined && this.$taxFields() && !this.$openedWhileOn()) {
+      // Accounting was turned on after this partner was read: nothing is sent; the list is read again and the partner reopened.
+      this.$reopenId.set(editing);
+      this.store.list.reload();
       return;
     }
     const value = this.form.getRawValue();
@@ -293,6 +332,10 @@ export class PartnersPageComponent {
     this.store.save.reset();
     this.form.reset(value);
     this.$openedWithTaxIds.set(Boolean(value.tin || value.sstRegNo));
+    this.$openedWhileOn.set(
+      this.modules.isEnabled(MODULE_CODE.Accounting) || this.$openedWithTaxIds()
+    );
+    this.$taxIdsToCheck.set(false);
     this.$editingId.set(id);
     this.$dialogOpen.set(true);
   }

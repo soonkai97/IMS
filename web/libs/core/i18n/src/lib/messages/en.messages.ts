@@ -794,6 +794,8 @@ export const EN_MESSAGES = {
   'modules.error.notFound': 'That module is not available any more. The list was refreshed.',
   'modules.error.busy':
     'Another change to the modules is in progress. Wait a moment, then try again.',
+  'taxFields.turnedOn':
+    'Accounting was turned on after this was opened. It was read again with its tax codes: check them, then save.',
   'product.tax': 'Tax codes',
   'product.hsCode': 'HS code',
   'product.hsCodeHint':

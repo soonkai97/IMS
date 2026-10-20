@@ -794,6 +794,8 @@ export const MS_MESSAGES: Messages = {
   'modules.error.busy':
     'Perubahan lain pada modul sedang berjalan. Tunggu sebentar, kemudian cuba lagi.',
   // TODO-review: machine draft (PL1.8a: tax fields, import hint).
+  'taxFields.turnedOn':
+    'Perakaunan dihidupkan selepas ini dibuka. Ia dibaca semula bersama kod cukainya: semak, kemudian simpan.',
   'product.tax': 'Kod cukai',
   'product.hsCode': 'Kod HS',
   'product.hsCodeHint':

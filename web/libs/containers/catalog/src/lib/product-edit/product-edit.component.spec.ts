@@ -36,13 +36,27 @@ describe('ProductEditPageComponent follows the URL (EA-20)', () => {
   const run = jest.fn();
   const operation = signal<{ error?: Partial<ApiError> }>({});
   let accountingOn = true;
+  const moduleTick = signal(0);
+  /** The module list of the screen changes (an Admin switched the module, the list was read again). */
+  const setModule = (on: boolean) => {
+    accountingOn = on;
+    moduleTick.update(count => count + 1);
+  };
   const createComponent = createComponentFactory({
     component: ProductEditPageComponent,
     detectChanges: false,
     providers: [
       provideRouter([{ path: 'products/:id', children: [] }]),
       { provide: PermissionService, useValue: { has: () => true } },
-      { provide: ModulesStore, useValue: { isEnabled: () => accountingOn } },
+      {
+        provide: ModulesStore,
+        useValue: {
+          isEnabled: () => {
+            moduleTick();
+            return accountingOn;
+          }
+        }
+      },
       {
         provide: CatalogStore,
         useValue: { ensureLoaded: jest.fn(), $units: signal([]), $categories: signal([]) }
@@ -68,7 +82,7 @@ describe('ProductEditPageComponent follows the URL (EA-20)', () => {
     run.mockReset();
     operation.set({});
     data.set(undefined);
-    accountingOn = true;
+    setModule(true);
   });
 
   it('loads the product named in the URL', async () => {
@@ -259,6 +273,39 @@ describe('ProductEditPageComponent follows the URL (EA-20)', () => {
 
       expect(input('hsCode')?.value).toBe('0901.21');
       expect(sent()).toMatchObject({ hsCode: '0901.21', sstCode: 'ST-01' });
+    });
+
+    it('DATA LOSS: loaded while the module was OFF and saved after it was turned ON, nothing is sent and the product is read again', async () => {
+      setModule(false);
+      await openLoaded({ ...PRODUCT, hsCode: undefined, sstCode: undefined });
+      load.mockClear();
+      setModule(true);
+
+      spectator.component.form.controls.name.setValue('Green tea');
+      spectator.component.onSave();
+      await settle();
+
+      expect(run).not.toHaveBeenCalled();
+      expect(load).toHaveBeenCalledTimes(1);
+      expect(load).toHaveBeenCalledWith(NINE);
+      expect(text()).toContain('Accounting was turned on after this was opened.');
+
+      // The product comes back with its codes: the form shows them and a save sends them.
+      data.set({ ...PRODUCT });
+      await settle();
+      expect(input('hsCode')?.value).toBe('0901.21');
+      spectator.component.onSave();
+      expect(sent()).toMatchObject({ hsCode: '0901.21', sstCode: 'ST-01' });
+    });
+
+    it('a product loaded while the module was ON saves at once (no reload), also when it has no codes', async () => {
+      await openLoaded({ ...PRODUCT, hsCode: undefined, sstCode: undefined });
+      load.mockClear();
+
+      spectator.component.onSave();
+
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(load).not.toHaveBeenCalled();
     });
   });
 });

@@ -148,6 +148,14 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
   $taxFields = computed(
     () => this.modules.isEnabled(MODULE_CODE.Accounting) || this.$loadedTaxCodes()
   );
+  /**
+   * The module was on when this product was loaded (the list said so, or the product carried a tax code). A product loaded while it was
+   * OFF came without its codes (the server leaves them out), so saving it after the module was turned on would send empty codes and
+   * clear the stored ones: that save is refused and the product is read again instead.
+   */
+  private readonly $loadedWhileOn = signal(false);
+  /** The save was refused because the module was turned on after the product was loaded; the product was read again. */
+  $taxCodesToCheck = signal(false);
   $isLoading = this.store.detail.$isLoading;
   $isSaving = this.store.save.$isRunning;
   $unitOptions = computed<readonly SelectOption[]>(() =>
@@ -253,10 +261,18 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
     if (this.form.invalid || !this.$canManage() || this.$notFound()) {
       return;
     }
+    const id = this.$productId();
+    if (id !== undefined && this.$taxFields() && !this.$loadedWhileOn()) {
+      // Accounting was turned on after this product was loaded: nothing is sent; the product is read again with its codes.
+      this.$taxCodesToCheck.set(true);
+      this.store.detail.load(id);
+      return;
+    }
     this.store.save
       .run({ id: this.$productId(), body: this.toRequest() })
       .pipe(
         tap(product => {
+          this.$taxCodesToCheck.set(false);
           this.form.markAsPristine();
           this.toast.success(this.i18n.t('product.saved', { sku: product.sku }));
           if (this.$isNew()) {
@@ -284,6 +300,9 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
       barcodes: product.barcodes
     });
     this.$loadedTaxCodes.set(Boolean(product.hsCode || product.sstCode));
+    this.$loadedWhileOn.set(
+      this.modules.isEnabled(MODULE_CODE.Accounting) || this.$loadedTaxCodes()
+    );
     this.form.controls.conversions.clear();
     for (const conversion of product.conversions) {
       this.form.controls.conversions.push(
