@@ -1,5 +1,7 @@
+using Ims.Application.Features.Modules;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ims.Api.Tests.Harness;
@@ -36,6 +38,13 @@ public sealed class TestHostFactory(TestHostSettings settings) : WebApplicationF
         {
             Registrations = services;
             services.AddSingleton<IStartupFilter, ClientAddressStartupFilter>();
+        });
+
+        // Production refuses to switch accounting on until PL1.8; most tests switch it on through the API to test what it does, so this host allows it.
+        // ModuleNotYetSwitchableTests puts the production list back on a host of its own.
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddSingleton(new NotYetSwitchableModules([]));
         });
     }
 }
