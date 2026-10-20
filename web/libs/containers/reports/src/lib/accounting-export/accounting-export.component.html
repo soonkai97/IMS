@@ -21,7 +21,10 @@
       [label]="'filter.from' | t"
       [required]="true"
       [control]="form.controls.from"
-      [messages]="{ required: ('accounting.fromRequired' | t) }"
+      [messages]="{
+        required: ('accounting.fromRequired' | t),
+        dateRange: ('accounting.dateRange' | t)
+      }"
     >
       <app-date-field formControlName="from" />
     </app-form-field>
@@ -30,7 +33,10 @@
       [required]="true"
       [control]="form.controls.to"
       [error]="$toError()"
-      [messages]="{ required: ('accounting.toRequired' | t) }"
+      [messages]="{
+        required: ('accounting.toRequired' | t),
+        dateRange: ('accounting.dateRange' | t)
+      }"
     >
       <app-date-field formControlName="to" />
     </app-form-field>

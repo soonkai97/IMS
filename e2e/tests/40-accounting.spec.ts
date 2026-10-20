@@ -83,7 +83,9 @@ test.describe('Accounting module, forms and import, real API', () => {
 
     // The first flip after the API started can take 15 s (a cold query for the roles that regain their grants); the switch is busy meanwhile.
     await expect(dialog).toBeHidden({ timeout: SLOW });
-    await expect(moduleSwitch(page)).toHaveAttribute('aria-checked', 'true', { timeout: SLOW });
+    await expect(moduleSwitch(page)).toHaveAttribute('aria-checked', 'true', {
+      timeout: SLOW
+    });
     await expect(shell.toast('Accounting is now on.')).toHaveCount(1);
     expect(await accountingIsOn()).toBe(true);
     await expect(moduleSwitch(page)).toBeFocused();
@@ -126,9 +128,7 @@ test.describe('Accounting module, forms and import, real API', () => {
     await expect(page.getByLabel('SST code')).toHaveValue(SST_CODE);
 
     // Only the name changes. The form still sends both codes, so they are not cleared.
-    await page
-      .getByRole('textbox', { name: 'Name', exact: true })
-      .fill(`${data.name} renamed`);
+    await page.getByRole('textbox', { name: 'Name', exact: true }).fill(`${data.name} renamed`);
     await page.getByRole('button', { name: 'Save' }).first().click();
     await expect(page.locator('app-toast').filter({ hasText: 'saved' })).toHaveCount(1);
     const after = await admin().call<ProductRow>('GET', `/api/products/${data.productId}`);
@@ -215,7 +215,7 @@ test.describe('Accounting module, forms and import, real API', () => {
         ['Bahasa Melayu', 'Malay'],
         ['中文', 'Chinese']
       ] as const) {
-        test(`given ${label}, then the product form does not scroll sideways or clip`, async ({
+        test(`given ${label}, then the product form and the partner dialog do not scroll sideways or clip`, async ({
           page,
           signIn,
           shell
@@ -243,6 +243,33 @@ test.describe('Accounting module, forms and import, real API', () => {
             expect(right).toBeLessThanOrEqual(320);
           }
           await page.evaluate(() => (document.documentElement.style.fontSize = ''));
+
+          // The partner dialog, with its message showing: a wrong TIN sent with Enter.
+          await goTo(page, '/partners');
+          await page.locator('app-page-header button').first().click();
+          const dialog = page.getByRole('dialog');
+          await expect(dialog.getByLabel('TIN')).toBeVisible();
+          await dialog.getByLabel('TIN').fill('C-1');
+          await dialog.locator('app-button').last().getByRole('button').click(); // Save
+          await expect(dialog.locator('[aria-invalid="true"]')).toHaveCount(2); // the name is empty too
+          await page.evaluate(() => (document.documentElement.style.fontSize = '200%'));
+          // The dialog itself does not scroll sideways (the list behind it keeps its own scroll region, which is not what is measured).
+          expect(
+            await dialog.evaluate(element => element.scrollWidth - element.clientWidth)
+          ).toBeLessThanOrEqual(0);
+          const inside = await dialog
+            .locator('input, select, button, p')
+            .evaluateAll(items =>
+              items
+                .filter(item => item.getBoundingClientRect().width > 0)
+                .map(item => item.getBoundingClientRect().right)
+            );
+          expect(inside.length).toBeGreaterThan(4);
+          for (const right of inside) {
+            expect(right).toBeLessThanOrEqual(320);
+          }
+          await page.evaluate(() => (document.documentElement.style.fontSize = ''));
+          await page.keyboard.press('Escape');
           if (language !== 'English') {
             await shell.setLanguage('English');
           }
@@ -252,16 +279,28 @@ test.describe('Accounting module, forms and import, real API', () => {
 
     for (const scheme of ['light', 'dark'] as const) {
       test.describe(`axe, ${scheme}`, () => {
-        test.use({ colorScheme: scheme, viewport: { width: 360, height: 740 } });
+        test.use({
+          colorScheme: scheme,
+          viewport: { width: 360, height: 740 }
+        });
 
         test(`given the product form and the partner form, then axe finds no serious or critical violation (${scheme})`, async ({
           page,
           signIn
         }) => {
           await signIn('admin');
-          const scan = async (name: string) => {
-            await page.waitForLoadState('networkidle');
-            await page.waitForFunction(() => document.getAnimations().length === 0);
+          const scan = async (name: string, area = 'main') => {
+            // The entrance of the area that is scanned has finished (a dialog fades in); an endless animation elsewhere is not waited for.
+            await page.locator(area).evaluate(element =>
+              Promise.all(
+                element
+                  .getAnimations({ subtree: true })
+                  .filter(
+                    animation => animation.effect?.getComputedTiming().iterations !== Infinity
+                  )
+                  .map(animation => animation.finished.catch(() => undefined))
+              )
+            );
             const { violations } = await new AxeBuilder({ page })
               .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
               .analyze();
@@ -283,7 +322,7 @@ test.describe('Accounting module, forms and import, real API', () => {
           await page.getByRole('searchbox').fill(data.partner);
           await page.getByRole('button', { name: new RegExp(`^Edit ${data.partner}`) }).click();
           await expect(page.getByRole('dialog').getByLabel('TIN')).toBeVisible();
-          await scan('partner');
+          await scan('partner', 'dialog[open]');
         });
       });
     }

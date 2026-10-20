@@ -64,6 +64,9 @@
 <app-dialog [(open)]="$dialogOpen" [heading]="$dialogHeading()">
   <form class="partners-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
     <app-form-legend />
+    @if ($taxIdsToCheck()) {
+      <app-banner kind="warning" alert>{{ 'taxFields.turnedOn' | t }}</app-banner>
+    }
     @for (message of $serverErrors(); track message) {
       <app-banner kind="danger">{{ message }}</app-banner>
     }

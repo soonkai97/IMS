@@ -34,11 +34,32 @@ describe('PartnersPageComponent (Clerk creates, Supervisor and Admin manage)', (
   const saveCalls: unknown[] = [];
   let saveFails = false;
   let accountingOn = true;
+  const moduleTick = signal(0);
+  const setModule = (on: boolean) => {
+    accountingOn = on;
+    moduleTick.update(count => count + 1);
+  };
+  const listData = signal<PagedResultOfPartnerDto>({
+    items: [ROW],
+    page: 1,
+    pageSize: 25,
+    total: 1
+  });
+  const listLoading = signal(false);
+  const listReload = jest.fn();
   const createComponent = createComponentFactory({
     component: PartnersPageComponent,
     detectChanges: false,
     providers: [
-      { provide: ModulesStore, useValue: { isEnabled: () => accountingOn } },
+      {
+        provide: ModulesStore,
+        useValue: {
+          isEnabled: () => {
+            moduleTick();
+            return accountingOn;
+          }
+        }
+      },
       {
         provide: PermissionService,
         useValue: { has: (permission: string) => granted.has(permission) }
@@ -47,16 +68,11 @@ describe('PartnersPageComponent (Clerk creates, Supervisor and Admin manage)', (
         provide: PartnersStore,
         useFactory: () => ({
           list: {
-            $data: signal({
-              items: [ROW],
-              page: 1,
-              pageSize: 25,
-              total: 1
-            } as PagedResultOfPartnerDto),
-            $isLoading: signal(false),
+            $data: listData,
+            $isLoading: listLoading,
             $isFailed: signal(false),
             load: jest.fn(),
-            reload: jest.fn()
+            reload: listReload
           },
           save: new ApiCommand<unknown, PartnerDto>(args => {
             saveCalls.push(args);
@@ -82,7 +98,12 @@ describe('PartnersPageComponent (Clerk creates, Supervisor and Admin manage)', (
   beforeEach(() => {
     saveCalls.length = 0;
     saveFails = true;
-    accountingOn = true;
+    setModule(true);
+    listReload.mockReset();
+    // A reload is loading at once (the real loader sets it when the request starts).
+    listReload.mockImplementation(() => listLoading.set(true));
+    listLoading.set(false);
+    listData.set({ items: [ROW], page: 1, pageSize: 25, total: 1 });
   });
 
   it('Clerk: sees New partner but no Edit and no Actions column', () => {
@@ -263,6 +284,40 @@ describe('PartnersPageComponent (Clerk creates, Supervisor and Admin manage)', (
 
       expect(input('tin')?.value).toBe('C1234567890');
       expect(body()).toMatchObject({ tin: 'C1234567890', sstRegNo: 'W10-1808-32000001' });
+    });
+
+    it('DATA LOSS: opened while the module was OFF and saved after it was turned ON, nothing is sent, the list is read again and the partner reopened with its identifiers', async () => {
+      setModule(false);
+      edit(ROW);
+      setModule(true);
+
+      spectator.component.form.controls.name.setValue('Acme Trading Sdn Bhd');
+      spectator.component.onSave();
+      spectator.detectChanges();
+
+      expect(saveCalls).toHaveLength(0);
+      expect(listReload).toHaveBeenCalledTimes(1);
+
+      // The list answers with the identifiers the server holds: the dialog shows them, says why, and a save sends them.
+      listData.set({ items: [ROW_WITH_TAX_IDS], page: 1, pageSize: 25, total: 1 });
+      listLoading.set(false);
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+      spectator.detectChanges();
+
+      expect(input('tin')?.value).toBe('C1234567890');
+      expect(text()).toContain('Accounting was turned on after this was opened.');
+      spectator.component.onSave();
+      expect(body()).toMatchObject({ tin: 'C1234567890', sstRegNo: 'W10-1808-32000001' });
+    });
+
+    it('a partner opened while the module was ON saves at once, with no reload', () => {
+      edit(ROW);
+
+      spectator.component.onSave();
+
+      expect(listReload).not.toHaveBeenCalled();
+      expect(saveCalls).toHaveLength(1);
     });
   });
 });

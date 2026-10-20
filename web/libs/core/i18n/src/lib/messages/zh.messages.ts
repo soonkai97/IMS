@@ -739,6 +739,7 @@ export const ZH_MESSAGES: Messages = {
   'modules.error.notFound': '该模块已不可用。列表已刷新。',
   'modules.error.busy': '另一项模块更改正在进行。请稍等片刻再试。',
   // TODO-review: machine draft (PL1.8a: tax fields, import hint).
+  'taxFields.turnedOn': '打开后会计模块已被开启。已重新读取并带上税务编码：请检查后再保存。',
   'product.tax': '税务编码',
   'product.hsCode': 'HS 编码',
   'product.hsCodeHint': '请按文本输入，例如 0901.21。仅限数字和小数点，最多 {max} 个字符。',
@@ -768,6 +769,8 @@ export const ZH_MESSAGES: Messages = {
   'accounting.note.cost': '金额按成本计。',
   'accounting.note.reversal': '冲销以负数行显示（数量和金额为负），与原行相互抵消。',
   'accounting.note.limit': '行数过多的期间不会被截断：系统会要求你缩小日期范围或选择一个仓库。',
+  'accounting.dateRange': '请输入 2000 年 1 月 1 日至 2100 年 12 月 31 日之间的日期。',
+  'accounting.forbidden': '会计导出还需要查看成本、主数据和报表的权限。',
   'accounting.download': '下载 Excel 文件',
   'accounting.downloaded': '已下载 {name}。'
 };

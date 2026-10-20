@@ -192,4 +192,31 @@ describe('AccountingExportPageComponent (Reports > Accounting export)', () => {
 
     expect(run).not.toHaveBeenCalled();
   });
+  it('refuses a date after 31 December 2100 like the API, in words, and sends nothing', async () => {
+    spectator.component.form.patchValue({ from: '2026-10-01', to: '2101-01-01' });
+
+    spectator.click(download() as HTMLButtonElement);
+    await settle();
+
+    expect(run).not.toHaveBeenCalled();
+    expect(text()).toContain('Enter dates between 1 January 2000 and 31 December 2100.');
+  });
+
+  it('accepts the last day the API accepts', () => {
+    spectator.component.form.patchValue({ from: '2100-12-31', to: '2100-12-31' });
+
+    spectator.click(download() as HTMLButtonElement);
+
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it('a 403 says what else the export needs (the menu only knows the export permission)', async () => {
+    operation.set({ error: { status: 403, fieldErrors: {}, message: 'You do not have access.' } });
+    await settle();
+
+    expect(spectator.queryAll('[role="alert"]')).toHaveLength(1);
+    expect(text()).toContain(
+      'The accounting export also needs permission to see cost, master data and reports.'
+    );
+  });
 });

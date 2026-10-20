@@ -19,6 +19,9 @@
 } @else {
   <form class="product-edit-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
     <app-form-legend />
+    @if ($taxCodesToCheck()) {
+      <app-banner kind="warning" alert>{{ 'taxFields.turnedOn' | t }}</app-banner>
+    }
     @for (message of $generalErrors(); track message) {
       <app-banner kind="danger">{{ message }}</app-banner>
     }

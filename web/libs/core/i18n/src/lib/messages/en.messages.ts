@@ -794,6 +794,8 @@ export const EN_MESSAGES = {
   'modules.error.notFound': 'That module is not available any more. The list was refreshed.',
   'modules.error.busy':
     'Another change to the modules is in progress. Wait a moment, then try again.',
+  'taxFields.turnedOn':
+    'Accounting was turned on after this was opened. It was read again with its tax codes: check them, then save.',
   'product.tax': 'Tax codes',
   'product.hsCode': 'HS code',
   'product.hsCodeHint':
@@ -828,6 +830,9 @@ export const EN_MESSAGES = {
     'Reversals appear as negative rows (negative quantity and amount) that cancel the original rows.',
   'accounting.note.limit':
     'A period with too many rows is not cut short: you are asked to narrow the dates or pick one warehouse.',
+  'accounting.dateRange': 'Enter dates between 1 January 2000 and 31 December 2100.',
+  'accounting.forbidden':
+    'The accounting export also needs permission to see cost, master data and reports.',
   'accounting.download': 'Download Excel file',
   'accounting.downloaded': 'Downloaded {name}.'
 } as const;

@@ -10,12 +10,19 @@ import {
   inject
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators
+} from '@angular/forms';
 import { I18nService, TranslatePipe } from '@ims/core/i18n';
 import { PermissionService } from '@ims/core/identity';
 import { AccountingExportStore } from '@ims/features/reports';
 import { WarehousesStore } from '@ims/features/warehousing';
-import { PERMISSION, PublicId } from '@ims/models';
+import { HTTP_STATUS, PERMISSION, PublicId } from '@ims/models';
 import {
   SelectOption,
   UiBannerComponent,
@@ -29,6 +36,18 @@ import {
   UiSelectComponent
 } from '@ims/ui';
 import { controlSignal, focusFirstInvalid, isDateRangeInvalid } from '@ims/utils';
+
+/** The first and the last day the API accepts for a period (`AccountingLayout.EarliestDate` and `LatestDate`). */
+const EARLIEST_DATE = '2000-01-01';
+const LATEST_DATE = '2100-12-31';
+
+/** A date (yyyy-MM-dd, or empty) outside the years the API accepts; the empty value is the job of `required`. */
+function withinApiDates(control: AbstractControl): ValidationErrors | null {
+  const value: unknown = control.value;
+  return typeof value === 'string' && value !== '' && (value < EARLIEST_DATE || value > LATEST_DATE)
+    ? { dateRange: true }
+    : null;
+}
 
 /**
  * Reports > Accounting export (module accounting, permission `accounting.export`): the posted lines of a period as one .xlsx in a fixed
@@ -65,8 +84,14 @@ export class AccountingExportPageComponent implements OnInit {
   private readonly warehouses = inject(WarehousesStore);
 
   readonly form = new FormGroup({
-    from: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    to: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    from: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, withinApiDates]
+    }),
+    to: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, withinApiDates]
+    }),
     warehouseId: new FormControl<PublicId | null>(null)
   });
 
@@ -82,6 +107,11 @@ export class AccountingExportPageComponent implements OnInit {
     const error = this.store.download.$operation().error;
     if (!error) {
       return [];
+    }
+    // The route and the menu ask for the export permission only; the API also needs cost, master data and reports (a role cannot
+    // be given the export without them, so a 403 here means a role that was changed outside the role editor).
+    if (error.status === HTTP_STATUS.Forbidden) {
+      return [this.i18n.t('accounting.forbidden')];
     }
     const fields = Object.values(error.fieldErrors).flat();
     return fields.length > 0 ? fields : [error.message ?? error.detail];

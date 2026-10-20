@@ -794,6 +794,8 @@ export const MS_MESSAGES: Messages = {
   'modules.error.busy':
     'Perubahan lain pada modul sedang berjalan. Tunggu sebentar, kemudian cuba lagi.',
   // TODO-review: machine draft (PL1.8a: tax fields, import hint).
+  'taxFields.turnedOn':
+    'Perakaunan dihidupkan selepas ini dibuka. Ia dibaca semula bersama kod cukainya: semak, kemudian simpan.',
   'product.tax': 'Kod cukai',
   'product.hsCode': 'Kod HS',
   'product.hsCodeHint':
@@ -829,6 +831,9 @@ export const MS_MESSAGES: Messages = {
     'Pembalikan muncul sebagai baris negatif (kuantiti dan jumlah negatif) yang membatalkan baris asal.',
   'accounting.note.limit':
     'Tempoh yang mempunyai terlalu banyak baris tidak dipotong: anda diminta mengecilkan tarikh atau memilih satu gudang.',
+  'accounting.dateRange': 'Masukkan tarikh antara 1 Januari 2000 dan 31 Disember 2100.',
+  'accounting.forbidden':
+    'Eksport perakaunan juga memerlukan kebenaran untuk melihat kos, data induk dan laporan.',
   'accounting.download': 'Muat turun fail Excel',
   'accounting.downloaded': 'Telah dimuat turun {name}.'
 };

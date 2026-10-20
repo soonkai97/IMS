@@ -4,7 +4,7 @@ namespace Ims.Domain;
 /// Shape rules of the tax-ready fields of the accounting module (HS code, SST code, TIN, SST registration number): which characters and how many, and nothing more. There is no
 /// checksum and no lookup, because the system only carries the values to the accountant's package (PRD non-goal 2.2). The only normalisation is trimming the ends; a blank value
 /// means "none" and is stored as <c>null</c>. Case is kept as typed. Characters are ASCII only: a Unicode digit or letter is refused.
-/// One definition for the entity, the request validators and the import, so the three cannot disagree. No message repeats the value (a TIN can be a person's).
+/// One definition for the entity, the request validators and the import, so the three cannot disagree. The web mirrors the characters and lengths in TAX_FIELD; web/libs/shared/utils/src/lib/forms/tax-field.validator.spec.ts string-matches the flag lists of the four <c>*Error</c> methods and the <c>Clean</c> line below, so renaming or reformatting them fails that spec on purpose. No message repeats the value (a TIN can be a person's).
 /// </summary>
 public static class TaxFieldShapes
 {
