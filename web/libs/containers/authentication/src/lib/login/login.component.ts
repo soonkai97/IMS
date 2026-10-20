@@ -22,7 +22,8 @@ import { I18nService, LanguageSelectComponent, MessageKey, TranslatePipe } from 
 import {
   AuthService,
   SESSION_EXPIRED_KEPT_REASON,
-  SESSION_EXPIRED_REASON
+  SESSION_EXPIRED_REASON,
+  SESSION_PASSWORD_CHANGED_REASON
 } from '@ims/core/identity';
 import { ToastHostComponent } from '@ims/core/notification';
 import { MAX_PASSWORD_LENGTH, MAX_USERNAME_LENGTH } from '@ims/models';
@@ -100,6 +101,10 @@ export class LoginPageComponent implements OnInit {
   /** The session ended by expiry (the sentence says whether unsent work was kept). */
   $draftKept = computed(() => this.$reason() === SESSION_EXPIRED_KEPT_REASON);
   $sessionExpired = computed(() => this.$reason() === SESSION_EXPIRED_REASON || this.$draftKept());
+  /** The user changed their own password: every session of theirs ended, so they sign in again with the new one. */
+  $passwordChanged = computed(() => this.$reason() === SESSION_PASSWORD_CHANGED_REASON);
+  /** A notice above the form describes the whole page: the first field points at it (aria-describedby). */
+  $hasNotice = computed(() => this.$sessionExpired() || this.$passwordChanged());
   /** The failure as data; the sentence is made from it below, so a language change rewrites the banner. */
   $failure = computed<LoginFailure | undefined>(() => {
     const error = this.auth.login.$operation().error;

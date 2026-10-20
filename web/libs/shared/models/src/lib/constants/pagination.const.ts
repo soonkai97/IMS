@@ -19,4 +19,6 @@ export const MAX_UNIT_COST = 1_000_000_000;
 export const MAX_USERNAME_LENGTH = 256;
 /** The API's `Limits.NameMaxLength`: a product name. */
 export const MAX_PRODUCT_NAME_LENGTH = 300;
+/** The API's `Limits.PasswordMinLength`: the shortest password a person may choose. */
+export const MIN_PASSWORD_LENGTH = 12;
 export const MAX_PASSWORD_LENGTH = 128;

@@ -40,7 +40,8 @@ describe('ShellComponent structure and accessibility', () => {
     providers: [
       provideRouter([
         { path: '', component: BlankPage },
-        { path: 'stock', component: BlankPage }
+        { path: 'stock', component: BlankPage },
+        { path: 'account/password', component: BlankPage }
       ]),
       {
         provide: NavigationService,
@@ -94,6 +95,20 @@ describe('ShellComponent structure and accessibility', () => {
     await render('/');
 
     expect(spectator.query('header button')?.getAttribute('aria-label')).toBe('Account, Staff');
+  });
+
+  it('the Account dialog has a Change password link to /account/password, and following it closes the dialog', async () => {
+    await render('/');
+    spectator.component.onOpenAccount();
+    spectator.detectChanges();
+
+    const link = spectator.query<HTMLAnchorElement>('a[href="/account/password"]');
+    expect(link?.textContent?.trim()).toBe('Change password');
+
+    link?.click();
+    spectator.detectChanges();
+
+    expect(spectator.component.$accountOpen()).toBe(false);
   });
 
   it('R10 landmarks: a skip link first, one banner, one main, and the tab bar is links, not a tablist', async () => {

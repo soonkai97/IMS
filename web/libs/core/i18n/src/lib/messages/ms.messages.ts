@@ -142,6 +142,21 @@ export const MS_MESSAGES: Messages = {
   'ledgerReason.Reversal': 'Pembalikan',
   'ledgerReason.Opening': 'Stok permulaan',
 
+  // TODO-review: machine draft (change password screen).
+  'account.password.current': 'Kata laluan semasa',
+  'account.password.current.empty': 'Masukkan kata laluan semasa anda.',
+  'account.password.current.wrong': 'Kata laluan semasa tidak betul.',
+  'account.password.error.locked':
+    'Terlalu banyak percubaan gagal. Cuba lagi dalam beberapa minit.',
+  'account.password.new': 'Kata laluan baharu',
+  'account.password.new.empty': 'Masukkan kata laluan baharu.',
+  'account.password.new.hint': 'Sekurang-kurangnya {min} aksara.',
+  'account.password.new.same': 'Pilih kata laluan yang berbeza daripada kata laluan semasa.',
+  'account.password.submit': 'Tukar kata laluan',
+  'account.password.subtitle':
+    'Anda akan dilog keluar di mana-mana dan log masuk semula dengan kata laluan baharu.',
+  'account.password.title': 'Tukar kata laluan',
+
   'login.about': 'Tentang {name}',
   'login.access': 'Perlukan akses atau terlupa kata laluan? Tanya pentadbir anda.',
   'login.devHint':
@@ -157,6 +172,9 @@ export const MS_MESSAGES: Messages = {
   'login.offline': 'Anda di luar talian. Sambung ke internet untuk log masuk.',
   'login.password': 'Kata laluan',
   'login.password.empty': 'Masukkan kata laluan anda.',
+  // TODO-review: machine draft (change password screen).
+  'login.passwordChanged':
+    'Kata laluan anda telah ditukar. Log masuk semula dengan kata laluan baharu anda.',
   'login.point.audit': 'Kelulusan dengan jejak audit penuh',
   'login.point.devices': 'Dibuat untuk pengimbas kod bar dan telefon',
   'login.point.warehouses': 'Semua gudang dalam satu paparan langsung',
@@ -555,7 +573,7 @@ export const MS_MESSAGES: Messages = {
   'user.newPassword': 'Kata laluan baharu',
   'user.password': 'Kata laluan',
   'user.passwordHint':
-    'Berikan kepada pengguna secara bersemuka; mereka patut menukarnya selepas log masuk.',
+    'Berikan kepada pengguna secara bersemuka. Mereka boleh menukarnya di Akaun > Tukar kata laluan selepas log masuk.',
   'user.passwordKeepHint': 'Biarkan kosong untuk mengekalkan kata laluan semasa.',
   'user.role': 'Peranan',
   'user.username': 'Nama pengguna',

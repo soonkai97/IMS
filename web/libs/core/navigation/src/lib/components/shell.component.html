@@ -113,6 +113,10 @@
     [options]="$themeOptions()"
     [formControl]="themeControl"
   />
+  <a class="shell-more-link" routerLink="/account/password" (click)="$accountOpen.set(false)">
+    <app-icon name="lock" />
+    <span>{{ 'account.password.title' | t }}</span>
+  </a>
   <div dialogActions>
     <app-button variant="danger" (clicked)="onSignOut()">
       <app-icon name="logout" />

@@ -70,7 +70,8 @@ test.describe('D1 Phone 360x740', () => {
       '/stock',
       '/low-stock',
       '/products',
-      '/partners'
+      '/partners',
+      '/account/password'
     ];
     await signIn('staff');
     for (const path of screens) {
