@@ -753,5 +753,21 @@ export const ZH_MESSAGES: Messages = {
   'partner.sstRegNoHint': '字母、数字和连字符，最多 {max} 个字符。',
   'partner.sstRegNoShape': 'SST 注册号只能包含字母、数字和连字符，最多 {max} 个字符。',
   'import.rules.taxColumns':
-    '会计可选列：HsCode（数字和小数点，最多 {hsMax} 个字符）和 SstCode（字母、数字和连字符，最多 {sstMax} 个）。输入前请将这两列设为文本格式：数字单元格会丢失开头和结尾的零，这两列含数字单元格的文件会被拒绝。空单元格会清除该值；若要保留已保存的值，请不要包含这一列。'
+    '会计可选列：HsCode（数字和小数点，最多 {hsMax} 个字符）和 SstCode（字母、数字和连字符，最多 {sstMax} 个）。输入前请将这两列设为文本格式：数字单元格会丢失开头和结尾的零，这两列含数字单元格的文件会被拒绝。空单元格会清除该值；若要保留已保存的值，请不要包含这一列。',
+  // TODO-review: machine draft (PL1.8b: accounting export).
+  'nav.accountingExport': '会计导出',
+  'accounting.title': '会计导出',
+  'accounting.intro': '将某个期间已过账的单据下载为一个 Excel 文件，交给会计。',
+  'accounting.period': '期间',
+  'accounting.fromRequired': '请输入期间的开始日期。',
+  'accounting.toRequired': '请输入期间的结束日期。',
+  'accounting.allWarehouses': '我的所有仓库',
+  'accounting.note.heading': '关于该文件',
+  'accounting.note.layout':
+    '格式固定：每张已过账单据的每一行对应一行，数量以产品的基本单位计。此处无法更改。',
+  'accounting.note.cost': '金额按成本计。',
+  'accounting.note.reversal': '冲销以负数行显示（数量和金额为负），与原行相互抵消。',
+  'accounting.note.limit': '行数过多的期间不会被截断：系统会要求你缩小日期范围或选择一个仓库。',
+  'accounting.download': '下载 Excel 文件',
+  'accounting.downloaded': '已下载 {name}。'
 };
