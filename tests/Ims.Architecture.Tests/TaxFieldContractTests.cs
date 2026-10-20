@@ -11,7 +11,8 @@ public class TaxFieldContractTests
 {
     private static readonly string[] Names = ["HsCode", "SstCode", "Tin", "SstRegNo"];
 
-    private static readonly string[] Allowed = ["ProductDto", "PartnerDto", "ProductSaveRequest", "PartnerSaveRequest"];
+    // AccountingEntry is the read model of the accounting export (module accounting, endpoint behind [RequiresModule]); it is never written to a response as JSON, only into the file.
+    private static readonly string[] Allowed = ["ProductDto", "PartnerDto", "ProductSaveRequest", "PartnerSaveRequest", "AccountingEntry"];
 
     private static IEnumerable<(Type Type, PropertyInfo Property)> Carriers() =>
         Layers.TypesOf(Layers.Application).Where(t => t.IsPublic)

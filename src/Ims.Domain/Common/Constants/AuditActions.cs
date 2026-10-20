@@ -24,6 +24,9 @@ public static class AuditActions
     public const string ModuleEnabled = "module.enabled";
     public const string ModuleDisabled = "module.disabled";
 
+    /// <summary>One accounting export was produced: who, when (the row's own time), the filters and the number of rows. Never the content of the file.</summary>
+    public const string AccountingExported = "accounting.exported";
+
     public const string DocumentCreated = "document.created";
     public const string DocumentSubmitted = "document.submitted";
     public const string DocumentApproved = "document.approved";
@@ -49,7 +52,7 @@ public static class AuditActions
     public static readonly IReadOnlyList<string> Known =
     [
         RowCreated, RowUpdated, RowDeleted, LoginSuccess, LoginFailed, LoginLocked, LoginLockout, Logout, UserCreated, UserUpdated, PasswordChanged, RoleCreated, RoleUpdated, RolePermissionsChanged, RoleDeleted,
-        SettingsUpdated, ModuleEnabled, ModuleDisabled, DocumentCreated, DocumentSubmitted, DocumentApproved, DocumentRejected, DocumentRecalled, DocumentCancelled, DocumentPosted, DocumentReversed,
+        SettingsUpdated, ModuleEnabled, ModuleDisabled, AccountingExported, DocumentCreated, DocumentSubmitted, DocumentApproved, DocumentRejected, DocumentRecalled, DocumentCancelled, DocumentPosted, DocumentReversed,
         AttachmentUploaded, AttachmentDeleted, ImportProducts, ImportOpeningStock, ApprovalRulesWidened
     ];
 }

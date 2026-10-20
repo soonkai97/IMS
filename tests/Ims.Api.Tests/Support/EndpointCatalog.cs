@@ -100,5 +100,14 @@ public static class EndpointCatalog
         new("POST import opening-stock", Post, Permissions.MasterDataManage, _ => "/api/import/opening-stock", OkWhenAllowed: false),
     ];
 
+    /// <summary>
+    /// Endpoints of a module. While the module is off they answer 404 to everyone, so they stay out of <see cref="All"/> (the matrices that run every role against it assume the core is
+    /// what answers) and are tested with the module on (<c>AccountingExportTests</c>). <c>EndpointCoverageTests</c> still counts them, so one cannot be added without a row here.
+    /// </summary>
+    public static readonly IReadOnlyList<EndpointCase> Gated =
+    [
+        new("GET accounting export", Get, Permissions.AccountingExport, _ => "/api/accounting/export?from=2026-01-01&to=2026-01-31"),
+    ];
+
     public static EndpointCase Named(string name) => All.Single(c => c.Name == name);
 }

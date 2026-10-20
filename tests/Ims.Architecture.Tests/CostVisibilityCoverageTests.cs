@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Ims.Application;
+using Ims.Application.Features.Accounting;
 using Ims.Domain;
 
 namespace Ims.Architecture.Tests;
@@ -156,7 +157,7 @@ public partial class CostVisibilityCoverageTests
         // Only gated columns can be unit prices, and they are exactly the derived cost per base unit: the average and the unit cost of a ledger or movement row.
         // The template's "UnitCost" is what a person types per entered unit: money.
         Assert.All(columns.Where(c => c.UnitPrice), c => { Assert.NotNull(c.VisibleWith); Assert.Equal(4, c.DecimalPlaces); });
-        Assert.Equal(["Avg cost", "Unit cost", "Unit cost"], columns.Where(c => c.UnitPrice).Select(c => c.Header).Order());
+        Assert.Equal(["Avg cost", "Unit cost", "Unit cost", "Unit cost"], columns.Where(c => c.UnitPrice).Select(c => c.Header).Order()); // the stock summary, the ledger, the movements and the accounting file
         Assert.All(columns.Where(c => c.IsMoney && !c.UnitPrice), c => Assert.Equal(2, c.DecimalPlaces));
         Assert.All(columns.Where(c => !c.IsMoney), c => Assert.Null(c.DecimalPlaces));
     }
@@ -166,7 +167,7 @@ public partial class CostVisibilityCoverageTests
     {
         var names = ColumnSets().Select(s => s.Name).ToList();
 
-        foreach (var expected in new[] { "StockSummaryColumns", "MovementColumns", "LedgerColumns", "LowStockColumns", "ProductColumns", "OpeningStockColumns" })
+        foreach (var expected in new[] { "StockSummaryColumns", "MovementColumns", "LedgerColumns", "LowStockColumns", "ProductColumns", "OpeningStockColumns", "Columns" })
             Assert.Contains(expected, names);
     }
 
@@ -183,7 +184,7 @@ public partial class CostVisibilityCoverageTests
 
     // ----- helpers -----
     private static IEnumerable<(string Name, IReadOnlyList<ReportColumn> Columns)> ColumnSets() =>
-        new[] { typeof(ReportHeaders), typeof(ImportTemplates) }
+        new[] { typeof(ReportHeaders), typeof(ImportTemplates), typeof(AccountingLayout) }
             .SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.Static).Where(f => f.FieldType == typeof(ReportColumn[])))
             .Select(f => (f.Name, (IReadOnlyList<ReportColumn>)(ReportColumn[])f.GetValue(null)!));
 

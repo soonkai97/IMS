@@ -14,6 +14,8 @@ public sealed class TestDatabase
     private const string NamePrefix = "ImsApiTests_";
     private const string MasterDatabase = "master";
 
+    private const int CommandTimeoutSeconds = 300;
+
     private readonly string _masterConnection;
 
     private TestDatabase(string name, string connectionString, string masterConnection)
@@ -85,6 +87,7 @@ public sealed class TestDatabase
     {
         var command = connection.CreateCommand();
         command.CommandText = sql;
+        command.CommandTimeout = CommandTimeoutSeconds; // the volume tests load hundreds of thousands of rows
         foreach (var (name, value) in parameters) command.Parameters.AddWithValue(name, value);
         return command;
     }
