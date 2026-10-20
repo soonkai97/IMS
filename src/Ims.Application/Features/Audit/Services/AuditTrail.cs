@@ -20,6 +20,6 @@ public class AuditTrail(IRepository<AuditLog> logs, ICurrentUser current, IClock
             before is null ? null : JsonSerializer.Serialize(before, Json),
             after is null ? null : JsonSerializer.Serialize(after, Json),
             clock.UtcNow));
-        log.LogInformation("Audit {Action} on {EntityType} {EntityId} by {Actor}", action, entityType, entityId, who);
+        log.LogInformation("Audit {Action} on {EntityType} {EntityId} by {Actor}", LogSanitizer.Clean(action), LogSanitizer.Clean(entityType), LogSanitizer.Clean(entityId), LogSanitizer.Clean(who));
     }
 }

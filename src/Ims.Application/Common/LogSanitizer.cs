@@ -1,4 +1,4 @@
-namespace Ims.Api;
+namespace Ims.Application;
 
 /// <summary>
 /// Makes request-derived text safe to write into a log line. A client controls the path, and exception messages can echo input;

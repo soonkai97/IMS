@@ -1,3 +1,5 @@
+using Ims.Application;
+
 namespace Ims.Api.Tests.Tests.Logging;
 
 /// <summary>Request-derived text must not be able to start a new log line.</summary>
