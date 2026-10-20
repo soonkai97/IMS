@@ -53,6 +53,7 @@ public static class Messages
     // ----- Modules -----
     public const string ModuleNotFound = "Module not found.";
     public const string ModuleStateRequired = "Say whether the module is to be turned on or off.";
+    public const string ModuleNotYetSwitchableOn = "This module cannot be switched on yet. It will be available in a later update.";
     public const string ModuleReasonRequired = "A reason is required to turn a module on or off.";
 
     // ----- Tax-ready fields (module accounting). No message repeats the value: a TIN can be a person's, and the reason of a rejected request is logged. -----
