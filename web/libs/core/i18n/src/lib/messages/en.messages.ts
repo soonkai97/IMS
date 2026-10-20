@@ -148,6 +148,20 @@ export const EN_MESSAGES = {
   'ledgerReason.Reversal': 'Reversal',
   'ledgerReason.Opening': 'Opening stock',
 
+  // Account
+  'account.password.current': 'Current password',
+  'account.password.current.empty': 'Enter your current password.',
+  'account.password.current.wrong': 'The current password is not correct.',
+  'account.password.error.locked': 'Too many failed attempts. Try again in a few minutes.',
+  'account.password.new': 'New password',
+  'account.password.new.empty': 'Enter a new password.',
+  'account.password.new.hint': 'At least {min} characters.',
+  'account.password.new.same': 'Choose a password different from the current one.',
+  'account.password.submit': 'Change password',
+  'account.password.subtitle':
+    'You will be signed out everywhere and sign in again with the new password.',
+  'account.password.title': 'Change password',
+
   // Login
   'login.about': 'About {name}',
   'login.access': 'Need access or forgot your password? Ask your administrator.',
@@ -164,6 +178,7 @@ export const EN_MESSAGES = {
   'login.offline': "You're offline. Connect to the internet to sign in.",
   'login.password': 'Password',
   'login.password.empty': 'Enter your password.',
+  'login.passwordChanged': 'Your password was changed. Sign in again with your new password.',
   'login.point.audit': 'Approvals with a full audit trail',
   'login.point.devices': 'Made for barcode scanners and phones',
   'login.point.warehouses': 'Every warehouse in one live view',
@@ -569,7 +584,8 @@ export const EN_MESSAGES = {
   'user.new': 'New user',
   'user.newPassword': 'New password',
   'user.password': 'Password',
-  'user.passwordHint': 'Share it with the user in person; they should change it after signing in.',
+  'user.passwordHint':
+    'Share it with the user in person. They can change it in Account > Change password after signing in.',
   'user.passwordKeepHint': 'Leave empty to keep the current password.',
   'user.role': 'Role',
   'user.username': 'Username',

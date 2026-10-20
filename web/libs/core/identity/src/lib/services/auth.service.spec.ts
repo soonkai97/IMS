@@ -450,6 +450,61 @@ describe('AuthService', () => {
     expect(router().navigate).toHaveBeenCalledWith(['/login'], { queryParams: {} });
   });
 
+  describe('changePassword', () => {
+    const request = { currentPassword: 'old-password-1', newPassword: 'new-password-123' };
+
+    async function signedIn(): Promise<void> {
+      client().refresh.mockReturnValue(of(authResult('a2')));
+      await firstValueFrom(spectator.service.restoreSession());
+      router().navigate.mockClear();
+    }
+
+    it('sends both passwords once, then ends the session and opens sign-in with the "password-changed" notice', async () => {
+      await signedIn();
+      client().changePassword.mockReturnValue(of(undefined));
+
+      await firstValueFrom(spectator.service.changePassword.run(request), {
+        defaultValue: undefined
+      });
+
+      expect(client().changePassword).toHaveBeenCalledTimes(1);
+      expect(client().changePassword.mock.calls[0][0]).toEqual(request);
+      expect(spectator.service.token).toBeUndefined();
+      expect(spectator.service.$isAuthenticated()).toBe(false);
+      expect(spectator.service.$sessionExpired()).toBe(false);
+      expect(router().navigate).toHaveBeenCalledWith(['/login'], {
+        queryParams: { reason: 'password-changed' }
+      });
+    });
+
+    it('keeps the session and the screen when the server refuses (a wrong current password)', async () => {
+      await signedIn();
+      const refusal = { isApiError: true, kind: 'validation', status: 400 };
+      client().changePassword.mockReturnValue(throwError(() => refusal));
+
+      await firstValueFrom(spectator.service.changePassword.run(request), {
+        defaultValue: undefined
+      });
+
+      expect(spectator.service.$isAuthenticated()).toBe(true);
+      expect(spectator.service.token).toBe('a2');
+      expect(router().navigate).not.toHaveBeenCalled();
+      expect(spectator.service.changePassword.$operation().error).toBe(refusal);
+    });
+
+    it('stores no password anywhere', async () => {
+      await signedIn();
+      client().changePassword.mockReturnValue(of(undefined));
+
+      await firstValueFrom(spectator.service.changePassword.run(request), {
+        defaultValue: undefined
+      });
+
+      expect(JSON.stringify({ ...localStorage })).not.toContain(request.newPassword);
+      expect(JSON.stringify({ ...sessionStorage })).not.toContain(request.newPassword);
+    });
+  });
+
   it('logout still signs out locally when the server cannot be reached', async () => {
     client().logout.mockReturnValue(throwError(() => new Error('offline')));
 

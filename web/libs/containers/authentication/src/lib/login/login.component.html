@@ -32,7 +32,11 @@
       <p class="login-page-subtitle">{{ 'login.subtitle' | t }}</p>
     </div>
 
-    @if ($sessionExpired()) {
+    @if ($passwordChanged()) {
+      <app-banner id="login-session-notice" class="login-page-notice" kind="success">{{
+        'login.passwordChanged' | t
+      }}</app-banner>
+    } @else if ($sessionExpired()) {
       <app-banner id="login-session-notice" class="login-page-notice" kind="warning">{{
         ($draftKept() ? 'login.sessionExpiredKept' : 'login.sessionExpired') | t
       }}</app-banner>
@@ -53,7 +57,7 @@
         <app-form-field
           [label]="'login.username' | t"
           [required]="true"
-          [extraDescription]="$sessionExpired() ? 'login-session-notice' : null"
+          [extraDescription]="$hasNotice() ? 'login-session-notice' : null"
           [control]="form.controls.username"
           [messages]="{ required: 'login.username.empty' | t }"
         >

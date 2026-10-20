@@ -214,6 +214,7 @@ test.describe("320 px with the text at 200%", () => {
       "/reports",
       "/audit-log",
       "/settings",
+      "/account/password",
     ];
     for (const path of screens) {
       await goTo(page, path);

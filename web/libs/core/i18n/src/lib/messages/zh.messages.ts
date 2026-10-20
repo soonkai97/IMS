@@ -140,6 +140,19 @@ export const ZH_MESSAGES: Messages = {
   'ledgerReason.Reversal': '冲销',
   'ledgerReason.Opening': '期初库存',
 
+  // TODO-review: machine draft (change password screen).
+  'account.password.current': '当前密码',
+  'account.password.current.empty': '请输入当前密码。',
+  'account.password.current.wrong': '当前密码不正确。',
+  'account.password.error.locked': '失败次数过多。请几分钟后重试。',
+  'account.password.new': '新密码',
+  'account.password.new.empty': '请输入新密码。',
+  'account.password.new.hint': '至少 {min} 个字符。',
+  'account.password.new.same': '请选择与当前密码不同的密码。',
+  'account.password.submit': '修改密码',
+  'account.password.subtitle': '您将在所有设备上退出登录，并使用新密码重新登录。',
+  'account.password.title': '修改密码',
+
   'login.about': '关于{name}',
   'login.access': '需要开通账户或忘记密码？请联系管理员。',
   'login.devHint': '开发环境：演示用户列在 src/Ims.Api/appsettings.Development.json 中。',
@@ -152,6 +165,8 @@ export const ZH_MESSAGES: Messages = {
   'login.offline': '您当前处于离线状态。请连接网络后登录。',
   'login.password': '密码',
   'login.password.empty': '请输入密码。',
+  // TODO-review: machine draft (change password screen).
+  'login.passwordChanged': '您的密码已修改。请使用新密码重新登录。',
   'login.point.audit': '审批流程，全程留痕',
   'login.point.devices': '支持扫码枪和手机',
   'login.point.warehouses': '所有仓库，一个实时视图',
@@ -530,7 +545,7 @@ export const ZH_MESSAGES: Messages = {
   'user.new': '新建用户',
   'user.newPassword': '新密码',
   'user.password': '密码',
-  'user.passwordHint': '请当面告知用户，并让其登录后修改。',
+  'user.passwordHint': '请当面告知用户。用户登录后可在“账户 > 修改密码”中修改。',
   'user.passwordKeepHint': '留空则保持当前密码。',
   'user.role': '角色',
   'user.username': '用户名',

@@ -63,7 +63,8 @@ const SCREENS: Record<string, { role: Role; paths: string[] }> = {
       '/low-stock',
       '/products',
       '/partners',
-      '/warehouses'
+      '/warehouses',
+      '/account/password'
     ]
   },
   Supervisor: { role: 'supervisor', paths: ['/', '/approvals', '/reports'] },
