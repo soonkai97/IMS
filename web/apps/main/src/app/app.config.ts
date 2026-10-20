@@ -27,7 +27,7 @@ import {
   timeoutInterceptor
 } from '@ims/core/http';
 import { I18nService, provideUiText } from '@ims/core/i18n';
-import { AuthService, authInterceptor } from '@ims/core/identity';
+import { AuthService, authInterceptor, provideModuleNotFoundCheck } from '@ims/core/identity';
 import {
   NAV_BADGE_SOURCES,
   PageTitleStrategy,
@@ -81,6 +81,7 @@ export const appConfig: ApplicationConfig = {
       ])
     ),
     provideApi(),
+    provideModuleNotFoundCheck(),
     provideUiText(),
     provideDialogFeedback(),
     providePwa(),

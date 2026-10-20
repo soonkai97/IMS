@@ -23,5 +23,7 @@ export const PERMISSION = {
   /** Unit cost, line cost, document totals and approval amounts (Clerk, Supervisor, Owner, Admin). */
   CostView: 'cost.view',
   /** Average cost, stock value, the stock total and ledger cost (Supervisor, Owner, Admin). */
-  ValuationView: 'valuation.view'
+  ValuationView: 'valuation.view',
+  /** Turn modules on or off for the whole installation, with a reason. */
+  ModulesManage: 'modules.manage'
 } as const;

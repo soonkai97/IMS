@@ -758,5 +758,42 @@ export const EN_MESSAGES = {
   'audit.searchPlaceholder': 'Document number or object name',
   'audit.show': 'Show',
   'audit.showFor': 'Show details of {action} on {entity} at {when}, entry {number}',
-  'audit.title': 'Audit log'
+  'audit.title': 'Audit log',
+
+  'nav.modules': 'Modules',
+  'perm.modules.manage': 'Turn modules on or off',
+  'perm.modules.manage.help': 'Turn parts of the system on or off for everybody, with a reason.',
+  'perm.accounting.export': 'Download the accounting export',
+  'perm.accounting.export.help': 'Download posted documents with their cost, for your accountant.',
+  'module.accounting.name': 'Accounting',
+  'module.accounting.description':
+    'Tax-ready fields on products and partners, and an export file of posted documents for your accountant.',
+  'modules.title': 'Modules',
+  'modules.intro':
+    'Turn parts of the system on or off for everybody. Turning a module off hides its screens and fields. Nothing is deleted, and turning it on again brings everything back.',
+  'modules.list': 'Modules',
+  'modules.requires': 'Requires: {names}',
+  'modules.on': 'On',
+  'modules.off': 'Off',
+  'modules.empty': 'No modules are available.',
+  'modules.loadFailed': "The module list couldn't be loaded.",
+  'modules.notYet':
+    'Available soon. It cannot be turned on yet, because the screens that use it are not ready.',
+  'modules.confirm.onTitle': 'Turn on {name}?',
+  'modules.confirm.offTitle': 'Turn off {name}?',
+  'modules.confirm.onBody':
+    'Its screens and fields appear for everybody who may use them. Roles that already hold its permissions get them back at once.',
+  'modules.confirm.offBody':
+    'Its screens and fields disappear for everybody and its requests are refused. Nothing is deleted; turn it on again to bring it back.',
+  'modules.confirm.on': 'Turn on',
+  'modules.confirm.off': 'Turn off',
+  'modules.toast.on': '{name} is now on.',
+  'modules.toast.off': '{name} is now off.',
+  'modules.toast.regain':
+    '{count, plural, one {# role regains its saved permissions.} other {# roles regain their saved permissions.}}',
+  'modules.turnedOff': 'This feature was turned off: {names}. The menu was updated.',
+  'modules.error.forbidden': 'You are not allowed to turn modules on or off. Ask an Admin.',
+  'modules.error.notFound': 'That module is not available any more. The list was refreshed.',
+  'modules.error.busy':
+    'Another change to the modules is in progress. Wait a moment, then try again.'
 } as const;

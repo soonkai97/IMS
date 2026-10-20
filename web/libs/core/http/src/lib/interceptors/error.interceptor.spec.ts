@@ -1,10 +1,12 @@
 import { HttpClient, HttpContext, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { of, throwError } from 'rxjs';
 import { ToastService } from '@ims/core/notification';
 import { API_ERROR_KIND, ApiError } from '@ims/models';
 import { withIfMatch } from '../concurrency/if-match';
 import { handledInline } from '../errors/handled-inline';
+import { API_NOT_FOUND_CHECK } from '../errors/not-found-check';
 import { errorInterceptor } from './error.interceptor';
 
 const URL = 'http://api.test/api/documents/00000000-0000-4000-8000-000000000001/post';
@@ -187,5 +189,85 @@ describe('errorInterceptor', () => {
       expect(toast.$toasts()).toHaveLength(0);
       backend.expectOne(URL).flush(null);
     });
+  });
+});
+
+describe('errorInterceptor and a 404 that may be a turned-off module', () => {
+  const check = jest.fn();
+  let http: HttpClient;
+  let backend: HttpTestingController;
+  let toast: ToastService;
+
+  beforeEach(() => {
+    check.mockReset();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(withInterceptors([errorInterceptor])),
+        provideHttpClientTesting(),
+        { provide: API_NOT_FOUND_CHECK, useValue: check }
+      ]
+    });
+    http = TestBed.inject(HttpClient);
+    backend = TestBed.inject(HttpTestingController);
+    toast = TestBed.inject(ToastService);
+  });
+
+  function notFound(context?: HttpContext): Promise<ApiError> {
+    const result = new Promise<ApiError>(resolve => {
+      http
+        .get(URL, { responseType: 'blob', context })
+        .subscribe({ error: (error: ApiError) => resolve(error) });
+    });
+    backend.expectOne(URL).flush(problem(404, { detail: 'Not found.' }), {
+      status: 404,
+      statusText: 'x'
+    });
+    return result;
+  }
+
+  it('says what the check found instead of "not found", in one toast', async () => {
+    check.mockReturnValue(of('This feature was turned off: Accounting. The menu was updated.'));
+
+    const error = await notFound();
+
+    expect(check).toHaveBeenCalledWith(URL);
+    expect(error.message).toBe('This feature was turned off: Accounting. The menu was updated.');
+    expect(toast.$toasts().map(item => item.message)).toEqual([error.message]);
+  });
+
+  it('keeps the API sentence when the check finds nothing', async () => {
+    check.mockReturnValue(of(undefined));
+
+    const error = await notFound();
+
+    expect(error.message).toBe('Not found.');
+    expect(toast.$toasts().map(item => item.message)).toEqual(['Not found.']);
+  });
+
+  it('keeps the API sentence when the check itself fails', async () => {
+    check.mockReturnValue(throwError(() => new Error('boom')));
+
+    expect((await notFound()).message).toBe('Not found.');
+  });
+
+  it('puts the sentence on a call the screen shows itself, and raises no toast for it', async () => {
+    check.mockReturnValue(of('This feature was turned off: Accounting. The menu was updated.'));
+
+    const error = await notFound(handledInline());
+
+    expect(error.message).toContain('turned off');
+    expect(toast.$toasts()).toHaveLength(0);
+  });
+
+  it('does not ask for any other status', async () => {
+    const result = new Promise<ApiError>(resolve => {
+      http.get(URL, { responseType: 'blob' }).subscribe({ error: (e: ApiError) => resolve(e) });
+    });
+    backend
+      .expectOne(URL)
+      .flush(problem(409, { detail: 'Busy.' }), { status: 409, statusText: 'x' });
+    await result;
+
+    expect(check).not.toHaveBeenCalled();
   });
 });

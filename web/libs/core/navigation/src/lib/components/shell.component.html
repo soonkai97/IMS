@@ -41,7 +41,9 @@
               [routerLink]="entry.route"
               routerLinkActive="--active"
               ariaCurrentWhenActive="page"
-              [routerLinkActiveOptions]="{ exact: entry.route === '/' }"
+              [routerLinkActiveOptions]="{
+                exact: entry.route === '/' || entry.exactMatch === true
+              }"
               [attr.title]="entry.labelKey | t"
             >
               <app-icon [name]="entry.icon" />
@@ -71,7 +73,7 @@
       routerLinkActive="--active"
       (isActiveChange)="onTabActive($event, tab)"
       ariaCurrentWhenActive="page"
-      [routerLinkActiveOptions]="{ exact: entry.route === '/' }"
+      [routerLinkActiveOptions]="{ exact: entry.route === '/' || entry.exactMatch === true }"
     >
       <app-icon [name]="entry.icon" />
       <span class="shell-tab-label">{{ entry.labelKey | t }}</span>
