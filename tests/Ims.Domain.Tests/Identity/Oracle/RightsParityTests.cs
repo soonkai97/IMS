@@ -35,16 +35,18 @@ public class RightsParityTests
             var oracle = row["permissions"].Split(';', StringSplitOptions.RemoveEmptyEntries).ToHashSet();
             var defaults = SystemRoleDefaults.For(role).ToHashSet();
 
-            // What a role holds that the oracle does not know: the six new permissions (modules.manage for the Admin, added by the modules foundation, PL1.1, and accounting.export for the Admin and the Owner, PL1.2), and for the Owner the large tier in place of document.approve.
+            // What a role holds that the oracle does not know: the new permissions (modules.manage for the Admin, PL1.1; accounting.export for the Admin and the Owner, PL1.2; po.read and po.manage by the purchasing defaults, PL2.1), and for the Owner the large tier in place of document.approve.
             var added = defaults.Except(oracle).Order(StringComparer.Ordinal).ToArray();
             var removed = oracle.Except(defaults).Order(StringComparer.Ordinal).ToArray();
 
             var (expectedAdded, expectedRemoved) = role switch
             {
-                Roles.Admin => ([Permissions.AccountingExport, Permissions.DocumentApproveLarge, Permissions.DocumentEditAny, Permissions.DocumentPostApproved, Permissions.ModulesManage, Permissions.RolesManage, Permissions.RolesRead,
+                Roles.Admin => ([Permissions.AccountingExport, Permissions.DocumentApproveLarge, Permissions.DocumentEditAny, Permissions.DocumentPostApproved, Permissions.ModulesManage, Permissions.PoManage, Permissions.PoRead, Permissions.RolesManage, Permissions.RolesRead,
                     Permissions.StockNegativeOverride], Array.Empty<string>()),
-                Roles.Owner => ([Permissions.AccountingExport, Permissions.DocumentApproveLarge], [Permissions.DocumentApprove]),
-                Roles.Supervisor => ([Permissions.DocumentEditAny, Permissions.DocumentPostApproved, Permissions.StockNegativeOverride], Array.Empty<string>()),
+                Roles.Owner => ([Permissions.AccountingExport, Permissions.DocumentApproveLarge, Permissions.PoRead], [Permissions.DocumentApprove]),
+                Roles.Supervisor => ([Permissions.DocumentEditAny, Permissions.DocumentPostApproved, Permissions.PoManage, Permissions.PoRead, Permissions.StockNegativeOverride], Array.Empty<string>()),
+                Roles.WarehouseStaff => ([Permissions.PoRead], Array.Empty<string>()),
+                Roles.Clerk => ([Permissions.PoManage, Permissions.PoRead], Array.Empty<string>()),
                 _ => (Array.Empty<string>(), Array.Empty<string>())
             };
 

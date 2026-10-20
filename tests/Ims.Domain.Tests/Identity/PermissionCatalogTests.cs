@@ -14,9 +14,9 @@ public partial class PermissionCatalogTests
         .Select(f => (string)f.GetRawConstantValue()!).ToList();
 
     [Fact]
-    public void TheCatalogHasTheTwentyThreePermissions_TheTwentyOneOfTheAdr_ModulesManage_AndAccountingExport()
+    public void TheCatalogHasTheTwentyFivePermissions_TheTwentyOneOfTheAdr_ModulesManage_AccountingExport_AndThePurchasingPair()
     {
-        Assert.Equal(23, PermissionCatalog.All.Count);
+        Assert.Equal(25, PermissionCatalog.All.Count);
     }
 
     [Fact]
@@ -151,11 +151,45 @@ public partial class PermissionCatalogTests
     }
 
     [Fact]
+    public void PoRead_AndPoManage_BelongToThePurchasingModule_AndRequireTheirCompanions()
+    {
+        var read = PermissionCatalog.Find(Permissions.PoRead)!;
+        var manage = PermissionCatalog.Find(Permissions.PoManage)!;
+
+        Assert.Equal(ModuleCodes.Purchasing, read.Module);
+        Assert.Equal(ModuleCodes.Purchasing, manage.Module);
+        Assert.Equal([Permissions.MasterDataRead], read.Requires);
+        Assert.Equal([Permissions.PoRead, Permissions.CostView, Permissions.StockRead], manage.Requires); // an order carries prices; the reorder list shows stock
+        Assert.Equal(PermissionGroup.Documents, read.Group);
+        Assert.Equal(PermissionGroup.Documents, manage.Group);
+        // Decision (PL2.1): neither is dangerous. Approval has its own permissions, and po.manage cannot be held without cost.view, which already is dangerous, so it grants no reach beyond it.
+        // Pinned with TheDangerousPermissions_ArePinned, so flagging one later is a visible diff.
+        Assert.False(read.IsDangerous);
+        Assert.False(manage.IsDangerous);
+        Assert.False(read.AdminCore || manage.AdminCore);
+    }
+
+    [Fact]
+    public void ThePurchasingDefaults_AreTheOwnerDecision_SupervisorAndClerkManage_OwnerAndWarehouseStaffRead_AdminHoldsBoth()
+    {
+        foreach (var role in new[] { Roles.Admin, Roles.Supervisor, Roles.Clerk })
+        {
+            Assert.Contains(Permissions.PoRead, SystemRoleDefaults.For(role));
+            Assert.Contains(Permissions.PoManage, SystemRoleDefaults.For(role));
+        }
+        foreach (var role in new[] { Roles.Owner, Roles.WarehouseStaff })
+        {
+            Assert.Contains(Permissions.PoRead, SystemRoleDefaults.For(role));
+            Assert.DoesNotContain(Permissions.PoManage, SystemRoleDefaults.For(role));
+        }
+    }
+
+    [Fact]
     public void EveryModuleOfAPermissionIsAModuleOfTheCatalog_AndCoreEntriesHaveNone()
     {
         foreach (var entry in PermissionCatalog.All.Where(p => p.Module is not null))
             Assert.True(ModuleCatalog.IsKnown(entry.Module!), $"{entry.Code} names unknown module {entry.Module}");
-        Assert.Equal([Permissions.AccountingExport], PermissionCatalog.All.Where(p => p.Module is not null).Select(p => p.Code)); // pinned: adding one is a visible diff
+        Assert.Equal([Permissions.PoRead, Permissions.PoManage, Permissions.AccountingExport], PermissionCatalog.All.Where(p => p.Module is not null).Select(p => p.Code)); // pinned: adding one is a visible diff
     }
 
     // ----- the defaults of the system roles -----
@@ -191,21 +225,21 @@ public partial class PermissionCatalogTests
     public void TheDefaultsOfTheOtherFourRoles_AreExactlyThoseOfTheAdr()
     {
         Assert.Equal(
-            new[] { Permissions.MasterDataRead, Permissions.DocumentApproveLarge, Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead, Permissions.CostView, Permissions.ValuationView, Permissions.AccountingExport }.Order(StringComparer.Ordinal),
+            new[] { Permissions.MasterDataRead, Permissions.DocumentApproveLarge, Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead, Permissions.CostView, Permissions.ValuationView, Permissions.AccountingExport, Permissions.PoRead }.Order(StringComparer.Ordinal),
             SystemRoleDefaults.For(Roles.Owner).Order(StringComparer.Ordinal));
         Assert.Equal(
             new[]
             {
                 Permissions.MasterDataManage, Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.DocumentEditAny, Permissions.DocumentApprove,
                 Permissions.DocumentPost, Permissions.DocumentPostApproved, Permissions.DocumentReverse, Permissions.StockNegativeOverride, Permissions.StockRead,
-                Permissions.ReportsRead, Permissions.CostView, Permissions.ValuationView
+                Permissions.ReportsRead, Permissions.CostView, Permissions.ValuationView, Permissions.PoRead, Permissions.PoManage
             }.Order(StringComparer.Ordinal),
             SystemRoleDefaults.For(Roles.Supervisor).Order(StringComparer.Ordinal));
         Assert.Equal(
-            new[] { Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.StockRead }.Order(StringComparer.Ordinal),
+            new[] { Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.StockRead, Permissions.PoRead }.Order(StringComparer.Ordinal),
             SystemRoleDefaults.For(Roles.WarehouseStaff).Order(StringComparer.Ordinal));
         Assert.Equal(
-            new[] { Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.StockRead, Permissions.CostView }.Order(StringComparer.Ordinal),
+            new[] { Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.StockRead, Permissions.CostView, Permissions.PoRead, Permissions.PoManage }.Order(StringComparer.Ordinal),
             SystemRoleDefaults.For(Roles.Clerk).Order(StringComparer.Ordinal));
     }
 }

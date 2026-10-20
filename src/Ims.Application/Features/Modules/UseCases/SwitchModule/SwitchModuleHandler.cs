@@ -5,9 +5,10 @@ namespace Ims.Application.Features.Modules;
 /// Turns a module on or off for the installation. The flip is a settings row (<c>Module.&lt;code&gt;</c>), written under the <c>modules</c> lock so two flips never interleave, and it
 /// writes its own audit event (the settings table is not audited row by row): who, why, the state before and after, and, when a module is turned on, how many roles get the module's
 /// permissions back (roles keep them, hidden, while it is off). A module that is already in the requested state is a 200 that changes nothing and writes nothing. A switch only hides or
-/// shows the surface; it never touches stock, so no posting reads it.
+/// shows the surface; it never touches stock, so no posting reads it. A module that holds data (open orders) may refuse to be turned off through its <see cref="IModuleDisableCheck"/>: a 409 with the count, nothing written.
 /// </summary>
-public class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepository<Role> roles, IModuleSwitches switches, ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit)
+public class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepository<Role> roles, IModuleSwitches switches, IEnumerable<IModuleDisableCheck> disableChecks,
+    ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<SwitchModuleCommand, ModuleSwitchResult>
 {
     public Task<ModuleSwitchResult> HandleAsync(SwitchModuleCommand cmd, CancellationToken ct) => uow.ExecuteAsync(async () =>
@@ -24,6 +25,7 @@ public class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepos
         {
             BusinessRules.Ensure(new ReasonRequiredRule(cmd.Data.Reason, Messages.ModuleReasonRequired, Limits.ReasonMinLength));
             if (wanted) regaining = await RolesRegainingGrantsAsync(module.Code, ct);
+            else await EnsureNothingWouldBeOrphanedAsync(module, ct);
             if (row is null) settings.Add(SystemSetting.Create(key, SettingValues.From(wanted)));
             else row.ChangeValue(SettingValues.From(wanted));
             audit.Record(wanted ? AuditActions.ModuleEnabled : AuditActions.ModuleDisabled, AuditEntities.SystemSetting, key,
@@ -39,5 +41,13 @@ public class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepos
     {
         var codes = PermissionCatalog.All.Where(p => p.Module == moduleCode).Select(p => p.Code).ToList();
         return codes.Count == 0 ? 0 : await roles.CountAsync(new RolesHoldingPermissionsSpec(codes), ct);
+    }
+
+    /// <summary>Asks the module's check, if it has one, before the switch is written; a module without a check is never refused.</summary>
+    private async Task EnsureNothingWouldBeOrphanedAsync(ModuleDefinition module, CancellationToken ct)
+    {
+        foreach (var check in disableChecks.Where(c => c.ModuleCode == module.Code))
+            if (await check.CountBlockersAsync(ct) is > 0 and var count)
+                throw new ConflictException(Messages.ModuleHasOpenData(module.Name, check.Describe(count)));
     }
 }

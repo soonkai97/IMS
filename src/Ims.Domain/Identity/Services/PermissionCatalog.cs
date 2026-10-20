@@ -43,6 +43,10 @@ public static class PermissionCatalog
             { IsDangerous = true },
         new(Permissions.StockNegativeOverride, PermissionGroup.Documents, "Post an issue even when it takes the stock below zero.")
             { IsDangerous = true, Requires = [Permissions.DocumentPost] },
+        new(Permissions.PoRead, PermissionGroup.Documents, "See purchase orders and what has been received against them.")
+            { Module = ModuleCodes.Purchasing, Requires = [Permissions.MasterDataRead] },
+        new(Permissions.PoManage, PermissionGroup.Documents, "Create, edit, submit, cancel and close purchase orders; approving one uses the document approval permissions.")
+            { Module = ModuleCodes.Purchasing, Requires = [Permissions.PoRead, Permissions.CostView, Permissions.StockRead] },
 
         // ----- Stock and reports -----
         new(Permissions.StockRead, PermissionGroup.StockAndReports, "See stock levels, the ledger and the low-stock list."),

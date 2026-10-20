@@ -16,22 +16,25 @@ public static class RoleMatrix
             Permissions.UsersManage, Permissions.UsersRead, Permissions.RolesManage, Permissions.RolesRead, Permissions.MasterDataManage, Permissions.MasterDataRead,
             Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.DocumentEditAny, Permissions.DocumentApprove, Permissions.DocumentApproveLarge,
             Permissions.DocumentPost, Permissions.DocumentPostApproved, Permissions.DocumentReverse, Permissions.StockNegativeOverride, Permissions.StockRead,
-            Permissions.ReportsRead, Permissions.AuditRead, Permissions.SettingsManage, Permissions.ModulesManage, Permissions.CostView, Permissions.ValuationView, Permissions.AccountingExport
+            Permissions.ReportsRead, Permissions.AuditRead, Permissions.SettingsManage, Permissions.ModulesManage, Permissions.CostView, Permissions.ValuationView, Permissions.AccountingExport, Permissions.PoRead, Permissions.PoManage
         ],
         [Roles.Owner] =
         [
             Permissions.MasterDataRead, Permissions.DocumentApproveLarge,
-            Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead, Permissions.CostView, Permissions.ValuationView, Permissions.AccountingExport
+            Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead, Permissions.CostView, Permissions.ValuationView, Permissions.AccountingExport, Permissions.PoRead
         ],
         [Roles.Supervisor] =
         [
             Permissions.MasterDataManage, Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.DocumentEditAny,
             Permissions.DocumentApprove, Permissions.DocumentPost, Permissions.DocumentPostApproved, Permissions.DocumentReverse, Permissions.StockNegativeOverride,
-            Permissions.StockRead, Permissions.ReportsRead, Permissions.CostView, Permissions.ValuationView
+            Permissions.StockRead, Permissions.ReportsRead, Permissions.CostView, Permissions.ValuationView, Permissions.PoRead, Permissions.PoManage
         ],
-        [Roles.WarehouseStaff] = [Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.StockRead],
-        [Roles.Clerk] = [Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.StockRead, Permissions.CostView]
+        [Roles.WarehouseStaff] = [Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.StockRead, Permissions.PoRead],
+        [Roles.Clerk] = [Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.StockRead, Permissions.CostView, Permissions.PoRead, Permissions.PoManage]
     };
+
+    /// <summary>The permissions of a module: not offered, and shown on no role, while that module is off.</summary>
+    public static readonly IReadOnlyList<string> ModulePermissions = PermissionCatalog.All.Where(p => p.Module is not null).Select(p => p.Code).ToList();
 
     /// <summary>Whether the role may use an endpoint guarded by <paramref name="policy"/>: a permission code, or a policy of <see cref="AuthPolicies"/> that any one of its codes opens.</summary>
     public static bool MayUse(string role, string policy) =>

@@ -8,7 +8,8 @@ public static class ModuleCatalog
 {
     public static readonly IReadOnlyList<ModuleDefinition> All =
     [
-        new(ModuleCodes.Accounting, "Accounting", "Tax-ready fields on products and partners, and an export file of posted documents for your accountant.")
+        new(ModuleCodes.Accounting, "Accounting", "Tax-ready fields on products and partners, and an export file of posted documents for your accountant."),
+        new(ModuleCodes.Purchasing, "Purchasing", "Purchase orders, receiving against them, and a reorder list.")
     ];
 
     /// <summary>The codes in catalog order.</summary>

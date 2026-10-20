@@ -133,13 +133,13 @@ public class RoleContainmentTests(ApiFixture fixture)
     [Fact]
     public async Task The_administrator_role_cannot_be_renamed_or_emptied_even_by_someone_who_holds_every_permission()
     {
-        // "Every permission" includes the one of the accounting module, which a role can only be given while the module is on; the module is off again for the test itself (the token keeps the claim).
+        // "Every permission" includes the ones of the modules, which a role can only be given while the module is on; the modules are off again for the test itself (the token keeps the claim).
         var admin0 = await fixture.AsAsync(Roles.Admin);
-        (await admin0.Modules.SwitchAsync(ModuleCodes.Accounting, true, "Containment test setup")).ShouldBeOk();
+        foreach (var module in ModuleCatalog.Codes) (await admin0.Modules.SwitchAsync(module, true, "Containment test setup")).ShouldBeOk();
         try
         {
             var everything = await NewDelegateAsync([.. PermissionCatalog.Codes], allWarehouses: true);
-            (await admin0.Modules.SwitchAsync(ModuleCodes.Accounting, false, "Containment test setup")).ShouldBeOk();
+            foreach (var module in ModuleCatalog.Codes) (await admin0.Modules.SwitchAsync(module, false, "Containment test setup")).ShouldBeOk();
             var admin = (await everything.Client.GetAsync("/api/roles")).Data<List<RoleDto>>().Single(r => r.Code == Roles.Admin);
 
             Assert.Equal(Messages.SystemRoleProtected, (await everything.Client.UpdateRoleAsync(admin, name: Unique.Name("Not admin"))).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
