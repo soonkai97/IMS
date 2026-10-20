@@ -279,6 +279,22 @@ describe('LoginPageComponent failure messages', () => {
       expect(notice).toContain('unsent changes are kept');
       expect(notice).not.toContain('is lost');
     });
+
+    it('after a password change the notice is a success status that says to use the new password, tied to the username field', () => {
+      operation.set(IDLE_OPERATION);
+      spectator = createComponent({ props: { reason: 'password-changed' } as never });
+      spectator.detectChanges();
+
+      const notice = spectator.query('app-banner[role=status]');
+      expect(notice?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+        'Your password was changed. Sign in again with your new password.'
+      );
+      expect(notice?.classList.contains('--success')).toBe(true);
+      expect(spectator.query(USERNAME)?.getAttribute('aria-describedby')).toContain(
+        'login-session-notice'
+      );
+      expect(spectator.queryAll('app-banner[role=status]')).toHaveLength(1);
+    });
   });
 
   describe('R25: the password and the page after an attempt', () => {

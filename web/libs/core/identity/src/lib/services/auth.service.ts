@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Params, Router } from '@angular/router';
 import {
   EMPTY,
   Observable,
@@ -18,7 +18,7 @@ import {
   throwIfEmpty,
   timer
 } from 'rxjs';
-import { AuthClient, AuthResult, LoginRequest, UserInfo } from '@ims/api';
+import { AuthClient, AuthResult, ChangePasswordRequest, LoginRequest, UserInfo } from '@ims/api';
 import { handledInline } from '@ims/core/http';
 import { HTTP_STATUS, isApiError } from '@ims/models';
 import { ApiCommand } from '@ims/utils';
@@ -28,6 +28,7 @@ import {
   RETURN_URL_PARAM,
   SESSION_EXPIRED_KEPT_REASON,
   SESSION_EXPIRED_REASON,
+  SESSION_PASSWORD_CHANGED_REASON,
   SESSION_REASON_PARAM
 } from '../constants/identity.const';
 import { removeLegacyRefreshToken } from './legacy-refresh-token';
@@ -122,6 +123,19 @@ export class AuthService {
     )
   );
 
+  /**
+   * The signed-in user changes their own password. The server ends every session of the user, this one included, so on success
+   * the session is cleared here and the user goes to the sign-in page with a notice. The screen shows every failure (a message at
+   * a field or a banner), so none raises a toast. Exclusive: a double tap sends one request.
+   */
+  readonly changePassword = new ApiCommand<ChangePasswordRequest, void>(
+    request =>
+      this.authClient
+        .changePassword(request, handledInline())
+        .pipe(tap(() => this.endSession(false, SESSION_PASSWORD_CHANGED_REASON))),
+    true
+  );
+
   get token(): string | undefined {
     return this.accessToken;
   }
@@ -155,8 +169,11 @@ export class AuthService {
     this.draftsKept++;
   }
 
-  /** Clears the session; `expired` adds the "session expired" notice and remembers where the user was. */
-  endSession(expired: boolean): void {
+  /**
+   * Clears the session; `expired` adds the "session expired" notice and remembers where the user was. `notice` is the reason
+   * a sign-out that is not an expiry puts on the sign-in page (a password change).
+   */
+  endSession(expired: boolean, notice?: string): void {
     // The notice says "kept" only for drafts saved NOW, not for an older one that happens to sit in storage.
     this.draftsKept = 0;
     if (expired) {
@@ -171,12 +188,13 @@ export class AuthService {
     this.refreshInFlight = undefined;
     this.sessionChanged.next();
     this.sessionEnded.next();
-    const queryParams = expired
-      ? {
-          [RETURN_URL_PARAM]: this.router.url,
-          [SESSION_REASON_PARAM]: draftKept ? SESSION_EXPIRED_KEPT_REASON : SESSION_EXPIRED_REASON
-        }
-      : {};
+    let queryParams: Params = notice === undefined ? {} : { [SESSION_REASON_PARAM]: notice };
+    if (expired) {
+      queryParams = {
+        [RETURN_URL_PARAM]: this.router.url,
+        [SESSION_REASON_PARAM]: draftKept ? SESSION_EXPIRED_KEPT_REASON : SESSION_EXPIRED_REASON
+      };
+    }
     void this.router.navigate([LOGIN_ROUTE], { queryParams });
   }
 

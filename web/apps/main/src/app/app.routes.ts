@@ -84,6 +84,11 @@ export const APP_ROUTES: Routes = [
         loadChildren: () => import('@ims/containers/audit').then(module => module.AUDIT_ROUTES)
       },
       {
+        path: 'account',
+        loadChildren: () =>
+          import('@ims/containers/authentication').then(module => module.ACCOUNT_ROUTES)
+      },
+      {
         path: 'forbidden',
         title: 'forbidden.title',
         loadComponent: () =>

@@ -7,6 +7,8 @@ export const HOME_ROUTE = '/';
 export const RETURN_URL_PARAM = 'returnUrl';
 export const SESSION_REASON_PARAM = 'reason';
 export const SESSION_EXPIRED_REASON = 'expired';
+/** The sign-in notice after the user changed their own password (the server ended every session of theirs). */
+export const SESSION_PASSWORD_CHANGED_REASON = 'password-changed';
 
 /** Endpoints that must never get a bearer token or trigger the refresh-and-retry path. */
 export const AUTH_ENDPOINTS = ['/api/auth/login', '/api/auth/refresh', '/api/auth/logout'] as const;
