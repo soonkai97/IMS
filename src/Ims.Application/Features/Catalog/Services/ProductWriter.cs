@@ -13,8 +13,8 @@ public class ProductWriter(IRepository<Product> products, IReadRepository<Uom> u
     public async Task<int> SaveAsync(Guid? id, ProductSaveRequest r, CancellationToken ct)
     {
         var sku = r.Sku.Trim();
-        // Accounting off: a value is a 400 and a save without one leaves the stored tax fields alone. On: the save replaces both (null clears).
-        var applyTaxCodes = await modules.AcceptAsync(ModuleCodes.Accounting, [(TaxFieldNames.HsCode, r.HsCode), (TaxFieldNames.SstCode, r.SstCode)], ct);
+        // Accounting off: a value is a 400 and a save without one leaves the stored tax fields alone. On: a key that was sent replaces its field (null clears), a key that was left out keeps it.
+        var applyTaxCodes = await modules.AcceptAsync(ModuleCodes.Accounting, [(TaxFieldNames.HsCode, r.HsCode.Value), (TaxFieldNames.SstCode, r.SstCode.Value)], ct);
         var existing = id is { } publicId
             ? await products.FirstOrDefaultAsync(new ProductForEditSpec(publicId), ct) ?? throw new NotFoundException(Messages.ProductNotFound)
             : null;
@@ -43,7 +43,7 @@ public class ProductWriter(IRepository<Product> products, IReadRepository<Uom> u
                 product.ChangeBaseUnit(baseUom, await ledger.AnyAsync(new ProductHasMovementsSpec(product.Id), ct));
         }
 
-        if (applyTaxCodes) product.SetTaxCodes(r.HsCode, r.SstCode);
+        if (applyTaxCodes) product.SetTaxCodes(r.HsCode.Or(product.HsCode), r.SstCode.Or(product.SstCode));
         product.SetBarcodes(codes);
         if (r.Conversions is not null)
         {

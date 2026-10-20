@@ -9,7 +9,7 @@ public class PartnerSaveRequestValidator : AbstractValidator<PartnerSaveRequest>
     {
         RuleFor(x => x.Name).NotEmpty().WithMessage(Messages.PartnerNameRequired).MaximumLength(Limits.NameMaxLength).WithMessage(Messages.TextTooLong("Name", Limits.NameMaxLength));
         RuleFor(x => x.Type).IsInEnum();
-        RuleFor(x => x.Tin).HasTaxFieldShape(TaxFieldShapes.TinError);
-        RuleFor(x => x.SstRegNo).HasTaxFieldShape(TaxFieldShapes.SstRegNoError);
+        RuleFor(x => x.Tin.Value).HasTaxFieldShape(nameof(PartnerSaveRequest.Tin), TaxFieldShapes.TinError);
+        RuleFor(x => x.SstRegNo.Value).HasTaxFieldShape(nameof(PartnerSaveRequest.SstRegNo), TaxFieldShapes.SstRegNoError);
     }
 }

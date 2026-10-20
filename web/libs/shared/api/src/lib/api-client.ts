@@ -5284,8 +5284,9 @@ export interface PartnerSaveRequest {
     name: string;
     contact: string | undefined;
     isActive: boolean;
-    /** Module accounting. Left out of a save while the module is off (a value is a 400); with the module on, a save replaces both tax-ready fields, so null clears. */
+    /** Module accounting. Left out of a save while the module is off (a value is a 400). With the module on: a key that is left out keeps the stored value, an explicit null or blank clears it, a value replaces it. Each of the two fields is decided on its own. */
     tin?: string | undefined;
+    /** Module accounting. Same rule as tin. */
     sstRegNo?: string | undefined;
 }
 
@@ -5350,8 +5351,9 @@ export interface ProductSaveRequest {
     isActive: boolean;
     barcodes: string[] | undefined;
     conversions: UomConversionDto[] | undefined;
-    /** Module accounting. Left out of a save while the module is off (a value is a 400); with the module on, a save replaces both tax-ready fields, so null clears. */
+    /** Module accounting. Left out of a save while the module is off (a value is a 400). With the module on: a key that is left out keeps the stored value, an explicit null or blank clears it, a value replaces it. Each of the two fields is decided on its own. */
     hsCode?: string | undefined;
+    /** Module accounting. Same rule as hsCode. */
     sstCode?: string | undefined;
 }
 
