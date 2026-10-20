@@ -754,5 +754,45 @@ export const MS_MESSAGES: Messages = {
   'audit.searchPlaceholder': 'No. dokumen atau nama objek',
   'audit.show': 'Papar',
   'audit.showFor': 'Papar butiran {action} pada {entity} pada {when}, entri {number}',
-  'audit.title': 'Log audit'
+  'audit.title': 'Log audit',
+
+  // TODO-review: machine draft (modules screen, PL1.4).
+  'nav.modules': 'Modul',
+  'perm.modules.manage': 'Hidupkan atau matikan modul',
+  'perm.modules.manage.help':
+    'Hidupkan atau matikan bahagian sistem untuk semua orang, dengan sebab.',
+  'perm.accounting.export': 'Muat turun eksport perakaunan',
+  'perm.accounting.export.help':
+    'Muat turun dokumen yang telah disiarkan beserta kosnya, untuk akauntan anda.',
+  'module.accounting.name': 'Perakaunan',
+  'module.accounting.description':
+    'Medan sedia cukai pada produk dan rakan niaga, dan fail eksport dokumen yang telah disiarkan untuk akauntan anda.',
+  'modules.title': 'Modul',
+  'modules.intro':
+    'Hidupkan atau matikan bahagian sistem untuk semua orang. Mematikan modul menyembunyikan skrin dan medannya. Tiada apa yang dipadam, dan menghidupkannya semula memulihkan semuanya.',
+  'modules.list': 'Modul',
+  'modules.requires': 'Memerlukan: {names}',
+  'modules.on': 'Hidup',
+  'modules.off': 'Mati',
+  'modules.empty': 'Tiada modul tersedia.',
+  'modules.loadFailed': 'Senarai modul tidak dapat dimuatkan.',
+  'modules.notYet':
+    'Akan tersedia tidak lama lagi. Ia belum boleh dihidupkan kerana skrin yang menggunakannya belum siap.',
+  'modules.confirm.onTitle': 'Hidupkan {name}?',
+  'modules.confirm.offTitle': 'Matikan {name}?',
+  'modules.confirm.onBody':
+    'Skrin dan medannya akan muncul untuk semua orang yang dibenarkan menggunakannya. Peranan yang sudah memegang kebenarannya mendapatnya semula serta-merta.',
+  'modules.confirm.offBody':
+    'Skrin dan medannya hilang untuk semua orang dan permintaannya ditolak. Tiada apa yang dipadam; hidupkan semula untuk memulihkannya.',
+  'modules.confirm.on': 'Hidupkan',
+  'modules.confirm.off': 'Matikan',
+  'modules.toast.on': '{name} kini hidup.',
+  'modules.toast.off': '{name} kini mati.',
+  'modules.toast.regain':
+    '{count, plural, one {# peranan mendapat semula kebenarannya yang disimpan.} other {# peranan mendapat semula kebenaran mereka yang disimpan.}}',
+  'modules.turnedOff': 'Ciri ini telah dimatikan: {names}. Menu telah dikemas kini.',
+  'modules.error.forbidden': 'Anda tidak dibenarkan menghidupkan atau mematikan modul.',
+  'modules.error.notFound': 'Modul itu tidak tersedia lagi. Senarai telah disegarkan.',
+  'modules.error.busy':
+    'Perubahan lain pada modul sedang berjalan. Tunggu sebentar, kemudian cuba lagi.'
 };

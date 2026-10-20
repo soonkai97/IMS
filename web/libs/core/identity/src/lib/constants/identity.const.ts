@@ -36,3 +36,9 @@ export const DRAFT_MAX_CHARS = 1_000_000;
 
 /** sessionStorage key prefix of unsent work kept across a session expiry: `ims.draft.<userId>.<screen key>`. */
 export const DRAFT_STORAGE_PREFIX = 'ims.draft.';
+
+/** Where a route of a module that is off sends the user: the page for an address that names nothing (not the 403 page). */
+export const NOT_FOUND_ROUTE = '/not-found';
+
+/** A 404 check that found no turned-off module is not repeated for this long: a scan that matches nothing is a 404 too. */
+export const RECHECK_QUIET_MS = 5000;

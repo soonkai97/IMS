@@ -108,10 +108,10 @@ Decision for be-architect at the start of this slice: whether a role's detail (`
 **PL1.4 Web foundation**
 1. Given `UserInfo.modules`, then a menu item with `module` shows only when the module is on and any listed permission is held (unit matrix: module x permission).
 2. Given the module is off, when a user opens a module route by URL, then the not-found page shows, not the 403 page.
-3. Given an Admin with `modules.manage`, when they open Settings > Modules, flip `accounting` and give a reason of 5 or more characters, then the result is announced once, the list reloads from `GET /api/modules`, and a person without the permission has no entry and a forbidden route.
+3. Given an Admin with `modules.manage`, when they open Settings > Modules, flip a module and give a reason of 5 or more characters, then the result is announced once, the list reloads from `GET /api/modules`, and a person without the permission has no entry and a forbidden route. **As built:** `accounting` (the only module) is shown as an off switch that cannot be used yet (risk 11), so the flip is proven in the browser against a stubbed `/api/modules` with a made-up second module and in unit tests; flipping `accounting` itself is PL1.8's.
 4. Given a stale screen receives the 404 "This feature was turned off", then the web refetches the module list and says so in words.
 5. Given 360 px and 1280 px, light and dark, en/zh/ms keys present (zh and ms `TODO-review`), no role-name literal, the switch announces its state in words.
-6. e2e on the real API: Admin turns `accounting` on and off; the list shows both states; a user without the permission cannot reach the screen.
+6. e2e on the real API: the list equals `GET /api/modules`, `accounting` is off and its switch cannot be used (the e2e must not turn `accounting` on, risk 11), a user without the permission cannot reach the screen. **As built:** the on/off flip with a reason is e2e-tested against the stub of item 3; the real-API flip (Admin turns `accounting` on and off, both states listed) moves to PL1.8, when the gate is lifted.
 
 **PL1.5 Tax-ready fields**
 1. Given `accounting` is on, when a user with `masterdata.manage` saves a product with `hsCode` and `sstCode` or a partner with `tin` and `sstRegNo`, then they are stored, returned and shown in the row-level audit as old and new values.
@@ -139,6 +139,7 @@ Decision for be-architect at the start of this slice: whether a role's detail (`
 3. Given a user without `cost.view`, then no cost or value appears on the new screens (and the DOM scan of `13-cost-visibility` stays clean).
 4. e2e on the real API: switch on, create a product with an HS code, receive and post, download the export, check the row including the HS code; switch off, the direct URL shows not-found.
 5. **Round trip (gate, see risk 11).** Given the module is on, then the product form and the partner form ALWAYS send the four fields (`hsCode`, `sstCode`, `tin`, `sstRegNo`), with the values they loaded, so saving an unrelated edit leaves them as they were (a PUT that omits them clears them, acceptance PL1.5 item 4). A form-level test loads a record that has all four, edits only the name, saves, and asserts the request body carries the four unchanged values.
+6. **Gate lifted (from PL1.4).** The Settings > Modules screen keeps `accounting` as an off switch that cannot be used (`NOT_YET_SWITCHABLE_ON`); this slice deletes that entry in the same PR as item 5, and the real-API e2e of PL1.4 item 6 is added here: an Admin turns `accounting` on and off with a reason, the list shows both states, and the module is left off afterwards.
 
 ## 6. Risks
 

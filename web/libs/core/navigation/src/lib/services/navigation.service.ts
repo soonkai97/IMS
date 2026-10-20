@@ -1,8 +1,8 @@
 import { Injectable, InjectionToken, computed, inject } from '@angular/core';
-import { PermissionService } from '@ims/core/identity';
+import { ModulesStore, PermissionService } from '@ims/core/identity';
 import { isDefined } from '@ims/utils';
 import { MENU_GROUPS, MENU_ITEMS } from '../constants/menu.const';
-import { NavBadgeSource, NavEntry, NavGroup } from '../types/menu.types';
+import { MenuItem, NavBadgeSource, NavEntry, NavGroup } from '../types/menu.types';
 
 export const NAV_BADGE_SOURCES = new InjectionToken<readonly NavBadgeSource[]>(
   'NAV_BADGE_SOURCES',
@@ -12,10 +12,21 @@ export const NAV_BADGE_SOURCES = new InjectionToken<readonly NavBadgeSource[]>(
   }
 );
 
-/** Menus built from the user's permissions: items the role cannot use are not rendered at all. */
+/** The items the menu is built from. The app's list by default; a test provides its own to cover a module-tied item. */
+export const MENU_ITEM_LIST = new InjectionToken<readonly MenuItem[]>('MENU_ITEM_LIST', {
+  providedIn: 'root',
+  factory: () => MENU_ITEMS
+});
+
+/**
+ * Menus built from the user's permissions and the modules that are on: an item the role cannot use, or whose module is off, is not
+ * rendered at all.
+ */
 @Injectable({ providedIn: 'root' })
 export class NavigationService {
   private readonly permissions = inject(PermissionService);
+  private readonly modules = inject(ModulesStore);
+  private readonly items = inject(MENU_ITEM_LIST);
   private readonly badgeSources = inject(NAV_BADGE_SOURCES);
 
   private readonly $badges = computed(
@@ -24,10 +35,16 @@ export class NavigationService {
 
   readonly $entries = computed<readonly NavEntry[]>(() => {
     const badges = this.$badges();
-    return MENU_ITEMS.filter(item => this.permissions.hasAny(item.permissions)).map(item => ({
-      ...item,
-      badge: badges.get(item.id) ?? 0
-    }));
+    return this.items
+      .filter(
+        item =>
+          (item.module === undefined || this.modules.isEnabled(item.module)) &&
+          this.permissions.hasAny(item.permissions)
+      )
+      .map(item => ({
+        ...item,
+        badge: badges.get(item.id) ?? 0
+      }));
   });
 
   readonly $groups = computed<readonly NavGroup[]>(() =>
