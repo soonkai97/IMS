@@ -16,7 +16,7 @@ public partial class EndpointCoverageTests
     public void The_endpoint_table_lists_every_protected_endpoint_with_its_permission()
     {
         var inCode = ProtectedEndpointsInCode();
-        var inTable = EndpointCatalog.All
+        var inTable = EndpointCatalog.All.Concat(EndpointCatalog.Gated)
             .Select(c => $"{c.Method} {Normalize(c.Path(new ReferenceData(Guid.Empty, Guid.Empty, Guid.Empty, Guid.Empty, Guid.Empty, "X", Guid.Empty, Guid.Empty, Guid.Empty, Guid.Empty)))} -> {c.Permission}")
             .Order().ToList();
 

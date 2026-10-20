@@ -50,7 +50,7 @@ public static class PermissionCatalog
 
         // ----- Module permissions: offered only while their module is on -----
         new(Permissions.AccountingExport, PermissionGroup.StockAndReports, "Download the accounting export: posted documents with their cost, for your accountant.")
-            { Module = ModuleCodes.Accounting, Requires = [Permissions.CostView] },
+            { Module = ModuleCodes.Accounting, Requires = [Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead] },
 
         // ----- Cost and value -----
         new(Permissions.CostView, PermissionGroup.CostAndValue, "See unit cost, line cost and document totals on the documents you work with.")

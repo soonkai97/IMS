@@ -95,7 +95,7 @@ It must be merged before PL3 or PL4 starts (they ride on posting). It is not a g
 8. Architecture tests: module codes unique; every controller in a module namespace carries `[RequiresModule]`; Domain posting types do not reference `IModuleSwitches` (a switch never changes ledger behaviour); every catalog permission is held by Admin; `NoRoleDecisionTests` and `EndpointCoverageTests` green; with all modules off the OpenAPI document equals today's minus the module paths.
 
 **PL1.2 Module-aware roles**
-1. Given `accounting` is off, then `GET /api/permissions` omits `accounting.export`; on, it is listed with `Requires: cost.view`.
+1. Given `accounting` is off, then `GET /api/permissions` omits `accounting.export`; on, it is listed with `Requires: cost.view, masterdata.read, reports.read` (widened in the PL1.6 review, the file shows partners and products).
 2. Given it is off, when a role save includes `accounting.export`, then 400 "not available".
 3. Given a role holds `accounting.export` and the module is off, when an administrator changes another permission of that role, then the role still holds `accounting.export` afterwards and neither the reply's `added`/`removed` lists nor the audit row name it.
 4. Given the editor removes `cost.view` from a role that holds the hidden `accounting.export`, then 400 naming the dependency (closure on the merged set).
@@ -180,7 +180,7 @@ Tier rule (`PR-REVIEW.md` section 8, read as two tiers): **Full** = independent 
 
 | Layer | What |
 |---|---|
-| Unit (Domain) | Catalog (unique codes, acyclic `Requires`), permission catalog (`accounting.export` requires `cost.view`), tax-field shape rules, role merge function, export row builder (sign, rounding, reversal pairing). |
+| Unit (Domain) | Catalog (unique codes, acyclic `Requires`), permission catalog (`accounting.export` requires `cost.view`, `masterdata.read` and `reports.read`), tax-field shape rules, role merge function, export row builder (sign, rounding, reversal pairing). |
 | Architecture | `[RequiresModule]` on every module controller; Domain posting does not reference the switch; Admin holds every catalog code. |
 | Integration (real SQL Server) | Gate cases (anonymous, signed in without permission, with permission, off, on); flip audit and lock race; role save with hidden grants; export scope, cap, reconcile; migrations Up/Down/Up with rows; `UserInfo.modules`; OpenAPI equality with all modules off. |
 | Web (Jest) | Navigation matrix, `requireModule`, store, forms, export screen. |

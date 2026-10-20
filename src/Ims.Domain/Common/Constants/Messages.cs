@@ -56,6 +56,13 @@ public static class Messages
     public const string ModuleNotYetSwitchableOn = "This module cannot be switched on yet. It will be available in a later update.";
     public const string ModuleReasonRequired = "A reason is required to turn a module on or off.";
 
+    // ----- Accounting export (module accounting) -----
+    public const string AccountingRangeRequired = "Enter the first and the last date of the period to export.";
+    public const string AccountingExportNeedsPermissions = "The accounting export carries cost, partner and product details, so it needs permission to see cost, master data and reports.";
+    public const string AccountingDateOutOfRange = "Enter dates between 1 January 2000 and 31 December 2100.";
+    public static string AccountingExportTooLarge(int limit) =>
+        $"Too many rows: one accounting file holds at most {limit} rows. Narrow the date range (for example one month at a time) or pick one warehouse.";
+
     // ----- Tax-ready fields (module accounting). No message repeats the value: a TIN can be a person's, and the reason of a rejected request is logged. -----
     public static string HsCodeInvalid => $"HS code may contain only digits and dots (maximum {Limits.HsCodeMaxLength} characters).";
     public static string SstCodeInvalid => $"SST code may contain only letters, digits and hyphens (maximum {Limits.SstCodeMaxLength} characters).";

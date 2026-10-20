@@ -83,7 +83,7 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(PermissionCatalog.Codes, on.Select(p => p.Code));
         var entry = on.Single(p => p.Code == Export);
         Assert.Equal(Accounting, entry.Module);
-        Assert.Equal([Permissions.CostView], entry.Requires);
+        Assert.Equal([Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead], entry.Requires);
         Assert.False(entry.IsDangerous);
 
         await SwitchAsync(false);
@@ -98,8 +98,8 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
         var plain = (await _admin.CreateAsync(Unique.Name("Plain"), Permissions.StockRead, Permissions.CostView)).Data<RoleDto>();
         _made.Add(plain);
 
-        var created = (await _admin.CreateAsync(Unique.Name("Nope"), Permissions.CostView, Export)).ShouldBeProblem(HttpStatusCode.BadRequest);
-        var replaced = (await _admin.ReplaceAsync(plain, [Permissions.StockRead, Permissions.CostView, Export])).ShouldBeProblem(HttpStatusCode.BadRequest);
+        var created = (await _admin.CreateAsync(Unique.Name("Nope"), Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export)).ShouldBeProblem(HttpStatusCode.BadRequest);
+        var replaced = (await _admin.ReplaceAsync(plain, [Permissions.StockRead, Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export])).ShouldBeProblem(HttpStatusCode.BadRequest);
 
         Assert.Contains("not available", created.Detail);
         Assert.Contains(Export, created.Detail);
@@ -114,15 +114,15 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task A_role_that_holds_the_module_permission_keeps_it_when_another_permission_changes_while_the_module_is_off_and_nothing_names_it()
     {
-        var role = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Export);
+        var role = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export);
         await SwitchAsync(false);
         var seen = await ReadAsync(role.Id);
-        Assert.Equal([Permissions.StockRead, Permissions.CostView], seen.Permissions); // the editor does not see the grant, so it cannot send it back
+        Assert.Equal([Permissions.MasterDataRead, Permissions.StockRead, Permissions.ReportsRead, Permissions.CostView], seen.Permissions); // the editor does not see the grant, so it cannot send it back
 
-        var added = (await _admin.ReplaceAsync(seen, [Permissions.StockRead, Permissions.CostView, Permissions.ReportsRead])).Data<RolePermissionsResult>();
-        var removedOne = (await _admin.ReplaceAsync(added.Role, [Permissions.CostView, Permissions.ReportsRead])).Data<RolePermissionsResult>();
+        var added = (await _admin.ReplaceAsync(seen, [.. seen.Permissions, Permissions.DocumentCreate])).Data<RolePermissionsResult>();
+        var removedOne = (await _admin.ReplaceAsync(added.Role, [Permissions.MasterDataRead, Permissions.ReportsRead, Permissions.CostView, Permissions.DocumentCreate])).Data<RolePermissionsResult>();
 
-        Assert.Equal([Permissions.ReportsRead], added.Added);
+        Assert.Equal([Permissions.DocumentCreate], added.Added);
         Assert.Empty(added.Removed);
         Assert.Equal([Permissions.StockRead], removedOne.Removed);
         Assert.Empty(removedOne.Added);
@@ -134,18 +134,18 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
 
         await SwitchAsync(true); // back on: the role has it again, and the list shows it
 
-        Assert.Equal([Permissions.ReportsRead, Export, Permissions.CostView], (await ReadAsync(role.Id)).Permissions); // catalog order
+        Assert.Equal(PermissionCatalog.InOrder([Permissions.MasterDataRead, Permissions.ReportsRead, Export, Permissions.CostView, Permissions.DocumentCreate]), (await ReadAsync(role.Id)).Permissions); // catalog order
         Assert.Contains((await _admin.GetAsync("/api/roles")).Data<List<RoleDto>>(), r => r.Id == role.Id && r.Permissions.Contains(Export));
     }
 
     [Fact]
     public async Task Saving_the_same_visible_set_again_while_the_module_is_off_changes_nothing_and_writes_no_audit_event()
     {
-        var role = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Export);
+        var role = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export);
         await SwitchAsync(false);
         var seen = await ReadAsync(role.Id);
 
-        var same = (await _admin.ReplaceAsync(seen, [Permissions.StockRead, Permissions.CostView])).Data<RolePermissionsResult>();
+        var same = (await _admin.ReplaceAsync(seen, seen.Permissions.ToArray())).Data<RolePermissionsResult>();
 
         Assert.Empty(same.Added);
         Assert.Empty(same.Removed);
@@ -157,9 +157,9 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task While_the_module_is_on_the_editor_sees_the_grant_so_leaving_it_out_removes_it()
     {
-        var role = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Export);
+        var role = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export);
 
-        var result = (await _admin.ReplaceAsync(role, [Permissions.StockRead, Permissions.CostView])).Data<RolePermissionsResult>();
+        var result = (await _admin.ReplaceAsync(role, [Permissions.MasterDataRead, Permissions.StockRead, Permissions.ReportsRead, Permissions.CostView])).Data<RolePermissionsResult>();
 
         Assert.Equal([Export], result.Removed);
         Assert.Equal(0, await StoredGrantsAsync(role.Id));
@@ -170,7 +170,7 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task Removing_the_permission_the_hidden_grant_needs_is_a_400_that_names_the_dependency_and_nothing_changes()
     {
-        var role = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Export);
+        var role = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export);
         await SwitchAsync(false);
         var seen = await ReadAsync(role.Id);
 
@@ -189,8 +189,8 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task Turning_the_module_on_says_how_many_roles_get_the_permission_back_and_the_audit_event_records_it()
     {
-        var first = await RoleHoldingExportAsync(Permissions.CostView, Export);
-        var second = (await _admin.CreateAsync(Unique.Name("Second accountant"), Permissions.CostView, Export)).Data<RoleDto>();
+        var first = await RoleHoldingExportAsync(Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export);
+        var second = (await _admin.CreateAsync(Unique.Name("Second accountant"), Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export)).Data<RoleDto>();
         _made.Add(second);
         var without = (await _admin.CreateAsync(Unique.Name("Without"), Permissions.CostView)).Data<RoleDto>();
         _made.Add(without);
@@ -220,7 +220,7 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task A_deleted_role_does_not_count_as_regaining_the_permission()
     {
-        var role = await RoleHoldingExportAsync(Permissions.CostView, Export);
+        var role = await RoleHoldingExportAsync(Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export);
         await SwitchAsync(false);
         var baseline = (await SwitchAsync(true)).RolesRegainingGrants;
         await SwitchAsync(false);
@@ -234,7 +234,7 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task A_role_manager_who_does_not_hold_the_permission_cannot_edit_a_role_that_holds_it_off_or_on_nor_grant_it()
     {
-        var role = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Export);
+        var role = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export);
         var manager = (await _admin.CreateAsync(Unique.Name("Role manager"), Permissions.RolesRead, Permissions.RolesManage, Permissions.StockRead, Permissions.CostView)).Data<RoleDto>();
         _made.Add(manager);
         var username = Unique.Username("rm");
@@ -244,14 +244,14 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
         client.AccessToken = (await client.Auth.LoginAsync(username, password)).Data<AuthResult>().AccessToken;
 
         // Module on: the manager sees the role and the permission, and is refused like for any permission they lack.
-        (await client.ReplaceAsync(await ReadAsync(role.Id), [Permissions.StockRead, Permissions.CostView])).ShouldBeProblem(HttpStatusCode.Forbidden);
-        (await client.CreateAsync(Unique.Name("Nope"), Permissions.CostView, Export)).ShouldBeProblem(HttpStatusCode.Forbidden);
+        (await client.ReplaceAsync(await ReadAsync(role.Id), [Permissions.MasterDataRead, Permissions.StockRead, Permissions.ReportsRead, Permissions.CostView])).ShouldBeProblem(HttpStatusCode.Forbidden);
+        (await client.CreateAsync(Unique.Name("Nope"), Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export)).ShouldBeProblem(HttpStatusCode.Forbidden);
         await SwitchAsync(false);
 
         // Module off: the grant is hidden but still counts, so the role is still beyond the manager.
         var seen = await ReadAsync(role.Id);
         Assert.DoesNotContain(Export, seen.Permissions);
-        (await client.CreateAsync(Unique.Name("Nope"), Permissions.CostView, Export)).ShouldBeProblem(HttpStatusCode.Forbidden); // grantable is checked before offered: 403, not 400, in create and in replace
+        (await client.CreateAsync(Unique.Name("Nope"), Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export)).ShouldBeProblem(HttpStatusCode.Forbidden); // grantable is checked before offered: 403, not 400, in create and in replace
         (await client.ReplaceAsync(seen, [Permissions.StockRead])).ShouldBeProblem(HttpStatusCode.Forbidden);
         (await client.UpdateRoleAsync(seen, name: Unique.Name("Taken over"))).ShouldBeProblem(HttpStatusCode.Forbidden);
         (await client.DeleteRoleAsync(seen)).ShouldBeProblem(HttpStatusCode.Forbidden);
@@ -262,13 +262,13 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task A_copy_of_a_role_takes_what_the_source_shows_so_a_hidden_grant_is_not_copied_unseen()
     {
-        var source = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Export);
+        var source = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export);
         await SwitchAsync(false);
 
         var copy = (await _admin.PostAsync("/api/roles", new RoleCreateRequest(Unique.Name("Copy"), null, source.Id))).Data<RoleDto>();
         _made.Add(copy);
 
-        Assert.Equal([Permissions.StockRead, Permissions.CostView], copy.Permissions);
+        Assert.Equal([Permissions.MasterDataRead, Permissions.StockRead, Permissions.ReportsRead, Permissions.CostView], copy.Permissions);
         Assert.Equal(0, await StoredGrantsAsync(copy.Id));
         Assert.Equal(1, await StoredGrantsAsync(source.Id)); // the source keeps its own
         await SwitchAsync(true);
@@ -278,7 +278,7 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task A_person_with_a_hidden_grant_still_gets_it_in_the_token_and_in_their_own_permission_list_while_the_module_is_off()
     {
-        var role = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Export);
+        var role = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export);
         await SwitchAsync(false);
         var username = Unique.Username("acct");
         var password = $"Pw-{Guid.NewGuid():N}-1!";
