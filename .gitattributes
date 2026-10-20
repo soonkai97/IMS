@@ -1,2 +1,5 @@
 .githooks/* text eol=lf
 *.sh text eol=lf
+
+# OpenAPI documents: the contract test compares them with the live API; never rewrite their line endings
+web/openapi/*.json text eol=lf

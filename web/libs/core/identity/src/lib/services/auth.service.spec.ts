@@ -15,7 +15,8 @@ const USER: UserInfo = {
   roleName: 'Warehouse staff',
   permissions: ['stock.read'],
   seesAllWarehouses: false,
-  warehouseIds: ['00000000-0000-4000-8000-000000000001']
+  warehouseIds: ['00000000-0000-4000-8000-000000000001'],
+  modules: []
 };
 
 /** The cookie flow: the body never carries a refresh token. */
