@@ -9,6 +9,9 @@ namespace Ims.Application.Features.Accounting;
 /// </summary>
 internal static class AccountingProjection
 {
+    // The joins to warehouse, partner, product and unit carry the global filter REC_DELETED = 0 (EF warns about it on a required navigation; the warning is suppressed in AddInfrastructure). A soft-deleted
+    // warehouse, product or unit would silently drop its rows from the file. Nothing deletes them today (master data is deactivated, never deleted); whoever adds such a delete must revisit this.
+
     public static readonly Expression<Func<StockDocumentLine, AccountingEntry>> Posting = l => new AccountingEntry
     {
         At = l.Document.PostedAt!.Value, DocumentId = l.DocumentId, LineId = l.Id, DocNo = l.Document.No, Type = l.Document.Type, Purpose = l.Document.Purpose,

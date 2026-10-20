@@ -85,13 +85,14 @@ public class ExportAccountingHandlerTests
 
     private sealed record Rig(ExportAccountingHandler Handler, Reader Reader, Writer Writer, Audit Audit, Saver Unit);
 
-    private static Rig Build(IReadOnlyList<AccountingEntry> rows, IReadOnlyCollection<int>? scope = null, bool costView = true)
+    private static Rig Build(IReadOnlyList<AccountingEntry> rows, IReadOnlyCollection<int>? scope = null, bool costView = true, params string[] without)
     {
         var reader = new Reader(rows);
         var writer = new Writer();
         var audit = new Audit();
         var unit = new Saver();
-        var caller = costView ? new Caller(Permissions.AccountingExport, Permissions.CostView) : new Caller(Permissions.AccountingExport);
+        string[] all = [Permissions.AccountingExport, Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead];
+        var caller = new Caller(all.Where(p => !without.Contains(p) && (costView || p != Permissions.CostView)).ToArray());
         return new Rig(new ExportAccountingHandler(reader, new Scope(scope), new Warehouses(), writer, caller, audit, unit), reader, writer, audit, unit);
     }
 
@@ -264,6 +265,20 @@ public class ExportAccountingHandlerTests
         Assert.Empty(rig.Audit.Events);
     }
 
+    [Theory]
+    [InlineData(Permissions.CostView)]
+    [InlineData(Permissions.MasterDataRead)]
+    [InlineData(Permissions.ReportsRead)]
+    public async Task A_caller_missing_any_permission_the_export_requires_is_refused_before_anything_is_read(string missing)
+    {
+        var rig = Build([Entry()], without: missing);
+
+        var refused = await Assert.ThrowsAsync<ForbiddenException>(() => Export(rig));
+
+        Assert.Equal(Messages.AccountingExportNeedsPermissions, refused.Message);
+        Assert.Equal(0, rig.Reader.Calls);
+    }
+
     // ----- warehouses -----
     [Fact]
     public async Task A_warehouse_that_does_not_exist_is_404()
@@ -351,6 +366,24 @@ public class ExportAccountingHandlerTests
 
         Assert.Contains(result.Errors, e => e.ErrorMessage == Messages.DateRangeInvalid);
     }
+
+    [Theory]
+    [InlineData("0001-01-01", "2026-10-31")]
+    [InlineData("2026-10-01", "9999-12-31")]
+    [InlineData("1999-12-31", "2026-10-31")]
+    [InlineData("2026-10-01", "2101-01-01")]
+    public void A_date_far_outside_the_calendar_is_a_sentence_not_an_overflow(string from, string to)
+    {
+        var filter = new AccountingExportFilter(DateOnly.Parse(from, CultureInfo.InvariantCulture), DateOnly.Parse(to, CultureInfo.InvariantCulture), null);
+
+        var result = new ExportAccountingValidator().Validate(new ExportAccountingQuery(filter));
+
+        Assert.Contains(result.Errors, e => e.ErrorMessage == Messages.AccountingDateOutOfRange);
+    }
+
+    [Fact]
+    public void The_first_and_the_last_day_of_the_bounds_are_valid() =>
+        Assert.True(new ExportAccountingValidator().Validate(new ExportAccountingQuery(new AccountingExportFilter(AccountingLayout.EarliestDate, AccountingLayout.LatestDate, null))).IsValid);
 
     [Fact]
     public void A_period_of_one_day_is_valid() =>

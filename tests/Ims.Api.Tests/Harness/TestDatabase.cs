@@ -14,8 +14,6 @@ public sealed class TestDatabase
     private const string NamePrefix = "ImsApiTests_";
     private const string MasterDatabase = "master";
 
-    private const int CommandTimeoutSeconds = 300;
-
     private readonly string _masterConnection;
 
     private TestDatabase(string name, string connectionString, string masterConnection)
@@ -66,11 +64,15 @@ public sealed class TestDatabase
         }
     }
 
-    public async Task<int> ExecuteAsync(string sql, params (string Name, object Value)[] parameters)
+    public async Task<int> ExecuteAsync(string sql, params (string Name, object Value)[] parameters) => await ExecuteAsync(sql, timeoutSeconds: null, parameters);
+
+    /// <summary>For the volume tests, which load hundreds of thousands of rows: the command may run up to <paramref name="timeoutSeconds"/> instead of the default 30.</summary>
+    public async Task<int> ExecuteAsync(string sql, int? timeoutSeconds, params (string Name, object Value)[] parameters)
     {
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync();
         await using var command = Build(connection, sql, parameters);
+        if (timeoutSeconds is { } seconds) command.CommandTimeout = seconds;
         return await command.ExecuteNonQueryAsync();
     }
 
@@ -87,7 +89,6 @@ public sealed class TestDatabase
     {
         var command = connection.CreateCommand();
         command.CommandText = sql;
-        command.CommandTimeout = CommandTimeoutSeconds; // the volume tests load hundreds of thousands of rows
         foreach (var (name, value) in parameters) command.Parameters.AddWithValue(name, value);
         return command;
     }

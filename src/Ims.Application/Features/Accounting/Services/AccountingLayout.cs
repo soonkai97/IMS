@@ -11,6 +11,10 @@ public static class AccountingLayout
 {
     public const string Sheet = "Accounting";
 
+    /// <summary>The first and the last day a period may name (a sane calendar, far from the ends of <see cref="DateOnly"/>).</summary>
+    public static readonly DateOnly EarliestDate = new(2000, 1, 1);
+    public static readonly DateOnly LatestDate = new(2100, 12, 31);
+
     public static readonly ReportColumn[] Columns =
     [
         new("Date"), new("Document no."), new("Type"), new("Purpose"), new("Reversal of"), new("Warehouse"), new("Partner"), new("Partner TIN"),

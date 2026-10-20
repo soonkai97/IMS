@@ -4,7 +4,7 @@ namespace Ims.Application.Features.Accounting;
 
 /// <summary>
 /// The accounting file for a period: one row per posted document line, a reversal as the opposite row (see <see cref="AccountingLayout"/>), at cost. It carries cost, so the caller must hold
-/// <c>cost.view</c> here as well as the policy that let the request in (the permission closure makes the two agree; this is the check that does not depend on it). It never cuts a file
+/// <c>cost.view</c> (and the master data and report permissions the file also shows) here as well as the policy that let the request in (the permission closure makes the two agree; this is the check that does not depend on it). It never cuts a file
 /// short: above <see cref="Limits.MaxExportRows"/> rows the answer is a 400 that says to narrow the period. A warehouse the caller may not read is a 404, and the rows of such warehouses never
 /// appear. Every file produced is audited (who, when, the filters and the number of rows; never the content), in the same save that precedes the answer, so no file leaves without its record.
 /// </summary>
@@ -13,7 +13,8 @@ public class ExportAccountingHandler(IAccountingReader accounting, IWarehouseSco
 {
     public async Task<ExportFile> HandleAsync(ExportAccountingQuery q, CancellationToken ct)
     {
-        if (!caller.Has(Permissions.CostView)) throw new ForbiddenException(Messages.AccountingExportNeedsCost);
+        // Everything the permission requires (cost, master data, reports), asked again here: the closure of the role editor makes the policy imply them, this does not depend on it.
+        if (PermissionCatalog.Find(Permissions.AccountingExport)!.Requires.Any(required => !caller.Has(required))) throw new ForbiddenException(Messages.AccountingExportNeedsPermissions);
 
         var from = q.Filter.From!.Value; // the validator refused a request without the dates
         var to = q.Filter.To!.Value;

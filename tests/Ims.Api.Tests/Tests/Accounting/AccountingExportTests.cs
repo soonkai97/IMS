@@ -121,16 +121,44 @@ public class AccountingExportTests(ApiFixture fixture) : IAsyncLifetime
         (await fixture.Anonymous().GetAsync(Url(warehouse.Id))).ShouldBeProblem(HttpStatusCode.Unauthorized);
     }
 
-    [Fact]
-    public async Task A_token_that_holds_the_export_permission_but_not_cost_view_is_refused_by_the_handler_and_nothing_is_audited()
+    [Theory]
+    [InlineData(Permissions.CostView)]
+    [InlineData(Permissions.MasterDataRead)]
+    [InlineData(Permissions.ReportsRead)]
+    public async Task A_token_with_the_export_permission_but_without_one_it_requires_is_refused_by_the_handler_and_nothing_is_audited(string missing)
     {
-        var token = ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Admin, permissions: [Permissions.AccountingExport, Permissions.StockRead, Permissions.ReportsRead]);
+        var granted = new[] { Permissions.AccountingExport, Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Permissions.StockRead }.Where(p => p != missing);
+        var token = ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Admin, permissions: granted);
         var before = await AuditedExportsAsync();
 
         var refused = (await fixture.CreateClient(token).GetAsync(Url())).ShouldBeProblem(HttpStatusCode.Forbidden);
 
-        Assert.Equal(Messages.AccountingExportNeedsCost, refused.Detail);
+        Assert.Equal(Messages.AccountingExportNeedsPermissions, refused.Detail);
         Assert.Equal(before, await AuditedExportsAsync());
+    }
+
+    [Fact]
+    public async Task A_role_with_the_export_permission_and_cost_view_only_cannot_be_saved_because_it_would_show_partners_and_products_without_the_right_to_read_them()
+    {
+        var created = (await _s.Admin.CreateAsync(Unique.Name("Cost only"), Permissions.CostView, Permissions.AccountingExport)).ShouldBeProblem(HttpStatusCode.BadRequest);
+        var complete = (await _s.Admin.CreateAsync(Unique.Name("Accountant"), Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Permissions.AccountingExport)).Data<Ims.Application.Features.Roles.RoleDto>();
+
+        Assert.Contains("masterdata.read", created.Detail);
+        Assert.Contains(Permissions.AccountingExport, complete.Permissions);
+        (await _s.Admin.ReplaceAsync(complete, [Permissions.CostView, Permissions.MasterDataRead, Permissions.AccountingExport])).ShouldBeProblem(HttpStatusCode.BadRequest); // taking reports.read away is refused too
+        (await _s.Admin.ReplaceAsync(complete, [Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead])).ShouldBeOk();                     // dropping the export itself is fine
+        (await _s.Admin.DeleteRoleAsync(complete)).ShouldBe(HttpStatusCode.NoContent);
+    }
+
+    [Theory]
+    [InlineData("from=0001-01-01&to=2026-10-31")]
+    [InlineData("from=2026-10-01&to=9999-12-31")]
+    [InlineData("from=1999-12-31&to=2026-10-31")]
+    public async Task A_date_far_outside_the_calendar_is_400_with_a_sentence_not_a_server_error(string query)
+    {
+        var refused = (await _s.Admin.GetAsync("/api/accounting/export?" + query)).ShouldBeProblem(HttpStatusCode.BadRequest);
+
+        Assert.Equal(Messages.AccountingDateOutOfRange, refused.Detail);
     }
 
     // ----- the file (acceptance 1) -----
@@ -333,7 +361,8 @@ public class AccountingExportTests(ApiFixture fixture) : IAsyncLifetime
         var partner = await NewPartnerAsync(PartnerType.Supplier, name: "=HYPERLINK(\"http://example.test\",\"pay\")");
         var product = await _s.NewProductAsync(customize: p => p.WithName("+SUM(1+1)").WithSku("-" + Unique.Sku("INJ")));
         var second = await _s.NewProductAsync(customize: p => p.WithName("@cmd|calc").WithSku("=" + Unique.Sku("INJ")));
-        await ReceiveFromAsync(warehouse.Id, partner.Id, new Line(product.Id, 1, 1m), new Line(second.Id, 1, 1m));
+        var third = await _s.NewProductAsync(customize: p => p.WithName("'Ah Kow Trading")); // a leading quote is data too: the writer would drop it without a prefix of its own
+        await ReceiveFromAsync(warehouse.Id, partner.Id, new Line(product.Id, 1, 1m), new Line(second.Id, 1, 1m), new Line(third.Id, 1, 1m));
 
         var response = (await _s.Admin.GetAsync(Url(warehouse.Id))).ShouldBeOk();
 
@@ -344,7 +373,7 @@ public class AccountingExportTests(ApiFixture fixture) : IAsyncLifetime
         // somebody edits the cell. The values are not altered, which an import into the accounting package needs.
         var expected = new Dictionary<(int Row, string Column), string>
         {
-            [(2, "Partner")] = partner.Name, [(3, "Partner")] = partner.Name, [(2, "SKU")] = product.Sku, [(2, "Product")] = product.Name, [(3, "SKU")] = second.Sku, [(3, "Product")] = second.Name
+            [(2, "Partner")] = partner.Name, [(3, "Partner")] = partner.Name, [(2, "SKU")] = product.Sku, [(2, "Product")] = product.Name, [(3, "SKU")] = second.Sku, [(3, "Product")] = second.Name, [(4, "Product")] = third.Name
         };
         foreach (var ((rowNumber, header), text) in expected)
         {

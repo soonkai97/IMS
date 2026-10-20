@@ -131,6 +131,8 @@ The cost per base unit and the average are INTERNAL numbers, not money: every am
 
 ## Modules and tracking dimensions (accepted)
 
+**Accounting export (built, PL1.6).** `GET /api/accounting/export` is a query handler that also writes: it saves one audit row per file produced (`accounting.exported`) before it answers, so no file leaves without its record. This is accepted as an exception to "a query changes nothing" because the audit row is the point of the endpoint; it is the only query that saves, and a refused request writes nothing. It asks for the permissions the file shows (`cost.view`, `masterdata.read`, `reports.read`, the `Requires` of `accounting.export`) again in the handler, reads at most `Limits.MaxExportRows + 1` rows in one statement, and refuses a period above the cap with a 400.
+
 Optional lot/serial tracking on the ledger and switch-on modules (accounting hand-off, stocktake, batch, purchasing, sales, returns, assembly, serial) are designed in [adr-modules-and-tracking-dimensions.md](adr-modules-and-tracking-dimensions.md). Status: accepted 2026-10-19 (owner), nothing built; pilot order: accounting export with the module foundation, purchasing, sales and returns, stocktake, then batch and serial; `StockBalance` and the per-(warehouse, product) lock stay as they are.
 
 ## Data, concurrency and performance rules

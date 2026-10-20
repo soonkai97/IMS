@@ -73,7 +73,7 @@ public class AccountingExportVolumeTests(ApiFixture fixture, ITestOutputHelper o
         // The one connection runs the whole script: the parameters are the sizes above.
         var script = SeedSql;
         await fixture.Database.ExecuteAsync("DECLARE @posted int = @p, @reversed int = @r, @noise int = @n, @lines int = @l;\n" + script,
-            ("@p", PostedOnlyDocuments), ("@r", ReversedDocuments), ("@n", NoiseDocuments), ("@l", LinesPerDocument));
+            timeoutSeconds: 300, parameters: [("@p", PostedOnlyDocuments), ("@r", ReversedDocuments), ("@n", NoiseDocuments), ("@l", LinesPerDocument)]);
     }
 
     private static string Url(DateOnly from, DateOnly to) => $"/api/accounting/export?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}";

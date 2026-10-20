@@ -131,12 +131,15 @@ public partial class PermissionCatalogTests
     }
 
     [Fact]
-    public void AccountingExport_BelongsToTheAccountingModule_RequiresCostView_IsNotDangerous_AndIsHeldByTheAdminAndTheOwnerOnly()
+    public void AccountingExport_BelongsToTheAccountingModule_RequiresCostViewMasterDataAndReports_IsNotDangerous_AndIsHeldByTheAdminAndTheOwnerOnly()
     {
         var entry = PermissionCatalog.Find(Permissions.AccountingExport)!;
 
         Assert.Equal(ModuleCodes.Accounting, entry.Module);
-        Assert.Equal([Permissions.CostView], entry.Requires); // the file carries cost, so whoever holds it already holds the dangerous cost.view
+        // The file carries cost (the dangerous cost.view), partner names and tax numbers (masterdata.read) and is a report (reports.read): whoever holds it already holds all three.
+        Assert.Equal([Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead], entry.Requires);
+        foreach (var role in new[] { Roles.Admin, Roles.Owner })
+            Assert.Null(PermissionCatalog.FirstMissingRequirement(SystemRoleDefaults.For(role).ToList())); // the defaults of both holders are closed under Requires
         // Decision (PL1.2): not dangerous. The ADR does not flag it; it reads, changes nothing, is audited (PL1.6), and cannot be held without cost.view, which already is dangerous, so it
         // gives no reach beyond what the dangerous cost.view grants. Pinned with TheDangerousPermissions_ArePinned, so flagging it later is a visible one-line diff.
         Assert.False(entry.IsDangerous);

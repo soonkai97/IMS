@@ -12,6 +12,8 @@ public class SpreadsheetTextTests
     [InlineData("@SUM(A1)", "'@SUM(A1)")]
     [InlineData("\t=cmd", "'\t=cmd")]
     [InlineData("\r=cmd", "'\r=cmd")]
+    [InlineData("'Ah Kow Trading", "''Ah Kow Trading")]
+    [InlineData("'=x", "''=x")]
     [InlineData("=HYPERLINK(\"http://example.test\",\"x\")", "'=HYPERLINK(\"http://example.test\",\"x\")")]
     public void Text_that_could_run_as_a_formula_gets_a_leading_quote(string text, string expected) => Assert.Equal(expected, SpreadsheetText.Safe(text));
 
@@ -21,7 +23,6 @@ public class SpreadsheetTextTests
     [InlineData("A=B")]
     [InlineData("5-3")]
     [InlineData(" =x")]
-    [InlineData("'=already quoted is text to the spreadsheet")]
     [InlineData("")]
     public void Other_text_is_unchanged(string text) => Assert.Equal(text, SpreadsheetText.Safe(text));
 

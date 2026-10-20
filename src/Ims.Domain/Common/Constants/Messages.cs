@@ -57,7 +57,8 @@ public static class Messages
 
     // ----- Accounting export (module accounting) -----
     public const string AccountingRangeRequired = "Enter the first and the last date of the period to export.";
-    public const string AccountingExportNeedsCost = "The accounting export carries cost, so it needs permission to see cost.";
+    public const string AccountingExportNeedsPermissions = "The accounting export carries cost, partner and product details, so it needs permission to see cost, master data and reports.";
+    public const string AccountingDateOutOfRange = "Enter dates between 1 January 2000 and 31 December 2100.";
     public static string AccountingExportTooLarge(int limit) =>
         $"Too many rows: one accounting file holds at most {limit} rows. Narrow the date range (for example one month at a time) or pick one warehouse.";
 
