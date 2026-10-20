@@ -12,7 +12,8 @@ const permission = (
   description: code,
   isDangerous: false,
   adminCore,
-  requires
+  requires,
+  module: undefined
 });
 // reverse -> post -> read; approve -> read
 const CATALOG = [

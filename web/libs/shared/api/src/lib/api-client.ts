@@ -2525,6 +2525,129 @@ export class RolesClient {
 @Injectable({
     providedIn: 'root'
 })
+export class ModulesClient {
+    private http: HttpClient;
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
+        this.http = http;
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+    }
+
+    /**
+     * @return OK
+     */
+    list(httpContext?: HttpContext): Observable<ModuleDto[]> {
+        let url_ = this.baseUrl + "/api/modules";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processList(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processList(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<ModuleDto[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<ModuleDto[]>;
+        }));
+    }
+
+    protected processList(response: HttpResponseBase): Observable<ModuleDto[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ModuleDto[];
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    switch(code: string, body: ModuleSwitchRequest, httpContext?: HttpContext): Observable<ModuleSwitchResult> {
+        let url_ = this.baseUrl + "/api/modules/{code}";
+        if (code === undefined || code === null)
+            throw new globalThis.Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("put", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processSwitch(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processSwitch(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<ModuleSwitchResult>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<ModuleSwitchResult>;
+        }));
+    }
+
+    protected processSwitch(response: HttpResponseBase): Observable<ModuleSwitchResult> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ModuleSwitchResult;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+}
+
+@Injectable({
+    providedIn: 'root'
+})
 export class DocumentsClient {
     private http: HttpClient;
     private baseUrl: string;
@@ -4907,6 +5030,32 @@ export interface LowStockAlert {
     isNegative: boolean;
 }
 
+/** A module and whether this installation has it on. `Requires` lists the codes of modules that must be on first (none yet). */
+export interface ModuleDto {
+    code: string;
+    name: string;
+    description: string;
+    enabled: boolean;
+    requires: string[];
+}
+
+/** Turn a module on or off. `Enabled` has no default on purpose: a body that leaves it out is a 400, never a quiet switch off. The reason is kept in the audit log. */
+export interface ModuleSwitchRequest {
+    enabled: boolean | undefined;
+    reason: string;
+}
+
+/** What a module switch answers: the module as `GET /api/modules` lists it, plus how many roles got permissions back. A module's permissions are kept, hidden, on the roles that hold them while it is off; turning it on gives them back at once, so this count is the warning. It is 0 when the module was turned off, was already in the state asked for, or has no permissions. */
+export interface ModuleSwitchResult {
+    code: string;
+    name: string;
+    description: string;
+    enabled: boolean;
+    requires: string[];
+    /** Live roles that hold at least one permission of the module and so have it in force again. */
+    rolesRegainingGrants: number;
+}
+
 /** One line of the receipt/issue detail. A document reversed since posting has two rows per line: the posting and the reversal. */
 export interface MovementRow {
     /** When the movement happened: the posting time, or for a reversal row the time of the reversal. */
@@ -5063,6 +5212,8 @@ export interface PermissionDto {
     adminCore: boolean;
     /** Codes that must be granted together with this one (a role that has this code without them is refused). */
     requires: string[];
+    /** The module the permission belongs to, or null for a core permission. The list only holds permissions of modules that are on, so a client needs it only to label the entry. */
+    module: string | undefined;
 }
 
 /** The sections of the permission catalog, in the order the role editor lists them. */
@@ -5246,7 +5397,7 @@ export interface UserDto {
     allWarehouses: boolean;
 }
 
-/** The signed-in user. `Permissions` lists the codes of the access token (the role's grants when it was issued) in catalog order; the web reads it for menus and buttons, the API decides by the token itself. */
+/** The signed-in user. `Permissions` lists the codes of the access token (the role's grants when it was issued) in catalog order; the web reads it for menus and buttons, the API decides by the token itself. `Modules` lists the codes of the modules this installation has on (read when the answer is built, not carried by the token), in catalog order. */
 export interface UserInfo {
     id: string;
     username: string;
@@ -5256,6 +5407,7 @@ export interface UserInfo {
     permissions: string[];
     seesAllWarehouses: boolean;
     warehouseIds: string[];
+    modules: string[];
 }
 
 export interface UserSaveRequest {

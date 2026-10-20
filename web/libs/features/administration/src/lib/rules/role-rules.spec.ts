@@ -7,7 +7,8 @@ const permission = (code: string, adminCore = false): PermissionDto => ({
   description: code,
   isDangerous: false,
   adminCore,
-  requires: []
+  requires: [],
+  module: undefined
 });
 const CATALOG = [
   permission('users.manage', true),

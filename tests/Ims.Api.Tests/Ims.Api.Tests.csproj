@@ -38,6 +38,8 @@
     <Compile Include="..\Ims.Domain.Tests\Identity\Oracle\OracleTable.cs" Link="Support\Oracle\OracleTable.cs" />
     <Compile Include="..\Ims.Domain.Tests\Identity\Oracle\OracleTables.cs" Link="Support\Oracle\OracleTables.cs" />
     <Compile Include="..\Ims.Domain.Tests\Identity\Oracle\NewBehaviour.cs" Link="Support\Oracle\NewBehaviour.cs" />
+    <!-- The committed OpenAPI document the web client is generated from; the contract test compares the live document with it. -->
+    <None Include="..\..\web\openapi\openapi.raw.json" Link="Contract\openapi.raw.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Ims.Domain.Tests\Identity\Oracle\*.csv" Link="Identity\Oracle\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
