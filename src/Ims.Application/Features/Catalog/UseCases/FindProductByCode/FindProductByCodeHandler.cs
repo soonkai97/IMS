@@ -1,3 +1,4 @@
+using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Catalog;
 
@@ -7,7 +8,7 @@ namespace Ims.Application.Features.Catalog;
 /// One predicate over both columns ("Sku = code OR a barcode = code", TOP 1) made SQL Server walk the Product table until the first match, so the cost grew
 /// with the position of the product (docs/dba/README.md 4d). A code that is one product's SKU and another's barcode belongs to the SKU's product.
 /// </summary>
-public class FindProductByCodeHandler(IReadRepository<Product> products, IReadRepository<ProductBarcode> barcodes) : IQueryHandler<FindProductByCodeQuery, ProductLookupResult>
+public class FindProductByCodeHandler(IReadRepository<Product> products, IReadRepository<ProductBarcode> barcodes, IModuleSwitches modules) : IQueryHandler<FindProductByCodeQuery, ProductLookupResult>
 {
     public async Task<ProductLookupResult> HandleAsync(FindProductByCodeQuery q, CancellationToken ct)
     {
@@ -15,6 +16,6 @@ public class FindProductByCodeHandler(IReadRepository<Product> products, IReadRe
         var product = await products.FirstOrDefaultAsync(new ProductBySkuSpec(code), ct);
         if (product is null && await barcodes.FirstOrDefaultAsync(new ProductIdByBarcodeSpec(code), ct) is { } productId)
             product = await products.FirstOrDefaultAsync(new ProductDtoSpec(productId), ct);
-        return product is null ? new ProductLookupResult(false, null) : new ProductLookupResult(true, product);
+        return product is null ? new ProductLookupResult(false, null) : new ProductLookupResult(true, await modules.ShapeAsync(product, ct));
     }
 }

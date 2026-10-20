@@ -5692,6 +5692,15 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "tin": {
+            "type": "string",
+            "description": "Module accounting: left out of the response (not even a null) while the module is off, and when the partner has none.",
+            "nullable": true
+          },
+          "sstRegNo": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5717,6 +5726,15 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "tin": {
+            "type": "string",
+            "description": "Module accounting. Left out of a save while the module is off (a value is a 400); with the module on, a save replaces both tax-ready fields, so null clears.",
+            "nullable": true
+          },
+          "sstRegNo": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5844,6 +5862,15 @@
             "items": {
               "$ref": "#/components/schemas/UomConversionDto"
             }
+          },
+          "hsCode": {
+            "type": "string",
+            "description": "Module accounting: left out of the response (not even a null) while the module is off, and when the product has none.",
+            "nullable": true
+          },
+          "sstCode": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5917,6 +5944,15 @@
             "items": {
               "$ref": "#/components/schemas/UomConversionDto"
             },
+            "nullable": true
+          },
+          "hsCode": {
+            "type": "string",
+            "description": "Module accounting. Left out of a save while the module is off (a value is a 400); with the module on, a save replaces both tax-ready fields, so null clears.",
+            "nullable": true
+          },
+          "sstCode": {
+            "type": "string",
             "nullable": true
           }
         },

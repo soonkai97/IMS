@@ -5187,6 +5187,9 @@ export interface PartnerDto {
     name: string;
     contact: string | undefined;
     isActive: boolean;
+    /** Module accounting: left out of the response (not even a null) while the module is off, and when the partner has none. */
+    tin?: string | undefined;
+    sstRegNo?: string | undefined;
 }
 
 export interface PartnerSaveRequest {
@@ -5194,6 +5197,9 @@ export interface PartnerSaveRequest {
     name: string;
     contact: string | undefined;
     isActive: boolean;
+    /** Module accounting. Left out of a save while the module is off (a value is a 400); with the module on, a save replaces both tax-ready fields, so null clears. */
+    tin?: string | undefined;
+    sstRegNo?: string | undefined;
 }
 
 export enum PartnerType {
@@ -5237,6 +5243,9 @@ export interface ProductDto {
     isActive: boolean;
     barcodes: string[];
     conversions: UomConversionDto[];
+    /** Module accounting: left out of the response (not even a null) while the module is off, and when the product has none. */
+    hsCode?: string | undefined;
+    sstCode?: string | undefined;
 }
 
 /** Answer to a barcode or SKU lookup. A code nobody owns is a normal outcome of scanning, not an error: `Found` is false and `Product` is null (HTTP 200), so a scan miss does not look like a failed request. */
@@ -5254,6 +5263,9 @@ export interface ProductSaveRequest {
     isActive: boolean;
     barcodes: string[] | undefined;
     conversions: UomConversionDto[] | undefined;
+    /** Module accounting. Left out of a save while the module is off (a value is a 400); with the module on, a save replaces both tax-ready fields, so null clears. */
+    hsCode?: string | undefined;
+    sstCode?: string | undefined;
 }
 
 /** Sort keys the products list accepts. Only these are allowed, so a client cannot sort on an unindexed column. */

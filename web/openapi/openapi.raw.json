@@ -5825,6 +5825,19 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "tin": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Module accounting: left out of the response (not even a null) while the module is off, and when the partner has none."
+          },
+          "sstRegNo": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -5851,6 +5864,19 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "tin": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Module accounting. Left out of a save while the module is off (a value is a 400); with the module on, a save replaces both tax-ready fields, so null clears."
+          },
+          "sstRegNo": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -5982,6 +6008,19 @@
             "items": {
               "$ref": "#/components/schemas/UomConversionDto"
             }
+          },
+          "hsCode": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Module accounting: left out of the response (not even a null) while the module is off, and when the product has none."
+          },
+          "sstCode": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -6062,6 +6101,19 @@
             "items": {
               "$ref": "#/components/schemas/UomConversionDto"
             }
+          },
+          "hsCode": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Module accounting. Left out of a save while the module is off (a value is a 400); with the module on, a save replaces both tax-ready fields, so null clears."
+          },
+          "sstCode": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

@@ -10,5 +10,8 @@ public record ExcelRow(int Number, IReadOnlyDictionary<string, string> Cells, IR
     /// The value of a cell that is read as a number (a quantity, a cost): the number it holds, not the text it shows. A cell formatted to one decimal that holds 2.505
     /// shows 2.5; reading the text would let a fraction of a cent through (and reject 1,234.5 for its comma). A text cell reads as its text.
     /// </summary>
+    /// <summary>True when the cell holds a number (typed or a formula result), whatever it shows. A code such as an HS code must not: the spreadsheet already dropped its leading and trailing zeros when it was typed.</summary>
+    public bool IsNumber(string key) => Numbers?.ContainsKey(key) == true;
+
     public string GetNumber(string key) => Numbers?.GetValueOrDefault(key) ?? Get(key);
 }
