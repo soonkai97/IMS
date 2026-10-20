@@ -14,7 +14,7 @@ namespace Ims.Api.Tests.Tests.PublicIds;
 public class PublicIdStorageTests(PublicIdDatabase fixture) : IClassFixture<PublicIdDatabase>
 {
     private static readonly Type[] PublicEntities =
-        [typeof(User), typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom), typeof(Product), typeof(ApprovalRule), typeof(StockDocument), typeof(Attachment), typeof(Role)];
+        [typeof(User), typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom), typeof(Product), typeof(ApprovalRule), typeof(StockDocument), typeof(Attachment), typeof(Role), typeof(PurchaseOrder)];
 
     private async Task<Uom> AddUomAsync()
     {
@@ -49,7 +49,7 @@ public class PublicIdStorageTests(PublicIdDatabase fixture) : IClassFixture<Publ
     }
 
     [Fact]
-    public async Task The_model_gives_each_of_the_ten_entities_an_unfiltered_unique_index_and_nothing_else_has_one()
+    public async Task The_model_gives_each_of_the_eleven_entities_an_unfiltered_unique_index_and_nothing_else_has_one()
     {
         await using var db = fixture.NewContext();
         var model = db.GetService<IDesignTimeModel>().Model; // the full model: the runtime one drops relational annotations such as the fill factor

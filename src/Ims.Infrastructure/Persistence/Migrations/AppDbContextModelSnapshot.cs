@@ -634,6 +634,238 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.ToTable("ProductBarcode");
                 });
 
+            modelBuilder.Entity("Ims.Domain.PurchaseOrder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ApprovedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("CloseKind")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CloseReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ClosedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsLarge")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("No")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<DateTime>("RecCreDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("REC_CREDATE")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int?>("RecCreator")
+                        .HasColumnType("int")
+                        .HasColumnName("REC_CREATOR");
+
+                    b.Property<bool>("RecDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("REC_DELETED");
+
+                    b.Property<DateTime?>("RecRevDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("REC_REVDATE");
+
+                    b.Property<int?>("RecRevisor")
+                        .HasColumnType("int")
+                        .HasColumnName("REC_REVISOR");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RejectedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Remark")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("RequiresApproval")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("ROW_VERSION");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("SubmittedBy")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WarehouseId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedBy")
+                        .HasFilter("[ApprovedBy] IS NOT NULL");
+
+                    b.HasIndex("ClosedBy")
+                        .HasFilter("[ClosedBy] IS NOT NULL");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("No")
+                        .IsUnique()
+                        .HasFilter("[REC_DELETED] = 0");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_PurchaseOrder_PublicId");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex("PublicId"), 90);
+
+                    b.HasIndex("RejectedBy")
+                        .HasFilter("[RejectedBy] IS NOT NULL");
+
+                    b.HasIndex("SubmittedBy")
+                        .HasFilter("[SubmittedBy] IS NOT NULL");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("WarehouseId");
+
+                    b.HasIndex("Status", "Id")
+                        .IsDescending(false, true)
+                        .HasFilter("[REC_DELETED] = 0");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Status", "Id"), new[] { "WarehouseId" });
+
+                    b.ToTable("PurchaseOrder");
+                });
+
+            modelBuilder.Entity("Ims.Domain.PurchaseOrderLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("BaseQty")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("LineNo")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PurchaseOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Qty")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime>("RecCreDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("REC_CREDATE")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int?>("RecCreator")
+                        .HasColumnType("int")
+                        .HasColumnName("REC_CREATOR");
+
+                    b.Property<bool>("RecDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("REC_DELETED");
+
+                    b.Property<DateTime?>("RecRevDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("REC_REVDATE");
+
+                    b.Property<int?>("RecRevisor")
+                        .HasColumnType("int")
+                        .HasColumnName("REC_REVISOR");
+
+                    b.Property<string>("Remark")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("ROW_VERSION");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("UomId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ProductId"), new[] { "PurchaseOrderId", "BaseQty" });
+
+                    b.HasIndex("PurchaseOrderId");
+
+                    b.HasIndex("UomId");
+
+                    b.ToTable("PurchaseOrderLine");
+                });
+
             modelBuilder.Entity("Ims.Domain.RefreshToken", b =>
                 {
                     b.Property<int>("Id")
@@ -1698,6 +1930,80 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Ims.Domain.PurchaseOrder", b =>
+                {
+                    b.HasOne("Ims.Domain.User", null)
+                        .WithMany()
+                        .HasForeignKey("ApprovedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Ims.Domain.User", null)
+                        .WithMany()
+                        .HasForeignKey("ClosedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Ims.Domain.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ims.Domain.User", null)
+                        .WithMany()
+                        .HasForeignKey("RejectedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Ims.Domain.User", null)
+                        .WithMany()
+                        .HasForeignKey("SubmittedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Ims.Domain.Partner", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ims.Domain.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Supplier");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("Ims.Domain.PurchaseOrderLine", b =>
+                {
+                    b.HasOne("Ims.Domain.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ims.Domain.PurchaseOrder", "PurchaseOrder")
+                        .WithMany("Lines")
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Ims.Domain.Uom", "Uom")
+                        .WithMany()
+                        .HasForeignKey("UomId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("PurchaseOrder");
+
+                    b.Navigation("Uom");
+                });
+
             modelBuilder.Entity("Ims.Domain.RefreshToken", b =>
                 {
                     b.HasOne("Ims.Domain.User", null)
@@ -1916,6 +2222,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Navigation("Barcodes");
 
                     b.Navigation("Conversions");
+                });
+
+            modelBuilder.Entity("Ims.Domain.PurchaseOrder", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("Ims.Domain.Role", b =>
