@@ -5926,13 +5926,14 @@
               "null",
               "string"
             ],
-            "description": "Module accounting. Left out of a save while the module is off (a value is a 400); with the module on, a save replaces both tax-ready fields, so null clears."
+            "description": "Module accounting. Left out of a save while the module is off (a value is a 400). With the module on: a key that is left out keeps the stored value, an explicit null or blank clears it, a value replaces it. Each of the two fields is decided on its own."
           },
           "sstRegNo": {
             "type": [
               "null",
               "string"
-            ]
+            ],
+            "description": "Module accounting. Same rule as tin."
           }
         }
       },
@@ -6163,13 +6164,14 @@
               "null",
               "string"
             ],
-            "description": "Module accounting. Left out of a save while the module is off (a value is a 400); with the module on, a save replaces both tax-ready fields, so null clears."
+            "description": "Module accounting. Left out of a save while the module is off (a value is a 400). With the module on: a key that is left out keeps the stored value, an explicit null or blank clears it, a value replaces it. Each of the two fields is decided on its own."
           },
           "sstCode": {
             "type": [
               "null",
               "string"
-            ]
+            ],
+            "description": "Module accounting. Same rule as hsCode."
           }
         }
       },

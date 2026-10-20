@@ -13,6 +13,7 @@ public static class OpenApiSetup
             o.AddOperationTransformer<MultipartRequiredTransformer>();
             o.AddDocumentTransformer<FormFileComponentTransformer>();
             o.AddDocumentTransformer<EnumSchemaTransformer>();
+            o.AddDocumentTransformer<OptionalSchemaTransformer>();
         });
         return services;
     }

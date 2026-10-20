@@ -50,11 +50,11 @@ public class Product : PublicEntity
         IsActive = isActive;
     }
 
-    /// <summary>Replaces both tax-ready fields (blank clears one); refused when a value has the wrong shape. Not part of <see cref="Update"/>, so a save that does not carry them leaves them alone.</summary>
+    /// <summary>Replaces both tax-ready fields (blank clears one); refused when a value has the wrong shape. A value equal to the stored one is not checked again (a save that did not carry the key hands the stored value back, and it must not fail because the rules were tightened later). Not part of <see cref="Update"/>, so a save that does not carry them leaves them alone.</summary>
     public void SetTaxCodes(string? hsCode, string? sstCode)
     {
-        var hs = TaxFieldShapes.Accept(hsCode, TaxFieldShapes.HsCodeError);
-        var sst = TaxFieldShapes.Accept(sstCode, TaxFieldShapes.SstCodeError);
+        var hs = hsCode == HsCode ? HsCode : TaxFieldShapes.Accept(hsCode, TaxFieldShapes.HsCodeError);
+        var sst = sstCode == SstCode ? SstCode : TaxFieldShapes.Accept(sstCode, TaxFieldShapes.SstCodeError);
         HsCode = hs;
         SstCode = sst;
     }
