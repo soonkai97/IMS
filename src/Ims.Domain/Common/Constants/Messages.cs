@@ -60,6 +60,8 @@ public static class Messages
     public static string SstCodeInvalid => $"SST code may contain only letters, digits and hyphens (maximum {Limits.SstCodeMaxLength} characters).";
     public static string TinInvalid => $"TIN may contain only letters and digits (maximum {Limits.TinMaxLength} characters).";
     public static string SstRegNoInvalid => $"SST registration number may contain only letters, digits and hyphens (maximum {Limits.SstRegNoMaxLength} characters).";
+    /// <summary>A code typed into a General-format cell is a number to the spreadsheet, which drops its leading and trailing zeros (0901.21 becomes 901.21), so it cannot be trusted; no value is echoed.</summary>
+    public static string TaxCodeMustBeText(string column) => $"{column} is a number in the file. Type it as text (format the column as Text first), because a number loses leading and trailing zeros.";
     public static string ModuleFieldNotAvailable(string field, string module) => $"'{field}' is not available while the {module} module is off.";
     public static string ImportColumnsNotAvailable(IEnumerable<string> columns, string module) =>
         $"Column(s) {string.Join(", ", columns)} are not available while the {module} module is off. Remove them and upload the file again.";

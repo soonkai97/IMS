@@ -137,6 +137,33 @@ public class TaxColumnsImportTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_code_in_a_number_cell_is_refused_because_the_spreadsheet_already_dropped_its_zeros()
+    {
+        await SwitchAsync(true);
+        var (text, hsNumber, sstNumber) = (Unique.Sku("TAXI"), Unique.Sku("TAXI"), Unique.Sku("TAXI"));
+        var file = Xlsx.Create("Products", [.. Base, "HsCode", "SstCode"],
+            Row(text, "0901.21", "ST-01"),   // row 2: typed as text, zeros kept
+            Row(hsNumber, 8471.3, "ST-01"),  // row 3: the cell holds the number 8471.3 (8471.30 typed in a General cell)
+            Row(sstNumber, "8471.30", 12345)); // row 4: an SST code that is a number too
+
+        var preview = (await _admin.Import.ProductsAsync(file, commit: false)).Data<ImportResult>();
+        var commit = await _admin.Import.ProductsAsync(file, commit: true);
+
+        Assert.True(preview.Rows[0].Ok);
+        Assert.Equal(Messages.TaxCodeMustBeText("HS code"), Assert.Single(preview.Rows[1].Errors));
+        Assert.Equal(Messages.TaxCodeMustBeText("SST code"), Assert.Single(preview.Rows[2].Errors));
+        Assert.DoesNotContain("8471", preview.Rows[1].Errors[0]); // no value echoed
+        commit.ShouldBeProblem(HttpStatusCode.BadRequest);
+        Assert.Empty((await _admin.Products.ListAsync(search: text)).Data<PagedResult<ProductDto>>().Items);
+
+        // The same codes typed as text pass, zeros kept.
+        var ok = Xlsx.Create("Products", [.. Base, "HsCode", "SstCode"], Row(text, "0901.21", "ST-01"), Row(hsNumber, "8471.30", "12345"));
+        (await _admin.Import.ProductsAsync(ok, commit: true)).ShouldBeOk();
+        Assert.Equal("0901.21", (await FindAsync(text)).HsCode);
+        Assert.Equal("8471.30", (await FindAsync(hsNumber)).HsCode);
+    }
+
+    [Fact]
     public async Task A_blank_cell_in_a_present_column_clears_the_field_and_a_column_that_is_not_in_the_file_leaves_it()
     {
         await SwitchAsync(true);

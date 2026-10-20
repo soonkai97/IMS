@@ -18,6 +18,8 @@ public static class ImportColumns
 
     public const string DefaultUnit = "PCS";
     /// <summary>Column names as shown in a row error ("Safety stock 'abc' is not a number.").</summary>
+    public const string HsCodeLabel = "HS code";
+    public const string SstCodeLabel = "SST code";
     public const string SafetyStockLabel = "Safety stock";
     public const string QtyLabel = "Quantity";
     public const string UnitCostLabel = "Unit cost";

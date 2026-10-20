@@ -138,6 +138,7 @@ Decision for be-architect at the start of this slice: whether a role's detail (`
 2. Given the module is on and the user holds `accounting.export`, then Reports has an "Accounting export" entry with a required date range, an optional warehouse and a Download button; the row-cap error is shown in words; the entry is absent otherwise.
 3. Given a user without `cost.view`, then no cost or value appears on the new screens (and the DOM scan of `13-cost-visibility` stays clean).
 4. e2e on the real API: switch on, create a product with an HS code, receive and post, download the export, check the row including the HS code; switch off, the direct URL shows not-found.
+5. **Round trip (gate, see risk 11).** Given the module is on, then the product form and the partner form ALWAYS send the four fields (`hsCode`, `sstCode`, `tin`, `sstRegNo`), with the values they loaded, so saving an unrelated edit leaves them as they were (a PUT that omits them clears them, acceptance PL1.5 item 4). A form-level test loads a record that has all four, edits only the name, saves, and asserts the request body carries the four unchanged values.
 
 ## 6. Risks
 
@@ -153,6 +154,7 @@ Decision for be-architect at the start of this slice: whether a role's detail (`
 | 8 | Three serial migrations and two contract batches stall the web lane | H / M | Section 7; PL1.4 starts at CS6, not after PL1.6. |
 | 9 | The web slices compete with the open lean-refresh slices (L02, Q1, R14+R15, A07, R26, R29+R30) for the same lanes | H / M | Question 1: the backend lane is free now; web pilot slices wait for a spare slot unless the owner reorders. |
 | 10 | After deploy an Admin cannot flip the module for up to 5 minutes (old token) | H / L | Deploy note: sign out and in, or wait for the refresh. |
+| 11 | With `accounting` ON, a web form that does not send the four fields clears them on every save (a PUT replaces all fields): the forms of PL1.5 and earlier never send them, and a browser that still holds an old cached bundle does the same after PL1.8 | H / M | Gate: **do not switch `accounting` ON in any environment until PL1.8 has shipped** (deploy note of PL1.5 and PL1.8). PL1.8 acceptance item 5 (round trip). After PL1.8, an old cached bundle is a residual risk: the service worker update prompt, and the accounting switch is changed only after a reload of all clients. |
 
 ## 7. Effort, critical path and calendar
 

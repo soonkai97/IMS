@@ -238,6 +238,7 @@ public class AddTaxReadyFieldsMigrationTests : IAsyncLifetime
         var refused = await Assert.ThrowsAnyAsync<Exception>(() => RunScriptAsync(Latest, Before));
         Assert.Contains("Tax-ready fields hold values", Messages(refused));
         Assert.Equal(4, await ColumnCountAsync()); // the batches after the refusal did not drop them
+        Assert.Equal(1, await MigrationRowAsync());   // nor did the history row go: the whole Down is one batch, so the refusal undoes all of it
 
         await _db.ExecuteAsync("UPDATE Partner SET Tin = NULL");
         await RunScriptAsync(Latest, Before);

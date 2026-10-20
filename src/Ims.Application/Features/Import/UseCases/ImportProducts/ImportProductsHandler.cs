@@ -39,7 +39,7 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
         var present = new TaxColumns(sheet.Headers.Contains(ImportColumns.HsCode), sheet.Headers.Contains(ImportColumns.SstCode));
         if (!present.HsCode && !present.SstCode) return present;
         if (await modules.IsEnabledAsync(ModuleCodes.Accounting, ct)) return present;
-        var named = new[] { (present.HsCode, "HsCode"), (present.SstCode, "SstCode") }.Where(c => c.Item1).Select(c => c.Item2);
+        var named = new[] { (present.HsCode, ImportTemplates.TaxColumns[0].Header), (present.SstCode, ImportTemplates.TaxColumns[1].Header) }.Where(c => c.Item1).Select(c => c.Item2);
         throw new ValidationException(Messages.ImportColumnsNotAvailable(named, ModuleCodes.Accounting));
     }
 
@@ -108,12 +108,14 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
             if (tax.HsCode)
             {
                 hsCode = TaxFieldShapes.Clean(r.Get(ImportColumns.HsCode));
-                if (TaxFieldShapes.HsCodeError(hsCode) is { } hsError) errors.Add(hsError);
+                if (r.IsNumber(ImportColumns.HsCode)) errors.Add(Messages.TaxCodeMustBeText(ImportColumns.HsCodeLabel));
+                else if (TaxFieldShapes.HsCodeError(hsCode) is { } hsError) errors.Add(hsError);
             }
             if (tax.SstCode)
             {
                 sstCode = TaxFieldShapes.Clean(r.Get(ImportColumns.SstCode));
-                if (TaxFieldShapes.SstCodeError(sstCode) is { } sstError) errors.Add(sstError);
+                if (r.IsNumber(ImportColumns.SstCode)) errors.Add(Messages.TaxCodeMustBeText(ImportColumns.SstCodeLabel));
+                else if (TaxFieldShapes.SstCodeError(sstCode) is { } sstError) errors.Add(sstError);
             }
 
             var codes = Split(r.Get(ImportColumns.Barcodes));

@@ -9,6 +9,8 @@ using Ims.Application.Features.Catalog;
 using Ims.Application.Features.Modules;
 using Ims.Application.Features.Partners;
 using Ims.Domain;
+using Microsoft.Extensions.DependencyInjection;
+using Serilog.Core;
 
 namespace Ims.Api.Tests.Tests.MasterData;
 
@@ -160,6 +162,25 @@ public class TaxReadyFieldsTests(ApiFixture fixture) : IAsyncLifetime
         (await _admin.Products.UpdateAsync(product.Id, ProductBuilder.From(fixture.Reference, product).WithTaxCodes("8471.30", "ST/9").Build())).ShouldBeProblem(HttpStatusCode.BadRequest);
 
         Assert.Equal(("8471.30", "ST-01"), await StoredProductAsync(product.Id));
+    }
+
+    [Fact]
+    public async Task A_TIN_is_never_written_to_the_application_log_whether_it_is_rejected_stored_or_refused_by_a_switched_off_module()
+    {
+        const string secret = "TINSECRET9988";
+        var logs = new CapturedLogs();
+        using var host = fixture.CreateHost(b => b.UseSetting("Serilog:MinimumLevel:Default", "Verbose").ConfigureServices(s => s.AddSingleton<ILogEventSink>(logs)));
+        var client = ApiFixture.CreateClient(host);
+        client.AccessToken = _admin.AccessToken;
+
+        (await client.Partners.CreateAsync(Partner(secret))).ShouldBeProblem(HttpStatusCode.BadRequest);   // module off: not available
+        await SwitchAsync(true);
+        (await client.Partners.CreateAsync(Partner(secret + "-X", secret + "/Y"))).ShouldBeProblem(HttpStatusCode.BadRequest); // malformed
+        var stored = (await client.Partners.CreateAsync(Partner(secret, "W-" + secret))).Data<PartnerDto>();           // accepted
+        (await client.Partners.UpdateAsync(stored.Id, Partner(secret + "!", null) with { Name = stored.Name })).ShouldBeProblem(HttpStatusCode.BadRequest);
+
+        Assert.Contains(logs.Lines, l => l.Contains("Request rejected")); // the capture sees what the host logs about a rejected request
+        Assert.DoesNotContain(logs.Lines, l => l.Contains("TINSECRET", StringComparison.OrdinalIgnoreCase));
     }
 
     // ----- on: null clears -----
