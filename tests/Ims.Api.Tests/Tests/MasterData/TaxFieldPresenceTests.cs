@@ -278,5 +278,44 @@ public class TaxFieldPresenceTests(ApiFixture fixture) : IAsyncLifetime
 
     private async Task<List<AuditEntry>> AuditRowsAsync(string entityType, Guid id) =>
         (await _admin.Audit.QueryAsync(entityType: entityType, entityId: id.ToString())).Data<AuditPage>().Items.AsEnumerable().Reverse().ToList();
-}
 
+    // ----- how the key is spelled -----
+    private Task<ApiResponse> PutRawAsync(string url, JsonObject body, string extraMembers) =>
+        _admin.SendAsync(HttpMethod.Put, url, customize: r => r.Content = new StringContent(body.ToJsonString().TrimEnd('}') + "," + extraMembers + "}", System.Text.Encoding.UTF8, "application/json"));
+
+    [Theory]
+    [InlineData("\"HsCode\":\"9999\"", "9999", Sst)]                                  // PascalCase binds like camelCase: present
+    [InlineData("\"hsCode\":\"1111\",\"hsCode\":\"2222\"", "2222", Sst)]              // a duplicate key: the last one wins
+    [InlineData("\"hs_code\":\"9999\",\"hscode \":\"9999\"", Hs, Sst)]                 // a misspelt key is no key: the stored value is kept
+    public async Task The_spelling_of_a_key_decides_whether_it_is_present(string members, string expectedHs, string expectedSst)
+    {
+        await SwitchAsync(true);
+        var (product, _) = await StoredProductAsync();
+
+        (await PutRawAsync($"/api/products/{product.Id}", Body(Product()), members)).ShouldBeOk();
+
+        Assert.Equal((expectedHs, expectedSst), await ProductInDbAsync(product.Id));
+    }
+
+    // ----- a stored value that no longer passes the rules -----
+    [Fact]
+    public async Task A_stored_value_that_breaks_the_current_shape_does_not_stop_a_save_that_never_sent_the_key()
+    {
+        await SwitchAsync(true);
+        var (product, _) = await StoredProductAsync();
+        var partner = await StoredPartnerAsync();
+        // Written by something other than the API (a script, or rules that were tighter or looser once).
+        await fixture.Database.ExecuteAsync("UPDATE Product SET HsCode = N'84-71', SstCode = N'ST_01' WHERE PublicId = @id", ("@id", product.Id));
+        await fixture.Database.ExecuteAsync("UPDATE Partner SET Tin = N'C-1', SstRegNo = N'W/1' WHERE PublicId = @id", ("@id", partner.Id));
+
+        (await PutProductAsync(product.Id, Body(Product(Unique.Name("Renamed"))))).ShouldBeOk();
+        (await PutPartnerAsync(partner.Id, Body(Partner(Unique.Name("Renamed"))))).ShouldBeOk();
+
+        Assert.Equal(("84-71", "ST_01"), await ProductInDbAsync(product.Id));
+        Assert.Equal(("C-1", "W/1"), await PartnerInDbAsync(partner.Id));
+        // A key that IS sent is still checked, and one valid key does not excuse the other being sent bad.
+        (await PutProductAsync(product.Id, Body(Product(), ("hsCode", "84-71")))).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await PutProductAsync(product.Id, Body(Product(), ("hsCode", Hs)))).ShouldBeOk();
+        Assert.Equal((Hs, "ST_01"), await ProductInDbAsync(product.Id));
+    }
+}

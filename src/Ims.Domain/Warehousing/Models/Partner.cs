@@ -29,11 +29,11 @@ public class Partner : PublicEntity
         IsActive = isActive;
     }
 
-    /// <summary>Replaces both tax-ready fields (blank clears one); refused when a value has the wrong shape. Not part of <see cref="Update"/>, so a save that does not carry them leaves them alone.</summary>
+    /// <summary>Replaces both tax-ready fields (blank clears one); refused when a value has the wrong shape. A value equal to the stored one is not checked again (a save that did not carry the key hands the stored value back, and it must not fail because the rules were tightened later). Not part of <see cref="Update"/>, so a save that does not carry them leaves them alone.</summary>
     public void SetTaxIdentifiers(string? tin, string? sstRegNo)
     {
-        var t = TaxFieldShapes.Accept(tin, TaxFieldShapes.TinError);
-        var reg = TaxFieldShapes.Accept(sstRegNo, TaxFieldShapes.SstRegNoError);
+        var t = tin == Tin ? Tin : TaxFieldShapes.Accept(tin, TaxFieldShapes.TinError);
+        var reg = sstRegNo == SstRegNo ? SstRegNo : TaxFieldShapes.Accept(sstRegNo, TaxFieldShapes.SstRegNoError);
         Tin = t;
         SstRegNo = reg;
     }
