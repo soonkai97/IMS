@@ -10,11 +10,10 @@ import { expect, test } from '../src/fixtures';
 import { announcedBy } from '../src/feedback';
 import { goTo, loadPage } from '../src/pages/shell';
 
-// Settings > Modules (PL1.4): which parts of the system are on for the installation. The pilot gate (plan risk 11) says that
-// `accounting`, the only module the catalog has, is NOT switched on anywhere until PL1.8 ships, so this file never turns it on:
-//  - scenarios on the real API only read (the list, the forbidden pages, the layout);
-//  - the switch itself (reason dialog, result, errors, the stale-screen 404) is driven against a stubbed /api/modules that offers a
-//    second, made-up module, so the state of Ims_Dev is left exactly as it was found.
+// Settings > Modules (PL1.4): which parts of the system are on for the installation. This file never changes the state of the
+// installation: the scenarios on the real API only read (the list, the forbidden pages, the layout), and the switch itself (reason
+// dialog, result, errors, the stale-screen 404) is driven against a stubbed /api/modules that offers a second, made-up module.
+// The real flip of `accounting` (on with a reason, forms and export, off again, the data put back) is `40-accounting.spec.ts`.
 const ACCOUNTING = 'Accounting';
 /** The web's own sentence under the reason box (the API says the same thing, so a stub must not reuse it for a 400). */
 const REASON_SENTENCE = 'Enter a reason of at least 5 characters.';
@@ -97,7 +96,7 @@ class ModulesStub {
 const moduleSwitch = (page: Page, name: string) => page.getByRole('switch', { name });
 
 test.describe('Settings > Modules, real API (nothing is changed)', () => {
-  test('given the Admin opens Modules from the menu, then the list matches the API, accounting cannot be turned on yet and says why', async ({
+  test('given the Admin opens Modules from the menu, then the list matches the API and accounting is a switch like any other', async ({
     page,
     signIn,
     shell,
@@ -117,14 +116,12 @@ test.describe('Settings > Modules, real API (nothing is changed)', () => {
     }
 
     const accounting = moduleSwitch(page, ACCOUNTING);
-    // Plan risk 11: accounting must be off in every environment until PL1.8; a failure here is a deployment problem, not a skip.
-    expect(listed.find(item => item.code === 'accounting')?.enabled).toBe(false);
-    await expect(accounting).toHaveAttribute('aria-checked', 'false');
-    await expect(accounting).toContainText('Off');
-    // The switch is there, reachable by Tab, disabled, and the reason is read out with it.
-    await expect(accounting).toHaveAttribute('aria-disabled', 'true');
-    await expect(accounting).toHaveAccessibleDescription(/Available soon/);
-    await accounting.click({ force: true });
+    // The switch shows what the API says, in words, and nothing blocks it (the PL1.4 gate is gone; 40-accounting flips it).
+    const state = listed.find(item => item.code === 'accounting')?.enabled === true;
+    await expect(accounting).toHaveAttribute('aria-checked', String(state));
+    await expect(accounting).toContainText(state ? 'On' : 'Off');
+    await expect(accounting).not.toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByText('Available soon')).toHaveCount(0);
     await expect(page.getByRole('dialog')).toHaveCount(0);
   });
 

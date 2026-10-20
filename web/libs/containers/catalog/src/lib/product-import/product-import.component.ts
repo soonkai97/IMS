@@ -13,6 +13,7 @@ import { RouterLink } from '@angular/router';
 import { tap } from 'rxjs';
 import { ImportRowResult, ImportRowStatus } from '@ims/api';
 import { I18nService, TranslatePipe } from '@ims/core/i18n';
+import { ModulesStore } from '@ims/core/identity';
 import { ToastService } from '@ims/core/notification';
 import {
   IMPORT_EXTENSION,
@@ -21,7 +22,7 @@ import {
   ImportStore,
   MAX_IMPORT_BYTES
 } from '@ims/features/catalog';
-import { DEFAULT_PAGE_SIZE } from '@ims/models';
+import { DEFAULT_PAGE_SIZE, MODULE_CODE, TAX_FIELD } from '@ims/models';
 import {
   TabItem,
   TableColumn,
@@ -76,12 +77,14 @@ const ERROR_LIST_FILE = 'import-errors.csv';
 export class ProductImportPageComponent implements OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly i18n = inject(I18nService);
+  private readonly modules = inject(ModulesStore);
   private readonly store = inject(ImportStore);
   private readonly toast = inject(ToastService);
 
   readonly accept = IMPORT_EXTENSION;
   readonly rowStatus = ImportRowStatus;
   readonly pageSize = DEFAULT_PAGE_SIZE;
+  readonly tax = TAX_FIELD;
 
   $kind = signal<string>(IMPORT_KIND.Products);
   $file = signal<File | undefined>(undefined);
@@ -101,6 +104,10 @@ export class ProductImportPageComponent implements OnDestroy {
     () => this.$isPreview() && !this.$hasErrors() && (this.$result()?.valid ?? 0) > 0
   );
   $isProducts = computed(() => this.$kind() === IMPORT_KIND.Products);
+  /** The template and the file take HsCode and SstCode only while the accounting module is on (off, the API refuses a file that has them). */
+  $taxColumns = computed(
+    () => this.$isProducts() && this.modules.isEnabled(MODULE_CODE.Accounting)
+  );
 
   $tabs = computed<readonly TabItem[]>(() => [
     { id: IMPORT_KIND.Products, label: this.i18n.t('import.tab.products') },

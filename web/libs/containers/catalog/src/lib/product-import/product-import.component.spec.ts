@@ -1,6 +1,7 @@
 import { provideRouter } from '@angular/router';
 import { createComponentFactory, mockProvider, Spectator } from '@ngneat/spectator/jest';
 import { ImportClient, ImportResult, ImportRowStatus } from '@ims/api';
+import { ModulesStore } from '@ims/core/identity';
 import { ImportStore } from '@ims/features/catalog';
 import { ProductImportPageComponent } from './product-import.component';
 
@@ -25,11 +26,14 @@ const PREVIEW: ImportResult = {
   ]
 };
 
+let accountingOn = false;
+const modulesProvider = { provide: ModulesStore, useValue: { isEnabled: () => accountingOn } };
+
 describe('ProductImportPageComponent preview', () => {
   let spectator: Spectator<ProductImportPageComponent>;
   const createComponent = createComponentFactory({
     component: ProductImportPageComponent,
-    providers: [provideRouter([]), mockProvider(ImportClient)]
+    providers: [provideRouter([]), mockProvider(ImportClient), modulesProvider]
   });
 
   const text = (): string => spectator.element.textContent?.replace(/\s+/g, ' ') ?? '';
@@ -59,5 +63,41 @@ describe('ProductImportPageComponent preview', () => {
       .queryAll('button')
       .find(button => (button.textContent ?? '').includes('Confirm import'));
     expect(confirm?.hasAttribute('disabled')).toBe(true);
+  });
+});
+
+describe('ProductImportPageComponent, optional tax columns (module accounting)', () => {
+  let spectator: Spectator<ProductImportPageComponent>;
+  const createComponent = createComponentFactory({
+    component: ProductImportPageComponent,
+    providers: [provideRouter([]), mockProvider(ImportClient), modulesProvider]
+  });
+  const text = (): string => spectator.element.textContent?.replace(/\s+/g, ' ') ?? '';
+
+  it('says nothing about HsCode or SstCode while the module is off (the API refuses a file that has them)', () => {
+    accountingOn = false;
+    spectator = createComponent();
+
+    expect(text()).not.toContain('HsCode');
+    expect(text()).not.toContain('SstCode');
+  });
+
+  it('names the two optional columns, their shape and the Text format while the module is on', () => {
+    accountingOn = true;
+    spectator = createComponent();
+
+    expect(text()).toContain('HsCode (digits and dots, up to 16 characters)');
+    expect(text()).toContain('SstCode (letters, digits and hyphens, up to 20)');
+    expect(text()).toContain('Format both columns as Text');
+  });
+
+  it('does not mention them on the opening-stock tab, which has no such columns', () => {
+    accountingOn = true;
+    spectator = createComponent();
+
+    spectator.component.onKindChange('opening-stock');
+    spectator.detectChanges();
+
+    expect(text()).not.toContain('HsCode');
   });
 });

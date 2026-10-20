@@ -64,6 +64,9 @@
 <app-dialog [(open)]="$dialogOpen" [heading]="$dialogHeading()">
   <form class="partners-page-form" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
     <app-form-legend />
+    @if ($taxIdsToCheck()) {
+      <app-banner kind="warning" alert>{{ 'taxFields.turnedOn' | t }}</app-banner>
+    }
     @for (message of $serverErrors(); track message) {
       <app-banner kind="danger">{{ message }}</app-banner>
     }
@@ -76,6 +79,24 @@
     <app-form-field [label]="'partner.contact' | t" [control]="form.controls.contact">
       <app-input formControlName="contact" [maxLength]="256" />
     </app-form-field>
+    @if ($taxFields()) {
+      <app-form-field
+        [label]="'partner.tin' | t"
+        [hint]="'partner.tinHint' | t: { max: tax.Tin.maxLength }"
+        [control]="form.controls.tin"
+        [messages]="{ taxShape: ('partner.tinShape' | t: { max: tax.Tin.maxLength }) }"
+      >
+        <app-input formControlName="tin" [noSuggestions]="true" autocomplete="off" />
+      </app-form-field>
+      <app-form-field
+        [label]="'partner.sstRegNo' | t"
+        [hint]="'partner.sstRegNoHint' | t: { max: tax.SstRegNo.maxLength }"
+        [control]="form.controls.sstRegNo"
+        [messages]="{ taxShape: ('partner.sstRegNoShape' | t: { max: tax.SstRegNo.maxLength }) }"
+      >
+        <app-input formControlName="sstRegNo" [noSuggestions]="true" autocomplete="off" />
+      </app-form-field>
+    }
     @if ($editingId() !== undefined) {
       <app-checkbox formControlName="isActive">{{ 'product.active' | t }}</app-checkbox>
     }

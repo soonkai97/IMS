@@ -28,7 +28,6 @@ import {
   UiSkeletonComponent,
   UiSwitchComponent
 } from '@ims/ui';
-import { NOT_YET_SWITCHABLE_ON } from './modules.const';
 
 /** One row of the list: the module in the user's language plus what the switch needs. */
 interface ModuleRow {
@@ -37,10 +36,7 @@ interface ModuleRow {
   readonly description: string;
   /** Names of the modules that must be on first (empty: none). */
   readonly requires: string;
-  /** Off, and not allowed to be turned on yet (NOT_YET_SWITCHABLE_ON). */
-  readonly blocked: boolean;
   readonly nameId: string;
-  readonly hintId: string;
 }
 
 /**
@@ -93,9 +89,7 @@ export class ModulesPageComponent implements OnInit {
       name: names.get(module.code) ?? module.name,
       description: moduleDescription(this.i18n, module),
       requires: module.requires.map(code => names.get(code) ?? code).join(', '),
-      blocked: !module.enabled && NOT_YET_SWITCHABLE_ON.includes(module.code),
-      nameId: `modules-page-name-${module.code}`,
-      hintId: `modules-page-hint-${module.code}`
+      nameId: `modules-page-name-${module.code}`
     }));
   });
   $showSkeleton = computed(() => this.$isLoading() && this.store.list.$data() === undefined);
@@ -123,9 +117,6 @@ export class ModulesPageComponent implements OnInit {
 
   /** The switch asked for `wanted`; nothing changes until the person gave a reason and the server agreed. */
   onSwitch(row: ModuleRow, wanted: boolean): void {
-    if (row.blocked) {
-      return;
-    }
     this.$problem.set(undefined);
     this.store.switchModule.reset();
     this.confirm

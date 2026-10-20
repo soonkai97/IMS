@@ -53,7 +53,6 @@ public static class Messages
     // ----- Modules -----
     public const string ModuleNotFound = "Module not found.";
     public const string ModuleStateRequired = "Say whether the module is to be turned on or off.";
-    public const string ModuleNotYetSwitchableOn = "This module cannot be switched on yet. It will be available in a later update.";
     public const string ModuleReasonRequired = "A reason is required to turn a module on or off.";
 
     // ----- Accounting export (module accounting) -----

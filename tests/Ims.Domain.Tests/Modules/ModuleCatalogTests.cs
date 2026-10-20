@@ -20,13 +20,6 @@ public partial class ModuleCatalogTests
     }
 
     [Fact]
-    public void TheNotYetSwitchableOnList_NamesAccounting_AndOnlyModulesOfTheCatalog()
-    {
-        Assert.Equal([ModuleCodes.Accounting], ModuleCatalog.NotYetSwitchableOn); // PL1.8 deletes the list, and this test, with the web's NOT_YET_SWITCHABLE_ON
-        Assert.All(ModuleCatalog.NotYetSwitchableOn, c => Assert.True(ModuleCatalog.IsKnown(c), c));
-    }
-
-    [Fact]
     public void EveryModuleCodeConstantIsInTheCatalogExactlyOnce_AndNothingElseIs()
     {
         Assert.Equal(Constants.Order(StringComparer.Ordinal), ModuleCatalog.Codes.Order(StringComparer.Ordinal));
