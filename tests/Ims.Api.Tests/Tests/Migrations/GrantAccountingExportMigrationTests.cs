@@ -83,6 +83,25 @@ public class GrantAccountingExportMigrationTests
             Assert.DoesNotContain(Permissions.AccountingExport, await PermissionsOfAsync(database, role));
     });
 
+    [Theory]
+    [InlineData(false)] // the grant row is gone
+    [InlineData(true)]  // the grant was revoked (a soft-deleted row)
+    public Task An_Owner_without_cost_view_gets_no_grant_because_the_permission_requires_it_while_the_Administrator_still_does(bool revokedNotDeleted) => WithDatabaseAsync(async database =>
+    {
+        await MigrateAsync(database, Before);
+        var removeCost = revokedNotDeleted
+            ? "UPDATE p SET REC_DELETED = 1 FROM RolePermission p JOIN Role r ON r.Id = p.RoleId WHERE r.Code = @o AND p.PermissionCode = @c"
+            : "DELETE p FROM RolePermission p JOIN Role r ON r.Id = p.RoleId WHERE r.Code = @o AND p.PermissionCode = @c";
+        await database.ExecuteAsync(removeCost, ("@o", Roles.Owner), ("@c", Permissions.CostView));
+        Assert.DoesNotContain(Permissions.CostView, await PermissionsOfAsync(database, Roles.Owner));
+
+        await MigrateAsync(database, Latest);
+
+        Assert.Equal(1, await GrantsOfAsync(database));
+        Assert.DoesNotContain(Permissions.AccountingExport, await PermissionsOfAsync(database, Roles.Owner)); // a role without cost.view would not be a closed set
+        Assert.Contains(Permissions.AccountingExport, await PermissionsOfAsync(database, Roles.Admin));
+    });
+
     [Fact]
     public Task A_fresh_database_and_an_upgraded_one_hold_the_same_rows() => WithDatabaseAsync(async upgraded =>
     {

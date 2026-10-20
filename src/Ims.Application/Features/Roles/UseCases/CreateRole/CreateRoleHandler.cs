@@ -17,11 +17,11 @@ public class CreateRoleHandler(IRepository<Role> roles, IRoleReader reader, ICur
         if (r.CopyFromRoleId is { } sourceId)
             source = await roles.FirstOrDefaultAsync(new RoleForUpdateSpec(sourceId), ct) ?? throw new DomainException(Messages.RoleCopySourceMissing);
         var typed = r.Permissions ?? [];
-        if (ModulePermissions.NotOffered(typed, enabled).FirstOrDefault() is { } notOffered) throw new DomainException(Messages.PermissionNotAvailable(notOffered));
         var permissions = source is null ? typed : ModulePermissions.Offered(source.Grants.Select(g => g.PermissionCode), enabled);
 
-        // A copy gives what the source holds at this moment, so it needs the same check as a list typed by hand.
+        // Same order as the permission replace: what the caller may grant first (a copy gives what the source shows now, so it needs the same check as a list typed by hand), then what is offered.
         RoleContainment.CheckGrantable(permissions, current);
+        if (ModulePermissions.NotOffered(typed, enabled).FirstOrDefault() is { } notOffered) throw new DomainException(Messages.PermissionNotAvailable(notOffered));
         if (await roles.AnyAsync(new RoleNameTakenSpec(name), ct)) throw new ConflictException(Messages.RoleNameTaken(name));
 
         var role = Role.Create(await RoleCodes.NextFreeAsync(roles, name, ct), name, r.Description, isSystem: false, permissions);

@@ -251,6 +251,7 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
         // Module off: the grant is hidden but still counts, so the role is still beyond the manager.
         var seen = await ReadAsync(role.Id);
         Assert.DoesNotContain(Export, seen.Permissions);
+        (await client.CreateAsync(Unique.Name("Nope"), Permissions.CostView, Export)).ShouldBeProblem(HttpStatusCode.Forbidden); // grantable is checked before offered: 403, not 400, in create and in replace
         (await client.ReplaceAsync(seen, [Permissions.StockRead])).ShouldBeProblem(HttpStatusCode.Forbidden);
         (await client.UpdateRoleAsync(seen, name: Unique.Name("Taken over"))).ShouldBeProblem(HttpStatusCode.Forbidden);
         (await client.DeleteRoleAsync(seen)).ShouldBeProblem(HttpStatusCode.Forbidden);
