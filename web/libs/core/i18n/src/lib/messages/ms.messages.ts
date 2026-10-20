@@ -776,8 +776,6 @@ export const MS_MESSAGES: Messages = {
   'modules.off': 'Mati',
   'modules.empty': 'Tiada modul tersedia.',
   'modules.loadFailed': 'Senarai modul tidak dapat dimuatkan.',
-  'modules.notYet':
-    'Akan tersedia tidak lama lagi. Ia belum boleh dihidupkan kerana skrin yang menggunakannya belum siap.',
   'modules.confirm.onTitle': 'Hidupkan {name}?',
   'modules.confirm.offTitle': 'Matikan {name}?',
   'modules.confirm.onBody':
@@ -794,5 +792,24 @@ export const MS_MESSAGES: Messages = {
   'modules.error.forbidden': 'Anda tidak dibenarkan menghidupkan atau mematikan modul.',
   'modules.error.notFound': 'Modul itu tidak tersedia lagi. Senarai telah disegarkan.',
   'modules.error.busy':
-    'Perubahan lain pada modul sedang berjalan. Tunggu sebentar, kemudian cuba lagi.'
+    'Perubahan lain pada modul sedang berjalan. Tunggu sebentar, kemudian cuba lagi.',
+  // TODO-review: machine draft (PL1.8a: tax fields, import hint).
+  'product.tax': 'Kod cukai',
+  'product.hsCode': 'Kod HS',
+  'product.hsCodeHint':
+    'Taip sebagai teks, contohnya 0901.21. Digit dan titik sahaja, sehingga {max} aksara.',
+  'product.hsCodeShape': 'Kod HS hanya boleh mengandungi digit dan titik, sehingga {max} aksara.',
+  'product.sstCode': 'Kod SST',
+  'product.sstCodeHint': 'Huruf, digit dan sempang, sehingga {max} aksara.',
+  'product.sstCodeShape':
+    'Kod SST hanya boleh mengandungi huruf, digit dan sempang, sehingga {max} aksara.',
+  'partner.tin': 'TIN',
+  'partner.tinHint': 'Nombor pengenalan cukai. Huruf dan digit sahaja, sehingga {max} aksara.',
+  'partner.tinShape': 'TIN hanya boleh mengandungi huruf dan digit, sehingga {max} aksara.',
+  'partner.sstRegNo': 'No. pendaftaran SST',
+  'partner.sstRegNoHint': 'Huruf, digit dan sempang, sehingga {max} aksara.',
+  'partner.sstRegNoShape':
+    'No. pendaftaran SST hanya boleh mengandungi huruf, digit dan sempang, sehingga {max} aksara.',
+  'import.rules.taxColumns':
+    'Lajur pilihan untuk perakaunan: HsCode (digit dan titik, sehingga {hsMax} aksara) dan SstCode (huruf, digit dan sempang, sehingga {sstMax}). Format kedua-dua lajur sebagai Teks sebelum menaip: sel nombor kehilangan sifar di hadapan dan di belakang, dan fail yang mempunyai sel nombor dalam lajur ini ditolak. Sel kosong mengosongkan nilai; tinggalkan lajur untuk mengekalkan nilai yang disimpan.'
 };

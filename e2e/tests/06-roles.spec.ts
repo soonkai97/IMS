@@ -18,6 +18,7 @@ const MENU: Record<Role, string[]> = {
     'Users',
     'Roles',
     'Settings',
+    'Modules',
     'Audit log'
   ],
   owner: [...CORE, 'Approvals', ...STOCK, ...READ_MASTER_DATA, 'Reports', 'Audit log'],

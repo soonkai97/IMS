@@ -723,7 +723,6 @@ export const ZH_MESSAGES: Messages = {
   'modules.off': '关',
   'modules.empty': '没有可用的模块。',
   'modules.loadFailed': '无法加载模块列表。',
-  'modules.notYet': '即将推出。使用它的页面尚未就绪，所以暂时不能开启。',
   'modules.confirm.onTitle': '开启{name}？',
   'modules.confirm.offTitle': '关闭{name}？',
   'modules.confirm.onBody':
@@ -738,5 +737,21 @@ export const ZH_MESSAGES: Messages = {
   'modules.turnedOff': '该功能已被关闭：{names}。菜单已更新。',
   'modules.error.forbidden': '你无权开启或关闭模块。',
   'modules.error.notFound': '该模块已不可用。列表已刷新。',
-  'modules.error.busy': '另一项模块更改正在进行。请稍等片刻再试。'
+  'modules.error.busy': '另一项模块更改正在进行。请稍等片刻再试。',
+  // TODO-review: machine draft (PL1.8a: tax fields, import hint).
+  'product.tax': '税务编码',
+  'product.hsCode': 'HS 编码',
+  'product.hsCodeHint': '请按文本输入，例如 0901.21。仅限数字和小数点，最多 {max} 个字符。',
+  'product.hsCodeShape': 'HS 编码只能包含数字和小数点，最多 {max} 个字符。',
+  'product.sstCode': 'SST 编码',
+  'product.sstCodeHint': '字母、数字和连字符，最多 {max} 个字符。',
+  'product.sstCodeShape': 'SST 编码只能包含字母、数字和连字符，最多 {max} 个字符。',
+  'partner.tin': 'TIN',
+  'partner.tinHint': '税务识别号。仅限字母和数字，最多 {max} 个字符。',
+  'partner.tinShape': 'TIN 只能包含字母和数字，最多 {max} 个字符。',
+  'partner.sstRegNo': 'SST 注册号',
+  'partner.sstRegNoHint': '字母、数字和连字符，最多 {max} 个字符。',
+  'partner.sstRegNoShape': 'SST 注册号只能包含字母、数字和连字符，最多 {max} 个字符。',
+  'import.rules.taxColumns':
+    '会计可选列：HsCode（数字和小数点，最多 {hsMax} 个字符）和 SstCode（字母、数字和连字符，最多 {sstMax} 个）。输入前请将这两列设为文本格式：数字单元格会丢失开头和结尾的零，这两列含数字单元格的文件会被拒绝。空单元格会清除该值；若要保留已保存的值，请不要包含这一列。'
 };

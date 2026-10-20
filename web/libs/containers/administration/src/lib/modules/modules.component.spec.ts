@@ -91,30 +91,31 @@ describe('ModulesPageComponent (Settings > Modules)', () => {
     expect(text()).toContain('Requires: Accounting');
   });
 
-  describe('accounting is not switchable on until PL1.8 (plan risk 11)', () => {
-    it('shows a switch that is off, cannot be used, and says why in words', () => {
+  describe('accounting is switchable like any module (the PL1.4 gate is lifted)', () => {
+    it('shows an off switch that is not disabled and has no "available soon" text', () => {
       const control = switches()[0];
 
-      expect(control.getAttribute('aria-disabled')).toBe('true');
-      expect(control.getAttribute('aria-describedby')).toBe('modules-page-hint-accounting');
-      expect(spectator.query('#modules-page-hint-accounting')?.textContent).toContain(
-        'Available soon'
-      );
+      expect(control.getAttribute('aria-checked')).toBe('false');
+      expect(control.getAttribute('aria-disabled')).toBeNull();
+      expect(control.getAttribute('aria-describedby')).toBeNull();
+      expect(text()).not.toContain('Available soon');
     });
 
-    it('a tap asks for no reason and sends nothing', () => {
+    it('a tap asks for a reason, then turns it on', () => {
+      ask.mockReturnValue(of('Pilot starts today'));
+      run.mockReturnValue(of(result('accounting', true, 2)));
+
       spectator.click(switches()[0]);
 
-      expect(ask).not.toHaveBeenCalled();
-      expect(run).not.toHaveBeenCalled();
-    });
-
-    it('can still be turned OFF when it is already on (nothing locks an installation that has it on)', () => {
-      data.set([moduleOf('accounting', true)]);
-      spectator.detectChanges();
-
-      expect(switches()[0].getAttribute('aria-disabled')).toBeNull();
-      expect(text()).not.toContain('Available soon');
+      expect(ask.mock.calls[0][0].heading).toBe('Turn on Accounting?');
+      expect(run).toHaveBeenCalledWith({
+        code: 'accounting',
+        enabled: true,
+        reason: 'Pilot starts today'
+      });
+      expect(success).toHaveBeenCalledWith(
+        'Accounting is now on. 2 roles regain their saved permissions.'
+      );
     });
   });
 

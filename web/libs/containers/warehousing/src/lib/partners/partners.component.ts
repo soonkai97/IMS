@@ -2,6 +2,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  Injector,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -12,10 +15,17 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { tap } from 'rxjs';
 import { PartnerDto, PartnerType } from '@ims/api';
 import { I18nService, PARTNER_TYPE_LABELS, TranslatePipe } from '@ims/core/i18n';
-import { PermissionService } from '@ims/core/identity';
+import { ModulesStore, PermissionService } from '@ims/core/identity';
 import { ToastService } from '@ims/core/notification';
 import { PartnerQuery, PartnersStore } from '@ims/features/warehousing';
-import { API_ERROR_KIND, DEFAULT_PAGE_SIZE, PERMISSION, PublicId } from '@ims/models';
+import {
+  API_ERROR_KIND,
+  DEFAULT_PAGE_SIZE,
+  MODULE_CODE,
+  PERMISSION,
+  PublicId,
+  TAX_FIELD
+} from '@ims/models';
 import {
   SelectOption,
   TableColumn,
@@ -39,10 +49,13 @@ import {
 import {
   SERVER_ERROR_KEY,
   applyFieldErrors,
+  cleanTaxField,
   controlSignal,
   createPageState,
   debouncedSignal,
-  loadOnChange
+  focusFirstInvalid,
+  loadOnChange,
+  taxFieldShape
 } from '@ims/utils';
 
 interface PartnerFormValue {
@@ -50,6 +63,9 @@ interface PartnerFormValue {
   readonly name: string;
   readonly contact: string;
   readonly isActive: boolean;
+  /** Module accounting; empty when the partner has none or the module is off. */
+  readonly tin: string;
+  readonly sstRegNo: string;
 }
 
 @Component({
@@ -80,11 +96,15 @@ interface PartnerFormValue {
 })
 export class PartnersPageComponent {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
   private readonly i18n = inject(I18nService);
+  private readonly modules = inject(ModulesStore);
   private readonly permissions = inject(PermissionService);
   private readonly store = inject(PartnersStore);
   private readonly toast = inject(ToastService);
 
+  readonly tax = TAX_FIELD;
   readonly typeFilter = new FormControl<PartnerType | null>(null);
   readonly inactiveFilter = new FormControl(false, { nonNullable: true });
   readonly form = new FormGroup({
@@ -94,12 +114,28 @@ export class PartnersPageComponent {
       validators: [Validators.required, Validators.maxLength(256)]
     }),
     contact: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(256)] }),
-    isActive: new FormControl(true, { nonNullable: true })
+    isActive: new FormControl(true, { nonNullable: true }),
+    // Module accounting. Shown and sent only while $taxFields() says so. Nothing is cut while typing: the server trims, then checks.
+    tin: new FormControl('', { nonNullable: true, validators: [taxFieldShape(TAX_FIELD.Tin)] }),
+    sstRegNo: new FormControl('', {
+      nonNullable: true,
+      validators: [taxFieldShape(TAX_FIELD.SstRegNo)]
+    })
   });
 
   $searchInput = signal('');
   $dialogOpen = signal(false);
   $editingId = signal<PublicId | undefined>(undefined);
+  /** The partner being edited came with a tax identifier: the server had the module on when it answered (it leaves them out while off). */
+  private readonly $openedWithTaxIds = signal(false);
+  /**
+   * The two tax identifiers are shown and ALWAYS sent while the module is on (a save replaces them, so a form that did not send them
+   * would clear them). A screen whose module list is older than the row it shows (another tab switched the module on) still keeps
+   * the identifiers the server just showed: one on the row proves the module was on.
+   */
+  $taxFields = computed(
+    () => this.modules.isEnabled(MODULE_CODE.Accounting) || this.$openedWithTaxIds()
+  );
 
   private readonly $search = debouncedSignal(this.$searchInput);
   private readonly $type = controlSignal(this.typeFilter);
@@ -185,7 +221,14 @@ export class PartnersPageComponent {
   }
 
   onAdd(): void {
-    this.open(undefined, { type: PartnerType.Supplier, name: '', contact: '', isActive: true });
+    this.open(undefined, {
+      type: PartnerType.Supplier,
+      name: '',
+      contact: '',
+      isActive: true,
+      tin: '',
+      sstRegNo: ''
+    });
   }
 
   /** A supplier and a customer may share a name: the type tells their Edit buttons apart (ER-10). */
@@ -198,7 +241,9 @@ export class PartnersPageComponent {
       type: row.type,
       name: row.name,
       contact: row.contact ?? '',
-      isActive: row.isActive
+      isActive: row.isActive,
+      tin: row.tin ?? '',
+      sstRegNo: row.sstRegNo ?? ''
     });
   }
 
@@ -213,6 +258,10 @@ export class PartnersPageComponent {
   onSave(): void {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
+      // The focus goes to the first field to fix, not to stay on Save (WCAG 3.3.1).
+      afterNextRender(() => focusFirstInvalid(this.host.nativeElement), {
+        injector: this.injector
+      });
       return;
     }
     const value = this.form.getRawValue();
@@ -223,7 +272,11 @@ export class PartnersPageComponent {
           type: value.type,
           name: value.name.trim(),
           contact: value.contact.trim() || undefined,
-          isActive: value.isActive
+          isActive: value.isActive,
+          // The loaded value goes back as it was; an emptied field goes as '' and clears (the server stores a blank as none).
+          ...(this.$taxFields()
+            ? { tin: cleanTaxField(value.tin), sstRegNo: cleanTaxField(value.sstRegNo) }
+            : {})
         }
       })
       .pipe(
@@ -239,6 +292,7 @@ export class PartnersPageComponent {
   private open(id: PublicId | undefined, value: PartnerFormValue): void {
     this.store.save.reset();
     this.form.reset(value);
+    this.$openedWithTaxIds.set(Boolean(value.tin || value.sstRegNo));
     this.$editingId.set(id);
     this.$dialogOpen.set(true);
   }

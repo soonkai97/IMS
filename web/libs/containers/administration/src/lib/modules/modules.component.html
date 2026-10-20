@@ -29,18 +29,13 @@
           @if (row.requires) {
             <p class="modules-page-detail">{{ 'modules.requires' | t: { names: row.requires } }}</p>
           }
-          @if (row.blocked) {
-            <p class="modules-page-detail" [id]="row.hintId">{{ 'modules.notYet' | t }}</p>
-          }
         </div>
         <app-switch
           class="modules-page-switch"
           [checked]="row.module.enabled"
           [labelledBy]="row.nameId"
-          [describedBy]="row.blocked ? row.hintId : undefined"
           [onText]="'modules.on' | t"
           [offText]="'modules.off' | t"
-          [disabled]="row.blocked"
           [busy]="$isSwitching()"
           (toggled)="onSwitch(row, $event)"
         />

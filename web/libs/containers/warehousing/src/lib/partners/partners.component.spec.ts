@@ -2,7 +2,7 @@ import { signal } from '@angular/core';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { throwError } from 'rxjs';
 import { PagedResultOfPartnerDto, PartnerDto, PartnerType } from '@ims/api';
-import { PermissionService } from '@ims/core/identity';
+import { ModulesStore, PermissionService } from '@ims/core/identity';
 import { PartnersStore } from '@ims/features/warehousing';
 import { API_ERROR_KIND, ApiError, PERMISSION } from '@ims/models';
 import { ApiCommand } from '@ims/utils';
@@ -15,6 +15,8 @@ const ROW: PartnerDto = {
   contact: undefined,
   isActive: true
 };
+
+const ROW_WITH_TAX_IDS: PartnerDto = { ...ROW, tin: 'C1234567890', sstRegNo: 'W10-1808-32000001' };
 
 const DUPLICATE: ApiError = {
   isApiError: true,
@@ -31,10 +33,12 @@ describe('PartnersPageComponent (Clerk creates, Supervisor and Admin manage)', (
   const granted = new Set<string>();
   const saveCalls: unknown[] = [];
   let saveFails = false;
+  let accountingOn = true;
   const createComponent = createComponentFactory({
     component: PartnersPageComponent,
     detectChanges: false,
     providers: [
+      { provide: ModulesStore, useValue: { isEnabled: () => accountingOn } },
       {
         provide: PermissionService,
         useValue: { has: (permission: string) => granted.has(permission) }
@@ -78,6 +82,7 @@ describe('PartnersPageComponent (Clerk creates, Supervisor and Admin manage)', (
   beforeEach(() => {
     saveCalls.length = 0;
     saveFails = true;
+    accountingOn = true;
   });
 
   it('Clerk: sees New partner but no Edit and no Actions column', () => {
@@ -133,5 +138,131 @@ describe('PartnersPageComponent (Clerk creates, Supervisor and Admin manage)', (
     spectator.detectChanges();
 
     expect(spectator.query('dialog input[type=checkbox]')).not.toBeNull();
+  });
+
+  describe('tax identifiers of the accounting module (PL1.8)', () => {
+    const input = (name: string) =>
+      spectator.query<HTMLInputElement>(`dialog app-input[formControlName="${name}"] input`);
+    const text = () => spectator.element.textContent?.replace(/\s+/g, ' ') ?? '';
+    const body = () => (saveCalls[0] as { id: string; body: Record<string, unknown> }).body;
+
+    function edit(row: PartnerDto): void {
+      render(PERMISSION.MasterDataRead, PERMISSION.MasterDataManage);
+      spectator.component.onEdit(row);
+      spectator.detectChanges();
+    }
+
+    it('shows both identifiers with the value they loaded while the module is on', () => {
+      edit(ROW_WITH_TAX_IDS);
+
+      expect(input('tin')?.value).toBe('C1234567890');
+      expect(input('sstRegNo')?.value).toBe('W10-1808-32000001');
+    });
+
+    it('ROUND TRIP: editing only the name sends both identifiers exactly as they were loaded', () => {
+      edit(ROW_WITH_TAX_IDS);
+
+      spectator.component.form.controls.name.setValue('Acme Trading Sdn Bhd');
+      spectator.component.onSave();
+
+      expect(saveCalls).toHaveLength(1);
+      expect((saveCalls[0] as { id: string }).id).toBe(ROW.id);
+      expect(body()).toMatchObject({
+        name: 'Acme Trading Sdn Bhd',
+        tin: 'C1234567890',
+        sstRegNo: 'W10-1808-32000001'
+      });
+    });
+
+    it('sends both keys even for a partner without identifiers (a save replaces them, so a missing key would clear)', () => {
+      edit(ROW);
+
+      spectator.component.onSave();
+
+      expect(body()['tin']).toBe('');
+      expect(body()['sstRegNo']).toBe('');
+    });
+
+    it('an identifier that was emptied goes as empty text, which clears it; the other one is kept', () => {
+      edit(ROW_WITH_TAX_IDS);
+
+      spectator.component.form.controls.tin.setValue('  ');
+      spectator.component.onSave();
+
+      expect(body()['tin']).toBe('');
+      expect(body()['sstRegNo']).toBe('W10-1808-32000001');
+    });
+
+    it('sends what the server would store: no spaces at the ends, the case as typed', () => {
+      edit(ROW);
+
+      spectator.component.form.controls.tin.setValue(' c123abc ');
+      spectator.component.onSave();
+
+      expect(body()['tin']).toBe('c123abc');
+    });
+
+    it('a new partner (a Clerk may create one) shows the fields and sends both, empty', () => {
+      render(PERMISSION.MasterDataRead, PERMISSION.PartnersCreate);
+      spectator.component.onAdd();
+      spectator.detectChanges();
+      spectator.component.form.controls.name.setValue('New Co');
+
+      spectator.component.onSave();
+
+      expect(input('tin')).not.toBeNull();
+      expect(body()).toMatchObject({ name: 'New Co', tin: '', sstRegNo: '' });
+    });
+
+    it('a wrong identifier is refused before anything is sent, in words without repeating the value, and the focus goes to it', async () => {
+      edit(ROW);
+
+      spectator.component.form.controls.tin.setValue('C-1234');
+      spectator.component.onSave();
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(saveCalls).toHaveLength(0);
+      expect(text()).toContain('TIN may contain only letters and digits, up to 20 characters.');
+      expect(text()).not.toContain('C-1234');
+      expect(input('tin')?.getAttribute('aria-invalid')).toBe('true');
+      expect(document.activeElement).toBe(input('tin'));
+    });
+
+    it('an empty name is refused before anything is sent and the focus goes to the name', async () => {
+      edit(ROW);
+
+      spectator.component.form.controls.name.setValue('');
+      spectator.component.onSave();
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(saveCalls).toHaveLength(0);
+      expect(document.activeElement).toBe(input('name'));
+    });
+
+    it('the module off: nothing is shown and neither key is sent (the server would answer 400 to a value)', () => {
+      accountingOn = false;
+      edit(ROW);
+
+      spectator.component.onSave();
+
+      expect(input('tin')).toBeNull();
+      expect(input('sstRegNo')).toBeNull();
+      expect(saveCalls).toHaveLength(1);
+      expect('tin' in body()).toBe(false);
+      expect('sstRegNo' in body()).toBe(false);
+    });
+
+    it('a module list older than the row (another tab turned the module on): the identifiers on the row are kept, not cleared', () => {
+      accountingOn = false;
+      edit(ROW_WITH_TAX_IDS);
+
+      spectator.component.form.controls.name.setValue('Acme Trading Sdn Bhd');
+      spectator.component.onSave();
+
+      expect(input('tin')?.value).toBe('C1234567890');
+      expect(body()).toMatchObject({ tin: 'C1234567890', sstRegNo: 'W10-1808-32000001' });
+    });
   });
 });

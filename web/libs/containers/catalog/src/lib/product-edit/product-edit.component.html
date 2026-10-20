@@ -55,6 +55,27 @@
       <app-checkbox formControlName="isActive">{{ 'product.active' | t }}</app-checkbox>
     </app-card>
 
+    @if ($taxFields()) {
+      <app-card [heading]="'product.tax' | t">
+        <app-form-field
+          [label]="'product.hsCode' | t"
+          [hint]="'product.hsCodeHint' | t: { max: tax.HsCode.maxLength }"
+          [control]="form.controls.hsCode"
+          [messages]="{ taxShape: ('product.hsCodeShape' | t: { max: tax.HsCode.maxLength }) }"
+        >
+          <app-input formControlName="hsCode" [noSuggestions]="true" autocomplete="off" />
+        </app-form-field>
+        <app-form-field
+          [label]="'product.sstCode' | t"
+          [hint]="'product.sstCodeHint' | t: { max: tax.SstCode.maxLength }"
+          [control]="form.controls.sstCode"
+          [messages]="{ taxShape: ('product.sstCodeShape' | t: { max: tax.SstCode.maxLength }) }"
+        >
+          <app-input formControlName="sstCode" [noSuggestions]="true" autocomplete="off" />
+        </app-form-field>
+      </app-card>
+    }
+
     <app-card [heading]="'product.barcodes' | t">
       <ul class="product-edit-page-chips">
         @for (code of form.controls.barcodes.value; track code) {
