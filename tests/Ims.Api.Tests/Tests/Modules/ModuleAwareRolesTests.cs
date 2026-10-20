@@ -74,13 +74,13 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
     {
         var off = (await _admin.GetAsync("/api/permissions")).Data<List<PermissionDto>>();
 
-        Assert.Equal(PermissionCatalog.Codes.Except([Export]), off.Select(p => p.Code));
+        Assert.Equal(PermissionCatalog.Codes.Except(RoleMatrix.ModulePermissions), off.Select(p => p.Code));
         Assert.All(off, p => Assert.Null(p.Module));
 
         await SwitchAsync(true);
         var on = (await _admin.GetAsync("/api/permissions")).Data<List<PermissionDto>>();
 
-        Assert.Equal(PermissionCatalog.Codes, on.Select(p => p.Code));
+        Assert.Equal(PermissionCatalog.Codes.Except([Permissions.PoRead, Permissions.PoManage]), on.Select(p => p.Code)); // the purchasing module is still off
         var entry = on.Single(p => p.Code == Export);
         Assert.Equal(Accounting, entry.Module);
         Assert.Equal([Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead], entry.Requires);

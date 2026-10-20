@@ -21,6 +21,9 @@ public class GrantAccountingExportMigrationTests
 
     private static readonly string[] Holders = [Roles.Admin, Roles.Owner];
 
+    /// <summary>The permissions the catalog gains after this migration, each with a data migration of its own (PL2.1 adds po.read and po.manage): a database at this migration does not hold them yet.</summary>
+    private static readonly string[] AddedLater = [Permissions.PoRead, Permissions.PoManage];
+
     private static async Task MigrateAsync(TestDatabase database, string target)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(database.ConnectionString).Options;
@@ -75,9 +78,9 @@ public class GrantAccountingExportMigrationTests
 
         Assert.Equal(2, await GrantsOfAsync(database));
         Assert.Equal(grantsBefore + 2, await TotalGrantsAsync(database));
-        Assert.True((await PermissionsOfAsync(database, Roles.Admin)).SetEquals(PermissionCatalog.Codes), "Admin must hold every permission of the catalog.");
+        Assert.True((await PermissionsOfAsync(database, Roles.Admin)).SetEquals(PermissionCatalog.Codes.Except(AddedLater)), "Admin must hold every permission of the catalog.");
         foreach (var role in Roles.All.Where(r => r != Roles.Admin))
-            Assert.True((await PermissionsOfAsync(database, role)).SetEquals(SystemRoleDefaults.For(role)), $"{role} must hold what the defaults say, and nothing more.");
+            Assert.True((await PermissionsOfAsync(database, role)).SetEquals(SystemRoleDefaults.For(role).Except(AddedLater)), $"{role} must hold what the defaults say, and nothing more.");
         Assert.Contains(Permissions.AccountingExport, await PermissionsOfAsync(database, Roles.Owner));
         foreach (var role in new[] { Roles.Supervisor, Roles.WarehouseStaff, Roles.Clerk })
             Assert.DoesNotContain(Permissions.AccountingExport, await PermissionsOfAsync(database, role));

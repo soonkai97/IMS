@@ -1,6 +1,7 @@
 using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Ims.Api.Tests.Clients;
 using Ims.Api.Tests.Harness;
 using Ims.Api.Tests.Support;
 using Ims.Application.Features.Auth;
@@ -33,6 +34,8 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
 
     private Task ResetAsync() => fixture.Database.ExecuteAsync("DELETE FROM SystemSetting WHERE [Key] LIKE N'Module.%'");
 
+    private static async Task<bool> AccountingEnabledAsync(ApiClient admin) => (await admin.Modules.ListAsync()).Data<List<ModuleDto>>().Single(m => m.Code == Accounting).Enabled;
+
     private static string Why() => $"Pilot start {Guid.NewGuid():N}"[..24];
 
     private Task<int> RawAuditRowsAsync() => fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM AuditLogs WHERE [Action] LIKE N'module.%'");
@@ -62,15 +65,17 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
     [InlineData(Roles.Supervisor)]
     [InlineData(Roles.WarehouseStaff)]
     [InlineData(Roles.Clerk)]
-    public async Task With_no_module_row_every_signed_in_role_sees_accounting_listed_as_off(string role)
+    public async Task With_no_module_row_every_signed_in_role_sees_accounting_and_purchasing_listed_as_off(string role)
     {
         var list = (await (await fixture.AsAsync(role)).Modules.ListAsync()).Data<List<ModuleDto>>();
 
-        var accounting = Assert.Single(list);
-        Assert.Equal(Accounting, accounting.Code);
-        Assert.False(accounting.Enabled);
-        Assert.False(string.IsNullOrWhiteSpace(accounting.Name));
-        Assert.Empty(accounting.Requires);
+        Assert.Equal([Accounting, ModuleCodes.Purchasing], list.Select(m => m.Code));
+        Assert.All(list, module =>
+        {
+            Assert.False(module.Enabled);
+            Assert.False(string.IsNullOrWhiteSpace(module.Name));
+            Assert.Empty(module.Requires);
+        });
         Assert.Equal(0, await ModuleRowsAsync()); // listing writes nothing
     }
 
@@ -96,7 +101,7 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(Accounting, answer.Code);
         Assert.True(answer.Enabled);
         Assert.Equal("true", await StoredAsync());
-        Assert.True(Assert.Single((await admin.Modules.ListAsync()).Data<List<ModuleDto>>()).Enabled);
+        Assert.True(await AccountingEnabledAsync(admin));
         var events = await EventsAsync(AuditActions.ModuleEnabled, reason);
         var enabled = Assert.Single(events);
         Assert.Equal(TestUsers.UsernameOf(Roles.Admin), enabled.Actor);
@@ -117,7 +122,7 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
 
         Assert.False(answer.Enabled);
         Assert.Equal("false", await StoredAsync());
-        Assert.False(Assert.Single((await admin.Modules.ListAsync()).Data<List<ModuleDto>>()).Enabled);
+        Assert.False(await AccountingEnabledAsync(admin));
         var disabled = Assert.Single(await EventsAsync(AuditActions.ModuleDisabled, reason));
         Assert.Equal("True", Field(disabled.Before, "Enabled"));
         Assert.Equal("False", Field(disabled.After, "Enabled"));
@@ -255,12 +260,12 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
     {
         await fixture.Database.ExecuteAsync("INSERT SystemSetting ([Key], [Value]) VALUES (N'Module.ghost', N'true')");
         var admin = await fixture.AsAsync(Roles.Admin);
-        Assert.False(Assert.Single((await admin.Modules.ListAsync()).Data<List<ModuleDto>>()).Enabled);
+        Assert.False(await AccountingEnabledAsync(admin));
         Assert.Empty((await admin.Auth.MeAsync()).Data<UserInfo>().Modules);
 
         await fixture.Database.ExecuteAsync("INSERT SystemSetting ([Key], [Value]) VALUES (@k, N'True')", ("@k", Key));
 
-        Assert.False(Assert.Single((await admin.Modules.ListAsync()).Data<List<ModuleDto>>()).Enabled);
+        Assert.False(await AccountingEnabledAsync(admin));
     }
 
     [Fact]
@@ -274,7 +279,7 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
 
         Assert.Equal(settings, (await admin.Settings.GetAsync()).Data<SettingsDto>());
         Assert.Equal("true", await StoredAsync());
-        Assert.True(Assert.Single((await admin.Modules.ListAsync()).Data<List<ModuleDto>>()).Enabled);
+        Assert.True(await AccountingEnabledAsync(admin));
     }
 
     // ----- races -----

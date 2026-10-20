@@ -14,9 +14,9 @@ public partial class ModuleCatalogTests
         .Select(f => (string)f.GetRawConstantValue()!).ToList();
 
     [Fact]
-    public void TheCatalogListsTheAccountingModule_AndNoOtherYet()
+    public void TheCatalogListsTheAccountingAndPurchasingModules_AndNoOtherYet()
     {
-        Assert.Equal([ModuleCodes.Accounting], ModuleCatalog.Codes);
+        Assert.Equal([ModuleCodes.Accounting, ModuleCodes.Purchasing], ModuleCatalog.Codes);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public partial class ModuleCatalogTests
     [Fact]
     public void NoModuleRequiresAnotherYet_SoTheSwitchDoesNotNeedToEnforceIt()
     {
-        Assert.All(ModuleCatalog.All, m => Assert.True(m.Requires.Count == 0, $"{m.Code}: enforce Requires in SwitchModuleHandler first."));
+        Assert.All(ModuleCatalog.All, m => Assert.True(m.Requires.Count == 0, $"{m.Code}: enforce Requires in SwitchModuleHandler first (PL3: returns is the first module with a prerequisite), and add its test."));
     }
 
     [Fact]
