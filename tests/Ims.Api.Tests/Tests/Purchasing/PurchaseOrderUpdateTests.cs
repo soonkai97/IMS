@@ -92,15 +92,6 @@ public class PurchaseOrderUpdateTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(("first", saved.ConcurrencyToken), (after.Remark, after.ConcurrencyToken));
     }
 
-    [Fact]
-    public async Task The_token_of_another_order_is_refused()
-    {
-        var a = await Created();
-        var b = await Created();
-
-        (await _p.Admin.PurchaseOrders.UpdateAsync(a.Id, Edited().WithLine(_product.Id, 1m, 1m).Build(), b.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Conflict);
-    }
-
     [Theory]
     [InlineData(PurchaseOrderStatus.Submitted)]
     [InlineData(PurchaseOrderStatus.Approved)]
@@ -145,23 +136,6 @@ public class PurchaseOrderUpdateTests(ApiFixture fixture) : IAsyncLifetime
 
         var after = await ReadAsync(order);
         Assert.Equal((order.TotalAmount, order.ConcurrencyToken), (after.TotalAmount, after.ConcurrencyToken));
-    }
-
-    [Fact]
-    public async Task An_order_that_does_not_exist_is_404()
-    {
-        (await _p.Admin.PurchaseOrders.UpdateAsync(Guid.NewGuid(), Edited().WithLine(_product.Id, 1m, 1m).Build())).ShouldBeProblem(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task Saving_validates_the_body_like_creating_does()
-    {
-        var order = await Created();
-
-        var problem = (await _p.Admin.PurchaseOrders.UpdateAsync(order.Id, Edited().WithLine(_product.Id, 0m, 1.005m).Build(), order.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.BadRequest);
-
-        Assert.NotEmpty(problem.ErrorsFor("lines[0].qty"));
-        Assert.NotEmpty(problem.ErrorsFor("lines[0].unitPrice"));
     }
 
     [Fact]

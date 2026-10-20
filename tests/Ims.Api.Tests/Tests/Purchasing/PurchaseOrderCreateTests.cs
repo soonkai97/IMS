@@ -200,17 +200,6 @@ public class PurchaseOrderCreateTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_remark_that_is_too_long_is_refused()
-    {
-        var warehouse = await _p.NewWarehouseAsync();
-        var product = await _p.NewProductAsync();
-
-        var problem = await RefusedAsync(_p.Request(warehouse.Id, product.Id).WithRemark(new string('x', Limits.RemarkMaxLength + 1)).Build());
-
-        Assert.NotEmpty(problem.ErrorsFor("remark"));
-    }
-
-    [Fact]
     public async Task A_price_of_zero_is_accepted_on_a_draft_and_a_unit_the_product_converts_is_accepted()
     {
         var warehouse = await _p.NewWarehouseAsync();

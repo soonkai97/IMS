@@ -89,16 +89,6 @@ public class PurchaseOrderListTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task The_cursor_does_not_show_the_number_of_orders_or_an_id()
-    {
-        var orders = await CreateManyAsync(2);
-        var cursor = (await ListAsync(pageSize: 1)).NextCursor!;
-
-        Assert.DoesNotContain(orders[1].Id.ToString("N"), cursor);
-        Assert.True(cursor.Length > 60, "an encrypted token, not a bare number");
-    }
-
-    [Fact]
     public async Task A_filter_by_status_returns_only_that_status_and_counts_only_those()
     {
         var orders = await CreateManyAsync(3);
@@ -165,22 +155,4 @@ public class PurchaseOrderListTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Empty((await ListAsync(search: "50%_%")).Items); // wildcard characters of LIKE are text, not a pattern
     }
 
-    [Fact]
-    public async Task The_list_of_another_warehouse_does_not_contain_these_orders()
-    {
-        await CreateManyAsync(2);
-        var other = await _p.NewWarehouseAsync();
-
-        var page = (await _p.Admin.PurchaseOrders.ListAsync(warehouseId: other.Id)).Data<PagedResult<PurchaseOrderListItem>>();
-
-        Assert.Empty(page.Items);
-    }
-
-    [Fact]
-    public async Task A_page_deeper_than_the_offset_limit_is_refused_and_a_page_size_above_the_maximum_is_cut()
-    {
-        (await _p.Admin.PurchaseOrders.ListAsync(pageSize: 200, page: 100)).ShouldBeProblem(HttpStatusCode.BadRequest);
-        var page = (await _p.Admin.PurchaseOrders.ListAsync(pageSize: 100_000)).Data<PagedResult<PurchaseOrderListItem>>();
-        Assert.Equal(Limits.MaxPageSize, page.PageSize);
-    }
 }

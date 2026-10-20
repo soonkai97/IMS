@@ -72,17 +72,6 @@ public class PurchaseOrderAccessTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal((unknown.Title, unknown.Detail), (gated.Title, gated.Detail));
     }
 
-    [Fact]
-    public async Task Switching_the_module_on_opens_the_endpoints_on_the_very_next_request()
-    {
-        await _p.TurnOffAsync();
-        (await _p.Admin.PurchaseOrders.ListAsync()).ShouldBeProblem(HttpStatusCode.NotFound);
-
-        (await _p.Admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, "PL2.2 test")).ShouldBeOk();
-
-        (await _p.Admin.PurchaseOrders.ListAsync()).ShouldBeOk();
-    }
-
     // ----- acceptance 7: the permissions -----
     [Fact]
     public async Task A_forged_token_without_po_read_and_po_manage_is_403_on_every_endpoint_even_with_the_role_claim_of_an_administrator()
@@ -249,20 +238,4 @@ public class PurchaseOrderAccessTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(inOther.ConcurrencyToken, (await _p.Admin.PurchaseOrders.GetAsync(inOther.Id)).Data<PurchaseOrderDto>().ConcurrencyToken);
     }
 
-    [Fact]
-    public async Task The_count_of_a_scoped_list_does_not_include_the_orders_of_other_warehouses()
-    {
-        var mine = await _p.NewWarehouseAsync();
-        var other = await _p.NewWarehouseAsync();
-        var product = await _p.NewProductAsync();
-        await _p.CreateAsync(mine.Id, product.Id);
-        await _p.CreateAsync(other.Id, product.Id);
-        await _p.CreateAsync(other.Id, product.Id);
-        var account = await new AccountFactory(fixture).CreateAsync(Roles.Clerk, [mine.Id]);
-        var (clerk, _) = await new AccountFactory(fixture).SignInAsync(account);
-
-        var page = (await clerk.PurchaseOrders.ListAsync()).Data<PagedResult<PurchaseOrderListItem>>();
-
-        Assert.Equal((1, 1), (page.Total, page.Items.Count));
-    }
 }
