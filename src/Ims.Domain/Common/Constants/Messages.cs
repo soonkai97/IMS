@@ -54,6 +54,7 @@ public static class Messages
     public const string ModuleNotFound = "Module not found.";
     public const string ModuleStateRequired = "Say whether the module is to be turned on or off.";
     public const string ModuleReasonRequired = "A reason is required to turn a module on or off.";
+    public static string ModuleHasOpenData(string module, string what) => $"The {module} module cannot be turned off while {what}. Finish or cancel them first.";
 
     // ----- Accounting export (module accounting) -----
     public const string AccountingRangeRequired = "Enter the first and the last date of the period to export.";

@@ -8,4 +8,7 @@ public static class ModuleCodes
 {
     /// <summary>Tax-ready fields on products and partners and the accounting export file.</summary>
     public const string Accounting = "accounting";
+
+    /// <summary>Purchase orders, receiving against them, and a reorder list (pilot slice 2).</summary>
+    public const string Purchasing = "purchasing";
 }
