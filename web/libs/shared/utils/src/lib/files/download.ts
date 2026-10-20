@@ -15,7 +15,8 @@ export function saveFile(file: DownloadableFile, fallbackName: string): void {
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  // After the browser has started the download: revoking in the same task can cancel it in some browsers.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function escapeCsvCell(value: string | number): string {

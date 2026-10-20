@@ -1,4 +1,4 @@
-import { PERMISSION } from '@ims/models';
+import { MODULE_CODE, PERMISSION } from '@ims/models';
 import { MenuGroup, MenuItem } from '../types/menu.types';
 
 export const MENU_GROUPS: readonly MenuGroup[] = [
@@ -91,7 +91,17 @@ export const MENU_ITEMS: readonly MenuItem[] = [
     icon: 'reports',
     route: '/reports',
     permissions: [PERMISSION.ReportsRead],
-    group: 'insight'
+    group: 'insight',
+    exactMatch: true
+  },
+  {
+    id: 'accounting-export',
+    labelKey: 'nav.accountingExport',
+    icon: 'download',
+    route: '/reports/accounting',
+    permissions: [PERMISSION.AccountingExport],
+    group: 'insight',
+    module: MODULE_CODE.Accounting
   },
   {
     id: 'users',

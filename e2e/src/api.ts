@@ -171,8 +171,12 @@ export class ImsApi {
    * that covers this document), so a document that waits for approval is approved before it is posted: by the Supervisor, or by
    * the Owner when the rule is for a Large document.
    */
-  async post(kind: 'receipts' | 'issues', lines: DocumentLine[]): Promise<ApiDocument> {
-    const draft = await this.createDocument(kind, lines);
+  async post(
+    kind: 'receipts' | 'issues',
+    lines: DocumentLine[],
+    options: { partnerId?: PublicId } = {}
+  ): Promise<ApiDocument> {
+    const draft = await this.createDocument(kind, lines, options);
     const submitted = await this.command(draft.id, 'submit');
     if (submitted.requiresApproval) {
       await this.approveByAnyReviewer(draft.id);

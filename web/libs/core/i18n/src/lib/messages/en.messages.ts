@@ -813,5 +813,26 @@ export const EN_MESSAGES = {
   'partner.sstRegNoShape':
     'SST registration no. may contain only letters, digits and hyphens, up to {max} characters.',
   'import.rules.taxColumns':
-    'Optional columns for accounting: HsCode (digits and dots, up to {hsMax} characters) and SstCode (letters, digits and hyphens, up to {sstMax}). Format both columns as Text before you type: a number cell loses its leading and trailing zeros, and a file with number cells in these columns is refused. An empty cell clears the value; leave a column out to keep the stored values.'
+    'Optional columns for accounting: HsCode (digits and dots, up to {hsMax} characters) and SstCode (letters, digits and hyphens, up to {sstMax}). Format both columns as Text before you type: a number cell loses its leading and trailing zeros, and a file with number cells in these columns is refused. An empty cell clears the value; leave a column out to keep the stored values.',
+  'nav.accountingExport': 'Accounting export',
+  'accounting.title': 'Accounting export',
+  'accounting.intro':
+    'Download the posted documents of a period as one Excel file for your accountant.',
+  'accounting.period': 'Period',
+  'accounting.fromRequired': 'Enter the first date of the period.',
+  'accounting.toRequired': 'Enter the last date of the period.',
+  'accounting.allWarehouses': 'All my warehouses',
+  'accounting.note.heading': 'About the file',
+  'accounting.note.layout':
+    'The layout is fixed: one row for each line of a posted document, with quantities in the base unit of the product. It cannot be changed here.',
+  'accounting.note.cost': 'Amounts are at cost.',
+  'accounting.note.reversal':
+    'Reversals appear as negative rows (negative quantity and amount) that cancel the original rows.',
+  'accounting.note.limit':
+    'A period with too many rows is not cut short: you are asked to narrow the dates or pick one warehouse.',
+  'accounting.dateRange': 'Enter dates between 1 January 2000 and 31 December 2100.',
+  'accounting.forbidden':
+    'The accounting export also needs permission to see cost, master data and reports.',
+  'accounting.download': 'Download Excel file',
+  'accounting.downloaded': 'Downloaded {name}.'
 } as const;

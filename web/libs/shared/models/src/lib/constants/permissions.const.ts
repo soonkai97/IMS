@@ -25,5 +25,7 @@ export const PERMISSION = {
   /** Average cost, stock value, the stock total and ledger cost (Supervisor, Owner, Admin). */
   ValuationView: 'valuation.view',
   /** Turn modules on or off for the whole installation, with a reason. */
-  ModulesManage: 'modules.manage'
+  ModulesManage: 'modules.manage',
+  /** Module accounting: download the accounting file (it also needs cost, master data and reports access). */
+  AccountingExport: 'accounting.export'
 } as const;

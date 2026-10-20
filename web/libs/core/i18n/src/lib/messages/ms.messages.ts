@@ -813,5 +813,27 @@ export const MS_MESSAGES: Messages = {
   'partner.sstRegNoShape':
     'No. pendaftaran SST hanya boleh mengandungi huruf, digit dan sempang, sehingga {max} aksara.',
   'import.rules.taxColumns':
-    'Lajur pilihan untuk perakaunan: HsCode (digit dan titik, sehingga {hsMax} aksara) dan SstCode (huruf, digit dan sempang, sehingga {sstMax}). Format kedua-dua lajur sebagai Teks sebelum menaip: sel nombor kehilangan sifar di hadapan dan di belakang, dan fail yang mempunyai sel nombor dalam lajur ini ditolak. Sel kosong mengosongkan nilai; tinggalkan lajur untuk mengekalkan nilai yang disimpan.'
+    'Lajur pilihan untuk perakaunan: HsCode (digit dan titik, sehingga {hsMax} aksara) dan SstCode (huruf, digit dan sempang, sehingga {sstMax}). Format kedua-dua lajur sebagai Teks sebelum menaip: sel nombor kehilangan sifar di hadapan dan di belakang, dan fail yang mempunyai sel nombor dalam lajur ini ditolak. Sel kosong mengosongkan nilai; tinggalkan lajur untuk mengekalkan nilai yang disimpan.',
+  // TODO-review: machine draft (PL1.8b: accounting export).
+  'nav.accountingExport': 'Eksport perakaunan',
+  'accounting.title': 'Eksport perakaunan',
+  'accounting.intro':
+    'Muat turun dokumen yang telah diposkan bagi satu tempoh sebagai satu fail Excel untuk akauntan anda.',
+  'accounting.period': 'Tempoh',
+  'accounting.fromRequired': 'Masukkan tarikh pertama tempoh.',
+  'accounting.toRequired': 'Masukkan tarikh terakhir tempoh.',
+  'accounting.allWarehouses': 'Semua gudang saya',
+  'accounting.note.heading': 'Tentang fail ini',
+  'accounting.note.layout':
+    'Susun atur ditetapkan: satu baris bagi setiap barisan dokumen yang telah diposkan, dengan kuantiti dalam unit asas produk. Ia tidak boleh diubah di sini.',
+  'accounting.note.cost': 'Jumlah adalah pada kos.',
+  'accounting.note.reversal':
+    'Pembalikan muncul sebagai baris negatif (kuantiti dan jumlah negatif) yang membatalkan baris asal.',
+  'accounting.note.limit':
+    'Tempoh yang mempunyai terlalu banyak baris tidak dipotong: anda diminta mengecilkan tarikh atau memilih satu gudang.',
+  'accounting.dateRange': 'Masukkan tarikh antara 1 Januari 2000 dan 31 Disember 2100.',
+  'accounting.forbidden':
+    'Eksport perakaunan juga memerlukan kebenaran untuk melihat kos, data induk dan laporan.',
+  'accounting.download': 'Muat turun fail Excel',
+  'accounting.downloaded': 'Telah dimuat turun {name}.'
 };
