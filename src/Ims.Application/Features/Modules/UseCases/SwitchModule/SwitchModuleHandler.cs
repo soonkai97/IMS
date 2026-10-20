@@ -4,16 +4,18 @@ namespace Ims.Application.Features.Modules;
 /// <summary>
 /// Turns a module on or off for the installation. The flip is a settings row (<c>Module.&lt;code&gt;</c>), written under the <c>modules</c> lock so two flips never interleave, and it
 /// writes its own audit event (the settings table is not audited row by row): who, why, the state before and after, and, when a module is turned on, how many roles get the module's
-/// permissions back (roles keep them, hidden, while it is off). A module that is already in the requested state is a 200 that changes nothing and writes nothing. A switch only hides or
+/// permissions back (roles keep them, hidden, while it is off). A request to turn on a module of <see cref="NotYetSwitchableModules"/> is a 400 before anything is locked or written. A module that is already in the requested state is a 200 that changes nothing and writes nothing. A switch only hides or
 /// shows the surface; it never touches stock, so no posting reads it.
 /// </summary>
-public class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepository<Role> roles, IModuleSwitches switches, ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit)
+public class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepository<Role> roles, IModuleSwitches switches, NotYetSwitchableModules notYet, ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<SwitchModuleCommand, ModuleSwitchResult>
 {
     public Task<ModuleSwitchResult> HandleAsync(SwitchModuleCommand cmd, CancellationToken ct) => uow.ExecuteAsync(async () =>
     {
         var module = ModuleCatalog.Find(cmd.Code) ?? throw new NotFoundException(Messages.ModuleNotFound);
         var wanted = cmd.Data.Enabled!.Value; // the validator refused a body without it
+        // Before the lock, the write and the audit event: a module that is not safe to use yet is refused, whatever state it is in now (PL1.8 deletes the list).
+        if (wanted && notYet.Codes.Contains(module.Code)) throw new ValidationException(Messages.ModuleNotYetSwitchableOn);
 
         await locker.LockModulesAsync(ct);
         var key = SettingKeys.ForModule(module.Code);

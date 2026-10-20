@@ -2,6 +2,7 @@ using System.Reflection;
 using FluentValidation;
 using Ims.Application.Features.Audit;
 using Ims.Application.Features.Documents;
+using Ims.Application.Features.Modules;
 using Ims.Application.Features.Settings;
 using Ims.Domain;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,6 +35,8 @@ public static class DependencyInjection
         services.TryAddScoped(typeof(IIdMap<>), typeof(IdMap<>));
         services.TryAddScoped<IAuditTrail, AuditTrail>();
         services.TryAddScoped<ISystemSettings, DbSystemSettings>();
+
+        services.TryAddSingleton(new NotYetSwitchableModules(ModuleCatalog.NotYetSwitchableOn));
 
         // Domain business services: stateless and pure, so singletons. Open/closed: a new document type adds one strategy here
         // and touches no existing posting code.
