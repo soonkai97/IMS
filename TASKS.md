@@ -78,7 +78,7 @@ Scope beyond the "Phase 0 + 1" pass: the owner pulled these PRD items forward fo
   - [ ] PL1.2 Module-aware roles + `accounting.export` permission, hidden grants kept on role save (600 lines, 2.0 d, **Full**; migration 2). Built on branch `feature/pl12-module-aware-roles`, in review: tick after CI is green on `main`
   - [ ] PL1.3 Client regeneration CS6 (0.5 d; "contract freeze CS6" first). Also carries the OpenAPI test of PL1.1 acceptance 8 (the document equals the committed `web/openapi/openapi.raw.json` once it is regenerated; before that the file is the baseline and the test would fail by design); PL1.1 checked it by hand, only the module additions differ
   - [ ] PL1.4 Web foundation: modules store, menu and route gating, Settings > Modules screen (800 lines, 1.5 d, **Full**)
-  - [ ] PL1.5 Tax-ready fields: `AddTaxReadyFields` (nullable `Product.HsCode`, `SstCode`, `Partner.Tin`, `SstRegNo`), shape rules, API, import columns (800 lines, 2.5 d, **Full**; migration 3)
+  - [ ] PL1.5 Tax-ready fields: `AddTaxReadyFields` (nullable `Product.HsCode`, `SstCode`, `Partner.Tin`, `SstRegNo`), shape rules, API, import columns (800 lines, 2.5 d, **Full**; migration 3). Built on branch `feature/pl15-tax-fields`, in review: tick after CI is green on `main`
   - [ ] PL1.6 Accounting export: fixed `.xlsx` layout, signed reversal rows, refuses above the row cap, audit event, DBA timing (700 lines, 2.0 d, **Full**)
   - [ ] PL1.7 Client regeneration CS7 (0.5 d)
   - [ ] PL1.8 Web accounting: tax fields in forms, export screen, e2e (800 lines, 1.5 d, Standard)

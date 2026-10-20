@@ -1,3 +1,4 @@
+using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Import;
 
@@ -5,29 +6,44 @@ namespace Ims.Application.Features.Import;
 /// MD-05: previews and validates every row, and writes only when <c>Commit</c> is true. Import is all-or-nothing (UX decision D6):
 /// a commit with any invalid row is refused, and a valid commit is one transaction. A category or unit that does not exist is a row error: the
 /// import never creates master data on the side (one typo must not add a category), an admin adds them first.
+/// The optional HsCode and SstCode columns (accounting module) follow the API: a file that carries one while the module is off is refused; with the module on a column in the file
+/// replaces that field of every row it names (a blank cell clears it, like a blank Category), and a column that is not in the file leaves the stored values alone.
 /// </summary>
 public class ImportProductsHandler(IExcelReader excel, IRepository<Product> products, IRepository<Category> categories, IRepository<Uom> uoms,
-    IReadRepository<ProductBarcode> barcodes, IReadRepository<StockBalance> balances, IUnitOfWork uow, IAuditTrail audit)
+    IReadRepository<ProductBarcode> barcodes, IReadRepository<StockBalance> balances, IModuleSwitches modules, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<ImportProductsCommand, ImportResult>
 {
-    private record ProductRow(int Row, string Sku, string Name, int? CategoryId, int UomId, decimal Safety, List<string> Barcodes);
+    private record ProductRow(int Row, string Sku, string Name, int? CategoryId, int UomId, decimal Safety, List<string> Barcodes, string? HsCode, string? SstCode);
+
+    /// <summary>Which of the optional tax columns the file has (always false while the accounting module is off: such a file is refused).</summary>
+    private record TaxColumns(bool HsCode, bool SstCode);
 
     public async Task<ImportResult> HandleAsync(ImportProductsCommand cmd, CancellationToken ct)
     {
         var sheet = excel.Read(cmd.File, Limits.MaxImportRows);
         ImportSheet.RequireColumns(sheet, ImportColumns.Sku, ImportColumns.Name);
 
-        var (results, parsed) = await ValidateAsync(sheet, ct);
+        var tax = await TaxColumnsOfAsync(sheet, ct);
+        var (results, parsed) = await ValidateAsync(sheet, tax, ct);
         if (!cmd.Commit)
             return new ImportResult(false, results.Count, results.Count(r => r.Ok), results.Count(r => !r.Ok),
                 results.Count(r => r.Status == ImportRowStatus.New), results.Count(r => r.Status == ImportRowStatus.Update), null, results);
 
         ImportSheet.EnsureNoErrors(results);
-        var (created, updated) = await uow.ExecuteAsync(() => CommitAsync(parsed, results, ct), ct);
+        var (created, updated) = await uow.ExecuteAsync(() => CommitAsync(parsed, results, tax, ct), ct);
         return new ImportResult(true, results.Count, results.Count, 0, created, updated, null, results);
     }
 
-    private async Task<(List<ImportRowResult> Results, List<ProductRow> Parsed)> ValidateAsync(ExcelSheet sheet, CancellationToken ct)
+    private async Task<TaxColumns> TaxColumnsOfAsync(ExcelSheet sheet, CancellationToken ct)
+    {
+        var present = new TaxColumns(sheet.Headers.Contains(ImportColumns.HsCode), sheet.Headers.Contains(ImportColumns.SstCode));
+        if (!present.HsCode && !present.SstCode) return present;
+        if (await modules.IsEnabledAsync(ModuleCodes.Accounting, ct)) return present;
+        var named = new[] { (present.HsCode, "HsCode"), (present.SstCode, "SstCode") }.Where(c => c.Item1).Select(c => c.Item2);
+        throw new ValidationException(Messages.ImportColumnsNotAvailable(named, ModuleCodes.Accounting));
+    }
+
+    private async Task<(List<ImportRowResult> Results, List<ProductRow> Parsed)> ValidateAsync(ExcelSheet sheet, TaxColumns tax, CancellationToken ct)
     {
         // Only the barcodes that appear in the file are looked up, not the whole catalogue.
         var fileCodes = sheet.Rows.SelectMany(r => Split(r.Get(ImportColumns.Barcodes))).Distinct().ToList();
@@ -88,6 +104,18 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
                 else if (safety < 0) errors.Add(Messages.SafetyStockNegative);
             }
 
+            string? hsCode = null, sstCode = null;
+            if (tax.HsCode)
+            {
+                hsCode = TaxFieldShapes.Clean(r.Get(ImportColumns.HsCode));
+                if (TaxFieldShapes.HsCodeError(hsCode) is { } hsError) errors.Add(hsError);
+            }
+            if (tax.SstCode)
+            {
+                sstCode = TaxFieldShapes.Clean(r.Get(ImportColumns.SstCode));
+                if (TaxFieldShapes.SstCodeError(sstCode) is { } sstError) errors.Add(sstError);
+            }
+
             var codes = Split(r.Get(ImportColumns.Barcodes));
             foreach (var code in codes)
             {
@@ -101,12 +129,12 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
 
             var status = errors.Count > 0 ? ImportRowStatus.Error : existingSkus.Contains(sku) ? ImportRowStatus.Update : ImportRowStatus.New;
             results.Add(new ImportRowResult(r.Number, sku, errors.Count == 0, status, errors));
-            if (errors.Count == 0) parsed.Add(new ProductRow(r.Number, sku, name, categoryId, unitId, safety, codes));
+            if (errors.Count == 0) parsed.Add(new ProductRow(r.Number, sku, name, categoryId, unitId, safety, codes, hsCode, sstCode));
         }
         return (results, parsed);
     }
 
-    private async Task<(int Created, int Updated)> CommitAsync(List<ProductRow> parsed, List<ImportRowResult> results, CancellationToken ct)
+    private async Task<(int Created, int Updated)> CommitAsync(List<ProductRow> parsed, List<ImportRowResult> results, TaxColumns tax, CancellationToken ct)
     {
         // Validation found every category and unit, so the commit only looks them up; it never creates one.
         var cats = (await categories.ListAsync(ct)).ToDictionary(c => c.Id);
@@ -140,6 +168,7 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
                 }
                 updated++;
             }
+            if (tax.HsCode || tax.SstCode) p.SetTaxCodes(tax.HsCode ? row.HsCode : p.HsCode, tax.SstCode ? row.SstCode : p.SstCode);
             p.SetBarcodes(p.Barcodes.Select(b => b.Barcode).Concat(row.Barcodes));
         }
 

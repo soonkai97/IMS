@@ -9,6 +9,9 @@ public class Partner : PublicEntity
     public string Name { get; private set; } = "";
     public string? Contact { get; private set; }
     public bool IsActive { get; private set; } = true;
+    /// <summary>Tax-ready fields of the accounting module (shape only, see <see cref="TaxFieldShapes"/>); both stay when the module is switched off.</summary>
+    public string? Tin { get; private set; }
+    public string? SstRegNo { get; private set; }
 
     public static Partner Create(PartnerType type, string name, string? contact = null, bool isActive = true)
     {
@@ -24,6 +27,15 @@ public class Partner : PublicEntity
         Name = name.Trim();
         Contact = contact;
         IsActive = isActive;
+    }
+
+    /// <summary>Replaces both tax-ready fields (blank clears one); refused when a value has the wrong shape. Not part of <see cref="Update"/>, so a save that does not carry them leaves them alone.</summary>
+    public void SetTaxIdentifiers(string? tin, string? sstRegNo)
+    {
+        var t = TaxFieldShapes.Accept(tin, TaxFieldShapes.TinError);
+        var reg = TaxFieldShapes.Accept(sstRegNo, TaxFieldShapes.SstRegNoError);
+        Tin = t;
+        SstRegNo = reg;
     }
 
     /// <summary>Receipts need a supplier, issues need a customer, and the partner must still be active.</summary>
