@@ -2131,6 +2131,105 @@
         }
       }
     },
+    "/api/modules": {
+      "get": {
+        "tags": [
+          "Modules"
+        ],
+        "operationId": "Modules_list",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ModuleDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ModuleDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ModuleDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/modules/{code}": {
+      "put": {
+        "tags": [
+          "Modules"
+        ],
+        "operationId": "Modules_switch",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModuleSwitchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModuleSwitchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModuleSwitchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleSwitchResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleSwitchResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleSwitchResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/documents": {
       "get": {
         "tags": [
@@ -5061,6 +5160,94 @@
         },
         "additionalProperties": false
       },
+      "ModuleDto": {
+        "required": [
+          "code",
+          "name",
+          "description",
+          "enabled",
+          "requires"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "requires": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "A module and whether this installation has it on. `Requires` lists the codes of modules that must be on first (none yet).",
+        "additionalProperties": false
+      },
+      "ModuleSwitchRequest": {
+        "required": [
+          "enabled",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "description": "Turn a module on or off. `Enabled` has no default on purpose: a body that leaves it out is a 400, never a quiet switch off. The reason is kept in the audit log.",
+        "additionalProperties": false
+      },
+      "ModuleSwitchResult": {
+        "required": [
+          "code",
+          "name",
+          "description",
+          "enabled",
+          "requires",
+          "rolesRegainingGrants"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "requires": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rolesRegainingGrants": {
+            "type": "integer",
+            "description": "Live roles that hold at least one permission of the module and so have it in force again.",
+            "format": "int32"
+          }
+        },
+        "description": "What a module switch answers: the module as `GET /api/modules` lists it, plus how many roles got permissions back. A module's permissions are kept, hidden, on the roles that\r\nhold them while it is off; turning it on gives them back at once, so this count is the warning. It is 0 when the module was turned off, was already in the state asked for, or\r\nhas no permissions.",
+        "additionalProperties": false
+      },
       "MovementRow": {
         "required": [
           "postedAt",
@@ -5505,6 +5692,15 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "tin": {
+            "type": "string",
+            "description": "Module accounting: left out of the response (not even a null) while the module is off, and when the partner has none.",
+            "nullable": true
+          },
+          "sstRegNo": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5530,6 +5726,15 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "tin": {
+            "type": "string",
+            "description": "Module accounting. Left out of a save while the module is off (a value is a 400); with the module on, a save replaces both tax-ready fields, so null clears.",
+            "nullable": true
+          },
+          "sstRegNo": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5548,7 +5753,8 @@
           "description",
           "isDangerous",
           "adminCore",
-          "requires"
+          "requires",
+          "module"
         ],
         "type": "object",
         "properties": {
@@ -5575,6 +5781,11 @@
               "type": "string"
             },
             "description": "Codes that must be granted together with this one (a role that has this code without them is refused)."
+          },
+          "module": {
+            "type": "string",
+            "description": "The module the permission belongs to, or null for a core permission. The list only holds permissions of modules that are on, so a client needs it only to label the entry.",
+            "nullable": true
           }
         },
         "description": "One permission of the catalog, as the role editor lists it.",
@@ -5651,6 +5862,15 @@
             "items": {
               "$ref": "#/components/schemas/UomConversionDto"
             }
+          },
+          "hsCode": {
+            "type": "string",
+            "description": "Module accounting: left out of the response (not even a null) while the module is off, and when the product has none.",
+            "nullable": true
+          },
+          "sstCode": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5724,6 +5944,15 @@
             "items": {
               "$ref": "#/components/schemas/UomConversionDto"
             },
+            "nullable": true
+          },
+          "hsCode": {
+            "type": "string",
+            "description": "Module accounting. Left out of a save while the module is off (a value is a 400); with the module on, a save replaces both tax-ready fields, so null clears.",
+            "nullable": true
+          },
+          "sstCode": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -6188,7 +6417,8 @@
           "roleName",
           "permissions",
           "seesAllWarehouses",
-          "warehouseIds"
+          "warehouseIds",
+          "modules"
         ],
         "type": "object",
         "properties": {
@@ -6223,9 +6453,15 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "description": "The signed-in user. `Permissions` lists the codes of the access token (the role's grants when it was issued) in catalog order; the web reads it for menus and\r\nbuttons, the API decides by the token itself.",
+        "description": "The signed-in user. `Permissions` lists the codes of the access token (the role's grants when it was issued) in catalog order; the web reads it for menus and\r\nbuttons, the API decides by the token itself. `Modules` lists the codes of the modules this installation has on (read when the answer is built, not carried by the token), in catalog order.",
         "additionalProperties": false
       },
       "UserSaveRequest": {
@@ -6389,6 +6625,9 @@
     },
     {
       "name": "Roles"
+    },
+    {
+      "name": "Modules"
     },
     {
       "name": "Documents"

@@ -16,6 +16,7 @@ function userInfo(overrides: Partial<UserInfo> = {}): UserInfo {
     permissions: ['stock.read', 'document.approve'],
     seesAllWarehouses: false,
     warehouseIds: [WAREHOUSE_ID],
+    modules: [],
     ...overrides
   };
 }

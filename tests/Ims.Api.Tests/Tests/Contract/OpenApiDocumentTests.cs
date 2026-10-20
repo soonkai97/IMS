@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Ims.Api.Tests.Harness;
+using Ims.Api.Tests.Support;
 using Ims.Domain;
 
 namespace Ims.Api.Tests.Tests.Contract;
@@ -345,5 +346,27 @@ public partial class OpenApiDocumentTests(ApiFixture fixture)
 
         Assert.Equal("string", createdAt.GetProperty("type").GetString());
         Assert.Equal("date-time", createdAt.GetProperty("format").GetString());
+    }
+
+    // ----- contract drift (the web client is generated from the committed document) -----
+    private const string CommittedDocumentFile = "Contract/openapi.raw.json";
+
+    [Fact]
+    public async Task The_live_document_equals_the_one_the_web_client_was_generated_from()
+    {
+        using var live = await DocumentAsync();
+        using var committed = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, CommittedDocumentFile)));
+
+        // `servers` is the address the document was fetched from, so it says nothing about the contract.
+        var difference = JsonDifference.First(WithoutServers(committed.RootElement), WithoutServers(live.RootElement));
+
+        Assert.True(difference is null,
+            $"The API contract changed since web/openapi/openapi.raw.json was committed ({difference}). Regenerate the web client (`npm run api:generate` in web/) in a contract batch.");
+    }
+
+    private static JsonElement WithoutServers(JsonElement document)
+    {
+        var members = document.EnumerateObject().Where(p => p.Name != "servers").ToDictionary(p => p.Name, p => p.Value);
+        return JsonSerializer.SerializeToElement(members);
     }
 }

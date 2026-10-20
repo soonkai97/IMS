@@ -19,6 +19,7 @@ const permission = (
   isDangerous: false,
   adminCore: false,
   requires: [],
+  module: undefined,
   ...extra
 });
 const CATALOG: PermissionDto[] = [
