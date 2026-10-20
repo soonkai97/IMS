@@ -3,9 +3,10 @@ namespace Ims.Application.Features.Documents;
 
 public class DocumentNumbering(IRepository<DocumentSequence> sequences, ITransactionLocker locker, IClock clock) : IDocumentNumbering, IAppService
 {
-    public async Task<string> NextAsync(DocumentType type, Warehouse warehouse, CancellationToken ct)
+    public Task<string> NextAsync(DocumentType type, Warehouse warehouse, CancellationToken ct) => NextAsync(DocumentNumber.PrefixFor(type), warehouse, ct);
+
+    public async Task<string> NextAsync(string prefix, Warehouse warehouse, CancellationToken ct)
     {
-        var prefix = DocumentNumber.PrefixFor(type);
         var yearMonth = DocumentNumber.YearMonthOf(clock.UtcNow);
         // One allocation at a time per sequence: concurrent creates queue here instead of colliding and retrying.
         await locker.LockDocumentSequenceAsync(prefix, yearMonth, warehouse.Id, ct);

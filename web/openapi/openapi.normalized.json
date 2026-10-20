@@ -2131,6 +2131,272 @@
         }
       }
     },
+    "/api/purchase-orders": {
+      "get": {
+        "tags": [
+          "PurchaseOrders"
+        ],
+        "summary": "Purchase orders, newest first, in the warehouses the caller may read. Prices and totals are absent for a caller without `cost.view`.",
+        "operationId": "PurchaseOrders_list",
+        "parameters": [
+          {
+            "name": "Status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/PurchaseOrderStatus"
+            }
+          },
+          {
+            "name": "SupplierId",
+            "in": "query",
+            "description": "Orders of this supplier; an id that names no supplier matches nothing.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "WarehouseId",
+            "in": "query",
+            "description": "Orders for this ship-to warehouse. A warehouse the caller may not read matches nothing.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "From",
+            "in": "query",
+            "description": "Orders created on or after this date (Malaysia time).",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "To",
+            "in": "query",
+            "description": "Orders created on or before this date (Malaysia time).",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "Orders whose number contains the text (case-insensitive; a partial number such as 0100 works).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Cursor",
+            "in": "query",
+            "description": "Seek paging: the `nextCursor` of the previous page, unchanged; returns the orders after it.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "IncludeTotal",
+            "in": "query",
+            "description": "False skips the row count.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfPurchaseOrderListItem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfPurchaseOrderListItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfPurchaseOrderListItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PurchaseOrders"
+        ],
+        "summary": "Creates a Draft with the next number of the warehouse and month (`PO-&lt;WH&gt;-&lt;yyMM&gt;-&lt;nnnn&gt;`).",
+        "operationId": "PurchaseOrders_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseOrderSaveRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseOrderSaveRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseOrderSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/purchase-orders/{id}": {
+      "get": {
+        "tags": [
+          "PurchaseOrders"
+        ],
+        "operationId": "PurchaseOrders_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PurchaseOrders"
+        ],
+        "summary": "Replaces the supplier, the remark and all lines of a Draft. The warehouse cannot change. `If-Match` is required (428 without, 409 when stale).",
+        "operationId": "PurchaseOrders_update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseOrderSaveRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseOrderSaveRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseOrderSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/modules": {
       "get": {
         "tags": [
@@ -5648,6 +5914,43 @@
         "description": "One page of a server-side paged list.",
         "additionalProperties": false
       },
+      "PagedResultOfPurchaseOrderListItem": {
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseOrderListItem"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "description": "Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count.",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it.",
+            "nullable": true
+          }
+        },
+        "description": "One page of a server-side paged list.",
+        "additionalProperties": false
+      },
       "PagedResultOfStockRow": {
         "required": [
           "items",
@@ -6023,6 +6326,288 @@
         ],
         "type": "string",
         "description": "Sort keys the products list accepts. Only these are allowed, so a client cannot sort on an unindexed column."
+      },
+      "PurchaseOrderDto": {
+        "required": [
+          "id",
+          "no",
+          "status",
+          "warehouseId",
+          "warehouseName",
+          "supplierId",
+          "supplierName",
+          "remark",
+          "createdById",
+          "createdBy",
+          "createdByName",
+          "createdAt",
+          "totalAmount",
+          "lines",
+          "concurrencyToken"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "no": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PurchaseOrderStatus"
+          },
+          "warehouseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "warehouseName": {
+            "type": "string"
+          },
+          "supplierId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "supplierName": {
+            "type": "string"
+          },
+          "remark": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdById": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdByName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalAmount": {
+            "type": "number",
+            "description": "The sum of the line amounts, in money. Absent for a caller without `cost.view`.",
+            "format": "double",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseOrderLineDto"
+            }
+          },
+          "concurrencyToken": {
+            "type": "string",
+            "description": "Changes whenever the order (header, status or lines) changes; opaque: compare it only for equality. Also sent as the ETag header; send it back as If-Match to refuse a stale save."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PurchaseOrderLineDto": {
+        "required": [
+          "lineNo",
+          "productId",
+          "sku",
+          "productName",
+          "qty",
+          "uomId",
+          "uomCode",
+          "baseQty",
+          "unitPrice",
+          "amount",
+          "remark"
+        ],
+        "type": "object",
+        "properties": {
+          "lineNo": {
+            "type": "integer",
+            "description": "1 to n inside the order.",
+            "format": "int32"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "number",
+            "format": "double"
+          },
+          "uomId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uomCode": {
+            "type": "string"
+          },
+          "baseQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "The price per ENTERED unit (the unit in `UomCode`), in money. Absent for a caller without `cost.view`.",
+            "format": "double",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "description": "The value of the line, in money: `round(qty x unitPrice, 2)`. The order total is the sum of these. Absent for a caller without `cost.view`.",
+            "format": "double",
+            "nullable": true
+          },
+          "remark": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PurchaseOrderLineInput": {
+        "required": [
+          "productId",
+          "qty",
+          "uomId",
+          "unitPrice",
+          "remark"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "qty": {
+            "type": "number",
+            "description": "In the unit named by `uomId`; at most 4 decimal places.",
+            "format": "double"
+          },
+          "uomId": {
+            "type": "string",
+            "description": "Any unit the product converts to its base unit; null means the base unit.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "The price per ENTERED unit, in money (at most 2 decimal places, never negative). 0.00 is accepted on a draft; the workflow slice refuses to submit it.",
+            "format": "double"
+          },
+          "remark": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PurchaseOrderListItem": {
+        "required": [
+          "id",
+          "no",
+          "status",
+          "warehouseName",
+          "supplierName",
+          "createdAt",
+          "createdBy",
+          "lineCount",
+          "totalAmount",
+          "concurrencyToken"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "no": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PurchaseOrderStatus"
+          },
+          "warehouseName": {
+            "type": "string"
+          },
+          "supplierName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "lineCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalAmount": {
+            "type": "number",
+            "description": "The sum of the line amounts, in money. Absent for a caller without `cost.view`.",
+            "format": "double",
+            "nullable": true
+          },
+          "concurrencyToken": {
+            "type": "string",
+            "description": "Same value as `concurrencyToken` on the full order: compare it to know whether an open order has gone stale."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PurchaseOrderSaveRequest": {
+        "required": [
+          "warehouseId",
+          "supplierId",
+          "remark",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "warehouseId": {
+            "type": "string",
+            "description": "The ship-to warehouse. It cannot change after the order is created: it carries the number.",
+            "format": "uuid"
+          },
+          "supplierId": {
+            "type": "string",
+            "description": "An active partner of type Supplier.",
+            "format": "uuid"
+          },
+          "remark": {
+            "type": "string",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseOrderLineInput"
+            }
+          }
+        },
+        "description": "A whole purchase-order draft: every field is sent on every save (there is no \"absent = unchanged\"), and the lines replace the old ones.",
+        "additionalProperties": false
+      },
+      "PurchaseOrderStatus": {
+        "enum": [
+          "Draft",
+          "Submitted",
+          "Approved",
+          "Closed",
+          "Cancelled"
+        ],
+        "type": "string",
+        "description": "The stored state of a purchase order. Draft is the only state a caller can reach before the approval workflow exists (pilot slice PL2.3); \"partly received\" and \"fully received\" are\r\nderived labels, never stored. An order is open (it blocks switching the purchasing module off) while it is Draft, Submitted or Approved."
       },
       "RefreshRequest": {
         "required": [
@@ -6683,6 +7268,9 @@
     },
     {
       "name": "Roles"
+    },
+    {
+      "name": "PurchaseOrders"
     },
     {
       "name": "Modules"

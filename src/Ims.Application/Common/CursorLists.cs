@@ -4,6 +4,7 @@ namespace Ims.Application;
 public static class CursorLists
 {
     public const string Documents = "documents";
+    public const string PurchaseOrders = "purchase-orders";
     public const string Ledger = "ledger";
     public const string Audit = "audit";
 }

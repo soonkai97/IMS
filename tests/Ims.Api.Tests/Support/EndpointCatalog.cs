@@ -107,6 +107,10 @@ public static class EndpointCatalog
     public static readonly IReadOnlyList<EndpointCase> Gated =
     [
         new("GET accounting export", Get, Permissions.AccountingExport, _ => "/api/accounting/export?from=2026-01-01&to=2026-01-31"),
+        new("GET purchase-orders", Get, Permissions.PoRead, _ => "/api/purchase-orders"),
+        new("GET purchase-orders/{id}", Get, Permissions.PoRead, _ => $"/api/purchase-orders/{MissingPublicId}", OkWhenAllowed: false),
+        new("POST purchase-orders", Post, Permissions.PoManage, _ => "/api/purchase-orders", OkWhenAllowed: false),
+        new("PUT purchase-orders/{id}", Put, Permissions.PoManage, _ => $"/api/purchase-orders/{MissingPublicId}", OkWhenAllowed: false),
     ];
 
     public static EndpointCase Named(string name) => All.Single(c => c.Name == name);

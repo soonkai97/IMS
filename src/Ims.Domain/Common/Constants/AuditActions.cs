@@ -36,6 +36,9 @@ public static class AuditActions
     public const string DocumentPosted = "document.posted";
     public const string DocumentReversed = "document.reversed";
 
+    public const string PurchaseOrderCreated = "purchase-order.created";
+    public const string PurchaseOrderUpdated = "purchase-order.updated";
+
     public const string AttachmentUploaded = "attachment.uploaded";
     public const string AttachmentDeleted = "attachment.deleted";
 
@@ -52,7 +55,7 @@ public static class AuditActions
     public static readonly IReadOnlyList<string> Known =
     [
         RowCreated, RowUpdated, RowDeleted, LoginSuccess, LoginFailed, LoginLocked, LoginLockout, Logout, UserCreated, UserUpdated, PasswordChanged, RoleCreated, RoleUpdated, RolePermissionsChanged, RoleDeleted,
-        SettingsUpdated, ModuleEnabled, ModuleDisabled, AccountingExported, DocumentCreated, DocumentSubmitted, DocumentApproved, DocumentRejected, DocumentRecalled, DocumentCancelled, DocumentPosted, DocumentReversed,
+        SettingsUpdated, ModuleEnabled, ModuleDisabled, AccountingExported, DocumentCreated, DocumentSubmitted, DocumentApproved, DocumentRejected, DocumentRecalled, DocumentCancelled, DocumentPosted, DocumentReversed, PurchaseOrderCreated, PurchaseOrderUpdated,
         AttachmentUploaded, AttachmentDeleted, ImportProducts, ImportOpeningStock, ApprovalRulesWidened
     ];
 }
