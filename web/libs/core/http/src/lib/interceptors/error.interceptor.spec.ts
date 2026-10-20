@@ -6,7 +6,7 @@ import { ToastService } from '@ims/core/notification';
 import { API_ERROR_KIND, ApiError } from '@ims/models';
 import { withIfMatch } from '../concurrency/if-match';
 import { handledInline } from '../errors/handled-inline';
-import { API_NOT_FOUND_CHECK } from '../errors/not-found-check';
+import { API_NOT_FOUND_CHECK, UNKNOWN_ROUTE_DETAIL } from '../errors/not-found-check';
 import { errorInterceptor } from './error.interceptor';
 
 const URL = 'http://api.test/api/documents/00000000-0000-4000-8000-000000000001/post';
@@ -212,13 +212,13 @@ describe('errorInterceptor and a 404 that may be a turned-off module', () => {
     toast = TestBed.inject(ToastService);
   });
 
-  function notFound(context?: HttpContext): Promise<ApiError> {
+  function notFound(context?: HttpContext, detail = UNKNOWN_ROUTE_DETAIL): Promise<ApiError> {
     const result = new Promise<ApiError>(resolve => {
       http
         .get(URL, { responseType: 'blob', context })
         .subscribe({ error: (error: ApiError) => resolve(error) });
     });
-    backend.expectOne(URL).flush(problem(404, { detail: 'Not found.' }), {
+    backend.expectOne(URL).flush(problem(404, { detail }), {
       status: 404,
       statusText: 'x'
     });
@@ -240,14 +240,14 @@ describe('errorInterceptor and a 404 that may be a turned-off module', () => {
 
     const error = await notFound();
 
-    expect(error.message).toBe('Not found.');
-    expect(toast.$toasts().map(item => item.message)).toEqual(['Not found.']);
+    expect(error.message).toBe(UNKNOWN_ROUTE_DETAIL);
+    expect(toast.$toasts().map(item => item.message)).toEqual([UNKNOWN_ROUTE_DETAIL]);
   });
 
   it('keeps the API sentence when the check itself fails', async () => {
     check.mockReturnValue(throwError(() => new Error('boom')));
 
-    expect((await notFound()).message).toBe('Not found.');
+    expect((await notFound()).message).toBe(UNKNOWN_ROUTE_DETAIL);
   });
 
   it('puts the sentence on a call the screen shows itself, and raises no toast for it', async () => {
@@ -257,6 +257,16 @@ describe('errorInterceptor and a 404 that may be a turned-off module', () => {
 
     expect(error.message).toContain('turned off');
     expect(toast.$toasts()).toHaveLength(0);
+  });
+
+  it('does not ask for a 404 a handler wrote (a product that is not there is not a turned-off module)', async () => {
+    check.mockReturnValue(of('This feature was turned off: Accounting. The menu was updated.'));
+
+    const error = await notFound(undefined, 'Product not found.');
+
+    expect(check).not.toHaveBeenCalled();
+    expect(error.message).toBe('Product not found.');
+    expect(toast.$toasts().map(item => item.message)).toEqual(['Product not found.']);
   });
 
   it('does not ask for any other status', async () => {

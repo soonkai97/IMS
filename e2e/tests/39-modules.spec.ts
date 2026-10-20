@@ -1,5 +1,11 @@
 import AxeBuilder from '@axe-core/playwright';
 import type { Page, Route } from '@playwright/test';
+// Types only (erased at run time): the generated client of the web app, so a contract change fails `npm run typecheck`.
+import type {
+  ModuleDto,
+  ModuleSwitchRequest,
+  ModuleSwitchResult
+} from '../../web/libs/shared/api/src/lib/api-client';
 import { expect, test } from '../src/fixtures';
 import { announcedBy } from '../src/feedback';
 import { goTo, loadPage } from '../src/pages/shell';
@@ -10,14 +16,16 @@ import { goTo, loadPage } from '../src/pages/shell';
 //  - the switch itself (reason dialog, result, errors, the stale-screen 404) is driven against a stubbed /api/modules that offers a
 //    second, made-up module, so the state of Ims_Dev is left exactly as it was found.
 const ACCOUNTING = 'Accounting';
+/** The web's own sentence under the reason box (the API says the same thing, so a stub must not reuse it for a 400). */
 const REASON_SENTENCE = 'Enter a reason of at least 5 characters.';
+/** A sentence only the API has (Messages.ModuleReasonRequired), so the 400 scenario proves the API's words reach the screen. */
+const API_REASON_SENTENCE = 'A reason is required to turn a module on or off.';
 
-interface ModuleRow {
-  code: string;
-  name: string;
-  description: string;
-  enabled: boolean;
-  requires: string[];
+/** The error body of the API (RFC 7807 ProblemDetails; the generated client has no type for it). */
+interface Problem {
+  title: string;
+  status: number;
+  detail: string;
 }
 
 /** The stubbed server: `batch` is made up, accounting stays off, and every request is counted. */
@@ -25,11 +33,11 @@ class ModulesStub {
   batch = false;
   regaining = 2;
   lists = 0;
-  switches: { code: string; body: { enabled?: boolean; reason?: string } }[] = [];
+  switches: { code: string; body: ModuleSwitchRequest }[] = [];
   /** When set, the next PUT answers this status instead of changing anything. */
   failNext: { status: number; detail: string } | undefined;
 
-  rows(): ModuleRow[] {
+  rows(): ModuleDto[] {
     return [
       {
         code: 'accounting',
@@ -61,7 +69,7 @@ class ModulesStub {
         return;
       }
       const code = new URL(request.url()).pathname.split('/').pop() ?? '';
-      const body = request.postDataJSON() as { enabled?: boolean; reason?: string };
+      const body = request.postDataJSON() as ModuleSwitchRequest;
       this.switches.push({ code, body });
       if (this.failNext) {
         const { status, detail } = this.failNext;
@@ -69,15 +77,19 @@ class ModulesStub {
         await route.fulfill({
           status,
           contentType: 'application/problem+json',
-          body: JSON.stringify({ title: 'x', detail })
+          body: JSON.stringify({ title: 'Rejected', status, detail } satisfies Problem)
         });
         return;
       }
       const wanted = body.enabled === true;
       const turnedOn = wanted && !this.batch;
       this.batch = wanted;
-      const row = this.rows().find(item => item.code === code) as ModuleRow;
-      await route.fulfill({ json: { ...row, rolesRegainingGrants: turnedOn ? this.regaining : 0 } });
+      const row = this.rows().find(item => item.code === code) as ModuleDto;
+      const result: ModuleSwitchResult = {
+        ...row,
+        rolesRegainingGrants: turnedOn ? this.regaining : 0
+      };
+      await route.fulfill({ json: result });
     });
   }
 }
@@ -98,23 +110,22 @@ test.describe('Settings > Modules, real API (nothing is changed)', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Modules' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Settings' }).first()).toBeVisible();
 
-    const listed = await api('admin').call<ModuleRow[]>('GET', '/api/modules');
+    const listed = await api('admin').call<ModuleDto[]>('GET', '/api/modules');
     expect(listed.map(item => item.code)).toContain('accounting');
     for (const item of listed) {
       await expect(page.getByRole('heading', { level: 2, name: item.name })).toBeVisible();
     }
 
     const accounting = moduleSwitch(page, ACCOUNTING);
-    const isOn = listed.find(item => item.code === 'accounting')?.enabled === true;
-    await expect(accounting).toHaveAttribute('aria-checked', String(isOn));
-    await expect(accounting).toContainText(isOn ? 'On' : 'Off');
-    if (!isOn) {
-      // Plan risk 11: the switch is there, reachable by Tab, disabled, and the reason is read out with it.
-      await expect(accounting).toHaveAttribute('aria-disabled', 'true');
-      await expect(accounting).toHaveAccessibleDescription(/Available soon/);
-      await accounting.click({ force: true });
-      await expect(page.getByRole('dialog')).toHaveCount(0);
-    }
+    // Plan risk 11: accounting must be off in every environment until PL1.8; a failure here is a deployment problem, not a skip.
+    expect(listed.find(item => item.code === 'accounting')?.enabled).toBe(false);
+    await expect(accounting).toHaveAttribute('aria-checked', 'false');
+    await expect(accounting).toContainText('Off');
+    // The switch is there, reachable by Tab, disabled, and the reason is read out with it.
+    await expect(accounting).toHaveAttribute('aria-disabled', 'true');
+    await expect(accounting).toHaveAccessibleDescription(/Available soon/);
+    await accounting.click({ force: true });
+    await expect(page.getByRole('dialog')).toHaveCount(0);
   });
 
   for (const role of ['clerk', 'owner'] as const) {
@@ -223,9 +234,9 @@ test.describe('Settings > Modules, a stubbed /api/modules with a made-up second 
 
   for (const [status, detail, sentence] of [
     [409, 'Busy.', 'Another change to the modules is in progress.'],
-    [403, 'Forbidden.', 'You are not allowed to turn modules on or off. Ask an Admin.'],
+    [403, 'Forbidden.', 'You are not allowed to turn modules on or off.'],
     [404, 'Module not found.', 'That module is not available any more. The list was refreshed.'],
-    [400, REASON_SENTENCE, REASON_SENTENCE]
+    [400, API_REASON_SENTENCE, API_REASON_SENTENCE]
   ] as const) {
     test(`given the API answers ${status}, then one alert says it in words, no toast is raised and the switch keeps its state`, async ({
       page,
@@ -270,7 +281,12 @@ test.describe('Settings > Modules, a stubbed /api/modules with a made-up second 
       route.fulfill({
         status: 404,
         contentType: 'application/problem+json',
-        body: JSON.stringify({ title: 'Not Found', detail: 'The requested resource was not found.' })
+        // The body of an address that names no endpoint, which is also what the gate of a module that is off writes.
+        body: JSON.stringify({
+          title: 'Not Found',
+          status: 404,
+          detail: 'The requested resource was not found.'
+        } satisfies Problem)
       })
     );
     await signIn('admin');
@@ -283,6 +299,35 @@ test.describe('Settings > Modules, a stubbed /api/modules with a made-up second 
     expect(await announcedBy(page, sentence)).toBe(1);
     await expect(page.getByText('The requested resource was not found.')).toHaveCount(0);
     expect(stub.lists).toBeGreaterThan(listsBefore);
+  });
+});
+
+test.describe('A 404 that a handler wrote is not a turned-off module', () => {
+  test('given a record is not there, then its own sentence is shown and the module list is not read again', async ({
+    page,
+    signIn
+  }) => {
+    const stub = new ModulesStub();
+    await stub.install(page);
+    await page.route(/\/api\/products(\?|$)/, route =>
+      route.fulfill({
+        status: 404,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({
+          title: 'Not Found',
+          status: 404,
+          detail: 'Product not found.'
+        } satisfies Problem)
+      })
+    );
+    await signIn('admin');
+    const listsBefore = stub.lists;
+
+    await goTo(page, '/products');
+
+    await expect(page.getByText('Product not found.').first()).toBeVisible();
+    await expect(page.getByText(/turned off/)).toHaveCount(0);
+    expect(stub.lists).toBe(listsBefore);
   });
 });
 

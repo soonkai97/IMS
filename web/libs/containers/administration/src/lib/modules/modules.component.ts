@@ -108,6 +108,8 @@ export class ModulesPageComponent implements OnInit {
   });
 
   constructor() {
+    // The store lives for the whole session: a failure left by an earlier visit must not show again, nor reload the list.
+    this.store.switchModule.reset();
     this.destroyRef.onDestroy(() => (this.destroyed = true));
   }
 

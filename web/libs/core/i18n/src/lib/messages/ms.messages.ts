@@ -791,8 +791,7 @@ export const MS_MESSAGES: Messages = {
   'modules.toast.regain':
     '{count, plural, one {# peranan mendapat semula kebenarannya yang disimpan.} other {# peranan mendapat semula kebenaran mereka yang disimpan.}}',
   'modules.turnedOff': 'Ciri ini telah dimatikan: {names}. Menu telah dikemas kini.',
-  'modules.error.forbidden':
-    'Anda tidak dibenarkan menghidupkan atau mematikan modul. Tanya Pentadbir.',
+  'modules.error.forbidden': 'Anda tidak dibenarkan menghidupkan atau mematikan modul.',
   'modules.error.notFound': 'Modul itu tidak tersedia lagi. Senarai telah disegarkan.',
   'modules.error.busy':
     'Perubahan lain pada modul sedang berjalan. Tunggu sebentar, kemudian cuba lagi.'

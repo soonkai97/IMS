@@ -792,7 +792,7 @@ export const EN_MESSAGES = {
   'modules.toast.regain':
     '{count, plural, one {# role regains its saved permissions.} other {# roles regain their saved permissions.}}',
   'modules.turnedOff': 'This feature was turned off: {names}. The menu was updated.',
-  'modules.error.forbidden': 'You are not allowed to turn modules on or off. Ask an Admin.',
+  'modules.error.forbidden': 'You are not allowed to turn modules on or off.',
   'modules.error.notFound': 'That module is not available any more. The list was refreshed.',
   'modules.error.busy':
     'Another change to the modules is in progress. Wait a moment, then try again.'

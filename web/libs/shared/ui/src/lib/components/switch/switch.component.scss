@@ -93,4 +93,18 @@
   .ui-switch-control[aria-checked='true'] .ui-switch-thumb {
     background: HighlightText;
   }
+
+  // A switch that cannot be used is grey in this mode too, whatever its state.
+  .ui-switch-control[aria-disabled='true'] {
+    color: GrayText;
+
+    .ui-switch-track {
+      background: Canvas;
+      border-color: GrayText;
+    }
+
+    .ui-switch-thumb {
+      background: GrayText;
+    }
+  }
 }

@@ -70,6 +70,7 @@ describe('ModulesPageComponent (Settings > Modules)', () => {
     held.clear();
     data.set([moduleOf('accounting', false)]);
     operation.set({});
+    reset.mockImplementation(() => operation.set({}));
     spectator = createComponent();
     spectator.detectChanges();
   });
@@ -201,7 +202,7 @@ describe('ModulesPageComponent (Settings > Modules)', () => {
     it('403 says the person may not, and does not guess the reason', () => {
       fail(HTTP_STATUS.Forbidden);
 
-      expect(banner()).toContain('You are not allowed to turn modules on or off. Ask an Admin.');
+      expect(banner()).toContain('You are not allowed to turn modules on or off.');
     });
 
     it('404 says the module is gone and reloads the list', () => {
@@ -228,6 +229,18 @@ describe('ModulesPageComponent (Settings > Modules)', () => {
 
       expect(spectator.query('app-banner')).toBeNull();
     });
+  });
+
+  it('forgets a failure left by an earlier visit: no banner and no extra reload when the page opens again', () => {
+    operation.set({ error: { status: HTTP_STATUS.Conflict, message: 'Busy.' } });
+    load.mockClear();
+
+    spectator = createComponent();
+    spectator.detectChanges();
+
+    expect(reset).toHaveBeenCalled();
+    expect(spectator.query('app-banner')).toBeNull();
+    expect(load).toHaveBeenCalledTimes(1);
   });
 
   it('links back to Settings only for a person who may open Settings', () => {
