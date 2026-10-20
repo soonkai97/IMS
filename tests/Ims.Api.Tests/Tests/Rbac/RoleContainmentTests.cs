@@ -133,13 +133,24 @@ public class RoleContainmentTests(ApiFixture fixture)
     [Fact]
     public async Task The_administrator_role_cannot_be_renamed_or_emptied_even_by_someone_who_holds_every_permission()
     {
-        var everything = await NewDelegateAsync([.. PermissionCatalog.Codes], allWarehouses: true);
-        var admin = (await everything.Client.GetAsync("/api/roles")).Data<List<RoleDto>>().Single(r => r.Code == Roles.Admin);
+        // "Every permission" includes the one of the accounting module, which a role can only be given while the module is on; the module is off again for the test itself (the token keeps the claim).
+        var admin0 = await fixture.AsAsync(Roles.Admin);
+        (await admin0.Modules.SwitchAsync(ModuleCodes.Accounting, true, "Containment test setup")).ShouldBeOk();
+        try
+        {
+            var everything = await NewDelegateAsync([.. PermissionCatalog.Codes], allWarehouses: true);
+            (await admin0.Modules.SwitchAsync(ModuleCodes.Accounting, false, "Containment test setup")).ShouldBeOk();
+            var admin = (await everything.Client.GetAsync("/api/roles")).Data<List<RoleDto>>().Single(r => r.Code == Roles.Admin);
 
-        Assert.Equal(Messages.SystemRoleProtected, (await everything.Client.UpdateRoleAsync(admin, name: Unique.Name("Not admin"))).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
-        Assert.Equal(Messages.AdminRoleLocked, (await everything.Client.ReplaceAsync(admin, [Permissions.StockRead])).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
-        (await everything.Client.UpdateRoleAsync(admin, active: false)).ShouldBeProblem(HttpStatusCode.Conflict);
-        (await everything.Client.DeleteRoleAsync(admin)).ShouldBeProblem(HttpStatusCode.Conflict);
-        Assert.Equal(admin.Name, (await ReadAsync(admin.Id)).Name);
+            Assert.Equal(Messages.SystemRoleProtected, (await everything.Client.UpdateRoleAsync(admin, name: Unique.Name("Not admin"))).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
+            Assert.Equal(Messages.AdminRoleLocked, (await everything.Client.ReplaceAsync(admin, [Permissions.StockRead])).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
+            (await everything.Client.UpdateRoleAsync(admin, active: false)).ShouldBeProblem(HttpStatusCode.Conflict);
+            (await everything.Client.DeleteRoleAsync(admin)).ShouldBeProblem(HttpStatusCode.Conflict);
+            Assert.Equal(admin.Name, (await ReadAsync(admin.Id)).Name);
+        }
+        finally
+        {
+            await fixture.Database.ExecuteAsync("DELETE FROM SystemSetting WHERE [Key] LIKE N'Module.%'");
+        }
     }
 }

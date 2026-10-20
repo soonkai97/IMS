@@ -19,6 +19,8 @@ public static class Permissions
     public const string SettingsManage = "settings.manage";
     /// <summary>Turn a module on or off for the whole installation, with a reason (ADR modules-and-tracking-dimensions 4.6). Core, dangerous, held by the Administrator.</summary>
     public const string ModulesManage = "modules.manage";
+    /// <summary>Download the accounting export file (posted documents in one fixed layout). Belongs to the <see cref="ModuleCodes.Accounting"/> module; requires <see cref="CostView"/>, because the file carries cost.</summary>
+    public const string AccountingExport = "accounting.export";
 
     /// <summary>
     /// See the cost of the documents one works on: unit cost, line cost, document totals and estimates, and the approval amounts and thresholds.

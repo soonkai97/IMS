@@ -94,7 +94,7 @@ public class RolesApiTests(ApiFixture fixture)
         Assert.Equal([Roles.Admin, Roles.Clerk, Roles.Owner, Roles.Supervisor, Roles.WarehouseStaff], list.Where(r => r.IsSystem).Select(r => r.Code).Order(StringComparer.Ordinal));
         Assert.All(list.TakeWhile(r => r.IsSystem), r => Assert.True(r.IsSystem));
         Assert.True(list.Single(r => r.Code == Roles.Admin).UserCount >= 1);
-        Assert.Equal(PermissionCatalog.Codes, (await admin.GetAsync("/api/permissions")).Data<List<PermissionDto>>().Select(p => p.Code));
+        Assert.Equal(PermissionCatalog.Codes.Except([Permissions.AccountingExport]), (await admin.GetAsync("/api/permissions")).Data<List<PermissionDto>>().Select(p => p.Code)); // the module permission is not offered while its module is off
     }
 
     [Theory]
@@ -173,7 +173,7 @@ public class RolesApiTests(ApiFixture fixture)
             Assert.Equal(Messages.AdminCoreIsAdministratorOnly, (await admin.ReplaceAsync(other, [.. other.Permissions.Union(AdminCore)]))
                 .ShouldBeProblem(HttpStatusCode.Conflict).Detail);
 
-        Assert.Equal(PermissionCatalog.Codes, (await admin.GetAsync($"/api/roles/{adminRole.Id}")).Data<RoleDto>().Permissions);
+        Assert.Equal(PermissionCatalog.Codes.Except([Permissions.AccountingExport]), (await admin.GetAsync($"/api/roles/{adminRole.Id}")).Data<RoleDto>().Permissions); // the Administrator role holds every code; one of a module that is off is kept but not shown
     }
 
     [Fact]

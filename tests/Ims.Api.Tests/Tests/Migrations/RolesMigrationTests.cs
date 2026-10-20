@@ -22,7 +22,7 @@ public class RolesMigrationTests
     private const string Widened = "approval-rules.widened";
 
     /// <summary>The permissions the catalog gained after this migration, each with a data migration of its own: a database at this migration does not hold them yet.</summary>
-    private static readonly string[] AddedLater = [Permissions.ModulesManage];
+    private static readonly string[] AddedLater = [Permissions.ModulesManage, Permissions.AccountingExport];
     private const int Standard = (int)ApproverTier.Standard;
     private const int Large = (int)ApproverTier.Large;
 

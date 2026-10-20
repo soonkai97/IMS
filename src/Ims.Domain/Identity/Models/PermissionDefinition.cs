@@ -18,6 +18,9 @@ public sealed class PermissionDefinition(string Code, PermissionGroup Group, str
     /// <summary>Part of the administrability core: the Admin role always holds it, so the system can always be administered.</summary>
     public bool AdminCore { get; init; }
 
+    /// <summary>The module this permission belongs to (a code of <see cref="ModuleCatalog"/>); null for a core permission. While the module is off the permission is not offered for granting, and what a role already holds of it is kept, hidden.</summary>
+    public string? Module { get; init; }
+
     /// <summary>Codes that must be granted together with this one.</summary>
     public IReadOnlyList<string> Requires { get; init; } = [];
 }

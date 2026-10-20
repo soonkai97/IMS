@@ -71,6 +71,28 @@ public class ModuleGateTests
         Assert.Equal(expectedOffenders, ModuleControllerOffenders(file).Count());
     }
 
+    [Fact]
+    public void EveryEndpoint_GuardedByAModulePermission_AlsoCarriesRequiresModuleForThatModule()
+    {
+        Verify.NoOffenders(ModulePermissionOffenders(SourceFiles.In("Ims.Api").Select(f => (Path: f.RelativePath, f.Root))),
+            "An endpoint guarded by a permission that belongs to a module needs [RequiresModule(<that module>)] on the action or its controller, wherever the file sits:");
+    }
+
+    [Theory]
+    [InlineData("class C { [HttpGet, Authorize(Policy = Permissions.AccountingExport)] public void A() { } }", 1)]
+    [InlineData("[RequiresModule(ModuleCodes.Accounting)] class C { [HttpGet, Authorize(Policy = Permissions.AccountingExport)] public void A() { } }", 0)]
+    [InlineData("class C { [HttpGet, RequiresModule(ModuleCodes.Accounting), Authorize(Policy = Permissions.AccountingExport)] public void A() { } }", 0)]
+    [InlineData("class C { [HttpGet, Authorize(Policy = \"accounting.export\")] public void A() { } }", 1)]
+    [InlineData("[Authorize(Policy = Permissions.AccountingExport)] class C { }", 1)]
+    [InlineData("[RequiresModule(\"other\")] class C { [Authorize(Policy = Permissions.AccountingExport)] public void A() { } }", 1)]
+    [InlineData("class C { [HttpGet, Authorize(Policy = Permissions.StockRead)] public void A() { } }", 0)]
+    public void Detector_FlagsAModulePermissionOutsideItsGate(string code, int expectedOffenders)
+    {
+        var file = new[] { (Path: "Ims.Api/Features/Reports/C.cs", Root: (SyntaxNode)CSharpSyntaxTree.ParseText(code).GetRoot()) };
+
+        Assert.Equal(expectedOffenders, ModulePermissionOffenders(file).Count());
+    }
+
     // ----- helpers -----
     private static IEnumerable<string> ModuleControllerOffenders(IEnumerable<SourceFile> files) =>
         ModuleControllerOffenders(files.Select(f => (Path: f.RelativePath, f.Root)));
@@ -88,6 +110,28 @@ public class ModuleGateTests
                 if (!RequiredModules(controller).Any(r => r.Code == module.Code))
                     yield return $"{path}  {controller.Identifier.Text} needs [RequiresModule({module.Code})]";
         }
+    }
+
+    /// <summary>Every <c>[Authorize(Policy = X)]</c> whose permission X belongs to a module, on a member or class that has no <c>[RequiresModule]</c> for that module (itself or an enclosing class).</summary>
+    private static IEnumerable<string> ModulePermissionOffenders(IEnumerable<(string Path, SyntaxNode Root)> files)
+    {
+        foreach (var (path, root) in files)
+            foreach (var attribute in root.DescendantNodes().OfType<AttributeSyntax>().Where(a => LastName(a.Name) is "Authorize" or "AuthorizeAttribute"))
+            {
+                var policy = attribute.ArgumentList?.Arguments.FirstOrDefault(a => a.NameEquals?.Name.Identifier.Text == "Policy")?.Expression;
+                var code = policy switch
+                {
+                    LiteralExpressionSyntax literal => literal.Token.ValueText,
+                    MemberAccessExpressionSyntax { Expression: var owner } access when LastName(owner) == nameof(Permissions) =>
+                        typeof(Permissions).GetField(access.Name.Identifier.Text, BindingFlags.Public | BindingFlags.Static)?.GetRawConstantValue() as string,
+                    _ => null
+                };
+                if (code is null || PermissionCatalog.Find(code)?.Module is not { } module) continue;
+
+                var owners = attribute.Ancestors().OfType<MemberDeclarationSyntax>(); // the action, then the classes around it
+                var gated = owners.SelectMany(o => o.AttributeLists).Any(list => RequiredModules(list).Any(r => r.Code == module));
+                if (!gated) yield return $"{path}  Authorize({code}) needs [RequiresModule({module})]";
+            }
     }
 
     /// <summary>The attributes <c>[RequiresModule(..)]</c> under <paramref name="root"/> with the code they name: a string literal, or a constant of <see cref="ModuleCodes"/>.</summary>

@@ -14,9 +14,9 @@ public partial class PermissionCatalogTests
         .Select(f => (string)f.GetRawConstantValue()!).ToList();
 
     [Fact]
-    public void TheCatalogHasTheTwentyTwoPermissions_TheTwentyOneOfTheAdrAndModulesManage()
+    public void TheCatalogHasTheTwentyThreePermissions_TheTwentyOneOfTheAdr_ModulesManage_AndAccountingExport()
     {
-        Assert.Equal(22, PermissionCatalog.All.Count);
+        Assert.Equal(23, PermissionCatalog.All.Count);
     }
 
     [Fact]
@@ -130,6 +130,31 @@ public partial class PermissionCatalogTests
             Assert.DoesNotContain(Permissions.ModulesManage, SystemRoleDefaults.For(role));
     }
 
+    [Fact]
+    public void AccountingExport_BelongsToTheAccountingModule_RequiresCostView_IsNotDangerous_AndIsHeldByTheAdminAndTheOwnerOnly()
+    {
+        var entry = PermissionCatalog.Find(Permissions.AccountingExport)!;
+
+        Assert.Equal(ModuleCodes.Accounting, entry.Module);
+        Assert.Equal([Permissions.CostView], entry.Requires); // the file carries cost, so whoever holds it already holds the dangerous cost.view
+        // Decision (PL1.2): not dangerous. The ADR does not flag it; it reads, changes nothing, is audited (PL1.6), and cannot be held without cost.view, which already is dangerous, so it
+        // gives no reach beyond what the dangerous cost.view grants. Pinned with TheDangerousPermissions_ArePinned, so flagging it later is a visible one-line diff.
+        Assert.False(entry.IsDangerous);
+        Assert.False(entry.AdminCore);
+        foreach (var role in new[] { Roles.Admin, Roles.Owner })
+            Assert.Contains(Permissions.AccountingExport, SystemRoleDefaults.For(role));
+        foreach (var role in new[] { Roles.Supervisor, Roles.WarehouseStaff, Roles.Clerk })
+            Assert.DoesNotContain(Permissions.AccountingExport, SystemRoleDefaults.For(role));
+    }
+
+    [Fact]
+    public void EveryModuleOfAPermissionIsAModuleOfTheCatalog_AndCoreEntriesHaveNone()
+    {
+        foreach (var entry in PermissionCatalog.All.Where(p => p.Module is not null))
+            Assert.True(ModuleCatalog.IsKnown(entry.Module!), $"{entry.Code} names unknown module {entry.Module}");
+        Assert.Equal([Permissions.AccountingExport], PermissionCatalog.All.Where(p => p.Module is not null).Select(p => p.Code)); // pinned: adding one is a visible diff
+    }
+
     // ----- the defaults of the system roles -----
     [Fact]
     public void EverySystemRoleDefault_IsInTheCatalog_AndClosedUnderRequires()
@@ -163,7 +188,7 @@ public partial class PermissionCatalogTests
     public void TheDefaultsOfTheOtherFourRoles_AreExactlyThoseOfTheAdr()
     {
         Assert.Equal(
-            new[] { Permissions.MasterDataRead, Permissions.DocumentApproveLarge, Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead, Permissions.CostView, Permissions.ValuationView }.Order(StringComparer.Ordinal),
+            new[] { Permissions.MasterDataRead, Permissions.DocumentApproveLarge, Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead, Permissions.CostView, Permissions.ValuationView, Permissions.AccountingExport }.Order(StringComparer.Ordinal),
             SystemRoleDefaults.For(Roles.Owner).Order(StringComparer.Ordinal));
         Assert.Equal(
             new[]
