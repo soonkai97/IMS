@@ -188,6 +188,47 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Uom).WithMany().HasForeignKey(x => x.UomId).OnDelete(DeleteBehavior.Restrict);
         });
+        // Purchase orders (module purchasing): their own tables, never a StockDocument type (plan D2).
+        b.Entity<PurchaseOrder>(e =>
+        {
+            e.HasIndex(x => x.No).IsUnique();
+            // The list by status, newest first (Id DESC), and the count of open orders that blocks switching the module off: one seek on the (few) live orders of a status.
+            e.HasIndex(x => new { x.Status, x.Id }).IsDescending(false, true).IncludeProperties(x => x.WarehouseId).HasFilter(LiveRows);
+            e.Property(x => x.No).HasMaxLength(Limits.DocumentNoMaxLength);
+            e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
+            e.Property(x => x.RejectionReason).HasMaxLength(Limits.RemarkMaxLength);
+            e.Property(x => x.CancelReason).HasMaxLength(Limits.RemarkMaxLength);
+            e.Property(x => x.CloseReason).HasMaxLength(Limits.RemarkMaxLength);
+            e.Ignore(x => x.TotalAmount);
+            e.HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Supplier).WithMany().HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedBy).OnDelete(DeleteBehavior.Restrict);
+            // The workflow columns are nullable and filled by later steps: their foreign-key indexes hold only the rows that have a value.
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.SubmittedBy).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.SubmittedBy).HasFilter("[SubmittedBy] IS NOT NULL");
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.ApprovedBy).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.ApprovedBy).HasFilter("[ApprovedBy] IS NOT NULL");
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.RejectedBy).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.RejectedBy).HasFilter("[RejectedBy] IS NOT NULL");
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.ClosedBy).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.ClosedBy).HasFilter("[ClosedBy] IS NOT NULL");
+            e.HasMany(x => x.Lines).WithOne(x => x.PurchaseOrder).HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.Cascade);
+            e.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+        b.Entity<PurchaseOrderLine>(e =>
+        {
+            e.Property(x => x.Qty).HasColumnType(SqlTypes.Quantity);
+            e.Property(x => x.BaseQty).HasColumnType(SqlTypes.Quantity);
+            e.Property(x => x.UnitPrice).HasColumnType(SqlTypes.Money);
+            e.Property(x => x.Amount).HasColumnType(SqlTypes.Money);
+            e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
+            // Not unique on (order, line number): a save replaces the lines, and the old rows are soft-deleted in the same statement batch that inserts the new ones.
+            // The foreign-key index on the order stays unfiltered (a physical delete must find soft-deleted lines too); the product index is the foreign-key index of the product
+            // and the covering index of the on-order sum (open lines of a product, by base quantity) of the reorder list.
+            e.HasIndex(x => x.ProductId).IncludeProperties(x => new { x.PurchaseOrderId, x.BaseQty });
+            e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Uom).WithMany().HasForeignKey(x => x.UomId).OnDelete(DeleteBehavior.Restrict);
+        });
         b.Entity<StockLedgerEntry>(e =>
         {
             e.Property(x => x.QtyDelta).HasColumnType(SqlTypes.Quantity);
@@ -342,6 +383,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         int? userId = current is { IsAuthenticated: true } ? current.UserId : null;
         var now = clock.UtcNow;
         TouchDocumentsWithChangedLines();
+        TouchPurchaseOrdersWithChangedLines();
         TouchRolesWithChangedGrants();
 
         foreach (var e in ChangeTracker.Entries<AuditableEntity>().ToList())
@@ -388,6 +430,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
 
         foreach (var document in ChangeTracker.Entries<StockDocument>().Where(d => d.State == EntityState.Unchanged && documentIds.Contains(d.Entity.Id)))
             document.Property(nameof(AuditableEntity.RecRevDate)).IsModified = true;
+    }
+
+    /// <summary>The same for a purchase order and its lines: an edit that only replaces lines must still move the order's ROW_VERSION, or its concurrency token would not notice it.</summary>
+    private void TouchPurchaseOrdersWithChangedLines()
+    {
+        var orderIds = ChangeTracker.Entries<PurchaseOrderLine>()
+            .Where(l => l.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .Select(l => l.Property(x => x.PurchaseOrderId).CurrentValue)
+            .ToHashSet();
+        if (orderIds.Count == 0) return;
+
+        foreach (var order in ChangeTracker.Entries<PurchaseOrder>().Where(o => o.State == EntityState.Unchanged && orderIds.Contains(o.Entity.Id)))
+            order.Property(nameof(AuditableEntity.RecRevDate)).IsModified = true;
     }
 
     /// <summary>

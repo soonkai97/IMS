@@ -195,6 +195,15 @@ public static class Messages
     private static string Quantity(decimal value) => value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
     public static string PostingNotSupported(DocumentType type) => $"Posting {type} documents is not supported yet.";
 
+    // ----- Purchase orders (module purchasing) -----
+    public const string PurchaseOrderNotFound = "Purchase order not found.";
+    public const string ChooseSupplier = "Choose a supplier.";
+    public const string SupplierRequired = "A purchase order needs an active supplier.";
+    public const string PriceNegative = "Unit price cannot be negative.";
+    public const string PriceTooLarge = "Unit price cannot be more than 1,000,000,000.";
+    public const string PriceTooPrecise = "Unit price can have at most 2 decimal places.";
+    public static string PurchaseOrderNotEditable(string no, PurchaseOrderStatus status) => $"Purchase order {no} is {status} and can no longer be edited.";
+
     // ----- Stock -----
     public const string ReceiveQtyPositive = "Receive quantity must be positive.";
     public const string IssueQtyPositive = "Issue quantity must be positive.";
