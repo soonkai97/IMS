@@ -836,5 +836,22 @@ export const MS_MESSAGES: Messages = {
   'accounting.forbidden':
     'Eksport perakaunan juga memerlukan kebenaran untuk melihat kos, data induk dan laporan.',
   'accounting.download': 'Muat turun fail Excel',
-  'accounting.downloaded': 'Telah dimuat turun {name}.'
+  'accounting.downloaded': 'Telah dimuat turun {name}.',
+  // TODO-review: machine draft (PL2.7: purchase orders).
+  'nav.purchaseOrders': 'Pesanan pembelian',
+  'status.Closed': 'Ditutup',
+  'po.title': 'Pesanan pembelian',
+  'po.searchLabel': 'Cari pesanan pembelian',
+  'po.searchPlaceholder': 'Nombor pesanan',
+  'po.empty': 'Belum ada pesanan pembelian.',
+  'po.noMatch': 'Tiada pesanan pembelian sepadan dengan tapisan ini.',
+  'po.waitingForYou': 'Menunggu anda',
+  'perm.po.read': 'Lihat pesanan pembelian',
+  'perm.po.read.help':
+    'Buka pesanan pembelian bagi gudang tempat anda bekerja. Harga juga memerlukan kebenaran melihat kos unit.',
+  'perm.po.manage': 'Urus pesanan pembelian',
+  'perm.po.manage.help': 'Cipta, ubah, hantar, tarik balik, batalkan dan tutup pesanan pembelian.',
+  'module.purchasing.name': 'Pembelian',
+  'module.purchasing.description':
+    'Pesanan pembelian kepada pembekal, kelulusan pesanan besar, dan penerimaan barang terhadap pesanan.'
 };

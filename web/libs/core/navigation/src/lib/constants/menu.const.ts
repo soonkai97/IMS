@@ -30,6 +30,15 @@ export const MENU_ITEMS: readonly MenuItem[] = [
     group: 'documents'
   },
   {
+    id: 'purchase-orders',
+    labelKey: 'nav.purchaseOrders',
+    icon: 'file',
+    route: '/purchase-orders',
+    permissions: [PERMISSION.PoRead],
+    group: 'documents',
+    module: MODULE_CODE.Purchasing
+  },
+  {
     id: 'approvals',
     labelKey: 'nav.approvals',
     icon: 'check-double',

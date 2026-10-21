@@ -773,5 +773,20 @@ export const ZH_MESSAGES: Messages = {
   'accounting.dateRange': '请输入 2000 年 1 月 1 日至 2100 年 12 月 31 日之间的日期。',
   'accounting.forbidden': '会计导出还需要查看成本、主数据和报表的权限。',
   'accounting.download': '下载 Excel 文件',
-  'accounting.downloaded': '已下载 {name}。'
+  'accounting.downloaded': '已下载 {name}。',
+  // TODO-review: machine draft (PL2.7: purchase orders).
+  'nav.purchaseOrders': '采购订单',
+  'status.Closed': '已关闭',
+  'po.title': '采购订单',
+  'po.searchLabel': '搜索采购订单',
+  'po.searchPlaceholder': '订单编号',
+  'po.empty': '还没有采购订单。',
+  'po.noMatch': '没有符合这些筛选条件的采购订单。',
+  'po.waitingForYou': '等你处理',
+  'perm.po.read': '查看采购订单',
+  'perm.po.read.help': '打开你所在仓库的采购订单。价格还需要查看单位成本的权限。',
+  'perm.po.manage': '管理采购订单',
+  'perm.po.manage.help': '创建、修改、提交、撤回、取消和关闭采购订单。',
+  'module.purchasing.name': '采购',
+  'module.purchasing.description': '向供应商下采购订单、大额订单审批，以及按订单收货。'
 };

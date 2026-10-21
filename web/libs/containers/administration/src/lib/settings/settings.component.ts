@@ -20,9 +20,10 @@ import {
   I18nService,
   TranslatePipe
 } from '@ims/core/i18n';
+import { ModulesStore } from '@ims/core/identity';
 import { ToastService } from '@ims/core/notification';
 import { SystemRulesStore } from '@ims/features/administration';
-import { PublicId } from '@ims/models';
+import { MODULE_CODE, PublicId } from '@ims/models';
 import {
   SelectOption,
   TableColumn,
@@ -87,6 +88,7 @@ interface RuleFormValue {
 export class SettingsPageComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly i18n = inject(I18nService);
+  private readonly modules = inject(ModulesStore);
   private readonly store = inject(SystemRulesStore);
   private readonly toast = inject(ToastService);
 
@@ -118,9 +120,13 @@ export class SettingsPageComponent implements OnInit {
   $isLoading = this.store.settings.$isLoading;
   $isSavingSettings = this.store.saveSettings.$isRunning;
   $isSavingRule = this.store.saveRule.$isRunning;
+  /** Purchase orders have approval rules only while the purchasing module is on (the API refuses and hides them otherwise). */
   $docTypeOptions = computed<readonly SelectOption[]>(() => [
     { value: DocumentType.Issue, label: this.i18n.t('docType.Issue') },
-    { value: DocumentType.Receipt, label: this.i18n.t('docType.Receipt') }
+    { value: DocumentType.Receipt, label: this.i18n.t('docType.Receipt') },
+    ...(this.modules.isEnabled(MODULE_CODE.Purchasing)
+      ? [{ value: DocumentType.PurchaseOrder, label: this.i18n.t('docType.PurchaseOrder') }]
+      : [])
   ]);
   $tierOptions = computed<readonly SelectOption[]>(() =>
     [ApproverTier.Standard, ApproverTier.Large].map(tier => ({

@@ -21,8 +21,10 @@
   @include visually-hidden;
 }
 
+// Wraps instead of widening the page: Malay at 200% text ("Halaman 1 daripada 2" and two 44px arrows) did not fit 320px.
 .ui-pager-nav {
   display: flex;
+  flex-wrap: wrap;
   gap: space(1);
   align-items: center;
 }

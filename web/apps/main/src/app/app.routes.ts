@@ -30,6 +30,11 @@ export const APP_ROUTES: Routes = [
         loadChildren: () => import('@ims/containers/documents').then(module => module.ISSUE_ROUTES)
       },
       {
+        path: 'purchase-orders',
+        loadChildren: () =>
+          import('@ims/containers/purchasing').then(module => module.PURCHASE_ORDER_ROUTES)
+      },
+      {
         path: 'approvals',
         loadChildren: () =>
           import('@ims/containers/approvals').then(module => module.APPROVAL_ROUTES)
