@@ -65,6 +65,13 @@ describe('PURCHASE_ORDER_ROUTES (module purchasing, then permission po.read)', (
     expect(urlOf(answer())).toBe('/not-found');
   });
 
+  it('module off AND no po.read: still the not-found page, so a person without the right learns no more', () => {
+    purchasingOn = false;
+    held.add(PERMISSION.StockRead);
+
+    expect(urlOf(answer())).toBe('/not-found');
+  });
+
   it('shows the forbidden page to a user without po.read while the module is on', () => {
     held.add(PERMISSION.StockRead);
 

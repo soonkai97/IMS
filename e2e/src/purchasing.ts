@@ -1,15 +1,11 @@
 import { apiAs, type PublicId } from './api';
 import type { Role } from './config';
 
-/**
- * Helpers of the purchase-order scenarios (`42-purchase-orders`): the module state of the installation is read first and put back
- * last, and every order a scenario makes is a throw-away one that is cancelled or closed again (an open order would stop the module
- * from being switched off).
- */
+/** Helpers of `42-purchase-orders`: every order a scenario makes is cancelled again (an open order stops the module being switched off). */
 
-/** The first calls after the API started are slow (cold queries and a lock): allow 30 s for them. */
+/** The first calls after the API started are slow: allow 30 s. */
 export const SLOW = 30_000;
-/** Names of the throw-away suppliers and products, so a run that stopped half way can be found again. */
+/** Prefixes of the throw-away rows, so a run that stopped half way can be found again. */
 export const SUPPLIER_PREFIX = 'E2E PO Supplier ';
 export const SKU_PREFIX = 'E2E-PO-';
 
@@ -22,20 +18,6 @@ export interface ApiOrder {
   id: PublicId;
   no: string;
   status: string;
-  allowedActions: string[];
-  concurrencyToken: string;
-  requiresApproval: boolean;
-  totalAmount: number | null;
-  lines: {
-    lineNo: number;
-    productId: PublicId;
-    uomId: PublicId;
-    qty: number;
-    unitPrice: number | null;
-    receivedQty: number;
-    remainingQty: number;
-  }[];
-  receipts: { id: PublicId; no: string; status: string }[];
 }
 
 const admin = () => apiAs('admin');

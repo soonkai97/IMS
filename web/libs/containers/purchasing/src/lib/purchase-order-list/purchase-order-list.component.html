@@ -58,7 +58,6 @@
   [caption]="'po.title' | t"
   [loading]="$isLoading()"
   [failed]="$failed()"
-  [rowLink]="rowLink"
   (retried)="onRetry()"
 >
   <ng-template appCell="date" let-row>{{ row.createdAt | appDate }}</ng-template>

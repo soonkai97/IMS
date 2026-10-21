@@ -33,6 +33,7 @@ describe('PurchaseOrderListPageComponent', () => {
   const granted = new Set<string>();
   const items = signal<PurchaseOrderListItem[]>([ITEM]);
   const load = jest.fn<void, [PurchaseOrderQuery]>();
+  const reset = jest.fn();
   const createComponent = createComponentFactory({
     component: PurchaseOrderListPageComponent,
     detectChanges: false,
@@ -47,6 +48,7 @@ describe('PurchaseOrderListPageComponent', () => {
             $isLoading: signal(false),
             $isFailed: signal(false),
             load,
+            reset,
             reload: jest.fn()
           }
         }
@@ -77,6 +79,7 @@ describe('PurchaseOrderListPageComponent', () => {
 
   beforeEach(() => {
     load.mockClear();
+    reset.mockClear();
     granted.clear();
     items.set([ITEM]);
   });
@@ -94,7 +97,7 @@ describe('PurchaseOrderListPageComponent', () => {
   });
 
   it('shows no Amount column and no number to a person without cost.view (the API sends null)', async () => {
-    items.set([{ ...ITEM, totalAmount: undefined }]);
+    items.set([{ ...ITEM, totalAmount: null as unknown as undefined }]);
     await render();
 
     expect(headers()).not.toContain('Amount (RM)');
@@ -111,10 +114,11 @@ describe('PurchaseOrderListPageComponent', () => {
     expect(rows[1].textContent).not.toContain('Waiting for you');
   });
 
-  it('links each row to the order detail', async () => {
+  it('forgets the orders of the last user before it loads, and has no row link until the detail page ships', async () => {
     await render();
 
-    expect(spectator.query('tbody a')?.getAttribute('href')).toBe(`/purchase-orders/${ITEM.id}`);
+    expect(reset.mock.invocationCallOrder[0]).toBeLessThan(load.mock.invocationCallOrder[0]);
+    expect(spectator.query('tbody a')).toBeNull();
   });
 
   it('sends the chosen filters to the API, and Submitted is one of the statuses (approvers)', async () => {

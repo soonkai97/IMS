@@ -48,8 +48,9 @@ test.describe('Purchase orders, real API', () => {
 
   test.afterAll(async () => {
     try {
-      await setPurchasing(true, 'E2E: clean up');
-      await cancelOpenOrders();
+      if (await purchasingIsOn()) {
+        await cancelOpenOrders();
+      }
     } finally {
       await setPurchasing(data.foundOn, 'E2E: put back as found');
     }
@@ -176,7 +177,6 @@ test.describe('Purchase orders, real API', () => {
       }) => {
         await signIn('supervisor');
         await goTo(page, '/purchase-orders');
-        await expect(page.getByRole('link', { name: order.no })).toBeVisible();
         // A card (number and status, then the date, supplier, warehouse and amount), not a row of a wide table: far under a screen high.
         const card = page.locator('app-table .ui-table-row').filter({ hasText: order.no });
         await expect(card).toBeVisible();
@@ -204,28 +204,26 @@ test.describe('Purchase orders, real API', () => {
           if (language !== 'English') {
             await shell.setLanguage(language);
           }
-          for (const path of ['/purchase-orders']) {
-            await goTo(page, path);
-            await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-            await page.waitForLoadState('networkidle');
-            await page.waitForFunction(() => document.getAnimations().length === 0);
-            await page.evaluate(() => (document.documentElement.style.fontSize = '200%'));
-            expect(
-              await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
-            ).toBeLessThanOrEqual(0);
-            const edges = await page
-              .getByRole('main')
-              .locator('input, select, button')
-              .evaluateAll(items =>
-                items
-                  .filter(item => item.getBoundingClientRect().width > 0)
-                  .map(item => item.getBoundingClientRect().right)
-              );
-            for (const right of edges) {
-              expect(right).toBeLessThanOrEqual(320);
-            }
-            await page.evaluate(() => (document.documentElement.style.fontSize = ''));
+          await goTo(page, '/purchase-orders');
+          await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+          await page.waitForLoadState('networkidle');
+          await page.waitForFunction(() => document.getAnimations().length === 0);
+          await page.evaluate(() => (document.documentElement.style.fontSize = '200%'));
+          expect(
+            await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+          ).toBeLessThanOrEqual(0);
+          const edges = await page
+            .getByRole('main')
+            .locator('input, select, button')
+            .evaluateAll(items =>
+              items
+                .filter(item => item.getBoundingClientRect().width > 0)
+                .map(item => item.getBoundingClientRect().right)
+            );
+          for (const right of edges) {
+            expect(right).toBeLessThanOrEqual(320);
           }
+          await page.evaluate(() => (document.documentElement.style.fontSize = ''));
           if (language !== 'English') {
             await shell.setLanguage('English');
           }
@@ -243,23 +241,19 @@ test.describe('Purchase orders, real API', () => {
             signIn
           }) => {
             await signIn('supervisor');
-            for (const path of ['/purchase-orders']) {
-              await goTo(page, path);
-              await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-              await page.waitForLoadState('networkidle');
-              await page.waitForFunction(() => document.getAnimations().length === 0);
-              const { violations } = await new AxeBuilder({ page })
-                .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
-                .analyze();
-              const serious = violations.filter(
-                v => v.impact === 'serious' || v.impact === 'critical'
-              );
-              expect(
-                serious.map(
-                  v => `${path} ${v.id}: ${v.nodes.map(n => n.target.join(' ')).join(' | ')}`
-                )
-              ).toEqual([]);
-            }
+            await goTo(page, '/purchase-orders');
+            await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+            await page.waitForLoadState('networkidle');
+            await page.waitForFunction(() => document.getAnimations().length === 0);
+            const { violations } = await new AxeBuilder({ page })
+              .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+              .analyze();
+            const serious = violations.filter(
+              v => v.impact === 'serious' || v.impact === 'critical'
+            );
+            expect(
+              serious.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(' ')).join(' | ')}`)
+            ).toEqual([]);
           });
         });
       }
