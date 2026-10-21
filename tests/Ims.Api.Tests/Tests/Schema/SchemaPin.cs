@@ -54,6 +54,7 @@ public static class SchemaPin
         FK StockDocument(CreatedBy) -> User(Id) on delete no_action
         FK StockDocument(PartnerId) -> Partner(Id) on delete no_action
         FK StockDocument(PostedBy) -> User(Id) on delete no_action
+        FK StockDocument(PurchaseOrderId) -> PurchaseOrder(Id) on delete no_action
         FK StockDocument(RejectedBy) -> User(Id) on delete no_action
         FK StockDocument(ReversedBy) -> User(Id) on delete no_action
         FK StockDocument(SubmittedBy) -> User(Id) on delete no_action

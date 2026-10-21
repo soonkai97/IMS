@@ -30,7 +30,7 @@ public class AddPurchaseOrderApprovalRulesMigrationTests(ApiFixture fixture)
         FROM ApprovalRule WHERE DocType = 5
         """;
 
-    private static async Task MigrateAsync(TestDatabase database, string target)
+    private static async Task MigrateAsync(TestDatabase database, string? target)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(database.ConnectionString).Options;
         await using var db = new AppDbContext(options, new FrozenClock());
@@ -59,6 +59,27 @@ public class AddPurchaseOrderApprovalRulesMigrationTests(ApiFixture fixture)
     }
 
     private static Task<string?> PairOfAsync(TestDatabase database) => database.ScalarAsync<string?>(RowsSql);
+
+    /// <summary>
+    /// Takes the SHARED database down to <see cref="Before"/> and back up to the newest migration. The newest migration's Down refuses while any document or line carries a link to a purchase
+    /// order, and the purchasing test classes leave linked receipts behind (their reset cancels orders, it does not unlink receipts), so whether this passed would depend on the order xUnit runs
+    /// the classes in. It therefore (1) first leaves a linked, soft-deleted receipt behind itself, the worst case, and (2) clears every link before going down. The receipts are test data, the
+    /// links on them are not asserted by anything that runs afterwards.
+    /// </summary>
+    private static async Task MigrateSharedDownAndUpAsync(TestDatabase database)
+    {
+        await database.ExecuteAsync("""
+            INSERT PurchaseOrder (No, Status, WarehouseId, SupplierId, CreatedBy, CreatedAt, RequiresApproval, IsLarge, REC_DELETED)
+            SELECT CONCAT(N'PO-LEFT-', LEFT(CONVERT(nvarchar(36), NEWID()), 8)), 4, (SELECT TOP (1) Id FROM Warehouse), (SELECT TOP (1) Id FROM Partner), (SELECT TOP (1) Id FROM [User]), SYSUTCDATETIME(), 0, 0, 1;
+            INSERT StockDocument (Type, No, Status, WarehouseId, CreatedBy, CreatedAt, RequiresApproval, IsLarge, RequiresOverride, PurchaseOrderId, REC_DELETED)
+            SELECT 1, CONCAT(N'RCV-LEFT-', LEFT(CONVERT(nvarchar(36), NEWID()), 8)), 0, (SELECT TOP (1) Id FROM Warehouse), (SELECT TOP (1) Id FROM [User]), SYSUTCDATETIME(), 0, 0, 0, (SELECT MAX(Id) FROM PurchaseOrder), 1;
+            INSERT StockDocumentLine (DocumentId, ProductId, Qty, UomId, BaseQty, UnitCost, EnteredUnitCost, Amount, CostFromAverage, PurchaseOrderLineNo, REC_DELETED)
+            SELECT (SELECT MAX(Id) FROM StockDocument), (SELECT TOP (1) Id FROM Product), 1, (SELECT TOP (1) Id FROM Uom), 1, 1, 1, 1, 0, 1, 1;
+            """);
+        await database.ExecuteAsync("UPDATE StockDocumentLine SET PurchaseOrderLineNo = NULL WHERE PurchaseOrderLineNo IS NOT NULL; UPDATE StockDocument SET PurchaseOrderId = NULL WHERE PurchaseOrderId IS NOT NULL");
+        await MigrateAsync(database, Before);
+        await MigrateAsync(database, null); // to the newest, not to Latest: a later migration adds columns the rest of the suite reads
+    }
 
     private static Task<int> CountAsync(TestDatabase database) => database.ScalarAsync<int>("SELECT COUNT(*) FROM ApprovalRule WHERE DocType = 5");
 
@@ -162,8 +183,7 @@ public class AddPurchaseOrderApprovalRulesMigrationTests(ApiFixture fixture)
         // The Seeder again adds nothing, and the migration after the Seeder adds nothing.
         await Seeder.SeedAsync(fixture.Host.Services, development: true);
         Assert.Equal(2, await CountAsync(fixture.Database));
-        await MigrateAsync(fixture.Database, Before);
-        await MigrateAsync(fixture.Database, Latest);
+        await MigrateSharedDownAndUpAsync(fixture.Database);
         Assert.Equal(Pair, await PairOfAsync(fixture.Database));
         Assert.Equal(SeedDefaults.PurchaseOrderStandardAmount, 5000m); // the constants the Seeder uses are the ones the migration freezes
         Assert.Equal(SeedDefaults.PurchaseOrderLargeAmount, 20000m);
@@ -178,8 +198,7 @@ public class AddPurchaseOrderApprovalRulesMigrationTests(ApiFixture fixture)
         var why = $"Migration proof {Guid.NewGuid():N}"[..28];
         (await admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, why)).ShouldBeProblem(System.Net.HttpStatusCode.Conflict); // and the module cannot be switched on
 
-        await MigrateAsync(fixture.Database, Before);
-        await MigrateAsync(fixture.Database, Latest);
+        await MigrateSharedDownAndUpAsync(fixture.Database);
 
         Assert.Equal(Pair, await PairOfAsync(fixture.Database));
         (await admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, why)).ShouldBeOk();

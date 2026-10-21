@@ -53,6 +53,12 @@ public class StockDocument : PublicEntity
     public int? ReversedBy { get; private set; }
     public int? ReversesDocumentId { get; private set; }
 
+    /// <summary>
+    /// The purchase order this receipt was created from (module purchasing); null for every other document. Set once, when the receipt is created from an Approved order
+    /// (<see cref="CreateFromPurchaseOrder"/>), and never changed: no method assigns it again. Its lines then name the order's lines by <see cref="StockDocumentLine.PurchaseOrderLineNo"/>.
+    /// </summary>
+    public int? PurchaseOrderId { get; private set; }
+
     /// <summary>Why the approver allowed stock to go below zero. Entered when approving (BR-03), required when <see cref="RequiresOverride"/> is set, and read by the posting run.</summary>
     public string? NegativeStockOverrideReason { get; private set; }
 
@@ -70,6 +76,10 @@ public class StockDocument : PublicEntity
     public User? PostedByUser { get; private set; }
     public User? RejectedByUser { get; private set; }
     public User? ReversedByUser { get; private set; }
+    public PurchaseOrder? PurchaseOrder { get; private set; }
+
+    /// <summary>True for a receipt created from a purchase order: its lines must name the order's lines, and its supplier and warehouse are the order's.</summary>
+    public bool IsLinked => PurchaseOrderId is not null;
 
     public decimal TotalQty => Lines.Sum(l => l.BaseQty);
     [VisibleWith(Permissions.CostView)]
@@ -95,6 +105,15 @@ public class StockDocument : PublicEntity
             Purpose = type == DocumentType.Issue ? purpose ?? throw new DomainException(Messages.PurposeRequired) : null,
             Remark = remark, CreatedBy = createdBy, CreatedAt = now
         };
+    }
+
+    /// <summary>Opens a receipt Draft against an Approved purchase order (its warehouse and supplier, which must be loaded with it) and the link that is never changed afterwards. The lines are added separately.</summary>
+    public static StockDocument CreateFromPurchaseOrder(PurchaseOrder order, int createdBy, DateTime now)
+    {
+        if (!order.CanBeReceived) throw new DomainException(Messages.PurchaseOrderNotReceivable(order.No, order.Status));
+        var receipt = Create(DocumentType.Receipt, order.Warehouse, order.Supplier, purpose: null, remark: null, createdBy, now); // the order's own, loaded with it: they cannot be another warehouse or supplier
+        receipt.PurchaseOrderId = order.Id;
+        return receipt;
     }
 
     /// <summary>The number is allocated once (BR-11) and never changes afterwards.</summary>

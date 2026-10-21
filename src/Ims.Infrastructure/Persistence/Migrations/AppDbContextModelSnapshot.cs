@@ -1176,6 +1176,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasDefaultValueSql("NEWID()");
 
+                    b.Property<int?>("PurchaseOrderId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("Purpose")
                         .HasColumnType("int");
 
@@ -1284,6 +1287,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex("PublicId"), 90);
 
+                    b.HasIndex("PurchaseOrderId")
+                        .HasFilter("[PurchaseOrderId] IS NOT NULL");
+
                     b.HasIndex("RejectedBy");
 
                     b.HasIndex("ReversedAt")
@@ -1340,6 +1346,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PurchaseOrderLineNo")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Qty")
@@ -2064,6 +2073,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasForeignKey("PostedBy")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Ims.Domain.PurchaseOrder", "PurchaseOrder")
+                        .WithMany()
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Ims.Domain.User", "RejectedByUser")
                         .WithMany()
                         .HasForeignKey("RejectedBy")
@@ -2092,6 +2106,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Navigation("Partner");
 
                     b.Navigation("PostedByUser");
+
+                    b.Navigation("PurchaseOrder");
 
                     b.Navigation("RejectedByUser");
 

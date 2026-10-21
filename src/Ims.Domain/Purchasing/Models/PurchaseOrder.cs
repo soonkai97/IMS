@@ -59,6 +59,9 @@ public class PurchaseOrder : PublicEntity
     /// <summary>A Draft that no reviewer sent back: what a recall leaves behind, so a repeated recall (a double tap) finds it and changes nothing.</summary>
     public bool IsPlainDraft => Status == PurchaseOrderStatus.Draft && RejectionReason is null;
 
+    /// <summary>Only an Approved order can be received against (a receipt can be created from it and saved against it); the other states cannot, whatever has been received.</summary>
+    public bool CanBeReceived => Status == PurchaseOrderStatus.Approved;
+
     public PurchaseOrderActionContext ActionContext => new(Status, RequiresApproval, IsLarge, CreatedBy, SubmittedBy);
 
     /// <summary>Opens a new Draft. The number is assigned separately because allocation needs the database (BR-11).</summary>
@@ -171,7 +174,7 @@ public class PurchaseOrder : PublicEntity
 
     /// <summary>
     /// Cancels a Draft, a Submitted or an Approved order. An Approved order was released to the supplier's side of the business, so cancelling it must say why (at least
-    /// <see cref="Limits.ReasonMinLength"/> characters once trimmed); who approved and when stays as history. Once receipts exist (PL2.4) an order with one is closed, not cancelled.
+    /// <see cref="Limits.ReasonMinLength"/> characters once trimmed); who approved and when stays as history. An order with a receipt open or posted against it is not cancelled (PL2.4); the handler refuses.
     /// </summary>
     public void Cancel(string? reason)
     {

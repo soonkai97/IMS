@@ -2,6 +2,7 @@ using Ims.Api.Tests.Builders;
 using Ims.Api.Tests.Clients;
 using Ims.Api.Tests.Harness;
 using Ims.Application.Features.Catalog;
+using Ims.Application.Features.Documents;
 using Ims.Application.Features.Partners;
 using Ims.Application.Features.Purchasing;
 using Ims.Application.Features.Warehouses;
@@ -84,4 +85,26 @@ public sealed class PurchasingScenario
     }
 
     public async Task<PurchaseOrderDto> ReadAsync(Guid id, ApiClient? reader = null) => (await (reader ?? Admin).PurchaseOrders.GetAsync(id)).Data<PurchaseOrderDto>();
+
+    /// <summary>An Approved order in the default warehouse for the default supplier, made and released by the Clerk (no approval rule fires below 5,000.00). Lines: product, quantity, price, optional unit.</summary>
+    public async Task<PurchaseOrderDto> ApprovedAsync(params (Guid Product, decimal Qty, decimal Price, Guid? Uom)[] lines)
+    {
+        var builder = new PurchaseOrderBuilder(Warehouse, Reference.SupplierId);
+        foreach (var (product, qty, price, uom) in lines) builder.WithLine(product, qty, price, uom);
+        var draft = (await Clerk.PurchaseOrders.CreateAsync(builder.Build())).Data<PurchaseOrderDto>();
+        var released = (await Clerk.PurchaseOrders.SubmitAsync(draft.Id, draft.ConcurrencyToken)).Data<PurchaseOrderDto>();
+        Assert.Equal(PurchaseOrderStatus.Approved, released.Status);
+        return released;
+    }
+
+    /// <summary>Creates the Draft receipt of an order as <paramref name="by"/> (the Clerk by default).</summary>
+    public async Task<DocumentDto> ReceiptFromAsync(PurchaseOrderDto order, ApiClient? by = null) => (await (by ?? Clerk).PurchaseOrders.CreateReceiptAsync(order.Id)).Data<DocumentDto>();
+
+    /// <summary>Submits a Draft as its creator and posts it (approving first when a rule asks for it): the stock moves.</summary>
+    public async Task<DocumentDto> PostAsync(DocumentDto draft, ApiClient by) => await Stock.CompleteAsync(await Stock.SubmitAsync(by, draft));
+
+    /// <summary>A save request for a linked receipt: the draft's own header and the given lines (product, quantity, order line number, unit cost, unit).</summary>
+    public static DocumentSaveRequest Save(DocumentDto draft, params DocumentLineInput[] lines) => new(draft.WarehouseId, draft.PartnerId, null, draft.Remark, lines);
+
+    public static DocumentLineInput LineFor(Guid productId, decimal qty, int? orderLineNo, decimal? unitCost = null, Guid? uomId = null) => new(productId, qty, uomId, unitCost, null, orderLineNo);
 }

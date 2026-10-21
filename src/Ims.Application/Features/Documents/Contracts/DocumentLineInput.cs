@@ -1,3 +1,4 @@
 namespace Ims.Application.Features.Documents;
 
-public record DocumentLineInput(Guid ProductId, decimal Qty, Guid? UomId, decimal? UnitCost, string? Remark);
+/// <param name="PurchaseOrderLineNo">Only on a receipt created from a purchase order (<c>POST /api/purchase-orders/{id}/receipt</c>): the <c>lineNo</c> of the purchase order line this line receives. Every line of such a receipt must name one (a save without it is a 400 and the link is kept), the line's product and unit must be the order line's, and the quantities named for one order line must not exceed what remains of it. On any other document it must be left out (a 400 otherwise), and it is a 400 "not available" while the Purchasing module is off. The link itself is never sent and never changes: it is set when the receipt is created.</param>
+public record DocumentLineInput(Guid ProductId, decimal Qty, Guid? UomId, decimal? UnitCost, string? Remark, int? PurchaseOrderLineNo = null);

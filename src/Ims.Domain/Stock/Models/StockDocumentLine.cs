@@ -19,6 +19,13 @@ public class StockDocumentLine : Entity
     public decimal UnitCost { get; private set; }
     public string? Remark { get; private set; }
 
+    /// <summary>
+    /// The line of the purchase order (<see cref="StockDocument.PurchaseOrderId"/>) that this receipt line receives: its <c>LineNo</c>, 1 to n inside the order. Not a foreign key: an Approved order's lines
+    /// never change, so the number is stable, and the pair (order, line number) is checked when the receipt is saved. Null on every line of an unlinked document. Receipts match order lines by this
+    /// number, never by product: one product may be on several lines of an order.
+    /// </summary>
+    public int? PurchaseOrderLineNo { get; private set; }
+
     /// <summary>The average cost of the product just before this receipt line posted. Set at posting, only on receipt lines; null before that and for lines posted before it was recorded.</summary>
     [VisibleWith(Permissions.ValuationView)]
     public decimal? AvgCostBefore { get; private set; }
@@ -65,7 +72,9 @@ public class StockDocumentLine : Entity
     /// cost per base unit for stock valuation, and the line amount is computed once from the entered quantity and cost.
     /// </summary>
     /// <param name="costFromAverage">The receipt line takes the average of the product (the cost is not typed): the caller values it afterwards with <see cref="StockDocument.ApplyKnownReceiptCosts"/>. An issue is always valued at the average.</param>
-    public static StockDocumentLine Create(Product product, DocumentType documentType, decimal qty, int? uomId, decimal? unitCost, string? remark, bool costFromAverage = false)
+    /// <param name="purchaseOrderLineNo">The line of the purchase order this receipt line receives; the cost is then the order's price (typed by the caller of this method, never from the average).</param>
+    public static StockDocumentLine Create(Product product, DocumentType documentType, decimal qty, int? uomId, decimal? unitCost, string? remark, bool costFromAverage = false,
+        int? purchaseOrderLineNo = null)
     {
         product.EnsureUsableOnDocuments();
         if (qty <= 0) throw new DomainException(Messages.QtyPositive);
@@ -84,7 +93,7 @@ public class StockDocumentLine : Entity
             // Only the key is stored: the product may be a detached read copy, and assigning it as a navigation would make EF insert it again.
             ProductId = product.Id, Qty = qty, UomId = uom, BaseQty = baseQty,
             UnitCost = CostingPolicy.BaseUnitCost(documentType, typed, qty, baseQty), Remark = remark,
-            EnteredUnitCost = enteredCost, Amount = EnsureAmountFits(Money.Amount(qty, enteredCost)), CostFromAverage = fromAverage
+            EnteredUnitCost = enteredCost, Amount = EnsureAmountFits(Money.Amount(qty, enteredCost)), CostFromAverage = fromAverage, PurchaseOrderLineNo = purchaseOrderLineNo
         };
     }
 

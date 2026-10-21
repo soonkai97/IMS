@@ -80,7 +80,7 @@ Design: [adr-roles-permissions.md](adr-roles-permissions.md) (lean scope). Built
 ## Concurrency and deadlocks
 
 - Optimistic concurrency with `rowversion` on documents, balances and number sequences.
-- One global lock order: document sequence, document, balances by ascending `ProductId`, ledger. Posting applies lines in `ProductId` order.
+- One global lock order: `po:{orderId}` (PL2.4a: creating a receipt from a purchase order; PL2.4b adds cancelling the order, PL2.5 posting a linked receipt), document sequence, document, balances by ascending `ProductId`, ledger. Posting applies lines in `ProductId` order. The `po` lock is taken first, never after a stock lock, and never together with the `roles` or `modules` locks; nothing takes the sequence lock and then the `po` lock.
 - `READ_COMMITTED_SNAPSHOT` is enabled by the first migration, so readers never block writers.
 - If SQL Server still picks a victim (error 1205), hits a lock timeout (1222) or a unique key races, `ExecuteAsync` rolls back, discards tracked state and re-runs after a randomised back-off (max 5 attempts), then returns 409.
 - No blocking async calls anywhere (`.Result`, `.Wait()`): enforced by an architecture test.
