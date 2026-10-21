@@ -20,7 +20,8 @@ $password = (Get-Content $dev -Raw | ConvertFrom-Json).Seed.AdminPassword
 $login = Invoke-RestMethod -Method Post -Uri "$BaseUrl/api/auth/login" -ContentType 'application/json' -Body (@{ username = 'admin'; password = $password } | ConvertTo-Json)
 $headers = @{ Authorization = "Bearer $($login.accessToken)" }
 
-$warehouses = @((Invoke-RestMethod -Uri "$BaseUrl/api/warehouses?pageSize=50" -Headers $headers).items | Where-Object { $_.isActive })
+$all = Invoke-RestMethod -Uri "$BaseUrl/api/warehouses?pageSize=50" -Headers $headers
+$warehouses = @($all | ForEach-Object { $_ } | Where-Object { $_.isActive })
 $rows = New-Object System.Collections.Generic.List[object]
 function Measure-Call([string]$kind, [string]$warehouse, [string]$query) {
     $url = "$BaseUrl/api/purchase-orders/suggestions?warehouseId=$warehouse$query"

@@ -34,19 +34,22 @@ internal static class ReorderQuery
         public decimal Qty { get; init; }
     }
 
-    /// <summary>Per product, the base quantity still to come on the warehouse's open orders: per order line, ordered less Posted receipts (never below zero), then summed per product.</summary>
+    /// <summary>
+    /// Per product, the base quantity still to come on the warehouse's open orders: per order line, ordered less Posted receipts (never below zero), then summed per product. The receipts are summed ONCE per
+    /// (order, line number) for the open orders of the warehouse only (a seek per order on the filtered index of <c>StockDocument.PurchaseOrderId</c>) and joined to the lines, instead of one correlated sum per line.
+    /// </summary>
     private static IQueryable<OnOrder> OnOrderOf(AppDbContext db, int warehouseId)
     {
         var open = ReorderRule.OnOrderStatuses;
-        return db.Set<PurchaseOrderLine>()
-            .Where(l => l.PurchaseOrder.WarehouseId == warehouseId && open.Contains(l.PurchaseOrder.Status))
-            .Select(l => new
-            {
-                l.ProductId,
-                Left = l.BaseQty - (db.Set<StockDocumentLine>()
-                    .Where(r => r.Document.PurchaseOrderId == l.PurchaseOrderId && r.PurchaseOrderLineNo == l.LineNo && r.Document.Status == DocumentStatus.Posted)
-                    .Sum(r => (decimal?)r.BaseQty) ?? 0m)
-            })
+        var orders = db.Set<PurchaseOrder>().Where(o => o.WarehouseId == warehouseId && open.Contains(o.Status));
+        var received = db.Set<StockDocumentLine>()
+            .Where(r => r.PurchaseOrderLineNo != null && r.Document.Status == DocumentStatus.Posted && orders.Any(o => o.Id == r.Document.PurchaseOrderId))
+            .GroupBy(r => new { OrderId = r.Document.PurchaseOrderId!.Value, LineNo = r.PurchaseOrderLineNo!.Value })
+            .Select(g => new { g.Key.OrderId, g.Key.LineNo, Qty = g.Sum(r => r.BaseQty) });
+        return (from l in db.Set<PurchaseOrderLine>().Where(l => orders.Any(o => o.Id == l.PurchaseOrderId))
+                join r in received on new { OrderId = l.PurchaseOrderId, l.LineNo } equals new { r.OrderId, r.LineNo } into joined
+                from r in joined.DefaultIfEmpty()
+                select new { l.ProductId, Left = l.BaseQty - ((decimal?)r!.Qty ?? 0m) })
             .GroupBy(x => x.ProductId)
             .Select(g => new OnOrder { ProductId = g.Key, Qty = g.Sum(x => x.Left > 0m ? x.Left : 0m) });
     }
@@ -54,8 +57,12 @@ internal static class ReorderQuery
     public static IQueryable<Row> Build(AppDbContext db, IReadOnlyCollection<int>? scope, int warehouseId, string? search)
     {
         var onOrder = OnOrderOf(db, warehouseId);
+        var text = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
 
-        var stocked = LowStockSets.LowBalances(db, scope, warehouseId)
+        // The search is applied to the products of each branch BEFORE the join to the on-order sum, not to the union: a narrow search then reads a few rows instead of every low row.
+        var lowBalances = LowStockSets.LowBalances(db, scope, warehouseId);
+        if (text is not null) lowBalances = lowBalances.Where(b => b.Product.Sku.Contains(text) || b.Product.Name.Contains(text));
+        var stocked = lowBalances
             .GroupJoin(onOrder, b => b.ProductId, o => o.ProductId, (b, o) => new { Balance = b, Orders = o })
             .SelectMany(x => x.Orders.DefaultIfEmpty(), (x, o) => new { x.Balance, OnOrder = (decimal?)o!.Qty ?? 0m })
             .Where(x => ReorderRule.TargetMultiple * x.Balance.Product.SafetyStock - x.Balance.QtyOnHand - x.OnOrder > 0m)
@@ -68,7 +75,9 @@ internal static class ReorderQuery
 
         // Never stocked in a warehouse the caller can see: on hand zero in the chosen (active) warehouse. A closed warehouse has no such row, like it raises no alert.
         var chosen = db.Set<Warehouse>().Where(w => w.Id == warehouseId && w.IsActive);
-        var neverStocked = LowStockSets.NeverStocked(db, scope)
+        var unstocked = LowStockSets.NeverStocked(db, scope);
+        if (text is not null) unstocked = unstocked.Where(p => p.Sku.Contains(text) || p.Name.Contains(text));
+        var neverStocked = unstocked
             .GroupJoin(onOrder, p => p.Id, o => o.ProductId, (p, o) => new { Product = p, Orders = o })
             .SelectMany(x => x.Orders.DefaultIfEmpty(), (x, o) => new { x.Product, OnOrder = (decimal?)o!.Qty ?? 0m })
             .Where(x => ReorderRule.TargetMultiple * x.Product.SafetyStock - x.OnOrder > 0m)
@@ -79,13 +88,7 @@ internal static class ReorderQuery
                 QtyOnHand = 0m, SafetyStock = x.Product.SafetyStock, OnOrderQty = x.OnOrder, AvgCost = null
             });
 
-        var rows = stocked.Concat(neverStocked);
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var text = search.Trim();
-            rows = rows.Where(r => r.Sku.Contains(text) || r.ProductName.Contains(text));
-        }
-        return rows;
+        return stocked.Concat(neverStocked);
     }
 
     /// <summary>By SKU (unique): a total order inside one warehouse, so no row repeats or is skipped between pages.</summary>
