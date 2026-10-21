@@ -19,4 +19,10 @@ public interface IReceiptLinkRules
     /// </summary>
     /// <exception cref="ValidationException">Names every order line that is over, with the remaining quantity (400).</exception>
     Task EnsureWithinRemainingAsync(PurchaseOrder order, IReadOnlyList<StockDocumentLine> lines, CancellationToken ct);
+
+    /// <summary>
+    /// Submitting a linked receipt asks the same again, in words: the module is on, the order is still Approved and every line is within what remains (PL2.5 acceptance 9). Quantities only; nothing is
+    /// reserved, and approval re-checks nothing: posting decides under the order's lock. Does nothing for a receipt that is not linked.
+    /// </summary>
+    Task EnsureCanSubmitAsync(StockDocument draft, CancellationToken ct);
 }

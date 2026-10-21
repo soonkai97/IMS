@@ -159,7 +159,7 @@ public class PurchaseOrderReceivingTests(ApiFixture fixture) : IAsyncLifetime
         await using var rule = state == "approved" ? await ApprovalRuleScope.AddAsync(_p.Admin, DocumentType.Receipt, null, 1m, Roles.Supervisor) : null;
         if (state is "submitted" or "approved") receipt = (await _p.Clerk.Documents.SubmitAsync(receipt.Id, receipt.ConcurrencyToken)).Data<DocumentDto>();
         if (state == "approved") receipt = (await _p.Supervisor.Documents.ApproveAsync(receipt.Id, receipt.ConcurrencyToken)).Data<DocumentDto>();
-        if (state == "posted") receipt = await _p.PostAsync(receipt, _p.Clerk);
+        if (state == "posted") receipt = await _p.PostAsync((await _p.Clerk.Documents.UpdateAsync(receipt.Id, Save(receipt, LineFor(_a.Id, 6m, 1)), receipt.ConcurrencyToken)).Data<DocumentDto>(), _p.Clerk); // 6 of 10: the order stays open
 
         var problem = (await _p.Admin.PurchaseOrders.CancelAsync(order.Id, "Supplier cannot deliver", order.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Conflict);
 

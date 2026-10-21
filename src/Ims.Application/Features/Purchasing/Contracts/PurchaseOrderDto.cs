@@ -9,6 +9,8 @@ namespace Ims.Application.Features.Purchasing;
 /// <param name="IsLarge">The rule that fired needs the large tier (the Owner), not a Supervisor.</param>
 /// <param name="IsReturned">A Draft that a reviewer sent back (<c>RejectionReason</c> holds why, <c>ReturnedBy*</c> who).</param>
 /// <param name="ApprovedBy">Who approved it; null for an order released at once (no rule fired): it is Approved with no approver, and <c>approvedAt</c> is when it was released.</param>
+/// <param name="ClosedAt">When a Closed order was closed; null otherwise.</param>
+/// <param name="CloseKind">How it was closed: <c>Received</c> (the last quantity was received, by posting) or <c>Short</c> (a person closed it with <c>closeReason</c>). Null while not Closed.</param>
 /// <param name="TotalQty">The total base quantity: what a quantity rule of the approval rules is tested against.</param>
 /// <param name="TotalAmount">The sum of the line amounts, in money. Null for a caller without <c>cost.view</c>.</param>
 /// <param name="AllowedActions">What the caller may do right now (edit, submit, recall, approve, reject, cancel). The UI shows buttons from this list only. It already accounts for ownership, the approver the order is routed to (the Owner reviews only <c>isLarge</c> orders, a Supervisor the rest) and self-approval, so a listed action is one the API will accept.</param>
@@ -22,7 +24,7 @@ namespace Ims.Application.Features.Purchasing;
 public record PurchaseOrderDto(Guid Id, string No, PurchaseOrderStatus Status, Guid WarehouseId, string WarehouseName, Guid SupplierId, string SupplierName, string? Remark,
     Guid CreatedById, string CreatedBy, string CreatedByName, DateTime CreatedAt,
     bool RequiresApproval, bool IsLarge, bool IsReturned, string? RejectionReason, string? CancelReason,
-    DateTime? SubmittedAt, DateTime? ApprovedAt, DateTime? ReturnedAt,
+    DateTime? SubmittedAt, DateTime? ApprovedAt, DateTime? ReturnedAt, DateTime? ClosedAt, PurchaseOrderCloseKind? CloseKind, string? CloseReason,
     decimal TotalQty, [property: VisibleWith(Permissions.CostView)] decimal? TotalAmount, IReadOnlyList<PurchaseOrderLineDto> Lines,
     [property: JsonIgnore] byte[] RowVersion, [property: JsonIgnore] int Key, [property: JsonIgnore] int CreatedByKey, [property: JsonIgnore] int? SubmittedByKey,
     [property: JsonIgnore] int? ApprovedByKey, [property: JsonIgnore] int? ReturnedByKey)

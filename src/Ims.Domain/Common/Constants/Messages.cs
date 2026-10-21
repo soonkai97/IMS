@@ -229,7 +229,12 @@ public static class Messages
     public static string PurchaseOrderNothingToReceive(string no) => $"Purchase order {no} has nothing left to receive.";
     public static string PurchaseOrderHasReceipts(string no, string receiptNo, DocumentStatus receiptStatus, int count) =>
         $"Purchase order {no} cannot be cancelled while receipt {receiptNo} ({receiptStatus}) is linked to it" + (count > 1 ? $" (and {count - 1} more)" : "") +
-        (receiptStatus == DocumentStatus.Posted ? ". It already added stock: reverse it first." : ". Cancel that receipt first.");
+        (receiptStatus == DocumentStatus.Posted ? ". It already added stock: reverse it first, or close the order short." : ". Cancel that receipt first.");
+    public static string PurchaseOrderCannotClose(PurchaseOrderStatus status) => $"Only an Approved purchase order can be closed (current: {status}).";
+    public const string PurchaseOrderCloseReasonRequired = "A reason is required to close a purchase order short.";
+    public static string PurchaseOrderHasOpenReceipts(string no, string receiptNo, DocumentStatus receiptStatus, int count) =>
+        $"Purchase order {no} cannot be closed while receipt {receiptNo} ({receiptStatus}) is waiting" + (count > 1 ? $" (and {count - 1} more)" : "") + ". Post or cancel it first.";
+    public const string ReceiptCannotPostModuleOff = "This receipt belongs to a purchase order, and the Purchasing module is off. Turn the module on to post it.";
     public const string ReceiptNeedsPoRead = "This receipt belongs to a purchase order, so changing it needs the permission to read purchase orders.";
     public const string ReceiptModuleOff = "This receipt belongs to a purchase order, and the Purchasing module is off. Turn the module on to change it.";
     public const string ReceiptNotLinked = "This receipt is not linked to a purchase order, so a line cannot name a purchase order line. Create the receipt from the purchase order instead.";

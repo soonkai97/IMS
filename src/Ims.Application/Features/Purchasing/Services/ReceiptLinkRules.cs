@@ -17,6 +17,15 @@ public class ReceiptLinkRules(IReadRepository<PurchaseOrder> orders, IPurchaseOr
         return order;
     }
 
+    public async Task EnsureCanSubmitAsync(StockDocument draft, CancellationToken ct)
+    {
+        if (draft.PurchaseOrderId is not { } key) return;
+        if (!await modules.IsEnabledAsync(ModuleCodes.Purchasing, ct)) throw new ConflictException(Messages.ReceiptModuleOff);
+        var order = await orders.FirstOrDefaultAsync(new PurchaseOrderForReceiptSpec(key), ct) ?? throw new NotFoundException(Messages.PurchaseOrderNotFound);
+        if (!order.CanBeReceived) throw new ConflictException(Messages.PurchaseOrderNotReceivable(order.No, order.Status));
+        await EnsureWithinRemainingAsync(order, draft.Lines.ToList(), ct);
+    }
+
     public async Task EnsureWithinRemainingAsync(PurchaseOrder order, IReadOnlyList<StockDocumentLine> lines, CancellationToken ct)
     {
         var received = await receiving.ReceivedAsync(order.Id, ct);

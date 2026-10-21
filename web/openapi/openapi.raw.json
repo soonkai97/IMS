@@ -2647,6 +2647,68 @@
         }
       }
     },
+    "/api/purchase-orders/{id}/close": {
+      "post": {
+        "tags": [
+          "PurchaseOrders"
+        ],
+        "summary": "Closes an Approved order short: what is still to come will not come. A reason of at least 5 characters is required, and no receipt of the order may be waiting (Draft, Submitted or Approved): post or\r\ncancel it first. What was received stays. A closed order cannot be received against, and is not reopened by a reversal. An order whose last quantity is received closes itself.",
+        "operationId": "PurchaseOrders_close",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/purchase-orders/{id}/receipt": {
       "post": {
         "tags": [
@@ -4960,6 +5022,21 @@
           }
         }
       },
+      "CloseRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why what is still to come will not come: required, at least 5 characters once trimmed."
+          }
+        }
+      },
       "DocumentCounts": {
         "required": [
           "returnedToMe",
@@ -6825,6 +6902,13 @@
         "type": "string",
         "description": "Sort keys the products list accepts. Only these are allowed, so a client cannot sort on an unindexed column."
       },
+      "PurchaseOrderCloseKind": {
+        "enum": [
+          "Received",
+          "Short"
+        ],
+        "type": "string"
+      },
       "PurchaseOrderDto": {
         "required": [
           "id",
@@ -6847,6 +6931,9 @@
           "submittedAt",
           "approvedAt",
           "returnedAt",
+          "closedAt",
+          "closeKind",
+          "closeReason",
           "totalQty",
           "totalAmount",
           "lines",
@@ -6945,6 +7032,31 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "closedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When a Closed order was closed; null otherwise.",
+            "format": "date-time"
+          },
+          "closeKind": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "How it was closed: `Received` (the last quantity was received, by posting) or `Short` (a person closed it with `closeReason`). Null while not Closed.",
+                "$ref": "#/components/schemas/PurchaseOrderCloseKind"
+              }
+            ]
+          },
+          "closeReason": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "totalQty": {
             "type": "number",

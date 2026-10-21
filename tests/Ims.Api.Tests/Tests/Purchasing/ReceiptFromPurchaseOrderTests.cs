@@ -118,10 +118,11 @@ public class ReceiptFromPurchaseOrderTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal((b.Id, 3m, 2), (line.ProductId, line.Qty, line.PurchaseOrderLineNo));
         Assert.NotEqual(first.Id, second.Id);
 
-        // receive the rest: nothing is left
+        // receive the rest: nothing is left, and the order closed itself
         await _p.PostAsync(second, _p.Clerk);
         var problem = (await _p.Clerk.PurchaseOrders.CreateReceiptAsync(order.Id)).ShouldBeProblem(HttpStatusCode.Conflict);
-        Assert.Contains("nothing left to receive", problem.Detail);
+        Assert.Contains("is Closed", problem.Detail); // the last quantity closed the order
+        Assert.Equal(PurchaseOrderStatus.Closed, (await _p.ReadAsync(order.Id)).Status);
     }
 
     [Fact]

@@ -11,6 +11,7 @@ public static class ProblemExtensions
     public const string Code = "code";
     /// <summary>The products a blocked reversal would push below zero.</summary>
     public const string Shortages = "shortages";
+    public const string OverReceiptLines = "lines";
     /// <summary>Display name of the user who last changed a document that went stale, and when (UTC).</summary>
     public const string ChangedBy = "changedBy";
     public const string ChangedAt = "changedAt";

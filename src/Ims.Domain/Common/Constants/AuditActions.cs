@@ -43,6 +43,7 @@ public static class AuditActions
     public const string PurchaseOrderRejected = "purchase-order.rejected";
     public const string PurchaseOrderRecalled = "purchase-order.recalled";
     public const string PurchaseOrderCancelled = "purchase-order.cancelled";
+    public const string PurchaseOrderClosed = "purchase-order.closed";
 
     public const string AttachmentUploaded = "attachment.uploaded";
     public const string AttachmentDeleted = "attachment.deleted";
@@ -60,7 +61,7 @@ public static class AuditActions
     public static readonly IReadOnlyList<string> Known =
     [
         RowCreated, RowUpdated, RowDeleted, LoginSuccess, LoginFailed, LoginLocked, LoginLockout, Logout, UserCreated, UserUpdated, PasswordChanged, RoleCreated, RoleUpdated, RolePermissionsChanged, RoleDeleted,
-        SettingsUpdated, ModuleEnabled, ModuleDisabled, AccountingExported, DocumentCreated, DocumentSubmitted, DocumentApproved, DocumentRejected, DocumentRecalled, DocumentCancelled, DocumentPosted, DocumentReversed, PurchaseOrderCreated, PurchaseOrderUpdated, PurchaseOrderSubmitted, PurchaseOrderApproved, PurchaseOrderRejected, PurchaseOrderRecalled, PurchaseOrderCancelled,
+        SettingsUpdated, ModuleEnabled, ModuleDisabled, AccountingExported, DocumentCreated, DocumentSubmitted, DocumentApproved, DocumentRejected, DocumentRecalled, DocumentCancelled, DocumentPosted, DocumentReversed, PurchaseOrderCreated, PurchaseOrderUpdated, PurchaseOrderSubmitted, PurchaseOrderApproved, PurchaseOrderRejected, PurchaseOrderRecalled, PurchaseOrderCancelled, PurchaseOrderClosed,
         AttachmentUploaded, AttachmentDeleted, ImportProducts, ImportOpeningStock, ApprovalRulesWidened
     ];
 }

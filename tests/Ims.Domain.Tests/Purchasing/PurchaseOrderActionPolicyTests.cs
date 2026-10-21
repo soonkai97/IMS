@@ -121,7 +121,7 @@ public class PurchaseOrderActionPolicyTests
         Assert.DoesNotContain(DocumentActions.Cancel, theirs);
     }
 
-    // ----- Approved: only the reviewers it is routed to cancel it; nobody recalls or edits -----
+    // ----- Approved: only the reviewers it is routed to cancel it; any po.manage holder closes it short (PL2.5); nobody recalls or edits -----
     [Theory]
     [InlineData(Roles.Admin, false, true)]
     [InlineData(Roles.Admin, true, true)]
@@ -131,20 +131,24 @@ public class PurchaseOrderActionPolicyTests
     [InlineData(Roles.Owner, true, true)]
     [InlineData(Roles.Clerk, false, false)]
     [InlineData(Roles.WarehouseStaff, true, false)]
-    public void An_approved_order_is_cancelled_only_by_a_reviewer_of_its_tier(string role, bool isLarge, bool mayCancel)
+    public void An_approved_order_is_cancelled_only_by_a_reviewer_of_its_tier_and_closed_short_by_a_manager(string role, bool isLarge, bool mayCancel)
     {
         var actions = Actions(role, Order(PurchaseOrderStatus.Approved, requiresApproval: true, isLarge: isLarge));
 
-        Assert.Equal(mayCancel ? Sorted(DocumentActions.Cancel) : [], actions);
+        var mayClose = role is Roles.Admin or Roles.Supervisor or Roles.Clerk; // po.manage
+        var expected = new List<string>();
+        if (mayCancel) expected.Add(DocumentActions.Cancel);
+        if (mayClose) expected.Add(DocumentActions.Close);
+        Assert.Equal(Sorted([.. expected]), actions);
     }
 
     [Fact]
-    public void An_order_released_at_once_is_standard_so_a_supervisor_cancels_it_and_its_clerk_maker_cannot()
+    public void An_order_released_at_once_is_standard_so_a_supervisor_cancels_it_and_its_clerk_maker_can_only_close_it()
     {
         var released = Order(PurchaseOrderStatus.Approved, requiresApproval: false, createdBy: Me, submittedBy: Me);
 
-        Assert.Equal(Sorted(DocumentActions.Cancel), Actions(Roles.Supervisor, released));
-        Assert.Empty(Actions(Roles.Clerk, released));
+        Assert.Equal(Sorted(DocumentActions.Cancel, DocumentActions.Close), Actions(Roles.Supervisor, released));
+        Assert.Equal(Sorted(DocumentActions.Close), Actions(Roles.Clerk, released));
     }
 
     [Theory]
