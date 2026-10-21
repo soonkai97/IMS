@@ -227,6 +227,9 @@ public static class Messages
     // ----- Receiving against a purchase order (PL2.4) -----
     public static string PurchaseOrderNotReceivable(string no, PurchaseOrderStatus status) => $"Purchase order {no} is {status}. Only an Approved purchase order can be received.";
     public static string PurchaseOrderNothingToReceive(string no) => $"Purchase order {no} has nothing left to receive.";
+    public static string PurchaseOrderHasReceipts(string no, string receiptNo, DocumentStatus receiptStatus, int count) =>
+        $"Purchase order {no} cannot be cancelled while receipt {receiptNo} ({receiptStatus}) is linked to it" + (count > 1 ? $" (and {count - 1} more)" : "") +
+        (receiptStatus == DocumentStatus.Posted ? ". It already added stock: reverse it first." : ". Cancel that receipt first.");
     public const string ReceiptNeedsPoRead = "This receipt belongs to a purchase order, so changing it needs the permission to read purchase orders.";
     public const string ReceiptModuleOff = "This receipt belongs to a purchase order, and the Purchasing module is off. Turn the module on to change it.";
     public const string ReceiptNotLinked = "This receipt is not linked to a purchase order, so a line cannot name a purchase order line. Create the receipt from the purchase order instead.";
