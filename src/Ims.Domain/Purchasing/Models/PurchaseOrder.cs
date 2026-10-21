@@ -189,6 +189,36 @@ public class PurchaseOrder : PublicEntity
         CancelReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
     }
 
+    /// <summary>
+    /// Closes an Approved order because every line is fully received (plan D5): called by posting, in the same transaction as the receipt that brought in the last quantity. The poster is recorded;
+    /// there is no reason to give. A reversal of a receipt later never reopens it.
+    /// </summary>
+    public void CloseReceived(int userId, DateTime utcNow)
+    {
+        if (Status != PurchaseOrderStatus.Approved)
+            throw new DomainException(Messages.PurchaseOrderCannotClose(Status));
+        MarkClosed(PurchaseOrderCloseKind.Received, null, userId, utcNow);
+    }
+
+    /// <summary>Closes an Approved order short: what is still to come will not come. It needs a reason (at least <see cref="Limits.ReasonMinLength"/> characters once trimmed). Receipts already posted stay; the handler refuses while one is still open.</summary>
+    public void CloseShort(string? reason, int userId, DateTime utcNow)
+    {
+        if (Status != PurchaseOrderStatus.Approved)
+            throw new DomainException(Messages.PurchaseOrderCannotClose(Status));
+        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.PurchaseOrderCloseReasonRequired));
+        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
+        MarkClosed(PurchaseOrderCloseKind.Short, reason!.Trim(), userId, utcNow);
+    }
+
+    private void MarkClosed(PurchaseOrderCloseKind kind, string? reason, int userId, DateTime utcNow)
+    {
+        Status = PurchaseOrderStatus.Closed;
+        CloseKind = kind;
+        CloseReason = reason;
+        ClosedBy = userId;
+        ClosedAt = utcNow;
+    }
+
     /// <summary>The submit-time facts no longer describe a Draft; submitting again assesses the rules from scratch.</summary>
     private void ClearSubmission()
     {

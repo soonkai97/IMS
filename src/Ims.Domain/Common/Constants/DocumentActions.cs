@@ -11,4 +11,5 @@ public static class DocumentActions
     public const string Cancel = "cancel";
     public const string Post = "post";
     public const string Reverse = "reverse";
+    public const string Close = "close";
 }

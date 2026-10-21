@@ -63,6 +63,14 @@ public class PurchaseOrdersController(IDispatcher dispatcher) : ApiControllerBas
     public Task<IActionResult> Cancel(Guid id, [FromBody] CancelRequest body) => SendOrder(new CancelPurchaseOrderCommand(id, body, IfMatch));
 
     /// <summary>
+    /// Closes an Approved order short: what is still to come will not come. A reason of at least 5 characters is required, and no receipt of the order may be waiting (Draft, Submitted or Approved): post or
+    /// cancel it first. What was received stays. A closed order cannot be received against, and is not reopened by a reversal. An order whose last quantity is received closes itself.
+    /// </summary>
+    [HttpPost(RouteSegments.Close), Authorize(Policy = Permissions.PoManage)]
+    [ProducesResponseType<PurchaseOrderDto>(StatusCodes.Status200OK)]
+    public Task<IActionResult> Close(Guid id, [FromBody] CloseRequest body) => SendOrder(new ClosePurchaseOrderCommand(id, body, IfMatch));
+
+    /// <summary>
     /// Creates the Draft receipt of an Approved order: the order's warehouse and supplier, one line for every order line that still has something to receive, with the quantity that remains,
     /// the order's unit and the order's price (a caller without <c>cost.view</c> gets the receipt without prices, but the stock is valued at them). Each line names its order line in
     /// <c>purchaseOrderLineNo</c>. The receipt is then saved, submitted and posted like any other (<c>/api/documents</c>); the link never changes. The door is <c>document.create</c>; the order must be

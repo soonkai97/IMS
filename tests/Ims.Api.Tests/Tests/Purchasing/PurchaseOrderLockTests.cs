@@ -92,6 +92,43 @@ public class PurchaseOrderLockTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(PurchaseOrderStatus.Approved, (await _p.ReadAsync(order.Id)).Status);
     }
 
+
+    [Fact]
+    public async Task Posting_a_linked_receipt_waits_for_the_orders_lock_before_any_stock_lock_and_then_sees_an_order_that_was_closed_while_it_waited()
+    {
+        var product = await _p.NewProductAsync();
+        var order = await _p.ApprovedAsync((product.Id, 10m, 2m, null));
+        var receipt = await _p.Stock.SubmitAsync(_p.Clerk, await _p.ReceiptFromAsync(order));
+
+        var response = await RunWhileLockedAsync(order.Id, () => _p.Admin.Documents.PostAsync(receipt.Id),
+            async held =>
+            {
+                // lock order: the posting holds no application lock yet (no stock lock) while it waits for the order's
+                var spid = await held.ScalarAsync<int>("SELECT @@SPID");
+                Assert.Equal(0, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM sys.dm_tran_locks WHERE resource_type = N'APPLICATION' AND request_status = N'GRANT' AND request_session_id <> @spid AND resource_database_id = DB_ID()", ("@spid", spid)));
+                await held.ExecuteAsync("UPDATE PurchaseOrder SET Status = @s WHERE PublicId = @id", ("@s", (int)PurchaseOrderStatus.Closed), ("@id", order.Id)); // closed short while the receipt waited
+            },
+            "the posting did not wait for the order's lock (it must take po:{id} before the stock locks)");
+
+        Assert.Equal(Messages.PurchaseOrderNotReceivable(order.No, PurchaseOrderStatus.Closed), response.ShouldBeProblem(HttpStatusCode.Conflict).Detail);
+        Assert.Empty(await _p.Stock.LedgerAsync(product.Id, order.WarehouseId));
+    }
+
+    [Fact]
+    public async Task Closing_an_order_short_waits_for_the_orders_lock_and_then_sees_a_receipt_made_while_it_waited()
+    {
+        var order = await _p.ApprovedAsync(((await _p.NewProductAsync()).Id, 10m, 2m, null));
+        var receiptNo = Unique.Code("RCV");
+
+        var response = await RunWhileLockedAsync(order.Id, () => _p.Clerk.PurchaseOrders.CloseAsync(order.Id, "Supplier ships no more", order.ConcurrencyToken),
+            held => held.ExecuteAsync("""
+                INSERT StockDocument (Type, No, Status, WarehouseId, CreatedBy, CreatedAt, RequiresApproval, IsLarge, RequiresOverride, PurchaseOrderId)
+                SELECT @type, @no, @status, o.WarehouseId, o.CreatedBy, SYSUTCDATETIME(), 0, 0, 0, o.Id FROM PurchaseOrder o WHERE o.PublicId = @id
+                """, ("@type", (int)DocumentType.Receipt), ("@status", (int)DocumentStatus.Submitted), ("@no", receiptNo), ("@id", order.Id)),
+            "the close did not wait for the order's lock (it must take po:{id} before it looks for waiting receipts)");
+
+        Assert.Contains(receiptNo, response.ShouldBeProblem(HttpStatusCode.Conflict).Detail);
+    }
     [Fact]
     public async Task Cancelling_a_draft_order_does_not_take_the_lock_because_no_receipt_can_exist_yet()
     {

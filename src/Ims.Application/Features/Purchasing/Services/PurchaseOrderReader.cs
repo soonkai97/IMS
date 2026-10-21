@@ -20,7 +20,7 @@ public class PurchaseOrderReader(IReadRepository<PurchaseOrder> orders, IReadRep
         var withinLimit = dto.Status != PurchaseOrderStatus.Submitted || !dto.RequiresApproval ||
                           await approvals.ReviewRefusalAsync(DocumentType.PurchaseOrder, dto.IsLarge, dto.TotalQty, amount, ct) is null;
         var named = await WithReceivingAsync(await NamedAsync(dto, ct), ct);
-        return named with { ApprovalTriggers = triggers, AllowedActions = access.AllowedActions(dto, await settings.GetAsync(ct), withinLimit), ConcurrencyToken = version.Token(dto.Id, dto.RowVersion) };
+        return named with { ApprovalTriggers = triggers, AllowedActions = access.AllowedActions(named, await settings.GetAsync(ct), withinLimit), ConcurrencyToken = version.Token(dto.Id, dto.RowVersion) };
     }
 
     /// <summary>

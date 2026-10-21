@@ -1,8 +1,9 @@
+using Ims.Application.Features.Purchasing;
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 public class SubmitDocumentHandler(IRepository<StockDocument> documents, IApprovalEvaluator approvals, IIssueValuation valuation,
-    IStockAvailability availability, ISystemSettings settings, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version,
+    IStockAvailability availability, IReceiptLinkRules links, ISystemSettings settings, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version,
     ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<SubmitDocumentCommand, DocumentDto>
 {
     public async Task<DocumentDto> HandleAsync(SubmitDocumentCommand cmd, CancellationToken ct)
@@ -11,6 +12,7 @@ public class SubmitDocumentHandler(IRepository<StockDocument> documents, IApprov
         access.EnsureDocumentInScope(doc.WarehouseId);
         access.EnsureMayEditOrSubmit(doc);
         version.EnsureCurrent(doc, cmd.IfMatch);
+        await links.EnsureCanSubmitAsync(doc, ct); // a receipt from a purchase order is checked against what remains; any other document is not touched
 
         // Submission is blocked up front when stock is short, unless negative stock is allowed (OUT-02); then the shortfall is flagged
         // so it is sent to an approver, who gives the override reason when approving.

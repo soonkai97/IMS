@@ -31,6 +31,13 @@ public static class PurchaseOrderActionPolicy
         _ => true
     };
 
+    /// <summary>
+    /// Close an Approved order short (what is still to come will not come): any holder of <c>po.manage</c>, with a reason, and only once something has been received. An order with nothing received is
+    /// voided by cancelling it, so the cancel authority stays the only way to void an order. Whether a receipt is still open is the handler's to check.
+    /// </summary>
+    public static bool MayClose(ActorRights actor, in PurchaseOrderActionContext order) =>
+        order.Status == PurchaseOrderStatus.Approved && order.AnythingReceived && actor.Has(Permissions.PoManage);
+
     /// <summary>Approve or reject a Submitted order held for approval: the reviewer it is routed to, and not the submitter unless self-approval is on.</summary>
     public static bool MayReview(ActorRights actor, in PurchaseOrderActionContext order, bool allowSelfApproval)
     {
@@ -58,6 +65,7 @@ public static class PurchaseOrderActionPolicy
 
             case PurchaseOrderStatus.Approved:
                 if (MayCancel(actor, order)) actions.Add(DocumentActions.Cancel);
+                if (MayClose(actor, order)) actions.Add(DocumentActions.Close);
                 break;
         }
         return actions;

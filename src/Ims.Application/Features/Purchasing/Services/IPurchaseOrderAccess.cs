@@ -22,6 +22,14 @@ public interface IPurchaseOrderAccess
     /// <exception cref="ForbiddenException">The caller may not cancel this order now: a Draft only by its creator, a Submitted order only by its submitter, an Approved one only by a reviewer it is routed to.</exception>
     void EnsureMayCancel(PurchaseOrder order);
 
+    /// <summary>
+    /// Closing short is allowed for a holder of po.manage, only on an Approved order and only once something has been received (<see cref="PurchaseOrderActionPolicy.MayClose"/>, the rule behind the <c>close</c> action). In any other
+    /// status the state machine refuses it, so the caller is told the status. With nothing received the answer is to cancel the order, which has its own authority.
+    /// </summary>
+    /// <exception cref="ForbiddenException">The caller does not hold po.manage.</exception>
+    /// <exception cref="ConflictException">The order is Approved and nothing has been received against it.</exception>
+    void EnsureMayClose(PurchaseOrder order, bool anythingReceived);
+
     /// <summary>An order is taken back only by its submitter (with <c>po.manage</c>). A Draft counts as theirs too when they made it or last changed it (a recall names no submitter afterwards, so a retry must still be theirs).</summary>
     /// <exception cref="ForbiddenException">The caller did not submit the order.</exception>
     void EnsureMayRecall(PurchaseOrder order);

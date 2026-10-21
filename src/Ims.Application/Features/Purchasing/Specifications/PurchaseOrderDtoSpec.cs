@@ -12,7 +12,7 @@ public sealed class PurchaseOrderDtoSpec : Specification<PurchaseOrder, Purchase
             o.PublicId, o.No, o.Status, o.Warehouse.PublicId, o.Warehouse.Name, o.Supplier.PublicId, o.Supplier.Name, o.Remark,
             o.CreatedByUser.PublicId, o.CreatedByUser.Username, o.CreatedByUser.DisplayName, o.CreatedAt,
             o.RequiresApproval, o.IsLarge, o.Status == PurchaseOrderStatus.Draft && o.RejectionReason != null, o.RejectionReason, o.CancelReason,
-            o.SubmittedAt, o.ApprovedAt, o.RejectedAt,
+            o.SubmittedAt, o.ApprovedAt, o.RejectedAt, o.ClosedAt, o.CloseKind, o.CloseReason,
             o.Lines.Sum(l => l.BaseQty), o.Lines.Sum(l => l.Amount),
             o.Lines.OrderBy(l => l.LineNo).Select(l => new PurchaseOrderLineDto(l.LineNo, l.Product.PublicId, l.Product.Sku, l.Product.Name, l.Qty, l.Uom.PublicId, l.Uom.Code,
                 l.BaseQty, l.UnitPrice, l.Amount, l.Remark)).ToList(),
