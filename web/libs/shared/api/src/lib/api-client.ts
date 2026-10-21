@@ -2694,6 +2694,80 @@ export class PurchaseOrdersClient {
     }
 
     /**
+     * What to order for one warehouse (AI-02 in its simplest form): the products low there (at or below safety stock, or negative), each topped up to twice its safety level less what is on hand and still on order
+    (the remaining quantity of the Draft, Submitted and Approved orders of that warehouse, in base units). Rows with nothing to order are not listed. Read-only: to order, create an order with the normal endpoint.
+    `suggestedValue` (at the warehouse's average cost) is null without `cost.view`. 404 for a warehouse that does not exist or that the caller may not read.
+     * @param warehouseId (optional) Required: the ship-to warehouse the suggestions are for. 404 when it does not exist or the caller may not read it.
+     * @param search (optional) Products whose SKU or name contains the text (case-insensitive).
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     * @return OK
+     */
+    suggestions(warehouseId?: string | undefined, search?: string | undefined, page?: number | undefined, pageSize?: number | undefined, httpContext?: HttpContext): Observable<PagedResultOfReorderSuggestion> {
+        let url_ = this.baseUrl + "/api/purchase-orders/suggestions?";
+        if (warehouseId === null)
+            throw new globalThis.Error("The parameter 'warehouseId' cannot be null.");
+        else if (warehouseId !== undefined)
+            url_ += "WarehouseId=" + encodeURIComponent("" + warehouseId) + "&";
+        if (search === null)
+            throw new globalThis.Error("The parameter 'search' cannot be null.");
+        else if (search !== undefined)
+            url_ += "Search=" + encodeURIComponent("" + search) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processSuggestions(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processSuggestions(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PagedResultOfReorderSuggestion>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PagedResultOfReorderSuggestion>;
+        }));
+    }
+
+    protected processSuggestions(response: HttpResponseBase): Observable<PagedResultOfReorderSuggestion> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PagedResultOfReorderSuggestion;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
      * @return OK
      */
     get(id: string, httpContext?: HttpContext): Observable<PurchaseOrderDto> {
@@ -5962,6 +6036,17 @@ export interface PagedResultOfPurchaseOrderListItem {
 }
 
 /** One page of a server-side paged list. */
+export interface PagedResultOfReorderSuggestion {
+    items: ReorderSuggestion[];
+    /** Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count. */
+    total: number;
+    page: number;
+    pageSize: number;
+    /** Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it. */
+    nextCursor?: string | undefined;
+}
+
+/** One page of a server-side paged list. */
 export interface PagedResultOfStockRow {
     items: StockRow[];
     /** Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count. */
@@ -6227,6 +6312,26 @@ export interface RefreshRequest {
 
 export interface RejectRequest {
     reason: string;
+}
+
+/** One product to order for one warehouse (see ReorderRule). Quantities are in the product's base unit. The product has no preferred supplier in the data model, so the buyer chooses one. */
+export interface ReorderSuggestion {
+    productId: string;
+    sku: string;
+    productName: string;
+    uomCode: string;
+    warehouseId: string;
+    warehouseCode: string;
+    warehouseName: string;
+    /** Zero for a product that is stocked in no warehouse the caller can see; negative when stock went below zero. */
+    qtyOnHand: number;
+    safetyStock: number;
+    /** Still to come on the open orders (Draft, Submitted, Approved) of this warehouse: ordered less posted receipts, line by line. */
+    onOrderQty: number;
+    /** Twice the safety level less on hand less on order; always above zero (a row with nothing to order is not listed). */
+    suggestedQty: number;
+    /** The suggested quantity at the warehouse's average cost, in money. Null for a caller without `cost.view`, and for a product with no average cost yet (never stocked). */
+    suggestedValue: number | undefined;
 }
 
 export interface ReverseRequest {
