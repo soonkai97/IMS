@@ -788,5 +788,15 @@ export const ZH_MESSAGES: Messages = {
   'perm.po.manage': '管理采购订单',
   'perm.po.manage.help': '创建、修改、提交、撤回、取消和关闭采购订单。',
   'module.purchasing.name': '采购',
-  'module.purchasing.description': '向供应商下采购订单、大额订单审批，以及按订单收货。'
+  'module.purchasing.description': '向供应商下采购订单、大额订单审批，以及按订单收货。',
+  // TODO-review: machine draft (PL2.7b: purchase order detail).
+  'po.lines': '明细（{count}）',
+  'po.receipts': '收货单（{count}）',
+  'po.col.ordered': '订购',
+  'po.col.received': '已收',
+  'po.col.remaining': '未收',
+  'po.col.price': '单价（{currency}）',
+  'po.history.closed': '已关闭',
+  'po.closedShort': '提前关闭',
+  'po.closedReceived': '已全部收货'
 };

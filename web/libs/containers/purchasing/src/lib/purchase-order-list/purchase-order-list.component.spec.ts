@@ -114,11 +114,11 @@ describe('PurchaseOrderListPageComponent', () => {
     expect(rows[1].textContent).not.toContain('Waiting for you');
   });
 
-  it('forgets the orders of the last user before it loads, and has no row link until the detail page ships', async () => {
+  it('forgets the orders of the last user before it loads, and links each row to the order', async () => {
     await render();
 
     expect(reset.mock.invocationCallOrder[0]).toBeLessThan(load.mock.invocationCallOrder[0]);
-    expect(spectator.query('tbody a')).toBeNull();
+    expect(spectator.query('tbody a')?.getAttribute('href')).toBe(`/purchase-orders/${ITEM.id}`);
   });
 
   it('sends the chosen filters to the API, and Submitted is one of the statuses (approvers)', async () => {

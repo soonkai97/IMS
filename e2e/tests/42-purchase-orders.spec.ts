@@ -7,10 +7,13 @@ import {
   SKU_PREFIX,
   SLOW,
   SUPPLIER_PREFIX,
+  approvedOrder,
   cancelOpenOrders,
   command,
   createOrder,
   purchasingIsOn,
+  receive,
+  retireReceipt,
   setPurchasing
 } from '../src/purchasing';
 import { expect, openSession, test } from '../src/fixtures';
@@ -28,10 +31,13 @@ const data = {
   supplier: { id: '' as PublicId, name: `${SUPPLIER_PREFIX}${token}` },
   otherSupplier: { id: '' as PublicId, name: `${SUPPLIER_PREFIX}B${token}` },
   productId: '' as PublicId,
-  sku: `${SKU_PREFIX}${token}`
+  sku: `${SKU_PREFIX}${token}`,
+  receiptId: undefined as PublicId | undefined,
+  partOrder: undefined as { id: PublicId; receiptNo: string; receiptId: PublicId } | undefined
 };
 const admin = () => apiAs('admin');
 const moduleSwitch = (page: Page) => page.getByRole('switch', { name: 'Purchasing' });
+const status = (page: Page) => page.locator('app-page-header app-status-chip').first();
 const row = (page: Page, no: string) => page.getByRole('row').filter({ hasText: no });
 
 test.describe('Purchase orders, real API', () => {
@@ -48,6 +54,9 @@ test.describe('Purchase orders, real API', () => {
 
   test.afterAll(async () => {
     try {
+      if (data.receiptId) {
+        await retireReceipt(data.receiptId);
+      }
       if (await purchasingIsOn()) {
         await cancelOpenOrders();
       }
@@ -161,6 +170,114 @@ test.describe('Purchase orders, real API', () => {
     await command('supervisor', released.id, 'cancel', { reason: 'E2E: throw-away order' });
   });
 
+  test('given a submitted order, then the detail shows header, status, supplier, warehouse, remark, lines, total and history, and the list row opens it', async ({
+    page,
+    signIn,
+    shell
+  }) => {
+    const order = await createOrder(
+      data.supplier.id,
+      data.productId,
+      NEEDS_APPROVAL,
+      'Deliver to bay 3'
+    );
+    await command('clerk', order.id, 'submit');
+
+    await signIn('supervisor');
+    await shell.nav.getByRole('link', { name: 'Purchase orders' }).click();
+    await row(page, order.no).getByRole('link', { name: order.no }).click();
+    await expect(page).toHaveURL(new RegExp(`/purchase-orders/${order.id}$`));
+    await expect(page.getByRole('heading', { level: 1, name: order.no })).toBeVisible();
+    await expect(status(page)).toHaveText('Submitted');
+    const main = page.getByRole('main');
+    await expect(main).toContainText(data.supplier.name);
+    await expect(main).toContainText('Main warehouse');
+    await expect(main).toContainText('Deliver to bay 3');
+    const line = page.getByRole('row').filter({ hasText: data.sku });
+    await expect(line).toContainText('10 PCS');
+    // The cells in order: SKU, name, ordered, received, remaining.
+    await expect(line.getByRole('cell').nth(3)).toHaveText('0 PCS');
+    await expect(page.locator('app-banner')).toHaveCount(0);
+    await expect(line).toContainText('600.00');
+    await expect(main).toContainText('6,000.00');
+    await expect(page.getByRole('heading', { name: 'History' })).toBeVisible();
+    await expect(page.getByRole('listitem').filter({ hasText: 'Submitted' })).toBeVisible();
+
+    await command('clerk', order.id, 'cancel');
+  });
+
+  test('given an order that is part received, then ordered, received and remaining show per line with the receipt linked, and a closed order says how and why', async ({
+    page,
+    signIn
+  }) => {
+    const order = await approvedOrder(data.supplier.id, data.productId);
+    const receipt = await receive(order, 6, id => (data.receiptId = id));
+    data.partOrder = { id: order.id, receiptNo: receipt.no, receiptId: receipt.id };
+
+    await signIn('supervisor');
+    await goTo(page, `/purchase-orders/${order.id}`);
+    const line = page.getByRole('row').filter({ hasText: data.sku });
+    // The cells in order: SKU, name, ordered, received, remaining.
+    await expect(line.getByRole('cell').nth(2)).toHaveText('10 PCS');
+    await expect(line.getByRole('cell').nth(3)).toHaveText('6 PCS');
+    await expect(line.getByRole('cell').nth(4)).toHaveText('4 PCS');
+    await expect(page.getByRole('link', { name: receipt.no })).toHaveAttribute(
+      'href',
+      `/receipts/${receipt.id}`
+    );
+    await command('supervisor', order.id, 'close', { reason: 'Supplier cannot send the rest' });
+    await page.reload();
+    await expect(status(page)).toHaveText('Closed');
+    await expect(page.locator('app-banner').filter({ hasText: 'Closed short' })).toContainText(
+      'Supplier cannot send the rest'
+    );
+  });
+
+  test('given a user without cost.view (Warehouse staff), then the part-received order shows quantities and no price, amount or total', async ({
+    page,
+    signIn
+  }) => {
+    const { id, receiptNo, receiptId } = data.partOrder!;
+    await signIn('staff');
+    await goTo(page, `/purchase-orders/${id}`);
+    const line = page.getByRole('row').filter({ hasText: data.sku });
+    await expect(line.getByRole('cell').nth(3)).toHaveText('6 PCS');
+
+    expect(await page.getByRole('columnheader').allInnerTexts()).not.toEqual(
+      expect.arrayContaining([expect.stringMatching(/Unit price|Amount/)])
+    );
+    await expect(page.locator('dt', { hasText: 'Amount' })).toHaveCount(0);
+    expect(await page.getByRole('main').innerText()).not.toMatch(/d+.d{2}/);
+    // Warehouse staff hold stock.read, so the receipt is a link to the receipt screen.
+    await expect(page.getByRole('link', { name: receiptNo })).toHaveAttribute(
+      'href',
+      `/receipts/${receiptId}`
+    );
+  });
+
+  test('given an id that names no order, then the page is "Page not found" and a bookmark with a number asks the API for nothing', async ({
+    page,
+    signIn
+  }) => {
+    const calls: string[] = [];
+    page.on('request', request => {
+      if (request.url().includes('/api/purchase-orders/')) {
+        calls.push(request.url());
+      }
+    });
+    await signIn('admin');
+    await goTo(page, '/purchase-orders/31');
+    await expect(
+      page.getByRole('alert').getByText("This page or document doesn't exist")
+    ).toBeVisible();
+    expect(calls).toEqual([]);
+
+    await goTo(page, '/purchase-orders/00000000-0000-4000-8000-000000000000');
+    await expect(
+      page.getByRole('alert').getByText("This page or document doesn't exist")
+    ).toBeVisible();
+  });
+
   test.describe('layout and accessibility', () => {
     let order: { id: PublicId; no: string };
     test.beforeAll(async () => {
@@ -171,7 +288,7 @@ test.describe('Purchase orders, real API', () => {
     test.describe('360 px phone', () => {
       test.use({ viewport: { width: 360, height: 740 } });
 
-      test('given a phone, then the list is cards and does not scroll sideways', async ({
+      test('given a phone, then the list is cards and neither page scrolls sideways', async ({
         page,
         signIn
       }) => {
@@ -181,6 +298,11 @@ test.describe('Purchase orders, real API', () => {
         const card = page.locator('app-table .ui-table-row').filter({ hasText: order.no });
         await expect(card).toBeVisible();
         expect((await card.boundingBox())?.height).toBeLessThan(200);
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+        ).toBeLessThanOrEqual(0);
+        await goTo(page, `/purchase-orders/${order.id}`);
+        await expect(status(page)).toHaveText('Submitted');
         expect(
           await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
         ).toBeLessThanOrEqual(0);
@@ -195,7 +317,7 @@ test.describe('Purchase orders, real API', () => {
         ['Bahasa Melayu', 'Malay'],
         ['中文', 'Chinese']
       ] as const) {
-        test(`given ${label}, then the list does not scroll sideways or clip`, async ({
+        test(`given ${label}, then the list and the detail do not scroll sideways or clip`, async ({
           page,
           signIn,
           shell
@@ -204,26 +326,28 @@ test.describe('Purchase orders, real API', () => {
           if (language !== 'English') {
             await shell.setLanguage(language);
           }
-          await goTo(page, '/purchase-orders');
-          await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-          await page.waitForLoadState('networkidle');
-          await page.waitForFunction(() => document.getAnimations().length === 0);
-          await page.evaluate(() => (document.documentElement.style.fontSize = '200%'));
-          expect(
-            await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
-          ).toBeLessThanOrEqual(0);
-          const edges = await page
-            .getByRole('main')
-            .locator('input, select, button')
-            .evaluateAll(items =>
-              items
-                .filter(item => item.getBoundingClientRect().width > 0)
-                .map(item => item.getBoundingClientRect().right)
-            );
-          for (const right of edges) {
-            expect(right).toBeLessThanOrEqual(320);
+          for (const path of ['/purchase-orders', `/purchase-orders/${order.id}`]) {
+            await goTo(page, path);
+            await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+            await page.waitForLoadState('networkidle');
+            await page.waitForFunction(() => document.getAnimations().length === 0);
+            await page.evaluate(() => (document.documentElement.style.fontSize = '200%'));
+            expect(
+              await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+            ).toBeLessThanOrEqual(0);
+            const edges = await page
+              .getByRole('main')
+              .locator('input, select, button')
+              .evaluateAll(items =>
+                items
+                  .filter(item => item.getBoundingClientRect().width > 0)
+                  .map(item => item.getBoundingClientRect().right)
+              );
+            for (const right of edges) {
+              expect(right).toBeLessThanOrEqual(320);
+            }
+            await page.evaluate(() => (document.documentElement.style.fontSize = ''));
           }
-          await page.evaluate(() => (document.documentElement.style.fontSize = ''));
           if (language !== 'English') {
             await shell.setLanguage('English');
           }
@@ -236,24 +360,28 @@ test.describe('Purchase orders, real API', () => {
         test.describe(`axe, ${scheme}, ${width} px`, () => {
           test.use({ colorScheme: scheme, viewport: { width, height: 740 } });
 
-          test(`given the list, then axe finds no serious or critical violation (${scheme}, ${width})`, async ({
+          test(`given the list and the detail, then axe finds no serious or critical violation (${scheme}, ${width})`, async ({
             page,
             signIn
           }) => {
             await signIn('supervisor');
-            await goTo(page, '/purchase-orders');
-            await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-            await page.waitForLoadState('networkidle');
-            await page.waitForFunction(() => document.getAnimations().length === 0);
-            const { violations } = await new AxeBuilder({ page })
-              .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
-              .analyze();
-            const serious = violations.filter(
-              v => v.impact === 'serious' || v.impact === 'critical'
-            );
-            expect(
-              serious.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(' ')).join(' | ')}`)
-            ).toEqual([]);
+            for (const path of ['/purchase-orders', `/purchase-orders/${order.id}`]) {
+              await goTo(page, path);
+              await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+              await page.waitForLoadState('networkidle');
+              await page.waitForFunction(() => document.getAnimations().length === 0);
+              const { violations } = await new AxeBuilder({ page })
+                .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+                .analyze();
+              const serious = violations.filter(
+                v => v.impact === 'serious' || v.impact === 'critical'
+              );
+              expect(
+                serious.map(
+                  v => `${path} ${v.id}: ${v.nodes.map(n => n.target.join(' ')).join(' | ')}`
+                )
+              ).toEqual([]);
+            }
           });
         });
       }
