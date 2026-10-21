@@ -129,7 +129,10 @@ export class PurchaseOrdersStore {
   ): Observable<PurchaseOrderDto> {
     return source$.pipe(
       tap(order => {
-        this.detail.$data.set(order);
+        // The user may have opened another order while this call ran.
+        if (this.detail.$data()?.id === order.id) {
+          this.detail.$data.set(order);
+        }
         this.resetCommandsExcept(command);
       })
     );

@@ -21,6 +21,7 @@ import { PurchaseOrderDetailPageComponent } from './purchase-order-detail.compon
 
 const ID = '00000000-0000-4000-8000-000000000001';
 
+/** An order as the API sends it: what an order does not have is JSON null, not an absent member. */
 function order(overrides: Partial<PurchaseOrderDto> = {}): PurchaseOrderDto {
   return {
     id: ID,
@@ -38,14 +39,14 @@ function order(overrides: Partial<PurchaseOrderDto> = {}): PurchaseOrderDto {
     requiresApproval: true,
     isLarge: false,
     isReturned: false,
-    rejectionReason: undefined,
-    cancelReason: undefined,
+    rejectionReason: null as never,
+    cancelReason: null as never,
     submittedAt: '2026-10-09T02:00:00Z',
     approvedAt: '2026-10-09T03:00:00Z',
-    returnedAt: undefined,
-    closedAt: undefined,
-    closeKind: undefined,
-    closeReason: undefined,
+    returnedAt: null as never,
+    closedAt: null as never,
+    closeKind: null as never,
+    closeReason: null as never,
     totalQty: 10,
     totalAmount: 50,
     lines: [
@@ -60,7 +61,7 @@ function order(overrides: Partial<PurchaseOrderDto> = {}): PurchaseOrderDto {
         baseQty: 10,
         unitPrice: 5,
         amount: 50,
-        remark: undefined,
+        remark: null as never,
         receivedQty: 6,
         remainingQty: 4,
         receivedBaseQty: 6,
@@ -174,8 +175,12 @@ describe('PurchaseOrderDetailPageComponent', () => {
       const withheld = order();
       await render({
         ...withheld,
-        totalAmount: undefined,
-        lines: withheld.lines.map(line => ({ ...line, unitPrice: undefined, amount: undefined }))
+        totalAmount: null as never,
+        lines: withheld.lines.map(line => ({
+          ...line,
+          unitPrice: null as never,
+          amount: null as never
+        }))
       });
 
       const headers = spectator.queryAll('th').map(th => (th.textContent ?? '').trim());
@@ -183,6 +188,28 @@ describe('PurchaseOrderDetailPageComponent', () => {
       expect(headers).not.toContain('Unit price (RM)');
       expect(text()).not.toMatch(/\d\.\d{2}/);
       expect(spectator.queryAll('dt').map(dt => dt.textContent)).not.toContain('Amount (RM)');
+    });
+
+    it('shows no banner at all on an open order (the API sends null for closeKind and the reasons)', async () => {
+      for (const status of [
+        PurchaseOrderStatus.Draft,
+        PurchaseOrderStatus.Submitted,
+        PurchaseOrderStatus.Approved
+      ]) {
+        await render(order({ status }));
+
+        expect(spectator.queryAll('app-banner')).toHaveLength(0);
+      }
+    });
+
+    it('a cancelled order without a reason still says Cancelled, in a banner and in the history', async () => {
+      await render(order({ status: PurchaseOrderStatus.Cancelled }));
+
+      expect(spectator.query('app-banner')?.textContent).toContain('Cancelled');
+      expect(spectator.queryAll('ol li').map(li => li.textContent)).toEqual(
+        expect.arrayContaining([expect.stringContaining('Cancelled')])
+      );
+      expect(text()).not.toContain('Reason:');
     });
 
     it('says why a closed order is closed and a cancelled one is cancelled', async () => {
@@ -211,6 +238,18 @@ describe('PurchaseOrderDetailPageComponent', () => {
 
       expect(text()).toContain("This page or document doesn't exist or was removed.");
       expect(detail.load).not.toHaveBeenCalled();
+    });
+
+    it('offers no Retry for a refusal (403): trying again cannot help', async () => {
+      detail.$data.set(undefined);
+      detail.$isFailed.set(true);
+      detail.$operation.set(failureOperation(apiError(API_ERROR_KIND.Forbidden, 403, 'No.')));
+      spectator = createComponent({ props: { id: ID } as never });
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(text()).toContain('No.');
+      expect(spectator.query('app-banner app-button')).toBeNull();
     });
 
     it('shows a banner with Retry when the load fails, and retries', async () => {

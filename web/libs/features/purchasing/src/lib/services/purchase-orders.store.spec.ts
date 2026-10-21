@@ -92,6 +92,15 @@ describe('PurchaseOrdersStore', () => {
     expect(spectator.service.detail.$data()?.concurrencyToken).toBe('BBBB');
   });
 
+  it('does not replace a different order that is open now (the answer came after the user moved on)', async () => {
+    const other = { id: 'other', concurrencyToken: 'CCCC' } as PurchaseOrderDto;
+    spectator.service.detail.$data.set(other);
+
+    await firstValueFrom(spectator.service.approve.run(toPurchaseOrderRef(ORDER)));
+
+    expect(spectator.service.detail.$data()).toBe(other);
+  });
+
   it('is exclusive: a second tap while a command runs sends nothing', async () => {
     const answer = new Subject<PurchaseOrderDto>();
     client().submit.mockReturnValue(answer);

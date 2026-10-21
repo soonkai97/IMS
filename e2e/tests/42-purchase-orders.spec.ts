@@ -13,6 +13,7 @@ import {
   createOrder,
   purchasingIsOn,
   receive,
+  retireReceipt,
   setPurchasing
 } from '../src/purchasing';
 import { expect, openSession, test } from '../src/fixtures';
@@ -31,7 +32,8 @@ const data = {
   otherSupplier: { id: '' as PublicId, name: `${SUPPLIER_PREFIX}B${token}` },
   productId: '' as PublicId,
   sku: `${SKU_PREFIX}${token}`,
-  receiptId: undefined as PublicId | undefined
+  receiptId: undefined as PublicId | undefined,
+  partOrder: undefined as { id: PublicId; receiptNo: string; receiptId: PublicId } | undefined
 };
 const admin = () => apiAs('admin');
 const moduleSwitch = (page: Page) => page.getByRole('switch', { name: 'Purchasing' });
@@ -53,9 +55,7 @@ test.describe('Purchase orders, real API', () => {
   test.afterAll(async () => {
     try {
       if (data.receiptId) {
-        await admin().raw('POST', `/api/documents/${data.receiptId}/reverse`, {
-          reason: 'E2E: throw-away receipt'
-        });
+        await retireReceipt(data.receiptId);
       }
       if (await purchasingIsOn()) {
         await cancelOpenOrders();
@@ -195,7 +195,9 @@ test.describe('Purchase orders, real API', () => {
     await expect(main).toContainText('Deliver to bay 3');
     const line = page.getByRole('row').filter({ hasText: data.sku });
     await expect(line).toContainText('10 PCS');
-    await expect(line).toContainText('0 PCS');
+    // The cells in order: SKU, name, ordered, received, remaining.
+    await expect(line.getByRole('cell').nth(3)).toHaveText('0 PCS');
+    await expect(page.locator('app-banner')).toHaveCount(0);
     await expect(line).toContainText('600.00');
     await expect(main).toContainText('6,000.00');
     await expect(page.getByRole('heading', { name: 'History' })).toBeVisible();
@@ -209,15 +211,16 @@ test.describe('Purchase orders, real API', () => {
     signIn
   }) => {
     const order = await approvedOrder(data.supplier.id, data.productId);
-    const receipt = await receive(order, 6);
-    data.receiptId = receipt.id;
+    const receipt = await receive(order, 6, id => (data.receiptId = id));
+    data.partOrder = { id: order.id, receiptNo: receipt.no, receiptId: receipt.id };
 
     await signIn('supervisor');
     await goTo(page, `/purchase-orders/${order.id}`);
     const line = page.getByRole('row').filter({ hasText: data.sku });
-    await expect(line).toContainText('10 PCS');
-    await expect(line).toContainText('6 PCS');
-    await expect(line).toContainText('4 PCS');
+    // The cells in order: SKU, name, ordered, received, remaining.
+    await expect(line.getByRole('cell').nth(2)).toHaveText('10 PCS');
+    await expect(line.getByRole('cell').nth(3)).toHaveText('6 PCS');
+    await expect(line.getByRole('cell').nth(4)).toHaveText('4 PCS');
     await expect(page.getByRole('link', { name: receipt.no })).toHaveAttribute(
       'href',
       `/receipts/${receipt.id}`
@@ -227,6 +230,28 @@ test.describe('Purchase orders, real API', () => {
     await expect(status(page)).toHaveText('Closed');
     await expect(page.locator('app-banner').filter({ hasText: 'Closed short' })).toContainText(
       'Supplier cannot send the rest'
+    );
+  });
+
+  test('given a user without cost.view (Warehouse staff), then the part-received order shows quantities and no price, amount or total', async ({
+    page,
+    signIn
+  }) => {
+    const { id, receiptNo, receiptId } = data.partOrder!;
+    await signIn('staff');
+    await goTo(page, `/purchase-orders/${id}`);
+    const line = page.getByRole('row').filter({ hasText: data.sku });
+    await expect(line.getByRole('cell').nth(3)).toHaveText('6 PCS');
+
+    expect(await page.getByRole('columnheader').allInnerTexts()).not.toEqual(
+      expect.arrayContaining([expect.stringMatching(/Unit price|Amount/)])
+    );
+    await expect(page.locator('dt', { hasText: 'Amount' })).toHaveCount(0);
+    expect(await page.getByRole('main').innerText()).not.toMatch(/d+.d{2}/);
+    // Warehouse staff hold stock.read, so the receipt is a link to the receipt screen.
+    await expect(page.getByRole('link', { name: receiptNo })).toHaveAttribute(
+      'href',
+      `/receipts/${receiptId}`
     );
   });
 

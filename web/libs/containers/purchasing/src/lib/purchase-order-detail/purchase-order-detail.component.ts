@@ -9,7 +9,7 @@ import {
   untracked
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { PurchaseOrderCloseKind, PurchaseOrderLineDto } from '@ims/api';
+import { PurchaseOrderCloseKind, PurchaseOrderLineDto, PurchaseOrderStatus } from '@ims/api';
 import { handledInline } from '@ims/core/http';
 import {
   AppDatePipe,
@@ -112,6 +112,11 @@ export class PurchaseOrderDetailPageComponent {
   readonly $loadFailed = this.store.detail.$isFailed;
   /** The load call raises no toast; this banner is the one announcement, with the sentence the interceptor mapped. */
   readonly $loadErrorMessage = computed(() => this.store.detail.$operation().error?.message);
+  /** Retrying helps for a network or server failure, not for a refusal (403) or a missing order. */
+  readonly $canRetry = computed(() => {
+    const kind = this.store.detail.$operation().error?.kind;
+    return kind === API_ERROR_KIND.Network || kind === API_ERROR_KIND.Server;
+  });
   readonly $notFound = computed(
     () =>
       this.$unusableId() || this.store.detail.$operation().error?.kind === API_ERROR_KIND.NotFound
@@ -126,9 +131,11 @@ export class PurchaseOrderDetailPageComponent {
     const order = this.$order();
     return order ? (order.returnedByName ?? order.returnedBy ?? '') : '';
   });
+  readonly $isCancelled = computed(() => this.$order()?.status === PurchaseOrderStatus.Cancelled);
   readonly $closeText = computed<MessageKey | undefined>(() => {
     const kind = this.$order()?.closeKind;
-    if (kind === undefined) {
+    // The API sends null, not an absent member, for what an open order does not have.
+    if (!isDefined(kind)) {
       return undefined;
     }
     return kind === PurchaseOrderCloseKind.Short ? 'po.closedShort' : 'po.closedReceived';
@@ -165,11 +172,13 @@ export class PurchaseOrderDetailPageComponent {
       order.closedAt
         ? { labelKey: 'po.history.closed', at: order.closedAt, reason: order.closeReason }
         : undefined,
-      order.cancelReason
-        ? { labelKey: 'doc.history.cancelled', reason: order.cancelReason }
+      order.status === PurchaseOrderStatus.Cancelled
+        ? { labelKey: 'doc.history.cancelled', reason: order.cancelReason ?? undefined }
         : undefined
     ];
-    return events.filter(isDefined);
+    // Oldest first; an event without a time (the API has no cancel time) stays last.
+    const time = (event: HistoryEvent): number => (event.at ? Date.parse(event.at) : Infinity);
+    return events.filter(isDefined).sort((a, b) => time(a) - time(b));
   });
   readonly $lineColumns = computed<readonly TableColumn<PurchaseOrderLineDto>[]>(() => [
     {

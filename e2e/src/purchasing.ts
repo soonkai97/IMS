@@ -95,12 +95,18 @@ export async function approvedOrder(
 }
 
 /** Receives `qty` of the first line against the order: a draft receipt from the order, set to `qty`, submitted, approved if held, posted. */
-export async function receive(order: ApiOrder, qty: number): Promise<ApiDocument> {
+export async function receive(
+  order: ApiOrder,
+  qty: number,
+  /** Told the draft's id at once, so a clean-up can find it even when a later step fails. */
+  onDraft?: (id: PublicId) => void
+): Promise<ApiDocument> {
   const supervisor = apiAs('supervisor');
   const draft = await supervisor.call<ReceiptDraft>(
     'POST',
     `/api/purchase-orders/${order.id}/receipt`
   );
+  onDraft?.(draft.id);
   await supervisor.call('PUT', `/api/documents/${draft.id}`, {
     warehouseId: draft.warehouseId,
     partnerId: draft.partnerId,
@@ -150,6 +156,20 @@ export async function cancelOpenOrders(): Promise<void> {
         if (result.status < 300) {
           break;
         }
+      }
+    }
+  }
+}
+
+/** Puts a throw-away receipt out of the way by its state: a posted one is reversed, an unfinished one cancelled. */
+export async function retireReceipt(id: PublicId): Promise<void> {
+  const { status } = await admin().getDocument(id);
+  if (status === 'Posted') {
+    await admin().reverse(id, 'E2E: throw-away receipt');
+  } else if (['Draft', 'Submitted', 'Approved'].includes(status)) {
+    for (const role of ['supervisor', 'admin'] as const) {
+      if ((await apiAs(role).raw('POST', `/api/documents/${id}/cancel`, {})).status < 300) {
+        return;
       }
     }
   }
