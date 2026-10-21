@@ -107,4 +107,18 @@ public class PurchaseOrderWorkflowAccessTests(ApiFixture fixture) : IAsyncLifeti
 
         Assert.Equal(PurchaseOrderStatus.Submitted, (await _p.ReadAsync(submitted.Id)).Status);
     }
+
+    [Fact]
+    public async Task One_approval_tier_with_po_read_is_enough_to_approve_and_the_tier_of_the_order_decides_the_rest()
+    {
+        var standard = await _p.SubmittedWorthAsync(6000m);
+        var large = await _p.SubmittedWorthAsync(25000m);
+        var standardOnly = Forged(Permissions.PoRead, Permissions.DocumentApprove, Permissions.CostView);
+        var largeOnly = Forged(Permissions.PoRead, Permissions.DocumentApproveLarge, Permissions.CostView);
+
+        (await standardOnly.PurchaseOrders.ApproveAsync(large.Id, large.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Forbidden);
+        (await largeOnly.PurchaseOrders.ApproveAsync(standard.Id, standard.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Forbidden);
+        Assert.Equal(PurchaseOrderStatus.Approved, (await standardOnly.PurchaseOrders.ApproveAsync(standard.Id, standard.ConcurrencyToken)).Data<PurchaseOrderDto>().Status);
+        Assert.Equal(PurchaseOrderStatus.Approved, (await largeOnly.PurchaseOrders.ApproveAsync(large.Id, large.ConcurrencyToken)).Data<PurchaseOrderDto>().Status);
+    }
 }

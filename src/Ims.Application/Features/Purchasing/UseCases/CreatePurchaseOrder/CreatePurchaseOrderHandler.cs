@@ -1,10 +1,11 @@
+using Ims.Application.Features.Modules;
 using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
 public class CreatePurchaseOrderHandler(IRepository<PurchaseOrder> orders, IReadRepository<Warehouse> warehouses, IReadRepository<Partner> partners,
     IDocumentNumbering numbering, IPurchaseOrderLineBuilder lineBuilder, IPurchaseOrderAccess access, IPurchaseOrderReader reader, ICallerPermissions caller,
-    ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreatePurchaseOrderCommand, PurchaseOrderDto>
+    ICurrentUser current, IClock clock, ITransactionLocker locker, IModuleSwitches switches, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreatePurchaseOrderCommand, PurchaseOrderDto>
 {
     public async Task<PurchaseOrderDto> HandleAsync(CreatePurchaseOrderCommand cmd, CancellationToken ct)
     {
@@ -13,6 +14,8 @@ public class CreatePurchaseOrderHandler(IRepository<PurchaseOrder> orders, IRead
         // The whole body re-runs if two requests race for the same number (BR-11, BR-12).
         var publicId = await uow.ExecuteAsync(async () =>
         {
+            // Creating is the one step that adds an open order, which the module's disable check counts: hold the module on (shared lock, switch read again) before anything else is locked.
+            await locker.HoldOnAsync(switches, ModuleCodes.Purchasing, Messages.PurchaseOrderNotFound, ct);
             var r = cmd.Data;
             var warehouse = await warehouses.FirstOrDefaultAsync(new ByPublicIdSpec<Warehouse>(r.WarehouseId), ct) ?? throw new ValidationException(Messages.WarehouseMissing);
             access.EnsureWarehouse(warehouse.Id);

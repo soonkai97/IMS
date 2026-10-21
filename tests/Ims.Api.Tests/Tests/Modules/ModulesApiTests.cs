@@ -32,7 +32,7 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
 
     public Task DisposeAsync() => ResetAsync();
 
-    private Task ResetAsync() => fixture.Database.ExecuteAsync("DELETE FROM SystemSetting WHERE [Key] LIKE N'Module.%'");
+    private Task ResetAsync() => Ims.Api.Tests.Tests.Purchasing.PurchasingScenario.ResetAsync(fixture); // also closes any order another test left open: the purchasing check refuses to switch off over one
 
     private static async Task<bool> AccountingEnabledAsync(ApiClient admin) => (await admin.Modules.ListAsync()).Data<List<ModuleDto>>().Single(m => m.Code == Accounting).Enabled;
 

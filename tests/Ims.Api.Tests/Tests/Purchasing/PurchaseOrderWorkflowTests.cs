@@ -66,6 +66,36 @@ public class PurchaseOrderWorkflowTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal([ApproverTier.Standard, ApproverTier.Large], tiers); // both thresholds are reached; the larger tier decides
     }
 
+    [Fact]
+    public async Task A_quantity_rule_for_purchase_orders_is_tested_against_the_total_base_quantity()
+    {
+        await using var rule = await ApprovalRuleScope.AddAsync(_p.Admin, DocumentType.PurchaseOrder, null, 100m, Roles.Supervisor);
+        var product = await _p.NewProductAsync();
+        var draft = (await _p.Clerk.PurchaseOrders.CreateAsync(new PurchaseOrderBuilder(_p.Warehouse, fixture.Reference.SupplierId).WithLine(product.Id, 100m, 1m).Build())).Data<PurchaseOrderDto>();
+
+        var order = (await _p.Clerk.PurchaseOrders.SubmitAsync(draft.Id, draft.ConcurrencyToken)).Data<PurchaseOrderDto>();
+
+        Assert.Equal(PurchaseOrderStatus.Submitted, order.Status);
+        Assert.Contains(ApprovalMetric.Quantity, (await _p.ReadAsync(order.Id)).ApprovalTriggers.Select(t => t.Metric));
+    }
+
+    [Fact]
+    public async Task With_no_active_purchase_order_rule_every_order_is_released_on_submit()
+    {
+        // The API refuses to switch off the last active rule while purchasing is on, so the table is changed directly: the state of a database the Seeder never ran against.
+        var active = (await _p.Admin.Settings.ListRulesAsync()).Data<List<Application.Features.Settings.ApprovalRuleDto>>().Where(r => r.DocType == DocumentType.PurchaseOrder && r.IsActive).Select(r => r.Id).ToList();
+        async Task SetAsync(int value) { foreach (var id in active) await fixture.Database.ExecuteAsync("UPDATE ApprovalRule SET IsActive = @v WHERE PublicId = @id", ("@v", value), ("@id", id)); }
+        await SetAsync(0);
+        try
+        {
+            Assert.Equal(PurchaseOrderStatus.Approved, (await _p.SubmittedWorthAsync(999_999m)).Status);
+        }
+        finally
+        {
+            await SetAsync(1);
+        }
+    }
+
     // ----- acceptance 3: a price above 0 -----
     [Fact]
     public async Task A_draft_with_a_price_of_zero_saves_but_will_not_submit_and_the_refusal_names_the_line()
@@ -153,6 +183,16 @@ public class PurchaseOrderWorkflowTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task With_self_approval_switched_on_the_submitter_may_approve_their_own_order()
+    {
+        await using var _ = await SettingsOverride.ApplyAsync(_p.Admin, allowSelfApproval: true);
+        var submitted = await _p.SubmittedWorthAsync(6000m, _p.Supervisor);
+
+        Assert.Contains(DocumentActions.Approve, (await _p.ReadAsync(submitted.Id, _p.Supervisor)).AllowedActions);
+        Assert.Equal(PurchaseOrderStatus.Approved, (await _p.Supervisor.PurchaseOrders.ApproveAsync(submitted.Id, submitted.ConcurrencyToken)).Data<PurchaseOrderDto>().Status);
+    }
+
+    [Fact]
     public async Task A_rejection_returns_the_order_to_draft_with_the_reason_and_who_returned_it_and_it_can_be_edited_and_submitted_again()
     {
         var submitted = await _p.SubmittedWorthAsync(6000m);
@@ -181,6 +221,18 @@ public class PurchaseOrderWorkflowTests(ApiFixture fixture) : IAsyncLifetime
         (await _p.Supervisor.PurchaseOrders.RejectAsync(submitted.Id, reason!, submitted.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.BadRequest);
 
         Assert.Equal(PurchaseOrderStatus.Submitted, (await _p.ReadAsync(submitted.Id)).Status);
+    }
+
+    [Fact]
+    public async Task Only_a_submitted_order_can_be_approved_or_rejected()
+    {
+        var draft = await _p.DraftWorthAsync(6000m);
+        var released = await _p.SubmittedWorthAsync(100m);
+
+        (await _p.Admin.PurchaseOrders.ApproveAsync(draft.Id, draft.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await _p.Admin.PurchaseOrders.RejectAsync(draft.Id, "it is only a draft", draft.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await _p.Supervisor.PurchaseOrders.ApproveAsync(released.Id, released.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await _p.Supervisor.PurchaseOrders.RejectAsync(released.Id, "already released", released.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.BadRequest);
     }
 
     // ----- recall -----
@@ -268,6 +320,19 @@ public class PurchaseOrderWorkflowTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(PurchaseOrderStatus.Approved, (await _p.ReadAsync(approved.Id)).Status);
     }
 
+    [Fact]
+    public async Task A_cancelled_order_is_final_nothing_more_can_be_done_with_it()
+    {
+        var order = await _p.DraftWorthAsync(6000m);
+        var cancelled = (await _p.Clerk.PurchaseOrders.CancelAsync(order.Id, null, order.ConcurrencyToken)).Data<PurchaseOrderDto>();
+        var token = cancelled.ConcurrencyToken;
+
+        (await _p.Admin.PurchaseOrders.CancelAsync(order.Id, "cancel it again", token)).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await _p.Clerk.PurchaseOrders.SubmitAsync(order.Id, token)).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await _p.Supervisor.PurchaseOrders.ApproveAsync(order.Id, token)).ShouldBeProblem(HttpStatusCode.BadRequest);
+        (await _p.Clerk.PurchaseOrders.UpdateAsync(order.Id, new PurchaseOrderBuilder(_p.Warehouse, fixture.Reference.SupplierId).WithLine(cancelled.Lines[0].ProductId, 1m, 1m).Build(), token)).ShouldBeProblem(HttpStatusCode.Conflict);
+    }
+
     // ----- the version token on every transition -----
     [Fact]
     public async Task Every_transition_demands_the_version_token_428_without_one_and_409_with_a_stale_one()
@@ -290,6 +355,44 @@ public class PurchaseOrderWorkflowTests(ApiFixture fixture) : IAsyncLifetime
         (await _p.Clerk.PurchaseOrders.SubmitAsync(submitted.Id, draft.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Conflict);
 
         Assert.Equal(submitted.ConcurrencyToken, (await _p.ReadAsync(submitted.Id)).ConcurrencyToken); // nothing moved
+    }
+
+    // ----- acceptance 9: two approvers race -----
+    [Fact]
+    public async Task Two_approvers_with_the_same_version_give_one_approval_and_one_409_over_many_rounds()
+    {
+        for (var round = 0; round < 10; round++)
+        {
+            var submitted = await _p.SubmittedWorthAsync(6000m);
+
+            var results = await Concurrently.RunAsync<ApiResponse>(
+            [
+                () => _p.Supervisor.PurchaseOrders.ApproveAsync(submitted.Id, submitted.ConcurrencyToken),
+                () => _p.Admin.PurchaseOrders.ApproveAsync(submitted.Id, submitted.ConcurrencyToken)
+            ]);
+
+            Assert.Equal([HttpStatusCode.OK, HttpStatusCode.Conflict], results.Select(r => r.Status).Order());
+            Assert.Equal(1, await AuditCountAsync(AuditActions.PurchaseOrderApproved, submitted.No));
+            Assert.Equal(PurchaseOrderStatus.Approved, (await _p.ReadAsync(submitted.Id)).Status);
+        }
+    }
+
+    [Fact]
+    public async Task An_approval_and_a_cancellation_by_the_submitter_racing_leave_one_winner()
+    {
+        for (var round = 0; round < 5; round++)
+        {
+            var submitted = await _p.SubmittedWorthAsync(6000m);
+
+            var results = await Concurrently.RunAsync<ApiResponse>(
+            [
+                () => _p.Supervisor.PurchaseOrders.ApproveAsync(submitted.Id, submitted.ConcurrencyToken),
+                () => _p.Clerk.PurchaseOrders.CancelAsync(submitted.Id, "changed our mind", submitted.ConcurrencyToken)
+            ]);
+
+            Assert.Equal(1, results.Count(r => r.Status == HttpStatusCode.OK));
+            Assert.All(results.Where(r => r.Status != HttpStatusCode.OK), r => Assert.Contains((int)r.Status, new[] { 400, 403, 409 }));
+        }
     }
 
     // ----- warehouse scope -----

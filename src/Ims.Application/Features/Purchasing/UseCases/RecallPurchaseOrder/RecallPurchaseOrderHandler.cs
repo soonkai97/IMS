@@ -13,7 +13,7 @@ public class RecallPurchaseOrderHandler(IRepository<PurchaseOrder> orders, IPurc
 
         // A repeat of a recall that already succeeded (a double tap, a retry) answers with the order as it is, before the version is compared:
         // the retry holds the old token, and nothing is written, so there is no second audit row.
-        if (access.IsRepeatedRecall(order)) return await reader.GetAsync(cmd.Id, ct);
+        if (order.IsPlainDraft) return await reader.GetAsync(cmd.Id, ct);
 
         version.EnsureCurrent(order.PublicId, order.No, order, cmd.IfMatch);
         var before = new { order.Status, order.RequiresApproval };

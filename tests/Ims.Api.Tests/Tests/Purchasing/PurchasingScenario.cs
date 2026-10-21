@@ -30,7 +30,12 @@ public sealed class PurchasingScenario
     public ApiClient Staff => Stock.Staff;
     public ReferenceData Reference => Fixture.Reference;
 
-    public static Task ResetAsync(ApiFixture fixture) => fixture.Database.ExecuteAsync("DELETE FROM SystemSetting WHERE [Key] LIKE N'Module.%'");
+    /// <summary>Switches every module off and closes what the test left open: the purchasing check refuses to turn the module off while an order is open, and the database is shared by all test classes.</summary>
+    public static async Task ResetAsync(ApiFixture fixture)
+    {
+        await fixture.Database.ExecuteAsync("UPDATE PurchaseOrder SET Status = 4 WHERE Status <= 2"); // Cancelled
+        await fixture.Database.ExecuteAsync("DELETE FROM SystemSetting WHERE [Key] LIKE N'Module.%'");
+    }
 
     public static async Task<PurchasingScenario> CreateAsync(ApiFixture fixture, bool moduleOn = true)
     {

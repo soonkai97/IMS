@@ -30,7 +30,9 @@ public sealed class SqlTransactionLocker(AppDbContext db, int rolesLockTimeoutMs
 
     public Task LockModulesAsync(CancellationToken ct) => AcquireAsync("modules", modulesLockTimeoutMs, retry: false, ct, Messages.ModulesLockBusy);
 
-    private async Task AcquireAsync(string resource, int timeoutMs, bool retry, CancellationToken ct, string busyMessage = Messages.LockBusy)
+    public Task LockModulesSharedAsync(CancellationToken ct) => AcquireAsync("modules", modulesLockTimeoutMs, retry: false, ct, Messages.ModulesLockBusy, mode: "Shared");
+
+    private async Task AcquireAsync(string resource, int timeoutMs, bool retry, CancellationToken ct, string busyMessage = Messages.LockBusy, string mode = "Exclusive")
     {
         // An application lock owned by the transaction needs one. Outside a transaction there is nothing to hold it for.
         if (db.Database.CurrentTransaction is null) return;
@@ -40,7 +42,7 @@ public sealed class SqlTransactionLocker(AppDbContext db, int rolesLockTimeoutMs
         {
             result = (await db.Database.SqlQuery<int>($"""
                 DECLARE @r int;
-                EXEC @r = sp_getapplock @Resource = {resource}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = {timeoutMs};
+                EXEC @r = sp_getapplock @Resource = {resource}, @LockMode = {mode}, @LockOwner = 'Transaction', @LockTimeout = {timeoutMs};
                 SELECT @r AS Value
                 """).ToListAsync(ct)).Single();
         }

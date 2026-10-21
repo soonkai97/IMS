@@ -7,7 +7,7 @@ namespace Ims.Application.Features.Modules;
 /// permissions back (roles keep them, hidden, while it is off). A module that is already in the requested state is a 200 that changes nothing and writes nothing. A switch only hides or
 /// shows the surface; it never touches stock, so no posting reads it. A module that holds data (open orders) may refuse to be turned off through its <see cref="IModuleDisableCheck"/>: a 409 with the count, nothing written.
 /// </summary>
-public class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepository<Role> roles, IModuleSwitches switches, IEnumerable<IModuleDisableCheck> disableChecks,
+public class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepository<Role> roles, IModuleSwitches switches, IEnumerable<IModuleDisableCheck> disableChecks, IEnumerable<IModuleEnableCheck> enableChecks,
     ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<SwitchModuleCommand, ModuleSwitchResult>
 {
@@ -24,7 +24,11 @@ public class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepos
         if (before != wanted)
         {
             BusinessRules.Ensure(new ReasonRequiredRule(cmd.Data.Reason, Messages.ModuleReasonRequired, Limits.ReasonMinLength));
-            if (wanted) regaining = await RolesRegainingGrantsAsync(module.Code, ct);
+            if (wanted)
+            {
+                await EnsureReadyAsync(module, ct);
+                regaining = await RolesRegainingGrantsAsync(module.Code, ct);
+            }
             else await EnsureNothingWouldBeOrphanedAsync(module, ct);
             if (row is null) settings.Add(SystemSetting.Create(key, SettingValues.From(wanted)));
             else row.ChangeValue(SettingValues.From(wanted));
@@ -41,6 +45,13 @@ public class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepos
     {
         var codes = PermissionCatalog.All.Where(p => p.Module == moduleCode).Select(p => p.Code).ToList();
         return codes.Count == 0 ? 0 : await roles.CountAsync(new RolesHoldingPermissionsSpec(codes), ct);
+    }
+
+    /// <summary>Asks the checks that say a module may not be turned on yet (409 with the sentence that names the fix); a module without one is never refused.</summary>
+    private async Task EnsureReadyAsync(ModuleDefinition module, CancellationToken ct)
+    {
+        foreach (var check in enableChecks.Where(c => c.ModuleCode == module.Code))
+            if (await check.RefusalAsync(ct) is { } refusal) throw new ConflictException(refusal);
     }
 
     /// <summary>Asks the module's check, if it has one, before the switch is written; a module without a check is never refused.</summary>

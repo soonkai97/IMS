@@ -22,4 +22,11 @@ public interface ITransactionLocker
 
     /// <summary>Serialises the switching of modules (a flip reads the row, writes it and audits it), so two flips never interleave. Taken by that write only; never held together with a stock or document lock.</summary>
     Task LockModulesAsync(CancellationToken ct);
+
+    /// <summary>
+    /// The shared form of the <c>modules</c> lock, taken first by a write that adds data a module may later refuse to leave (creating a purchase order): any number of them run side by side, but
+    /// none runs while a flip holds the exclusive form, and a flip waits for them. The caller then re-reads the switch, so an order is never created in the instant between the flip's count of open
+    /// orders and its commit (plan PL2.3, the CanDisable race). Taken before any document-sequence lock; never held with a stock lock. The check a flip asks takes no other lock.
+    /// </summary>
+    Task LockModulesSharedAsync(CancellationToken ct);
 }

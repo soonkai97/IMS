@@ -56,6 +56,9 @@ public class PurchaseOrder : PublicEntity
     /// <summary>A Draft that a reviewer sent back (the reason is kept until the next submit).</summary>
     public bool IsReturned => Status == PurchaseOrderStatus.Draft && RejectionReason is not null;
 
+    /// <summary>A Draft that no reviewer sent back: what a recall leaves behind, so a repeated recall (a double tap) finds it and changes nothing.</summary>
+    public bool IsPlainDraft => Status == PurchaseOrderStatus.Draft && RejectionReason is null;
+
     public PurchaseOrderActionContext ActionContext => new(Status, RequiresApproval, IsLarge, CreatedBy, SubmittedBy);
 
     /// <summary>Opens a new Draft. The number is assigned separately because allocation needs the database (BR-11).</summary>

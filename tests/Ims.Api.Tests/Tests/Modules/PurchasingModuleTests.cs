@@ -35,7 +35,7 @@ public class PurchasingModuleTests(ApiFixture fixture) : IAsyncLifetime
         await ResetAsync();
     }
 
-    private Task ResetAsync() => fixture.Database.ExecuteAsync("DELETE FROM SystemSetting WHERE [Key] LIKE N'Module.%'");
+    private Task ResetAsync() => Ims.Api.Tests.Tests.Purchasing.PurchasingScenario.ResetAsync(fixture); // also closes any order another test left open: the purchasing check refuses to switch off over one
 
     private static string Why() => $"Purchasing test {Guid.NewGuid():N}"[..24];
 
