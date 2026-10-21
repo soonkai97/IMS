@@ -4,7 +4,7 @@ import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { of } from 'rxjs';
 import { ProductDto, PurchaseOrderDto, PurchaseOrderStatus } from '@ims/api';
 import { PickedProduct, ProductPickerComponent } from '@ims/containers/catalog-shared';
-import { CatalogStore } from '@ims/features/catalog';
+import { CatalogStore, ProductsStore } from '@ims/features/catalog';
 import { PurchaseOrdersStore } from '@ims/features/purchasing';
 import { PartnersStore, WarehousesStore } from '@ims/features/warehousing';
 import {
@@ -31,6 +31,7 @@ const PRODUCT = {
   id: 'p1',
   sku: 'SKU-1',
   name: 'Widget',
+  isActive: true,
   baseUomId: 'pcs',
   baseUomCode: 'PCS',
   conversions: []
@@ -97,6 +98,7 @@ describe('PurchaseOrderEditorPageComponent', () => {
     reset: jest.fn()
   };
   const store = { detail, save, resetCommands: jest.fn() };
+  const lookup = jest.fn();
   const createComponent = createComponentFactory({
     component: PurchaseOrderEditorPageComponent,
     detectChanges: false,
@@ -126,7 +128,8 @@ describe('PurchaseOrderEditorPageComponent', () => {
           ensureLoaded: jest.fn()
         }
       },
-      { provide: CatalogStore, useValue: { $unitCodes: () => new Map() } }
+      { provide: CatalogStore, useValue: { $unitCodes: () => new Map() } },
+      { provide: ProductsStore, useValue: { lookup } }
     ]
   });
 
@@ -147,6 +150,7 @@ describe('PurchaseOrderEditorPageComponent', () => {
     detail.$isFailed.set(false);
     save.$operation.set(IDLE_OPERATION);
     save.run.mockClear();
+    lookup.mockReset();
     for (const mock of [
       detail.load,
       detail.reload,
@@ -265,7 +269,48 @@ describe('PurchaseOrderEditorPageComponent', () => {
     });
   });
 
+  describe('the entry link of the reorder screen', () => {
+    const OTHER = '00000000-0000-4000-8000-0000000000c9';
+
+    it('fills supplier, warehouse and lines (price 0.00) from the query, and asks before leaving', async () => {
+      lookup.mockImplementation((sku: string) => of({ found: sku === 'SKU-1', product: PRODUCT }));
+
+      await render({
+        supplierId: SUPPLIER,
+        warehouseId: WAREHOUSE,
+        line: ['SKU-1|12', 'NOPE|3', 'SKU-1|x']
+      });
+
+      expect(lookup.mock.calls.map(call => call[0])).toEqual(['SKU-1', 'NOPE']);
+      expect(component().form.controls.supplierId.value).toBe(SUPPLIER);
+      expect(component().form.controls.warehouseId.value).toBe(WAREHOUSE);
+      expect(component().lines.length).toBe(1);
+      expect(component().lines.at(0).getRawValue()).toMatchObject({ qty: 12, unitCost: 0 });
+      expect(component().hasUnsavedChanges()).toBe(true);
+    });
+
+    it('trusts nothing in it: a supplier or warehouse the person may not use, a switched-off product and a non-GUID are ignored', async () => {
+      lookup.mockReturnValue(of({ found: true, product: { ...PRODUCT, isActive: false } }));
+
+      await render({ supplierId: OTHER, warehouseId: 'not-a-guid', line: 'SKU-1|2' });
+
+      expect(component().form.controls.supplierId.value).toBeNull();
+      expect(component().form.controls.warehouseId.value).toBe(WAREHOUSE);
+      expect(component().lines.length).toBe(0);
+    });
+  });
+
   describe('review fixes', () => {
+    it('picking the same product again adds exactly one (no float noise on 1.0001)', async () => {
+      await render();
+      component().onProductPicked({ product: PRODUCT, available: null });
+      component().lines.at(0).controls.qty.setValue(1.0001);
+
+      component().onProductPicked({ product: PRODUCT, available: null });
+
+      expect(component().lines.at(0).controls.qty.value).toBe(2.0001);
+    });
+
     it('an error on a whole line (a product switched off) is shown with its code and does not block Save', async () => {
       detail.$data.set(draft());
       await render({ id: ID });

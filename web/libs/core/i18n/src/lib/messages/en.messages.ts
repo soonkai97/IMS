@@ -884,5 +884,11 @@ export const EN_MESSAGES = {
   'po.action.edit': 'Edit',
   'po.staleSaveBody':
     'Someone else changed this order. Reload to see the latest version. Your changes were not saved.',
-  'po.priceFor': 'Unit price of {sku}'
+  'po.priceFor': 'Unit price of {sku}',
+  'po.print': 'Print',
+  'po.print.title': 'Purchase order {docNo}',
+  'po.print.shipTo': 'Ship to',
+  'po.print.lineNo': 'No.',
+  'po.print.total': 'Total ({currency})',
+  'po.unitFor': 'Unit of {sku}'
 } as const;

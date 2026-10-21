@@ -4,6 +4,7 @@ import { unsavedChangesGuard } from '@ims/core/navigation';
 import { MODULE_CODE, PERMISSION } from '@ims/models';
 import { PurchaseOrderDetailPageComponent } from './purchase-order-detail/purchase-order-detail.component';
 import { PurchaseOrderEditorPageComponent } from './purchase-order-editor/purchase-order-editor.component';
+import { PurchaseOrderPrintPageComponent } from './purchase-order-print/purchase-order-print.component';
 import { PurchaseOrderListPageComponent } from './purchase-order-list/purchase-order-list.component';
 
 /** `requirePermission` asks for ANY of its permissions, so the two rights are two guards. */
@@ -36,6 +37,12 @@ export const PURCHASE_ORDER_ROUTES: Routes = [
         title: 'po.title',
         canActivate: EDITOR_GUARDS,
         canDeactivate: [unsavedChangesGuard]
+      },
+      {
+        path: ':id/print',
+        component: PurchaseOrderPrintPageComponent,
+        title: 'po.print',
+        canActivate: [requirePermission(PERMISSION.CostView)]
       },
       { path: ':id', component: PurchaseOrderDetailPageComponent, title: 'po.title' }
     ]

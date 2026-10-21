@@ -235,6 +235,19 @@ describe('PurchaseOrderDetailPageComponent', () => {
       expect(buttons()).toEqual([]);
     });
 
+    it('Print (the supplier copy, with prices) is offered with cost.view and only once the order is Approved or Closed', async () => {
+      const printLink = (): Element | null => spectator.query('a[href$="/print"]');
+      await render(order({ status: PurchaseOrderStatus.Approved }));
+      expect(printLink()?.getAttribute('href')).toBe(`/purchase-orders/${ID}/print`);
+
+      await render(order({ status: PurchaseOrderStatus.Draft }));
+      expect(printLink()).toBeNull();
+
+      granted.clear();
+      await render(order({ status: PurchaseOrderStatus.Approved }));
+      expect(printLink()).toBeNull();
+    });
+
     it('does not look at what the user holds: a holder of every right sees nothing the server did not list', async () => {
       Object.values(PERMISSION).forEach(permission => granted.add(permission));
 

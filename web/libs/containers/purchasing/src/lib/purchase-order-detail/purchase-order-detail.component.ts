@@ -161,6 +161,14 @@ export class PurchaseOrderDetailPageComponent {
   );
   private readonly $actions = computed(() => toPoActions(this.$order()?.allowedActions));
   /** The API offers `edit` to a holder of po.manage; the editor also needs cost.view (it saves prices). */
+  /** The supplier copy shows prices: offered to a holder of cost.view, once the order is Approved (or Closed). */
+  readonly $canPrint = computed(() => {
+    const status = this.$order()?.status;
+    return (
+      this.permissions.has(PERMISSION.CostView) &&
+      (status === PurchaseOrderStatus.Approved || status === PurchaseOrderStatus.Closed)
+    );
+  });
   readonly $canEdit = computed(
     () => this.$actions().has(PO_ACTION.Edit) && this.permissions.has(PERMISSION.CostView)
   );
