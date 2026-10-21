@@ -188,10 +188,13 @@ test.describe('Purchase orders, real API', () => {
 
     // The submitter is not the reviewer: the Clerk sees the order without the mark.
     const clerk = await openSession(page.context().browser()!, 'clerk');
-    await goTo(clerk.page, '/purchase-orders');
-    await expect(row(clerk.page, waiting.no)).toBeVisible();
-    await expect(row(clerk.page, waiting.no)).not.toContainText('Waiting for you');
-    await clerk.context.close();
+    try {
+      await goTo(clerk.page, '/purchase-orders');
+      await expect(row(clerk.page, waiting.no)).toBeVisible();
+      await expect(row(clerk.page, waiting.no)).not.toContainText('Waiting for you');
+    } finally {
+      await clerk.context.close();
+    }
     await command('clerk', waiting.id, 'cancel', { reason: 'E2E: throw-away order' });
     await command('clerk', draft.id, 'cancel');
     await command('supervisor', released.id, 'cancel', { reason: 'E2E: throw-away order' });
@@ -294,55 +297,71 @@ test.describe('Purchase orders, real API', () => {
   }) => {
     const order = await createOrder(data.supplier.id, data.productId, NEEDS_APPROVAL);
     const clerk = await openSession(page.context().browser()!, 'clerk');
-    await goTo(clerk.page, `/purchase-orders/${order.id}`);
-    await expect(status(clerk.page)).toHaveText('Draft');
-    expect(await barButtons(clerk.page)).toEqual(await expectedButtons(order, 'clerk'));
+    try {
+      await goTo(clerk.page, `/purchase-orders/${order.id}`);
+      await expect(status(clerk.page)).toHaveText('Draft');
+      expect(await barButtons(clerk.page)).toEqual(await expectedButtons(order, 'clerk'));
 
-    const submit = clerk.page.getByRole('button', { name: 'Submit', exact: true });
-    await submit.dblclick();
-    await expect(clerk.shell.toast('Submitted for approval.')).toHaveCount(1);
-    await expect(status(clerk.page)).toHaveText('Submitted');
+      let submits = 0;
+      clerk.page.on('request', request => {
+        if (
+          request.method() === 'POST' &&
+          request.url().endsWith(`/purchase-orders/${order.id}/submit`)
+        ) {
+          submits++;
+        }
+      });
+      const submit = clerk.page.getByRole('button', { name: 'Submit', exact: true });
+      await submit.dblclick();
+      await expect(clerk.shell.toast('Submitted for approval.')).toHaveCount(1);
+      expect(submits).toBe(1);
+      await expect(
+        clerk.page.locator('app-banner').filter({ hasText: 'changed since you opened it' })
+      ).toHaveCount(0);
+      await expect(status(clerk.page)).toHaveText('Submitted');
 
-    await signIn('supervisor');
-    await goTo(page, `/purchase-orders/${order.id}`);
-    await bar(page, 'Reject').click();
-    const dialog = shell.dialog(`Reject ${order.no}?`);
-    await dialog.getByRole('textbox').fill('abc');
-    await dialog.getByRole('button', { name: 'Reject', exact: true }).click();
-    await expect(dialog.getByText('Enter a reason of at least 5 characters.')).toBeVisible();
-    expect((await getOrder(order.id)).status).toBe('Submitted');
-    await dialog.getByRole('textbox').fill('The price is too high');
-    await dialog.getByRole('button', { name: 'Reject', exact: true }).click();
-    await expect(status(page)).toHaveText('Draft');
-    await expect(
-      page.locator('app-banner').filter({ hasText: 'The price is too high' })
-    ).toBeVisible();
-    await expect(bar(page, 'Approve')).toHaveCount(0);
+      await signIn('supervisor');
+      await goTo(page, `/purchase-orders/${order.id}`);
+      await bar(page, 'Reject').click();
+      const dialog = shell.dialog(`Reject ${order.no}?`);
+      await dialog.getByRole('textbox').fill('abc');
+      await dialog.getByRole('button', { name: 'Reject', exact: true }).click();
+      await expect(dialog.getByText('Enter a reason of at least 5 characters.')).toBeVisible();
+      expect((await getOrder(order.id)).status).toBe('Submitted');
+      await dialog.getByRole('textbox').fill('The price is too high');
+      await dialog.getByRole('button', { name: 'Reject', exact: true }).click();
+      await expect(status(page)).toHaveText('Draft');
+      await expect(
+        page.locator('app-banner').filter({ hasText: 'The price is too high' })
+      ).toBeVisible();
+      await expect(bar(page, 'Approve')).toHaveCount(0);
 
-    await command('clerk', order.id, 'submit');
-    await page.reload();
-    await bar(page, 'Approve').click();
-    await shell
-      .dialog(`Approve ${order.no}?`)
-      .getByRole('button', { name: 'Approve', exact: true })
-      .click();
-    await expect(status(page)).toHaveText('Approved');
-    await expect(shell.toast('Approved.')).toHaveCount(1);
-    expect(await barButtons(page)).toEqual(await expectedButtons(order, 'supervisor'));
+      await command('clerk', order.id, 'submit');
+      await page.reload();
+      await bar(page, 'Approve').click();
+      await shell
+        .dialog(`Approve ${order.no}?`)
+        .getByRole('button', { name: 'Approve', exact: true })
+        .click();
+      await expect(status(page)).toHaveText('Approved');
+      await expect(shell.toast('Approved.')).toHaveCount(1);
+      expect(await barButtons(page)).toEqual(await expectedButtons(order, 'supervisor'));
 
-    await bar(page, 'Cancel order').click();
-    const cancel = shell.dialog(`Cancel ${order.no}?`);
-    await cancel.getByRole('textbox').fill('abc');
-    await cancel.getByRole('button', { name: 'Cancel order', exact: true }).click();
-    await expect(cancel.getByText('Enter a reason of at least 5 characters.')).toBeVisible();
-    await cancel.getByRole('textbox').fill('Supplier went out of business');
-    await cancel.getByRole('button', { name: 'Cancel order', exact: true }).click();
-    await expect(status(page)).toHaveText('Cancelled');
-    await expect(
-      page.locator('app-banner').filter({ hasText: 'Supplier went out of business' })
-    ).toBeVisible();
-    await expect(page.locator('.po-detail-bar')).toHaveCount(0);
-    await clerk.context.close();
+      await bar(page, 'Cancel order').click();
+      const cancel = shell.dialog(`Cancel ${order.no}?`);
+      await cancel.getByRole('textbox').fill('abc');
+      await cancel.getByRole('button', { name: 'Cancel order', exact: true }).click();
+      await expect(cancel.getByText('Enter a reason of at least 5 characters.')).toBeVisible();
+      await cancel.getByRole('textbox').fill('Supplier went out of business');
+      await cancel.getByRole('button', { name: 'Cancel order', exact: true }).click();
+      await expect(status(page)).toHaveText('Cancelled');
+      await expect(
+        page.locator('app-banner').filter({ hasText: 'Supplier went out of business' })
+      ).toBeVisible();
+      await expect(page.locator('.po-detail-bar')).toHaveCount(0);
+    } finally {
+      await clerk.context.close();
+    }
   });
 
   test('given an order changed by someone else, when a button is used, then one banner says so, the buttons are locked, and Reload shows the new state', async ({
@@ -369,6 +388,38 @@ test.describe('Purchase orders, real API', () => {
     await expect(status(page)).toHaveText('Approved');
     await expect(banner).toHaveCount(0);
     await command('supervisor', order.id, 'cancel', { reason: 'E2E: throw-away order' });
+  });
+
+  test('given a stale banner on order A, when the person goes to the list and opens order B without a reload, then B shows no banner and its buttons work', async ({
+    page,
+    signIn,
+    shell
+  }) => {
+    const [a, b] = [
+      await createOrder(data.supplier.id, data.productId, NEEDS_APPROVAL),
+      await createOrder(data.supplier.id, data.productId, NEEDS_APPROVAL)
+    ];
+    for (const order of [a, b]) {
+      await command('clerk', order.id, 'submit');
+    }
+    await signIn('clerk');
+    await goTo(page, `/purchase-orders/${a.id}`);
+    await expect(status(page)).toHaveText('Submitted');
+    await command('supervisor', a.id, 'approve');
+    await bar(page, 'Back to draft').click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Back to draft' }).click();
+    await expect(
+      page.locator('app-banner').filter({ hasText: 'changed since you opened it' })
+    ).toBeVisible();
+
+    await shell.nav.getByRole('link', { name: 'Purchase orders' }).click();
+    await row(page, b.no).getByRole('link', { name: b.no }).click();
+    await expect(page.getByRole('heading', { level: 1, name: b.no })).toBeVisible();
+    await expect(status(page)).toHaveText('Submitted');
+    await expect(page.locator('app-banner')).toHaveCount(0);
+    await expect(bar(page, 'Cancel order')).toBeEnabled();
+    await command('clerk', b.id, 'cancel');
+    await command('supervisor', a.id, 'cancel', { reason: 'E2E: throw-away order' });
   });
 
   test('given an order that is part received, then ordered, received and remaining show per line with the receipt linked, and Close short with a reason closes it', async ({

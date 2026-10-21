@@ -802,6 +802,7 @@ export const ZH_MESSAGES: Messages = {
   // TODO-review: machine draft (PL2.7c: purchase order actions).
   'po.staleBody': '其他人修改了这张订单。请重新加载以查看最新版本。未执行任何操作。',
   'po.staleBodyBy': '{name} 在 {time} 修改了这张订单。请重新加载以查看最新版本。未执行任何操作。',
+  'po.actionsLabel': '{docNo} 的操作',
   'po.action.cancel': '取消订单',
   'po.action.close': '提前关闭',
   'po.action.recall': '退回草稿',

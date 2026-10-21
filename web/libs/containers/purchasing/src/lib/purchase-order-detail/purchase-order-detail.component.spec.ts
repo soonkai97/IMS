@@ -114,6 +114,9 @@ function apiError(
   };
 }
 
+const COMMANDS = ['submit', 'recall', 'approve', 'reject', 'cancel', 'close'] as const;
+const OTHER_ID = '00000000-0000-4000-8000-000000000002';
+
 describe('PurchaseOrderDetailPageComponent', () => {
   let spectator: Spectator<PurchaseOrderDetailPageComponent>;
   const granted = new Set<string>();
@@ -134,7 +137,20 @@ describe('PurchaseOrderDetailPageComponent', () => {
     reject: command(),
     cancel: command(),
     close: command(),
-    resetCommands: jest.fn()
+    // Like the real store: forgetting a command empties its outcome.
+    resetCommands: jest.fn(() => {
+      for (const name of COMMANDS) {
+        store[name].$operation.set(IDLE_OPERATION);
+      }
+    }),
+    resetFailed: jest.fn((refused: (error: ApiError) => boolean) => {
+      for (const name of COMMANDS) {
+        const error = store[name].$operation().error;
+        if (error && refused(error)) {
+          store[name].$operation.set(IDLE_OPERATION);
+        }
+      }
+    })
   };
   const createComponent = createComponentFactory({
     component: PurchaseOrderDetailPageComponent,
@@ -171,7 +187,9 @@ describe('PurchaseOrderDetailPageComponent', () => {
     detail.$isFailed.set(false);
     detail.load.mockClear();
     detail.reload.mockClear();
-    for (const name of ['submit', 'recall', 'approve', 'reject', 'cancel', 'close'] as const) {
+    store.resetCommands.mockClear();
+    store.resetFailed.mockClear();
+    for (const name of COMMANDS) {
       store[name].run.mockReset();
       store[name].run.mockReturnValue(of(order()));
       store[name].$operation.set(IDLE_OPERATION);
@@ -485,13 +503,66 @@ describe('PurchaseOrderDetailPageComponent', () => {
       expect(button('Cancel order').disabled).toBe(false);
     });
 
-    it('a plain 400 (wrong state) reads the order again so the buttons match', async () => {
+    it('a plain 400 (wrong state) or a 403 reads the order again once, and forgets the failed command so a later command does not repeat it', async () => {
       await render(order({ allowedActions: ['cancel'] }));
       store.cancel.$operation.set(failureOperation(apiError(API_ERROR_KIND.Validation, 400)));
       spectator.detectChanges();
       await spectator.fixture.whenStable();
 
-      expect(detail.reload).toHaveBeenCalled();
+      expect(detail.reload).toHaveBeenCalledTimes(1);
+      expect(store.cancel.$operation().error).toBeUndefined();
+
+      store.submit.$operation.set(failureOperation(apiError(API_ERROR_KIND.Forbidden, 403)));
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(detail.reload).toHaveBeenCalledTimes(2);
+      expect(store.submit.$operation().error).toBeUndefined();
+    });
+  });
+
+  describe('what the last order or the last user left in the store', () => {
+    const staleError = () =>
+      failureOperation(apiError(API_ERROR_KIND.Conflict, 409, 'x', { code: 'document_changed' }));
+
+    it('a stale banner and a refusal of order A do not appear on order B opened next, and its buttons work', async () => {
+      await render(order({ allowedActions: ['cancel'] }));
+      store.cancel.$operation.set(staleError());
+      store.approve.$operation.set(
+        failureOperation(apiError(API_ERROR_KIND.Conflict, 409, 'Nope for A.', {}))
+      );
+      spectator.detectChanges();
+      expect(text()).toContain('changed since you opened it');
+
+      detail.$data.set(order({ id: OTHER_ID, no: 'PO-B', allowedActions: ['cancel'] }));
+      spectator.setInput('id', OTHER_ID);
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(store.resetCommands).toHaveBeenCalled();
+      expect(text()).toContain('PO-B');
+      expect(text()).not.toContain('changed since you opened it');
+      expect(text()).not.toContain('Nope for A.');
+      expect(button('Cancel order').disabled).toBe(false);
+    });
+
+    it('what another user left behind (the store outlives a sign-out) is gone when the page opens', async () => {
+      store.cancel.$operation.set(staleError());
+
+      await render(order({ allowedActions: ['cancel'] }));
+
+      expect(text()).not.toContain('changed since you opened it');
+      expect(button('Cancel order').disabled).toBe(false);
+    });
+  });
+
+  describe('the bar', () => {
+    it('is a named group', async () => {
+      await render(order({ allowedActions: ['cancel'] }));
+
+      const bar = spectator.query('.po-detail-bar');
+      expect(bar?.getAttribute('role')).toBe('group');
+      expect(bar?.getAttribute('aria-label')).toBe('Actions for PO-MAIN-2610-0001');
     });
   });
 });

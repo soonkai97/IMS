@@ -865,6 +865,7 @@ export const EN_MESSAGES = {
     'Someone else changed this order. Reload to see the latest version. Nothing was done.',
   'po.staleBodyBy':
     '{name} changed this order at {time}. Reload to see the latest version. Nothing was done.',
+  'po.actionsLabel': 'Actions for {docNo}',
   'po.action.cancel': 'Cancel order',
   'po.action.close': 'Close short',
   'po.action.recall': 'Back to draft',

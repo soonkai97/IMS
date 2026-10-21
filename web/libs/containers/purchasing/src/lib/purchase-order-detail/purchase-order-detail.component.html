@@ -160,6 +160,8 @@
   @if ($showBar()) {
     <footer
       class="po-detail-bar"
+      role="group"
+      [attr.aria-label]="'po.actionsLabel' | t: { docNo: order.no }"
       appPublishHeight="--ims-action-bar-height"
       appPublishClearance="--ims-action-bar-clearance"
       [attr.aria-busy]="$isBusy()"
@@ -179,6 +181,7 @@
         <app-button
           variant="danger"
           [disabled]="$isBusy() || $isStale()"
+          [loading]="$busyAction() === action.Reject"
           (clicked)="onAction(action.Reject)"
         >
           {{ 'doc.action.reject' | t }}

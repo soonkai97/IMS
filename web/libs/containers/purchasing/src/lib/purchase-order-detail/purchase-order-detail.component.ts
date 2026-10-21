@@ -61,6 +61,14 @@ import {
 } from '@ims/ui';
 import { isDefined, normalizePublicId } from '@ims/utils';
 
+function isStateRefusal(error: ApiError | undefined): boolean {
+  return (
+    error !== undefined &&
+    ((error.status === HTTP_STATUS.BadRequest && Object.keys(error.fieldErrors).length === 0) ||
+      error.status === HTTP_STATUS.Forbidden)
+  );
+}
+
 interface HistoryEvent {
   readonly labelKey: MessageKey;
   readonly by?: string;
@@ -293,6 +301,8 @@ export class PurchaseOrderDetailPageComponent {
   private readonly openOrder = effect(() => {
     const id = this.$orderId();
     untracked(() => {
+      // The store outlives this page (and a sign-out): what the last order's commands failed with is not this order's.
+      this.store.resetCommands();
       this.store.detail.reset();
       if (id !== undefined) {
         this.store.detail.load(id, handledInline());
@@ -303,16 +313,16 @@ export class PurchaseOrderDetailPageComponent {
   private readonly syncTitle = effect(() => this.pageTitle.setDetail(this.$order()?.no));
 
   /**
-   * A command refused with a plain 400 (the order is no longer in a state that allows it): the sentence was announced once by
-   * the toast, and the page is read again so its buttons match the order.
+   * A command refused because the order is not in a state that allows it (a plain 400) or the caller may not do it any more (403):
+   * the sentence was announced once by the toast, and the page is read again so its buttons match the order. The failed command is
+   * forgotten first, or any later command would run this again for the old error and race its own answer.
    */
-  private readonly reloadAfterWrongState = effect(() => {
-    const refused = this.$commandErrors().some(
-      error =>
-        error?.status === HTTP_STATUS.BadRequest && Object.keys(error.fieldErrors).length === 0
-    );
-    if (refused) {
-      untracked(() => this.store.detail.reload());
+  private readonly reloadAfterRefusal = effect(() => {
+    if (this.$commandErrors().some(isStateRefusal)) {
+      untracked(() => {
+        this.store.resetFailed(isStateRefusal);
+        this.store.detail.reload();
+      });
     }
   });
 

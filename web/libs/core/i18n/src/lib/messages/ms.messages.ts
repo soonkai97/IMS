@@ -869,6 +869,7 @@ export const MS_MESSAGES: Messages = {
     'Orang lain telah mengubah pesanan ini. Muat semula untuk melihat versi terkini. Tiada tindakan dibuat.',
   'po.staleBodyBy':
     '{name} mengubah pesanan ini pada {time}. Muat semula untuk melihat versi terkini. Tiada tindakan dibuat.',
+  'po.actionsLabel': 'Tindakan untuk {docNo}',
   'po.action.cancel': 'Batalkan pesanan',
   'po.action.close': 'Tutup tidak lengkap',
   'po.action.recall': 'Kembali ke draf',
