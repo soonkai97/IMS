@@ -673,6 +673,11 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     const id = this.$documentId();
     const unusable = this.$unusableRouteId();
     untracked(() => {
+      // The store outlives this page (and a sign-out): what the last document's commands failed with is not this one's. The
+      // document this editor just created is the same one, so its commands keep their outcome.
+      if (id === undefined || id !== this.justCreatedId) {
+        this.documents.resetCommands();
+      }
       if (unusable) {
         this.documents.detail.reset();
       } else if (id === undefined) {
@@ -745,17 +750,17 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
    * and Reload button instead (E4); a 400 about a field (the reason) is shown at the field.
    */
   private readonly reloadAfterWrongState = effect(() => {
-    const refused = [
-      this.documents.recall.$operation().error,
-      this.documents.cancel.$operation().error
-    ];
-    if (
-      refused.some(
-        error =>
-          error?.status === HTTP_STATUS.BadRequest && Object.keys(error.fieldErrors).length === 0
-      )
-    ) {
-      untracked(() => this.documents.detail.reload());
+    const refused = [this.documents.recall, this.documents.cancel].filter(
+      command =>
+        command.$operation().error?.status === HTTP_STATUS.BadRequest &&
+        Object.keys(command.$operation().error?.fieldErrors ?? {}).length === 0
+    );
+    if (refused.length > 0) {
+      untracked(() => {
+        // Forget the refusal first, or any later command would run this again for the old error and race its own answer.
+        refused.forEach(command => command.reset());
+        this.documents.detail.reload();
+      });
     }
   });
 

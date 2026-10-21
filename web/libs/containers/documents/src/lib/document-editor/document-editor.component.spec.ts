@@ -121,7 +121,12 @@ describe('DocumentEditorPageComponent', () => {
   const calls: Record<string, unknown[]> = {};
   const detailReload = jest.fn();
   const currentToken = jest.fn();
-  const resetCommands = jest.fn();
+  // Like the real store: forgetting the commands empties their outcomes.
+  const resetCommands = jest.fn(() => {
+    for (const command of Object.values(commands)) {
+      command.reset();
+    }
+  });
   const detailOperation = signal<ApiOperation>(IDLE_OPERATION);
   const lookup = jest.fn();
   const granted = new Set<string>([PERMISSION.StockRead]);
@@ -355,6 +360,82 @@ describe('DocumentEditorPageComponent', () => {
     spectator.component.onReload();
     expect(resetCommands).toHaveBeenCalled();
     expect(detailReload).toHaveBeenCalled();
+  });
+
+  describe('what the last document or the last user left in the store', () => {
+    const approveButton = (): HTMLButtonElement | undefined =>
+      spectator
+        .queryAll<HTMLButtonElement>('button')
+        .find(button => button.textContent?.includes('Approve'));
+
+    it('a stale banner and a refusal of document A do not appear on document B opened next, and its buttons work', async () => {
+      await open(document());
+      commands['approve'].$operation.set(
+        failureOperation({ ...STALE, extensions: { code: 'document_changed' } })
+      );
+      commands['reject'].$operation.set(failureOperation({ ...STALE, detail: 'Nope for A.' }));
+      spectator.detectChanges();
+      expect(text()).toContain('changed since you opened it');
+      expect(approveButton()?.hasAttribute('disabled')).toBe(true);
+
+      opened.set(document({ id: guid(5), no: 'ISS-B' }));
+      spectator.setInput('id', guid(5));
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+      spectator.detectChanges();
+
+      expect(resetCommands).toHaveBeenCalled();
+      expect(text()).toContain('ISS-B');
+      expect(text()).not.toContain('changed since you opened it');
+      expect(approveButton()?.hasAttribute('disabled')).toBe(false);
+    });
+
+    it('what another user left behind (the store outlives a sign-out) is gone when the page opens', async () => {
+      commands['approve'].$operation.set(
+        failureOperation({ ...STALE, extensions: { code: 'document_changed' } })
+      );
+
+      await open(document());
+
+      expect(text()).not.toContain('changed since you opened it');
+      expect(approveButton()?.hasAttribute('disabled')).toBe(false);
+    });
+
+    it('the document this editor just created keeps the outcome of its commands', async () => {
+      await openNew();
+      fillNewIssue();
+      responses['save'] = draftOf(31);
+      jest.spyOn(spectator.inject(Router), 'navigate').mockResolvedValue(true);
+      resetCommands.mockClear();
+
+      spectator.component.onAction(DOCUMENT_ACTION.Edit);
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(resetCommands).not.toHaveBeenCalled();
+    });
+
+    it('a plain 400 reads the document again once and forgets the failed command so a later command does not repeat it', async () => {
+      await open(document());
+      const wrongState = failureOperation({
+        ...STALE,
+        kind: API_ERROR_KIND.Validation,
+        status: 400,
+        detail: 'ISS-WH01-2610-0001 is Approved and can not be taken back to draft.'
+      });
+
+      commands['recall'].$operation.set(wrongState);
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+      expect(detailReload).toHaveBeenCalledTimes(1);
+      expect(commands['recall'].$operation().error).toBeUndefined();
+
+      commands['cancel'].$operation.set(wrongState);
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+      expect(detailReload).toHaveBeenCalledTimes(2);
+      expect(commands['cancel'].$operation().error).toBeUndefined();
+    });
   });
 
   it('coming back to the tab finds a document someone else changed meanwhile, before any save', async () => {
