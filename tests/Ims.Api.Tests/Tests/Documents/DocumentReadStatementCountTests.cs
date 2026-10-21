@@ -11,7 +11,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 
 /// <summary>
 /// PL2.4 acceptance 7: reading a document that is NOT linked to a purchase order sends the same number of commands as before the link existed (the left join to the order is inside the one
-/// statement that reads the document, and nothing asks whether the Purchasing module is on, because there is no link to show). Reading a linked document may ask the module switch once.
+/// statement that reads the document, and nothing asks whether the Purchasing module is on, because there is no link to show). Reading a linked document asks the module switch once (one command more).
 /// The frozen numbers for posting and reading a posted document are in <see cref="PostingStatementCountTests"/>; this pins the read of a Draft and of a linked receipt too.
 /// </summary>
 [Collection(ApiCollection.Name)]
@@ -20,6 +20,9 @@ public class DocumentReadStatementCountTests(ApiFixture fixture) : IAsyncLifetim
     /// <summary>Commands of <c>GET /api/documents/{id}</c> for an OPEN document: the header, the lines, the stock on hand of the lines, and the settings for <c>allowedActions</c> (a posted one has no stock lookup: 3, frozen in the posting test).</summary>
     private const int OpenDocumentCommands = 4;
 
+    /// <summary>A linked document asks the Purchasing switch once more (the module setting is read to decide whether the link is shown).</summary>
+    private const int LinkedExtraCommands = 1;
+
     private PurchasingScenario _p = null!;
 
     public async Task InitializeAsync() => _p = await PurchasingScenario.CreateAsync(fixture);
@@ -27,7 +30,7 @@ public class DocumentReadStatementCountTests(ApiFixture fixture) : IAsyncLifetim
     public Task DisposeAsync() => PurchasingScenario.ResetAsync(fixture);
 
     [Fact]
-    public async Task Reading_a_document_that_is_not_linked_costs_the_frozen_number_of_commands_and_one_more_for_a_linked_one_at_most()
+    public async Task Reading_a_document_that_is_not_linked_costs_the_frozen_number_of_commands_and_one_more_for_a_linked_one()
     {
         var log = new SqlStatementLog();
         await using var host = fixture.CreateHost(b => b.ConfigureServices(services => services.ConfigureDbContext<AppDbContext>(o => o.AddInterceptors(log))));
@@ -49,6 +52,6 @@ public class DocumentReadStatementCountTests(ApiFixture fixture) : IAsyncLifetim
         var withLink = await CommandsAsync(linked.Id);
 
         Assert.Equal(OpenDocumentCommands, unlinked);
-        Assert.InRange(withLink, OpenDocumentCommands, OpenDocumentCommands + 1);
+        Assert.Equal(OpenDocumentCommands + LinkedExtraCommands, withLink);
     }
 }

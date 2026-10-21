@@ -72,7 +72,6 @@ public class PurchaseOrderReceivingTests(ApiFixture fixture) : IAsyncLifetime
         read = await _p.ReadAsync(order.Id);
         Assert.Equal((0m, 10m, 0m, 10m), Line(read)); // the quantity is free again, the receipt is still listed
         Assert.Equal(DocumentStatus.Reversed, Assert.Single(read.Receipts).Status);
-        Assert.Equal(10m, (await _p.ReadAsync(order.Id)).Lines.Single().RemainingQty);
     }
 
     [Fact]
@@ -150,18 +149,22 @@ public class PurchaseOrderReceivingTests(ApiFixture fixture) : IAsyncLifetime
     [Theory]
     [InlineData("draft")]
     [InlineData("submitted")]
+    [InlineData("approved")]
     [InlineData("posted")]
     public async Task An_order_with_a_receipt_open_or_posted_cannot_be_cancelled_and_the_answer_names_the_receipt(string state)
     {
         var order = await _p.ApprovedAsync((_a.Id, 10m, 2m, null));
         var receipt = await _p.ReceiptFromAsync(order);
-        if (state == "submitted") (await _p.Clerk.Documents.SubmitAsync(receipt.Id, receipt.ConcurrencyToken)).ShouldBeOk();
+        // a rule makes the receipt wait for a reviewer, so it can be Approved without being posted
+        await using var rule = state == "approved" ? await ApprovalRuleScope.AddAsync(_p.Admin, DocumentType.Receipt, null, 1m, Roles.Supervisor) : null;
+        if (state is "submitted" or "approved") receipt = (await _p.Clerk.Documents.SubmitAsync(receipt.Id, receipt.ConcurrencyToken)).Data<DocumentDto>();
+        if (state == "approved") receipt = (await _p.Supervisor.Documents.ApproveAsync(receipt.Id, receipt.ConcurrencyToken)).Data<DocumentDto>();
         if (state == "posted") receipt = await _p.PostAsync(receipt, _p.Clerk);
 
         var problem = (await _p.Admin.PurchaseOrders.CancelAsync(order.Id, "Supplier cannot deliver", order.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Conflict);
 
         Assert.Contains(receipt.No, problem.Detail);
-        Assert.Contains(state == "posted" ? "Posted" : state == "draft" ? "Draft" : "Submitted", problem.Detail);
+        Assert.Contains($"({receipt.Status})", problem.Detail); // Draft, Submitted, Approved or Posted
         Assert.Equal(PurchaseOrderStatus.Approved, (await _p.ReadAsync(order.Id)).Status);
     }
 
