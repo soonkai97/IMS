@@ -37,6 +37,20 @@ public class PurchaseOrderActionPolicyTests
         Assert.True(PurchaseOrderActionPolicy.MayCancel(Rights(Roles.Admin), Order(PurchaseOrderStatus.Draft, createdBy: SomeoneElse, submittedBy: null)));
     }
 
+    [Fact]
+    public void The_draft_cancel_follows_the_permission_alone_modules_manage_without_po_manage_or_ownership_cancels_and_nothing_else_does()
+    {
+        var onlyModules = new ActorRights(Me, EffectivePermissions.Compute([Permissions.ModulesManage]));
+        var onlyPoManage = new ActorRights(Me, EffectivePermissions.Compute([Permissions.PoManage]));
+        var someonesDraft = Order(PurchaseOrderStatus.Draft, createdBy: SomeoneElse, submittedBy: null);
+
+        Assert.True(onlyModules.Has(Permissions.ModulesManage) && !onlyModules.Has(Permissions.PoManage)); // the actor is what the test says
+        Assert.True(PurchaseOrderActionPolicy.MayCancel(onlyModules, someonesDraft));
+        Assert.False(PurchaseOrderActionPolicy.MayCancel(onlyPoManage, someonesDraft));
+        Assert.Empty(PurchaseOrderActionPolicy.AllowedActions(onlyModules, someonesDraft, allowSelfApproval: false).Except([DocumentActions.Cancel])); // it cancels, it does not edit or submit
+        Assert.False(PurchaseOrderActionPolicy.MayCancel(onlyModules, Order(PurchaseOrderStatus.Submitted, requiresApproval: true))); // and only a Draft: a Submitted order stays its submitter's
+    }
+
     [Theory]
     [InlineData(Roles.Owner)]
     [InlineData(Roles.WarehouseStaff)]

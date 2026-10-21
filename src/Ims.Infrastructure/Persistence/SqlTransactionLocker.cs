@@ -14,6 +14,12 @@ namespace Ims.Infrastructure.Persistence;
 /// <param name="modulesLockTimeoutMs">How long the modules lock waits; tests shorten it likewise.</param>
 public sealed class SqlTransactionLocker(AppDbContext db, int rolesLockTimeoutMs = Limits.RolesLockTimeoutMs, int modulesLockTimeoutMs = Limits.ModulesLockTimeoutMs) : ITransactionLocker
 {
+    private static class LockMode
+    {
+        public const string Shared = "Shared";
+        public const string Exclusive = "Exclusive";
+    }
+
     /// <summary>sp_getapplock returns 0 or 1 when the lock is granted and a negative number when it is not (timeout, cancelled, deadlock victim, error).</summary>
     private const int NotGranted = 0;
 
@@ -30,9 +36,9 @@ public sealed class SqlTransactionLocker(AppDbContext db, int rolesLockTimeoutMs
 
     public Task LockModulesAsync(CancellationToken ct) => AcquireAsync("modules", modulesLockTimeoutMs, retry: false, ct, Messages.ModulesLockBusy);
 
-    public Task LockModulesSharedAsync(CancellationToken ct) => AcquireAsync("modules", modulesLockTimeoutMs, retry: false, ct, Messages.ModulesLockBusy, mode: "Shared");
+    public Task LockModulesSharedAsync(CancellationToken ct) => AcquireAsync("modules", modulesLockTimeoutMs, retry: false, ct, Messages.ModulesLockBusy, mode: LockMode.Shared);
 
-    private async Task AcquireAsync(string resource, int timeoutMs, bool retry, CancellationToken ct, string busyMessage = Messages.LockBusy, string mode = "Exclusive")
+    private async Task AcquireAsync(string resource, int timeoutMs, bool retry, CancellationToken ct, string busyMessage = Messages.LockBusy, string mode = LockMode.Exclusive)
     {
         // An application lock owned by the transaction needs one. Outside a transaction there is nothing to hold it for.
         if (db.Database.CurrentTransaction is null) return;

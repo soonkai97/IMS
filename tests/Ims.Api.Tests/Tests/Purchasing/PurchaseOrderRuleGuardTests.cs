@@ -104,6 +104,32 @@ public class PurchaseOrderRuleGuardTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Contains(await PurchaseRulesAsync(), r => r.Id == purchase.Id);
     }
 
+    [Fact]
+    public async Task Two_administrators_switching_off_the_two_active_rules_at_once_leave_one_active()
+    {
+        var rules = await PurchaseRulesAsync(active: true);
+        var surplus = rules.Skip(2).Select(r => r.Id).ToList(); // other tests' rules, still active: the race needs exactly two
+        var pair = rules.Take(2).ToList();
+        ApprovalRuleSaveRequest Off(ApprovalRuleDto r) => new(r.DocType, r.AmountThreshold, r.QtyThreshold, false, r.ApproverTier);
+        await SetActiveAsync(surplus, 0);
+        try
+        {
+            for (var round = 0; round < 10; round++)
+            {
+                await SetActiveAsync(pair.Select(r => r.Id), 1);
+
+                var results = await Concurrently.RunAsync<ApiResponse>(pair.Select<ApprovalRuleDto, Func<Task<ApiResponse>>>(r => () => _p.Admin.Settings.UpdateRuleAsync(r.Id, Off(r))));
+
+                Assert.Equal([HttpStatusCode.OK, HttpStatusCode.Conflict], results.Select(r => r.Status).Order());
+                Assert.Single(await PurchaseRulesAsync(active: true));
+            }
+        }
+        finally
+        {
+            await SetActiveAsync(rules.Select(r => r.Id), 1);
+        }
+    }
+
     // ----- the Seeder -----
     [Fact]
     public async Task The_seeder_writes_the_pair_once_and_neither_adds_nor_revives_rules_when_it_runs_again()
@@ -150,5 +176,16 @@ public class PurchaseOrderRuleGuardTests(ApiFixture fixture) : IAsyncLifetime
 
         Assert.Equal(PurchaseOrderStatus.Approved, (await _p.ReadAsync(approved.Id)).Status); // the same token with po.read would have been let through:
         Assert.Equal(PurchaseOrderStatus.Cancelled, (await Token().PurchaseOrders.CancelAsync(approved.Id, "no longer needed", approved.ConcurrencyToken)).Data<PurchaseOrderDto>().Status);
+    }
+
+    [Fact]
+    public async Task The_door_of_cancel_stays_shut_for_modules_manage_alone_the_draft_rule_needs_a_caller_who_gets_through_it()
+    {
+        var draft = await _p.DraftWorthAsync(10m);
+        var token = fixture.CreateClient(ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Admin, permissions: [Permissions.ModulesManage, Permissions.PoRead]));
+
+        (await token.PurchaseOrders.CancelAsync(draft.Id, null, draft.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Forbidden); // the policy asks for po.manage or an approval tier
+
+        Assert.Equal(PurchaseOrderStatus.Draft, (await _p.ReadAsync(draft.Id)).Status);
     }
 }
