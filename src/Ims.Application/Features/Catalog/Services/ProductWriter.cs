@@ -8,7 +8,7 @@ namespace Ims.Application.Features.Catalog;
 /// then lets the <see cref="Product"/> aggregate apply and guard the change.
 /// </summary>
 public class ProductWriter(IRepository<Product> products, IReadRepository<Uom> uoms, IModuleSwitches modules, IReadRepository<Category> categories,
-    IReadRepository<ProductBarcode> barcodes, IReadRepository<StockLedgerEntry> ledger, IIdMap<Uom> uomIds, IUnitOfWork uow) : IProductWriter, IAppService
+    IReadRepository<ProductBarcode> barcodes, IReadRepository<StockLedgerEntry> ledger, IProductConversionUsage conversionUsage, IIdMap<Uom> uomIds, IUnitOfWork uow) : IProductWriter, IAppService
 {
     public async Task<int> SaveAsync(Guid? id, ProductSaveRequest r, CancellationToken ct)
     {
@@ -40,7 +40,8 @@ public class ProductWriter(IRepository<Product> products, IReadRepository<Uom> u
             product = existing;
             product.Update(sku, r.Name, category, r.SafetyStock, r.IsActive);
             if (product.BaseUomId != baseUom.Id)
-                product.ChangeBaseUnit(baseUom, await ledger.AnyAsync(new ProductHasMovementsSpec(product.Id), ct));
+                product.ChangeBaseUnit(baseUom, await ledger.AnyAsync(new ProductHasMovementsSpec(product.Id), ct),
+                    await conversionUsage.UnitsInUseAsync(product.Id, product.Conversions.Select(c => c.FromUomId).ToList(), ct));
         }
 
         if (applyTaxCodes) product.SetTaxCodes(r.HsCode.Or(product.HsCode), r.SstCode.Or(product.SstCode));
@@ -50,7 +51,9 @@ public class ProductWriter(IRepository<Product> products, IReadRepository<Uom> u
             var wanted = r.Conversions.SelectMany(c => new[] { c.FromUomId, c.ToUomId }).Distinct().ToList();
             var units = await uomIds.ToInternalAsync(wanted, ct);
             if (units.Count != wanted.Count) throw new ValidationException(Messages.ConversionInvalid); // a unit that does not exist
-            product.SetConversions(r.Conversions.Select(c => new ConversionDefinition(units[c.FromUomId], units[c.ToUomId], c.Factor)));
+            var definitions = r.Conversions.Select(c => new ConversionDefinition(units[c.FromUomId], units[c.ToUomId], c.Factor)).ToList();
+            // Only a conversion this save would change or remove is looked up: a re-sent, unchanged list costs no query.
+            product.SetConversions(definitions, await conversionUsage.UnitsInUseAsync(product.Id, product.ChangedConversionUnits(definitions), ct));
         }
 
         await uow.SaveChangesAsync(ct);

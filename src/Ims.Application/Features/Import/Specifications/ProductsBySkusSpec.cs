@@ -5,5 +5,5 @@ namespace Ims.Application.Features.Import;
 
 public sealed class ProductsBySkusSpec : Specification<Product>
 {
-    public ProductsBySkusSpec(IReadOnlyCollection<string> skus) => Query.Where(p => skus.Contains(p.Sku)).Include(p => p.Barcodes);
+    public ProductsBySkusSpec(IReadOnlyCollection<string> skus) => Query.Where(p => skus.Contains(p.Sku)).Include(p => p.Barcodes).Include(p => p.Conversions);
 }

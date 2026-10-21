@@ -59,10 +59,11 @@ public class Product : PublicEntity
         SstCode = sst;
     }
 
-    /// <summary>BR-04: refused once stock movements exist.</summary>
-    public void ChangeBaseUnit(Uom newUnit, bool hasStockMovements)
+    /// <summary>BR-04: refused once stock movements exist. Changing the unit drops every conversion, so it is also refused while one of them is in use (<paramref name="conversionsInUse"/>: unit id to code).</summary>
+    public void ChangeBaseUnit(Uom newUnit, bool hasStockMovements, IReadOnlyDictionary<int, string>? conversionsInUse = null)
     {
         BusinessRules.Ensure(new BaseUnitLockedRule(BaseUomId, newUnit.Id, hasStockMovements));
+        if (BaseUomId != newUnit.Id) BusinessRules.Ensure(new ConversionLockedRule(_conversions.Select(c => c.FromUomId), conversionsInUse));
         if (BaseUomId != newUnit.Id) _conversions.Clear(); // existing conversions lead into the old base unit and no longer apply
         AssignBaseUnit(newUnit);
     }
@@ -77,20 +78,35 @@ public class Product : PublicEntity
             _barcodes.Add(ProductBarcode.Create(code));
     }
 
-    /// <summary>Makes the product's unit conversions exactly <paramref name="definitions"/>. Every conversion must lead into the base unit.</summary>
-    public void SetConversions(IEnumerable<ConversionDefinition> definitions)
+    /// <summary>The units whose conversion <paramref name="definitions"/> would change (another factor, compared at the stored scale) or remove. A conversion that is new is not a change.</summary>
+    public IReadOnlyList<int> ChangedConversionUnits(IEnumerable<ConversionDefinition> definitions)
+    {
+        var wanted = definitions.ToList();
+        return _conversions
+            .Where(c => !wanted.Any(d => d.FromUomId == c.FromUomId && d.ToUomId == c.ToUomId && Scaled(d.Factor) == Scaled(c.Factor)))
+            .Select(c => c.FromUomId).ToList();
+    }
+
+    private static decimal Scaled(decimal factor) => Math.Round(factor, Limits.FactorScale, MidpointRounding.AwayFromZero);
+
+    /// <summary>
+    /// Makes the product's unit conversions exactly <paramref name="definitions"/>. Every conversion must lead into the base unit. A conversion that exists cannot get another factor or be removed while
+    /// it is in use (<paramref name="unitsInUse"/>: unit id to code, as found by the caller); adding one is always allowed.
+    /// </summary>
+    public void SetConversions(IEnumerable<ConversionDefinition> definitions, IReadOnlyDictionary<int, string>? unitsInUse = null)
     {
         var wanted = definitions.ToList();
         var duplicated = wanted.GroupBy(d => d.FromUomId).Any(g => g.Count() > 1);
         if (duplicated || wanted.Any(d => d.Factor <= 0 || d.ToUomId != BaseUomId || d.FromUomId == d.ToUomId))
             throw new DomainException(Messages.ConversionInvalid);
+        BusinessRules.Ensure(new ConversionLockedRule(ChangedConversionUnits(wanted), unitsInUse));
 
         _conversions.RemoveAll(c => !wanted.Any(d => d.FromUomId == c.FromUomId && d.ToUomId == c.ToUomId));
         foreach (var d in wanted)
         {
             var existing = _conversions.FirstOrDefault(c => c.FromUomId == d.FromUomId && c.ToUomId == d.ToUomId);
             if (existing is null) _conversions.Add(UomConversion.Create(d.FromUomId, d.ToUomId, d.Factor));
-            else existing.ChangeFactor(d.Factor);
+            else if (Scaled(d.Factor) != Scaled(existing.Factor)) existing.ChangeFactor(d.Factor); // the same factor at the stored scale is left alone: no update, no audit row
         }
     }
 

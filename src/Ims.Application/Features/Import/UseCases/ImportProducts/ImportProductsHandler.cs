@@ -1,3 +1,4 @@
+using Ims.Application.Features.Catalog;
 using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Import;
@@ -10,7 +11,7 @@ namespace Ims.Application.Features.Import;
 /// replaces that field of every row it names (a blank cell clears it, like a blank Category), and a column that is not in the file leaves the stored values alone.
 /// </summary>
 public class ImportProductsHandler(IExcelReader excel, IRepository<Product> products, IRepository<Category> categories, IRepository<Uom> uoms,
-    IReadRepository<ProductBarcode> barcodes, IReadRepository<StockBalance> balances, IModuleSwitches modules, IUnitOfWork uow, IAuditTrail audit)
+    IReadRepository<ProductBarcode> barcodes, IReadRepository<StockBalance> balances, IProductConversionUsage conversionUsage, IModuleSwitches modules, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<ImportProductsCommand, ImportResult>
 {
     private record ProductRow(int Row, string Sku, string Name, int? CategoryId, int UomId, decimal Safety, List<string> Barcodes, string? HsCode, string? SstCode);
@@ -163,8 +164,11 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
                 // The aggregate refuses a unit change once stock exists (BR-04); the import keeps the old unit and tells the user.
                 if (p.BaseUomId != uom.Id)
                 {
+                    // A unit change also drops the conversions, so a used one keeps the old unit too.
                     if (withStock.Contains(p.Id))
                         results[resultIndex[row.Row]] = new ImportRowResult(row.Row, row.Sku, true, ImportRowStatus.Update, [Messages.UnitNotChanged]);
+                    else if ((await conversionUsage.UnitsInUseAsync(p.Id, p.Conversions.Select(c => c.FromUomId).ToList(), ct)).Count > 0)
+                        results[resultIndex[row.Row]] = new ImportRowResult(row.Row, row.Sku, true, ImportRowStatus.Update, [Messages.UnitNotChangedConversionsUsed]);
                     else
                         p.ChangeBaseUnit(uom, hasStockMovements: false);
                 }
