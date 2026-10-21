@@ -20,6 +20,14 @@ export const DOCUMENT_STATUS_LABELS: LabelMap = {
   Cancelled: 'status.Cancelled'
 };
 
+export const PURCHASE_ORDER_STATUS_LABELS: LabelMap = {
+  Draft: 'status.Draft',
+  Submitted: 'status.Submitted',
+  Approved: 'status.Approved',
+  Closed: 'status.Closed',
+  Cancelled: 'status.Cancelled'
+};
+
 export const DOCUMENT_TYPE_LABELS: LabelMap = {
   Receipt: 'docType.Receipt',
   Issue: 'docType.Issue',

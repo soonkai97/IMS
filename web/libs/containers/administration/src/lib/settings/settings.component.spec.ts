@@ -3,6 +3,7 @@ import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { of } from 'rxjs';
 import { ApproverTier } from '@ims/api';
 import { ApiError } from '@ims/models';
+import { ModulesStore } from '@ims/core/identity';
 import { ToastService } from '@ims/core/notification';
 import { provideUiText } from '@ims/core/i18n';
 import { SystemRulesStore } from '@ims/features/administration';
@@ -137,4 +138,43 @@ describe('SettingsPageComponent approval rule tier (RP-4b: the rule says who app
       expect('roleRequired' in body).toBe(false);
     }
   );
+});
+
+describe('SettingsPageComponent approval rule document types (module purchasing)', () => {
+  const purchasingOn = signal(false);
+  const createComponent = createComponentFactory({
+    component: SettingsPageComponent,
+    detectChanges: false,
+    providers: [
+      provideUiText(),
+      { provide: ToastService, useValue: { success: jest.fn() } },
+      { provide: ModulesStore, useValue: { isEnabled: () => purchasingOn() } },
+      {
+        provide: SystemRulesStore,
+        useValue: {
+          settings: { $data: signal(undefined), $isLoading: signal(false), load: jest.fn() },
+          rules: { $data: signal([]), load: jest.fn() },
+          saveSettings: { $isRunning: signal(false), run: jest.fn() },
+          saveRule: {
+            $isRunning: signal(false),
+            $operation: signal({}),
+            run: jest.fn(),
+            reset: jest.fn()
+          }
+        }
+      }
+    ]
+  });
+  const labels = (spectator: Spectator<SettingsPageComponent>): string[] =>
+    spectator.component.$docTypeOptions().map(option => option.label);
+
+  it('offers Purchase order only while the module is on', () => {
+    const spectator = createComponent();
+
+    purchasingOn.set(false);
+    expect(labels(spectator)).toEqual(['Issue', 'Receipt']);
+
+    purchasingOn.set(true);
+    expect(labels(spectator)).toEqual(['Issue', 'Receipt', 'Purchase order']);
+  });
 });

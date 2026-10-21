@@ -1,0 +1,47 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.po-list-page-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(0);
+}
+
+.po-list-page-toolbar {
+  display: flex;
+  gap: space(1);
+  align-items: center;
+  margin-bottom: space(1);
+
+  app-search-input {
+    flex: 1;
+  }
+
+  @include media-tablet {
+    max-width: width('form-max');
+  }
+}
+
+// The toggle exists for phones; from 600px the filters are always laid out.
+.po-list-page-filter-toggle {
+  @include media-tablet {
+    display: none;
+  }
+}
+
+.po-list-page-filters {
+  @include filter-row;
+
+  display: none;
+
+  &.--open {
+    display: grid;
+  }
+
+  @include media-tablet {
+    display: grid;
+  }
+}

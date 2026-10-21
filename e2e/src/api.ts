@@ -76,7 +76,7 @@ async function signIn(role: Role): Promise<string> {
   }
 }
 
-const DOCUMENT_COMMAND = /^\/api\/documents\/[0-9a-f-]{36}(\/(submit|approve|reject|recall|cancel|post|reverse))?$/;
+const DOCUMENT_COMMAND = /^\/api\/(documents|purchase-orders)\/[0-9a-f-]{36}(\/(submit|approve|reject|recall|cancel|close|post|reverse))?$/;
 
 export class ImsApi {
   constructor(private readonly role: Role) {}

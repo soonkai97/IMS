@@ -835,5 +835,21 @@ export const EN_MESSAGES = {
   'accounting.forbidden':
     'The accounting export also needs permission to see cost, master data and reports.',
   'accounting.download': 'Download Excel file',
-  'accounting.downloaded': 'Downloaded {name}.'
+  'accounting.downloaded': 'Downloaded {name}.',
+  'nav.purchaseOrders': 'Purchase orders',
+  'status.Closed': 'Closed',
+  'po.title': 'Purchase orders',
+  'po.searchLabel': 'Search purchase orders',
+  'po.searchPlaceholder': 'Order number',
+  'po.empty': 'No purchase orders yet.',
+  'po.noMatch': 'No purchase orders match these filters.',
+  'po.waitingForYou': 'Waiting for you',
+  'perm.po.read': 'See purchase orders',
+  'perm.po.read.help':
+    'Open the purchase orders of the warehouses you work in. Prices also need permission to see unit costs.',
+  'perm.po.manage': 'Manage purchase orders',
+  'perm.po.manage.help': 'Create, change, submit, recall, cancel and close purchase orders.',
+  'module.purchasing.name': 'Purchasing',
+  'module.purchasing.description':
+    'Purchase orders for suppliers, approval of large orders, and receiving against an order.'
 } as const;

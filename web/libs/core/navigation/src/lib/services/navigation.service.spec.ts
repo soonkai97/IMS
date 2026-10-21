@@ -138,6 +138,31 @@ describe('NavigationService (menus follow the permissions)', () => {
     expect(MENU_ITEMS.find(item => item.id === 'modules')?.module).toBeUndefined();
   });
 
+  describe('Purchase orders (module purchasing + permission po.read)', () => {
+    it.each([
+      ['module on, permission held', ['purchasing'], [PERMISSION.PoRead], true],
+      ['module on, permission missing', ['purchasing'], [PERMISSION.StockRead], false],
+      ['module off, permission held', [], [PERMISSION.PoRead], false],
+      ['module off, permission missing', [], [PERMISSION.StockRead], false]
+    ])('%s', (_label, on, permissions, shown) => {
+      modulesOn.set(on);
+      granted.set(permissions);
+
+      expect(ids().includes('purchase-orders')).toBe(shown);
+    });
+
+    it('sits in Documents, after Issues and before Approvals', () => {
+      const order = MENU_ITEMS.map(item => item.id);
+      const item = MENU_ITEMS.find(entry => entry.id === 'purchase-orders');
+
+      expect(item?.group).toBe('documents');
+      expect(item?.route).toBe('/purchase-orders');
+      expect(item?.module).toBe('purchasing');
+      expect(order.indexOf('purchase-orders')).toBe(order.indexOf('issues') + 1);
+      expect(order.indexOf('approvals')).toBe(order.indexOf('purchase-orders') + 1);
+    });
+  });
+
   describe('Accounting export (module accounting + permission accounting.export)', () => {
     it.each([
       ['module on, permission held', ['accounting'], [PERMISSION.AccountingExport], true],

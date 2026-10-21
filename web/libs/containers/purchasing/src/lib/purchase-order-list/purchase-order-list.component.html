@@ -1,0 +1,92 @@
+<app-page-header [heading]="'po.title' | t" />
+
+<div class="po-list-page-toolbar">
+  <app-search-input
+    [(value)]="$searchInput"
+    [label]="'po.searchLabel' | t"
+    [placeholder]="'po.searchPlaceholder' | t"
+  />
+  <app-button
+    class="po-list-page-filter-toggle"
+    controls="po-list-filters"
+    [expanded]="$filtersOpen()"
+    (clicked)="onToggleFilters()"
+  >
+    <app-icon name="filter" />
+    @if ($panelFilterCount() > 0) {
+      {{ 'filter.showActive' | t: { count: $panelFilterCount() } }}
+    } @else {
+      {{ 'filter.show' | t }}
+    }
+  </app-button>
+</div>
+
+<div id="po-list-filters" class="po-list-page-filters" [class.--open]="$filtersOpen()">
+  <app-form-field [label]="'product.status' | t">
+    <app-select
+      [formControl]="statusControl"
+      [options]="$statusOptions()"
+      [placeholder]="'filter.any' | t"
+    />
+  </app-form-field>
+  <app-form-field [label]="'doc.supplier' | t">
+    <app-select
+      [formControl]="supplierControl"
+      [options]="$supplierOptions()"
+      [placeholder]="'filter.all' | t"
+    />
+  </app-form-field>
+  <app-form-field [label]="'doc.warehouse' | t">
+    <app-select
+      [formControl]="warehouseControl"
+      [options]="$warehouseOptions()"
+      [placeholder]="'filter.all' | t"
+    />
+  </app-form-field>
+  <app-form-field [label]="'filter.from' | t" [control]="fromControl">
+    <app-date-field [formControl]="fromControl" />
+  </app-form-field>
+  <app-form-field [label]="'filter.to' | t" [control]="toControl" [error]="$toError()">
+    <app-date-field [formControl]="toControl" />
+  </app-form-field>
+</div>
+
+<app-table
+  columnMenu
+  [columns]="$columns()"
+  [rows]="$page()?.items ?? []"
+  [caption]="'po.title' | t"
+  [loading]="$isLoading()"
+  [failed]="$failed()"
+  (retried)="onRetry()"
+>
+  <ng-template appCell="date" let-row>{{ row.createdAt | appDate }}</ng-template>
+  <ng-template appCell="amount" let-row>{{ row.totalAmount | appMoney }}</ng-template>
+  <ng-template appCell="status" let-row>
+    <span class="po-list-page-chips">
+      <app-status-chip [status]="tone[row.status]" [label]="row.status | enumLabel: statusLabels" />
+      @if (row.canAct) {
+        <app-status-chip flag="info" [label]="'po.waitingForYou' | t" />
+      }
+      @if (row.isLarge) {
+        <app-status-chip flag="info" [label]="'doc.flag.large' | t" />
+      }
+    </span>
+  </ng-template>
+  <app-empty-state empty icon="file" [message]="$emptyKey() | t">
+    @if ($hasFilters()) {
+      <app-button (clicked)="onClearFilters()">{{ 'filter.clear' | t }}</app-button>
+    }
+  </app-empty-state>
+</app-table>
+
+@if ($page(); as page) {
+  <app-pager
+    [pageSizes]="pageSizes"
+    (pageSizeChange)="onPageSizeChange($event)"
+    [page]="page.page"
+    [pageSize]="page.pageSize"
+    [total]="page.total"
+    (pageChange)="onPageChange($event)"
+  />
+}
