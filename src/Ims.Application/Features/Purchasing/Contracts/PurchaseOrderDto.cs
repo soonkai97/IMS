@@ -14,6 +14,7 @@ namespace Ims.Application.Features.Purchasing;
 /// <param name="AllowedActions">What the caller may do right now (edit, submit, recall, approve, reject, cancel). The UI shows buttons from this list only. It already accounts for ownership, the approver the order is routed to (the Owner reviews only <c>isLarge</c> orders, a Supervisor the rest) and self-approval, so a listed action is one the API will accept.</param>
 /// <param name="ApprovalTriggers">While the order is Submitted, or Approved after a rule held it: which thresholds it reaches. The amounts are null for a caller without <c>cost.view</c>. Empty otherwise.</param>
 /// <param name="RowVersion">Source of <see cref="ConcurrencyToken"/>; not part of the JSON.</param>
+/// <param name="Key">The integer key of the order, to look its receipts up; not part of the JSON.</param>
 /// <param name="CreatedByKey">The integer key of the creator, for the ownership rules (compared with the caller's own integer key, never with a client id); not part of the JSON.</param>
 /// <param name="SubmittedByKey">Same for the submitter, for the self-approval rule; not part of the JSON.</param>
 /// <param name="ApprovedByKey">The integer key of the approver, to look their name up; not part of the JSON.</param>
@@ -23,7 +24,7 @@ public record PurchaseOrderDto(Guid Id, string No, PurchaseOrderStatus Status, G
     bool RequiresApproval, bool IsLarge, bool IsReturned, string? RejectionReason, string? CancelReason,
     DateTime? SubmittedAt, DateTime? ApprovedAt, DateTime? ReturnedAt,
     decimal TotalQty, [property: VisibleWith(Permissions.CostView)] decimal? TotalAmount, IReadOnlyList<PurchaseOrderLineDto> Lines,
-    [property: JsonIgnore] byte[] RowVersion, [property: JsonIgnore] int CreatedByKey, [property: JsonIgnore] int? SubmittedByKey,
+    [property: JsonIgnore] byte[] RowVersion, [property: JsonIgnore] int Key, [property: JsonIgnore] int CreatedByKey, [property: JsonIgnore] int? SubmittedByKey,
     [property: JsonIgnore] int? ApprovedByKey, [property: JsonIgnore] int? ReturnedByKey)
 {
     /// <summary>Changes whenever the order (header, status or lines) changes; opaque: compare it only for equality. Also sent as the ETag header; send it back as If-Match to refuse a stale save.</summary>
@@ -41,6 +42,10 @@ public record PurchaseOrderDto(Guid Id, string No, PurchaseOrderStatus Status, G
     public string? SubmittedByName { get; init; }
     public string? ApprovedBy { get; init; }
     public string? ApprovedByName { get; init; }
+    /// <summary>The receipts created from this order, oldest first (number, state), whatever their state. Empty until the order is Approved. The quantities per line (<c>receivedQty</c>, <c>remainingQty</c>) count the Posted ones only.</summary>
+    [Required]
+    public IReadOnlyList<PurchaseOrderReceiptDto> Receipts { get; init; } = [];
+
     public Guid? ReturnedById { get; init; }
     public string? ReturnedBy { get; init; }
     public string? ReturnedByName { get; init; }

@@ -6051,6 +6051,8 @@ export interface PurchaseOrderDto {
     submittedByName?: string | undefined;
     approvedBy?: string | undefined;
     approvedByName?: string | undefined;
+    /** The receipts created from this order, oldest first (number, state), whatever their state. Empty until the order is Approved. The quantities per line (`receivedQty`, `remainingQty`) count the Posted ones only. */
+    receipts: PurchaseOrderReceiptDto[];
     returnedById?: string | undefined;
     returnedBy?: string | undefined;
     returnedByName?: string | undefined;
@@ -6071,6 +6073,14 @@ export interface PurchaseOrderLineDto {
     /** The value of the line, in money: `round(qty x unitPrice, 2)`. The order total is the sum of these. Null for a caller without `cost.view`. */
     amount: number | undefined;
     remark: string | undefined;
+    /** What Posted receipts linked to the order have received of this line, in `uomCode`. Computed on every read, never stored: a Draft, Submitted, Approved or Cancelled receipt counts as nothing, and so does a Reversed one. Zero until a receipt is posted. */
+    receivedQty: number;
+    /** What is still to receive of this line, in `uomCode`: `qty` minus `receivedQty`, never below zero. A receipt may not ask for more than this. */
+    remainingQty: number;
+    /** `receivedQty` in base units: the unit the ledger and the over-receipt check use. */
+    receivedBaseQty: number;
+    /** `remainingQty` in base units. */
+    remainingBaseQty: number;
 }
 
 export interface PurchaseOrderLineInput {
@@ -6104,6 +6114,15 @@ export interface PurchaseOrderListItem {
     /** The caller may approve or reject this order right now: it is Submitted and held for approval, routed to the caller's tier (the Owner reviews only `isLarge` orders, a
 Supervisor the rest, an Administrator all) and, unless self-approval is on, not submitted by the caller. A single order's `allowedActions` additionally tests the live rules. */
     canAct: boolean;
+}
+
+/** A receipt created from a purchase order, as the order lists it: its id (for the receipt screen), number and state. No money. */
+export interface PurchaseOrderReceiptDto {
+    id: string;
+    no: string;
+    status: DocumentStatus;
+    createdAt: string;
+    postedAt: string | undefined;
 }
 
 /** A whole purchase-order draft: every field is sent on every save (there is no "absent = unchanged"), and the lines replace the old ones. The same product may appear on several lines (different units, prices or remarks): anything that refers to a line, such as receiving against the order (PL2.4, PL2.5), must use its line number, never the product. */

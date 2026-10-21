@@ -6687,7 +6687,8 @@
           "lines",
           "concurrencyToken",
           "allowedActions",
-          "approvalTriggers"
+          "approvalTriggers",
+          "receipts"
         ],
         "type": "object",
         "properties": {
@@ -6822,6 +6823,13 @@
             "type": "string",
             "nullable": true
           },
+          "receipts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseOrderReceiptDto"
+            },
+            "description": "The receipts created from this order, oldest first (number, state), whatever their state. Empty until the order is Approved. The quantities per line (`receivedQty`, `remainingQty`) count the Posted ones only."
+          },
           "returnedById": {
             "type": "string",
             "format": "uuid",
@@ -6850,7 +6858,11 @@
           "baseQty",
           "unitPrice",
           "amount",
-          "remark"
+          "remark",
+          "receivedQty",
+          "remainingQty",
+          "receivedBaseQty",
+          "remainingBaseQty"
         ],
         "type": "object",
         "properties": {
@@ -6899,6 +6911,26 @@
           "remark": {
             "type": "string",
             "nullable": true
+          },
+          "receivedQty": {
+            "type": "number",
+            "description": "What Posted receipts linked to the order have received of this line, in `uomCode`. Computed on every read, never stored: a Draft, Submitted, Approved or Cancelled receipt counts as nothing, and so does a Reversed one. Zero until a receipt is posted.",
+            "format": "double"
+          },
+          "remainingQty": {
+            "type": "number",
+            "description": "What is still to receive of this line, in `uomCode`: `qty` minus `receivedQty`, never below zero. A receipt may not ask for more than this.",
+            "format": "double"
+          },
+          "receivedBaseQty": {
+            "type": "number",
+            "description": "`receivedQty` in base units: the unit the ledger and the over-receipt check use.",
+            "format": "double"
+          },
+          "remainingBaseQty": {
+            "type": "number",
+            "description": "`remainingQty` in base units.",
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -7008,6 +7040,39 @@
             "description": "The caller may approve or reject this order right now: it is Submitted and held for approval, routed to the caller's tier (the Owner reviews only `isLarge` orders, a\r\nSupervisor the rest, an Administrator all) and, unless self-approval is on, not submitted by the caller. A single order's `allowedActions` additionally tests the live rules."
           }
         },
+        "additionalProperties": false
+      },
+      "PurchaseOrderReceiptDto": {
+        "required": [
+          "id",
+          "no",
+          "status",
+          "createdAt",
+          "postedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "no": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DocumentStatus"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "postedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "description": "A receipt created from a purchase order, as the order lists it: its id (for the receipt screen), number and state. No money.",
         "additionalProperties": false
       },
       "PurchaseOrderSaveRequest": {

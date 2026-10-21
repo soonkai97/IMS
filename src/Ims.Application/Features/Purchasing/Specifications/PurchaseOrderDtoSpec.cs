@@ -16,6 +16,6 @@ public sealed class PurchaseOrderDtoSpec : Specification<PurchaseOrder, Purchase
             o.Lines.Sum(l => l.BaseQty), o.Lines.Sum(l => l.Amount),
             o.Lines.OrderBy(l => l.LineNo).Select(l => new PurchaseOrderLineDto(l.LineNo, l.Product.PublicId, l.Product.Sku, l.Product.Name, l.Qty, l.Uom.PublicId, l.Uom.Code,
                 l.BaseQty, l.UnitPrice, l.Amount, l.Remark)).ToList(),
-            o.RowVersion, o.CreatedBy, o.SubmittedBy, o.ApprovedBy, o.RejectedBy));
+            o.RowVersion, o.Id, o.CreatedBy, o.SubmittedBy, o.ApprovedBy, o.RejectedBy));
     }
 }
