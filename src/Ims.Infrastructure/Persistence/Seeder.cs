@@ -46,6 +46,12 @@ public static class Seeder
 
         if (!await db.Set<ApprovalRule>().AnyAsync(ct))
             db.Add(ApprovalRule.Create(DocumentType.Issue, SeedDefaults.DefaultApprovalAmount, null, ApproverTier.Standard));
+        // The two purchase-order tiers, once per database (a rule is never deleted, only switched off, so an Administrator who turned them off is not overruled). They sit unused and hidden until the purchasing module is on.
+        if (!await db.Set<ApprovalRule>().AnyAsync(r => r.DocType == DocumentType.PurchaseOrder, ct))
+        {
+            db.Add(ApprovalRule.Create(DocumentType.PurchaseOrder, SeedDefaults.PurchaseOrderStandardAmount, null, ApproverTier.Standard));
+            db.Add(ApprovalRule.Create(DocumentType.PurchaseOrder, SeedDefaults.PurchaseOrderLargeAmount, null, ApproverTier.Large));
+        }
         await db.SaveChangesAsync(ct);
     }
 

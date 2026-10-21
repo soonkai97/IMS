@@ -57,4 +57,26 @@ public sealed class PurchasingScenario
 
     public Task SetStatusAsync(PurchaseOrderDto order, PurchaseOrderStatus status) =>
         Fixture.Database.ExecuteAsync("UPDATE PurchaseOrder SET Status = @s WHERE PublicId = @id", ("@s", (int)status), ("@id", order.Id));
+
+    private Application.Features.Catalog.ProductDto? _product;
+
+    /// <summary>The default warehouse: the one the Supervisor and the Clerk work in (the Administrator and the Owner see every warehouse).</summary>
+    public Guid Warehouse => Reference.DefaultWarehouseId;
+
+    /// <summary>A Draft in the default warehouse with one line worth exactly <paramref name="total"/> (one unit at that price); 0 is the unpriced draft a reorder would start from.</summary>
+    public async Task<PurchaseOrderDto> DraftWorthAsync(decimal total, ApiClient? by = null)
+    {
+        _product ??= await NewProductAsync();
+        return (await (by ?? Clerk).PurchaseOrders.CreateAsync(new PurchaseOrderBuilder(Warehouse, Reference.SupplierId).WithLine(_product.Id, 1m, total).Build())).Data<PurchaseOrderDto>();
+    }
+
+    /// <summary>Creates a Draft worth <paramref name="total"/> and submits it as <paramref name="by"/> (the Clerk by default); the result is Submitted, or Approved when no rule fires.</summary>
+    public async Task<PurchaseOrderDto> SubmittedWorthAsync(decimal total, ApiClient? by = null)
+    {
+        var maker = by ?? Clerk;
+        var draft = await DraftWorthAsync(total, maker);
+        return (await maker.PurchaseOrders.SubmitAsync(draft.Id, draft.ConcurrencyToken)).Data<PurchaseOrderDto>();
+    }
+
+    public async Task<PurchaseOrderDto> ReadAsync(Guid id, ApiClient? reader = null) => (await (reader ?? Admin).PurchaseOrders.GetAsync(id)).Data<PurchaseOrderDto>();
 }

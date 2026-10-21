@@ -7,6 +7,7 @@ public static class DocumentNumber
         DocumentType.Receipt => DocumentNumberFormat.ReceiptPrefix,
         DocumentType.Issue => DocumentNumberFormat.IssuePrefix,
         DocumentType.Transfer => DocumentNumberFormat.TransferPrefix,
+        DocumentType.PurchaseOrder => DocumentNumberFormat.PurchaseOrderPrefix,
         _ => DocumentNumberFormat.AdjustPrefix
     };
 

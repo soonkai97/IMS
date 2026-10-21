@@ -16,6 +16,6 @@ public sealed class PurchaseOrdersPageSpec : Specification<PurchaseOrder, Purcha
         }
         else Query.Skip((page - 1) * size).Take(size);
         Query.Select(o => new PurchaseOrderListItem(o.PublicId, o.No, o.Status, o.Warehouse.Name, o.Supplier.Name, o.CreatedAt, o.CreatedByUser.Username,
-            o.Lines.Count(), o.Lines.Sum(l => l.Amount), o.RowVersion, o.Id));
+            o.Lines.Count(), o.Lines.Sum(l => l.Amount), o.RequiresApproval, o.IsLarge, o.RowVersion, o.CreatedBy, o.SubmittedBy, o.Id));
     }
 }

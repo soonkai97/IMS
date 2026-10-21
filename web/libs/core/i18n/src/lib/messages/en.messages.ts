@@ -135,6 +135,7 @@ export const EN_MESSAGES = {
   'docType.Issue': 'Issue',
   'docType.Transfer': 'Transfer',
   'docType.Adjust': 'Adjustment',
+  'docType.PurchaseOrder': 'Purchase order',
   'purpose.Sale': 'Sale',
   'purpose.Use': 'Internal use',
   'purpose.Scrap': 'Scrap',

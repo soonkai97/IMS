@@ -25,6 +25,7 @@ public class StockDirectionTests
     [Theory]
     [InlineData(DocumentType.Transfer)]
     [InlineData(DocumentType.Adjust)]
+    [InlineData(DocumentType.PurchaseOrder)]
     public void Types_without_a_posting_strategy_have_no_direction_yet(DocumentType type)
     {
         var ex = Assert.Throws<DomainException>(() => StockDirection.Of(type));

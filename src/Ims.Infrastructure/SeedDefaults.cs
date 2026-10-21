@@ -15,6 +15,10 @@ public static class SeedDefaults
     public const string DemoCustomer = "Demo Customer";
     public const decimal DefaultApprovalAmount = 5000m;
 
+    /// <summary>Placeholder purchase-order thresholds (plan PL2.3; the owner confirms them, an Administrator changes them in Settings): from 5,000.00 a Supervisor approves, from 20,000.00 the Owner.</summary>
+    public const decimal PurchaseOrderStandardAmount = 5000m;
+    public const decimal PurchaseOrderLargeAmount = 20000m;
+
     public static readonly (string Code, string Name)[] Units = [("PCS", "Piece"), ("CTN", "Carton"), ("KG", "Kilogram"), ("BOX", "Box")];
     /// <summary>Username, role code and whether the person sees every warehouse (the owner does; the others work in the default warehouse).</summary>
     public static readonly (string Username, string Role, bool AllWarehouses)[] DemoUsers =
