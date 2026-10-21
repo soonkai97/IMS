@@ -19,7 +19,7 @@ public class ReceiptFromPurchaseOrderTests
     {
         var order = Order(approved: true);
 
-        var receipt = StockDocument.CreateFromPurchaseOrder(order, order.Warehouse, order.Supplier, 3, Now);
+        var receipt = StockDocument.CreateFromPurchaseOrder(order, 3, Now);
 
         Assert.Equal((DocumentType.Receipt, DocumentStatus.Draft, 7, true), (receipt.Type, receipt.Status, receipt.PurchaseOrderId, receipt.IsLinked));
         Assert.Equal((order.WarehouseId, order.SupplierId), (receipt.WarehouseId, receipt.PartnerId));
@@ -30,7 +30,7 @@ public class ReceiptFromPurchaseOrderTests
     {
         var order = Order(approved: false);
 
-        var e = Assert.Throws<DomainException>(() => StockDocument.CreateFromPurchaseOrder(order, order.Warehouse, order.Supplier, 3, Now));
+        var e = Assert.Throws<DomainException>(() => StockDocument.CreateFromPurchaseOrder(order, 3, Now));
 
         Assert.Equal(Messages.PurchaseOrderNotReceivable(order.No, PurchaseOrderStatus.Draft), e.Message);
     }

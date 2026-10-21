@@ -36,7 +36,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
             // The index is created by dynamic SQL on purpose. In the script a DBA runs by hand, the two ADD COLUMN statements and a plain CREATE INDEX on the new column would be ONE batch, and
             // SQL Server resolves the column names of the index when it compiles the batch, before the column exists ("Invalid column name"). EXEC is compiled later; the statement that follows
             // (the foreign key) starts a new batch, because EF ends a raw SQL operation with GO. The runner never had the problem (it sends each operation alone); the generated script is tested.
-            migrationBuilder.Sql("EXEC(N'CREATE INDEX [IX_StockDocument_PurchaseOrderId] ON [StockDocument] ([PurchaseOrderId]) WHERE [PurchaseOrderId] IS NOT NULL');");
+            // A filtered index also needs QUOTED_IDENTIFIER ON, which sqlcmd has OFF by default: the SET inside the EXEC makes the script independent of the client setting (without it the statement fails
+            // with 1934 while the rest of the script, the history row included, would go on and record the migration as applied WITHOUT the index).
+            migrationBuilder.Sql("EXEC(N'SET QUOTED_IDENTIFIER ON; CREATE INDEX [IX_StockDocument_PurchaseOrderId] ON [StockDocument] ([PurchaseOrderId]) WHERE [PurchaseOrderId] IS NOT NULL');");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_StockDocument_PurchaseOrder_PurchaseOrderId",

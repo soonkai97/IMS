@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentAccess access, ISystemSettings settings, IStockAvailability availability,
-    IApprovalEvaluator approvals, IDocumentVersion version, IModuleSwitches modules) : IDocumentReader, IAppService
+    IApprovalEvaluator approvals, IDocumentVersion version, IModuleSwitches modules, ICallerPermissions caller) : IDocumentReader, IAppService
 {
     public async Task<DocumentDto> GetAsync(Guid publicId, CancellationToken ct)
     {
@@ -24,10 +24,10 @@ public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentA
         return dto with { ApprovalTriggers = triggers, AllowedActions = access.AllowedActions(dto, await settings.GetAsync(ct), withinLimit), ConcurrencyToken = version.Token(dto.Id, dto.RowVersion) };
     }
 
-    /// <summary>A receipt's link to its purchase order is shown only while the Purchasing module is on. The switch is asked only for a linked document, so every other document costs nothing extra.</summary>
+    /// <summary>A receipt's link to its purchase order (its number and the line numbers) is shown only while the Purchasing module is on AND to a caller who may read purchase orders: the number and the order's existence are the order's business. The switch is asked only for a linked document, so every other document costs nothing extra.</summary>
     private async Task<DocumentDto> WithoutLinkWhileModuleOffAsync(DocumentDto dto, CancellationToken ct)
     {
-        if (dto.PurchaseOrder is null || await modules.ShowsAsync(ModuleCodes.Purchasing, anyValue: true, ct)) return dto;
+        if (dto.PurchaseOrder is null || (caller.Has(Permissions.PoRead) && await modules.ShowsAsync(ModuleCodes.Purchasing, anyValue: true, ct))) return dto;
         return dto with { PurchaseOrder = null, Lines = dto.Lines.Select(l => l with { PurchaseOrderLineNo = null }).ToList() };
     }
 

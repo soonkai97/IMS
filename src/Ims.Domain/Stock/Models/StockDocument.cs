@@ -107,11 +107,11 @@ public class StockDocument : PublicEntity
         };
     }
 
-    /// <summary>Opens a receipt Draft against an Approved purchase order: the order's warehouse and supplier, and the link that is never changed afterwards. The lines are added separately.</summary>
-    public static StockDocument CreateFromPurchaseOrder(PurchaseOrder order, Warehouse warehouse, Partner supplier, int createdBy, DateTime now)
+    /// <summary>Opens a receipt Draft against an Approved purchase order (its warehouse and supplier, which must be loaded with it) and the link that is never changed afterwards. The lines are added separately.</summary>
+    public static StockDocument CreateFromPurchaseOrder(PurchaseOrder order, int createdBy, DateTime now)
     {
         if (!order.CanBeReceived) throw new DomainException(Messages.PurchaseOrderNotReceivable(order.No, order.Status));
-        var receipt = Create(DocumentType.Receipt, warehouse, supplier, purpose: null, remark: null, createdBy, now);
+        var receipt = Create(DocumentType.Receipt, order.Warehouse, order.Supplier, purpose: null, remark: null, createdBy, now); // the order's own, loaded with it: they cannot be another warehouse or supplier
         receipt.PurchaseOrderId = order.Id;
         return receipt;
     }

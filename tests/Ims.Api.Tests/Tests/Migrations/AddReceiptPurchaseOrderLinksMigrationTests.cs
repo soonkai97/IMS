@@ -37,12 +37,28 @@ public class AddReceiptPurchaseOrderLinksMigrationTests : IAsyncLifetime
         await db.GetService<IMigrator>().MigrateAsync(target);
     }
 
-    /// <summary>The script a DBA generates and runs by hand, one batch per GO, each batch on its own (so an error in one does not stop the next, as in SSMS).</summary>
-    private async Task RunScriptAsync(string from, string to)
+    /// <summary>
+    /// The script a DBA generates and runs by hand, one batch per GO, each batch on its own connection state. By default it STOPS at the first error (sqlcmd -b). With
+    /// <paramref name="continueAfterError"/> it goes on with the next batch as SSMS and sqlcmd without -b do, and returns the errors it met. <paramref name="sessionPrefix"/> is put in front of
+    /// every batch (a client whose session settings differ, for example <c>SET QUOTED_IDENTIFIER OFF</c> as sqlcmd has them).
+    /// </summary>
+    private async Task<List<Exception>> RunScriptAsync(string from, string to, bool continueAfterError = false, string sessionPrefix = "")
     {
+        var errors = new List<Exception>();
         await using var db = NewContext();
         foreach (var batch in Regex.Split(db.GetService<IMigrator>().GenerateScript(from, to), @"^\s*GO\s*$", RegexOptions.Multiline))
-            if (!string.IsNullOrWhiteSpace(batch)) await _db.ExecuteAsync(batch);
+        {
+            if (string.IsNullOrWhiteSpace(batch)) continue;
+            try
+            {
+                await _db.ExecuteAsync(sessionPrefix + batch);
+            }
+            catch (SqlException e) when (continueAfterError)
+            {
+                errors.Add(e);
+            }
+        }
+        return errors;
     }
 
     /// <summary>Documents and lines in the schema BEFORE the migration (set-based), one soft-deleted document among them.</summary>
@@ -225,8 +241,9 @@ public class AddReceiptPurchaseOrderLinksMigrationTests : IAsyncLifetime
         Assert.Equal(2, await ColumnCountAsync());
     }
 
+
     [Fact]
-    public async Task The_generated_script_does_what_the_runner_does_and_a_refused_down_drops_nothing_even_when_every_batch_runs()
+    public async Task The_generated_script_does_what_the_runner_does_and_a_refused_down_stops_at_the_first_error_when_the_client_stops_on_errors()
     {
         await MigrateAsync(Before);
         await SeedAsync();
@@ -236,16 +253,50 @@ public class AddReceiptPurchaseOrderLinksMigrationTests : IAsyncLifetime
 
         await InsertOrderAsync();
         await LinkDocumentAsync(LinkedNo);
-        var refused = await Assert.ThrowsAnyAsync<Exception>(() => RunScriptAsync(Latest, Before));
+        var refused = await Assert.ThrowsAnyAsync<Exception>(() => RunScriptAsync(Latest, Before)); // stops at the first error, as sqlcmd -b does
         Assert.Contains("Receipts are linked to purchase orders", Messages(refused));
-        Assert.Equal(2, await ColumnCountAsync()); // the batches after the refusal did not drop them
-        Assert.Equal(1, await MigrationRowAsync());   // nor did the history row go: the whole Down is one batch
+        Assert.Equal(2, await ColumnCountAsync()); // nothing was dropped
+        Assert.Equal(1, await MigrationRowAsync()); // and the history row is still there: the batch that deletes it never ran
 
         await _db.ExecuteAsync("UPDATE StockDocument SET PurchaseOrderId = NULL");
         await RunScriptAsync(Latest, Before);
         Assert.Equal(0, await ColumnCountAsync());
         await RunScriptAsync(Before, Latest);
         Assert.Equal(2, await ColumnCountAsync());
+    }
+
+    /// <summary>
+    /// The Down script is ONE batch (EF puts no GO inside a migration's transaction): the refusal is a THROW with XACT_ABORT ON, which ends the batch and rolls the transaction back, so the
+    /// drops, the DELETE of the history row and the COMMIT never run, whether the client stops at an error (sqlcmd -b) or goes on (SSMS, sqlcmd without -b): there is no later batch to run.
+    /// </summary>
+    [Fact]
+    public async Task A_refused_down_run_by_a_client_that_goes_on_after_errors_drops_nothing_and_keeps_the_history_row()
+    {
+        await MigrateAsync(Before);
+        await SeedAsync();
+        await RunScriptAsync(Before, Latest);
+        await InsertOrderAsync();
+        await LinkDocumentAsync(LinkedNo);
+
+        var errors = await RunScriptAsync(Latest, Before, continueAfterError: true);
+
+        Assert.Contains(errors, e => e.Message.Contains("Receipts are linked to purchase orders"));
+        Assert.Equal(2, await ColumnCountAsync());
+        Assert.Equal(1, await MigrationRowAsync());
+    }
+
+    /// <summary>The filtered index needs QUOTED_IDENTIFIER ON and sqlcmd has it OFF: the script sets it itself, so the index is there whatever the client setting is.</summary>
+    [Fact]
+    public async Task The_up_script_creates_the_filtered_index_even_when_the_session_has_quoted_identifier_off()
+    {
+        await MigrateAsync(Before);
+        await SeedAsync();
+
+        var errors = await RunScriptAsync(Before, Latest, continueAfterError: true, sessionPrefix: "SET QUOTED_IDENTIFIER OFF;\n");
+
+        Assert.Empty(errors);
+        Assert.Equal(1, await _db.ScalarAsync<int>("SELECT COUNT(*) FROM sys.indexes WHERE object_id = OBJECT_ID(N'StockDocument') AND name = N'IX_StockDocument_PurchaseOrderId' AND filter_definition IS NOT NULL"));
+        Assert.Equal(1, await MigrationRowAsync());
     }
 
     private static string Messages(Exception e) => e is SqlException ? e.Message : string.Join(" | ", Chain(e).Select(x => x.Message));

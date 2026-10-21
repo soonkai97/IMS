@@ -26,7 +26,7 @@ public class CreateReceiptFromPurchaseOrderHandler(IReadRepository<PurchaseOrder
             if (open.Count == 0) throw new ConflictException(Messages.PurchaseOrderNothingToReceive(order.No));
 
             // The receipt takes the order's price whoever creates it: Warehouse staff never see it (the response hides it), but the stock is valued at it (plan D6).
-            var receipt = StockDocument.CreateFromPurchaseOrder(order, order.Warehouse, order.Supplier, current.UserId, clock.UtcNow);
+            var receipt = StockDocument.CreateFromPurchaseOrder(order, current.UserId, clock.UtcNow);
             receipt.AssignNumber(await numbering.NextAsync(DocumentType.Receipt, order.Warehouse, ct));
             receipt.AddLines(open.Select(l => StockDocumentLine.Create(l.Product, DocumentType.Receipt, PurchaseOrderQuantities.RemainingQty(l, received.GetValueOrDefault(l.LineNo)), l.UomId,
                 l.UnitPrice, l.Remark, costFromAverage: false, purchaseOrderLineNo: l.LineNo)));

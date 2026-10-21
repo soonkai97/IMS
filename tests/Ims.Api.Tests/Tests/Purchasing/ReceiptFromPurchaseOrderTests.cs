@@ -167,6 +167,27 @@ public class ReceiptFromPurchaseOrderTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task The_link_and_the_line_numbers_are_shown_only_to_a_caller_who_may_read_purchase_orders_and_only_they_can_change_a_linked_draft()
+    {
+        var product = await _p.NewProductAsync();
+        var order = await _p.ApprovedAsync((product.Id, 10m, 2m, null));
+        var receipt = await _p.ReceiptFromAsync(order);
+
+        var blind = Forged([Permissions.StockRead, Permissions.DocumentCreate, Permissions.DocumentEditAny]); // reads and writes documents, not purchase orders
+        var seen = (await blind.Documents.GetAsync(receipt.Id)).Data<DocumentDto>();
+        Assert.Null(seen.PurchaseOrder);
+        Assert.All(seen.Lines, l => Assert.Null(l.PurchaseOrderLineNo));
+        var reader = Forged([Permissions.StockRead, Permissions.PoRead]);
+        Assert.Equal(new LinkedPurchaseOrder(order.Id, order.No), (await reader.Documents.GetAsync(receipt.Id)).Data<DocumentDto>().PurchaseOrder);
+
+        // a save by the caller who cannot read orders is refused before anything is looked at, so no figure of the order is quoted to them
+        var save = PurchasingScenario.Save(receipt, PurchasingScenario.LineFor(product.Id, 99m, 1));
+        var refused = (await blind.Documents.UpdateAsync(receipt.Id, save, receipt.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Forbidden);
+        Assert.Equal(Messages.ReceiptNeedsPoRead, refused.Detail);
+        Assert.DoesNotContain("ordered", refused.Detail);
+    }
+
+    [Fact]
     public async Task A_document_that_is_not_linked_shows_no_order_and_a_linked_one_hides_it_while_the_module_is_off()
     {
         var product = await _p.NewProductAsync();
