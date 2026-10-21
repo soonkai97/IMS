@@ -171,7 +171,7 @@ describe('PurchaseOrderDetailPageComponent', () => {
 
   const buttons = (): string[] =>
     spectator
-      .queryAll('.po-detail-bar button')
+      .queryAll('.po-detail-bar button, .po-detail-bar a')
       .map(button => (button.textContent ?? '').replace(/\s+/g, ' ').trim());
   const button = (name: string): HTMLButtonElement =>
     spectator
@@ -200,10 +200,10 @@ describe('PurchaseOrderDetailPageComponent', () => {
   describe('the action bar is the server allowedActions and nothing else', () => {
     it.each([
       [[], []],
-      [['edit'], []],
+      [['edit'], ['Edit']],
       [
         ['edit', 'submit', 'cancel'],
-        ['Cancel order', 'Submit']
+        ['Cancel order', 'Edit', 'Submit']
       ],
       [
         ['recall', 'cancel'],
@@ -222,6 +222,17 @@ describe('PurchaseOrderDetailPageComponent', () => {
       await render(order({ allowedActions }));
 
       expect(buttons()).toEqual(expected);
+    });
+
+    it('Edit links to the editor, and only with cost.view too (the editor saves prices)', async () => {
+      await render(order({ allowedActions: ['edit'] }));
+      expect(spectator.query('.po-detail-bar a')?.getAttribute('href')).toBe(
+        `/purchase-orders/${ID}/edit`
+      );
+
+      granted.clear();
+      await render(order({ allowedActions: ['edit'] }));
+      expect(buttons()).toEqual([]);
     });
 
     it('does not look at what the user holds: a holder of every right sees nothing the server did not list', async () => {

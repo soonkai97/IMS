@@ -1,13 +1,15 @@
+import { HttpContext } from '@angular/common/http';
 import { Injectable, Signal, inject } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import {
   PagedResultOfPurchaseOrderListItem,
   PurchaseOrderDto,
+  PurchaseOrderSaveRequest,
   PurchaseOrderStatus,
   PurchaseOrdersClient
 } from '@ims/api';
-import { withIfMatch } from '@ims/core/http';
-import { ApiError, ApiOperation, PagedQuery, PublicId } from '@ims/models';
+import { HANDLED_INLINE, withIfMatch } from '@ims/core/http';
+import { ApiError, ApiOperation, HTTP_STATUS, PagedQuery, PublicId } from '@ims/models';
 import { ApiCommand, QueryLoader } from '@ims/utils';
 
 export interface PurchaseOrderQuery extends PagedQuery {
@@ -27,6 +29,12 @@ export interface PurchaseOrderRef {
 
 export interface PurchaseOrderReasonArgs extends PurchaseOrderRef {
   readonly reason: string;
+}
+
+/** Save a draft: without `ref` it is created, with one it is updated (If-Match) from the version the person opened. */
+export interface SavePurchaseOrderArgs {
+  readonly ref?: PurchaseOrderRef;
+  readonly body: PurchaseOrderSaveRequest;
 }
 
 export function toPurchaseOrderRef(order: PurchaseOrderDto): PurchaseOrderRef {
@@ -59,6 +67,19 @@ export class PurchaseOrdersStore {
     this.client.get(id, context)
   );
 
+  readonly save: ApiCommand<SavePurchaseOrderArgs, PurchaseOrderDto> = new ApiCommand(args => {
+    // The editor shows a refusal (403) and a conflict (409) in its own alert: no toast on top.
+    const context = (args.ref ? withIfMatch(args.ref.concurrencyToken) : new HttpContext()).set(
+      HANDLED_INLINE,
+      [HTTP_STATUS.Forbidden, HTTP_STATUS.Conflict]
+    );
+    return this.accept(
+      args.ref
+        ? this.client.update(args.ref.id, args.body, context)
+        : this.client.create(args.body, context),
+      this.save
+    );
+  }, true);
   readonly submit: ApiCommand<PurchaseOrderRef, PurchaseOrderDto> = new ApiCommand(
     ref => this.accept(this.client.submit(ref.id, withIfMatch(ref.concurrencyToken)), this.submit),
     true
@@ -118,7 +139,15 @@ export class PurchaseOrdersStore {
   }
 
   private commands(): readonly { $operation: Signal<ApiOperation>; reset(): void }[] {
-    return [this.submit, this.recall, this.approve, this.reject, this.cancel, this.close];
+    return [
+      this.save,
+      this.submit,
+      this.recall,
+      this.approve,
+      this.reject,
+      this.cancel,
+      this.close
+    ];
   }
 
   private resetCommandsExcept(keep: { reset(): void } | undefined): void {

@@ -12,6 +12,8 @@ export const MIN_SEARCH_LENGTH = 2;
 export const API_MIN_SEARCH_LENGTH = 3;
 export const MAX_PAGE_SIZE = 200;
 export const MAX_DOCUMENT_LINES = 500;
+/** The API refuses a longer remark (an order, a document or one of their lines). */
+export const MAX_REMARK_LENGTH = 500;
 export const MAX_QUANTITY = 1_000_000_000;
 export const MAX_QUANTITY_DECIMALS = 4;
 /** Largest unit cost a receipt line takes (API Limits.MaxUnitCost). */

@@ -815,5 +815,10 @@ export const ZH_MESSAGES: Messages = {
   'po.toast.released': '已提交。无需审批，订单已批准。',
   'po.toast.recalled': '已退回草稿。',
   'po.toast.cancelled': '订单已取消。',
-  'po.toast.closed': '订单已关闭。'
+  'po.toast.closed': '订单已关闭。',
+  // TODO-review: machine draft (PL2.8: purchase order editor).
+  'po.new': '新建采购订单',
+  'po.action.edit': '编辑',
+  'po.staleSaveBody': '其他人修改了这张订单。请重新加载以查看最新版本。你的更改未保存。',
+  'po.priceFor': '{sku} 的单价'
 };

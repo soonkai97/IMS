@@ -2,7 +2,7 @@ import { HttpContext } from '@angular/common/http';
 import { createServiceFactory, mockProvider, SpectatorService } from '@ngneat/spectator/jest';
 import { Subject, firstValueFrom, of } from 'rxjs';
 import { PurchaseOrderDto, PurchaseOrderStatus, PurchaseOrdersClient } from '@ims/api';
-import { IF_MATCH } from '@ims/core/http';
+import { IF_MATCH, isHandledInline } from '@ims/core/http';
 import { ApiError, failureOperation } from '@ims/models';
 import { PurchaseOrdersStore, toPurchaseOrderRef } from './purchase-orders.store';
 
@@ -111,6 +111,28 @@ describe('PurchaseOrdersStore', () => {
 
     expect(spectator.service.cancel.$operation().error).toBeUndefined();
     expect(spectator.service.approve.$operation().error?.status).toBe(409);
+  });
+
+  it('saves a new draft without a token and a changed one with the version the user saw (If-Match)', async () => {
+    const mocks = client() as unknown as Record<string, jest.Mock>;
+    mocks['create'].mockReturnValue(of(FRESH));
+    mocks['update'].mockReturnValue(of(FRESH));
+    const body = { warehouseId: 'w', supplierId: 's', remark: undefined, lines: [] };
+
+    await firstValueFrom(spectator.service.save.run({ body }));
+    await firstValueFrom(spectator.service.save.run({ ref: toPurchaseOrderRef(ORDER), body }));
+
+    expect(mocks['create']).toHaveBeenCalledWith(body, expect.anything());
+    expect(mocks['update'].mock.calls[0][0]).toBe(ORDER_ID);
+    expect(tokenOf(mocks['update'].mock.calls[0][2])).toBe('AAAA');
+    // The editor shows a 403 and a 409 itself: the interceptor must not toast them as well.
+    for (const context of [mocks['create'].mock.calls[0][1], mocks['update'].mock.calls[0][2]]) {
+      expect([403, 409, 400].map(status => isHandledInline(context, status))).toEqual([
+        true,
+        true,
+        false
+      ]);
+    }
   });
 
   it('is exclusive: a second tap while a command runs sends nothing', async () => {

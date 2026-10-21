@@ -114,6 +114,21 @@ describe('PurchaseOrderListPageComponent', () => {
     expect(rows[1].textContent).not.toContain('Waiting for you');
   });
 
+  it('offers New purchase order by the po.manage permission, never by role', async () => {
+    await render();
+    expect(spectator.query('a[href="/purchase-orders/new"]')).toBeNull();
+
+    granted.add(PERMISSION.PoManage);
+    await render();
+    expect(spectator.query('a[href="/purchase-orders/new"]')).toBeNull();
+
+    granted.add(PERMISSION.CostView);
+    await render();
+    expect(spectator.query('a[href="/purchase-orders/new"]')?.textContent).toContain(
+      'New purchase order'
+    );
+  });
+
   it('forgets the orders of the last user before it loads, and links each row to the order', async () => {
     await render();
 

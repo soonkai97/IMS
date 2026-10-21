@@ -1,0 +1,167 @@
+<app-page-header [heading]="$heading()" [backLink]="backLink" [backLabel]="'po.title' | t" />
+
+@if ($isLoading()) {
+  <app-skeleton [count]="4" />
+} @else if ($notFound()) {
+  <!-- The load call is flagged handledInline (no toast), so this page is the one announcement. -->
+  <div role="alert">
+    <app-empty-state icon="file" [message]="'notFound.body' | t">
+      <a class="ui-link-button --primary" routerLink="/">{{ 'system.goHome' | t }}</a>
+    </app-empty-state>
+  </div>
+} @else if ($loadFailed()) {
+  <app-banner kind="danger">
+    {{ $loadErrorMessage() || ('error.generic' | t) }}
+    <app-button bannerActions (clicked)="onRetryLoad()">{{ 'ui.retry' | t }}</app-button>
+  </app-banner>
+} @else if ($showForm()) {
+  @if ($isStale()) {
+    <app-banner kind="danger" [heading]="'doc.stale' | t: { docNo: $order()?.no ?? '' }">
+      {{ 'po.staleSaveBody' | t }}
+      <app-button bannerActions (clicked)="onReload()">{{ 'doc.reload' | t }}</app-button>
+    </app-banner>
+  }
+  @for (message of $saveMessages(); track message) {
+    <app-banner kind="danger" alert>{{ message }}</app-banner>
+  }
+
+  <form class="po-editor-form" [formGroup]="form" novalidate>
+    <app-form-legend />
+    <div class="po-editor-header-fields">
+      <app-form-field
+        [label]="'doc.supplier' | t"
+        [required]="true"
+        [control]="form.controls.supplierId"
+      >
+        <app-select
+          formControlName="supplierId"
+          [options]="$supplierOptions()"
+          [placeholder]="''"
+        />
+      </app-form-field>
+      <app-form-field
+        [label]="'doc.warehouse' | t"
+        [required]="true"
+        [control]="form.controls.warehouseId"
+      >
+        <app-select
+          formControlName="warehouseId"
+          [options]="$warehouseOptions()"
+          [placeholder]="''"
+        />
+      </app-form-field>
+    </div>
+    <app-form-field [label]="'doc.remark' | t" [control]="form.controls.remark">
+      <app-textarea formControlName="remark" [rows]="2" [maxLength]="maxRemark" />
+    </app-form-field>
+
+    <section class="po-editor-lines" [attr.aria-label]="'doc.lines' | t">
+      <div class="po-editor-lines-header">
+        <h2>{{ 'doc.items' | t: { count: $totals().lineCount } }}</h2>
+        <app-button [disabled]="!$canAddLine()" (clicked)="onOpenAddItem()">
+          <app-icon name="plus" />
+          {{ 'doc.addItem' | t }}
+        </app-button>
+      </div>
+      <ul class="po-editor-list">
+        @for (row of $rows(); track row.group) {
+          <li class="po-editor-line" [formGroup]="row.group">
+            <div class="po-editor-product">
+              <strong>{{ row.value.sku }}</strong>
+              <span>{{ row.value.productName }}</span>
+            </div>
+            <div class="po-editor-qty">
+              <app-form-field
+                [label]="'doc.qty' | t"
+                [required]="true"
+                [control]="row.group.controls.qty"
+                [messages]="{ min: 'line.qtyMin' | t }"
+              >
+                <app-input
+                  type="number"
+                  formControlName="qty"
+                  inputMode="decimal"
+                  min="0"
+                  [ariaLabel]="'line.qtyFor' | t: { sku: row.value.sku }"
+                />
+              </app-form-field>
+              @if (row.units.length > 1) {
+                <app-form-field [label]="'doc.unit' | t">
+                  <app-select formControlName="uomId" [options]="row.units" />
+                </app-form-field>
+              } @else {
+                <span class="po-editor-unit">{{ row.unitCode }}</span>
+              }
+            </div>
+            <app-form-field
+              class="po-editor-price"
+              [label]="'po.col.price' | t"
+              [control]="row.group.controls.unitCost"
+            >
+              <app-input
+                type="number"
+                formControlName="unitCost"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                [ariaLabel]="'po.priceFor' | t: { sku: row.value.sku }"
+              />
+            </app-form-field>
+            <p class="po-editor-amount">
+              <span>{{ 'doc.amount' | t }}</span>
+              <strong>{{ row.amount | appMoney }}</strong>
+            </p>
+            <app-button
+              class="po-editor-remove"
+              variant="ghost"
+              [ariaLabel]="'line.removeFor' | t: { sku: row.value.sku }"
+              (clicked)="onRemove(row.index)"
+            >
+              <app-icon name="trash" />
+              {{ 'common.remove' | t }}
+            </app-button>
+          </li>
+        }
+      </ul>
+      @if ($rows().length === 0) {
+        @if ($showLineError()) {
+          <app-banner kind="danger" alert>{{ 'doc.linesRequired' | t }}</app-banner>
+        }
+        <app-empty-state icon="stock" [message]="'doc.noLines' | t" />
+      }
+    </section>
+
+    <footer
+      class="po-editor-bar"
+      appPublishHeight="--ims-action-bar-height"
+      appPublishClearance="--ims-action-bar-clearance"
+      [attr.aria-busy]="$isSaving()"
+    >
+      <p class="po-editor-totals" aria-live="polite">
+        {{ 'doc.totals' | t: { lines: $totals().lineCount, qty: $totals().totalQty } }}
+        · {{ $totals().totalAmount | appMoney }}
+      </p>
+      <app-button
+        variant="primary"
+        [disabled]="$isSaving() || $isStale() || $saved()"
+        [loading]="$isSaving()"
+        (clicked)="onSave()"
+      >
+        {{ 'doc.action.saveDraft' | t }}
+      </app-button>
+    </footer>
+  </form>
+}
+
+<app-dialog [(open)]="$addItemOpen" [heading]="'doc.addItem' | t">
+  <app-product-picker
+    [notice]="$lastAdded()"
+    (picked)="onProductPicked($event)"
+    (termChanged)="onPickerTermChanged()"
+  />
+  <div dialogActions>
+    <app-button variant="primary" (clicked)="$addItemOpen.set(false)">{{
+      'common.done' | t
+    }}</app-button>
+  </div>
+</app-dialog>

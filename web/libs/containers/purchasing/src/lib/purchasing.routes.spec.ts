@@ -17,9 +17,9 @@ describe('PURCHASE_ORDER_ROUTES (module purchasing, then permission po.read)', (
   let router: Router;
 
   /** The guards of the parent run in order, as the router does: the first that refuses decides. */
-  const answer = (): boolean | UrlTree => {
-    const guards = PURCHASE_ORDER_ROUTES[0].canActivate as CanActivateFn[];
-    expect(guards).toHaveLength(2);
+  const answer = (
+    guards = PURCHASE_ORDER_ROUTES[0].canActivate as CanActivateFn[]
+  ): boolean | UrlTree => {
     for (const guard of guards) {
       const result = TestBed.runInInjectionContext(() =>
         guard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot)
@@ -78,10 +78,20 @@ describe('PURCHASE_ORDER_ROUTES (module purchasing, then permission po.read)', (
     expect(urlOf(answer())).toBe('/forbidden');
   });
 
-  it('guards the list and the detail through one parent', () => {
-    const children = PURCHASE_ORDER_ROUTES[0].children ?? [];
+  it.each([['new'], [':id/edit']])(
+    'the editor (%s) needs po.manage AND cost.view: each one alone is the forbidden page, and it asks before leaving',
+    path => {
+      const route = PURCHASE_ORDER_ROUTES[0].children?.find(child => child.path === path);
+      const guards = route?.canActivate as CanActivateFn[];
 
-    expect(children.map(route => route.path)).toEqual(['', ':id']);
-    expect(children.every(route => route.canActivate === undefined)).toBe(true);
-  });
+      held.add(PERMISSION.PoManage);
+      expect(urlOf(answer(guards))).toBe('/forbidden');
+      held.clear();
+      held.add(PERMISSION.CostView);
+      expect(urlOf(answer(guards))).toBe('/forbidden');
+      held.add(PERMISSION.PoManage);
+      expect(answer(guards)).toBe(true);
+      expect(route?.canDeactivate).toHaveLength(1);
+    }
+  );
 });

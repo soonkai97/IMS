@@ -160,6 +160,10 @@ export class PurchaseOrderDetailPageComponent {
     () => this.$order()?.no ?? this.i18n.t(this.$notFound() ? 'notFound.title' : 'ui.loading')
   );
   private readonly $actions = computed(() => toPoActions(this.$order()?.allowedActions));
+  /** The API offers `edit` to a holder of po.manage; the editor also needs cost.view (it saves prices). */
+  readonly $canEdit = computed(
+    () => this.$actions().has(PO_ACTION.Edit) && this.permissions.has(PERMISSION.CostView)
+  );
   readonly $canSubmit = computed(() => this.$actions().has(PO_ACTION.Submit));
   readonly $canRecall = computed(() => this.$actions().has(PO_ACTION.Recall));
   readonly $canApprove = computed(() => this.$actions().has(PO_ACTION.Approve));
@@ -168,6 +172,7 @@ export class PurchaseOrderDetailPageComponent {
   readonly $canClose = computed(() => this.$actions().has(PO_ACTION.Close));
   readonly $showBar = computed(
     () =>
+      this.$canEdit() ||
       this.$canSubmit() ||
       this.$canRecall() ||
       this.$canApprove() ||
