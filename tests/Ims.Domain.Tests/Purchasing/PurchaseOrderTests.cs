@@ -41,6 +41,15 @@ public class PurchaseOrderTests
     }
 
     [Fact]
+    public void A_soft_deleted_supplier_is_refused_like_an_inactive_one()
+    {
+        var supplier = NewSupplier();
+        supplier.MarkDeleted();
+
+        Assert.Equal(Messages.PartnerInactive, Assert.Throws<DomainException>(() => NewOrder(supplier: supplier)).Message);
+    }
+
+    [Fact]
     public void The_number_is_assigned_once()
     {
         var order = NewOrder();

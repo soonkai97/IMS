@@ -41,7 +41,7 @@ public class Partner : PublicEntity
     /// <summary>A purchase order is placed with an active supplier.</summary>
     public void EnsureUsableAsSupplier()
     {
-        if (!IsActive) throw new DomainException(Messages.PartnerInactive);
+        if (!IsActive || RecDeleted) throw new DomainException(Messages.PartnerInactive); // a soft-deleted partner is no longer usable either
         if (Type != PartnerType.Supplier) throw new DomainException(Messages.SupplierRequired);
     }
 

@@ -18,6 +18,7 @@ public static class ApiRoutes
     public const string Accounting = Prefix + "/accounting";
     public const string ApprovalRules = Prefix + "/approval-rules";
     public const string Documents = Prefix + "/documents";
+    public const string PurchaseOrders = Prefix + "/purchase-orders";
     public const string Stock = Prefix + "/stock";
     public const string Reports = Prefix + "/reports";
     public const string Import = Prefix + "/import";
