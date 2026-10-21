@@ -1,0 +1,40 @@
+@use 'themes';
+@use '../variables/palette.var' as palette;
+@use '../variables/shape.var' as shape;
+
+@page {
+  size: A4;
+  margin: 15mm;
+}
+
+// Paper is light, whatever the screen was (also for a user who chose the dark theme).
+@media print {
+  :root,
+  :root:not([data-theme='light']),
+  :root[data-theme='dark'] {
+    color-scheme: light;
+
+    @include themes.emit(palette.$light, shape.$shadows-light, 50%);
+  }
+
+  // A page that marks itself as a print view (the supplier copy of an order) prints without the navigation around it.
+  body.po-print-view {
+    .shell-bar,
+    .shell-nav,
+    .shell-tabbar,
+    .shell-skip-link,
+    .shell-progress,
+    .shell-announcer {
+      display: none;
+    }
+
+    app-shell {
+      display: block;
+      padding: 0;
+    }
+
+    .shell-main {
+      padding: 0;
+    }
+  }
+}

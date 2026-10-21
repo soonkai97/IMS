@@ -820,5 +820,13 @@ export const ZH_MESSAGES: Messages = {
   'po.new': '新建采购订单',
   'po.action.edit': '编辑',
   'po.staleSaveBody': '其他人修改了这张订单。请重新加载以查看最新版本。你的更改未保存。',
-  'po.priceFor': '{sku} 的单价'
+  'po.priceFor': '{sku} 的单价',
+  // TODO-review: machine draft (PL2.8b: purchase order print).
+  'po.print': '打印',
+  'po.print.title': '采购订单 {docNo}',
+  'po.print.shipTo': '收货仓库',
+  'po.print.lineNo': '序号',
+  'po.print.total': '合计（{currency}）',
+  'po.unitFor': '{sku} 的单位',
+  'po.print.notPrintable': '只有已批准或已关闭的订单才能打印。'
 };

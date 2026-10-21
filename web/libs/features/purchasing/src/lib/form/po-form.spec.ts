@@ -1,6 +1,6 @@
 import { PurchaseOrderLineDto } from '@ims/api';
 import { LineValue } from '@ims/features/documents';
-import { lineFromOrderLine, toSaveRequest } from './po-form';
+import { MAX_PREFILL_LINES, lineFromOrderLine, parsePrefillLines, toSaveRequest } from './po-form';
 
 /** A line as the API sends it: what the line does not have is JSON null. */
 const LINE = {
@@ -41,5 +41,38 @@ describe('toSaveRequest', () => {
 
     expect(body.remark).toBeUndefined();
     expect(body.lines.map(row => row.unitPrice)).toEqual([0, 0.5]);
+  });
+});
+
+describe('parsePrefillLines', () => {
+  it('reads SKU|quantity, one parameter or a list, and a bare code is one', () => {
+    expect(parsePrefillLines('A-1|12')).toEqual([{ sku: 'A-1', qty: 12 }]);
+    expect(parsePrefillLines(['A-1|12', 'B-2|0.5', 'C-3'])).toEqual([
+      { sku: 'A-1', qty: 12 },
+      { sku: 'B-2', qty: 0.5 },
+      { sku: 'C-3', qty: 1 }
+    ]);
+  });
+
+  it('drops empty parts, quantities the API would refuse, repeated codes and anything past the cap', () => {
+    expect(
+      parsePrefillLines([
+        '',
+        '|3',
+        'A|0',
+        'B|-1',
+        'C|x',
+        'E|0.00001',
+        'F|1e12',
+        'G|0x10',
+        'H|1e2',
+        'I|+3',
+        'D|2',
+        'D|9'
+      ])
+    ).toEqual([{ sku: 'D', qty: 2 }]);
+    const many = Array.from({ length: MAX_PREFILL_LINES + 5 }, (_, i) => `S${i}|1`);
+    expect(parsePrefillLines(many)).toHaveLength(MAX_PREFILL_LINES);
+    expect(parsePrefillLines(undefined)).toEqual([]);
   });
 });

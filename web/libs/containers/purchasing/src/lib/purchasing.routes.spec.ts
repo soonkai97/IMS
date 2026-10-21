@@ -94,4 +94,14 @@ describe('PURCHASE_ORDER_ROUTES (module purchasing, then permission po.read)', (
       expect(route?.canDeactivate).toHaveLength(1);
     }
   );
+
+  it('the print page (the supplier copy shows prices) needs cost.view', () => {
+    const guards = PURCHASE_ORDER_ROUTES[0].children?.find(child => child.path === ':id/print')
+      ?.canActivate as CanActivateFn[];
+
+    held.add(PERMISSION.PoRead);
+    expect(urlOf(answer(guards))).toBe('/forbidden');
+    held.add(PERMISSION.CostView);
+    expect(answer(guards)).toBe(true);
+  });
 });

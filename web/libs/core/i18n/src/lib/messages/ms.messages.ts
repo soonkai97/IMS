@@ -889,5 +889,13 @@ export const MS_MESSAGES: Messages = {
   'po.action.edit': 'Sunting',
   'po.staleSaveBody':
     'Orang lain telah mengubah pesanan ini. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',
-  'po.priceFor': 'Harga seunit bagi {sku}'
+  'po.priceFor': 'Harga seunit bagi {sku}',
+  // TODO-review: machine draft (PL2.8b: purchase order print).
+  'po.print': 'Cetak',
+  'po.print.title': 'Pesanan pembelian {docNo}',
+  'po.print.shipTo': 'Hantar ke',
+  'po.print.lineNo': 'No.',
+  'po.print.total': 'Jumlah ({currency})',
+  'po.unitFor': 'Unit bagi {sku}',
+  'po.print.notPrintable': 'Hanya pesanan yang diluluskan atau ditutup boleh dicetak.'
 };

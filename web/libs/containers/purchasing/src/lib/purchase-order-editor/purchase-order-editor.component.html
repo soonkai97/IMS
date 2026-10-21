@@ -87,7 +87,11 @@
               </app-form-field>
               @if (row.units.length > 1) {
                 <app-form-field [label]="'doc.unit' | t">
-                  <app-select formControlName="uomId" [options]="row.units" />
+                  <app-select
+                    formControlName="uomId"
+                    [options]="row.units"
+                    [ariaLabel]="'po.unitFor' | t: { sku: row.value.sku }"
+                  />
                 </app-form-field>
               } @else {
                 <span class="po-editor-unit">{{ row.unitCode }}</span>

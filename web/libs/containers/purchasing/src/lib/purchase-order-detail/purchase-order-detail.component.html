@@ -13,6 +13,14 @@
       }
     }
   </div>
+  @if ($canPrint()) {
+    <div actions>
+      <a class="ui-link-button" [routerLink]="['/', 'purchase-orders', $order()?.id, 'print']">
+        <app-icon name="file" />
+        {{ 'po.print' | t }}
+      </a>
+    </div>
+  }
 </app-page-header>
 
 @if ($isLoading()) {

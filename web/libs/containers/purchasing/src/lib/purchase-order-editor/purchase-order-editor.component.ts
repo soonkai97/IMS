@@ -15,14 +15,14 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { map, startWith, tap } from 'rxjs';
+import { EMPTY, catchError, concatMap, filter, from, map, startWith, tap } from 'rxjs';
 import { DocumentType, PartnerType } from '@ims/api';
 import { PickedProduct, ProductPickerComponent } from '@ims/containers/catalog-shared';
 import { handledInline } from '@ims/core/http';
 import { AppMoneyPipe, I18nService, TranslatePipe } from '@ims/core/i18n';
 import { HasUnsavedChanges, PageTitleService } from '@ims/core/navigation';
 import { ToastService } from '@ims/core/notification';
-import { CatalogStore } from '@ims/features/catalog';
+import { CatalogStore, ProductsStore } from '@ims/features/catalog';
 import {
   LineGroup,
   LineValue,
@@ -42,6 +42,7 @@ import {
   headerFromOrder,
   isStaleOrderError,
   lineFromOrderLine,
+  parsePrefillLines,
   toPoActions,
   toPurchaseOrderRef,
   toSaveRequest
@@ -122,6 +123,7 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
   private readonly page = inject(DOCUMENT);
   private readonly pageTitle = inject(PageTitleService);
   private readonly partners = inject(PartnersStore);
+  private readonly products = inject(ProductsStore);
   private readonly router = inject(Router);
   private readonly store = inject(PurchaseOrdersStore);
   private readonly toast = inject(ToastService);
@@ -129,6 +131,13 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
 
   /** Route parameter; absent on `/new`. */
   $id = input<string | undefined>(undefined, { alias: 'id' });
+  /**
+   * The entry link of the reorder screen: `?warehouseId=<guid>&supplierId=<guid>&line=SKU-1|12&line=SKU-2|3`. Nothing in it is
+   * trusted: a warehouse or supplier the person may not use, a product that is unknown or switched off, a bad quantity are ignored.
+   */
+  $warehouseParam = input<string | undefined>(undefined, { alias: 'warehouseId' });
+  $supplierParam = input<string | undefined>(undefined, { alias: 'supplierId' });
+  $lineParam = input<string | readonly string[] | undefined>(undefined, { alias: 'line' });
 
   readonly backLink = ['/', PURCHASE_ORDER_ROUTE];
   readonly form: PoForm = new FormGroup({
@@ -268,6 +277,23 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
     }
   });
 
+  /** The warehouse and supplier of the entry link, once their lists are in and only if they are in them (scope, active). */
+  private readonly applyEntryLink = effect(() => {
+    const warehouse = normalizePublicId(this.$warehouseParam());
+    const supplier = normalizePublicId(this.$supplierParam());
+    const inWarehouses = this.$warehouseOptions().some(option => option.value === warehouse);
+    const inSuppliers = this.$supplierOptions().some(option => option.value === supplier);
+    const { warehouseId, supplierId } = this.form.controls;
+    untracked(() => {
+      if (!this.$isEdit() && warehouse && inWarehouses && warehouseId.value === null) {
+        warehouseId.setValue(warehouse);
+      }
+      if (!this.$isEdit() && supplier && inSuppliers && supplierId.value === null) {
+        supplierId.setValue(supplier);
+      }
+    });
+  });
+
   private readonly preselectWarehouse = effect(() => {
     const warehouses = this.warehouses.$activeWarehouses();
     if (
@@ -310,6 +336,10 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
   });
 
   constructor() {
+    // The two stores outlive this page and a sign-out: what another screen or user left in them (customers, inactive partners,
+    // another warehouse scope) must not be what the entry link is checked against.
+    this.partners.list.reset();
+    this.warehouses.list.reset();
     this.partners.loadActive(PartnerType.Supplier);
     this.warehouses.ensureLoaded();
     this.destroyRef.onDestroy(() => this.pageTitle.setDetail(undefined));
@@ -419,7 +449,10 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
       return undefined;
     }
     this.lines.push(
-      createLineGroup({ ...lineFromProduct(product, this.catalog.$unitCodes(), null), qty })
+      createLineGroup({
+        ...lineFromProduct(product, this.catalog.$unitCodes(), null),
+        qty
+      })
     );
     this.lines.markAsDirty();
     return { increased: false, qty };
@@ -436,5 +469,22 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
     });
     this.lines.clear();
     this.markPristine();
+    if (this.$isEdit()) {
+      return;
+    }
+    // Lines of the entry link have a blank price (sent as 0.00; the box shows what is still to fill in).
+    // One lookup at a time, in the order of the link; a failed one is skipped (the error interceptor has said it once).
+    from(parsePrefillLines(this.$lineParam()))
+      .pipe(
+        concatMap(link =>
+          this.products.lookup(link.sku).pipe(
+            filter(result => result.found && result.product?.isActive === true),
+            map(result => ({ product: result.product, qty: link.qty })),
+            catchError(() => EMPTY)
+          )
+        ),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(({ product, qty }) => product && this.addProduct(product, qty));
   }
 }

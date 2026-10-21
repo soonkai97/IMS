@@ -1,12 +1,14 @@
 import { IssuePurpose } from '@ims/api';
 import { LineValue, UomOption } from '@ims/features/documents';
-import { MAX_DOCUMENT_LINES, MAX_QUANTITY, MAX_UNIT_COST, PublicId } from '@ims/models';
-import { normalizePublicId } from '@ims/utils';
 import {
-  EDITOR_DRAFT_VERSION,
-  EditorDraft,
-  MAX_REMARK_LENGTH
-} from './document-editor.view-service';
+  MAX_DOCUMENT_LINES,
+  MAX_QUANTITY,
+  MAX_REMARK_LENGTH,
+  MAX_UNIT_COST,
+  PublicId
+} from '@ims/models';
+import { normalizePublicId } from '@ims/utils';
+import { EDITOR_DRAFT_VERSION, EditorDraft } from './document-editor.view-service';
 
 const MAX_TEXT_LENGTH = 300;
 const MAX_CODE_LENGTH = 50;

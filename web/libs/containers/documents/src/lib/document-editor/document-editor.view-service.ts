@@ -16,11 +16,9 @@ import {
   maxCoveredQuantity,
   toLineInputs
 } from '@ims/features/documents';
-import { MAX_DOCUMENT_LINES, NO_PUBLIC_ID, PublicId } from '@ims/models';
+import { MAX_DOCUMENT_LINES, MAX_REMARK_LENGTH, NO_PUBLIC_ID, PublicId } from '@ims/models';
 import { Observable } from 'rxjs';
 
-/** The API refuses a longer remark; the form must not offer more than it accepts (EA-18). */
-export const MAX_REMARK_LENGTH = 500;
 const QUANTITY_STEP = 1;
 const MIN_STEPPED_QUANTITY = 0.001;
 
