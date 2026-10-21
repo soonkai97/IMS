@@ -103,6 +103,7 @@ public static class Messages
     public const string BaseUomMissing = "Base unit does not exist.";
     public const string CategoryMissing = "Category does not exist.";
     public const string BaseUomLocked = "The base unit cannot change after stock movements exist.";
+    public static string ConversionLocked(string unit) => $"The conversion of unit {unit} is already used by stock movements or purchase orders and cannot be changed or removed; add a new unit instead.";
     public const string ConversionInvalid = "Conversions must convert into the base unit with a positive factor.";
     public const string CategoryNameRequired = "Category name is required.";
     public const string CategoryExists = "Category already exists.";
@@ -291,6 +292,7 @@ public static class Messages
     public static string ImportHasErrors(int rows) => $"{rows} row(s) have errors. Fix them and upload the file again; nothing was imported.";
     public static string TextTooLong(string field, int max) => $"{field} is too long (maximum {max} characters).";
     public const string UnitNotChanged = "Unit not changed: product already has stock movements.";
+    public const string UnitNotChangedConversionsUsed = "Unit not changed: a unit conversion of the product is already used by stock movements or purchase orders.";
     public static string MissingColumns(IEnumerable<string> columns) =>
         $"Missing column(s): {string.Join(", ", columns)}. Download the template to see the expected columns.";
     public static string TooManyRows(int rows, int limit) => $"Too many rows ({rows}). The limit is {limit} per file.";
