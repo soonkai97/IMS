@@ -204,6 +204,21 @@ public static class Messages
     public const string PriceTooLarge = "Unit price cannot be more than 1,000,000,000.";
     public const string PriceTooPrecise = "Unit price can have at most 2 decimal places.";
     public static string PurchaseOrderNotEditable(string no, PurchaseOrderStatus status) => $"Purchase order {no} is {status} and can no longer be edited.";
+    public static string PurchaseOrderOnlyDraftCanSubmit(PurchaseOrderStatus status) => $"Only a Draft purchase order can be submitted (current: {status}).";
+    public static string PurchaseOrderOnlySubmittedCanApprove(PurchaseOrderStatus status) => $"Only a Submitted purchase order can be approved (current: {status}).";
+    public static string PurchaseOrderOnlySubmittedCanReject(PurchaseOrderStatus status) => $"Only a Submitted purchase order can be rejected (current: {status}).";
+    public static string PurchaseOrderOnlySubmittedCanRecall(string no, PurchaseOrderStatus status) => $"Purchase order {no} is {status} and can't be taken back to draft.";
+    public static string PurchaseOrderCannotCancel(PurchaseOrderStatus status) => $"Only a Draft, Submitted or Approved purchase order can be cancelled (current: {status}).";
+    public static string PurchaseOrderLinesNeedPrice(IReadOnlyList<int> lineNos) =>
+        (lineNos.Count == 1 ? $"Line {lineNos[0]} has no price." : $"Lines {string.Join(", ", lineNos)} have no price.") + " Enter a price above 0 before submitting.";
+    public const string PurchaseOrderSelfApproval = "You cannot approve a purchase order you submitted.";
+    public const string PurchaseOrderSelfRejection = "You cannot reject a purchase order you submitted.";
+    public const string PurchaseOrderApprovalNotNeeded = "This purchase order does not need approval.";
+    public const string PurchaseOrderCancelReasonRequired = "A reason is required to cancel an approved purchase order.";
+    public const string PurchaseOrderNeedsPoRead = "Reviewing or cancelling a purchase order needs the permission to read purchase orders.";
+    public const string PurchaseOrderOwnOnly = "You can only cancel purchase orders you created or submitted.";
+    public const string PurchaseOrderOnlyReviewerCanCancelApproved = "Only an approver for this purchase order can cancel it after approval.";
+    public const string PurchaseOrderOwnRecallOnly = "Only the person who submitted a purchase order can take it back to draft.";
 
     // ----- Stock -----
     public const string ReceiveQtyPositive = "Receive quantity must be positive.";

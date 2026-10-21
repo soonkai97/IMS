@@ -128,6 +128,7 @@ export const MS_MESSAGES: Messages = {
   'docType.Issue': 'Pengeluaran',
   'docType.Transfer': 'Pemindahan',
   'docType.Adjust': 'Pelarasan',
+  'docType.PurchaseOrder': 'Pesanan pembelian',
   'purpose.Sale': 'Jualan',
   // TODO-review: machine draft (QA 2026-10-19: jargon).
   'purpose.Use': 'Kegunaan dalaman',

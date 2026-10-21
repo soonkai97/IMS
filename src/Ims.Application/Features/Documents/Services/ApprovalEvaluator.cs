@@ -3,17 +3,17 @@ namespace Ims.Application.Features.Documents;
 
 public class ApprovalEvaluator(IReadRepository<ApprovalRule> rules, ICurrentUser current) : IApprovalEvaluator, IAppService
 {
-    public async Task<ApprovalAssessment> AssessAsync(StockDocument document, CancellationToken ct)
+    // Receipts are valued at their entered cost; an unposted issue carries its estimated cost (see StockDocument.EstimateIssueCosts),
+    // so the amount tested here is the one the approver later sees on the document.
+    public Task<ApprovalAssessment> AssessAsync(StockDocument document, CancellationToken ct) => AssessAsync(document.Type, document.TotalQty, document.TotalAmount, ct);
+
+    public async Task<ApprovalAssessment> AssessAsync(DocumentType type, decimal totalQty, decimal totalAmount, CancellationToken ct)
     {
-        // Receipts are valued at their entered cost; an unposted issue carries its estimated cost (see StockDocument.EstimateIssueCosts),
-        // so the amount tested here is the one the approver later sees on the document.
-        var amount = document.TotalAmount;
-        var active = await rules.ListAsync(new ActiveRulesForTypeSpec(document.Type), ct);
-        var qty = document.TotalQty;
+        var active = await rules.ListAsync(new ActiveRulesForTypeSpec(type), ct);
         return new ApprovalAssessment(
-            ApprovalPolicy.RequiresApproval(active, document.Type, qty, amount),
-            amount,
-            ApprovalPolicy.IsLarge(active, document.Type, qty, amount));
+            ApprovalPolicy.RequiresApproval(active, type, totalQty, totalAmount),
+            totalAmount,
+            ApprovalPolicy.IsLarge(active, type, totalQty, totalAmount));
     }
 
     public async Task<string?> ReviewRefusalAsync(DocumentType type, bool isLarge, decimal totalQty, decimal totalAmount, CancellationToken ct)

@@ -24,7 +24,8 @@ export const DOCUMENT_TYPE_LABELS: LabelMap = {
   Receipt: 'docType.Receipt',
   Issue: 'docType.Issue',
   Transfer: 'docType.Transfer',
-  Adjust: 'docType.Adjust'
+  Adjust: 'docType.Adjust',
+  PurchaseOrder: 'docType.PurchaseOrder'
 };
 
 export const ISSUE_PURPOSE_LABELS: LabelMap = {

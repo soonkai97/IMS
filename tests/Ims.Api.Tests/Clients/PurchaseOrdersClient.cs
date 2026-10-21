@@ -1,4 +1,5 @@
 using Ims.Api.Tests.Harness;
+using Ims.Application.Features.Documents;
 using Ims.Application.Features.Purchasing;
 using Ims.Domain;
 
@@ -26,6 +27,18 @@ public sealed class PurchaseOrdersClient(ApiClient api)
     /// <summary>A save with an <c>If-Match</c> header: the given token (quoted like an ETag unless it already is), or "*" (any version) when a test does not care.</summary>
     public Task<ApiResponse> UpdateAsync(Guid id, PurchaseOrderSaveRequest request, string? ifMatch = null) =>
         api.SendAsync(HttpMethod.Put, $"/api/purchase-orders/{id}", request, r => r.Headers.TryAddWithoutValidation("If-Match", Quote(ifMatch ?? "*")));
+
+    private Task<ApiResponse> Send(HttpMethod method, string url, object? body, string? ifMatch) =>
+        api.SendAsync(method, url, body, r => r.Headers.TryAddWithoutValidation("If-Match", Quote(ifMatch ?? "*")));
+
+    public Task<ApiResponse> SubmitAsync(Guid id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/purchase-orders/{id}/submit", null, ifMatch);
+    public Task<ApiResponse> ApproveAsync(Guid id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/purchase-orders/{id}/approve", null, ifMatch);
+    public Task<ApiResponse> RejectAsync(Guid id, string reason, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/purchase-orders/{id}/reject", new RejectRequest(reason), ifMatch);
+    public Task<ApiResponse> RecallAsync(Guid id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/purchase-orders/{id}/recall", null, ifMatch);
+    public Task<ApiResponse> CancelAsync(Guid id, string? reason = null, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/purchase-orders/{id}/cancel", new CancelRequest(reason), ifMatch);
+
+    /// <summary>A transition with NO If-Match header at all, to test that the server demands one (428).</summary>
+    public Task<ApiResponse> TransitionWithoutIfMatchAsync(Guid id, string action, object? body = null) => api.SendAsync(HttpMethod.Post, $"/api/purchase-orders/{id}/{action}", body);
 
     /// <summary>A save with NO If-Match header at all, to test that the server demands one (428).</summary>
     public Task<ApiResponse> UpdateWithoutIfMatchAsync(Guid id, PurchaseOrderSaveRequest request) => api.SendAsync(HttpMethod.Put, $"/api/purchase-orders/{id}", request);

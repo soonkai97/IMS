@@ -2136,7 +2136,7 @@
         "tags": [
           "PurchaseOrders"
         ],
-        "summary": "Purchase orders, newest first, in the warehouses the caller may read. Prices and totals are null for a caller without `cost.view`.",
+        "summary": "Purchase orders, newest first, in the warehouses the caller may read. Prices and totals are null for a caller without `cost.view`. With `status=Submitted` these are the orders waiting for approval.",
         "operationId": "PurchaseOrders_list",
         "parameters": [
           {
@@ -2368,6 +2368,256 @@
             "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/PurchaseOrderSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/purchase-orders/{id}/submit": {
+      "post": {
+        "tags": [
+          "PurchaseOrders"
+        ],
+        "summary": "Sends a Draft on. Every line needs a price above 0. When an approval rule fires the order is Submitted and waits for the reviewer of its tier; when none fires it is Approved at once, with no approver. The total at cost is what the rules are tested against.",
+        "operationId": "PurchaseOrders_submit",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/purchase-orders/{id}/approve": {
+      "post": {
+        "tags": [
+          "PurchaseOrders"
+        ],
+        "summary": "Approves a Submitted order: the reviewer of its tier (a Supervisor for a standard order, the Owner for a large one, an Administrator either), never the person who submitted it unless self-approval is on.",
+        "operationId": "PurchaseOrders_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/purchase-orders/{id}/reject": {
+      "post": {
+        "tags": [
+          "PurchaseOrders"
+        ],
+        "summary": "Returns a Submitted order to Draft with a reason of at least 5 characters, as a review like approving.",
+        "operationId": "PurchaseOrders_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/purchase-orders/{id}/recall": {
+      "post": {
+        "tags": [
+          "PurchaseOrders"
+        ],
+        "summary": "Takes the caller's own Submitted order back to Draft (the Edit button): same number, same lines, no reason. Repeating it on an order that is already an ordinary Draft answers 200 and changes nothing.",
+        "operationId": "PurchaseOrders_recall",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/purchase-orders/{id}/cancel": {
+      "post": {
+        "tags": [
+          "PurchaseOrders"
+        ],
+        "summary": "Cancels a Draft (by its creator), a Submitted order (by its submitter) or an Approved one (by a reviewer it is routed to). The reason is optional, except that cancelling an Approved order needs one of at least 5 characters.",
+        "operationId": "PurchaseOrders_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelRequest"
               }
             }
           },
@@ -5222,9 +5472,11 @@
           "Receipt",
           "Issue",
           "Transfer",
-          "Adjust"
+          "Adjust",
+          "PurchaseOrder"
         ],
-        "type": "string"
+        "type": "string",
+        "description": "The kind of a document, and the subject an ApprovalRule is written for. DocumentType.PurchaseOrder is not a stock document (a purchase order is its own aggregate and\r\nmoves no stock, plan D2): it is here only so that the approval rules and their two tiers are reused for it. StockDocument StockDocument.Create(DocumentType type, Warehouse warehouse, Partner? partner, IssuePurpose? purpose, string? remark, int createdBy, DateTime now) refuses it and StockDirection\r\nhas no direction for it."
       },
       "ImportResult": {
         "required": [
@@ -6341,9 +6593,20 @@
           "createdBy",
           "createdByName",
           "createdAt",
+          "requiresApproval",
+          "isLarge",
+          "isReturned",
+          "rejectionReason",
+          "cancelReason",
+          "submittedAt",
+          "approvedAt",
+          "returnedAt",
+          "totalQty",
           "totalAmount",
           "lines",
-          "concurrencyToken"
+          "concurrencyToken",
+          "allowedActions",
+          "approvalTriggers"
         ],
         "type": "object",
         "properties": {
@@ -6389,6 +6652,46 @@
             "type": "string",
             "format": "date-time"
           },
+          "requiresApproval": {
+            "type": "boolean",
+            "description": "An approval rule fired when the order was submitted (false for a Draft, and for an order released at once because no rule fired)."
+          },
+          "isLarge": {
+            "type": "boolean",
+            "description": "The rule that fired needs the large tier (the Owner), not a Supervisor."
+          },
+          "isReturned": {
+            "type": "boolean",
+            "description": "A Draft that a reviewer sent back (`RejectionReason` holds why, `ReturnedBy*` who)."
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancelReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "approvedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "returnedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "totalQty": {
+            "type": "number",
+            "description": "The total base quantity: what a quantity rule of the approval rules is tested against.",
+            "format": "double"
+          },
           "totalAmount": {
             "type": "number",
             "description": "The sum of the line amounts, in money. Null for a caller without `cost.view`.",
@@ -6404,6 +6707,52 @@
           "concurrencyToken": {
             "type": "string",
             "description": "Changes whenever the order (header, status or lines) changes; opaque: compare it only for equality. Also sent as the ETag header; send it back as If-Match to refuse a stale save."
+          },
+          "allowedActions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "approvalTriggers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalTriggerDto"
+            }
+          },
+          "submittedById": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "submittedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "returnedById": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "returnedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "returnedByName": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -6521,7 +6870,10 @@
           "createdBy",
           "lineCount",
           "totalAmount",
-          "concurrencyToken"
+          "requiresApproval",
+          "isLarge",
+          "concurrencyToken",
+          "canAct"
         ],
         "type": "object",
         "properties": {
@@ -6558,9 +6910,21 @@
             "format": "double",
             "nullable": true
           },
+          "requiresApproval": {
+            "type": "boolean",
+            "description": "An approval rule fired when the order was submitted. With `status=Submitted` these are the orders waiting for a reviewer."
+          },
+          "isLarge": {
+            "type": "boolean",
+            "description": "The rule that fired needs the large tier (the Owner)."
+          },
           "concurrencyToken": {
             "type": "string",
             "description": "Same value as `concurrencyToken` on the full order: compare it to know whether an open order has gone stale."
+          },
+          "canAct": {
+            "type": "boolean",
+            "description": "The caller may approve or reject this order right now: it is Submitted and held for approval, routed to the caller's tier (the Owner reviews only `isLarge` orders, a\r\nSupervisor the rest, an Administrator all) and, unless self-approval is on, not submitted by the caller. A single order's `allowedActions` additionally tests the live rules."
           }
         },
         "additionalProperties": false

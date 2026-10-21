@@ -127,6 +127,7 @@ export const ZH_MESSAGES: Messages = {
   'docType.Issue': '出库单',
   'docType.Transfer': '调拨单',
   'docType.Adjust': '调整单',
+  'docType.PurchaseOrder': '采购订单',
   'purpose.Sale': '销售',
   'purpose.Use': '领用',
   'purpose.Scrap': '报废',

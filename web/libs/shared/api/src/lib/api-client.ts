@@ -2536,7 +2536,7 @@ export class PurchaseOrdersClient {
     }
 
     /**
-     * Purchase orders, newest first, in the warehouses the caller may read. Prices and totals are null for a caller without `cost.view`.
+     * Purchase orders, newest first, in the warehouses the caller may read. Prices and totals are null for a caller without `cost.view`. With `status=Submitted` these are the orders waiting for approval.
      * @param status (optional) 
      * @param supplierId (optional) Orders of this supplier; an id that names no supplier matches nothing.
      * @param warehouseId (optional) Orders for this ship-to warehouse. A warehouse the caller may not read matches nothing.
@@ -2786,6 +2786,289 @@ export class PurchaseOrdersClient {
     }
 
     protected processUpdate(response: HttpResponseBase): Observable<PurchaseOrderDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PurchaseOrderDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * Sends a Draft on. Every line needs a price above 0. When an approval rule fires the order is Submitted and waits for the reviewer of its tier; when none fires it is Approved at once, with no approver. The total at cost is what the rules are tested against.
+     * @return OK
+     */
+    submit(id: string, httpContext?: HttpContext): Observable<PurchaseOrderDto> {
+        let url_ = this.baseUrl + "/api/purchase-orders/{id}/submit";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processSubmit(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processSubmit(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PurchaseOrderDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PurchaseOrderDto>;
+        }));
+    }
+
+    protected processSubmit(response: HttpResponseBase): Observable<PurchaseOrderDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PurchaseOrderDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * Approves a Submitted order: the reviewer of its tier (a Supervisor for a standard order, the Owner for a large one, an Administrator either), never the person who submitted it unless self-approval is on.
+     * @return OK
+     */
+    approve(id: string, httpContext?: HttpContext): Observable<PurchaseOrderDto> {
+        let url_ = this.baseUrl + "/api/purchase-orders/{id}/approve";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processApprove(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processApprove(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PurchaseOrderDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PurchaseOrderDto>;
+        }));
+    }
+
+    protected processApprove(response: HttpResponseBase): Observable<PurchaseOrderDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PurchaseOrderDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * Returns a Submitted order to Draft with a reason of at least 5 characters, as a review like approving.
+     * @return OK
+     */
+    reject(id: string, body: RejectRequest, httpContext?: HttpContext): Observable<PurchaseOrderDto> {
+        let url_ = this.baseUrl + "/api/purchase-orders/{id}/reject";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processReject(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processReject(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PurchaseOrderDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PurchaseOrderDto>;
+        }));
+    }
+
+    protected processReject(response: HttpResponseBase): Observable<PurchaseOrderDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PurchaseOrderDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * Takes the caller's own Submitted order back to Draft (the Edit button): same number, same lines, no reason. Repeating it on an order that is already an ordinary Draft answers 200 and changes nothing.
+     * @return OK
+     */
+    recall(id: string, httpContext?: HttpContext): Observable<PurchaseOrderDto> {
+        let url_ = this.baseUrl + "/api/purchase-orders/{id}/recall";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processRecall(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processRecall(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PurchaseOrderDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PurchaseOrderDto>;
+        }));
+    }
+
+    protected processRecall(response: HttpResponseBase): Observable<PurchaseOrderDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PurchaseOrderDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * Cancels a Draft (by its creator), a Submitted order (by its submitter) or an Approved one (by a reviewer it is routed to). The reason is optional, except that cancelling an Approved order needs one of at least 5 characters.
+     * @return OK
+     */
+    cancel(id: string, body: CancelRequest, httpContext?: HttpContext): Observable<PurchaseOrderDto> {
+        let url_ = this.baseUrl + "/api/purchase-orders/{id}/cancel";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processCancel(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processCancel(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PurchaseOrderDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PurchaseOrderDto>;
+        }));
+    }
+
+    protected processCancel(response: HttpResponseBase): Observable<PurchaseOrderDto> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -5309,11 +5592,13 @@ export enum DocumentStatus {
     Cancelled = "Cancelled",
 }
 
+/** The kind of a document, and the subject an ApprovalRule is written for. DocumentType.PurchaseOrder is not a stock document (a purchase order is its own aggregate and moves no stock, plan D2): it is here only so that the approval rules and their two tiers are reused for it. StockDocument StockDocument.Create(DocumentType type, Warehouse warehouse, Partner? partner, IssuePurpose? purpose, string? remark, int createdBy, DateTime now) refuses it and StockDirection has no direction for it. */
 export enum DocumentType {
     Receipt = "Receipt",
     Issue = "Issue",
     Transfer = "Transfer",
     Adjust = "Adjust",
+    PurchaseOrder = "PurchaseOrder",
 }
 
 export interface ImportResult {
@@ -5672,11 +5957,34 @@ export interface PurchaseOrderDto {
     createdBy: string;
     createdByName: string;
     createdAt: string;
+    /** An approval rule fired when the order was submitted (false for a Draft, and for an order released at once because no rule fired). */
+    requiresApproval: boolean;
+    /** The rule that fired needs the large tier (the Owner), not a Supervisor. */
+    isLarge: boolean;
+    /** A Draft that a reviewer sent back (`RejectionReason` holds why, `ReturnedBy*` who). */
+    isReturned: boolean;
+    rejectionReason: string | undefined;
+    cancelReason: string | undefined;
+    submittedAt: string | undefined;
+    approvedAt: string | undefined;
+    returnedAt: string | undefined;
+    /** The total base quantity: what a quantity rule of the approval rules is tested against. */
+    totalQty: number;
     /** The sum of the line amounts, in money. Null for a caller without `cost.view`. */
     totalAmount: number | undefined;
     lines: PurchaseOrderLineDto[];
     /** Changes whenever the order (header, status or lines) changes; opaque: compare it only for equality. Also sent as the ETag header; send it back as If-Match to refuse a stale save. */
     concurrencyToken: string;
+    allowedActions: string[];
+    approvalTriggers: ApprovalTriggerDto[];
+    submittedById?: string | undefined;
+    submittedBy?: string | undefined;
+    submittedByName?: string | undefined;
+    approvedBy?: string | undefined;
+    approvedByName?: string | undefined;
+    returnedById?: string | undefined;
+    returnedBy?: string | undefined;
+    returnedByName?: string | undefined;
 }
 
 export interface PurchaseOrderLineDto {
@@ -5718,8 +6026,15 @@ export interface PurchaseOrderListItem {
     lineCount: number;
     /** The sum of the line amounts, in money. Null for a caller without `cost.view`. */
     totalAmount: number | undefined;
+    /** An approval rule fired when the order was submitted. With `status=Submitted` these are the orders waiting for a reviewer. */
+    requiresApproval: boolean;
+    /** The rule that fired needs the large tier (the Owner). */
+    isLarge: boolean;
     /** Same value as `concurrencyToken` on the full order: compare it to know whether an open order has gone stale. */
     concurrencyToken: string;
+    /** The caller may approve or reject this order right now: it is Submitted and held for approval, routed to the caller's tier (the Owner reviews only `isLarge` orders, a
+Supervisor the rest, an Administrator all) and, unless self-approval is on, not submitted by the caller. A single order's `allowedActions` additionally tests the live rules. */
+    canAct: boolean;
 }
 
 /** A whole purchase-order draft: every field is sent on every save (there is no "absent = unchanged"), and the lines replace the old ones. The same product may appear on several lines (different units, prices or remarks): anything that refers to a line, such as receiving against the order (PL2.4, PL2.5), must use its line number, never the product. */
