@@ -117,6 +117,8 @@ public static class Limits
     /// <summary>The largest amount of one document line (it is stored as <c>decimal(18,2)</c>): just under 1e15. A TYPED cost that reaches it is a 400, never a database overflow; a line valued at the average is capped at it (see <c>StockDocumentLine</c>).</summary>
     public const decimal MaxLineAmount = 999_999_999_999_999m;
     public const int QuantityScale = 4;
+    /// <summary>Decimal places a conversion factor keeps (stored as <c>decimal(18,6)</c>): two factors that round to the same value are the same factor.</summary>
+    public const int FactorScale = 6;
     public const int QuantityPrecision = 18;
     public const int SearchMaxLength = 100;
     /// <summary>Shortest text the document search box accepts (400 below it): a contains-match reads every row, and one or two letters match too much to be of use.</summary>
