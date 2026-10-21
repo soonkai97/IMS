@@ -199,7 +199,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.RejectionReason).HasMaxLength(Limits.RemarkMaxLength);
             e.Property(x => x.CancelReason).HasMaxLength(Limits.RemarkMaxLength);
             e.Property(x => x.CloseReason).HasMaxLength(Limits.RemarkMaxLength);
-            e.Ignore(x => x.TotalAmount).Ignore(x => x.TotalQty).Ignore(x => x.IsReturned).Ignore(x => x.ActionContext);
+            e.Ignore(x => x.TotalAmount).Ignore(x => x.TotalQty).Ignore(x => x.IsReturned).Ignore(x => x.IsPlainDraft).Ignore(x => x.ActionContext);
             e.HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Supplier).WithMany().HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedBy).OnDelete(DeleteBehavior.Restrict);

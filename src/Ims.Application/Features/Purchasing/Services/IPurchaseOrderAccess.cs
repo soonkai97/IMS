@@ -26,9 +26,6 @@ public interface IPurchaseOrderAccess
     /// <exception cref="ForbiddenException">The caller did not submit the order.</exception>
     void EnsureMayRecall(PurchaseOrder order);
 
-    /// <summary>True when a recall would repeat one that already happened: the order is an ordinary Draft (not a returned one). Asked after <see cref="EnsureMayRecall"/>, so only the caller's own.</summary>
-    bool IsRepeatedRecall(PurchaseOrder order);
-
     /// <param name="withinApprovalLimit">False when the approval rules in force need a higher approver than the caller's: approve and reject are then not offered.</param>
     IReadOnlyList<string> AllowedActions(PurchaseOrderDto order, SystemSettings settings, bool withinApprovalLimit);
 

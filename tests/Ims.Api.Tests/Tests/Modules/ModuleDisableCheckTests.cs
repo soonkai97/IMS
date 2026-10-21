@@ -31,15 +31,15 @@ public class ModuleDisableCheckTests(ApiFixture fixture) : IAsyncLifetime
         await ResetAsync();
     }
 
-    private Task ResetAsync() => fixture.Database.ExecuteAsync("DELETE FROM SystemSetting WHERE [Key] LIKE N'Module.%'");
+    private Task ResetAsync() => Ims.Api.Tests.Tests.Purchasing.PurchasingScenario.ResetAsync(fixture); // also closes any order another test left open: the purchasing check refuses to switch off over one
 
     private static string Why() => $"Disable check test {Guid.NewGuid():N}"[..28];
 
-    private async Task<ApiClient> AdminWithAsync(FakeCheck? check)
+    private async Task<ApiClient> AdminWithAsync(params IModuleDisableCheck?[] checks)
     {
         _host = fixture.CreateHost(b => b.ConfigureTestServices(s =>
         {
-            if (check is not null) s.AddSingleton<IModuleDisableCheck>(check);
+            foreach (var check in checks) if (check is not null) s.AddSingleton<IModuleDisableCheck>(check);
         }));
         var admin = ApiFixture.CreateClient(_host);
         admin.AccessToken = (await fixture.AsAsync(Roles.Admin)).AccessToken;
@@ -99,9 +99,9 @@ public class ModuleDisableCheckTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task With_no_check_registered_at_all_every_module_goes_off()
+    public async Task With_nothing_to_count_the_real_check_lets_every_module_go_off()
     {
-        var admin = await AdminWithAsync(null);
+        var admin = await AdminWithAsync();
         (await admin.Modules.SwitchAsync(Purchasing, true, Why())).ShouldBeOk();
 
         (await admin.Modules.SwitchAsync(Purchasing, false, Why())).ShouldBeOk();
@@ -137,6 +137,59 @@ public class ModuleDisableCheckTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Contains(Permissions.PoManage, permissions);
     }
 
+    [Fact]
+    public async Task A_check_that_throws_is_a_500_and_never_a_silent_yes_the_switch_is_rolled_back_with_no_audit_row()
+    {
+        var admin = await AdminWithAsync(new FakeCheck(Purchasing, 0), new ThrowingCheck(Purchasing));
+        (await admin.Modules.SwitchAsync(Purchasing, true, Why())).ShouldBeOk();
+        var audit = await ModuleAuditEventsAsync();
+
+        (await admin.Modules.SwitchAsync(Purchasing, false, Why())).ShouldBeProblem(HttpStatusCode.InternalServerError);
+
+        Assert.True(await IsOnAsync(admin, Purchasing)); // still on, in the list and in the row
+        Assert.Equal(1, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM SystemSetting WHERE [Key] = N'Module.purchasing' AND [Value] = N'true'"));
+        Assert.Equal(audit, await ModuleAuditEventsAsync());
+    }
+
+    [Fact]
+    public async Task With_two_checks_on_one_module_the_second_refusing_is_enough_and_the_first_refusing_stops_the_asking()
+    {
+        var yes = new FakeCheck(Purchasing, 0);
+        var refuses = new FakeCheck(Purchasing, 4);
+        var admin = await AdminWithAsync(yes, refuses);
+        (await admin.Modules.SwitchAsync(Purchasing, true, Why())).ShouldBeOk();
+
+        var problem = (await admin.Modules.SwitchAsync(Purchasing, false, Why())).ShouldBeProblem(HttpStatusCode.Conflict);
+
+        Assert.Contains("4 fake orders are open", problem.Detail);
+        Assert.Equal((1, 1), (yes.Calls, refuses.Calls));
+        Assert.True(await IsOnAsync(admin, Purchasing));
+        yes.Count = 2; // now the first refuses: the second is not asked
+        var first = (await admin.Modules.SwitchAsync(Purchasing, false, Why())).ShouldBeProblem(HttpStatusCode.Conflict);
+        Assert.Contains("2 fake orders are open", first.Detail);
+        Assert.Equal(1, refuses.Calls);
+        yes.Count = 0;
+        refuses.Count = 0;
+        (await admin.Modules.SwitchAsync(Purchasing, false, Why())).ShouldBeOk(); // when none counts anything it goes off
+    }
+
+    [Fact]
+    public async Task The_checks_of_the_real_host_each_guard_a_module_of_the_catalog_and_purchasing_has_exactly_one()
+    {
+        using var scope = fixture.Host.Services.CreateScope();
+
+        var checks = scope.ServiceProvider.GetServices<IModuleDisableCheck>().ToList();
+
+        Assert.NotEmpty(checks);
+        Assert.All(checks, c => Assert.True(ModuleCatalog.IsKnown(c.ModuleCode), $"{c.GetType().Name} guards '{c.ModuleCode}', which is not a module of the catalog"));
+        Assert.Single(checks, c => c.ModuleCode == ModuleCodes.Purchasing);
+        Assert.DoesNotContain(checks, c => c.ModuleCode == ModuleCodes.Accounting); // accounting holds no data of its own: it is never refused
+        var enableChecks = scope.ServiceProvider.GetServices<IModuleEnableCheck>().ToList();
+        Assert.All(enableChecks, c => Assert.True(ModuleCatalog.IsKnown(c.ModuleCode), $"{c.GetType().Name} guards unknown module {c.ModuleCode}"));
+        Assert.Single(enableChecks, c => c.ModuleCode == ModuleCodes.Purchasing);
+        await Task.CompletedTask;
+    }
+
     private sealed class FakeCheck(string moduleCode, int count) : IModuleDisableCheck
     {
         public int Count { get; set; } = count;
@@ -150,5 +203,12 @@ public class ModuleDisableCheckTests(ApiFixture fixture) : IAsyncLifetime
         }
 
         public string Describe(int count) => $"{count} fake orders are open";
+    }
+
+    private sealed class ThrowingCheck(string moduleCode) : IModuleDisableCheck
+    {
+        public string ModuleCode => moduleCode;
+        public Task<int> CountBlockersAsync(CancellationToken ct) => throw new InvalidOperationException("the count failed");
+        public string Describe(int count) => "unreachable";
     }
 }

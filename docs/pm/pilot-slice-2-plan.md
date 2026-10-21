@@ -236,7 +236,7 @@ Definition of done per sub-slice: `PROTOCOL.md` (warnings-as-errors build, tests
 | PL4 stocktake | Nothing; it must not count draft receipts linked to a PO as stock. |
 | Lots (later) | A PO line can gain a lot code later without a ledger change; received quantity is a base-unit sum and stays correct per lot. |
 
-## 11. Open questions for the OWNER (max 5; the default applies if no answer comes)
+## 11. Open questions for the OWNER (max 5, plus the one added in PL2.3b; the default applies if no answer comes)
 
 | # | Question | Recommended default | Needed by |
 |---|---|---|---|
@@ -245,3 +245,4 @@ Definition of done per sub-slice: `PROTOCOL.md` (warnings-as-errors build, tests
 | 3 | How much should the reorder list suggest? | Order up to twice the safety level, less what is already on open orders; the buyer edits the quantity per row. No per-product reorder quantity or supplier yet (a new product field if the pilot asks). | Before PL2.6 starts |
 | 4 | Who may raise and edit purchase orders by default? | Supervisor and Clerk (`po.manage`); everybody who can see stock reads them (`po.read` for Owner and Warehouse staff, who need it to receive); Admin holds both. Anyone else through the role editor. | Before PL2.1 starts |
 | 5 | Is a printable page enough to send an order to the supplier? | Yes: the browser print view with supplier, warehouse, lines, quantities, prices and total; no PDF, no e-mail, no tax, discount, delivery date or currency on the order. | Before PL2.8 starts |
+| 6 (added in PL2.3b) | Segregation of duties covers only the submitter. A Supervisor holds `po.manage` and `document.approve`, so can edit a Draft, have a Clerk submit it, and then approve it (the same as documents with `document.edit.any`). Must someone who edited a Draft be barred from approving it? | Accept as is: the audit trail records who edited and who approved; revisit if the pilot's approvers also buy. | Before the pilot uses approvals with more than one Supervisor |

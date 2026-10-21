@@ -38,7 +38,6 @@ public class PurchaseOrderAccess(ICurrentUser current) : IPurchaseOrderAccess, I
             throw new ForbiddenException(Messages.PurchaseOrderOwnRecallOnly);
     }
 
-    public bool IsRepeatedRecall(PurchaseOrder order) => order is { Status: PurchaseOrderStatus.Draft, IsReturned: false };
 
     public IReadOnlyList<string> AllowedActions(PurchaseOrderDto o, SystemSettings settings, bool withinApprovalLimit) =>
         PurchaseOrderActionPolicy.AllowedActions(current.Rights(), new PurchaseOrderActionContext(o.Status, o.RequiresApproval, o.IsLarge, o.CreatedByKey, o.SubmittedByKey),

@@ -19,13 +19,14 @@ public static class PurchaseOrderActionPolicy
         order.Status == PurchaseOrderStatus.Approved && ApprovalPolicy.MayReview(actor, order.IsLarge);
 
     /// <summary>
-    /// Cancel a Draft (its creator), a Submitted order (its submitter) or an Approved one (a reviewer it is routed to, who need not hold <c>po.manage</c>). In any other status the state
+    /// Cancel a Draft (its creator, or whoever holds <c>modules.manage</c>), a Submitted order (its submitter) or an Approved one (a reviewer it is routed to, who need not hold <c>po.manage</c>). In any other status the state
     /// machine refuses it for everyone, so ownership is not asked and the caller is told the status.
     /// </summary>
     public static bool MayCancel(ActorRights actor, in PurchaseOrderActionContext order) => order.Status switch
     {
         PurchaseOrderStatus.Approved => MayReviewApproved(actor, order),
-        PurchaseOrderStatus.Draft => actor.Has(Permissions.PoManage) && order.CreatedBy == actor.UserId,
+        // A holder of modules.manage (the capability that must clear open orders before purchasing can be switched off) may cancel any Draft, so one left behind by a departed creator cannot block it.
+        PurchaseOrderStatus.Draft => (actor.Has(Permissions.PoManage) && order.CreatedBy == actor.UserId) || actor.Has(Permissions.ModulesManage),
         PurchaseOrderStatus.Submitted => actor.Has(Permissions.PoManage) && order.SubmittedBy == actor.UserId,
         _ => true
     };
