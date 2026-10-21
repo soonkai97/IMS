@@ -59,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IStockSummaryReader, EfStockSummaryReader>();
         services.AddScoped<ILowStockReader, EfLowStockReader>();
+        services.AddScoped<IReorderReader, EfReorderReader>();
         services.AddScoped<ILowOnlyStockReader, EfLowOnlyStockReader>();
         services.AddScoped<IMovementReader, EfMovementReader>();
         services.AddScoped<IAccountingReader, EfAccountingReader>();

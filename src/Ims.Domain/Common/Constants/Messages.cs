@@ -120,6 +120,7 @@ public static class Messages
 
     // ----- Warehouses & partners -----
     public const string WarehouseNotFound = "Warehouse not found.";
+    public const string WarehouseRequired = "Choose the warehouse to order for.";
     public const string WarehouseMissing = "Warehouse does not exist.";
     public const string WarehouseInactive = "Warehouse is inactive.";
     public const string WarehouseCodeRequired = "Warehouse code is required (up to 20 characters).";

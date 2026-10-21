@@ -21,6 +21,15 @@ public sealed class PurchaseOrdersClient(ApiClient api)
         return api.GetAsync("/api/purchase-orders" + query);
     }
 
+    /// <summary>The reorder suggestions of a warehouse; a null id sends no <c>warehouseId</c> at all (the 400 of a missing one).</summary>
+    public Task<ApiResponse> SuggestionsAsync(Guid? warehouseId, string? search = null, int page = 1, int pageSize = 50)
+    {
+        var query = $"?page={page}&pageSize={pageSize}";
+        if (warehouseId is not null) query += $"&warehouseId={warehouseId}";
+        if (search is not null) query += $"&search={Uri.EscapeDataString(search)}";
+        return api.GetAsync("/api/purchase-orders/suggestions" + query);
+    }
+
     public Task<ApiResponse> GetAsync(Guid id) => api.GetAsync($"/api/purchase-orders/{id}");
     public Task<ApiResponse> CreateAsync(PurchaseOrderSaveRequest request) => api.PostAsync("/api/purchase-orders", request);
 

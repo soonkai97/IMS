@@ -2296,6 +2296,72 @@
         }
       }
     },
+    "/api/purchase-orders/suggestions": {
+      "get": {
+        "tags": [
+          "PurchaseOrders"
+        ],
+        "summary": "What to order for one warehouse (AI-02 in its simplest form): the products low there (at or below safety stock, or negative), each topped up to twice its safety level less what is on hand and still on order\r\n(the remaining quantity of the Draft, Submitted and Approved orders of that warehouse, in base units). Rows with nothing to order are not listed. Read-only: to order, create an order with the normal endpoint.\r\n`suggestedValue` (at the warehouse's average cost) is null without `cost.view`. 404 for a warehouse that does not exist or that the caller may not read.",
+        "operationId": "PurchaseOrders_suggestions",
+        "parameters": [
+          {
+            "name": "WarehouseId",
+            "in": "query",
+            "description": "Required: the ship-to warehouse the suggestions are for. 404 when it does not exist or the caller may not read it.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "Products whose SKU or name contains the text (case-insensitive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfReorderSuggestion"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfReorderSuggestion"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfReorderSuggestion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/purchase-orders/{id}": {
       "get": {
         "tags": [
@@ -6360,6 +6426,43 @@
         "description": "One page of a server-side paged list.",
         "additionalProperties": false
       },
+      "PagedResultOfReorderSuggestion": {
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReorderSuggestion"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "description": "Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count.",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it.",
+            "nullable": true
+          }
+        },
+        "description": "One page of a server-side paged list.",
+        "additionalProperties": false
+      },
       "PagedResultOfStockRow": {
         "required": [
           "items",
@@ -7251,6 +7354,75 @@
             "type": "string"
           }
         },
+        "additionalProperties": false
+      },
+      "ReorderSuggestion": {
+        "required": [
+          "productId",
+          "sku",
+          "productName",
+          "uomCode",
+          "warehouseId",
+          "warehouseCode",
+          "warehouseName",
+          "qtyOnHand",
+          "safetyStock",
+          "onOrderQty",
+          "suggestedQty",
+          "suggestedValue"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "uomCode": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "warehouseCode": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string"
+          },
+          "qtyOnHand": {
+            "type": "number",
+            "description": "Zero for a product that is stocked in no warehouse the caller can see; negative when stock went below zero.",
+            "format": "double"
+          },
+          "safetyStock": {
+            "type": "number",
+            "format": "double"
+          },
+          "onOrderQty": {
+            "type": "number",
+            "description": "Still to come on the open orders (Draft, Submitted, Approved) of this warehouse: ordered less posted receipts, line by line.",
+            "format": "double"
+          },
+          "suggestedQty": {
+            "type": "number",
+            "description": "Twice the safety level less on hand less on order; always above zero (a row with nothing to order is not listed).",
+            "format": "double"
+          },
+          "suggestedValue": {
+            "type": "number",
+            "description": "The suggested quantity at the warehouse's average cost, in money. Null for a caller without `cost.view`, and for a product with no average cost yet (never stocked).",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "description": "One product to order for one warehouse (see ReorderRule). Quantities are in the product's base unit. The product has no preferred supplier in the data model, so the buyer chooses one.",
         "additionalProperties": false
       },
       "ReverseRequest": {
