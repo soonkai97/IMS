@@ -19,7 +19,7 @@ import { map, startWith, tap } from 'rxjs';
 import { DocumentType, PartnerType } from '@ims/api';
 import { PickedProduct, ProductPickerComponent } from '@ims/containers/catalog-shared';
 import { handledInline } from '@ims/core/http';
-import { AppDatePipe, AppMoneyPipe, I18nService, TranslatePipe } from '@ims/core/i18n';
+import { AppMoneyPipe, I18nService, TranslatePipe } from '@ims/core/i18n';
 import { HasUnsavedChanges, PageTitleService } from '@ims/core/navigation';
 import { ToastService } from '@ims/core/notification';
 import { CatalogStore } from '@ims/features/catalog';
@@ -29,6 +29,8 @@ import {
   LinesArray,
   computeTotals,
   createLineGroup,
+  isValidQuantity,
+  isValidUnitCost,
   lineFromProduct
 } from '@ims/features/documents';
 import {
@@ -40,13 +42,12 @@ import {
   headerFromOrder,
   isStaleOrderError,
   lineFromOrderLine,
-  staleOrderDetails,
   toPoActions,
   toPurchaseOrderRef,
   toSaveRequest
 } from '@ims/features/purchasing';
 import { PartnersStore, WarehousesStore } from '@ims/features/warehousing';
-import { API_ERROR_KIND, ApiError, MAX_DOCUMENT_LINES } from '@ims/models';
+import { API_ERROR_KIND, MAX_DOCUMENT_LINES, MAX_REMARK_LENGTH } from '@ims/models';
 import {
   SelectOption,
   UiBannerComponent,
@@ -69,6 +70,7 @@ import {
   isDefined,
   lineAmount,
   normalizePublicId,
+  roundQuantity,
   toNumber
 } from '@ims/utils';
 
@@ -79,15 +81,6 @@ type PoForm = FormGroup<{
   lines: LinesArray;
 }>;
 
-/** The API names the price `unitPrice`; the form line (shared with the documents) calls it `unitCost`. */
-function toFormFieldErrors(error: ApiError): ApiError {
-  const fieldErrors: Record<string, readonly string[]> = {};
-  for (const [field, messages] of Object.entries(error.fieldErrors)) {
-    fieldErrors[field.replace(/\.unitPrice$/, '.unitCost')] = messages;
-  }
-  return { ...error, fieldErrors };
-}
-
 /**
  * New or changed purchase order (a Draft). One screen for `/purchase-orders/new` and `/purchase-orders/:id/edit`: supplier, ship-to
  * warehouse (fixed once the order exists), lines found by product search with quantity, unit and price, and Save draft. Every save
@@ -97,7 +90,6 @@ function toFormFieldErrors(error: ApiError): ApiError {
 @Component({
   selector: 'app-purchase-order-editor-page',
   imports: [
-    AppDatePipe,
     AppMoneyPipe,
     ProductPickerComponent,
     ReactiveFormsModule,
@@ -117,6 +109,7 @@ function toFormFieldErrors(error: ApiError): ApiError {
     UiSkeletonComponent,
     UiTextareaComponent
   ],
+  host: { '(window:beforeunload)': 'onBeforeUnload($event)' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './purchase-order-editor.component.html',
   styleUrl: './purchase-order-editor.component.scss'
@@ -147,6 +140,9 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
   $addItemOpen = signal(false);
   $lastAdded = signal<string | undefined>(undefined);
   $showLineError = signal(false);
+  /** A save went through: the page is on its way to the order, and a second tap must not create another. */
+  $saved = signal(false);
+  readonly maxRemark = MAX_REMARK_LENGTH;
 
   readonly $values = toSignal(
     this.lines.valueChanges.pipe(
@@ -162,7 +158,11 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
       index,
       group: this.lines.at(index),
       value,
-      amount: lineAmount(toNumber(value.qty), toNumber(value.unitCost)),
+      // The same gate as the total: a value the form refuses is left out.
+      amount:
+        isValidQuantity(value.qty) && isValidUnitCost(value.unitCost)
+          ? lineAmount(toNumber(value.qty), toNumber(value.unitCost))
+          : 0,
       units: value.uomOptions.map((option): SelectOption => ({
         value: option.uomId,
         label: option.code
@@ -172,7 +172,6 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
     }))
   );
 
-  /** The id in the URL; undefined on `/new` and when it is not a GUID (an old bookmark: the not-found page, no request). */
   private readonly $orderId = computed(() => normalizePublicId(this.$id()));
   readonly $isEdit = computed(() => this.$id() !== undefined);
   private readonly $unusableId = computed(() => this.$isEdit() && this.$orderId() === undefined);
@@ -180,7 +179,6 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
     const order = this.store.detail.$data();
     return order && order.id === this.$orderId() ? order : undefined;
   });
-  /** An order the API does not offer `edit` for (it left Draft, or the caller may not): no form, a way back. */
   readonly $notEditable = computed(() => {
     const order = this.$order();
     return order !== undefined && !toPoActions(order.allowedActions).has(PO_ACTION.Edit);
@@ -224,10 +222,7 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
   );
 
   private readonly $saveError = computed(() => this.store.save.$operation().error);
-  /** Someone changed the order since it was opened: nothing is saved over it until it is read again. */
   readonly $isStale = computed(() => isStaleOrderError(this.$saveError()));
-  readonly $staleDetails = computed(() => staleOrderDetails(this.$saveError()));
-  /** What the form could not show at a field, and a refusal that is no field error (409, 403): the API's own words. */
   readonly $saveMessages = signal<readonly string[]>([]);
   readonly $isSaving = this.store.save.$isRunning;
 
@@ -235,17 +230,16 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
     const id = this.$orderId();
     const edit = this.$isEdit();
     untracked(() => {
-      // The store outlives this page and a sign-out: what the last save failed with, or the last order, is not this page's.
+      // The store outlives this page and a sign-out: nothing of the last order or the last save is this page's.
       this.store.resetCommands();
       this.store.detail.reset();
       this.$saveMessages.set([]);
       this.$showLineError.set(false);
-      if (edit) {
-        if (id !== undefined) {
-          this.store.detail.load(id, handledInline());
-        }
-      } else {
-        this.startNew();
+      this.$saved.set(false);
+      // Order A's form is not order B's (also when B is not found).
+      this.resetForm();
+      if (edit && id !== undefined) {
+        this.store.detail.load(id, handledInline());
       }
     });
   });
@@ -266,6 +260,14 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
     });
   });
 
+  /** The order left Draft (or the caller may not edit it): the order page says where it stands. */
+  private readonly leaveWhenNotEditable = effect(() => {
+    const order = this.$order();
+    if (order && this.$notEditable()) {
+      void this.router.navigate(['/', PURCHASE_ORDER_ROUTE, order.id], { replaceUrl: true });
+    }
+  });
+
   private readonly preselectWarehouse = effect(() => {
     const warehouses = this.warehouses.$activeWarehouses();
     if (
@@ -284,12 +286,26 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
         this.$saveMessages.set([]);
         return;
       }
-      const unmatched = applyFieldErrors(this.form, toFormFieldErrors(error));
+      // The API names the price `unitPrice` (the shared form line calls it `unitCost`); an error on a whole line (`lines[0]`: a
+      // product that is switched off, a unit that no longer converts) has no field: it is shown with the line's code.
+      const fieldErrors: Record<string, readonly string[]> = {};
+      const lineMessages: string[] = [];
+      for (const [field, messages] of Object.entries(error.fieldErrors)) {
+        const line = /^lines\[(\d+)\]$/.exec(field);
+        if (line) {
+          const sku = this.lines.at(Number(line[1]))?.controls.sku.value ?? '';
+          lineMessages.push(...messages.map(message => `${sku}: ${message}`));
+        } else {
+          fieldErrors[field.replace(/\.unitPrice$/, '.unitCost')] = messages;
+        }
+      }
+      const unmatched = applyFieldErrors(this.form, { ...error, fieldErrors });
+      // The API's own sentence (the interceptor's `message` for a 403 is a general one).
       const refusal =
         error.kind === API_ERROR_KIND.Conflict || error.kind === API_ERROR_KIND.Forbidden
-          ? [error.message].filter(isDefined)
+          ? [error.detail || error.message].filter(isDefined)
           : [];
-      this.$saveMessages.set([...unmatched, ...refusal]);
+      this.$saveMessages.set([...lineMessages, ...unmatched, ...refusal]);
     });
   });
 
@@ -297,11 +313,20 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
     this.partners.loadActive(PartnerType.Supplier);
     this.warehouses.ensureLoaded();
     this.destroyRef.onDestroy(() => this.pageTitle.setDetail(undefined));
-    effect(() => this.pageTitle.setDetail(this.$order()?.no ?? this.i18n.t('po.new')));
+    effect(() =>
+      this.pageTitle.setDetail(this.$isEdit() ? this.$order()?.no : this.i18n.t('po.new'))
+    );
   }
 
   hasUnsavedChanges(): boolean {
     return this.form.dirty;
+  }
+
+  /** A reload or a close of the tab with a half-written order asks first. */
+  onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (this.hasUnsavedChanges()) {
+      event.preventDefault();
+    }
   }
 
   onOpenAddItem(): void {
@@ -330,6 +355,11 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
   onRemove(index: number): void {
     this.lines.removeAt(index);
     this.lines.markAsDirty();
+    // The button that had the focus is gone: leave it on the way into the lines, not on the page.
+    afterNextRender(
+      () => this.page.querySelector<HTMLElement>('.po-editor-lines-header button')?.focus(),
+      { injector: this.injector }
+    );
   }
 
   onReload(): void {
@@ -344,7 +374,7 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
   onSave(): void {
     this.form.markAllAsTouched();
     this.$showLineError.set(this.lines.length === 0);
-    if (this.form.invalid || this.lines.length === 0) {
+    if (this.$saved() || this.form.invalid || this.lines.length === 0) {
       afterNextRender(() => focusFirstInvalid(this.page), { injector: this.injector });
       return;
     }
@@ -357,6 +387,7 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
       .pipe(
         tap(saved => {
           this.markPristine();
+          this.$saved.set(true);
           this.toast.success(this.i18n.t('doc.toast.draftSaved'));
           void this.router.navigate(['/', PURCHASE_ORDER_ROUTE, saved.id], { replaceUrl: true });
         }),
@@ -379,7 +410,7 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
       group => group.controls.productId.value === product.id
     );
     if (existing) {
-      const next = (existing.controls.qty.value ?? 0) + qty;
+      const next = roundQuantity((existing.controls.qty.value ?? 0) + qty);
       existing.controls.qty.setValue(next);
       existing.markAsDirty();
       return { increased: true, qty: next };
@@ -395,7 +426,7 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
   }
 
   /** An empty form (a single warehouse is pre-selected by an effect). */
-  private startNew(): void {
+  private resetForm(): void {
     this.form.controls.warehouseId.enable();
     this.form.reset({
       supplierId: null,

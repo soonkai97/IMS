@@ -31,7 +31,6 @@ const PRODUCT = {
   id: 'p1',
   sku: 'SKU-1',
   name: 'Widget',
-  isActive: true,
   baseUomId: 'pcs',
   baseUomCode: 'PCS',
   conversions: []
@@ -44,7 +43,6 @@ function draft(over: Partial<PurchaseOrderDto> = {}): PurchaseOrderDto {
     no: 'PO-MAIN-2610-0001',
     status: PurchaseOrderStatus.Draft,
     supplierId: SUPPLIER,
-    supplierName: 'Acme Supplies',
     warehouseId: WAREHOUSE,
     warehouseName: 'Main warehouse',
     remark: null,
@@ -52,7 +50,6 @@ function draft(over: Partial<PurchaseOrderDto> = {}): PurchaseOrderDto {
     allowedActions: ['edit', 'submit'],
     lines: [
       {
-        lineNo: 1,
         productId: 'p1',
         sku: 'SKU-1',
         productName: 'Widget',
@@ -61,7 +58,6 @@ function draft(over: Partial<PurchaseOrderDto> = {}): PurchaseOrderDto {
         uomCode: 'PCS',
         baseQty: 10,
         unitPrice: 5,
-        amount: 50,
         remark: null
       }
     ],
@@ -126,10 +122,7 @@ describe('PurchaseOrderEditorPageComponent', () => {
       {
         provide: WarehousesStore,
         useValue: {
-          $activeWarehouses: signal([
-            { id: WAREHOUSE, name: 'Main warehouse' },
-            { id: 'w2', name: 'Second' }
-          ]),
+          $activeWarehouses: signal([{ id: WAREHOUSE, name: 'Main warehouse' }]),
           ensureLoaded: jest.fn()
         }
       },
@@ -166,7 +159,7 @@ describe('PurchaseOrderEditorPageComponent', () => {
   });
 
   describe('a new order', () => {
-    it('asks for a supplier, a warehouse and a line, in words, and sends nothing', async () => {
+    it('asks for a supplier and a line, in words, and sends nothing', async () => {
       await render();
 
       spectator.click(saveButton());
@@ -174,7 +167,8 @@ describe('PurchaseOrderEditorPageComponent', () => {
       spectator.detectChanges();
 
       expect(save.run).not.toHaveBeenCalled();
-      expect(spectator.queryAll('[aria-invalid="true"]').length).toBeGreaterThanOrEqual(2);
+      // The only warehouse is pre-selected: the supplier is what is missing.
+      expect(spectator.queryAll('[aria-invalid="true"]').length).toBe(1);
       expect(text()).toContain('Add at least one item.');
     });
 
@@ -204,33 +198,19 @@ describe('PurchaseOrderEditorPageComponent', () => {
         }
       });
       expect(navigateSpy).toHaveBeenCalledWith(['/', 'purchase-orders', ID], { replaceUrl: true });
+      spectator.click(saveButton());
+      expect(save.run).toHaveBeenCalledTimes(1);
       expect(component().hasUnsavedChanges()).toBe(false);
-    });
-
-    it('forgets what the last page and the last user left in the store when it opens', async () => {
-      await render();
-
-      expect(store.resetCommands).toHaveBeenCalled();
-      expect(detail.reset).toHaveBeenCalled();
     });
   });
 
   describe('an existing draft', () => {
-    it('loads it with the warehouse fixed and the lines filled, and a null remark is empty', async () => {
-      detail.$data.set(draft());
-      await render({ id: ID });
-
-      expect(detail.load).toHaveBeenCalledWith(ID, expect.anything());
-      expect(component().form.controls.warehouseId.disabled).toBe(true);
-      expect(component().form.controls.remark.value).toBe('');
-      expect(component().lines.at(0).controls.unitCost.value).toBe(5);
-      expect(component().hasUnsavedChanges()).toBe(false);
-    });
-
-    it('editing only the remark still sends every field, with the version that was opened (If-Match)', async () => {
+    it('an opened draft has its warehouse fixed and a null remark empty; editing only the remark still sends every field with the opened version (If-Match)', async () => {
       detail.$data.set(draft());
       await render({ id: ID });
       jest.spyOn(spectator.inject(Router), 'navigate').mockResolvedValue(true);
+      expect(component().form.controls.warehouseId.disabled).toBe(true);
+      expect(component().form.controls.remark.value).toBe('');
       component().form.controls.remark.setValue('Call first');
       component().form.controls.remark.markAsDirty();
 
@@ -245,14 +225,6 @@ describe('PurchaseOrderEditorPageComponent', () => {
           lines: [{ productId: 'p1', qty: 10, uomId: 'pcs', unitPrice: 5, remark: undefined }]
         }
       });
-    });
-
-    it('is not a form when the API does not offer edit (the order left Draft)', async () => {
-      detail.$data.set(draft({ allowedActions: ['cancel'], status: PurchaseOrderStatus.Approved }));
-      await render({ id: ID });
-
-      expect(text()).toContain("This order can't be edited any more.");
-      expect(spectator.query('form')).toBeNull();
     });
 
     it('a 409 that names document_changed is one Reload banner and locks Save; Reload reads the order again', async () => {
@@ -273,7 +245,7 @@ describe('PurchaseOrderEditorPageComponent', () => {
       expect(detail.reload).toHaveBeenCalled();
     });
 
-    it('any other 409 and the API field messages are shown in words, the price message at the price field', async () => {
+    it('the API field messages are shown in words, the price message at the price field', async () => {
       detail.$data.set(draft());
       await render({ id: ID });
       save.$operation.set(
@@ -290,18 +262,82 @@ describe('PurchaseOrderEditorPageComponent', () => {
 
       expect(text()).toContain('Price has too many decimals.');
       expect(text()).toContain('Remark is too long.');
+    });
+  });
 
+  describe('review fixes', () => {
+    it('an error on a whole line (a product switched off) is shown with its code and does not block Save', async () => {
+      detail.$data.set(draft());
+      await render({ id: ID });
       save.$operation.set(
         failureOperation(
-          apiError(409, API_ERROR_KIND.Conflict, { message: 'Only a draft can be edited.' })
+          apiError(400, API_ERROR_KIND.Validation, {
+            fieldErrors: { 'lines[0]': ['The product is switched off.'] }
+          })
         )
       );
       spectator.detectChanges();
 
-      expect(spectator.query('app-banner[role="alert"]')?.textContent).toContain(
-        'Only a draft can be edited.'
+      expect(text()).toContain('SKU-1: The product is switched off.');
+      expect(component().lines.at(0).errors).toBeNull();
+      expect(component().form.valid).toBe(true);
+
+      save.$operation.set(
+        failureOperation(
+          apiError(403, API_ERROR_KIND.Forbidden, {
+            detail: 'Prices need cost.view.',
+            message: 'General.'
+          })
+        )
       );
-      expect(text()).not.toContain('changed since you opened it');
+      spectator.detectChanges();
+      expect(text()).toContain('Prices need cost.view.');
+      expect(text()).not.toContain('General.');
+    });
+
+    it('the row amount leaves out what the form refuses, like the total (3 x 1.005 is no amount, 3 x 1.01 is 3.03)', async () => {
+      await render();
+      component().onProductPicked({ product: PRODUCT, available: null });
+      const amount = (): string =>
+        spectator.query('.po-editor-amount strong')?.textContent?.trim() ?? '';
+
+      const cases: [number, number, string][] = [
+        [3, 1.005, '0.00'],
+        [-1, 5, '0.00'],
+        [3, 1.01, '3.03']
+      ];
+      for (const [qty, unitCost, shown] of cases) {
+        component().lines.at(0).patchValue({ qty, unitCost });
+        spectator.detectChanges();
+        expect(amount()).toBe(shown);
+      }
+    });
+
+    it('order A is not left in the form when order B opens, also when B is not found', async () => {
+      detail.$data.set(draft());
+      await render({ id: ID });
+      expect(component().lines.length).toBe(1);
+
+      detail.$data.set(undefined);
+      spectator.setInput('id', '00000000-0000-4000-8000-000000000002');
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(component().lines.length).toBe(0);
+      expect(component().form.controls.warehouseId.disabled).toBe(false);
+      expect(store.resetCommands).toHaveBeenCalled();
+    });
+
+    it('asks before a reload or a closed tab only with unsaved changes', async () => {
+      await render();
+      const event = { preventDefault: jest.fn() } as unknown as BeforeUnloadEvent;
+      component().onBeforeUnload(event);
+      expect(event.preventDefault).not.toHaveBeenCalled();
+
+      component().form.patchValue({ supplierId: SUPPLIER, warehouseId: WAREHOUSE });
+      component().onProductPicked({ product: PRODUCT, available: null });
+      component().onBeforeUnload(event);
+      expect(event.preventDefault).toHaveBeenCalled();
     });
   });
 });

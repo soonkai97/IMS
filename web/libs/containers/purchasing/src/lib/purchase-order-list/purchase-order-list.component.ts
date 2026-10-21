@@ -97,7 +97,9 @@ export class PurchaseOrderListPageComponent implements OnInit {
   readonly toControl = new FormControl('', { nonNullable: true });
 
   /** By permission, never by role: whoever may manage orders may start one. */
-  readonly $canCreate = computed(() => this.permissions.has(PERMISSION.PoManage));
+  readonly $canCreate = computed(
+    () => this.permissions.has(PERMISSION.PoManage) && this.permissions.has(PERMISSION.CostView)
+  );
 
   $searchInput = signal('');
   /** On a phone the filters hide behind one button so the first orders are on screen. */

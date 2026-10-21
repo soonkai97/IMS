@@ -882,11 +882,7 @@ export const EN_MESSAGES = {
   'po.toast.closed': 'Order closed.',
   'po.new': 'New purchase order',
   'po.action.edit': 'Edit',
-  'po.notEditable': "This order can't be edited any more.",
-  'po.backToOrder': 'Back to the order',
   'po.staleSaveBody':
     'Someone else changed this order. Reload to see the latest version. Your changes were not saved.',
-  'po.staleSaveBodyBy':
-    '{name} changed this order at {time}. Reload to see the latest version. Your changes were not saved.',
   'po.priceFor': 'Unit price of {sku}'
 } as const;

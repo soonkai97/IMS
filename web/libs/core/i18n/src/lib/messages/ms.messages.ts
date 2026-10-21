@@ -887,11 +887,7 @@ export const MS_MESSAGES: Messages = {
   // TODO-review: machine draft (PL2.8: purchase order editor).
   'po.new': 'Pesanan pembelian baharu',
   'po.action.edit': 'Sunting',
-  'po.notEditable': 'Pesanan ini tidak boleh disunting lagi.',
-  'po.backToOrder': 'Kembali ke pesanan',
   'po.staleSaveBody':
     'Orang lain telah mengubah pesanan ini. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',
-  'po.staleSaveBodyBy':
-    '{name} mengubah pesanan ini pada {time}. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',
   'po.priceFor': 'Harga seunit bagi {sku}'
 };

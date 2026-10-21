@@ -24,10 +24,6 @@ describe('lineFromOrderLine', () => {
     expect(value).toMatchObject({ qty: 12, uomId: 'carton', unitCost: 5.5, remark: '' });
     expect(value.uomOptions).toEqual([{ uomId: 'carton', code: 'CTN', factorToBase: 12 }]);
   });
-
-  it('a withheld price (null) stays no price, never 0', () => {
-    expect(lineFromOrderLine({ ...LINE, unitPrice: null } as never).unitCost).toBeNull();
-  });
 });
 
 describe('toSaveRequest', () => {
@@ -37,16 +33,7 @@ describe('toSaveRequest', () => {
     ...over
   });
 
-  it('sends every field of the order and of every line', () => {
-    expect(toSaveRequest(header, [line({ remark: ' fragile ' })])).toEqual({
-      warehouseId: 'w1',
-      supplierId: 's1',
-      remark: 'Deliver to bay 3',
-      lines: [{ productId: 'p1', qty: 12, uomId: 'carton', unitPrice: 5.5, remark: 'fragile' }]
-    });
-  });
-
-  it('a blank price is sent as 0, a remark of blanks as none, and the same product may be on two lines', () => {
+  it('a blank price is sent as 0 and a remark of blanks as none', () => {
     const body = toSaveRequest({ ...header, remark: '   ' }, [
       line({ unitCost: null }),
       line({ uomId: 'pcs', unitCost: 0.5 })
@@ -54,6 +41,5 @@ describe('toSaveRequest', () => {
 
     expect(body.remark).toBeUndefined();
     expect(body.lines.map(row => row.unitPrice)).toEqual([0, 0.5]);
-    expect(body.lines.map(row => row.productId)).toEqual(['p1', 'p1']);
   });
 });

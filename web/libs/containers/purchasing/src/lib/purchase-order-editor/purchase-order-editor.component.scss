@@ -23,12 +23,6 @@
   }
 }
 
-.po-editor-lines {
-  display: flex;
-  flex-direction: column;
-  gap: space(1);
-}
-
 .po-editor-lines-header {
   display: flex;
   flex-wrap: wrap;
@@ -37,10 +31,14 @@
   justify-content: space-between;
 }
 
+.po-editor-lines,
 .po-editor-list {
   display: flex;
   flex-direction: column;
   gap: space(1);
+}
+
+.po-editor-list {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -98,10 +96,6 @@
     font-size: font-size(2);
     color: color('text-muted');
   }
-}
-
-.po-editor-remove {
-  justify-self: end;
 }
 
 // Primary actions stay in reach: a full-width strip above the tab bar on a phone, a floating card from tablet up.

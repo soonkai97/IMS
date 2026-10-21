@@ -120,6 +120,10 @@ describe('PurchaseOrderListPageComponent', () => {
 
     granted.add(PERMISSION.PoManage);
     await render();
+    expect(spectator.query('a[href="/purchase-orders/new"]')).toBeNull();
+
+    granted.add(PERMISSION.CostView);
+    await render();
     expect(spectator.query('a[href="/purchase-orders/new"]')?.textContent).toContain(
       'New purchase order'
     );

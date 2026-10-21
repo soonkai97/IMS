@@ -1,3 +1,4 @@
+import { HttpContext } from '@angular/common/http';
 import { Injectable, Signal, inject } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import {
@@ -7,8 +8,8 @@ import {
   PurchaseOrderStatus,
   PurchaseOrdersClient
 } from '@ims/api';
-import { withIfMatch } from '@ims/core/http';
-import { ApiError, ApiOperation, PagedQuery, PublicId } from '@ims/models';
+import { HANDLED_INLINE, withIfMatch } from '@ims/core/http';
+import { ApiError, ApiOperation, HTTP_STATUS, PagedQuery, PublicId } from '@ims/models';
 import { ApiCommand, QueryLoader } from '@ims/utils';
 
 export interface PurchaseOrderQuery extends PagedQuery {
@@ -66,16 +67,19 @@ export class PurchaseOrdersStore {
     this.client.get(id, context)
   );
 
-  readonly save: ApiCommand<SavePurchaseOrderArgs, PurchaseOrderDto> = new ApiCommand(
-    args =>
-      this.accept(
-        args.ref
-          ? this.client.update(args.ref.id, args.body, withIfMatch(args.ref.concurrencyToken))
-          : this.client.create(args.body),
-        this.save
-      ),
-    true
-  );
+  readonly save: ApiCommand<SavePurchaseOrderArgs, PurchaseOrderDto> = new ApiCommand(args => {
+    // The editor shows a refusal (403) and a conflict (409) in its own alert: no toast on top.
+    const context = (args.ref ? withIfMatch(args.ref.concurrencyToken) : new HttpContext()).set(
+      HANDLED_INLINE,
+      [HTTP_STATUS.Forbidden, HTTP_STATUS.Conflict]
+    );
+    return this.accept(
+      args.ref
+        ? this.client.update(args.ref.id, args.body, context)
+        : this.client.create(args.body, context),
+      this.save
+    );
+  }, true);
   readonly submit: ApiCommand<PurchaseOrderRef, PurchaseOrderDto> = new ApiCommand(
     ref => this.accept(this.client.submit(ref.id, withIfMatch(ref.concurrencyToken)), this.submit),
     true

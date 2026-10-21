@@ -224,12 +224,15 @@ describe('PurchaseOrderDetailPageComponent', () => {
       expect(buttons()).toEqual(expected);
     });
 
-    it('Edit is a link to the editor of this order', async () => {
+    it('Edit links to the editor, and only with cost.view too (the editor saves prices)', async () => {
       await render(order({ allowedActions: ['edit'] }));
-
       expect(spectator.query('.po-detail-bar a')?.getAttribute('href')).toBe(
         `/purchase-orders/${ID}/edit`
       );
+
+      granted.clear();
+      await render(order({ allowedActions: ['edit'] }));
+      expect(buttons()).toEqual([]);
     });
 
     it('does not look at what the user holds: a holder of every right sees nothing the server did not list', async () => {

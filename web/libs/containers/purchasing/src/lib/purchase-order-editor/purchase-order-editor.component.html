@@ -14,22 +14,10 @@
     {{ $loadErrorMessage() || ('error.generic' | t) }}
     <app-button bannerActions (clicked)="onRetryLoad()">{{ 'ui.retry' | t }}</app-button>
   </app-banner>
-} @else if ($notEditable()) {
-  <div role="alert">
-    <app-empty-state icon="file" [message]="'po.notEditable' | t">
-      <a class="ui-link-button --primary" [routerLink]="[backLink[0], backLink[1], $order()?.id]">
-        {{ 'po.backToOrder' | t }}
-      </a>
-    </app-empty-state>
-  </div>
 } @else if ($showForm()) {
   @if ($isStale()) {
     <app-banner kind="danger" [heading]="'doc.stale' | t: { docNo: $order()?.no ?? '' }">
-      @if ($staleDetails(); as by) {
-        {{ 'po.staleSaveBodyBy' | t: { name: by.name, time: (by.at | appDate) } }}
-      } @else {
-        {{ 'po.staleSaveBody' | t }}
-      }
+      {{ 'po.staleSaveBody' | t }}
       <app-button bannerActions (clicked)="onReload()">{{ 'doc.reload' | t }}</app-button>
     </app-banner>
   }
@@ -64,7 +52,7 @@
       </app-form-field>
     </div>
     <app-form-field [label]="'doc.remark' | t" [control]="form.controls.remark">
-      <app-textarea formControlName="remark" [rows]="2" [maxLength]="500" />
+      <app-textarea formControlName="remark" [rows]="2" [maxLength]="maxRemark" />
     </app-form-field>
 
     <section class="po-editor-lines" [attr.aria-label]="'doc.lines' | t">
@@ -155,7 +143,7 @@
       </p>
       <app-button
         variant="primary"
-        [disabled]="$isSaving() || $isStale()"
+        [disabled]="$isSaving() || $isStale() || $saved()"
         [loading]="$isSaving()"
         (clicked)="onSave()"
       >

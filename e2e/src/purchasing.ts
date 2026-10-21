@@ -20,7 +20,6 @@ export interface ApiOrder {
   id: PublicId;
   no: string;
   status: string;
-  warehouseId: PublicId;
   allowedActions: string[];
   concurrencyToken: string;
   requiresApproval: boolean;

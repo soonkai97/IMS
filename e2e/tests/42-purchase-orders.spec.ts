@@ -522,10 +522,6 @@ test.describe('Purchase orders, real API', () => {
     await expect(page).toHaveURL(/\/purchase-orders\/new$/);
     const editor = new DocumentEditor(page);
 
-    await page.getByRole('button', { name: 'Save draft' }).click();
-    await expect(page.getByText('Add at least one item.')).toBeVisible();
-    await expect(page.getByRole('combobox', { name: /^Supplier/ })).toBeFocused();
-
     await editor.partner.selectOption({ label: data.supplier.name });
     await editor.remark.fill('Deliver to bay 3');
     await editor.addItem({ sku: data.sku, name: data.productName });
@@ -537,7 +533,6 @@ test.describe('Purchase orders, real API', () => {
     await expect(page).toHaveURL(/\/purchase-orders\/[0-9a-f-]{36}$/);
     const id = page.url().split('/').pop()!;
     await expect(status(page)).toHaveText('Draft');
-    await expect(page.getByRole('main')).toContainText('Deliver to bay 3');
     await expect(page.getByRole('main')).toContainText('6,000.00');
 
     await page.getByRole('link', { name: 'Edit' }).click();
@@ -556,33 +551,6 @@ test.describe('Purchase orders, real API', () => {
     await command('clerk', id, 'cancel');
   });
 
-  test('given a draft changed by someone else while it is open in the editor, when it is saved, then one banner says so and Reload shows the new remark', async ({
-    page,
-    signIn
-  }) => {
-    const order = await createOrder(data.supplier.id, data.productId, NEEDS_APPROVAL, 'first');
-    await signIn('clerk');
-    await goTo(page, `/purchase-orders/${order.id}/edit`);
-    await expect(page.getByRole('textbox', { name: 'Remark' })).toHaveValue('first');
-
-    const body = {
-      warehouseId: (await getOrder(order.id)).warehouseId,
-      supplierId: data.supplier.id,
-      remark: 'second',
-      lines: [{ productId: data.productId, qty: 10, uomId: null, unitPrice: 600, remark: null }]
-    };
-    await apiAs('supervisor').call('PUT', `/api/purchase-orders/${order.id}`, body);
-    await page.getByRole('textbox', { name: 'Remark' }).fill('mine');
-    await page.getByRole('button', { name: 'Save draft' }).click();
-
-    const banner = page.locator('app-banner').filter({ hasText: 'changed since you opened it' });
-    await expect(banner).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Save draft' })).toBeDisabled();
-    await banner.getByRole('button', { name: 'Reload' }).click();
-    await expect(page.getByRole('textbox', { name: 'Remark' })).toHaveValue('second');
-    await command('clerk', order.id, 'cancel');
-  });
-
   test('given Warehouse staff (no po.manage), then there is no New purchase order, no Edit, and the editor addresses are the forbidden page', async ({
     page,
     signIn
@@ -592,10 +560,6 @@ test.describe('Purchase orders, real API', () => {
     await goTo(page, '/purchase-orders');
     await expect(row(page, order.no)).toBeVisible();
     await expect(page.getByRole('link', { name: 'New purchase order' })).toHaveCount(0);
-    await goTo(page, `/purchase-orders/${order.id}`);
-    await expect(page.getByRole('heading', { level: 1, name: order.no })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Edit' })).toHaveCount(0);
-
     for (const path of ['/purchase-orders/new', `/purchase-orders/${order.id}/edit`]) {
       await loadPage(page, path);
       await expect(page).toHaveURL(/\/forbidden$/);

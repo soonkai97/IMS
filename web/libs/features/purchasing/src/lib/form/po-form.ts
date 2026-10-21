@@ -1,11 +1,9 @@
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { PurchaseOrderDto, PurchaseOrderLineDto, PurchaseOrderSaveRequest } from '@ims/api';
 import { LineValue } from '@ims/features/documents';
-import { PublicId } from '@ims/models';
+import { MAX_REMARK_LENGTH, PublicId } from '@ims/models';
 import { toNumber } from '@ims/utils';
 
-/** The API refuses a longer remark; the form must not offer more than it accepts. */
-export const MAX_REMARK_LENGTH = 500;
 export type PoHeaderGroup = FormGroup<{
   supplierId: FormControl<PublicId | null>;
   warehouseId: FormControl<PublicId | null>;
