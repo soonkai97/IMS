@@ -860,5 +860,23 @@ export const EN_MESSAGES = {
   'po.col.price': 'Unit price ({currency})',
   'po.history.closed': 'Closed',
   'po.closedShort': 'Closed short',
-  'po.closedReceived': 'Fully received'
+  'po.closedReceived': 'Fully received',
+  'po.staleBody':
+    'Someone else changed this order. Reload to see the latest version. Nothing was done.',
+  'po.staleBodyBy':
+    '{name} changed this order at {time}. Reload to see the latest version. Nothing was done.',
+  'po.action.cancel': 'Cancel order',
+  'po.action.close': 'Close short',
+  'po.action.recall': 'Back to draft',
+  'po.dialog.approve.body': 'The order can then be received against.',
+  'po.dialog.cancel.title': 'Cancel {docNo}?',
+  'po.dialog.cancel.body': "This can't be undone.",
+  'po.dialog.cancel.keep': 'Keep order',
+  'po.dialog.close.title': 'Close {docNo} short?',
+  'po.dialog.close.body':
+    'What has not arrived yet will not be received against this order. This cannot be undone.',
+  'po.toast.released': 'Submitted. No approval was needed, the order is approved.',
+  'po.toast.recalled': 'Back to draft.',
+  'po.toast.cancelled': 'Order cancelled.',
+  'po.toast.closed': 'Order closed.'
 } as const;

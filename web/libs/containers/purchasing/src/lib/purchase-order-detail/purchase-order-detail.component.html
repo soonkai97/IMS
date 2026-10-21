@@ -32,6 +32,19 @@
     }
   </app-banner>
 } @else if ($order(); as order) {
+  @if ($isStale()) {
+    <app-banner kind="danger" [heading]="'doc.stale' | t: { docNo: order.no }">
+      @if ($staleDetails(); as by) {
+        {{ 'po.staleBodyBy' | t: { name: by.name, time: (by.at | appDate) } }}
+      } @else {
+        {{ 'po.staleBody' | t }}
+      }
+      <app-button bannerActions (clicked)="onReload()">{{ 'doc.reload' | t }}</app-button>
+    </app-banner>
+  }
+  @if ($refusal(); as refusal) {
+    <app-banner kind="danger" alert>{{ refusal }}</app-banner>
+  }
   @if (order.isReturned) {
     <app-banner kind="warning" [heading]="'doc.returnedBanner' | t: { name: $returnedBy() }">
       {{ order.rejectionReason }}
@@ -143,4 +156,76 @@
       }
     </ol>
   </section>
+
+  @if ($showBar()) {
+    <footer
+      class="po-detail-bar"
+      appPublishHeight="--ims-action-bar-height"
+      appPublishClearance="--ims-action-bar-clearance"
+      [attr.aria-busy]="$isBusy()"
+    >
+      @if ($canCancel()) {
+        <app-button
+          variant="ghost"
+          [disabled]="$isBusy() || $isStale()"
+          [loading]="$busyAction() === action.Cancel"
+          (clicked)="onAction(action.Cancel)"
+        >
+          <app-icon name="x" />
+          {{ 'po.action.cancel' | t }}
+        </app-button>
+      }
+      @if ($canReject()) {
+        <app-button
+          variant="danger"
+          [disabled]="$isBusy() || $isStale()"
+          (clicked)="onAction(action.Reject)"
+        >
+          {{ 'doc.action.reject' | t }}
+        </app-button>
+      }
+      @if ($canClose()) {
+        <app-button
+          [disabled]="$isBusy() || $isStale()"
+          [loading]="$busyAction() === action.Close"
+          (clicked)="onAction(action.Close)"
+        >
+          {{ 'po.action.close' | t }}
+        </app-button>
+      }
+      @if ($canRecall()) {
+        <app-button
+          [disabled]="$isBusy() || $isStale()"
+          [loading]="$busyAction() === action.Recall"
+          (clicked)="onAction(action.Recall)"
+        >
+          <app-icon name="pencil" />
+          {{ 'po.action.recall' | t }}
+        </app-button>
+      }
+      @if ($canSubmit()) {
+        <app-button
+          variant="primary"
+          [disabled]="$isBusy() || $isStale()"
+          [loading]="$busyAction() === action.Submit"
+          (clicked)="onAction(action.Submit)"
+        >
+          {{
+            ($busyAction() === action.Submit ? 'doc.action.submitting' : 'doc.action.submit') | t
+          }}
+        </app-button>
+      }
+      @if ($canApprove()) {
+        <app-button
+          variant="primary"
+          [disabled]="$isBusy() || $isStale()"
+          [loading]="$busyAction() === action.Approve"
+          (clicked)="onAction(action.Approve)"
+        >
+          <app-icon name="check" />
+          {{ 'doc.action.approve' | t }}
+        </app-button>
+      }
+    </footer>
+  }
 }

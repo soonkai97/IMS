@@ -798,5 +798,21 @@ export const ZH_MESSAGES: Messages = {
   'po.col.price': '单价（{currency}）',
   'po.history.closed': '已关闭',
   'po.closedShort': '提前关闭',
-  'po.closedReceived': '已全部收货'
+  'po.closedReceived': '已全部收货',
+  // TODO-review: machine draft (PL2.7c: purchase order actions).
+  'po.staleBody': '其他人修改了这张订单。请重新加载以查看最新版本。未执行任何操作。',
+  'po.staleBodyBy': '{name} 在 {time} 修改了这张订单。请重新加载以查看最新版本。未执行任何操作。',
+  'po.action.cancel': '取消订单',
+  'po.action.close': '提前关闭',
+  'po.action.recall': '退回草稿',
+  'po.dialog.approve.body': '之后即可按该订单收货。',
+  'po.dialog.cancel.title': '取消 {docNo}？',
+  'po.dialog.cancel.body': '此操作无法撤销。',
+  'po.dialog.cancel.keep': '保留订单',
+  'po.dialog.close.title': '提前关闭 {docNo}？',
+  'po.dialog.close.body': '尚未到货的部分将不再按此订单收货。此操作无法撤销。',
+  'po.toast.released': '已提交。无需审批，订单已批准。',
+  'po.toast.recalled': '已退回草稿。',
+  'po.toast.cancelled': '订单已取消。',
+  'po.toast.closed': '订单已关闭。'
 };
