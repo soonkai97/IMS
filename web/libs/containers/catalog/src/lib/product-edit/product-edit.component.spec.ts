@@ -35,6 +35,8 @@ describe('ProductEditPageComponent follows the URL (EA-20)', () => {
   const data = signal<ProductDto | undefined>(undefined);
   const run = jest.fn();
   const operation = signal<{ error?: Partial<ApiError> }>({});
+  // Like the real command: forgetting it empties its outcome.
+  const saveReset = jest.fn(() => operation.set({}));
   let accountingOn = true;
   const moduleTick = signal(0);
   /** The module list of the screen changes (an Admin switched the module, the list was read again). */
@@ -65,7 +67,7 @@ describe('ProductEditPageComponent follows the URL (EA-20)', () => {
         provide: ProductsStore,
         useValue: {
           detail: { $data: data, $isLoading: signal(false), load, reset },
-          save: { $isRunning: signal(false), $operation: operation, run }
+          save: { $isRunning: signal(false), $operation: operation, run, reset: saveReset }
         }
       }
     ]
@@ -80,6 +82,7 @@ describe('ProductEditPageComponent follows the URL (EA-20)', () => {
     load.mockClear();
     reset.mockClear();
     run.mockReset();
+    saveReset.mockClear();
     operation.set({});
     data.set(undefined);
     setModule(true);
@@ -101,6 +104,18 @@ describe('ProductEditPageComponent follows the URL (EA-20)', () => {
 
     expect(load).toHaveBeenLastCalledWith(EIGHT);
     expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('what the last product (or the last user) failed to save with is gone when another product opens', async () => {
+    operation.set({
+      error: { status: 400, fieldErrors: { sku: ['SKU TEA-1 is already used.'] } }
+    });
+
+    spectator = createComponent({ props: { id: EIGHT } as never });
+    await settle();
+
+    expect(saveReset).toHaveBeenCalled();
+    expect(spectator.element.textContent).not.toContain('is already used.');
   });
 
   it('an old numeric bookmark is a not-found page: no request, no form, nothing to save', async () => {

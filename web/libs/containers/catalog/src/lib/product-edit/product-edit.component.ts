@@ -191,6 +191,8 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
   private readonly openProduct = effect(() => {
     const id = this.$productId();
     untracked(() => {
+      // The store outlives this page (and a sign-out): the last save's refusal is not this product's.
+      this.store.save.reset();
       if (id === undefined) {
         this.store.detail.reset();
         return;
