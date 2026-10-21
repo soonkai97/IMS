@@ -113,6 +113,20 @@ describe('PurchaseOrdersStore', () => {
     expect(spectator.service.approve.$operation().error?.status).toBe(409);
   });
 
+  it('saves a new draft without a token and a changed one with the version the user saw (If-Match)', async () => {
+    const mocks = client() as unknown as Record<string, jest.Mock>;
+    mocks['create'].mockReturnValue(of(FRESH));
+    mocks['update'].mockReturnValue(of(FRESH));
+    const body = { warehouseId: 'w', supplierId: 's', remark: undefined, lines: [] };
+
+    await firstValueFrom(spectator.service.save.run({ body }));
+    await firstValueFrom(spectator.service.save.run({ ref: toPurchaseOrderRef(ORDER), body }));
+
+    expect(mocks['create']).toHaveBeenCalledWith(body);
+    expect(mocks['update'].mock.calls[0][0]).toBe(ORDER_ID);
+    expect(tokenOf(mocks['update'].mock.calls[0][2])).toBe('AAAA');
+  });
+
   it('is exclusive: a second tap while a command runs sends nothing', async () => {
     const answer = new Subject<PurchaseOrderDto>();
     client().submit.mockReturnValue(answer);

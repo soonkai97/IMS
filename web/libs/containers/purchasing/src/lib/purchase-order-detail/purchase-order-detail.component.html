@@ -206,6 +206,12 @@
           {{ 'po.action.recall' | t }}
         </app-button>
       }
+      @if ($canEdit()) {
+        <a class="ui-link-button" [routerLink]="['/', 'purchase-orders', order.id, 'edit']">
+          <app-icon name="pencil" />
+          {{ 'po.action.edit' | t }}
+        </a>
+      }
       @if ($canSubmit()) {
         <app-button
           variant="primary"

@@ -1,4 +1,10 @@
-<app-page-header [heading]="'po.title' | t" />
+<app-page-header [heading]="'po.title' | t">
+  <div actions>
+    @if ($canCreate()) {
+      <a class="ui-link-button --primary" routerLink="/purchase-orders/new">{{ 'po.new' | t }}</a>
+    }
+  </div>
+</app-page-header>
 
 <div class="po-list-page-toolbar">
   <app-search-input

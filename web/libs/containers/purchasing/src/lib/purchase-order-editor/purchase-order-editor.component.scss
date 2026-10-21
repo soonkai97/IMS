@@ -1,0 +1,140 @@
+@use 'libs' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.po-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  max-width: width('form-max');
+}
+
+.po-editor-header-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: space(2);
+
+  @include media-tablet {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.po-editor-lines {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+}
+
+.po-editor-lines-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.po-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Phone: stacked card. Desktop: one grid row per line.
+.po-editor-line {
+  display: grid;
+  gap: space(1) space(2);
+  padding: space(2);
+  background: color('surface');
+  border: border-width('thin') solid color('border');
+  border-radius: border-radius('md');
+
+  @include media-desktop {
+    grid-template-columns:
+      minmax(10rem, 2fr) minmax(12rem, 2fr) minmax(8rem, 1fr) minmax(7rem, 1fr)
+      auto;
+    align-items: start;
+  }
+}
+
+.po-editor-product {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.po-editor-qty {
+  display: flex;
+  gap: space(1);
+  align-items: flex-start;
+
+  app-form-field {
+    flex: 1;
+    min-width: 5rem;
+  }
+}
+
+.po-editor-unit {
+  display: flex;
+  align-items: center;
+  min-height: height('touch');
+  margin-top: font-size(2) * $line-height + space(0);
+  color: color('text-muted');
+}
+
+.po-editor-amount {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+
+  span {
+    font-size: font-size(2);
+    color: color('text-muted');
+  }
+}
+
+.po-editor-remove {
+  justify-self: end;
+}
+
+// Primary actions stay in reach: a full-width strip above the tab bar on a phone, a floating card from tablet up.
+.po-editor-bar {
+  position: sticky;
+  bottom: tabbar-offset();
+  z-index: z-index('sticky');
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1) space(2);
+  align-items: center;
+  justify-content: space-between;
+  // Out to the screen edges: the page content has space(2) of padding on a phone (shell.component.scss).
+  margin-inline: -#{space(2)};
+  padding: space(1) space(2);
+  background: color('surface');
+  border-top: border-width('thin') solid color('border');
+  box-shadow: shadow(1);
+
+  @include media-tablet {
+    bottom: space(1);
+    margin-inline: 0;
+    border: border-width('thin') solid color('border');
+    border-radius: border-radius('md');
+  }
+}
+
+.po-editor-totals {
+  flex: 1 1 8rem;
+  margin: 0;
+  font-weight: font-weight('medium');
+
+  @include media-phone {
+    flex-basis: 100%;
+  }
+}

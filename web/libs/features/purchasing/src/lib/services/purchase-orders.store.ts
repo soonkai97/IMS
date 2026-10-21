@@ -3,6 +3,7 @@ import { Observable, tap } from 'rxjs';
 import {
   PagedResultOfPurchaseOrderListItem,
   PurchaseOrderDto,
+  PurchaseOrderSaveRequest,
   PurchaseOrderStatus,
   PurchaseOrdersClient
 } from '@ims/api';
@@ -27,6 +28,12 @@ export interface PurchaseOrderRef {
 
 export interface PurchaseOrderReasonArgs extends PurchaseOrderRef {
   readonly reason: string;
+}
+
+/** Save a draft: without `ref` it is created, with one it is updated (If-Match) from the version the person opened. */
+export interface SavePurchaseOrderArgs {
+  readonly ref?: PurchaseOrderRef;
+  readonly body: PurchaseOrderSaveRequest;
 }
 
 export function toPurchaseOrderRef(order: PurchaseOrderDto): PurchaseOrderRef {
@@ -59,6 +66,16 @@ export class PurchaseOrdersStore {
     this.client.get(id, context)
   );
 
+  readonly save: ApiCommand<SavePurchaseOrderArgs, PurchaseOrderDto> = new ApiCommand(
+    args =>
+      this.accept(
+        args.ref
+          ? this.client.update(args.ref.id, args.body, withIfMatch(args.ref.concurrencyToken))
+          : this.client.create(args.body),
+        this.save
+      ),
+    true
+  );
   readonly submit: ApiCommand<PurchaseOrderRef, PurchaseOrderDto> = new ApiCommand(
     ref => this.accept(this.client.submit(ref.id, withIfMatch(ref.concurrencyToken)), this.submit),
     true
@@ -118,7 +135,15 @@ export class PurchaseOrdersStore {
   }
 
   private commands(): readonly { $operation: Signal<ApiOperation>; reset(): void }[] {
-    return [this.submit, this.recall, this.approve, this.reject, this.cancel, this.close];
+    return [
+      this.save,
+      this.submit,
+      this.recall,
+      this.approve,
+      this.reject,
+      this.cancel,
+      this.close
+    ];
   }
 
   private resetCommandsExcept(keep: { reset(): void } | undefined): void {

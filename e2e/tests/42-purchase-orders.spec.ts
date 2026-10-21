@@ -20,6 +20,7 @@ import {
   type ApiOrder
 } from '../src/purchasing';
 import { expect, openSession, test } from '../src/fixtures';
+import { DocumentEditor } from '../src/pages/documents';
 import { goTo, loadPage } from '../src/pages/shell';
 
 // Purchase orders on the real API (PL2.7a): the menu, the route guards, the list (filters, "Waiting for you", empty states) and its layout.
@@ -34,6 +35,7 @@ const data = {
   supplier: { id: '' as PublicId, name: `${SUPPLIER_PREFIX}${token}` },
   otherSupplier: { id: '' as PublicId, name: `${SUPPLIER_PREFIX}B${token}` },
   productId: '' as PublicId,
+  productName: '',
   sku: `${SKU_PREFIX}${token}`,
   receiptId: undefined as PublicId | undefined,
   partOrder: undefined as { id: PublicId; receiptNo: string; receiptId: PublicId } | undefined
@@ -76,7 +78,9 @@ test.describe('Purchase orders, real API', () => {
     for (const supplier of [data.supplier, data.otherSupplier]) {
       supplier.id = (await admin().createPartner('Supplier', { name: supplier.name })).id;
     }
-    data.productId = (await admin().createProduct({ sku: data.sku })).id;
+    const product = await admin().createProduct({ sku: data.sku });
+    data.productId = product.id;
+    data.productName = product.name;
   });
 
   test.afterAll(async () => {
@@ -507,9 +511,103 @@ test.describe('Purchase orders, real API', () => {
     ).toBeVisible();
   });
 
+  test('given a Clerk, when a draft is created in the editor, changed, and submitted from the order, then each step shows its result and the whole order is saved every time', async ({
+    page,
+    signIn,
+    shell
+  }) => {
+    await signIn('clerk');
+    await shell.nav.getByRole('link', { name: 'Purchase orders' }).click();
+    await page.getByRole('link', { name: 'New purchase order' }).click();
+    await expect(page).toHaveURL(/\/purchase-orders\/new$/);
+    const editor = new DocumentEditor(page);
+
+    await page.getByRole('button', { name: 'Save draft' }).click();
+    await expect(page.getByText('Add at least one item.')).toBeVisible();
+    await expect(page.getByRole('combobox', { name: /^Supplier/ })).toBeFocused();
+
+    await editor.partner.selectOption({ label: data.supplier.name });
+    await editor.remark.fill('Deliver to bay 3');
+    await editor.addItem({ sku: data.sku, name: data.productName });
+    await page.getByRole('spinbutton', { name: `Quantity of ${data.sku}` }).fill('10');
+    await page.getByRole('spinbutton', { name: `Unit price of ${data.sku}` }).fill('600');
+    await expect(page.locator('.po-editor-amount')).toContainText('6,000.00');
+    await page.getByRole('button', { name: 'Save draft' }).click();
+
+    await expect(page).toHaveURL(/\/purchase-orders\/[0-9a-f-]{36}$/);
+    const id = page.url().split('/').pop()!;
+    await expect(status(page)).toHaveText('Draft');
+    await expect(page.getByRole('main')).toContainText('Deliver to bay 3');
+    await expect(page.getByRole('main')).toContainText('6,000.00');
+
+    await page.getByRole('link', { name: 'Edit' }).click();
+    await expect(page).toHaveURL(new RegExp(`/purchase-orders/${id}/edit$`));
+    await expect(editor.warehouse).toBeDisabled();
+    await page.getByRole('spinbutton', { name: `Quantity of ${data.sku}` }).fill('12');
+    await page.getByRole('button', { name: 'Save draft' }).click();
+    await expect(page).toHaveURL(new RegExp(`/purchase-orders/${id}$`));
+    await expect(page.getByRole('main')).toContainText('7,200.00');
+    expect((await getOrder(id)).lines[0]?.qty).toBe(12);
+
+    await bar(page, 'Submit').click();
+    await expect(shell.toast('Submitted for approval.')).toHaveCount(1);
+    await expect(status(page)).toHaveText('Submitted');
+    await expect(page.getByRole('link', { name: 'Edit' })).toHaveCount(0);
+    await command('clerk', id, 'cancel');
+  });
+
+  test('given a draft changed by someone else while it is open in the editor, when it is saved, then one banner says so and Reload shows the new remark', async ({
+    page,
+    signIn
+  }) => {
+    const order = await createOrder(data.supplier.id, data.productId, NEEDS_APPROVAL, 'first');
+    await signIn('clerk');
+    await goTo(page, `/purchase-orders/${order.id}/edit`);
+    await expect(page.getByRole('textbox', { name: 'Remark' })).toHaveValue('first');
+
+    const body = {
+      warehouseId: (await getOrder(order.id)).warehouseId,
+      supplierId: data.supplier.id,
+      remark: 'second',
+      lines: [{ productId: data.productId, qty: 10, uomId: null, unitPrice: 600, remark: null }]
+    };
+    await apiAs('supervisor').call('PUT', `/api/purchase-orders/${order.id}`, body);
+    await page.getByRole('textbox', { name: 'Remark' }).fill('mine');
+    await page.getByRole('button', { name: 'Save draft' }).click();
+
+    const banner = page.locator('app-banner').filter({ hasText: 'changed since you opened it' });
+    await expect(banner).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save draft' })).toBeDisabled();
+    await banner.getByRole('button', { name: 'Reload' }).click();
+    await expect(page.getByRole('textbox', { name: 'Remark' })).toHaveValue('second');
+    await command('clerk', order.id, 'cancel');
+  });
+
+  test('given Warehouse staff (no po.manage), then there is no New purchase order, no Edit, and the editor addresses are the forbidden page', async ({
+    page,
+    signIn
+  }) => {
+    const order = await createOrder(data.supplier.id, data.productId, NEEDS_APPROVAL);
+    await signIn('staff');
+    await goTo(page, '/purchase-orders');
+    await expect(row(page, order.no)).toBeVisible();
+    await expect(page.getByRole('link', { name: 'New purchase order' })).toHaveCount(0);
+    await goTo(page, `/purchase-orders/${order.id}`);
+    await expect(page.getByRole('heading', { level: 1, name: order.no })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Edit' })).toHaveCount(0);
+
+    for (const path of ['/purchase-orders/new', `/purchase-orders/${order.id}/edit`]) {
+      await loadPage(page, path);
+      await expect(page).toHaveURL(/\/forbidden$/);
+    }
+    await command('clerk', order.id, 'cancel');
+  });
+
   test.describe('layout and accessibility', () => {
     let order: { id: PublicId; no: string };
+    let draft: { id: PublicId };
     test.beforeAll(async () => {
+      draft = await createOrder(data.supplier.id, data.productId, NEEDS_APPROVAL);
       order = await createOrder(data.supplier.id, data.productId, NEEDS_APPROVAL);
       await command('clerk', order.id, 'submit');
     });
@@ -547,7 +645,7 @@ test.describe('Purchase orders, real API', () => {
         ['Bahasa Melayu', 'Malay'],
         ['中文', 'Chinese']
       ] as const) {
-        test(`given ${label}, then the list and the detail do not scroll sideways or clip`, async ({
+        test(`given ${label}, then the list, the detail and the editor do not scroll sideways or clip`, async ({
           page,
           signIn,
           shell
@@ -556,7 +654,11 @@ test.describe('Purchase orders, real API', () => {
           if (language !== 'English') {
             await shell.setLanguage(language);
           }
-          for (const path of ['/purchase-orders', `/purchase-orders/${order.id}`]) {
+          for (const path of [
+            '/purchase-orders',
+            `/purchase-orders/${order.id}`,
+            `/purchase-orders/${draft.id}/edit`
+          ]) {
             await goTo(page, path);
             await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
             await page.waitForLoadState('networkidle');
@@ -590,12 +692,16 @@ test.describe('Purchase orders, real API', () => {
         test.describe(`axe, ${scheme}, ${width} px`, () => {
           test.use({ colorScheme: scheme, viewport: { width, height: 740 } });
 
-          test(`given the list and the detail, then axe finds no serious or critical violation (${scheme}, ${width})`, async ({
+          test(`given the list, the detail and the editor, then axe finds no serious or critical violation (${scheme}, ${width})`, async ({
             page,
             signIn
           }) => {
             await signIn('supervisor');
-            for (const path of ['/purchase-orders', `/purchase-orders/${order.id}`]) {
+            for (const path of [
+              '/purchase-orders',
+              `/purchase-orders/${order.id}`,
+              `/purchase-orders/${draft.id}/edit`
+            ]) {
               await goTo(page, path);
               await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
               await page.waitForLoadState('networkidle');

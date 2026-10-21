@@ -883,5 +883,15 @@ export const MS_MESSAGES: Messages = {
   'po.toast.released': 'Dihantar. Kelulusan tidak diperlukan, pesanan telah diluluskan.',
   'po.toast.recalled': 'Kembali ke draf.',
   'po.toast.cancelled': 'Pesanan dibatalkan.',
-  'po.toast.closed': 'Pesanan ditutup.'
+  'po.toast.closed': 'Pesanan ditutup.',
+  // TODO-review: machine draft (PL2.8: purchase order editor).
+  'po.new': 'Pesanan pembelian baharu',
+  'po.action.edit': 'Sunting',
+  'po.notEditable': 'Pesanan ini tidak boleh disunting lagi.',
+  'po.backToOrder': 'Kembali ke pesanan',
+  'po.staleSaveBody':
+    'Orang lain telah mengubah pesanan ini. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',
+  'po.staleSaveBodyBy':
+    '{name} mengubah pesanan ini pada {time}. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',
+  'po.priceFor': 'Harga seunit bagi {sku}'
 };

@@ -7,6 +7,7 @@ import {
   signal
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { PartnerType, PurchaseOrderListItem, PurchaseOrderStatus } from '@ims/api';
 import {
   AppDatePipe,
@@ -63,6 +64,7 @@ import {
     AppMoneyPipe,
     EnumLabelPipe,
     ReactiveFormsModule,
+    RouterLink,
     TranslatePipe,
     UiButtonComponent,
     UiCellDirective,
@@ -93,6 +95,9 @@ export class PurchaseOrderListPageComponent implements OnInit {
   readonly warehouseControl = new FormControl<PublicId | null>(null);
   readonly fromControl = new FormControl('', { nonNullable: true });
   readonly toControl = new FormControl('', { nonNullable: true });
+
+  /** By permission, never by role: whoever may manage orders may start one. */
+  readonly $canCreate = computed(() => this.permissions.has(PERMISSION.PoManage));
 
   $searchInput = signal('');
   /** On a phone the filters hide behind one button so the first orders are on screen. */
