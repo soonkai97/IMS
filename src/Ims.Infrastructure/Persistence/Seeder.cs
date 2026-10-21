@@ -44,9 +44,10 @@ public static class Seeder
         foreach (var (key, value) in defaults)
             if (!await db.Set<SystemSetting>().AnyAsync(s => s.Key == key, ct)) db.Add(SystemSetting.Create(key, value));
 
-        if (!await db.Set<ApprovalRule>().AnyAsync(ct))
+        // The purchase-order pair is written by a migration too, so "no rule at all" would never be true on a fresh database: the default is for the document types.
+        if (!await db.Set<ApprovalRule>().AnyAsync(r => r.DocType != DocumentType.PurchaseOrder, ct))
             db.Add(ApprovalRule.Create(DocumentType.Issue, SeedDefaults.DefaultApprovalAmount, null, ApproverTier.Standard));
-        // The two purchase-order tiers, once per database (a rule is never deleted, only switched off, so an Administrator who turned them off is not overruled). They sit unused and hidden until the purchasing module is on.
+        // The two purchase-order tiers, once per database; the migration AddPurchaseOrderApprovalRules writes the same rows, so this only matters where they were removed by hand (a rule is never deleted, only switched off, so an Administrator who turned them off is not overruled). They sit unused and hidden until the purchasing module is on.
         if (!await db.Set<ApprovalRule>().AnyAsync(r => r.DocType == DocumentType.PurchaseOrder, ct))
         {
             db.Add(ApprovalRule.Create(DocumentType.PurchaseOrder, SeedDefaults.PurchaseOrderStandardAmount, null, ApproverTier.Standard));

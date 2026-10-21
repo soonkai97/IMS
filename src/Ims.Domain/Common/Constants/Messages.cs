@@ -220,7 +220,7 @@ public static class Messages
     public const string PurchaseOrderOnlyReviewerCanCancelApproved = "Only an approver for this purchase order can cancel it after approval.";
     public const string PurchaseOrderOwnRecallOnly = "Only the person who submitted a purchase order can take it back to draft.";
     public static string PurchaseOrdersOpen(int count) => count == 1 ? "1 purchase order is open" : $"{count} purchase orders are open";
-    public const string PurchaseOrderRuleNeededToTurnOn = "Purchasing cannot be turned on yet: no approval rule for purchase orders is active, so every priced order would be released with no approver. Ask whoever deploys the database to add the standard rules (the seeder writes them when Database:MigrateOnStartup is set), then turn the module on.";
+    public const string PurchaseOrderRuleNeededToTurnOn = "Purchasing cannot be turned on yet: no approval rule for purchase orders is active, so every priced order would be released with no approver. The database update writes the standard pair; ask whoever maintains the database to restore or activate one, then turn the module on.";
     public const string PurchaseOrderLastRule = "This is the last active approval rule for purchase orders. While purchasing is on, at least one must stay active, or every priced order would be released with no approver.";
     public const string PurchaseOrderRuleTypeFixed = "An approval rule cannot be moved to or from purchase orders. Add a new rule for the other type instead.";
 
