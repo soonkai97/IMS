@@ -93,7 +93,7 @@ public class PurchaseOrderWorkflowTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal((PurchaseOrderStatus.Approved, TestUsers.UsernameOf(Roles.Supervisor), true), (approved.Status, approved.ApprovedBy, approved.ApprovedAt is not null));
         Assert.Equal(TestUsers.UsernameOf(Roles.Clerk), approved.SubmittedBy);
         Assert.Equal(1, await AuditCountAsync(AuditActions.PurchaseOrderApproved, approved.No));
-        Assert.Contains(DocumentActions.Cancel, approved.AllowedActions); // the Administrator's list is the Supervisor's here: the reviewer of its tier
+        Assert.Contains(DocumentActions.Cancel, approved.AllowedActions); // the Supervisor who approved it is a reviewer of its tier, so may cancel it
     }
 
     [Fact]
@@ -291,8 +291,6 @@ public class PurchaseOrderWorkflowTests(ApiFixture fixture) : IAsyncLifetime
 
         Assert.Equal(submitted.ConcurrencyToken, (await _p.ReadAsync(submitted.Id)).ConcurrencyToken); // nothing moved
     }
-
-    // ----- acceptance 9: two approvers race -----
 
     // ----- warehouse scope -----
     [Fact]

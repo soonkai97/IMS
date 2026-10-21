@@ -27,8 +27,6 @@ public class PurchaseOrderApprovalViewTests(ApiFixture fixture) : IAsyncLifetime
 
     private ApiClient Forged(IEnumerable<string> permissions) => fixture.CreateClient(ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Admin, permissions: permissions));
 
-    // ----- acceptance 6: allowedActions -----
-
     // ----- hidden amounts -----
     private static readonly string[] MoneyKeys = ["totalAmount", "unitPrice", "amount", "threshold", "actual"];
 
