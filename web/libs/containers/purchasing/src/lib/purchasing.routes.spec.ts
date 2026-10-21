@@ -78,10 +78,10 @@ describe('PURCHASE_ORDER_ROUTES (module purchasing, then permission po.read)', (
     expect(urlOf(answer())).toBe('/forbidden');
   });
 
-  it('guards the list through a parent, so every page added below it is guarded too', () => {
+  it('guards the list and the detail through one parent', () => {
     const children = PURCHASE_ORDER_ROUTES[0].children ?? [];
 
-    expect(children.map(route => route.path)).toEqual(['']);
+    expect(children.map(route => route.path)).toEqual(['', ':id']);
     expect(children.every(route => route.canActivate === undefined)).toBe(true);
   });
 });

@@ -18,7 +18,12 @@ import {
   TranslatePipe
 } from '@ims/core/i18n';
 import { PermissionService } from '@ims/core/identity';
-import { PO_STATUS_TONE, PurchaseOrderQuery, PurchaseOrdersStore } from '@ims/features/purchasing';
+import {
+  PURCHASE_ORDER_ROUTE,
+  PO_STATUS_TONE,
+  PurchaseOrderQuery,
+  PurchaseOrdersStore
+} from '@ims/features/purchasing';
 import { PartnersStore, WarehousesStore } from '@ims/features/warehousing';
 import { API_MIN_SEARCH_LENGTH, PAGE_SIZES, PERMISSION, PublicId } from '@ims/models';
 import {
@@ -196,6 +201,11 @@ export class PurchaseOrderListPageComponent implements OnInit {
     return this.$hasFilters() ? 'po.noMatch' : 'po.empty';
   });
 
+  readonly rowLink = (row: PurchaseOrderListItem): readonly unknown[] => [
+    '/',
+    PURCHASE_ORDER_ROUTE,
+    row.id
+  ];
   readonly tone: Readonly<Record<string, StatusTone>> = PO_STATUS_TONE;
   readonly statusLabels = PURCHASE_ORDER_STATUS_LABELS;
 

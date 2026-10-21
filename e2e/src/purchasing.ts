@@ -1,4 +1,4 @@
-import { apiAs, type PublicId } from './api';
+import { apiAs, type ApiDocument, type PublicId } from './api';
 import type { Role } from './config';
 
 /** Helpers of `42-purchase-orders`: every order a scenario makes is cancelled again (an open order stops the module being switched off). */
@@ -18,6 +18,20 @@ export interface ApiOrder {
   id: PublicId;
   no: string;
   status: string;
+  allowedActions: string[];
+  concurrencyToken: string;
+  requiresApproval: boolean;
+  totalAmount: number | null;
+  lines: {
+    lineNo: number;
+    productId: PublicId;
+    uomId: PublicId;
+    qty: number;
+    unitPrice: number | null;
+    receivedQty: number;
+    remainingQty: number;
+  }[];
+  receipts: { id: PublicId; no: string; status: string }[];
 }
 
 const admin = () => apiAs('admin');
@@ -55,6 +69,10 @@ export async function createOrder(
   });
 }
 
+export function getOrder(id: PublicId, role: Role = 'admin'): Promise<ApiOrder> {
+  return apiAs(role).call<ApiOrder>('GET', `/api/purchase-orders/${id}`);
+}
+
 /** A workflow command with the wildcard If-Match (the screens send the real token; these are set-up and clean-up calls). */
 export function command(
   role: Role,
@@ -63,6 +81,63 @@ export function command(
   body: object = {}
 ): Promise<ApiOrder> {
   return apiAs(role).call<ApiOrder>('POST', `/api/purchase-orders/${id}/${name}`, body);
+}
+
+/** Submitted by the Clerk and, when an approval rule holds it, approved by the Supervisor: an Approved order. */
+export async function approvedOrder(
+  supplierId: PublicId,
+  productId: PublicId,
+  price = NEEDS_APPROVAL
+): Promise<ApiOrder> {
+  const order = await createOrder(supplierId, productId, price);
+  const submitted = await command('clerk', order.id, 'submit');
+  return submitted.status === 'Approved' ? submitted : command('supervisor', order.id, 'approve');
+}
+
+/** Receives `qty` of the first line against the order: a draft receipt from the order, set to `qty`, submitted, approved if held, posted. */
+export async function receive(
+  order: ApiOrder,
+  qty: number,
+  /** Told the draft's id at once, so a clean-up can find it even when a later step fails. */
+  onDraft?: (id: PublicId) => void
+): Promise<ApiDocument> {
+  const supervisor = apiAs('supervisor');
+  const draft = await supervisor.call<ReceiptDraft>(
+    'POST',
+    `/api/purchase-orders/${order.id}/receipt`
+  );
+  onDraft?.(draft.id);
+  await supervisor.call('PUT', `/api/documents/${draft.id}`, {
+    warehouseId: draft.warehouseId,
+    partnerId: draft.partnerId,
+    purpose: null,
+    remark: null,
+    lines: draft.lines.map(line => ({
+      productId: line.productId,
+      qty,
+      uomId: line.uomId,
+      unitCost: line.unitCost ?? undefined,
+      remark: null,
+      purchaseOrderLineNo: line.purchaseOrderLineNo
+    }))
+  });
+  const submitted = await supervisor.command(draft.id, 'submit');
+  if (submitted.requiresApproval) {
+    await apiAs('owner').command(draft.id, 'approve');
+  }
+  return supervisor.command(draft.id, 'post');
+}
+
+interface ReceiptDraft {
+  id: PublicId;
+  partnerId: PublicId | null;
+  warehouseId: PublicId;
+  lines: {
+    productId: PublicId;
+    uomId: PublicId;
+    unitCost: number | null;
+    purchaseOrderLineNo: number;
+  }[];
 }
 
 /** Every order of these scenarios that is still open is cancelled (found by its supplier prefix), so the module can be switched off. */
@@ -81,6 +156,20 @@ export async function cancelOpenOrders(): Promise<void> {
         if (result.status < 300) {
           break;
         }
+      }
+    }
+  }
+}
+
+/** Puts a throw-away receipt out of the way by its state: a posted one is reversed, an unfinished one cancelled. */
+export async function retireReceipt(id: PublicId): Promise<void> {
+  const { status } = await admin().getDocument(id);
+  if (status === 'Posted') {
+    await admin().reverse(id, 'E2E: throw-away receipt');
+  } else if (['Draft', 'Submitted', 'Approved'].includes(status)) {
+    for (const role of ['supervisor', 'admin'] as const) {
+      if ((await apiAs(role).raw('POST', `/api/documents/${id}/cancel`, {})).status < 300) {
+        return;
       }
     }
   }
