@@ -1,4 +1,5 @@
 import { signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import {
@@ -7,7 +8,9 @@ import {
   PurchaseOrderDto,
   PurchaseOrderStatus
 } from '@ims/api';
+import { Observable, Subject, of } from 'rxjs';
 import { PermissionService } from '@ims/core/identity';
+import { ConfirmService, ToastService } from '@ims/core/notification';
 import { PurchaseOrdersStore } from '@ims/features/purchasing';
 import {
   API_ERROR_KIND,
@@ -20,6 +23,15 @@ import {
 import { PurchaseOrderDetailPageComponent } from './purchase-order-detail.component';
 
 const ID = '00000000-0000-4000-8000-000000000001';
+
+function command() {
+  return {
+    run: jest.fn((): Observable<PurchaseOrderDto> => of(order())),
+    $isRunning: signal(false),
+    $operation: signal<ApiOperation>(IDLE_OPERATION),
+    reset: jest.fn()
+  };
+}
 
 /** An order as the API sends it: what an order does not have is JSON null, not an absent member. */
 function order(overrides: Partial<PurchaseOrderDto> = {}): PurchaseOrderDto {
@@ -84,7 +96,12 @@ function order(overrides: Partial<PurchaseOrderDto> = {}): PurchaseOrderDto {
   };
 }
 
-function apiError(kind: ApiError['kind'], status: number, message: string): ApiError {
+function apiError(
+  kind: ApiError['kind'],
+  status: number,
+  message = 'x',
+  extensions: Record<string, unknown> = {}
+): ApiError {
   return {
     isApiError: true,
     kind,
@@ -93,9 +110,12 @@ function apiError(kind: ApiError['kind'], status: number, message: string): ApiE
     detail: message,
     message,
     fieldErrors: {},
-    extensions: {}
+    extensions
   };
 }
+
+const COMMANDS = ['submit', 'recall', 'approve', 'reject', 'cancel', 'close'] as const;
+const OTHER_ID = '00000000-0000-4000-8000-000000000002';
 
 describe('PurchaseOrderDetailPageComponent', () => {
   let spectator: Spectator<PurchaseOrderDetailPageComponent>;
@@ -109,7 +129,29 @@ describe('PurchaseOrderDetailPageComponent', () => {
     reload: jest.fn(),
     reset: jest.fn()
   };
-  const store = { detail };
+  const store = {
+    detail,
+    submit: command(),
+    recall: command(),
+    approve: command(),
+    reject: command(),
+    cancel: command(),
+    close: command(),
+    // Like the real store: forgetting a command empties its outcome.
+    resetCommands: jest.fn(() => {
+      for (const name of COMMANDS) {
+        store[name].$operation.set(IDLE_OPERATION);
+      }
+    }),
+    resetFailed: jest.fn((refused: (error: ApiError) => boolean) => {
+      for (const name of COMMANDS) {
+        const error = store[name].$operation().error;
+        if (error && refused(error)) {
+          store[name].$operation.set(IDLE_OPERATION);
+        }
+      }
+    })
+  };
   const createComponent = createComponentFactory({
     component: PurchaseOrderDetailPageComponent,
     detectChanges: false,
@@ -127,6 +169,14 @@ describe('PurchaseOrderDetailPageComponent', () => {
     await spectator.fixture.whenStable();
   }
 
+  const buttons = (): string[] =>
+    spectator
+      .queryAll('.po-detail-bar button')
+      .map(button => (button.textContent ?? '').replace(/\s+/g, ' ').trim());
+  const button = (name: string): HTMLButtonElement =>
+    spectator
+      .queryAll<HTMLButtonElement>('.po-detail-bar button')
+      .find(b => b.textContent?.includes(name))!;
   const text = (): string => (spectator.element.textContent ?? '').replace(/\s+/g, ' ');
 
   beforeEach(() => {
@@ -137,6 +187,50 @@ describe('PurchaseOrderDetailPageComponent', () => {
     detail.$isFailed.set(false);
     detail.load.mockClear();
     detail.reload.mockClear();
+    store.resetCommands.mockClear();
+    store.resetFailed.mockClear();
+    for (const name of COMMANDS) {
+      store[name].run.mockReset();
+      store[name].run.mockReturnValue(of(order()));
+      store[name].$operation.set(IDLE_OPERATION);
+      store[name].$isRunning.set(false);
+    }
+  });
+
+  describe('the action bar is the server allowedActions and nothing else', () => {
+    it.each([
+      [[], []],
+      [['edit'], []],
+      [
+        ['edit', 'submit', 'cancel'],
+        ['Cancel order', 'Submit']
+      ],
+      [
+        ['recall', 'cancel'],
+        ['Cancel order', 'Back to draft']
+      ],
+      [
+        ['approve', 'reject'],
+        ['Reject', 'Approve']
+      ],
+      [
+        ['close', 'cancel'],
+        ['Cancel order', 'Close short']
+      ],
+      [['receive', 'teleport'], []]
+    ])('%j shows %j', async (allowedActions, expected) => {
+      await render(order({ allowedActions }));
+
+      expect(buttons()).toEqual(expected);
+    });
+
+    it('does not look at what the user holds: a holder of every right sees nothing the server did not list', async () => {
+      Object.values(PERMISSION).forEach(permission => granted.add(permission));
+
+      await render(order({ allowedActions: ['cancel'] }));
+
+      expect(buttons()).toEqual(['Cancel order']);
+    });
   });
 
   describe('what is shown', () => {
@@ -263,6 +357,212 @@ describe('PurchaseOrderDetailPageComponent', () => {
       expect(text()).toContain('Down.');
       spectator.click(spectator.query('app-banner app-button button') as HTMLElement);
       expect(detail.reload).toHaveBeenCalled();
+    });
+  });
+
+  describe('commands', () => {
+    it('Submit runs at once with the version on screen and says what happened', async () => {
+      const toast = jest.spyOn(TestBed.inject(ToastService), 'success');
+      store.submit.run.mockReturnValue(of(order({ status: PurchaseOrderStatus.Submitted })));
+      await render(order({ status: PurchaseOrderStatus.Draft, allowedActions: ['submit'] }));
+
+      spectator.click(button('Submit'));
+
+      expect(store.submit.run).toHaveBeenCalledWith({ id: ID, concurrencyToken: 'AAAA' });
+      expect(toast).toHaveBeenCalledWith('Submitted for approval.');
+    });
+
+    it('Reject asks for a reason of 5 or more characters and sends it with the version', async () => {
+      await render(
+        order({ status: PurchaseOrderStatus.Submitted, allowedActions: ['approve', 'reject'] })
+      );
+      const confirm = TestBed.inject(ConfirmService);
+
+      spectator.click(button('Reject'));
+
+      const request = confirm.$pending()?.request;
+      expect(request).toMatchObject({
+        reasonRequired: true,
+        minReasonLength: 5,
+        destructive: true
+      });
+      expect(store.reject.run).not.toHaveBeenCalled();
+
+      confirm.confirm('price too high');
+      expect(store.reject.run).toHaveBeenCalledWith({
+        id: ID,
+        concurrencyToken: 'AAAA',
+        reason: 'price too high'
+      });
+    });
+
+    it('Cancel of an Approved order needs a reason; of a Draft the reason is optional', async () => {
+      const confirm = TestBed.inject(ConfirmService);
+      await render(order({ allowedActions: ['cancel'] }));
+      spectator.click(button('Cancel order'));
+      expect(confirm.$pending()?.request).toMatchObject({
+        reasonRequired: true,
+        minReasonLength: 5
+      });
+      confirm.cancel();
+
+      await render(order({ status: PurchaseOrderStatus.Draft, allowedActions: ['cancel'] }));
+      spectator.click(button('Cancel order'));
+      expect(confirm.$pending()?.request.reasonRequired).toBeUndefined();
+      expect(confirm.$pending()?.request.reasonLabel).toBe('Reason (optional)');
+      confirm.cancel();
+    });
+
+    it('Close short asks for a reason and does nothing when the dialog is dismissed', async () => {
+      const confirm = TestBed.inject(ConfirmService);
+      await render(order({ allowedActions: ['close'] }));
+
+      spectator.click(button('Close short'));
+      expect(confirm.$pending()?.request).toMatchObject({
+        reasonRequired: true,
+        minReasonLength: 5
+      });
+      confirm.cancel();
+
+      expect(store.close.run).not.toHaveBeenCalled();
+    });
+
+    it('Approve and Back to draft ask first', async () => {
+      const confirm = TestBed.inject(ConfirmService);
+      await render(
+        order({ status: PurchaseOrderStatus.Submitted, allowedActions: ['approve', 'recall'] })
+      );
+
+      spectator.click(button('Approve'));
+      expect(confirm.$pending()?.request.heading).toContain('PO-MAIN-2610-0001');
+      confirm.confirm('');
+      expect(store.approve.run).toHaveBeenCalledWith({ id: ID, concurrencyToken: 'AAAA' });
+
+      spectator.click(button('Back to draft'));
+      confirm.confirm('');
+      expect(store.recall.run).toHaveBeenCalledWith({ id: ID, concurrencyToken: 'AAAA' });
+    });
+
+    it('a running command disables every button, marks the bar busy and shows the spinner on the tapped one', async () => {
+      const running = new Subject<PurchaseOrderDto>();
+      store.submit.run.mockReturnValue(running);
+      await render(
+        order({ status: PurchaseOrderStatus.Draft, allowedActions: ['submit', 'cancel'] })
+      );
+
+      spectator.click(button('Submit'));
+      store.submit.$isRunning.set(true);
+      spectator.detectChanges();
+
+      expect(
+        spectator
+          .queryAll<HTMLButtonElement>('.po-detail-bar button')
+          .every(b => b.disabled || b.getAttribute('aria-disabled') === 'true')
+      ).toBe(true);
+      expect(spectator.query('.po-detail-bar')?.getAttribute('aria-busy')).toBe('true');
+      running.complete();
+    });
+  });
+
+  describe('refusals', () => {
+    it('a 409 that names document_changed locks the buttons behind a Reload banner, and Reload reads the order again', async () => {
+      await render(order({ allowedActions: ['cancel'] }));
+      store.cancel.$operation.set(
+        failureOperation(
+          apiError(API_ERROR_KIND.Conflict, 409, 'x', {
+            code: 'document_changed',
+            changedBy: 'Sam',
+            changedAt: '2026-10-21T01:00:00Z'
+          })
+        )
+      );
+      spectator.detectChanges();
+
+      expect(text()).toContain('PO-MAIN-2610-0001 changed since you opened it');
+      expect(text()).toContain('Sam changed this order');
+      expect(button('Cancel order').disabled).toBe(true);
+
+      spectator.click(spectator.query('app-banner app-button button') as HTMLElement);
+      expect(store.resetCommands).toHaveBeenCalled();
+      expect(detail.reload).toHaveBeenCalled();
+    });
+
+    it('any other 409 (cancel refused while a receipt is open) shows the API sentence as an alert and does not claim the order changed', async () => {
+      await render(order({ allowedActions: ['cancel'] }));
+      store.cancel.$operation.set(
+        failureOperation(
+          apiError(API_ERROR_KIND.Conflict, 409, 'PO-1 has a receipt that is not finished.', {})
+        )
+      );
+      spectator.detectChanges();
+
+      expect(spectator.query('app-banner[role="alert"]')?.textContent).toContain(
+        'has a receipt that is not finished.'
+      );
+      expect(text()).not.toContain('changed since you opened it');
+      expect(button('Cancel order').disabled).toBe(false);
+    });
+
+    it('a plain 400 (wrong state) or a 403 reads the order again once, and forgets the failed command so a later command does not repeat it', async () => {
+      await render(order({ allowedActions: ['cancel'] }));
+      store.cancel.$operation.set(failureOperation(apiError(API_ERROR_KIND.Validation, 400)));
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(detail.reload).toHaveBeenCalledTimes(1);
+      expect(store.cancel.$operation().error).toBeUndefined();
+
+      store.submit.$operation.set(failureOperation(apiError(API_ERROR_KIND.Forbidden, 403)));
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(detail.reload).toHaveBeenCalledTimes(2);
+      expect(store.submit.$operation().error).toBeUndefined();
+    });
+  });
+
+  describe('what the last order or the last user left in the store', () => {
+    const staleError = () =>
+      failureOperation(apiError(API_ERROR_KIND.Conflict, 409, 'x', { code: 'document_changed' }));
+
+    it('a stale banner and a refusal of order A do not appear on order B opened next, and its buttons work', async () => {
+      await render(order({ allowedActions: ['cancel'] }));
+      store.cancel.$operation.set(staleError());
+      store.approve.$operation.set(
+        failureOperation(apiError(API_ERROR_KIND.Conflict, 409, 'Nope for A.', {}))
+      );
+      spectator.detectChanges();
+      expect(text()).toContain('changed since you opened it');
+
+      detail.$data.set(order({ id: OTHER_ID, no: 'PO-B', allowedActions: ['cancel'] }));
+      spectator.setInput('id', OTHER_ID);
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(store.resetCommands).toHaveBeenCalled();
+      expect(text()).toContain('PO-B');
+      expect(text()).not.toContain('changed since you opened it');
+      expect(text()).not.toContain('Nope for A.');
+      expect(button('Cancel order').disabled).toBe(false);
+    });
+
+    it('what another user left behind (the store outlives a sign-out) is gone when the page opens', async () => {
+      store.cancel.$operation.set(staleError());
+
+      await render(order({ allowedActions: ['cancel'] }));
+
+      expect(text()).not.toContain('changed since you opened it');
+      expect(button('Cancel order').disabled).toBe(false);
+    });
+  });
+
+  describe('the bar', () => {
+    it('is a named group', async () => {
+      await render(order({ allowedActions: ['cancel'] }));
+
+      const bar = spectator.query('.po-detail-bar');
+      expect(bar?.getAttribute('role')).toBe('group');
+      expect(bar?.getAttribute('aria-label')).toBe('Actions for PO-MAIN-2610-0001');
     });
   });
 });

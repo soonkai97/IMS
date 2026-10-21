@@ -11,6 +11,8 @@ export const SKU_PREFIX = 'E2E-PO-';
 
 /** Above the placeholder RM 5,000 rule of the Standard tier, below the RM 20,000 one of the Large tier: a Supervisor approves it. */
 export const NEEDS_APPROVAL = { qty: 10, unitPrice: 600 };
+/** Above the placeholder RM 20,000 rule of the Large tier: only the Owner approves it. */
+export const LARGE = { qty: 10, unitPrice: 2100 };
 /** Below every rule: submitting releases the order at once. */
 export const NO_APPROVAL = { qty: 10, unitPrice: 5 };
 

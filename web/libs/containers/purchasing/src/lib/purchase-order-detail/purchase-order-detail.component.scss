@@ -70,3 +70,42 @@
   font-size: font-size(2);
   color: color('text-muted');
 }
+
+// Primary actions stay in reach. Phone: a full-width strip directly above the tab bar. Tablet and up: a floating card. On a
+// short window it scrolls with the page.
+.po-detail-bar {
+  position: sticky;
+  bottom: tabbar-offset();
+  z-index: z-index('sticky');
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  align-items: center;
+  justify-content: flex-end;
+  // Out to the screen edges: the page content has space(2) of padding on a phone (shell.component.scss).
+  margin-inline: -#{space(2)};
+  padding: space(1) space(2);
+  background: color('surface');
+  border-top: border-width('thin') solid color('border');
+  box-shadow: shadow(1);
+
+  @include media-tablet {
+    bottom: space(1);
+    margin-inline: 0;
+    border: border-width('thin') solid color('border');
+    border-radius: border-radius('md');
+  }
+
+  @include media-short {
+    position: static;
+  }
+
+  // Phone: the buttons share the row and wrap to a second one when the labels do not fit (320 px, longer words).
+  app-button {
+    @include media-phone {
+      flex: 1 1 auto;
+      min-width: 7rem;
+      white-space: nowrap;
+    }
+  }
+}

@@ -863,5 +863,25 @@ export const MS_MESSAGES: Messages = {
   'po.col.price': 'Harga seunit ({currency})',
   'po.history.closed': 'Ditutup',
   'po.closedShort': 'Ditutup tidak lengkap',
-  'po.closedReceived': 'Diterima sepenuhnya'
+  'po.closedReceived': 'Diterima sepenuhnya',
+  // TODO-review: machine draft (PL2.7c: purchase order actions).
+  'po.staleBody':
+    'Orang lain telah mengubah pesanan ini. Muat semula untuk melihat versi terkini. Tiada tindakan dibuat.',
+  'po.staleBodyBy':
+    '{name} mengubah pesanan ini pada {time}. Muat semula untuk melihat versi terkini. Tiada tindakan dibuat.',
+  'po.actionsLabel': 'Tindakan untuk {docNo}',
+  'po.action.cancel': 'Batalkan pesanan',
+  'po.action.close': 'Tutup tidak lengkap',
+  'po.action.recall': 'Kembali ke draf',
+  'po.dialog.approve.body': 'Pesanan itu kemudian boleh diterima.',
+  'po.dialog.cancel.title': 'Batalkan {docNo}?',
+  'po.dialog.cancel.body': 'Ini tidak boleh dibuat asal.',
+  'po.dialog.cancel.keep': 'Kekalkan pesanan',
+  'po.dialog.close.title': 'Tutup {docNo} tidak lengkap?',
+  'po.dialog.close.body':
+    'Apa yang belum tiba tidak akan diterima terhadap pesanan ini. Ini tidak boleh dibuat asal.',
+  'po.toast.released': 'Dihantar. Kelulusan tidak diperlukan, pesanan telah diluluskan.',
+  'po.toast.recalled': 'Kembali ke draf.',
+  'po.toast.cancelled': 'Pesanan dibatalkan.',
+  'po.toast.closed': 'Pesanan ditutup.'
 };

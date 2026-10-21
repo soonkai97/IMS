@@ -3,6 +3,7 @@ import { createServiceFactory, mockProvider, SpectatorService } from '@ngneat/sp
 import { Subject, firstValueFrom, of } from 'rxjs';
 import { PurchaseOrderDto, PurchaseOrderStatus, PurchaseOrdersClient } from '@ims/api';
 import { IF_MATCH } from '@ims/core/http';
+import { ApiError, failureOperation } from '@ims/models';
 import { PurchaseOrdersStore, toPurchaseOrderRef } from './purchase-orders.store';
 
 const ORDER_ID = '00000000-0000-4000-8000-000000000007';
@@ -99,6 +100,17 @@ describe('PurchaseOrdersStore', () => {
     await firstValueFrom(spectator.service.approve.run(toPurchaseOrderRef(ORDER)));
 
     expect(spectator.service.detail.$data()).toBe(other);
+  });
+
+  it('resetFailed forgets only the failed commands the predicate accepts', () => {
+    const error = (status: number) => failureOperation({ status } as ApiError);
+    spectator.service.cancel.$operation.set(error(400));
+    spectator.service.approve.$operation.set(error(409));
+
+    spectator.service.resetFailed(failure => failure.status === 400);
+
+    expect(spectator.service.cancel.$operation().error).toBeUndefined();
+    expect(spectator.service.approve.$operation().error?.status).toBe(409);
   });
 
   it('is exclusive: a second tap while a command runs sends nothing', async () => {

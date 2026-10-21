@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, Signal, inject } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import {
   PagedResultOfPurchaseOrderListItem,
@@ -7,7 +7,7 @@ import {
   PurchaseOrdersClient
 } from '@ims/api';
 import { withIfMatch } from '@ims/core/http';
-import { PagedQuery, PublicId } from '@ims/models';
+import { ApiError, ApiOperation, PagedQuery, PublicId } from '@ims/models';
 import { ApiCommand, QueryLoader } from '@ims/utils';
 
 export interface PurchaseOrderQuery extends PagedQuery {
@@ -107,15 +107,22 @@ export class PurchaseOrdersStore {
     this.resetCommandsExcept(undefined);
   }
 
+  /** Forgets the failed commands whose error `refused` accepts (an old refusal must not fire its handler again). */
+  resetFailed(refused: (error: ApiError) => boolean): void {
+    for (const command of this.commands()) {
+      const error = command.$operation().error;
+      if (error && refused(error)) {
+        command.reset();
+      }
+    }
+  }
+
+  private commands(): readonly { $operation: Signal<ApiOperation>; reset(): void }[] {
+    return [this.submit, this.recall, this.approve, this.reject, this.cancel, this.close];
+  }
+
   private resetCommandsExcept(keep: { reset(): void } | undefined): void {
-    for (const command of [
-      this.submit,
-      this.recall,
-      this.approve,
-      this.reject,
-      this.cancel,
-      this.close
-    ]) {
+    for (const command of this.commands()) {
       if (command !== keep) {
         command.reset();
       }
