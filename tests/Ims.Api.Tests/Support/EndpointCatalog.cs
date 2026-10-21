@@ -116,6 +116,7 @@ public static class EndpointCatalog
         new("POST purchase-orders/{id}/reject", Post, AuthPolicies.DocumentReview, _ => $"/api/purchase-orders/{MissingPublicId}/reject", _ => new { reason = "x" }, OkWhenAllowed: false),
         new("POST purchase-orders/{id}/recall", Post, Permissions.PoManage, _ => $"/api/purchase-orders/{MissingPublicId}/recall", OkWhenAllowed: false),
         new("POST purchase-orders/{id}/cancel", Post, AuthPolicies.PurchaseOrderCancel, _ => $"/api/purchase-orders/{MissingPublicId}/cancel", _ => new { reason = "x" }, OkWhenAllowed: false),
+        new("POST purchase-orders/{id}/receipt", Post, Permissions.DocumentCreate, _ => $"/api/purchase-orders/{MissingPublicId}/receipt", OkWhenAllowed: false),
     ];
 
     public static EndpointCase Named(string name) => All.Single(c => c.Name == name);

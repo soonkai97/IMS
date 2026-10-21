@@ -337,3 +337,23 @@ The file for a period: one row per posted document line, plus a reversal row for
 **A change to the shared writer came with it** (`ClosedXmlExcelWriter`, used by every export): the number format is set once per column instead of once per cell (10 s of 27 at 50,000 rows), and column widths are fitted to the first 2,000 rows instead of every row (9 s of 27); a sheet of up to 2,000 rows is laid out exactly as before. A streaming writer (`OpenXmlWriter`) would bring the workbook to about 1 s and its memory to a constant; it is a bigger change and not needed while an export is a deliberate, rare action under the long request timeout (`Limits.LongRequestTimeoutSeconds`).
 
 **Still to do (DBA, exclusive use of `Ims_Perf`):** the one-month export at the cap on the 1M tier. Procedure: seed the 1M tier (section 9), enable the module (`PUT /api/modules/accounting`), pick a month whose line count is just under 50,000 (`SELECT CAST(PostedAt AS date)...` over `StockDocument`), call `GET /api/accounting/export?from=...&to=...` three times with the Query Store on, and read the statement with `04-query-store-top.sql` (filter on `HsCode`). Record the reads, the CPU and whether the plan seeks `IX_StockDocument_PostedAt`. Acceptance 9 of the pilot plan is met when that row is added here.
+
+## 12. Receipt link to a purchase order (PL2.4, migration `AddReceiptPurchaseOrderLinks`, MG13)
+
+Two nullable `int` columns with NO default on the two big document tables, one filtered index and one foreign key: `StockDocument.PurchaseOrderId` (FK to `PurchaseOrder`, restrict, index `IX_StockDocument_PurchaseOrderId` filtered `WHERE [PurchaseOrderId] IS NOT NULL`) and `StockDocumentLine.PurchaseOrderLineNo` (the order line's number; no foreign key and no index: the lines of a receipt are reached through their document).
+
+**Timing on the 1M tier** (`Ims_PerfPid1M`: 161,800 documents, 1,053,056 lines, 1,001,225 ledger rows). The database was backed up (`COPY_ONLY`), restored as a throw-away copy on D:, brought to the previous migration with `dotnet ef database update`, and the generated script (`dotnet ef migrations script <previous> <this>`) was run on the copy with a timer between statements; the copy was dropped afterwards, `Ims_PerfPid1M` itself was not touched.
+
+| Statement | Time |
+|---|---|
+| `ALTER TABLE StockDocument ADD PurchaseOrderId int NULL` | 2 ms (metadata only) |
+| `ALTER TABLE StockDocumentLine ADD PurchaseOrderLineNo int NULL` | under 1 ms (metadata only) |
+| `CREATE INDEX ... WHERE [PurchaseOrderId] IS NOT NULL` | 23 ms (one pass over the table to find no row; the index is empty, 0 KB) |
+| `ADD CONSTRAINT ... FOREIGN KEY ... WITH CHECK` | 31 ms (validates an all-NULL column) |
+| **Whole script in one transaction** | **58 ms** |
+
+Well under the 1 s limit of plan risk 6, so the foreign key stays. No row is written: the migration test compares the row versions of all documents and lines before and after.
+
+**Why the one index** (a linked receipt is a handful of rows among 161,800): with 3 posted receipts linked to one order, "the receipts of this order" (the PO detail, the cancel check) reads **22 pages** through the filtered index against **4,236** for a scan of the clustered index, and the posted-quantity sum (documents of the order, then their lines through `IX_StockDocumentLine_DocumentId`) reads 14 + 114 pages in 3 ms. The index is empty on every database that does not use purchasing and costs a write only on a linked receipt. The line column has no index: nothing reads lines by order line number alone.
+
+**Running the script by hand** (a DBA deployment): the filtered index needs `QUOTED_IDENTIFIER ON`, which `sqlcmd` has OFF by default: run it with `sqlcmd -I` (SSMS is fine). Without it the script stops at the index with error 1934 and, because it is one transaction that is not committed, nothing is kept. The index is created by dynamic SQL (`EXEC(N'CREATE INDEX ...')`) on purpose: in one batch with the `ADD COLUMN` above it, a plain `CREATE INDEX` is compiled before the column exists ("Invalid column name"). `Down` refuses (error 50006) while any document or line, live or soft-deleted, carries a link.

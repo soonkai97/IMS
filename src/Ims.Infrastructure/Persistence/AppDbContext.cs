@@ -157,7 +157,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.No).HasMaxLength(Limits.DocumentNoMaxLength);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
             e.Property(x => x.RowVersion).IsRowVersion();
-            e.Ignore(x => x.TotalQty).Ignore(x => x.TotalAmount).Ignore(x => x.CanPost).Ignore(x => x.IsReturned).Ignore(x => x.ActionContext);
+            e.Ignore(x => x.TotalQty).Ignore(x => x.TotalAmount).Ignore(x => x.CanPost).Ignore(x => x.IsReturned).Ignore(x => x.ActionContext).Ignore(x => x.IsLinked);
             e.HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Partner).WithMany().HasForeignKey(x => x.PartnerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedBy).OnDelete(DeleteBehavior.Restrict);
@@ -168,6 +168,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             // Only reversed documents carry the column, so the index holds only those rows (the foreign key still finds them).
             e.HasIndex(x => x.ReversedBy).HasFilter("[ReversedBy] IS NOT NULL");
             e.HasOne(x => x.ReversedByUser).WithMany().HasForeignKey(x => x.ReversedBy).OnDelete(DeleteBehavior.Restrict);
+            // Only receipts created from a purchase order carry the column (NULL on every other document), so the foreign-key index holds only those rows: it serves "the receipts of this
+            // order" and the received-quantity sum of the order, and costs nothing on a document that is not linked. EF would otherwise make the default unfiltered index over every row.
+            e.HasIndex(x => x.PurchaseOrderId).HasFilter("[PurchaseOrderId] IS NOT NULL");
+            e.HasOne(x => x.PurchaseOrder).WithMany().HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.Restrict);
             e.HasMany(x => x.Lines).WithOne(x => x.Document).HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
         });

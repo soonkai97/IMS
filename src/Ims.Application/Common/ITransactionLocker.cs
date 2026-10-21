@@ -29,4 +29,11 @@ public interface ITransactionLocker
     /// orders and its commit (plan PL2.3, the CanDisable race). Taken before any document-sequence lock; never held with a stock lock. The check a flip asks takes no other lock.
     /// </summary>
     Task LockModulesSharedAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Serialises the writes that decide whether a purchase order can still be received against: creating a receipt from it and cancelling it (PL2.4), and posting a linked receipt (PL2.5). Taken
+    /// FIRST, before any stock lock, and never together with the roles or modules lock. PL2.4 takes it before the document-sequence lock (the receipt number); nothing takes the sequence lock and then this one.
+    /// </summary>
+    /// <exception cref="ConcurrencyException">The lock could not be obtained in time; the whole transaction is retried.</exception>
+    Task LockPurchaseOrderAsync(int orderId, CancellationToken ct);
 }

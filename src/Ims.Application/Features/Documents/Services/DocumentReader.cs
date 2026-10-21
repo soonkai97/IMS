@@ -1,14 +1,16 @@
+using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentAccess access, ISystemSettings settings, IStockAvailability availability,
-    IApprovalEvaluator approvals, IDocumentVersion version) : IDocumentReader, IAppService
+    IApprovalEvaluator approvals, IDocumentVersion version, IModuleSwitches modules) : IDocumentReader, IAppService
 {
     public async Task<DocumentDto> GetAsync(Guid publicId, CancellationToken ct)
     {
         // The caller's warehouses are part of the query: a document elsewhere is simply not found (404, like an unknown id).
         var dto = await documents.FirstOrDefaultAsync(new DocumentDtoSpec(publicId, access.WarehouseScope()), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
         dto = await WithStockAsync(dto, ct);
+        dto = await WithoutLinkWhileModuleOffAsync(dto, ct);
 
         // A document held for approval: say why (the thresholds it reaches) and whether the caller's role can satisfy the rules in force.
         // The amount is complete here: it is hidden from a caller without cost.view only when the response leaves the application (CostVisibilityBehavior).
@@ -20,6 +22,13 @@ public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentA
         var withinLimit = dto.Status != DocumentStatus.Submitted || !dto.RequiresApproval ||
                           await approvals.ReviewRefusalAsync(dto.Type, dto.IsLarge, dto.TotalQty, amount, ct) is null;
         return dto with { ApprovalTriggers = triggers, AllowedActions = access.AllowedActions(dto, await settings.GetAsync(ct), withinLimit), ConcurrencyToken = version.Token(dto.Id, dto.RowVersion) };
+    }
+
+    /// <summary>A receipt's link to its purchase order is shown only while the Purchasing module is on. The switch is asked only for a linked document, so every other document costs nothing extra.</summary>
+    private async Task<DocumentDto> WithoutLinkWhileModuleOffAsync(DocumentDto dto, CancellationToken ct)
+    {
+        if (dto.PurchaseOrder is null || await modules.ShowsAsync(ModuleCodes.Purchasing, anyValue: true, ct)) return dto;
+        return dto with { PurchaseOrder = null, Lines = dto.Lines.Select(l => l with { PurchaseOrderLineNo = null }).ToList() };
     }
 
     /// <summary>Fills <c>available</c> on every line with one balance query for the whole document (no query per line).</summary>

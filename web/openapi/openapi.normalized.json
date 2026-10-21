@@ -2647,6 +2647,48 @@
         }
       }
     },
+    "/api/purchase-orders/{id}/receipt": {
+      "post": {
+        "tags": [
+          "PurchaseOrders"
+        ],
+        "summary": "Creates the Draft receipt of an Approved order: the order's warehouse and supplier, one line for every order line that still has something to receive, with the quantity that remains,\r\nthe order's unit and the order's price (a caller without `cost.view` gets the receipt without prices, but the stock is valued at them). Each line names its order line in\r\n`purchaseOrderLineNo`. The receipt is then saved, submitted and posted like any other (`/api/documents`); the link never changes. The door is `document.create`; the order must be\r\nreadable (`po.read`, checked in the command). 409 when the order is not Approved or has nothing left to receive. The order lists its receipts and what remains.",
+        "operationId": "PurchaseOrders_createReceipt",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/modules": {
       "get": {
         "tags": [
@@ -5167,6 +5209,15 @@
             },
             "description": "While the document is Submitted or Approved and an approval rule held it back: which thresholds it reaches (value or quantity), for the approver and the \"sent for approval\" message. Empty otherwise, and when only a negative-stock override (`requiresOverride`) sent it to approval."
           },
+          "purchaseOrder": {
+            "nullable": true,
+            "allOf": [
+              {
+                "description": "The purchase order this receipt was created from (id and number); null for every other document, and omitted while the Purchasing module is off. Set when the receipt is created and never changed.",
+                "$ref": "#/components/schemas/LinkedPurchaseOrder"
+              }
+            ]
+          },
           "amountIsEstimate": {
             "type": "boolean",
             "description": "True for an issue that has not posted yet: its lines carry the average cost seen when it was last saved or submitted, and posting books the real cost. Label the amount \"estimated\"."
@@ -5251,6 +5302,12 @@
             "description": "On hand in the document's warehouse right now, in base units (compare with `BaseQty`; lines of one product add up). Null once the document is Posted, Reversed or Cancelled, when the figure no longer says anything about this document.",
             "format": "double",
             "nullable": true
+          },
+          "purchaseOrderLineNo": {
+            "type": "integer",
+            "description": "On a receipt created from a purchase order: the order line this line receives (its `lineNo`); null otherwise, and omitted while the Purchasing module is off. Send it back unchanged when saving the draft.",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5285,6 +5342,12 @@
           },
           "remark": {
             "type": "string",
+            "nullable": true
+          },
+          "purchaseOrderLineNo": {
+            "type": "integer",
+            "description": "Only on a receipt created from a purchase order (`POST /api/purchase-orders/{id}/receipt`): the `lineNo` of the purchase order line this line receives. Every line of such a receipt must name one (a save without it is a 400 and the link is kept), the line's product and unit must be the order line's, and the quantities named for one order line must not exceed what remains of it. On any other document it must be left out (a 400 otherwise), and it is a 400 \"not available\" while the Purchasing module is off. The link itself is never sent and never changes: it is set when the receipt is created.",
+            "format": "int32",
             "nullable": true
           }
         },
@@ -5656,6 +5719,24 @@
             "nullable": true
           }
         },
+        "additionalProperties": false
+      },
+      "LinkedPurchaseOrder": {
+        "required": [
+          "id",
+          "no"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "no": {
+            "type": "string"
+          }
+        },
+        "description": "The purchase order a receipt was created from: its id and number. Omitted while the Purchasing module is off.",
         "additionalProperties": false
       },
       "LoginRequest": {

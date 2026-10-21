@@ -224,6 +224,19 @@ public static class Messages
     public const string PurchaseOrderLastRule = "This is the last active approval rule for purchase orders. While purchasing is on, at least one must stay active, or every priced order would be released with no approver.";
     public const string PurchaseOrderRuleTypeFixed = "An approval rule cannot be moved to or from purchase orders. Add a new rule for the other type instead.";
 
+    // ----- Receiving against a purchase order (PL2.4) -----
+    public static string PurchaseOrderNotReceivable(string no, PurchaseOrderStatus status) => $"Purchase order {no} is {status}. Only an Approved purchase order can be received.";
+    public static string PurchaseOrderNothingToReceive(string no) => $"Purchase order {no} has nothing left to receive.";
+    public const string ReceiptModuleOff = "This receipt belongs to a purchase order, and the Purchasing module is off. Turn the module on to change it.";
+    public const string ReceiptNotLinked = "This receipt is not linked to a purchase order, so a line cannot name a purchase order line. Create the receipt from the purchase order instead.";
+    public const string ReceiptSupplierLocked = "The supplier of a receipt against a purchase order is the supplier of the order and cannot be changed.";
+    public const string ReceiptLineNeedsOrderLine = "Name the purchase order line this line receives (purchaseOrderLineNo).";
+    public static string ReceiptLineUnknownOrderLine(int lineNo, string orderNo) => $"Purchase order {orderNo} has no line {lineNo}.";
+    public static string ReceiptLineWrongProduct(int lineNo, string sku) => $"Purchase order line {lineNo} is for {sku}, not for this product.";
+    public static string ReceiptLineWrongUnit(int lineNo, string uomCode) => $"Purchase order line {lineNo} is ordered in {uomCode}; receive it in {uomCode}.";
+    public static string ReceiptLineOverReceipt(OverReceipt over, string sku, string uomCode) =>
+        $"Purchase order line {over.LineNo} ({sku}): {Quantity(over.Requested)} {uomCode} is more than remains. Remaining {Quantity(over.Remaining)} {uomCode} (ordered {Quantity(over.Ordered)}, received {Quantity(over.Received)}).";
+
     // ----- Stock -----
     public const string ReceiveQtyPositive = "Receive quantity must be positive.";
     public const string IssueQtyPositive = "Issue quantity must be positive.";

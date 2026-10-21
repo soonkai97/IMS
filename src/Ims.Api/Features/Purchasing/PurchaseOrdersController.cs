@@ -62,6 +62,21 @@ public class PurchaseOrdersController(IDispatcher dispatcher) : ApiControllerBas
     [ProducesResponseType<PurchaseOrderDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Cancel(Guid id, [FromBody] CancelRequest body) => SendOrder(new CancelPurchaseOrderCommand(id, body, IfMatch));
 
+    /// <summary>
+    /// Creates the Draft receipt of an Approved order: the order's warehouse and supplier, one line for every order line that still has something to receive, with the quantity that remains,
+    /// the order's unit and the order's price (a caller without <c>cost.view</c> gets the receipt without prices, but the stock is valued at them). Each line names its order line in
+    /// <c>purchaseOrderLineNo</c>. The receipt is then saved, submitted and posted like any other (<c>/api/documents</c>); the link never changes. The door is <c>document.create</c>; the order must be
+    /// readable (<c>po.read</c>, checked in the command). 409 when the order is not Approved or has nothing left to receive. The order lists its receipts and what remains.
+    /// </summary>
+    [HttpPost(RouteSegments.Receipt), Authorize(Policy = Permissions.DocumentCreate)]
+    [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> CreateReceipt(Guid id)
+    {
+        var receipt = await Send(new CreateReceiptFromPurchaseOrderCommand(id));
+        Response.Headers[HeaderNames.ETag] = $"\"{receipt.ConcurrencyToken}\"";
+        return Ok(receipt);
+    }
+
     /// <summary>The concurrency token the client last saw; required on every write (a missing header is 428, see <see cref="IfMatchHeader"/>).</summary>
     private string? IfMatch => IfMatchHeader.Read(Request, required: true);
 

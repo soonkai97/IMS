@@ -3088,6 +3088,64 @@ export class PurchaseOrdersClient {
         }
         return _observableOf(null as any);
     }
+
+    /**
+     * Creates the Draft receipt of an Approved order: the order's warehouse and supplier, one line for every order line that still has something to receive, with the quantity that remains,
+    the order's unit and the order's price (a caller without `cost.view` gets the receipt without prices, but the stock is valued at them). Each line names its order line in
+    `purchaseOrderLineNo`. The receipt is then saved, submitted and posted like any other (`/api/documents`); the link never changes. The door is `document.create`; the order must be
+    readable (`po.read`, checked in the command). 409 when the order is not Approved or has nothing left to receive. The order lists its receipts and what remains.
+     * @return OK
+     */
+    createReceipt(id: string, httpContext?: HttpContext): Observable<DocumentDto> {
+        let url_ = this.baseUrl + "/api/purchase-orders/{id}/receipt";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processCreateReceipt(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processCreateReceipt(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<DocumentDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<DocumentDto>;
+        }));
+    }
+
+    protected processCreateReceipt(response: HttpResponseBase): Observable<DocumentDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as DocumentDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
 }
 
 @Injectable({
@@ -5504,6 +5562,7 @@ export interface DocumentDto {
     allowedActions: string[];
     /** While the document is Submitted or Approved and an approval rule held it back: which thresholds it reaches (value or quantity), for the approver and the "sent for approval" message. Empty otherwise, and when only a negative-stock override (`requiresOverride`) sent it to approval. */
     approvalTriggers: ApprovalTriggerDto[];
+    purchaseOrder?: LinkedPurchaseOrder | undefined;
     /** True for an issue that has not posted yet: its lines carry the average cost seen when it was last saved or submitted, and posting books the real cost. Label the amount "estimated". */
     amountIsEstimate: boolean;
     /** Changes whenever the document (header, status or lines) changes; opaque (a keyed hash bound to this document, not a counter): compare it only for equality. Also sent as the ETag header; send it back as If-Match to refuse a stale save. */
@@ -5529,6 +5588,8 @@ export interface DocumentLineDto {
     remark: string | undefined;
     /** On hand in the document's warehouse right now, in base units (compare with `BaseQty`; lines of one product add up). Null once the document is Posted, Reversed or Cancelled, when the figure no longer says anything about this document. */
     available?: number | undefined;
+    /** On a receipt created from a purchase order: the order line this line receives (its `lineNo`); null otherwise, and omitted while the Purchasing module is off. Send it back unchanged when saving the draft. */
+    purchaseOrderLineNo?: number | undefined;
 }
 
 export interface DocumentLineInput {
@@ -5537,6 +5598,8 @@ export interface DocumentLineInput {
     uomId: string | undefined;
     unitCost: number | undefined;
     remark: string | undefined;
+    /** Only on a receipt created from a purchase order (`POST /api/purchase-orders/{id}/receipt`): the `lineNo` of the purchase order line this line receives. Every line of such a receipt must name one (a save without it is a 400 and the link is kept), the line's product and unit must be the order line's, and the quantities named for one order line must not exceed what remains of it. On any other document it must be left out (a 400 otherwise), and it is a 400 "not available" while the Purchasing module is off. The link itself is never sent and never changes: it is set when the receipt is created. */
+    purchaseOrderLineNo?: number | undefined;
 }
 
 export interface DocumentListItem {
@@ -5663,6 +5726,12 @@ export interface LedgerRow {
     user: string;
     /** What this product held in this warehouse right after the movement (the sum of its ledger up to and including this row, in base units). Only given when the ledger is read for one product (`productId`); null otherwise (a list of several products has no single running balance). Stored with the row when it is written (under the same lock that serialises the postings of the product in the warehouse), so reading any page, however deep, costs the same and the answer cannot be overtaken by a posting. */
     balanceAfter?: number | undefined;
+}
+
+/** The purchase order a receipt was created from: its id and number. Omitted while the Purchasing module is off. */
+export interface LinkedPurchaseOrder {
+    id: string;
+    no: string;
 }
 
 export interface LoginRequest {

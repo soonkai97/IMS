@@ -28,6 +28,9 @@ public sealed class PurchaseOrdersClient(ApiClient api)
     public Task<ApiResponse> UpdateAsync(Guid id, PurchaseOrderSaveRequest request, string? ifMatch = null) =>
         api.SendAsync(HttpMethod.Put, $"/api/purchase-orders/{id}", request, r => r.Headers.TryAddWithoutValidation("If-Match", Quote(ifMatch ?? "*")));
 
+    /// <summary>Creates the Draft receipt of an Approved order (no body, no If-Match: it makes a new document).</summary>
+    public Task<ApiResponse> CreateReceiptAsync(Guid id) => api.PostAsync($"/api/purchase-orders/{id}/receipt", null);
+
     private Task<ApiResponse> Send(HttpMethod method, string url, object? body, string? ifMatch) =>
         api.SendAsync(method, url, body, r => r.Headers.TryAddWithoutValidation("If-Match", Quote(ifMatch ?? "*")));
 

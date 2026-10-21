@@ -9,6 +9,7 @@ namespace Ims.Application.Features.Documents;
 /// <param name="RequiresApproval">An approval rule fired when the document was submitted (false for a Draft).</param>
 /// <param name="RequiresOverride">An issue was submitted although stock is short (negative stock is allowed): the approver must give a reason when approving, which forces approval whatever the value thresholds say. A fact about the moment of submission: it stays true after approval and posting; the stored reason is in <c>NegativeStockOverrideReason</c>.</param>
 /// <param name="NegativeStockOverrideReason">Why the approver let stock go below zero; set when a document that <c>requiresOverride</c> is approved, otherwise null.</param>
+/// <param name="PurchaseOrder">The purchase order this receipt was created from (id and number); null for every other document, and omitted while the Purchasing module is off. Set when the receipt is created and never changed.</param>
 /// <param name="ReversedAt">When a Reversed document was reversed, with <c>ReversedBy</c> and <c>ReversedByName</c> the user who did it ("Reversed by {name} on {date}"); null otherwise. <c>ReversalReason</c> holds why.</param>
 /// <param name="IsLarge">The approval rule that fired needs a role above Supervisor (for example the Owner).</param>
 /// <param name="IsReturned">A Draft that a reviewer sent back (<c>RejectionReason</c> holds why, <c>ReturnedBy*</c> who).</param>
@@ -31,7 +32,7 @@ public record DocumentDto(Guid Id, DocumentType Type, string No, DocumentStatus 
     Guid? ReturnedById, string? ReturnedBy, string? ReturnedByName, DateTime? ReturnedAt,
     decimal TotalQty, [property: VisibleWith(Permissions.CostView)] decimal? TotalAmount, IReadOnlyList<DocumentLineDto> Lines, IReadOnlyList<string> AllowedActions,
     IReadOnlyList<ApprovalTriggerDto> ApprovalTriggers, [property: JsonIgnore] byte[] RowVersion, [property: JsonIgnore] int WarehouseKey,
-    [property: JsonIgnore] int CreatedByKey, [property: JsonIgnore] int? SubmittedByKey)
+    [property: JsonIgnore] int CreatedByKey, [property: JsonIgnore] int? SubmittedByKey, LinkedPurchaseOrder? PurchaseOrder = null)
 {
     /// <summary>True for an issue that has not posted yet: its lines carry the average cost seen when it was last saved or submitted, and posting books the real cost. Label the amount "estimated".</summary>
     [Required]

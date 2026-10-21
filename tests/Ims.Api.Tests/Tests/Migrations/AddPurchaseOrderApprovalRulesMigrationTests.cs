@@ -30,7 +30,7 @@ public class AddPurchaseOrderApprovalRulesMigrationTests(ApiFixture fixture)
         FROM ApprovalRule WHERE DocType = 5
         """;
 
-    private static async Task MigrateAsync(TestDatabase database, string target)
+    private static async Task MigrateAsync(TestDatabase database, string? target)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(database.ConnectionString).Options;
         await using var db = new AppDbContext(options, new FrozenClock());
@@ -163,7 +163,7 @@ public class AddPurchaseOrderApprovalRulesMigrationTests(ApiFixture fixture)
         await Seeder.SeedAsync(fixture.Host.Services, development: true);
         Assert.Equal(2, await CountAsync(fixture.Database));
         await MigrateAsync(fixture.Database, Before);
-        await MigrateAsync(fixture.Database, Latest);
+        await MigrateAsync(fixture.Database, null); // to the newest, not to Latest: a later migration adds columns the rest of the suite reads
         Assert.Equal(Pair, await PairOfAsync(fixture.Database));
         Assert.Equal(SeedDefaults.PurchaseOrderStandardAmount, 5000m); // the constants the Seeder uses are the ones the migration freezes
         Assert.Equal(SeedDefaults.PurchaseOrderLargeAmount, 20000m);
@@ -179,7 +179,7 @@ public class AddPurchaseOrderApprovalRulesMigrationTests(ApiFixture fixture)
         (await admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, why)).ShouldBeProblem(System.Net.HttpStatusCode.Conflict); // and the module cannot be switched on
 
         await MigrateAsync(fixture.Database, Before);
-        await MigrateAsync(fixture.Database, Latest);
+        await MigrateAsync(fixture.Database, null);
 
         Assert.Equal(Pair, await PairOfAsync(fixture.Database));
         (await admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, why)).ShouldBeOk();
