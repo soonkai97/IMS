@@ -21,6 +21,15 @@ public class PurchaseOrdersController(IDispatcher dispatcher) : ApiControllerBas
     [ProducesResponseType<PagedResult<PurchaseOrderListItem>>(StatusCodes.Status200OK)]
     public Task<IActionResult> List([FromQuery] PurchaseOrderFilter filter) => SendOk(new ListPurchaseOrdersQuery(filter));
 
+    /// <summary>
+    /// What to order for one warehouse (AI-02 in its simplest form): the products low there (at or below safety stock, or negative), each topped up to twice its safety level less what is on hand and still on order
+    /// (the remaining quantity of the Draft, Submitted and Approved orders of that warehouse, in base units). Rows with nothing to order are not listed. Read-only: to order, create an order with the normal endpoint.
+    /// <c>suggestedValue</c> (at the warehouse's average cost) is null without <c>cost.view</c>. 404 for a warehouse that does not exist or that the caller may not read.
+    /// </summary>
+    [HttpGet(RouteSegments.Suggestions), Authorize(Policy = Permissions.PoRead)]
+    [ProducesResponseType<PagedResult<ReorderSuggestion>>(StatusCodes.Status200OK)]
+    public Task<IActionResult> Suggestions([FromQuery] ReorderFilter filter) => SendOk(new ListReorderSuggestionsQuery(filter));
+
     [HttpGet(ApiRoutes.PublicId), Authorize(Policy = Permissions.PoRead)]
     [ProducesResponseType<PurchaseOrderDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Get(Guid id) => SendOrder(new GetPurchaseOrderQuery(id));
