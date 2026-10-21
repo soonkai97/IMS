@@ -851,5 +851,14 @@ export const EN_MESSAGES = {
   'perm.po.manage.help': 'Create, change, submit, recall, cancel and close purchase orders.',
   'module.purchasing.name': 'Purchasing',
   'module.purchasing.description':
-    'Purchase orders for suppliers, approval of large orders, and receiving against an order.'
+    'Purchase orders for suppliers, approval of large orders, and receiving against an order.',
+  'po.lines': '{count, plural, one {Lines (1)} other {Lines (#)}}',
+  'po.receipts': '{count, plural, one {Receipts (1)} other {Receipts (#)}}',
+  'po.col.ordered': 'Ordered',
+  'po.col.received': 'Received',
+  'po.col.remaining': 'Remaining',
+  'po.col.price': 'Unit price ({currency})',
+  'po.history.closed': 'Closed',
+  'po.closedShort': 'Closed short',
+  'po.closedReceived': 'Fully received'
 } as const;

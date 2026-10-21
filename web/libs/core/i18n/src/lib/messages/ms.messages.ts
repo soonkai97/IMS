@@ -853,5 +853,15 @@ export const MS_MESSAGES: Messages = {
   'perm.po.manage.help': 'Cipta, ubah, hantar, tarik balik, batalkan dan tutup pesanan pembelian.',
   'module.purchasing.name': 'Pembelian',
   'module.purchasing.description':
-    'Pesanan pembelian kepada pembekal, kelulusan pesanan besar, dan penerimaan barang terhadap pesanan.'
+    'Pesanan pembelian kepada pembekal, kelulusan pesanan besar, dan penerimaan barang terhadap pesanan.',
+  // TODO-review: machine draft (PL2.7b: purchase order detail).
+  'po.lines': 'Barisan ({count})',
+  'po.receipts': 'Resit ({count})',
+  'po.col.ordered': 'Dipesan',
+  'po.col.received': 'Diterima',
+  'po.col.remaining': 'Baki',
+  'po.col.price': 'Harga seunit ({currency})',
+  'po.history.closed': 'Ditutup',
+  'po.closedShort': 'Ditutup tidak lengkap',
+  'po.closedReceived': 'Diterima sepenuhnya'
 };

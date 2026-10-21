@@ -1,0 +1,72 @@
+@use 'libs' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.po-detail-chips {
+  display: flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: space(0);
+}
+
+.po-detail-summary {
+  display: grid;
+  // min(): at 200% text 14rem is wider than a 320px phone.
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: space(2);
+  margin: 0;
+
+  dd {
+    margin: 0;
+    font-weight: font-weight('medium');
+    @include wrap-anywhere;
+  }
+
+  dt {
+    font-size: font-size(1);
+    color: color('text-muted');
+  }
+}
+
+.po-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+}
+
+.po-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: space(1);
+    align-items: center;
+    padding: space(1) space(2);
+    background: color('surface');
+    border: border-width('thin') solid color('border');
+    border-radius: border-radius('md');
+  }
+
+  > li > * {
+    @include wrap-anywhere;
+  }
+}
+
+.po-detail-history > li {
+  border-left: border-width('focus') solid color('border-strong');
+}
+
+.po-detail-muted {
+  font-size: font-size(2);
+  color: color('text-muted');
+}

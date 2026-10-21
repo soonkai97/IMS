@@ -1,0 +1,144 @@
+<app-page-header [heading]="$heading()" [backLink]="backLink" [backLabel]="'po.title' | t">
+  <div chips class="po-detail-chips">
+    @if ($order(); as order) {
+      <app-status-chip
+        [status]="tone[order.status]"
+        [label]="order.status | enumLabel: statusLabels"
+      />
+      @if (order.isReturned) {
+        <app-status-chip flag="warning" [label]="'doc.returned' | t" />
+      }
+      @if (order.isLarge) {
+        <app-status-chip flag="info" [label]="'doc.flag.large' | t" />
+      }
+    }
+  </div>
+</app-page-header>
+
+@if ($isLoading()) {
+  <app-skeleton [count]="4" />
+} @else if ($notFound()) {
+  <!-- The load call is flagged handledInline (no toast), so this page is the one announcement. -->
+  <div role="alert">
+    <app-empty-state icon="file" [message]="'notFound.body' | t">
+      <a class="ui-link-button --primary" routerLink="/">{{ 'system.goHome' | t }}</a>
+    </app-empty-state>
+  </div>
+} @else if ($loadFailed()) {
+  <app-banner kind="danger">
+    {{ $loadErrorMessage() || ('error.generic' | t) }}
+    <app-button bannerActions (clicked)="onRetryLoad()">{{ 'ui.retry' | t }}</app-button>
+  </app-banner>
+} @else if ($order(); as order) {
+  @if (order.isReturned) {
+    <app-banner kind="warning" [heading]="'doc.returnedBanner' | t: { name: $returnedBy() }">
+      {{ order.rejectionReason }}
+      @if (order.returnedAt) {
+        <span class="po-detail-muted">· {{ order.returnedAt | appDate }}</span>
+      }
+    </app-banner>
+  }
+  @if (order.cancelReason) {
+    <app-banner kind="info" [heading]="'doc.cancelledBanner' | t">{{
+      order.cancelReason
+    }}</app-banner>
+  }
+  @if ($closeText(); as closeText) {
+    <app-banner kind="info" [heading]="closeText | t">{{ order.closeReason }}</app-banner>
+  }
+
+  <dl class="po-detail-summary">
+    <div>
+      <dt>{{ 'doc.supplier' | t }}</dt>
+      <dd>{{ order.supplierName }}</dd>
+    </div>
+    <div>
+      <dt>{{ 'doc.warehouse' | t }}</dt>
+      <dd>{{ order.warehouseName }}</dd>
+    </div>
+    <div>
+      <dt>{{ 'doc.totalQty' | t }}</dt>
+      <dd>{{ order.totalQty | appQty }}</dd>
+    </div>
+    <ng-container *appCan="'cost.view'">
+      <div>
+        <dt>{{ 'doc.amount' | t }}</dt>
+        <dd>{{ order.totalAmount | appMoney }}</dd>
+      </div>
+    </ng-container>
+    <div>
+      <dt>{{ 'doc.createdBy' | t }}</dt>
+      <dd>{{ order.createdByName }} · {{ order.createdAt | appDate }}</dd>
+    </div>
+    <div>
+      <dt>{{ 'doc.remark' | t }}</dt>
+      <dd>{{ order.remark || '-' }}</dd>
+    </div>
+  </dl>
+
+  <section class="po-detail-section" aria-labelledby="po-lines-heading">
+    <h2 id="po-lines-heading">{{ 'po.lines' | t: { count: order.lines.length } }}</h2>
+    <app-table
+      [columns]="$lineColumns()"
+      [rows]="order.lines"
+      [caption]="'po.lines' | t: { count: order.lines.length }"
+    >
+      <ng-template appCell="qty" let-line>{{ line.qty | appQty }} {{ line.uomCode }}</ng-template>
+      <ng-template appCell="received" let-line>
+        {{ line.receivedQty | appQty }} {{ line.uomCode }}
+      </ng-template>
+      <ng-template appCell="remaining" let-line>
+        {{ line.remainingQty | appQty }} {{ line.uomCode }}
+      </ng-template>
+      <ng-template appCell="price" let-line>{{ line.unitPrice | appMoney }}</ng-template>
+      <ng-template appCell="amount" let-line>{{ line.amount | appMoney }}</ng-template>
+      <app-empty-state empty icon="list" [message]="'doc.noLines' | t" />
+    </app-table>
+  </section>
+
+  @if (order.receipts.length > 0) {
+    <section class="po-detail-section" aria-labelledby="po-receipts-heading">
+      <h2 id="po-receipts-heading">{{ 'po.receipts' | t: { count: order.receipts.length } }}</h2>
+      <ul class="po-detail-list">
+        @for (receipt of order.receipts; track receipt.id) {
+          <li>
+            @if ($canOpenReceipts()) {
+              <a [routerLink]="['/receipts', receipt.id]">{{ receipt.no }}</a>
+            } @else {
+              <strong>{{ receipt.no }}</strong>
+            }
+            <app-status-chip
+              [status]="receiptTone[receipt.status]"
+              [label]="receipt.status | enumLabel: receiptStatusLabels"
+            />
+            <span class="po-detail-muted">{{
+              receipt.postedAt ?? receipt.createdAt | appDate
+            }}</span>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <section class="po-detail-section" aria-labelledby="po-history-heading">
+    <h2 id="po-history-heading">{{ 'doc.tab.history' | t }}</h2>
+    <ol class="po-detail-list po-detail-history">
+      @for (event of $history(); track $index) {
+        <li>
+          <strong>{{ event.labelKey | t }}</strong>
+          @if (event.by) {
+            <span>{{ event.by }}</span>
+          }
+          @if (event.at) {
+            <span class="po-detail-muted">{{ event.at | appDate }}</span>
+          }
+          @if (event.reason) {
+            <span class="po-detail-muted">{{
+              'doc.history.reason' | t: { reason: event.reason }
+            }}</span>
+          }
+        </li>
+      }
+    </ol>
+  </section>
+}
