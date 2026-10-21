@@ -216,6 +216,7 @@ public static class Messages
     public const string PurchaseOrderApprovalNotNeeded = "This purchase order does not need approval.";
     public const string PurchaseOrderCancelReasonRequired = "A reason is required to cancel an approved purchase order.";
     public const string PurchaseOrderNeedsPoRead = "Reviewing or cancelling a purchase order needs the permission to read purchase orders.";
+    public const string PurchaseOrderNeedsPoManage = "Closing a purchase order needs the permission to manage purchase orders.";
     public const string PurchaseOrderOwnOnly = "You can only cancel purchase orders you created or submitted.";
     public const string PurchaseOrderOnlyReviewerCanCancelApproved = "Only an approver for this purchase order can cancel it after approval.";
     public const string PurchaseOrderOwnRecallOnly = "Only the person who submitted a purchase order can take it back to draft.";
@@ -235,6 +236,9 @@ public static class Messages
     public static string PurchaseOrderHasOpenReceipts(string no, string receiptNo, DocumentStatus receiptStatus, int count) =>
         $"Purchase order {no} cannot be closed while receipt {receiptNo} ({receiptStatus}) is waiting" + (count > 1 ? $" (and {count - 1} more)" : "") + ". Post or cancel it first.";
     public const string ReceiptCannotPostModuleOff = "This receipt belongs to a purchase order, and the Purchasing module is off. Turn the module on to post it.";
+    public static string PurchaseOrderNothingReceived(string no) => $"Nothing has been received against purchase order {no}, so it cannot be closed short. Cancel it instead.";
+    public const string ReceiptOrderNotOpen = "The purchase order of this receipt is no longer open for receiving.";
+    public const string ReceiptOverRemaining = "This receipt asks for more than the purchase order has left to receive.";
     public const string ReceiptNeedsPoRead = "This receipt belongs to a purchase order, so changing it needs the permission to read purchase orders.";
     public const string ReceiptModuleOff = "This receipt belongs to a purchase order, and the Purchasing module is off. Turn the module on to change it.";
     public const string ReceiptNotLinked = "This receipt is not linked to a purchase order, so a line cannot name a purchase order line. Create the receipt from the purchase order instead.";

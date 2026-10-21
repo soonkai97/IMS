@@ -39,15 +39,14 @@ public class PurchaseOrderApprovalViewTests(ApiFixture fixture) : IAsyncLifetime
         var approvedLarge = await _p.SubmittedWorthAsync(30000m);
         approvedLarge = (await _p.Owner.PurchaseOrders.ApproveAsync(approvedLarge.Id, approvedLarge.ConcurrencyToken)).Data<PurchaseOrderDto>();
         string[] none = [];
-        var close = DocumentActions.Close;
         var (edit, submit, cancel, recall, approve, reject) = (DocumentActions.Edit, DocumentActions.Submit, DocumentActions.Cancel, DocumentActions.Recall, DocumentActions.Approve, DocumentActions.Reject);
         var table = new (string State, PurchaseOrderDto Order, string[] Admin, string[] Owner, string[] Supervisor, string[] Clerk, string[] Staff)[]
         {
             ("draft", draft, [edit, submit, cancel], none, [edit, submit], [edit, submit, cancel], none),
             ("submitted standard", standard, [approve, reject], none, [approve, reject], [recall, cancel], none),
             ("submitted large", large, [approve, reject], [approve, reject], none, [recall, cancel], none),
-            ("approved by release", released, [cancel, close], none, [cancel, close], [close], none),
-            ("approved large", approvedLarge, [cancel, close], [cancel], [close], [close], none)
+            ("approved by release", released, [cancel], none, [cancel], none, none),
+            ("approved large", approvedLarge, [cancel], [cancel], none, none, none)
         };
 
         foreach (var (state, order, admin, owner, supervisor, clerk, staff) in table)

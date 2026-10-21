@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
 public class LinkedReceiptPosting(IReadRepository<PurchaseOrder> orders, IPurchaseOrderReceiving receiving, IModuleSwitches modules, ITransactionLocker locker, ICurrentUser current,
-    IClock clock, IAuditTrail audit) : ILinkedReceiptPosting, IAppService
+    IClock clock, IAuditTrail audit, ICallerPermissions caller) : ILinkedReceiptPosting, IAppService
 {
     public async Task<LinkedPosting?> BeforePostAsync(StockDocument document, CancellationToken ct)
     {
@@ -13,12 +13,14 @@ public class LinkedReceiptPosting(IReadRepository<PurchaseOrder> orders, IPurcha
         await locker.LockPurchaseOrderAsync(key, ct);
         if (!await modules.IsEnabledAsync(ModuleCodes.Purchasing, ct)) throw new ConflictException(Messages.ReceiptCannotPostModuleOff);
         var order = await orders.FirstOrDefaultAsync(new PurchaseOrderForReceiptSpec(key), ct) ?? throw new NotFoundException(Messages.PurchaseOrderNotFound);
-        if (!order.CanBeReceived) throw new ConflictException(Messages.PurchaseOrderNotReceivable(order.No, order.Status));
+        // The order's number, status and figures are shown to readers of purchase orders only (as when the receipt was made), so anyone else is refused in general words.
+        var mayRead = caller.Has(Permissions.PoRead);
+        if (!order.CanBeReceived) throw new ConflictException(mayRead ? Messages.PurchaseOrderNotReceivable(order.No, order.Status) : Messages.ReceiptOrderNotOpen);
 
         var received = await receiving.ReceivedAsync(key, ct);
         var thisReceipt = document.Lines.Where(l => l.PurchaseOrderLineNo is not null).Select(l => new ReceiptQuantity(l.PurchaseOrderLineNo!.Value, l.Qty, l.BaseQty)).ToList();
         var over = PurchaseOrderQuantities.OverReceipts(order.Lines, received, thisReceipt);
-        if (over.Count > 0) throw OverReceiptFor(order, over);
+        if (over.Count > 0) throw mayRead ? OverReceiptFor(order, over) : new ConflictException(Messages.ReceiptOverRemaining);
 
         var fullyReceived = order.Lines.All(line =>
             PurchaseOrderQuantities.Remaining(line.BaseQty, received.GetValueOrDefault(line.LineNo).BaseQty + thisReceipt.Where(q => q.LineNo == line.LineNo).Sum(q => q.BaseQty)) == 0m);

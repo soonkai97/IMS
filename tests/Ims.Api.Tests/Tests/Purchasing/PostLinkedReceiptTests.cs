@@ -31,10 +31,10 @@ public class PostLinkedReceiptTests(ApiFixture fixture) : IAsyncLifetime
     public Task DisposeAsync() => PurchasingScenario.ResetAsync(fixture);
 
     /// <summary>A Draft receipt of the order (made by the Clerk) with line 1 set to <paramref name="qty"/>, submitted by the Clerk; not posted.</summary>
-    private async Task<DocumentDto> SubmittedAsync(PurchaseOrderDto order, decimal qty, ProductDto? product = null, int lineNo = 1)
+    private async Task<DocumentDto> SubmittedAsync(PurchaseOrderDto order, decimal qty, ProductDto? product = null, int lineNo = 1, Guid? uomId = null)
     {
         var receipt = await _p.ReceiptFromAsync(order);
-        var saved = (await _p.Clerk.Documents.UpdateAsync(receipt.Id, Save(receipt, LineFor((product ?? _a).Id, qty, lineNo)), receipt.ConcurrencyToken)).Data<DocumentDto>();
+        var saved = (await _p.Clerk.Documents.UpdateAsync(receipt.Id, Save(receipt, LineFor((product ?? _a).Id, qty, lineNo, uomId: uomId)), receipt.ConcurrencyToken)).Data<DocumentDto>();
         return await _p.Stock.SubmitAsync(_p.Clerk, saved);
     }
 
@@ -143,9 +143,11 @@ public class PostLinkedReceiptTests(ApiFixture fixture) : IAsyncLifetime
 
             var results = await Concurrently.RunAsync<ApiResponse>([() => PostAsync(one), () => PostAsync(two), () => PostAsync(issue), () => _p.Admin.PurchaseOrders.CreateReceiptAsync(order.Id)]);
 
-            Assert.All(results, r => Assert.True(r.StatusCode is 200 or 409, $"round {round}: {r.StatusCode} {r.Body}")); // no 500 from a deadlock
+            // The three posts have nothing to fight over in the books (5 of 10 on different order lines, 1 of 1000 in stock): every one must succeed, and so must the new receipt. A 409 or a 500 fails the round.
+            Assert.All(results, r => Assert.True(r.IsSuccess, $"round {round}: {r.StatusCode} {r.Body}"));
             Assert.Equal(await _p.Stock.LedgerSumAsync(p.Id, _p.Warehouse), await _p.Stock.OnHandAsync(p.Id, _p.Warehouse));
             Assert.Equal(await _p.Stock.LedgerSumAsync(q.Id, _p.Warehouse), await _p.Stock.OnHandAsync(q.Id, _p.Warehouse));
+            Assert.Equal(1000m + 5m * (round + 1) - 1m * (round + 1), await _p.Stock.OnHandAsync(p.Id, _p.Warehouse)); // the expected total moved, not just ledger = balance
         }
     }
 
@@ -225,5 +227,66 @@ public class PostLinkedReceiptTests(ApiFixture fixture) : IAsyncLifetime
         (await _p.Supervisor.Documents.PostAsync(farReceipt.Id)).ShouldBe(HttpStatusCode.NotFound); // the Supervisor works in the default warehouse only
 
         (await PostAsync(submitted)).ShouldBeOk();
+    }
+
+    [Fact]
+    public async Task An_over_receipt_in_cartons_is_judged_in_pieces_and_reported_in_cartons()
+    {
+        var carton = (await _p.Admin.Units.CreateAsync(Unique.Code("CT"), "Carton")).Data<UomDto>();
+        var product = await _p.NewProductAsync(customize: b => b.WithConversion(carton.Id, 12m));
+        var order = await _p.ApprovedAsync((product.Id, 10m, 24m, carton.Id));
+        var first = await SubmittedAsync(order, 6m, product, uomId: carton.Id);
+        var second = await SubmittedAsync(order, 5m, product, uomId: carton.Id);
+        await _p.Stock.CompleteAsync(first); // 72 pieces in
+
+        var refused = await PostAsync(second); // 5 cartons = 60 pieces, 48 left
+
+        var problem = refused.ShouldBeProblem(HttpStatusCode.Conflict);
+        Assert.Contains($"5 {carton.Code} is more than remains. Remaining 4 {carton.Code}", problem.Detail);
+        Assert.Contains("ordered 10", problem.Detail);
+        Assert.Contains("received 6", problem.Detail);
+        using var body = refused.Json();
+        var line = body.RootElement.GetProperty("lines").EnumerateArray().Single();
+        Assert.Equal((10m, 6m, 4m, 5m), (line.GetProperty("ordered").GetDecimal(), line.GetProperty("received").GetDecimal(), line.GetProperty("remaining").GetDecimal(), line.GetProperty("requested").GetDecimal())); // cartons, not pieces
+        Assert.Equal(72m, await _p.Stock.OnHandAsync(product.Id, order.WarehouseId));
+
+        // 4 cartons (48 pieces) is exactly what remains: it posts and closes the order
+        var smaller = (await _p.Clerk.Documents.RecallAsync(second.Id, (await _p.Stock.GetAsync(second.Id)).ConcurrencyToken)).Data<DocumentDto>();
+        var saved = (await _p.Clerk.Documents.UpdateAsync(smaller.Id, Save(smaller, LineFor(product.Id, 4m, 1, uomId: carton.Id)), smaller.ConcurrencyToken)).Data<DocumentDto>();
+        await _p.Stock.CompleteAsync(await _p.Stock.SubmitAsync(_p.Clerk, saved));
+        Assert.Equal((PurchaseOrderStatus.Closed, 120m), ((await _p.ReadAsync(order.Id)).Status, await _p.Stock.OnHandAsync(product.Id, order.WarehouseId)));
+    }
+
+    [Fact]
+    public async Task A_caller_without_po_read_is_refused_in_general_words_with_no_order_number_status_or_figures_at_posting_and_at_submit()
+    {
+        var order = await _p.ApprovedAsync((_a.Id, 10m, 2m, null));
+        var (first, second) = (await SubmittedAsync(order, 6m), await SubmittedAsync(order, 6m));
+        var waiting = await _p.ReceiptFromAsync(order); // prefilled with all 10; made by the Clerk, who holds po.read
+        await _p.Stock.CompleteAsync(first);
+        var noPoRead = fixture.CreateClient(ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Admin, permissions: PermissionCatalog.Codes.Except([Permissions.PoRead])));
+
+        var over = await noPoRead.Documents.PostAsync(second.Id);
+
+        Assert.Equal(Messages.ReceiptOverRemaining, over.ShouldBeProblem(HttpStatusCode.Conflict).Detail);
+        using (var body = over.Json())
+        {
+            Assert.False(body.RootElement.TryGetProperty("lines", out _));
+            Assert.False(body.RootElement.TryGetProperty("code", out _));
+        }
+        Assert.DoesNotContain(order.No, over.Body);
+        Assert.DoesNotContain(_a.Sku, over.Body);
+        Assert.Equal(DocumentStatus.Submitted, (await _p.Stock.GetAsync(second.Id)).Status);
+
+        var atSubmit = await noPoRead.Documents.SubmitAsync(waiting.Id, waiting.ConcurrencyToken);
+        Assert.Equal(Messages.ReceiptOverRemaining, atSubmit.ShouldBeProblem(HttpStatusCode.Conflict).Detail);
+        Assert.DoesNotContain(order.No, atSubmit.Body);
+
+        await _p.SetStatusAsync(order, PurchaseOrderStatus.Closed);
+        var notOpen = await noPoRead.Documents.PostAsync(second.Id);
+        Assert.Equal(Messages.ReceiptOrderNotOpen, notOpen.ShouldBeProblem(HttpStatusCode.Conflict).Detail);
+        Assert.DoesNotContain(order.No, notOpen.Body);
+        // a reader of purchase orders still gets the full sentence
+        Assert.Equal(Messages.PurchaseOrderNotReceivable(order.No, PurchaseOrderStatus.Closed), (await PostAsync(second)).ShouldBeProblem(HttpStatusCode.Conflict).Detail);
     }
 }

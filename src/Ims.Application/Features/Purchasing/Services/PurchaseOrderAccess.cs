@@ -28,6 +28,13 @@ public class PurchaseOrderAccess(ICurrentUser current) : IPurchaseOrderAccess, I
             throw new ForbiddenException(order.Status == PurchaseOrderStatus.Approved ? Messages.PurchaseOrderOnlyReviewerCanCancelApproved : Messages.PurchaseOrderOwnOnly);
     }
 
+    public void EnsureMayClose(PurchaseOrder order, bool anythingReceived)
+    {
+        if (order.Status != PurchaseOrderStatus.Approved) return; // the state machine refuses it and names the status
+        if (PurchaseOrderActionPolicy.MayClose(current.Rights(), order.ActionContext with { AnythingReceived = anythingReceived })) return;
+        throw current.Rights().Has(Permissions.PoManage) ? new ConflictException(Messages.PurchaseOrderNothingReceived(order.No)) : new ForbiddenException(Messages.PurchaseOrderNeedsPoManage);
+    }
+
     public void EnsureMayRecall(PurchaseOrder order)
     {
         // Whoever submitted it. Once recalled an order no longer names its submitter, so the person who made the Draft or last changed it (the recall itself did) counts too:
@@ -40,7 +47,7 @@ public class PurchaseOrderAccess(ICurrentUser current) : IPurchaseOrderAccess, I
 
 
     public IReadOnlyList<string> AllowedActions(PurchaseOrderDto o, SystemSettings settings, bool withinApprovalLimit) =>
-        PurchaseOrderActionPolicy.AllowedActions(current.Rights(), new PurchaseOrderActionContext(o.Status, o.RequiresApproval, o.IsLarge, o.CreatedByKey, o.SubmittedByKey),
+        PurchaseOrderActionPolicy.AllowedActions(current.Rights(), new PurchaseOrderActionContext(o.Status, o.RequiresApproval, o.IsLarge, o.CreatedByKey, o.SubmittedByKey, o.Lines.Any(l => l.ReceivedBaseQty > 0m)),
             settings.AllowSelfApproval, withinApprovalLimit);
 
     public bool CanAct(PurchaseOrderListItem item, SystemSettings settings) =>

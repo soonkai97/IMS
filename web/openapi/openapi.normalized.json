@@ -6872,6 +6872,7 @@
           },
           "closeReason": {
             "type": "string",
+            "description": "Why a person closed the order short (5 or more characters); null for any other order.",
             "nullable": true
           },
           "totalQty": {

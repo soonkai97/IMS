@@ -11,8 +11,8 @@ public class PurchaseOrderActionPolicyTests
 
     private static ActorRights Rights(string role) => SystemRoleDefaults.RightsFor(role, Me);
 
-    private static PurchaseOrderActionContext Order(PurchaseOrderStatus status, bool requiresApproval = false, bool isLarge = false, int createdBy = SomeoneElse, int? submittedBy = SomeoneElse) =>
-        new(status, requiresApproval, isLarge, createdBy, submittedBy);
+    private static PurchaseOrderActionContext Order(PurchaseOrderStatus status, bool requiresApproval = false, bool isLarge = false, int createdBy = SomeoneElse, int? submittedBy = SomeoneElse, bool anythingReceived = false) =>
+        new(status, requiresApproval, isLarge, createdBy, submittedBy, anythingReceived);
 
     private static string[] Actions(string role, PurchaseOrderActionContext order, bool allowSelf = false, bool withinLimit = true) =>
         PurchaseOrderActionPolicy.AllowedActions(Rights(role), order, allowSelf, withinLimit).Order().ToArray();
@@ -121,7 +121,7 @@ public class PurchaseOrderActionPolicyTests
         Assert.DoesNotContain(DocumentActions.Cancel, theirs);
     }
 
-    // ----- Approved: only the reviewers it is routed to cancel it; any po.manage holder closes it short (PL2.5); nobody recalls or edits -----
+    // ----- Approved: only the reviewers it is routed to cancel it; nobody recalls or edits; close short is offered only once something was received (PL2.5) -----
     [Theory]
     [InlineData(Roles.Admin, false, true)]
     [InlineData(Roles.Admin, true, true)]
@@ -131,9 +131,24 @@ public class PurchaseOrderActionPolicyTests
     [InlineData(Roles.Owner, true, true)]
     [InlineData(Roles.Clerk, false, false)]
     [InlineData(Roles.WarehouseStaff, true, false)]
-    public void An_approved_order_is_cancelled_only_by_a_reviewer_of_its_tier_and_closed_short_by_a_manager(string role, bool isLarge, bool mayCancel)
+    public void An_approved_order_with_nothing_received_is_cancelled_only_by_a_reviewer_of_its_tier_and_is_never_closed_short(string role, bool isLarge, bool mayCancel)
     {
         var actions = Actions(role, Order(PurchaseOrderStatus.Approved, requiresApproval: true, isLarge: isLarge));
+
+        Assert.Equal(mayCancel ? Sorted(DocumentActions.Cancel) : [], actions); // cancel authority stays the only way to void an order
+    }
+
+    [Theory]
+    [InlineData(Roles.Admin, false, true)]
+    [InlineData(Roles.Supervisor, false, true)]
+    [InlineData(Roles.Supervisor, true, false)]
+    [InlineData(Roles.Owner, false, false)]
+    [InlineData(Roles.Owner, true, true)]
+    [InlineData(Roles.Clerk, false, false)]
+    [InlineData(Roles.WarehouseStaff, true, false)]
+    public void Once_something_is_received_any_po_manage_holder_may_close_the_order_short_and_cancel_is_unchanged(string role, bool isLarge, bool mayCancel)
+    {
+        var actions = Actions(role, Order(PurchaseOrderStatus.Approved, requiresApproval: true, isLarge: isLarge, anythingReceived: true));
 
         var mayClose = role is Roles.Admin or Roles.Supervisor or Roles.Clerk; // po.manage
         var expected = new List<string>();
@@ -143,12 +158,13 @@ public class PurchaseOrderActionPolicyTests
     }
 
     [Fact]
-    public void An_order_released_at_once_is_standard_so_a_supervisor_cancels_it_and_its_clerk_maker_can_only_close_it()
+    public void An_order_released_at_once_is_standard_so_a_supervisor_cancels_it_and_its_clerk_maker_cannot()
     {
         var released = Order(PurchaseOrderStatus.Approved, requiresApproval: false, createdBy: Me, submittedBy: Me);
 
-        Assert.Equal(Sorted(DocumentActions.Cancel, DocumentActions.Close), Actions(Roles.Supervisor, released));
-        Assert.Equal(Sorted(DocumentActions.Close), Actions(Roles.Clerk, released));
+        Assert.Equal(Sorted(DocumentActions.Cancel), Actions(Roles.Supervisor, released));
+        Assert.Empty(Actions(Roles.Clerk, released));
+        Assert.Equal(Sorted(DocumentActions.Close), Actions(Roles.Clerk, released with { AnythingReceived = true })); // the clerk who made it closes it short once something came in
     }
 
     [Theory]

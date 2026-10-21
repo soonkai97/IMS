@@ -11,6 +11,7 @@ public static class ProblemExtensions
     public const string Code = "code";
     /// <summary>The products a blocked reversal would push below zero.</summary>
     public const string Shortages = "shortages";
+    /// <summary>The order lines an over-receipt (409 <c>over_receipt</c>) would take too much of: line number, sku, ordered, received, remaining and requested quantity in the order line's unit. Quantities only, and only for a caller who may read purchase orders.</summary>
     public const string OverReceiptLines = "lines";
     /// <summary>Display name of the user who last changed a document that went stale, and when (UTC).</summary>
     public const string ChangedBy = "changedBy";

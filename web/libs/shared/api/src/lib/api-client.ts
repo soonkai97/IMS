@@ -6110,6 +6110,7 @@ export interface PurchaseOrderDto {
     /** When a Closed order was closed; null otherwise. */
     closedAt: string | undefined;
     closeKind: PurchaseOrderCloseKind | undefined;
+    /** Why a person closed the order short (5 or more characters); null for any other order. */
     closeReason: string | undefined;
     /** The total base quantity: what a quantity rule of the approval rules is tested against. */
     totalQty: number;

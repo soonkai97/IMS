@@ -9,11 +9,12 @@ namespace Ims.Application.Features.Purchasing;
 /// <param name="IsLarge">The rule that fired needs the large tier (the Owner), not a Supervisor.</param>
 /// <param name="IsReturned">A Draft that a reviewer sent back (<c>RejectionReason</c> holds why, <c>ReturnedBy*</c> who).</param>
 /// <param name="ApprovedBy">Who approved it; null for an order released at once (no rule fired): it is Approved with no approver, and <c>approvedAt</c> is when it was released.</param>
+/// <param name="CloseReason">Why a person closed the order short (5 or more characters); null for any other order.</param>
 /// <param name="ClosedAt">When a Closed order was closed; null otherwise.</param>
 /// <param name="CloseKind">How it was closed: <c>Received</c> (the last quantity was received, by posting) or <c>Short</c> (a person closed it with <c>closeReason</c>). Null while not Closed.</param>
 /// <param name="TotalQty">The total base quantity: what a quantity rule of the approval rules is tested against.</param>
 /// <param name="TotalAmount">The sum of the line amounts, in money. Null for a caller without <c>cost.view</c>.</param>
-/// <param name="AllowedActions">What the caller may do right now (edit, submit, recall, approve, reject, cancel). The UI shows buttons from this list only. It already accounts for ownership, the approver the order is routed to (the Owner reviews only <c>isLarge</c> orders, a Supervisor the rest) and self-approval, so a listed action is one the API will accept.</param>
+/// <param name="AllowedActions">What the caller may do right now (edit, submit, recall, approve, reject, cancel, close). <c>close</c> (close short) is offered on an Approved order to a holder of <c>po.manage</c> only once something has been received; with nothing received the order is cancelled instead. The UI shows buttons from this list only. It already accounts for ownership, the approver the order is routed to (the Owner reviews only <c>isLarge</c> orders, a Supervisor the rest) and self-approval, so a listed action is one the API will accept.</param>
 /// <param name="ApprovalTriggers">While the order is Submitted, or Approved after a rule held it: which thresholds it reaches. The amounts are null for a caller without <c>cost.view</c>. Empty otherwise.</param>
 /// <param name="RowVersion">Source of <see cref="ConcurrencyToken"/>; not part of the JSON.</param>
 /// <param name="Key">The integer key of the order, to look its receipts up; not part of the JSON.</param>

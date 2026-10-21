@@ -22,16 +22,27 @@ public class ReceiptLinkRules(IReadRepository<PurchaseOrder> orders, IPurchaseOr
         if (draft.PurchaseOrderId is not { } key) return;
         if (!await modules.IsEnabledAsync(ModuleCodes.Purchasing, ct)) throw new ConflictException(Messages.ReceiptModuleOff);
         var order = await orders.FirstOrDefaultAsync(new PurchaseOrderForReceiptSpec(key), ct) ?? throw new NotFoundException(Messages.PurchaseOrderNotFound);
-        if (!order.CanBeReceived) throw new ConflictException(Messages.PurchaseOrderNotReceivable(order.No, order.Status));
-        await EnsureWithinRemainingAsync(order, draft.Lines.ToList(), ct);
+        // The order's number, status and figures are shown to readers of purchase orders only: anyone else is refused in general words (the same rule as at posting).
+        var mayRead = caller.Has(Permissions.PoRead);
+        if (!order.CanBeReceived) throw new ConflictException(mayRead ? Messages.PurchaseOrderNotReceivable(order.No, order.Status) : Messages.ReceiptOrderNotOpen);
+        var lines = draft.Lines.ToList();
+        var over = await OverAsync(order, lines, ct);
+        if (over.Count == 0) return;
+        if (!mayRead) throw new ConflictException(Messages.ReceiptOverRemaining);
+        throw OverReceiptsError(order, lines, over);
     }
 
     public async Task EnsureWithinRemainingAsync(PurchaseOrder order, IReadOnlyList<StockDocumentLine> lines, CancellationToken ct)
     {
-        var received = await receiving.ReceivedAsync(order.Id, ct);
-        var over = PurchaseOrderQuantities.OverReceipts(order.Lines, received, lines.Select(l => new ReceiptQuantity(l.PurchaseOrderLineNo!.Value, l.Qty, l.BaseQty)));
-        if (over.Count == 0) return;
+        var over = await OverAsync(order, lines, ct);
+        if (over.Count > 0) throw OverReceiptsError(order, lines, over);
+    }
 
+    private async Task<IReadOnlyList<OverReceipt>> OverAsync(PurchaseOrder order, IReadOnlyList<StockDocumentLine> lines, CancellationToken ct) =>
+        PurchaseOrderQuantities.OverReceipts(order.Lines, await receiving.ReceivedAsync(order.Id, ct), lines.Select(l => new ReceiptQuantity(l.PurchaseOrderLineNo!.Value, l.Qty, l.BaseQty)));
+
+    private static ValidationException OverReceiptsError(PurchaseOrder order, IReadOnlyList<StockDocumentLine> lines, IReadOnlyList<OverReceipt> over)
+    {
         var errors = new Dictionary<string, string[]>();
         foreach (var o in over)
         {
@@ -39,6 +50,6 @@ public class ReceiptLinkRules(IReadRepository<PurchaseOrder> orders, IPurchaseOr
             var firstIndex = lines.ToList().FindIndex(l => l.PurchaseOrderLineNo == o.LineNo);
             errors[ErrorKeys.Normalize($"Data.Lines[{firstIndex}].Qty")] = [Messages.ReceiptLineOverReceipt(o, orderLine.Product.Sku, orderLine.Uom.Code)];
         }
-        throw new ValidationException(errors.First().Value[0], errors);
+        return new ValidationException(errors.First().Value[0], errors);
     }
 }
