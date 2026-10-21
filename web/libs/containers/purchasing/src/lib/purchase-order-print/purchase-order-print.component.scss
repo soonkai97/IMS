@@ -84,6 +84,15 @@
     font-variant-numeric: tabular-nums;
   }
 
+  tr {
+    break-inside: avoid;
+  }
+
+  // Not a repeating footer: the total is printed once, after the last line.
+  tfoot {
+    display: table-row-group;
+  }
+
   tfoot th,
   tfoot td {
     font-weight: font-weight('bold');

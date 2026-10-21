@@ -600,7 +600,7 @@ test.describe('Purchase orders, real API', () => {
       '12'
     );
     await expect(page.getByRole('spinbutton', { name: `Unit price of ${data.sku}` })).toHaveValue(
-      '0'
+      ''
     );
     await expect(page.getByText('NO-SUCH-SKU')).toHaveCount(0);
     await page.getByRole('button', { name: 'Save draft' }).click();
@@ -623,10 +623,11 @@ test.describe('Purchase orders, real API', () => {
     await expect(main.getByRole('heading', { level: 1 })).toHaveText(`Purchase order ${order.no}`);
     await expect(main).toContainText(data.supplier.name);
     await expect(main).toContainText('Main warehouse');
-    await expect(main).toContainText(/\d{2}\/\d{2}\/\d{4}/);
+    await expect(main).toContainText(/Date: \d{2}\/\d{2}\/\d{4}/);
     const line = page.getByRole('row').filter({ hasText: data.sku });
-    await expect(line).toContainText('10');
-    await expect(line).toContainText('PCS');
+    // The cells: no., code, product, quantity, unit, unit price, amount.
+    await expect(line.getByRole('cell').nth(3)).toHaveText('10');
+    await expect(line.getByRole('cell').nth(4)).toHaveText('PCS');
     await expect(line).toContainText('600.00');
     await expect(page.locator('tfoot')).toContainText('6,000.00');
     for (const internal of ['History', 'Created by', 'Submitted', 'Approved by', 'Reason']) {
@@ -644,6 +645,12 @@ test.describe('Purchase orders, real API', () => {
     const pdf = (await page.pdf({ preferCSSPageSize: true })).toString('latin1');
     expect(pdf.match(/MediaBox \[0 0 59[45]\.\d+ 84[12]\.\d+\]/g)).toHaveLength(1);
     await page.emulateMedia({ media: 'screen', colorScheme: null });
+
+    // A deep link to an order that is not approved is no supplier copy.
+    const draft = await createOrder(data.supplier.id, data.productId, NEEDS_APPROVAL);
+    await goTo(page, `/purchase-orders/${draft.id}/print`);
+    await expect(page.getByText('Only an approved or closed order can be printed.')).toBeVisible();
+    await command('clerk', draft.id, 'cancel');
   });
 
   test('given Warehouse staff (no cost.view), then there is no Print link and the print address is the forbidden page; an id that is no GUID is not found with no request', async ({

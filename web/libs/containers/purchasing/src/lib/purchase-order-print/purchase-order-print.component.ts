@@ -13,7 +13,7 @@ import { RouterLink } from '@angular/router';
 import { handledInline } from '@ims/core/http';
 import { AppDatePipe, AppMoneyPipe, AppQtyPipe, I18nService, TranslatePipe } from '@ims/core/i18n';
 import { PageTitleService } from '@ims/core/navigation';
-import { PURCHASE_ORDER_ROUTE, PurchaseOrdersStore } from '@ims/features/purchasing';
+import { PURCHASE_ORDER_ROUTE, PurchaseOrdersStore, isPrintable } from '@ims/features/purchasing';
 import { API_ERROR_KIND } from '@ims/models';
 import {
   UiBannerComponent,
@@ -67,6 +67,11 @@ export class PurchaseOrderPrintPageComponent {
   readonly $isLoading = computed(
     () => this.store.detail.$isLoading() && this.$order() === undefined
   );
+  /** A deep link must not print a Draft, a Submitted or a Cancelled order as a clean supplier copy. */
+  readonly $printable = computed(() => {
+    const order = this.$order();
+    return order !== undefined && isPrintable(order.status);
+  });
   /** Not a GUID (an old bookmark): no request is made at all. */
   readonly $notFound = computed(
     () =>

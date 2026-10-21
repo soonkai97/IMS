@@ -15,7 +15,7 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { filter, map, startWith, tap } from 'rxjs';
+import { EMPTY, catchError, concatMap, filter, from, map, startWith, tap } from 'rxjs';
 import { DocumentType, PartnerType } from '@ims/api';
 import { PickedProduct, ProductPickerComponent } from '@ims/containers/catalog-shared';
 import { handledInline } from '@ims/core/http';
@@ -336,6 +336,10 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
   });
 
   constructor() {
+    // The two stores outlive this page and a sign-out: what another screen or user left in them (customers, inactive partners,
+    // another warehouse scope) must not be what the entry link is checked against.
+    this.partners.list.reset();
+    this.warehouses.list.reset();
     this.partners.loadActive(PartnerType.Supplier);
     this.warehouses.ensureLoaded();
     this.destroyRef.onDestroy(() => this.pageTitle.setDetail(undefined));
@@ -430,8 +434,7 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
   /** The line of this product gets `qty` more, or a new line starts at `qty`; undefined = the order is full. */
   private addProduct(
     product: Parameters<typeof lineFromProduct>[0],
-    qty: number,
-    unitCost: number | null = null
+    qty: number
   ): { increased: boolean; qty: number } | undefined {
     const existing = this.lines.controls.find(
       group => group.controls.productId.value === product.id
@@ -448,8 +451,7 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
     this.lines.push(
       createLineGroup({
         ...lineFromProduct(product, this.catalog.$unitCodes(), null),
-        qty,
-        unitCost
+        qty
       })
     );
     this.lines.markAsDirty();
@@ -470,15 +472,19 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
     if (this.$isEdit()) {
       return;
     }
-    // Lines of the entry link start at price 0.00 (a draft may hold it; submitting asks for the real one).
-    for (const link of parsePrefillLines(this.$lineParam())) {
-      this.products
-        .lookup(link.sku)
-        .pipe(
-          filter(result => result.found && result.product?.isActive === true),
-          takeUntilDestroyed(this.destroyRef)
-        )
-        .subscribe(result => result.product && this.addProduct(result.product, link.qty, 0));
-    }
+    // Lines of the entry link have a blank price (sent as 0.00; the box shows what is still to fill in).
+    // One lookup at a time, in the order of the link; a failed one is skipped (the error interceptor has said it once).
+    from(parsePrefillLines(this.$lineParam()))
+      .pipe(
+        concatMap(link =>
+          this.products.lookup(link.sku).pipe(
+            filter(result => result.found && result.product?.isActive === true),
+            map(result => ({ product: result.product, qty: link.qty })),
+            catchError(() => EMPTY)
+          )
+        ),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(({ product, qty }) => product && this.addProduct(product, qty));
   }
 }

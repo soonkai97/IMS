@@ -240,8 +240,10 @@ describe('PurchaseOrderDetailPageComponent', () => {
       await render(order({ status: PurchaseOrderStatus.Approved }));
       expect(printLink()?.getAttribute('href')).toBe(`/purchase-orders/${ID}/print`);
 
-      await render(order({ status: PurchaseOrderStatus.Draft }));
-      expect(printLink()).toBeNull();
+      for (const status of [PurchaseOrderStatus.Draft, PurchaseOrderStatus.Cancelled]) {
+        await render(order({ status }));
+        expect(printLink()).toBeNull();
+      }
 
       granted.clear();
       await render(order({ status: PurchaseOrderStatus.Approved }));

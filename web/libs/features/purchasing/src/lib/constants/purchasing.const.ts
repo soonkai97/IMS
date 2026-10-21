@@ -18,6 +18,10 @@ export const PO_ACTION = {
 
 export type PoAction = (typeof PO_ACTION)[keyof typeof PO_ACTION];
 
+/** The supplier copy is for an order that was approved (and one that was then closed): not for a Draft, Submitted or Cancelled one. */
+export const isPrintable = (status: PurchaseOrderStatus): boolean =>
+  status === PurchaseOrderStatus.Approved || status === PurchaseOrderStatus.Closed;
+
 export const PO_STATUS_TONE: Readonly<Record<PurchaseOrderStatus, StatusTone>> = {
   [PurchaseOrderStatus.Draft]: 'draft',
   [PurchaseOrderStatus.Submitted]: 'submitted',

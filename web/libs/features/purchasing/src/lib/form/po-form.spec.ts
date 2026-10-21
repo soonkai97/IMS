@@ -56,7 +56,20 @@ describe('parsePrefillLines', () => {
 
   it('drops empty parts, quantities the API would refuse, repeated codes and anything past the cap', () => {
     expect(
-      parsePrefillLines(['', '|3', 'A|0', 'B|-1', 'C|x', 'E|0.00001', 'F|1e12', 'D|2', 'D|9'])
+      parsePrefillLines([
+        '',
+        '|3',
+        'A|0',
+        'B|-1',
+        'C|x',
+        'E|0.00001',
+        'F|1e12',
+        'G|0x10',
+        'H|1e2',
+        'I|+3',
+        'D|2',
+        'D|9'
+      ])
     ).toEqual([{ sku: 'D', qty: 2 }]);
     const many = Array.from({ length: MAX_PREFILL_LINES + 5 }, (_, i) => `S${i}|1`);
     expect(parsePrefillLines(many)).toHaveLength(MAX_PREFILL_LINES);

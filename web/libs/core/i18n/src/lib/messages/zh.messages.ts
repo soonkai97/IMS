@@ -827,5 +827,6 @@ export const ZH_MESSAGES: Messages = {
   'po.print.shipTo': '收货仓库',
   'po.print.lineNo': '序号',
   'po.print.total': '合计（{currency}）',
-  'po.unitFor': '{sku} 的单位'
+  'po.unitFor': '{sku} 的单位',
+  'po.print.notPrintable': '只有已批准或已关闭的订单才能打印。'
 };

@@ -18,6 +18,7 @@ function order(over: Partial<PurchaseOrderDto> = {}): PurchaseOrderDto {
     warehouseName: 'Main warehouse',
     remark: 'Deliver to bay 3',
     createdAt: '2026-10-09T01:00:00Z',
+    approvedAt: '2026-10-10T01:00:00Z',
     createdByName: 'Clerk One',
     approvedByName: 'Super Visor',
     cancelReason: null,
@@ -75,7 +76,8 @@ describe('PurchaseOrderPrintPageComponent', () => {
     await render(order());
 
     expect(text()).toContain('Purchase order PO-MAIN-2610-0001');
-    expect(text()).toContain('09/10/2026');
+    // The date is the approval (a copy is sent after it), labelled; the creation date only when there is none.
+    expect(text()).toContain('Date: 10/10/2026');
     expect(text()).toContain('Acme Supplies');
     expect(text()).toContain('Main warehouse');
     const row = (spectator.query('tbody tr')?.textContent ?? '').replace(/\s+/g, ' ');
@@ -87,6 +89,18 @@ describe('PurchaseOrderPrintPageComponent', () => {
     expect(row).toContain('1,234.50');
     expect(spectator.query('tfoot')?.textContent).toContain('1,234.50');
     expect(text()).toContain('Deliver to bay 3');
+  });
+
+  it('prints only an approved or closed order: a Draft and a Cancelled one are not a supplier copy', async () => {
+    for (const status of [PurchaseOrderStatus.Draft, PurchaseOrderStatus.Cancelled]) {
+      await render(order({ status }));
+
+      expect(text()).toContain('Only an approved or closed order can be printed.');
+      expect(text()).not.toContain('Acme Supplies');
+      expect(spectator.query('.po-print-actions button')?.hasAttribute('disabled')).toBe(true);
+    }
+    await render(order({ status: PurchaseOrderStatus.Closed, approvedAt: null as never }));
+    expect(text()).toContain('Date: 09/10/2026');
   });
 
   it('shows nothing internal: no people, no reasons, no history, no line remark', async () => {

@@ -890,5 +890,6 @@ export const EN_MESSAGES = {
   'po.print.shipTo': 'Ship to',
   'po.print.lineNo': 'No.',
   'po.print.total': 'Total ({currency})',
-  'po.unitFor': 'Unit of {sku}'
+  'po.unitFor': 'Unit of {sku}',
+  'po.print.notPrintable': 'Only an approved or closed order can be printed.'
 } as const;

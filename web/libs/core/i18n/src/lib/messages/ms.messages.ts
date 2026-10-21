@@ -896,5 +896,6 @@ export const MS_MESSAGES: Messages = {
   'po.print.shipTo': 'Hantar ke',
   'po.print.lineNo': 'No.',
   'po.print.total': 'Jumlah ({currency})',
-  'po.unitFor': 'Unit bagi {sku}'
+  'po.unitFor': 'Unit bagi {sku}',
+  'po.print.notPrintable': 'Hanya pesanan yang diluluskan atau ditutup boleh dicetak.'
 };

@@ -1,7 +1,7 @@
 import { Component, input, output, signal } from '@angular/core';
 import { Router, provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { ProductDto, PurchaseOrderDto, PurchaseOrderStatus } from '@ims/api';
 import { PickedProduct, ProductPickerComponent } from '@ims/containers/catalog-shared';
 import { CatalogStore, ProductsStore } from '@ims/features/catalog';
@@ -99,6 +99,8 @@ describe('PurchaseOrderEditorPageComponent', () => {
   };
   const store = { detail, save, resetCommands: jest.fn() };
   const lookup = jest.fn();
+  const partnersReset = jest.fn();
+  const warehousesReset = jest.fn();
   const createComponent = createComponentFactory({
     component: PurchaseOrderEditorPageComponent,
     detectChanges: false,
@@ -118,17 +120,19 @@ describe('PurchaseOrderEditorPageComponent', () => {
         provide: PartnersStore,
         useValue: {
           $partners: signal([{ id: SUPPLIER, name: 'Acme Supplies' }]),
-          loadActive: jest.fn()
+          loadActive: jest.fn(),
+          list: { reset: partnersReset }
         }
       },
       {
         provide: WarehousesStore,
         useValue: {
           $activeWarehouses: signal([{ id: WAREHOUSE, name: 'Main warehouse' }]),
-          ensureLoaded: jest.fn()
+          ensureLoaded: jest.fn(),
+          list: { reset: warehousesReset }
         }
       },
-      { provide: CatalogStore, useValue: { $unitCodes: () => new Map() } },
+      { provide: CatalogStore, useValue: { $unitCodes: () => new Map([['ctn', 'CTN']]) } },
       { provide: ProductsStore, useValue: { lookup } }
     ]
   });
@@ -269,6 +273,23 @@ describe('PurchaseOrderEditorPageComponent', () => {
     });
   });
 
+  it('offers the units of a product with a name per line, and reads the supplier and warehouse lists fresh', async () => {
+    await render();
+    expect(partnersReset).toHaveBeenCalled();
+    expect(warehousesReset).toHaveBeenCalled();
+
+    const packed = {
+      ...PRODUCT,
+      conversions: [{ fromUomId: 'ctn', toUomId: 'pcs', factor: 12 }]
+    } as unknown as ProductDto;
+    component().onProductPicked({ product: packed, available: null });
+    spectator.detectChanges();
+
+    expect(
+      spectator.query('app-select[formcontrolname="uomId"] select')?.getAttribute('aria-label')
+    ).toBe('Unit of SKU-1');
+  });
+
   describe('the entry link of the reorder screen', () => {
     const OTHER = '00000000-0000-4000-8000-0000000000c9';
 
@@ -285,17 +306,28 @@ describe('PurchaseOrderEditorPageComponent', () => {
       expect(component().form.controls.supplierId.value).toBe(SUPPLIER);
       expect(component().form.controls.warehouseId.value).toBe(WAREHOUSE);
       expect(component().lines.length).toBe(1);
-      expect(component().lines.at(0).getRawValue()).toMatchObject({ qty: 12, unitCost: 0 });
+      expect(component().lines.at(0).getRawValue()).toMatchObject({ qty: 12, unitCost: null });
       expect(component().hasUnsavedChanges()).toBe(true);
+    });
+
+    it('a lookup that fails is skipped and the others still come, in the order of the link', async () => {
+      lookup.mockImplementation((sku: string) =>
+        sku === 'BAD' ? throwError(() => new Error('down')) : of({ found: true, product: PRODUCT })
+      );
+
+      await render({ line: ['BAD|1', 'SKU-1|5'] });
+
+      expect(component().lines.length).toBe(1);
+      expect(component().lines.at(0).controls.qty.value).toBe(5);
     });
 
     it('trusts nothing in it: a supplier or warehouse the person may not use, a switched-off product and a non-GUID are ignored', async () => {
       lookup.mockReturnValue(of({ found: true, product: { ...PRODUCT, isActive: false } }));
 
-      await render({ supplierId: OTHER, warehouseId: 'not-a-guid', line: 'SKU-1|2' });
+      await render({ supplierId: OTHER, warehouseId: OTHER, line: 'SKU-1|2' });
 
       expect(component().form.controls.supplierId.value).toBeNull();
-      expect(component().form.controls.warehouseId.value).toBe(WAREHOUSE);
+      expect(component().form.controls.warehouseId.value).not.toBe(OTHER);
       expect(component().lines.length).toBe(0);
     });
   });

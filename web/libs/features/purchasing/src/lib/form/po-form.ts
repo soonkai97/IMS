@@ -99,7 +99,9 @@ export function parsePrefillLines(raw: string | readonly string[] | undefined): 
   for (const part of parts) {
     const at = part.lastIndexOf(PREFILL_SEPARATOR);
     const sku = (at < 0 ? part : part.slice(0, at)).trim();
-    const qty = at < 0 ? 1 : Number(part.slice(at + 1));
+    const text = at < 0 ? '1' : part.slice(at + 1).trim();
+    // Digits and at most four decimals: not 0x10, 1e2 or a sign (Number() would take them).
+    const qty = /^\d+(\.\d{1,4})?$/.test(text) ? Number(text) : 0;
     if (sku !== '' && isValidQuantity(qty) && !seen.has(sku)) {
       seen.add(sku);
       lines.push({ sku, qty });
