@@ -10,8 +10,7 @@ import {
   effect,
   untracked,
   inject,
-  input,
-  signal
+  input
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -19,19 +18,12 @@ import { Router } from '@angular/router';
 import { tap } from 'rxjs';
 import { ProductDto, ProductSaveRequest } from '@ims/api';
 import { TranslatePipe } from '@ims/core/i18n';
-import { ModulesStore, PermissionService } from '@ims/core/identity';
+import { PermissionService } from '@ims/core/identity';
 import { HasUnsavedChanges } from '@ims/core/navigation';
 import { ToastService } from '@ims/core/notification';
 import { I18nService } from '@ims/core/i18n';
 import { CatalogStore, ProductsStore } from '@ims/features/catalog';
-import {
-  MAX_PRODUCT_NAME_LENGTH,
-  MODULE_CODE,
-  NO_PUBLIC_ID,
-  PERMISSION,
-  PublicId,
-  TAX_FIELD
-} from '@ims/models';
+import { MAX_PRODUCT_NAME_LENGTH, NO_PUBLIC_ID, PERMISSION, PublicId } from '@ims/models';
 import {
   SelectOption,
   UiBannerComponent,
@@ -47,13 +39,7 @@ import {
   UiSelectComponent,
   UiSkeletonComponent
 } from '@ims/ui';
-import {
-  applyFieldErrors,
-  cleanTaxField,
-  focusFirstInvalid,
-  normalizePublicId,
-  taxFieldShape
-} from '@ims/utils';
+import { applyFieldErrors, focusFirstInvalid, normalizePublicId } from '@ims/utils';
 
 type ConversionGroup = FormGroup<{
   fromUomId: FormControl<PublicId | null>;
@@ -90,7 +76,6 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly i18n = inject(I18nService);
   private readonly injector = inject(Injector);
-  private readonly modules = inject(ModulesStore);
   private readonly permissions = inject(PermissionService);
   private readonly router = inject(Router);
   private readonly store = inject(ProductsStore);
@@ -100,7 +85,6 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
   $id = input<string | undefined>(undefined, { alias: 'id' });
 
   readonly maxNameLength = MAX_PRODUCT_NAME_LENGTH;
-  readonly tax = TAX_FIELD;
   readonly newBarcode = new FormControl('', { nonNullable: true });
   readonly form = new FormGroup({
     sku: new FormControl('', {
@@ -119,15 +103,6 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
       Validators.max(MAX_SAFETY_STOCK)
     ]),
     isActive: new FormControl(true, { nonNullable: true }),
-    // Module accounting. Shown and sent only while $taxFields() says so. Nothing is cut while typing: the server trims, then checks.
-    hsCode: new FormControl('', {
-      nonNullable: true,
-      validators: [taxFieldShape(TAX_FIELD.HsCode)]
-    }),
-    sstCode: new FormControl('', {
-      nonNullable: true,
-      validators: [taxFieldShape(TAX_FIELD.SstCode)]
-    }),
     barcodes: new FormControl<readonly string[]>([], { nonNullable: true }),
     conversions: new FormArray<ConversionGroup>([])
   });
@@ -138,24 +113,6 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
   /** An old bookmark (`/products/123`): no product, no request, and nothing to save. */
   $notFound = computed(() => !this.$isNew() && this.$productId() === undefined);
   $canManage = computed(() => this.permissions.has(PERMISSION.MasterDataManage));
-  /** The loaded product carries a tax code: the server had the module on when it answered (it leaves the codes out while off). */
-  private readonly $loadedTaxCodes = signal(false);
-  /**
-   * The two tax codes are shown and ALWAYS sent while the module is on (a save replaces them, so a form that did not send them would
-   * clear them). A screen whose module list is older than the product it loaded (another tab switched the module on) still keeps the
-   * codes the server just showed: a loaded code proves the module was on.
-   */
-  $taxFields = computed(
-    () => this.modules.isEnabled(MODULE_CODE.Accounting) || this.$loadedTaxCodes()
-  );
-  /**
-   * The module was on when this product was loaded (the list said so, or the product carried a tax code). A product loaded while it was
-   * OFF came without its codes (the server leaves them out), so saving it after the module was turned on would send empty codes and
-   * clear the stored ones: that save is refused and the product is read again instead.
-   */
-  private readonly $loadedWhileOn = signal(false);
-  /** The save was refused because the module was turned on after the product was loaded; the product was read again. */
-  $taxCodesToCheck = signal(false);
   $isLoading = this.store.detail.$isLoading;
   $isSaving = this.store.save.$isRunning;
   $unitOptions = computed<readonly SelectOption[]>(() =>
@@ -263,18 +220,10 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
     if (this.form.invalid || !this.$canManage() || this.$notFound()) {
       return;
     }
-    const id = this.$productId();
-    if (id !== undefined && this.$taxFields() && !this.$loadedWhileOn()) {
-      // Accounting was turned on after this product was loaded: nothing is sent; the product is read again with its codes.
-      this.$taxCodesToCheck.set(true);
-      this.store.detail.load(id);
-      return;
-    }
     this.store.save
       .run({ id: this.$productId(), body: this.toRequest() })
       .pipe(
         tap(product => {
-          this.$taxCodesToCheck.set(false);
           this.form.markAsPristine();
           this.toast.success(this.i18n.t('product.saved', { sku: product.sku }));
           if (this.$isNew()) {
@@ -297,14 +246,8 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
       baseUomId: product.baseUomId,
       safetyStock: product.safetyStock,
       isActive: product.isActive,
-      hsCode: product.hsCode ?? '',
-      sstCode: product.sstCode ?? '',
       barcodes: product.barcodes
     });
-    this.$loadedTaxCodes.set(Boolean(product.hsCode || product.sstCode));
-    this.$loadedWhileOn.set(
-      this.modules.isEnabled(MODULE_CODE.Accounting) || this.$loadedTaxCodes()
-    );
     this.form.controls.conversions.clear();
     for (const conversion of product.conversions) {
       this.form.controls.conversions.push(
@@ -334,10 +277,6 @@ export class ProductEditPageComponent implements OnInit, HasUnsavedChanges {
       baseUomId,
       safetyStock: value.safetyStock ?? 0,
       isActive: value.isActive,
-      // The loaded value goes back as it was; an emptied field goes as '' and clears (the server stores a blank as none).
-      ...(this.$taxFields()
-        ? { hsCode: cleanTaxField(value.hsCode), sstCode: cleanTaxField(value.sstCode) }
-        : {}),
       barcodes: [...value.barcodes],
       conversions: value.conversions.map(conversion => ({
         fromUomId: conversion.fromUomId ?? NO_PUBLIC_ID,

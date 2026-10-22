@@ -33,14 +33,6 @@
   } @else {
     <app-card class="product-import-page-card" [heading]="'import.step1' | t">
       <p>{{ ($isProducts() ? 'import.rules.products' : 'import.rules.openingStock') | t }}</p>
-      @if ($taxColumns()) {
-        <p>
-          {{
-            'import.rules.taxColumns'
-              | t: { hsMax: tax.HsCode.maxLength, sstMax: tax.SstCode.maxLength }
-          }}
-        </p>
-      }
       <app-button [loading]="$isDownloading()" (clicked)="onDownloadTemplate()">
         <app-icon name="download" />
         {{ 'import.downloadTemplate' | t }}
