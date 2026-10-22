@@ -1,4 +1,9 @@
-<label class="ui-form-field-label" [attr.id]="labelId" [attr.for]="inputId">
+<label
+  class="ui-form-field-label"
+  [class.sr-only]="$labelHidden()"
+  [attr.id]="labelId"
+  [attr.for]="inputId"
+>
   @if ($required()) {
     {{ $label() }}&nbsp;<span class="ui-form-field-asterisk" aria-hidden="true">*</span>
   } @else {

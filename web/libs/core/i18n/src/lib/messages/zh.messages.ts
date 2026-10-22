@@ -828,5 +828,31 @@ export const ZH_MESSAGES: Messages = {
   'po.print.lineNo': '序号',
   'po.print.total': '合计（{currency}）',
   'po.unitFor': '{sku} 的单位',
-  'po.print.notPrintable': '只有已批准或已关闭的订单才能打印。'
+  'po.print.notPrintable': '只有已批准或已关闭的订单才能打印。',
+  'reorder.title': '补货',
+  'reorder.chooseWarehouse': '选择仓库',
+  'reorder.pickWarehouse': '选择仓库以查看需要订购的商品。',
+  'reorder.empty': '该仓库没有需要订购的商品。',
+  'reorder.noMatch': '没有符合此搜索的待订购商品。',
+  'reorder.searchLabel': '搜索商品',
+  'reorder.searchPlaceholder': '编码或名称',
+  'reorder.onOrder': '在途订购',
+  'reorder.qty': '订购量',
+  'reorder.qtyFor': '{sku} 的订购数量',
+  'reorder.qtyInvalid': '请输入大于 0 的数量，最多 4 位小数。',
+  'reorder.value': '价值（{currency}）',
+  'reorder.hint':
+    '建议数量最多为安全库存的两倍，减去现有库存和在途订购。仍为草稿的订单也计入在途订购。',
+  'reorder.select': '选择',
+  'reorder.selectRow': '选择 {sku}',
+  'reorder.selectAll': '选择本页全部',
+  'reorder.selectionNote': '只选中本页。更换页面、搜索或仓库会清除选择。',
+  'reorder.selected': '{count, plural, other {已选择 # 件商品}}',
+  'reorder.chooseSupplier': '选择供应商',
+  'reorder.supplierRequired': '请选择供应商。',
+  'reorder.create': '创建采购订单',
+  'reorder.nothingSelected': '请至少选择一件要订购的商品。',
+  'reorder.fixQuantities': '请更正标红的数量。',
+  'reorder.tooMany':
+    '一个订单最多 {max} 行。所选的前 {max} 行进入本订单，{omitted} 行未包含。请另建采购订单。'
 };

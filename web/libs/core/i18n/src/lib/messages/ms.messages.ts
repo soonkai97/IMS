@@ -897,5 +897,32 @@ export const MS_MESSAGES: Messages = {
   'po.print.lineNo': 'No.',
   'po.print.total': 'Jumlah ({currency})',
   'po.unitFor': 'Unit bagi {sku}',
-  'po.print.notPrintable': 'Hanya pesanan yang diluluskan atau ditutup boleh dicetak.'
+  'po.print.notPrintable': 'Hanya pesanan yang diluluskan atau ditutup boleh dicetak.',
+  'reorder.title': 'Tempah semula',
+  'reorder.chooseWarehouse': 'Pilih gudang',
+  'reorder.pickWarehouse': 'Pilih gudang untuk melihat apa yang perlu ditempah.',
+  'reorder.empty': 'Tiada apa untuk ditempah bagi gudang ini.',
+  'reorder.noMatch': 'Tiada produk untuk ditempah sepadan dengan carian ini.',
+  'reorder.searchLabel': 'Cari produk',
+  'reorder.searchPlaceholder': 'Kod atau nama',
+  'reorder.onOrder': 'Dalam pesanan',
+  'reorder.qty': 'Tempah',
+  'reorder.qtyFor': 'Kuantiti untuk ditempah bagi {sku}',
+  'reorder.qtyInvalid': 'Masukkan kuantiti melebihi 0, dengan sehingga 4 perpuluhan.',
+  'reorder.value': 'Nilai ({currency})',
+  'reorder.hint':
+    'Cadangan ialah sehingga dua kali stok keselamatan, tolak stok di tangan dan dalam pesanan. Pesanan yang masih draf dikira dalam pesanan.',
+  'reorder.select': 'Pilih',
+  'reorder.selectRow': 'Pilih {sku}',
+  'reorder.selectAll': 'Pilih semua pada halaman ini',
+  'reorder.selectionNote':
+    'Hanya halaman ini dipilih. Menukar halaman, carian atau gudang mengosongkan pilihan.',
+  'reorder.selected': '{count, plural, other {# produk dipilih}}',
+  'reorder.chooseSupplier': 'Pilih pembekal',
+  'reorder.supplierRequired': 'Pilih pembekal.',
+  'reorder.create': 'Cipta pesanan belian',
+  'reorder.nothingSelected': 'Pilih sekurang-kurangnya satu produk untuk ditempah.',
+  'reorder.fixQuantities': 'Betulkan kuantiti yang ditandakan merah.',
+  'reorder.tooMany':
+    'Satu pesanan menerima sehingga {max} baris. {max} yang pertama dipilih masuk ke pesanan ini; {omitted} ditinggalkan. Tempah dalam pesanan belian lain.'
 };

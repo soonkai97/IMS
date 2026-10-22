@@ -6,6 +6,7 @@ import { PurchaseOrderDetailPageComponent } from './purchase-order-detail/purcha
 import { PurchaseOrderEditorPageComponent } from './purchase-order-editor/purchase-order-editor.component';
 import { PurchaseOrderPrintPageComponent } from './purchase-order-print/purchase-order-print.component';
 import { PurchaseOrderListPageComponent } from './purchase-order-list/purchase-order-list.component';
+import { ReorderPageComponent } from './reorder/reorder.component';
 
 /** `requirePermission` asks for ANY of its permissions, so the two rights are two guards. */
 const EDITOR_GUARDS = [
@@ -23,6 +24,8 @@ export const PURCHASE_ORDER_ROUTES: Routes = [
     canActivate: [requireModule(MODULE_CODE.Purchasing), requirePermission(PERMISSION.PoRead)],
     children: [
       { path: '', component: PurchaseOrderListPageComponent, title: 'po.title' },
+      // Reading what to order needs po.read only (the parent); creating from it needs the editor's two rights, checked on the page.
+      { path: 'reorder', component: ReorderPageComponent, title: 'reorder.title' },
       // The editor is for a holder of po.manage AND cost.view (an order carries prices: without the right the API refuses the save); `new` comes before `:id`, which would take it for an order.
       {
         path: 'new',
