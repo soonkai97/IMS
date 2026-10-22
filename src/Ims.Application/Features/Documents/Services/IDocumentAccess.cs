@@ -34,7 +34,8 @@ public interface IDocumentAccess
     bool IsRepeatedRecall(StockDocument document);
 
     /// <param name="withinApprovalLimit">False when the approval rules in force need a higher role than the caller's: approve and reject are then not offered.</param>
-    IReadOnlyList<string> AllowedActions(DocumentDto document, SystemSettings settings, bool withinApprovalLimit);
+    /// <param name="link">Set for a receipt created from a purchase order (before the link is hidden from the caller): what the link makes the API refuse is not offered (<see cref="LinkedReceiptPolicy"/>).</param>
+    IReadOnlyList<string> AllowedActions(DocumentDto document, SystemSettings settings, bool withinApprovalLimit, LinkedReceiptContext? link = null);
 
     /// <summary>True when the caller may approve or reject this listed document now (it is routed to their role and is not their own submission).</summary>
     bool CanAct(DocumentListItem item, SystemSettings settings);
