@@ -710,9 +710,6 @@ export const ZH_MESSAGES: Messages = {
   'nav.modules': '模块',
   'perm.modules.manage': '开启或关闭模块',
   'perm.modules.manage.help': '为所有人开启或关闭系统的某些部分，需填写原因。',
-  'module.accounting.name': '会计',
-  'module.accounting.description':
-    '产品和往来单位上的税务字段，以及供会计使用的已过账单据导出文件。',
   'modules.title': '模块',
   'modules.intro':
     '为所有人开启或关闭系统的某些部分。关闭模块会隐藏它的页面和字段。不会删除任何数据，重新开启后一切恢复。',

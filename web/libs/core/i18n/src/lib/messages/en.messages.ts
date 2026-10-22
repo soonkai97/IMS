@@ -764,9 +764,6 @@ export const EN_MESSAGES = {
   'nav.modules': 'Modules',
   'perm.modules.manage': 'Turn modules on or off',
   'perm.modules.manage.help': 'Turn parts of the system on or off for everybody, with a reason.',
-  'module.accounting.name': 'Accounting',
-  'module.accounting.description':
-    'Tax-ready fields on products and partners, and an export file of posted documents for your accountant.',
   'modules.title': 'Modules',
   'modules.intro':
     'Turn parts of the system on or off for everybody. Turning a module off hides its screens and fields. Nothing is deleted, and turning it on again brings everything back.',

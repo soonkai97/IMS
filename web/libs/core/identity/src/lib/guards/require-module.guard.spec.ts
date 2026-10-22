@@ -55,7 +55,7 @@ describe('requireModule (a route of a module that is off is "not found", never "
   });
 
   it('only the named module counts: another one being on does not open the route', () => {
-    on.add('accounting');
+    on.add('purchasing');
 
     expect(urlOf(run(requireModule('batch')))).toBe(NOT_FOUND_ROUTE);
   });

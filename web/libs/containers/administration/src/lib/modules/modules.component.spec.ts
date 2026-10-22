@@ -11,7 +11,7 @@ import { ModulesPageComponent } from './modules.component';
 
 const moduleOf = (code: string, enabled: boolean, requires: string[] = []): ModuleDto => ({
   code,
-  name: code === 'accounting' ? 'Accounting' : `Module ${code}`,
+  name: code === 'purchasing' ? 'Purchasing' : `Module ${code}`,
   description: `${code} description`,
   enabled,
   requires
@@ -68,7 +68,7 @@ describe('ModulesPageComponent (Settings > Modules)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     held.clear();
-    data.set([moduleOf('accounting', false)]);
+    data.set([moduleOf('purchasing', false)]);
     operation.set({});
     reset.mockImplementation(() => operation.set({}));
     spectator = createComponent();
@@ -77,21 +77,40 @@ describe('ModulesPageComponent (Settings > Modules)', () => {
 
   it('lists each module with its name, description and state in words, and loads the list from the server', () => {
     expect(load).toHaveBeenCalledTimes(1);
-    expect(text()).toContain('Accounting');
-    expect(text()).toContain('Tax-ready fields on products and partners');
+    expect(text()).toContain('Purchasing');
+    expect(text()).toContain('Purchase orders for suppliers');
     expect(switches()).toHaveLength(1);
     expect(switches()[0].getAttribute('aria-checked')).toBe('false');
     expect(text()).toContain('Off');
   });
 
   it('shows what a module requires, by name', () => {
-    data.set([moduleOf('accounting', true), moduleOf('batch', false, ['accounting'])]);
+    data.set([moduleOf('purchasing', true), moduleOf('batch', false, ['purchasing'])]);
     spectator.detectChanges();
 
-    expect(text()).toContain('Requires: Accounting');
+    expect(text()).toContain('Requires: Purchasing');
   });
 
-  describe('accounting is switchable like any module (the PL1.4 gate is lifted)', () => {
+  describe('a module this build has no screens for (the API may still list accounting)', () => {
+    it('is left out, and a module the API lists is shown with the API name when it has no text of its own', () => {
+      data.set([moduleOf('accounting', false), moduleOf('batch', false)]);
+      spectator.detectChanges();
+
+      expect(text()).not.toContain('Module accounting');
+      expect(switches()).toHaveLength(1);
+      expect(text()).toContain('Module batch');
+    });
+
+    it('is not offered even when it is the only module: the page says there are none', () => {
+      data.set([moduleOf('accounting', true)]);
+      spectator.detectChanges();
+
+      expect(switches()).toHaveLength(0);
+      expect(text()).toContain('No modules are available.');
+    });
+  });
+
+  describe('a module is switchable', () => {
     it('shows an off switch that is not disabled and has no "available soon" text', () => {
       const control = switches()[0];
 
@@ -103,40 +122,40 @@ describe('ModulesPageComponent (Settings > Modules)', () => {
 
     it('a tap asks for a reason, then turns it on', () => {
       ask.mockReturnValue(of('Pilot starts today'));
-      run.mockReturnValue(of(result('accounting', true, 2)));
+      run.mockReturnValue(of(result('purchasing', true, 2)));
 
       spectator.click(switches()[0]);
 
-      expect(ask.mock.calls[0][0].heading).toBe('Turn on Accounting?');
+      expect(ask.mock.calls[0][0].heading).toBe('Turn on Purchasing?');
       expect(run).toHaveBeenCalledWith({
-        code: 'accounting',
+        code: 'purchasing',
         enabled: true,
         reason: 'Pilot starts today'
       });
       expect(success).toHaveBeenCalledWith(
-        'Accounting is now on. 2 roles regain their saved permissions.'
+        'Purchasing is now on. 2 roles regain their saved permissions.'
       );
     });
   });
 
   describe('switching asks for a reason first', () => {
     beforeEach(() => {
-      data.set([moduleOf('accounting', true), moduleOf('batch', false)]);
+      data.set([moduleOf('purchasing', true), moduleOf('batch', false)]);
       spectator.detectChanges();
     });
 
     it('asks with a required reason of at least 5 characters, then sends enabled and the reason', () => {
       ask.mockReturnValue(of('Not used any more'));
-      run.mockReturnValue(of(result('accounting', false, 0)));
+      run.mockReturnValue(of(result('purchasing', false, 0)));
 
       spectator.click(switches()[0]);
 
       const request = ask.mock.calls[0][0];
-      expect(request.heading).toBe('Turn off Accounting?');
+      expect(request.heading).toBe('Turn off Purchasing?');
       expect(request.reasonRequired).toBe(true);
       expect(request.minReasonLength).toBe(MIN_REASON_LENGTH);
       expect(run).toHaveBeenCalledWith({
-        code: 'accounting',
+        code: 'purchasing',
         enabled: false,
         reason: 'Not used any more'
       });
@@ -144,12 +163,12 @@ describe('ModulesPageComponent (Settings > Modules)', () => {
 
     it('announces the result once, in one toast', () => {
       ask.mockReturnValue(of('Not used any more'));
-      run.mockReturnValue(of(result('accounting', false, 0)));
+      run.mockReturnValue(of(result('purchasing', false, 0)));
 
       spectator.click(switches()[0]);
 
       expect(success).toHaveBeenCalledTimes(1);
-      expect(success).toHaveBeenCalledWith('Accounting is now off.');
+      expect(success).toHaveBeenCalledWith('Purchasing is now off.');
     });
 
     it('says how many roles regain their saved permissions when a module is turned on', () => {
@@ -221,7 +240,7 @@ describe('ModulesPageComponent (Settings > Modules)', () => {
     });
 
     it('the banner goes away when the next switch starts', () => {
-      data.set([moduleOf('accounting', true)]);
+      data.set([moduleOf('purchasing', true)]);
       fail(HTTP_STATUS.Forbidden);
       ask.mockReturnValue(EMPTY);
 
