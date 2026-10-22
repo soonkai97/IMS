@@ -102,11 +102,10 @@ public static class EndpointCatalog
 
     /// <summary>
     /// Endpoints of a module. While the module is off they answer 404 to everyone, so they stay out of <see cref="All"/> (the matrices that run every role against it assume the core is
-    /// what answers) and are tested with the module on (<c>AccountingExportTests</c>). <c>EndpointCoverageTests</c> still counts them, so one cannot be added without a row here.
+    /// what answers) and are tested with the module on (the purchasing tests). <c>EndpointCoverageTests</c> still counts them, so one cannot be added without a row here.
     /// </summary>
     public static readonly IReadOnlyList<EndpointCase> Gated =
     [
-        new("GET accounting export", Get, Permissions.AccountingExport, _ => "/api/accounting/export?from=2026-01-01&to=2026-01-31"),
         new("GET purchase-orders", Get, Permissions.PoRead, _ => "/api/purchase-orders"),
         new("GET purchase-orders/suggestions", Get, Permissions.PoRead, _ => $"/api/purchase-orders/suggestions?warehouseId={MissingPublicId}", OkWhenAllowed: false),
         new("GET purchase-orders/{id}", Get, Permissions.PoRead, _ => $"/api/purchase-orders/{MissingPublicId}", OkWhenAllowed: false),

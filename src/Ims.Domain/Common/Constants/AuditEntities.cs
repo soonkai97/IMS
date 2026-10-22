@@ -10,8 +10,6 @@ public static class AuditEntities
     public const string SystemSetting = nameof(Ims.Domain.SystemSetting);
     public const string Product = nameof(Ims.Domain.Product);
     public const string Attachment = nameof(Ims.Domain.Attachment);
-    /// <summary>The entity of the audit event of an accounting export (no row is changed; the file is the subject).</summary>
-    public const string AccountingExport = "AccountingExport";
     public const string Bulk = "bulk";
     public const string All = "all";
     public const string SystemActor = "system";
@@ -23,7 +21,7 @@ public static class AuditEntities
     /// </summary>
     public static readonly IReadOnlyList<string> Known =
     [
-        AccountingExport, nameof(Ims.Domain.ApprovalRule), nameof(Ims.Domain.Attachment), nameof(Ims.Domain.Category), nameof(Ims.Domain.Partner),
+        nameof(Ims.Domain.ApprovalRule), nameof(Ims.Domain.Attachment), nameof(Ims.Domain.Category), nameof(Ims.Domain.Partner),
         nameof(Ims.Domain.Product), nameof(Ims.Domain.ProductBarcode), nameof(Ims.Domain.PurchaseOrder), nameof(Ims.Domain.Role), nameof(Ims.Domain.RolePermission), nameof(Ims.Domain.StockDocument),
         nameof(Ims.Domain.SystemSetting), nameof(Ims.Domain.Uom), nameof(Ims.Domain.UomConversion), nameof(Ims.Domain.User), nameof(Ims.Domain.Warehouse)
     ];

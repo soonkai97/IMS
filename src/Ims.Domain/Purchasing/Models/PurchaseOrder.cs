@@ -2,7 +2,7 @@ namespace Ims.Domain;
 
 /// <summary>
 /// A purchase order: what is asked of one supplier for one ship-to warehouse. It is its own aggregate and moves no stock (plan D2), so it never appears in the documents list, the
-/// movements report or the accounting export. PL2.2 built the Draft (create, replace header and lines, read); PL2.3 adds the workflow of the two approval tiers: Draft -> Submitted -> Approved
+/// movements report. PL2.2 built the Draft (create, replace header and lines, read); PL2.3 adds the workflow of the two approval tiers: Draft -> Submitted -> Approved
 /// (or straight to Approved when no rule fires), Submitted -> Draft by a rejection or a recall, and Draft, Submitted or Approved -> Cancelled. Closing (automatic and short) comes with the
 /// receipts (PL2.5). Totals are computed from the lines, never stored.
 /// </summary>
