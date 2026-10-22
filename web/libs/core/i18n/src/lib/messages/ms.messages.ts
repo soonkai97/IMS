@@ -762,9 +762,6 @@ export const MS_MESSAGES: Messages = {
   'perm.modules.manage': 'Hidupkan atau matikan modul',
   'perm.modules.manage.help':
     'Hidupkan atau matikan bahagian sistem untuk semua orang, dengan sebab.',
-  'module.accounting.name': 'Perakaunan',
-  'module.accounting.description':
-    'Medan sedia cukai pada produk dan rakan niaga, dan fail eksport dokumen yang telah disiarkan untuk akauntan anda.',
   'modules.title': 'Modul',
   'modules.intro':
     'Hidupkan atau matikan bahagian sistem untuk semua orang. Mematikan modul menyembunyikan skrin dan medannya. Tiada apa yang dipadam, dan menghidupkannya semula memulihkan semuanya.',

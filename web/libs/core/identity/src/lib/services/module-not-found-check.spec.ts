@@ -7,9 +7,9 @@ import { AuthService } from './auth.service';
 import { provideModuleNotFoundCheck } from './module-not-found-check';
 import { ModulesStore } from './modules.store';
 
-const accounting: ModuleDto = {
-  code: 'accounting',
-  name: 'Accounting',
+const purchasing: ModuleDto = {
+  code: 'purchasing',
+  name: 'Purchasing',
   description: '',
   enabled: false,
   requires: []
@@ -34,22 +34,22 @@ describe('provideModuleNotFoundCheck', () => {
   });
 
   it('says in words which feature was turned off', async () => {
-    checkAfterNotFound.mockReturnValue(of([accounting]));
+    checkAfterNotFound.mockReturnValue(of([purchasing]));
 
     const sentence = await firstValueFrom(check('http://api.test/api/products'));
 
-    expect(sentence).toBe('This feature was turned off: Accounting. The menu was updated.');
+    expect(sentence).toBe('This feature was turned off: Purchasing. The menu was updated.');
   });
 
   it('names every module that was turned off, in the user language', async () => {
     await TestBed.inject(I18nService).setLanguage('ms');
     checkAfterNotFound.mockReturnValue(
-      of([accounting, { ...accounting, code: 'batch', name: 'Batch' }])
+      of([purchasing, { ...purchasing, code: 'batch', name: 'Batch' }])
     );
 
     const sentence = await firstValueFrom(check('http://api.test/api/products'));
 
-    expect(sentence).toBe('Ciri ini telah dimatikan: Perakaunan, Batch. Menu telah dikemas kini.');
+    expect(sentence).toBe('Ciri ini telah dimatikan: Pembelian, Batch. Menu telah dikemas kini.');
   });
 
   it('says nothing when no module was turned off, so the ordinary not-found sentence stays', async () => {
@@ -60,7 +60,7 @@ describe('provideModuleNotFoundCheck', () => {
 
   it.each([
     'http://api.test/api/modules',
-    'http://api.test/api/modules/accounting',
+    'http://api.test/api/modules/purchasing',
     'http://api.test/api/auth/me'
   ])('never checks after a 404 of %s (a loop, or not about modules)', async url => {
     expect(await firstValueFrom(check(url))).toBeUndefined();

@@ -13,7 +13,8 @@ import { goTo, loadPage } from '../src/pages/shell';
 // Settings > Modules (PL1.4): which parts of the system are on for the installation. This file never changes the state of the
 // installation: the scenarios on the real API only read (the list, the forbidden pages, the layout), and the switch itself (reason
 // dialog, result, errors, the stale-screen 404) is driven against a stubbed /api/modules that offers a second, made-up module.
-const ACCOUNTING = 'Accounting';
+// The real flip of `purchasing` (the order screens appear and go) belongs to the purchasing scenarios; accounting is not offered here.
+const PURCHASING = 'Purchasing';
 /** The web's own sentence under the reason box (the API says the same thing, so a stub must not reuse it for a 400). */
 const REASON_SENTENCE = 'Enter a reason of at least 5 characters.';
 /** A sentence only the API has (Messages.ModuleReasonRequired), so the 400 scenario proves the API's words reach the screen. */
@@ -26,7 +27,7 @@ interface Problem {
   detail: string;
 }
 
-/** The stubbed server: `batch` is made up, accounting stays off, and every request is counted. */
+/** The stubbed server: `batch` is made up, purchasing stays off, and every request is counted. */
 class ModulesStub {
   batch = false;
   regaining = 2;
@@ -38,9 +39,9 @@ class ModulesStub {
   rows(): ModuleDto[] {
     return [
       {
-        code: 'accounting',
-        name: ACCOUNTING,
-        description: 'Tax-ready fields and the export file.',
+        code: 'purchasing',
+        name: PURCHASING,
+        description: 'Purchase orders for suppliers.',
         enabled: false,
         requires: []
       },
@@ -95,7 +96,7 @@ class ModulesStub {
 const moduleSwitch = (page: Page, name: string) => page.getByRole('switch', { name });
 
 test.describe('Settings > Modules, real API (nothing is changed)', () => {
-  test('given the Admin opens Modules from the menu, then the list matches the API and accounting is a switch like any other', async ({
+  test('given the Admin opens Modules from the menu, then the list matches the API (accounting, which this build has no screens for, is left out) and purchasing is a switch like any other', async ({
     page,
     signIn,
     shell,
@@ -109,17 +110,22 @@ test.describe('Settings > Modules, real API (nothing is changed)', () => {
     await expect(page.getByRole('link', { name: 'Settings' }).first()).toBeVisible();
 
     const listed = await api('admin').call<ModuleDto[]>('GET', '/api/modules');
-    expect(listed.map(item => item.code)).toContain('accounting');
-    for (const item of listed) {
+    expect(listed.map(item => item.code)).toContain('purchasing');
+    for (const item of listed.filter(entry => entry.code !== 'accounting')) {
       await expect(page.getByRole('heading', { level: 2, name: item.name })).toBeVisible();
     }
+    // The API may still list accounting until it is removed there; the screen must not offer a switch for it.
+    await expect(page.getByRole('switch')).toHaveCount(
+      listed.filter(entry => entry.code !== 'accounting').length
+    );
+    await expect(page.getByRole('switch', { name: 'Accounting' })).toHaveCount(0);
 
-    const accounting = moduleSwitch(page, ACCOUNTING);
+    const purchasing = moduleSwitch(page, PURCHASING);
     // The switch shows what the API says, in words, and nothing blocks it.
-    const state = listed.find(item => item.code === 'accounting')?.enabled === true;
-    await expect(accounting).toHaveAttribute('aria-checked', String(state));
-    await expect(accounting).toContainText(state ? 'On' : 'Off');
-    await expect(accounting).not.toHaveAttribute('aria-disabled', 'true');
+    const state = listed.find(item => item.code === 'purchasing')?.enabled === true;
+    await expect(purchasing).toHaveAttribute('aria-checked', String(state));
+    await expect(purchasing).toContainText(state ? 'On' : 'Off');
+    await expect(purchasing).not.toHaveAttribute('aria-disabled', 'true');
     await expect(page.getByText('Available soon')).toHaveCount(0);
     await expect(page.getByRole('dialog')).toHaveCount(0);
   });
@@ -201,7 +207,10 @@ test.describe('Settings > Modules, a stubbed /api/modules with a made-up second 
     await expect(lots).toBeFocused();
 
     await lots.click();
-    await page.getByRole('dialog', { name: 'Turn off Lots and expiry?' }).getByRole('textbox').fill('Pilot over');
+    await page
+      .getByRole('dialog', { name: 'Turn off Lots and expiry?' })
+      .getByRole('textbox')
+      .fill('Pilot over');
     await page.getByRole('dialog').getByRole('button', { name: 'Turn off' }).click();
     await expect(lots).toHaveAttribute('aria-checked', 'false');
     await expect(
@@ -214,7 +223,10 @@ test.describe('Settings > Modules, a stubbed /api/modules with a made-up second 
     await expect(lots).toBeFocused();
   });
 
-  test('given the Admin cancels the reason dialog, then nothing is sent', async ({ page, signIn }) => {
+  test('given the Admin cancels the reason dialog, then nothing is sent', async ({
+    page,
+    signIn
+  }) => {
     const stub = new ModulesStub();
     await stub.install(page);
     await signIn('admin');
@@ -266,11 +278,11 @@ test.describe('Settings > Modules, a stubbed /api/modules with a made-up second 
   }) => {
     const stub = new ModulesStub();
     await stub.install(page);
-    // The session says accounting is on (what a stale screen believes); the server's list says it is off.
+    // The session says purchasing is on (what a stale screen believes); the server's list says it is off.
     await page.route('**/api/auth/refresh', async route => {
       const response = await route.fetch();
       const body = await response.json();
-      body.user.modules = ['accounting'];
+      body.user.modules = ['purchasing'];
       await route.fulfill({ response, json: body });
     });
     await page.route(/\/api\/products(\?|$)/, route =>
@@ -286,7 +298,7 @@ test.describe('Settings > Modules, a stubbed /api/modules with a made-up second 
       })
     );
     await signIn('admin');
-    const sentence = 'This feature was turned off: Accounting. The menu was updated.';
+    const sentence = 'This feature was turned off: Purchasing. The menu was updated.';
     const listsBefore = stub.lists;
 
     await goTo(page, '/products');
@@ -337,14 +349,14 @@ test.describe('Settings > Modules, layout and accessibility', () => {
     }) => {
       await signIn('admin');
       await goTo(page, '/settings/modules');
-      const accounting = moduleSwitch(page, ACCOUNTING);
-      await expect(accounting).toBeVisible();
+      const purchasing = moduleSwitch(page, PURCHASING);
+      await expect(purchasing).toBeVisible();
 
       const sideways = await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth
       );
       expect(sideways).toBeLessThanOrEqual(0);
-      const box = await accounting.boundingBox();
+      const box = await purchasing.boundingBox();
       expect(box!.height).toBeGreaterThanOrEqual(44);
       expect(box!.width).toBeGreaterThanOrEqual(44);
     });

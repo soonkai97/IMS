@@ -226,12 +226,12 @@ describe('errorInterceptor and a 404 that may be a turned-off module', () => {
   }
 
   it('says what the check found instead of "not found", in one toast', async () => {
-    check.mockReturnValue(of('This feature was turned off: Accounting. The menu was updated.'));
+    check.mockReturnValue(of('This feature was turned off: Purchasing. The menu was updated.'));
 
     const error = await notFound();
 
     expect(check).toHaveBeenCalledWith(URL);
-    expect(error.message).toBe('This feature was turned off: Accounting. The menu was updated.');
+    expect(error.message).toBe('This feature was turned off: Purchasing. The menu was updated.');
     expect(toast.$toasts().map(item => item.message)).toEqual([error.message]);
   });
 
@@ -251,7 +251,7 @@ describe('errorInterceptor and a 404 that may be a turned-off module', () => {
   });
 
   it('puts the sentence on a call the screen shows itself, and raises no toast for it', async () => {
-    check.mockReturnValue(of('This feature was turned off: Accounting. The menu was updated.'));
+    check.mockReturnValue(of('This feature was turned off: Purchasing. The menu was updated.'));
 
     const error = await notFound(handledInline());
 
@@ -260,7 +260,7 @@ describe('errorInterceptor and a 404 that may be a turned-off module', () => {
   });
 
   it('does not ask for a 404 a handler wrote (a product that is not there is not a turned-off module)', async () => {
-    check.mockReturnValue(of('This feature was turned off: Accounting. The menu was updated.'));
+    check.mockReturnValue(of('This feature was turned off: Purchasing. The menu was updated.'));
 
     const error = await notFound(undefined, 'Product not found.');
 
