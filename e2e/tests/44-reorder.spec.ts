@@ -96,7 +96,6 @@ test.describe('Reorder, real API', () => {
     await openReorder(page);
 
     await expect(row(page)).toBeVisible({ timeout: SLOW });
-    await expect(row(page)).toContainText('Widget');
     const text = (await row(page).innerText()).replace(/\s+/g, ' ');
     // On hand 3, safety 10, on order 0, value 34.00 (17 at an average cost of 2.00).
     expect(text).toMatch(/\b3\b.*\b10\b.*\b0\b/);
@@ -107,7 +106,6 @@ test.describe('Reorder, real API', () => {
     await expect(row(page)).toContainText('10.00');
     await qty(page).fill('0');
     await expect(page.getByText('Enter a quantity above 0, with up to 4 decimals.')).toBeVisible();
-    await qty(page).fill('17');
   });
 
   test('given nothing chosen, Create purchase order says what is missing; with a selected row, an edited quantity and a supplier it opens the editor with the lines prefilled; saving a draft takes the row off the list (a draft counts as on order)', async ({

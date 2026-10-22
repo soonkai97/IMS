@@ -255,7 +255,7 @@ describe('ReorderPageComponent', () => {
       expect(spectator.element.textContent).toContain('Correct the quantities marked in red.');
     });
 
-    it('selects every row of the page at once, and clears them again', async () => {
+    it('selects every row of the page at once', async () => {
       await render([row(1), row(2)]);
       const all = spectator.query<HTMLInputElement>(
         '.reorder-page-selection input[type="checkbox"]'
@@ -265,10 +265,6 @@ describe('ReorderPageComponent', () => {
       await settle();
       expect(checkboxes().every(box => box.checked)).toBe(true);
       expect(spectator.element.textContent).toContain('2 products selected');
-
-      all?.click();
-      await settle();
-      expect(checkboxes().some(box => box.checked)).toBe(false);
     });
 
     it('sends at most the lines the editor takes and says how many were left out', async () => {

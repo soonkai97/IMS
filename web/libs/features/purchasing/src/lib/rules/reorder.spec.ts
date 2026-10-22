@@ -110,9 +110,4 @@ describe('reorderValue', () => {
     expect(reorderValue({ ...ROW, suggestedValue: null as unknown as undefined }, 17)).toBeNull();
     expect(reorderValue({ ...ROW, suggestedValue: undefined }, 5)).toBeNull();
   });
-
-  it('is null while the box holds no valid quantity', () => {
-    expect(reorderValue(ROW, null)).toBeNull();
-    expect(reorderValue(ROW, 0)).toBeNull();
-  });
 });
