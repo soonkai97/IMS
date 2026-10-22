@@ -1,4 +1,4 @@
-import { apiAs, type ApiDocument, type PublicId } from './api';
+import { apiAs, ifMatch, type ApiDocument, type PublicId } from './api';
 import type { Role } from './config';
 
 /** Helpers of `42-purchase-orders`: every order a scenario makes is cancelled again (an open order stops the module being switched off). */
@@ -76,14 +76,20 @@ export function getOrder(id: PublicId, role: Role = 'admin'): Promise<ApiOrder> 
   return apiAs(role).call<ApiOrder>('GET', `/api/purchase-orders/${id}`);
 }
 
-/** A workflow command with the wildcard If-Match (the screens send the real token; these are set-up and clean-up calls). */
+/** A workflow command; without a token the helper reads the order first and sends its current token as If-Match (a wildcard is a 428). */
 export function command(
   role: Role,
   id: PublicId,
   name: 'submit' | 'approve' | 'reject' | 'recall' | 'cancel' | 'close',
-  body: object = {}
+  body: object = {},
+  token?: string
 ): Promise<ApiOrder> {
-  return apiAs(role).call<ApiOrder>('POST', `/api/purchase-orders/${id}/${name}`, body);
+  return apiAs(role).call<ApiOrder>(
+    'POST',
+    `/api/purchase-orders/${id}/${name}`,
+    body,
+    token === undefined ? {} : ifMatch(token)
+  );
 }
 
 /** Submitted by the Clerk and, when an approval rule holds it, approved by the Supervisor: an Approved order. */
@@ -118,7 +124,7 @@ export async function receive(
     `/api/purchase-orders/${order.id}/receipt`
   );
   onDraft?.(draft.id);
-  await supervisor.call('PUT', `/api/documents/${draft.id}`, {
+  const saved = await supervisor.call<ApiDocument>('PUT', `/api/documents/${draft.id}`, {
     warehouseId: draft.warehouseId,
     partnerId: draft.partnerId,
     purpose: null,
@@ -132,11 +138,11 @@ export async function receive(
       purchaseOrderLineNo: line.purchaseOrderLineNo
     }))
   });
-  const submitted = await supervisor.command(draft.id, 'submit');
-  if (submitted.requiresApproval) {
-    await apiAs('owner').command(draft.id, 'approve');
+  let current = await supervisor.command(draft.id, 'submit', {}, saved.concurrencyToken);
+  if (current.requiresApproval) {
+    current = await apiAs('owner').command(draft.id, 'approve', {}, current.concurrencyToken);
   }
-  return supervisor.command(draft.id, 'post');
+  return supervisor.command(draft.id, 'post', {}, current.concurrencyToken);
 }
 
 export interface ReceiptDraft {

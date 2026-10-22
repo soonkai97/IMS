@@ -76,7 +76,13 @@ async function signIn(role: Role): Promise<string> {
   }
 }
 
-const DOCUMENT_COMMAND = /^\/api\/(documents|purchase-orders)\/[0-9a-f-]{36}(\/(submit|approve|reject|recall|cancel|close|post|reverse))?$/;
+/** A document or purchase-order write: the API answers 428 unless If-Match carries the real concurrency token (`*` is a 428 too). */
+const COMMAND_SUFFIX = /\/(submit|approve|reject|recall|cancel|close|post|reverse)$/;
+const DOCUMENT_COMMAND =
+  /^\/api\/(documents|purchase-orders)\/[0-9a-f-]{36}(\/(submit|approve|reject|recall|cancel|close|post|reverse))?$/;
+
+/** The header the API reads: the token in quotes, the way the web client sends it. */
+export const ifMatch = (token: string): Record<string, string> => ({ 'If-Match': `"${token}"` });
 
 export class ImsApi {
   constructor(private readonly role: Role) {}
@@ -88,7 +94,12 @@ export class ImsApi {
     body?: unknown,
     headers: Record<string, string> = {}
   ): Promise<{ status: number; body: T }> {
-    const needsIfMatch = DOCUMENT_COMMAND.test(path) && method !== 'GET';
+    // A write the caller gave no If-Match for sends the token of the version read now (the screens send the one they last saw).
+    const needsIfMatch =
+      DOCUMENT_COMMAND.test(path) &&
+      method !== 'GET' &&
+      !Object.keys(headers).some(name => name.toLowerCase() === 'if-match');
+    const versionHeader = needsIfMatch ? ifMatch(await this.currentToken(path)) : {};
     for (const attempt of [0, 1]) {
       const token = tokens.get(this.role) ?? (await signIn(this.role));
       const response = await fetch(`${API_URL}${path}`, {
@@ -96,7 +107,7 @@ export class ImsApi {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
-          ...(needsIfMatch ? { 'If-Match': '*' } : {}),
+          ...versionHeader,
           ...headers
         },
         body: body === undefined ? undefined : JSON.stringify(body)
@@ -109,6 +120,24 @@ export class ImsApi {
       return { status: response.status, body: (text ? JSON.parse(text) : null) as T };
     }
     throw new Error('unreachable');
+  }
+
+  /**
+   * The concurrency token of the document or order a command path names, read as this role and, when this role may not read it,
+   * as the Admin. When nobody can read it (no such id) a placeholder goes out, so the API answers 404 or 403 and not 428.
+   */
+  private async currentToken(commandPath: string): Promise<string> {
+    const entityPath = commandPath.replace(COMMAND_SUFFIX, '');
+    for (const role of new Set<Role>([this.role, 'admin'])) {
+      const read = await new ImsApi(role).raw<{ concurrencyToken?: string } | null>(
+        'GET',
+        entityPath
+      );
+      if (read.status < 300 && read.body?.concurrencyToken) {
+        return read.body.concurrencyToken;
+      }
+    }
+    return 'not-readable';
   }
 
   /** Like raw, but a non-2xx answer fails the test with the server's sentence. */
@@ -157,13 +186,25 @@ export class ImsApi {
   command(
     id: PublicId,
     name: 'submit' | 'approve' | 'recall' | 'post' | 'cancel',
-    body?: object
+    body?: object,
+    /** The token of the version just read or returned; without it the version is read first. */
+    token?: string
   ): Promise<ApiDocument> {
-    return this.call<ApiDocument>('POST', `/api/documents/${id}/${name}`, body ?? {});
+    return this.call<ApiDocument>(
+      'POST',
+      `/api/documents/${id}/${name}`,
+      body ?? {},
+      token === undefined ? {} : ifMatch(token)
+    );
   }
 
-  reverse(id: PublicId, reason: string): Promise<ApiDocument> {
-    return this.call<ApiDocument>('POST', `/api/documents/${id}/reverse`, { reason });
+  reverse(id: PublicId, reason: string, token?: string): Promise<ApiDocument> {
+    return this.call<ApiDocument>(
+      'POST',
+      `/api/documents/${id}/reverse`,
+      { reason },
+      token === undefined ? {} : ifMatch(token)
+    );
   }
 
   /**
@@ -177,20 +218,32 @@ export class ImsApi {
     options: { partnerId?: PublicId } = {}
   ): Promise<ApiDocument> {
     const draft = await this.createDocument(kind, lines, options);
-    const submitted = await this.command(draft.id, 'submit');
-    if (submitted.requiresApproval) {
-      await this.approveByAnyReviewer(draft.id);
+    // Each answer carries the token of the next version, so the chain needs no extra read.
+    let current = await this.command(draft.id, 'submit', {}, draft.concurrencyToken);
+    if (current.requiresApproval) {
+      current = await this.approveByAnyReviewer(draft.id, current.concurrencyToken);
     }
-    return this.command(draft.id, 'post');
+    return this.command(draft.id, 'post', {}, current.concurrencyToken);
   }
 
-  private async approveByAnyReviewer(id: PublicId): Promise<void> {
+  private async approveByAnyReviewer(id: PublicId, token: string): Promise<ApiDocument> {
     for (const reviewer of ['supervisor', 'owner'] as const) {
-      if (reviewer !== this.role && (await new ImsApi(reviewer).raw('POST', `/api/documents/${id}/approve`, {})).status < 300) {
-        return;
+      if (reviewer === this.role) {
+        continue;
+      }
+      const result = await new ImsApi(reviewer).raw<ApiDocument>(
+        'POST',
+        `/api/documents/${id}/approve`,
+        {},
+        ifMatch(token)
+      );
+      if (result.status < 300) {
+        return result.body;
       }
     }
-    throw new Error(`Document ${id} needs approval and neither the Supervisor nor the Owner could approve it.`);
+    throw new Error(
+      `Document ${id} needs approval and neither the Supervisor nor the Owner could approve it.`
+    );
   }
 
   getDocument(id: PublicId): Promise<ApiDocument> {
