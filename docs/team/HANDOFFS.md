@@ -1401,3 +1401,9 @@
 - Needs from be-framework: F-1, F-2 (also change `tests/smoke/smoke.mjs`, it sends `If-Match: *`), F-3, optional F-4. From fe-framework: F-5.
 - Decisions others must respect: the probe README step 11 restores the two purchase-order approval rules by SQL (the guard "enable refused without an active rule" is reachable only in the data); nothing else touches product code. Known gap, unchanged: editor-then-approver (owner question 6).
 - Open conflicts: none. `main` moved to `086d4415` (#180) after the run; not re-probed.
+
+### 2026-10-22 fe-framework -> orchestrator, security-engineer (security retest F-5, branch `chore/vite-8-3-3`; **Light** tier, dev tooling)
+- Produced: Dependabot #33 to #35 (GHSA-698v-4r3x-3vcv, GHSA-587h-7wmj-h5pm, GHSA-r825-w8mm-5pxw, `launch-editor` bundled in `vite` 8.3.0 to 8.3.2) closed: `vite` 8.3.0 -> 8.3.5 in `web/package-lock.json`. `vite` is not a direct dependency; `@angular/build` (22.2.2, and 22.2.3 and the 22.3 prereleases too) pins `"vite": "8.3.0"` exactly, so no parent upgrade exists and a `"vite": "^8.3.3"` entry was added to the existing `overrides` in `web/package.json`.
+- Side effects in the lockfile, all required by the new vite: `postcss` 8.5.29 -> 8.5.31, and a nested `rolldown` 1.2.15 (+ its bindings, `@oxc-project/types`) under `node_modules/vite`, because `@angular/build` pins `rolldown` 1.2.8 for itself. `npm ls vite` shows 8.3.5 once.
+- Decision others must respect: drop the override when a released `@angular/build` pins `vite` 8.3.3 or later (then also `npm ls rolldown` should show one copy again).
+- Verified: `npm audit --omit=dev --audit-level=high` 0 vulnerabilities and no vite or launch-editor entry in the full audit; `npm run lint` (incl. stylelint), `npm test` (37 tasks), dev and prod build, `nx serve main` answers 200; e2e smoke 08, 10, 16 against Ims_Dev (14 passed; one first-run timeout in 08 sign-in under load passed on two reruns).
