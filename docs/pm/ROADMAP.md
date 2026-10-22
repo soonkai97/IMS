@@ -4,6 +4,7 @@ Owner: project-manager. Re-baselined 2026-10-12 after the product owner approved
 Clock: WD n = the n-th working day, WD 1 = Monday 12 October 2026, five working days a week, no holidays or leave counted (the year-end break adds one to two weeks to anything after WD 50).
 Scope rule: **`docs/design/lean-scope.md` is the scope.** Slice contents, sizes, deferred triggers (its section 4), dropped items (section 5) and simplified designs (section 6) are there and are not copied here. This file holds the schedule, the migration and client-batch rules, risks and decisions.
 Refreshed 2026-10-19 (WD 6) against `origin/main` at `7fdbbc8` (#133), `gh pr list` (open: #130, #134, #135) and `docs/team/HANDOFFS.md`. #44, #45 and #51 are merged and #46 is closed (superseded). Nothing was rebuilt for this document; a statement marked "unverified" was not checked against code or CI. Text below that describes the 12 October state and is kept as history says so.
+Pilot rows (EP11, section 0 "Pilot", migrations MG8 to MG13, client batches CS6 to CS12, section 8.4) refreshed 2026-10-22 against `origin/main` at `3e99afa6` (#183) and `gh pr list --state merged`. The lean-refresh rows, waves and milestones were NOT re-verified on that date and still describe 2026-10-19; several PRs they call open have merged since (#134, #135, #136, #138, #139, #143, #145, #147).
 
 ## 0. The first page
 
@@ -11,12 +12,14 @@ Refreshed 2026-10-19 (WD 6) against `origin/main` at `7fdbbc8` (#133), `gh pr li
 
 **Done (2026-10-19).** The MVP tasks T01 to T19, T21, T22 are built; T20 is folded into the QA rounds. Of the lean plan: EP01 (#44, #45, #51, #52), EP03 corrections (backend #85, web #92), EP04 public ids (PR-1..PR-3 on `main`, PR-4..PR-9 as #78, retests #79, #81, #82) and EP06 roles backend (RP-0..RP-6, RP-8: #84, #89, #90, #102, #104, #106, #118, #119, #124, #126) are merged. Web: waves 1 to 3, 7 to 9 and 13 are merged; wave 4 except Q1; wave 5 except L02; wave 6 (R13 #125, TB #121, R25 #88); wave 10 except R14+R15; wave 11 has HOME (#120); wave 12 has RP01 (#123); RP02a, b, c (#127, #131, #133). The schedule is ahead of the baseline (RP01 and RP02, planned after M4 at WD 25, are merged on WD 6); the WD 10 re-estimate decides the new dates.
 
+**Pilot (2026-10-22).** PL1 (module foundation, tax-ready fields, accounting export: #144, #146 to #156) and PL2 (purchase orders, receive against a PO, reorder: #158 to #182) are built, merged and security-retested (no High or Medium finding; F-1 to F-3 fixed in #183, F-4 accepted). Both were planned at 14.5 and 21.5 agent-days (about 13 and 20 working days) and were built in two (19 to 20 October) and three (20 to 22 October) calendar dates; PL2 ran 2.3 times its planned lines (about 19,900 added lines against 8,600). So the method above is conservative on calendar and optimistic on size: the real constraints are the review gate, the single migration baton, and the owner's answers. Nothing is switched on in a real environment: the steps and the owner decisions still open are in [go-live-checklist.md](go-live-checklist.md). Next: PL3 (sales orders, price lists, returns), then PL4 (stocktake); owner questions in section 8.4.
+
 **Left, in order.**
 1. Review and merge the QA-round fixes in flight: #134 (Users custom roles, no-warehouse warning), #135 (no API data in the service worker, keep work on session expiry), and the phone-flow PR (not open when this was written). #130 (ADR, modules and tracking dimensions) merged and is Accepted (2026-10-19); the pilot slices PL1 to PL4 that follow from it are EP11 below, a separate path beside the lean refresh (plan: `docs/pm/pilot-slice-1-plan.md`).
 2. Web slices not started: L02 and Q1 (they block M2), R14+R15 (blocks M3), A07, R26 (partly met by #135), R29+R30 (M4), then the P04 web part, R24 after one release of soak.
 3. Backend: EP02 hardening (not started, 12 h), the Standard-approval guidance hint (decided 2026-10-19), then the QA findings list of `TASKS.md`. EP09 waits for the hosting decision.
 
-**Owner answers still needed** (section 8.2): hosting direction (O3, by WD 10, Fri 23 Oct), native speakers for zh and ms (O10), and whether the e2e smoke set becomes a required PR check (`docs/team/E2E-HEALTH.md`). Taken: the corrections confirmations (O1, defaults built in #85), the `large-change` label (O4, applied to #78), the lean-scope approval (roles first with exceptions deferred, the lean table and motion sets, `Partner.Code` "not now", roles defaults O2), and on 2026-10-19 the Standard approval rule (section 8.1, item 17).
+**Owner answers still needed** (section 8.2): hosting direction (O3, by WD 10, Fri 23 Oct), native speakers for zh and ms (O10), and whether the e2e smoke set becomes a required PR check (`docs/team/E2E-HEALTH.md`). To switch the pilot on (2026-10-22): the purchase-order approval amounts, the accounting package sample file and the accountant's answers ([go-live-checklist.md](go-live-checklist.md) section 7). For PL3 and PL4: section 8.4. Taken: the corrections confirmations (O1, defaults built in #85), the `large-change` label (O4, applied to #78), the lean-scope approval (roles first with exceptions deferred, the lean table and motion sets, `Partner.Code` "not now", roles defaults O2), and on 2026-10-19 the Standard approval rule (section 8.1, item 17).
 
 **Three rules that keep this from colliding** (details in section 3):
 - One database migration open at a time, always created after the previous one is on `main`; the id-switch integration branch contains no migration.
@@ -59,7 +62,7 @@ Hours include build, fix and the independent review. "Plan" = version 1 of this 
 | EP09 | Deployment and security follow-ups (Q14) | Unchanged scope; waits for the hosting decision (O3) | 32 | 30 | security-engineer, orchestrator | decision open |
 | EP10 | Release gate | 4 QA rounds, 3 gates; native review of zh and ms stays `TODO-review` until O10 | 60 | 30 | qa-* personas, fe-designer | in progress (a three-persona round ran 2026-10-19; gates open) |
 | | **Total** | | **about 915** | **about 415 (520 with 25% rework)** | | |
-| EP11 | Pilot slices PL1 to PL4 (small trading / wholesale; owner decisions 2026-10-19) | PL1 module foundation + tax-ready fields + accounting export (9 sub-slices), PL2 purchase orders (11 sub-slices), PL3 sales orders and returns, PL4 stocktake. Not part of the 415 h above. Plans: [PL1](pilot-slice-1-plan.md), [PL2](pilot-slice-2-plan.md); [ADR](../architecture/adr-modules-and-tracking-dimensions.md) | - | about 64 agent-days with rework (PL1 14.5; PL2 21.5, planned 2026-10-20, up from the 10.5 band; PL3 and PL4 are still bands) | be-framework, be-dba, fe-framework, security-engineer | not started (waits for owner answers, plan section 11) |
+| EP11 | Pilot slices PL1 to PL4 (small trading / wholesale; owner decisions 2026-10-19) | PL1 module foundation + tax-ready fields + accounting export (9 sub-slices), PL2 purchase orders (11 sub-slices), PL3 sales orders and returns, PL4 stocktake. Not part of the 415 h above. Plans: [PL1](pilot-slice-1-plan.md), [PL2](pilot-slice-2-plan.md); [ADR](../architecture/adr-modules-and-tracking-dimensions.md) | - | PL1 14.5 and PL2 21.5 agent-days with rework (planned; both built); PL3 about 25 to 30 and PL4 about 20 to 24 (PM re-estimates on the PL2 calibration, replaced by their plans). About 80 to 90 agent-days in all | be-framework, be-dba, fe-framework, security-engineer | PL1 and PL2 done and merged (switch-on waits for the owner: [go-live checklist](go-live-checklist.md)); PL3 and PL4 not started (owner questions in section 8.4) |
 
 Deferred and dropped items are listed with their triggers in `lean-scope.md` sections 4 and 5. A deferred slice is built only after the project-manager records its trigger in `docs/team/HANDOFFS.md`; a new request enters through the project-manager with a stated requirement (the checklist, section 8.1 item 14).
 
@@ -94,7 +97,7 @@ Statuses of the table above refreshed 2026-10-19 from `git log origin/main` and 
 
 ### 3.2 One linear migration order
 
-Chain on `main` (verified 2026-10-19, 18 migrations): `Initial` (20261009135544) through `DropLegacyRoleColumns` (20261017125040); the table shows the ones this plan owns. A new migration is created only by the holder of the baton (one open PR with a migration at a time), after rebasing on `main`, by the agent who writes the entity change; be-dba reviews every one (Up, Down, up-down-up, data).
+Chain on `main` (verified 2026-10-22, 25 migrations): `Initial` (20261009135544) through `AddReceiptPurchaseOrderLinks` (20261021100000); the table shows the ones this plan owns. A new migration is created only by the holder of the baton (one open PR with a migration at a time), after rebasing on `main`, by the agent who writes the entity change; be-dba reviews every one (Up, Down, up-down-up, data).
 
 | # | Migration | Epic and PR | When | Notes |
 |---|---|---|---|---|
@@ -106,8 +109,8 @@ Chain on `main` (verified 2026-10-19, 18 migrations): `Initial` (20261009135544)
 | MG5 | `AddRolesAndPermissions` | EP06 RP-2 | merged (#90) | `Role` is a public-id table from day one; `RolePermission`, `User.AllWarehouses`, approval-rule tier. Rights-parity test on a fresh and a migrated database. |
 | MG5b | `DropLegacyRoleColumns` (20261017125040) | EP06 RP-4b | merged (#106) | Drops `User.Role` and `ApprovalRule.RoleRequired` after RP-4a stopped reading them; `Down` tested as a generated script as well as through the runner. Not in the 12 October plan. |
 | MG6, MG7 | stock value snapshot, user preferences | | **dropped** | Charts and preference roaming are not built (lean-scope 5). |
-| MG8 to MG10 | `GrantModulesManage` (data only), `GrantAccountingExport` (data only), `AddTaxReadyFields` (nullable `Product.HsCode`, `SstCode`, `Partner.Tin`, `SstRegNo`) | EP11 PL1.1, PL1.2, PL1.5 | after the migration chain on `main` (last: `DropLegacyRoleColumns`), one at a time, in this order | Each `migrations add` waits for the previous merge. PL3 and PL4 add their own later. |
-| MG11 to MG13 | `GrantPurchasingPermissions` (data only), `AddPurchaseOrders` (two new empty tables), `AddReceiptPurchaseOrderLinks` (nullable `StockDocument.PurchaseOrderId` and `StockDocumentLine.PurchaseOrderLineId`, DBA times it at the 1M tier) | EP11 PL2.1, PL2.2, PL2.4 | after MG10, one at a time, in this order | [PL2 plan](pilot-slice-2-plan.md) section 4. |
+| MG8 to MG10 | `GrantModulesManage` (data only), `GrantAccountingExport` (data only), `AddTaxReadyFields` (nullable `Product.HsCode`, `SstCode`, `Partner.Tin`, `SstRegNo`) | EP11 PL1.1, PL1.2, PL1.5 | **merged** (#146, #148, #150), one at a time, in this order | Each `migrations add` waited for the previous merge. PL3 and PL4 add their own later. |
+| MG11 to MG13 (+ a data migration) | `GrantPurchasingPermissions` (data only, #158), `AddPurchaseOrders` (two new empty tables, #159), `AddPurchaseOrderApprovalRules` (data only, the two placeholder rules, #165), `AddReceiptPurchaseOrderLinks` (nullable `StockDocument.PurchaseOrderId` with a filtered index and `StockDocumentLine.PurchaseOrderLineNo`, no key on the line; #166; timed 58 ms at the 1M tier) | EP11 PL2.1, PL2.2, PL2.3c, PL2.4 | **merged**, one at a time, in this order | [PL2 plan](pilot-slice-2-plan.md) section 4; hand-run notes (`sqlcmd -I -b`) in `docs/dba/README.md` section 12. |
 
 Rules that make collisions impossible:
 1. `feature/public-ids` contains no migration. All schema for the id switch lands on `main` first; PR-4 to PR-7 are code only. Reverting PR-9 needs no database change.
@@ -130,7 +133,7 @@ The client (`web/libs/shared/api`, `web/openapi`) is generated by `npm run api:g
 | CS5 (when RP-5, RP-6 are on `main`) | roles, permissions, `PermissionCode`, `UserInfo` additive fields, approval rule tier | RP01 to RP05 | fe-framework |
 | CS6 (after pilot PL1.1 and PL1.2) | `/api/modules`, `UserInfo.modules`, `module` on permissions | PL1.3, PL1.4 | fe-framework |
 | CS7 (after pilot PL1.5 and PL1.6) | tax-ready fields on products and partners, accounting export endpoint | PL1.7, PL1.8 | fe-framework (as built: folded into the PL1.5 and PL1.6 PRs, see the note below the table) |
-| CS9 to CS12 (pilot PL2.2, PL2.3, PL2.4, PL2.6; CS8 was the PL1.6 export) | purchase-order endpoints, the `PurchaseOrder` value of `DocumentType`, receipt link fields on the document DTOs, suggestions endpoint | PL2.7 to PL2.10 | each regenerated inside the backend PR that changes the contract (no stand-alone batch PR) |
+| CS9 to CS12 (pilot PL2.2, PL2.3, PL2.4, PL2.6; CS8 was the PL1.6 export) | purchase-order endpoints, the `PurchaseOrder` value of `DocumentType`, receipt link fields on the document DTOs, suggestions endpoint | PL2.7 to PL2.10 | each regenerated inside the backend PR that changes the contract (no stand-alone batch PR); all merged. PL3 and PL4 follow the same rule |
 
 Status 2026-10-19: CS1 merged in R33 (#57); CS2 is in the client (recall is in `api-client.ts`; which PR carried it is unverified); CS3 merged inside G01 (#78); CS4 deferred; CS5 merged (#122). PR #134 regenerates the OpenAPI and the client itself (new `assignable-roles`, `roleName`, `roleRequired` removed), outside a named batch: a protocol exception to check at review.
 
@@ -258,6 +261,30 @@ Closed by the lean approval: O2 roles defaults (taken), O5 text limits (B20 defe
 ### 8.3 Conflicts
 
 The version 1 conflicts C1 to C15 are closed by the lean scope or recorded in earlier HANDOFFS entries. Two remain visible: (a) `docs/design/2026-refresh-plan.md` still lists 98 slices; it now carries a banner pointing to `lean-scope.md` (it stays as the full reference); (b) `docs/design/roles-permissions-ux.md`, `adr-roles-permissions.md` and `2026-refresh-motion.md` describe the full designs; where they disagree with `lean-scope.md` (sections 2, 5, 6), the lean scope wins until the owner reopens an item.
+
+### 8.4 Pilot slices PL3 and PL4: what they need from the owner (asked 2026-10-22; the full plans are separate project-manager runs)
+
+Not blocking the go-live of PL1 and PL2. A default applies if no answer comes; the plan run records which were answered. Order stays PL3 then PL4 (owner, 2026-10-19). Technical preconditions are met: PL1.0 (oracle fixtures, statement-count test) is merged; `Requires` enforcement between modules arrives with `returns`, the first module with a prerequisite; stocktake touches posting (the Adjust strategy and a signed line direction), so it needs a DBA review and the oracle fixtures to stay green.
+
+**PL3: delivery / sales orders, price lists, returns** (ADR R4, R9, R6; modules `sales` and `returns`; rough size 10,000 to 12,000 lines, 25 to 30 agent-days)
+
+| # | Question | Recommended default |
+|---|---|---|
+| 1 | A sales order that is later delivered (like PO then receipt), or a delivery note only? | Sales order, then delivery: the delivery posts an Issue with purpose Sale, partial deliveries allowed, no over-delivery. The order reserves nothing; the stock check stays at posting. |
+| 2 | Price lists: how many, and may the seller change the price? | One default list in RM plus an optional list per customer; the price prefills the line, the person ordering may change it and every change is audited. No discount, tax, currency or credit limit (IMS keeps no receivables). Price lists are the second PL3 slice. |
+| 3 | Who approves a sales order, from what amount? | The same two tiers as purchase orders (Supervisor, Owner) with placeholder amounts RM 5,000 and RM 20,000 until you give the real ones; deliveries keep the existing issue approval rule. |
+| 4 | Returns: what do they link to and at what cost? | A return links to a Posted delivery (customer) or receipt (supplier), up to the quantity not yet returned, at any age. A customer return restocks at the cost the goods left at; a supplier return issues at the current average as every issue does. A Supervisor approves. |
+| 5 | Does the accountant need the selling price in the export? | IMS issues no invoices. The export stays at cost until the accountant's sample file (go-live checklist, row 2) shows which selling-price and order-number columns are wanted; then a new announced layout version, never a quiet edit of the old one. |
+
+**PL4: stocktake** (ADR R3; module `stocktake`; PRD CNT-01 to CNT-04, BR-08; rough size 8,000 to 10,000 lines, 20 to 24 agent-days)
+
+| # | Question | Recommended default |
+|---|---|---|
+| 1 | Scope of one count? | One count document per warehouse, optionally limited to one category; one open count per warehouse. A product not entered is not counted; zero must be typed. |
+| 2 | Can movements be paused while a warehouse is counted? | Yes, count in a quiet hour. If not, the count refuses to post any line whose product moved after the count started and names the lines to recount (no stock freeze, no double counting). |
+| 3 | Who counts, who approves, from what value? | Warehouse staff count blind (system quantity hidden); a Supervisor approves, the Owner above a net variance of RM 5,000 (placeholder, like purchase orders); nobody approves their own count. |
+| 4 | Offline counting (CNT-03) against the no-offline-commands rule (N9)? | No offline queue. Each counted line is saved to the server as it is entered, so a dropped connection loses at most the line in hand. An offline mode is built only if a warehouse has no signal (trigger). |
+| 5 | Reasons, valuation and the accountant? | A free-text reason on every line with a variance, no codes. Gains and losses post as Adjust at the current average cost and appear in the accounting export as signed Adjust rows. |
 
 ## 9. How this file is kept true
 
