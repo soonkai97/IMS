@@ -39,7 +39,7 @@ public class ModulesLockTests(ApiFixture fixture) : IAsyncLifetime
         await ResetAsync();
     }
 
-    private Task ResetAsync() => fixture.Database.ExecuteAsync("DELETE FROM SystemSetting WHERE [Key] LIKE N'Module.%'");
+    private Task ResetAsync() => Ims.Api.Tests.Tests.Purchasing.PurchasingScenario.ResetAsync(fixture); // also closes any order another test left open: the purchasing check refuses to switch off over one
 
     /// <summary>Takes an application lock in a transaction of its own; disposing the connection rolls back and releases it.</summary>
     private async Task<SqlConnection> HoldLockAsync(string resource)

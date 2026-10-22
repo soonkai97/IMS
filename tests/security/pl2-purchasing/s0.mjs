@@ -1,9 +1,9 @@
-// Setup: switches `purchasing` and `accounting` ON (remembering how they were), creates the SEC- fixtures through the API and writes fixtures.json to RV_OUT.
+// Setup: switches `purchasing` ON (remembering how they were), creates the SEC- fixtures through the API and writes fixtures.json to RV_OUT.
 // Fixtures: custom roles, throw-away users (made-up shared password), one supplier, one customer, products (one with a BOX conversion), warehouses A (WH01) and B (QAW1).
 import { call, login, items, saveFx, expect, check, PROBE_PW, sfx, short } from './lib.mjs';
 const A = await login('admin');
 const mods = Object.fromEntries(items(await call('GET', '/api/modules', A)).map((m) => [m.code, m.enabled]));
-for (const code of ['purchasing', 'accounting']) if (!mods[code]) expect(8, `switch ${code} on`, await call('PUT', `/api/modules/${code}`, A, { enabled: true, reason: 'SEC-PL2.11 retest' }), 200);
+for (const code of ['purchasing']) if (!mods[code]) expect(8, `switch ${code} on`, await call('PUT', `/api/modules/${code}`, A, { enabled: true, reason: 'SEC-PL2.11 retest' }), 200);
 
 const whs = items(await call('GET', '/api/warehouses', A));
 const whA = whs.find((w) => w.code === 'WH01').id, whB = whs.find((w) => w.code === 'QAW1').id;

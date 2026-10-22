@@ -2,7 +2,7 @@
 
 Owner: project-manager. Written 2026-10-22 at the close of PL2 (`main` at `3e99afa6`, PL1 and PL2 merged, F-1 to F-3 of the security retest fixed in #183). The pilot is purchasing; the accounting module was dropped from the pilot on 2026-10-22 and is removed from the code (RA1). Nothing is switched on anywhere real. Work top to bottom; a step marked STOP blocks the next section. Detail lives in the files named in each row; this page does not repeat them.
 
-accounting: removed (owner decision 2026-10-22; RA1). The API no longer lists the module or the `accounting.export` permission; the migration `RemoveAccountingModule` deletes the `Module.accounting` switch row and every `accounting.export` grant when the API is next started against a database.
+accounting: removed (owner decision 2026-10-22; RA1). The API no longer lists the module or the `accounting.export` permission. The migration `RemoveAccountingModule` deletes the `Module.accounting` switch row and every `accounting.export` grant. It runs on startup only in Development (`MigrateOnStartup` is off elsewhere), so in a real environment run the migration script (or turn `MigrateOnStartup` on for that start) in the same release step as the new build. Until it has run, the Owner role and any custom role still hold `accounting.export` in the database, and an administrator who edits such a role gets 403 `RoleEditBeyondYourAccess` (the role holds a permission no one can grant any more). It hard-deletes the grants and writes no audit row.
 
 ## 1. Preconditions (nothing is switched on until these are answered)
 

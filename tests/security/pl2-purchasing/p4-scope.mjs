@@ -62,11 +62,4 @@ for (const who of ['scopeA', 'clerk', 'supervisor', 'staff']) {
   expect(4, 'unit of measure that is not the product\'s -> 400', await newPo(t, F, { warehouseId: F.whB, lines: [line(F, { uomId: F.box })] }), 400);
   expect(4, 'update cannot move an order to another warehouse (A) -> 400/404', await call('PUT', `${PO}/${own.json.id}`, t, { warehouseId: F.whA, supplierId: F.supplier, lines: [line(F)] }, { 'If-Match': own.json.concurrencyToken }), 400, 404);
 }
-// ---- accounting export under a scoped caller
-{
-  const t = await roleUser('acctA', ['masterdata.read', 'accounting.export', 'cost.view', 'reports.read', 'stock.read'], { warehouses: [F.whA], all: false });
-  const q = 'from=2026-01-01&to=2026-12-31';
-  expect(4, 'export for warehouse B by a user of A -> 404', await call('GET', `/api/accounting/export?${q}&warehouseId=${F.whB}`, t), 404);
-  expect(4, 'export without a warehouse for a scoped user -> 200 (rows of A only)', await call('GET', `/api/accounting/export?${q}`, t), 200);
-}
 console.log(failures() ? `${failures()} FAIL` : 'p4 all ok');

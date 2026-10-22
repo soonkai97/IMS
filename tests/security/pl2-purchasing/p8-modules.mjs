@@ -44,16 +44,16 @@ if (stage === 'open') {
 if (stage === 'off') {
   const found = ruleRows(); console.log('PO rules as found (Id, IsActive, REC_REVDATE, REC_REVISOR):\n' + found.map((r) => r.join(' ')).join('\n'));
   await roleUser('hidden', ['masterdata.read', 'po.read']);
-  for (const c of ['purchasing', 'accounting']) expect(8, `switch ${c} OFF`, await mod(T.admin, c, false), 200);
+  for (const c of ['purchasing']) expect(8, `switch ${c} OFF`, await mod(T.admin, c, false), 200);
   const ghost = '11111111-1111-1111-1111-111111111111';
-  const offAll = [['GET', PO], ['GET', `${PO}/suggestions?warehouseId=${F.whA}`], ['POST', PO], ['GET', `${PO}/${ghost}`], ['POST', `${PO}/${ghost}/approve`], ['POST', `${PO}/${ghost}/receipt`], ['GET', '/api/accounting/export?from=2026-01-01&to=2026-01-02']];
+  const offAll = [['GET', PO], ['GET', `${PO}/suggestions?warehouseId=${F.whA}`], ['POST', PO], ['GET', `${PO}/${ghost}`], ['POST', `${PO}/${ghost}/approve`], ['POST', `${PO}/${ghost}/receipt`]];
   for (const k of ['admin', 'owner', 'supervisor', 'clerk', 'staff', 'poRead', 'none']) {
     const st = []; for (const [m, p] of offAll) st.push((await call(m, p, T[k], m === 'POST' ? {} : undefined, m === 'POST' ? { 'If-Match': '"x"' } : {})).status);
-    check(8, `module OFF: ${k} gets 404 on every purchasing and accounting endpoint`, st.every((s) => s === 404), st.join(','));
+    check(8, `module OFF: ${k} gets 404 on every purchasing endpoint`, st.every((s) => s === 404), st.join(','));
   }
   check(8, 'module OFF: anonymous still gets 401, not 404 (the module is not disclosed)', (await call('GET', PO)).status === 401);
   const { perm, ...noPerm } = decode(T.clerk); check(8, 'module OFF: a token without perms gets 404 too (the gate runs before the permission)', (await call('GET', PO, forge(noPerm))).status === 404);
-  const p = await codes(); check(8, 'module OFF: /api/permissions omits po.read, po.manage, accounting.export', p.size > 10 && !p.has('po.read') && !p.has('po.manage') && !p.has('accounting.export'), `${p.size} codes`);
+  const p = await codes(); check(8, 'module OFF: /api/permissions omits po.read, po.manage', p.size > 10 && !p.has('po.read') && !p.has('po.manage'), `${p.size} codes`);
   expect(8, 'module OFF: a role save naming po.read -> 400 not available', await call('POST', '/api/roles', T.admin, { name: `SEC-${sfx}-off1`, permissions: ['masterdata.read', 'po.read'] }), 400);
   const r = items(await call('GET', '/api/roles', T.admin)).find((x) => x.name === `SEC-${fx().sfx}-hidden`);
   const rg = await call('GET', `/api/roles/${r.id}`, T.admin);
