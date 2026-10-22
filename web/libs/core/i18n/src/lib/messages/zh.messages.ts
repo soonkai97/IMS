@@ -710,8 +710,6 @@ export const ZH_MESSAGES: Messages = {
   'nav.modules': '模块',
   'perm.modules.manage': '开启或关闭模块',
   'perm.modules.manage.help': '为所有人开启或关闭系统的某些部分，需填写原因。',
-  'perm.accounting.export': '下载会计导出文件',
-  'perm.accounting.export.help': '下载已过账单据及其成本，供会计使用。',
   'module.accounting.name': '会计',
   'module.accounting.description':
     '产品和往来单位上的税务字段，以及供会计使用的已过账单据导出文件。',
@@ -756,24 +754,6 @@ export const ZH_MESSAGES: Messages = {
   'partner.sstRegNoShape': 'SST 注册号只能包含字母、数字和连字符，最多 {max} 个字符。',
   'import.rules.taxColumns':
     '会计可选列：HsCode（数字和小数点，最多 {hsMax} 个字符）和 SstCode（字母、数字和连字符，最多 {sstMax} 个）。输入前请将这两列设为文本格式：数字单元格会丢失开头和结尾的零，这两列含数字单元格的文件会被拒绝。空单元格会清除该值；若要保留已保存的值，请不要包含这一列。',
-  // TODO-review: machine draft (PL1.8b: accounting export).
-  'nav.accountingExport': '会计导出',
-  'accounting.title': '会计导出',
-  'accounting.intro': '将某个期间已过账的单据下载为一个 Excel 文件，交给会计。',
-  'accounting.period': '期间',
-  'accounting.fromRequired': '请输入期间的开始日期。',
-  'accounting.toRequired': '请输入期间的结束日期。',
-  'accounting.allWarehouses': '我的所有仓库',
-  'accounting.note.heading': '关于该文件',
-  'accounting.note.layout':
-    '格式固定：每张已过账单据的每一行对应一行，数量以产品的基本单位计。此处无法更改。',
-  'accounting.note.cost': '金额按成本计。',
-  'accounting.note.reversal': '冲销以负数行显示（数量和金额为负），与原行相互抵消。',
-  'accounting.note.limit': '行数过多的期间不会被截断：系统会要求你缩小日期范围或选择一个仓库。',
-  'accounting.dateRange': '请输入 2000 年 1 月 1 日至 2100 年 12 月 31 日之间的日期。',
-  'accounting.forbidden': '会计导出还需要查看成本、主数据和报表的权限。',
-  'accounting.download': '下载 Excel 文件',
-  'accounting.downloaded': '已下载 {name}。',
   // TODO-review: machine draft (PL2.7: purchase orders).
   'nav.purchaseOrders': '采购订单',
   'status.Closed': '已关闭',

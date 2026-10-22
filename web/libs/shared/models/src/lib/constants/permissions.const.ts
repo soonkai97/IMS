@@ -26,8 +26,6 @@ export const PERMISSION = {
   ValuationView: 'valuation.view',
   /** Turn modules on or off for the whole installation, with a reason. */
   ModulesManage: 'modules.manage',
-  /** Module accounting: download the accounting file (it also needs cost, master data and reports access). */
-  AccountingExport: 'accounting.export',
   /** Module purchasing: see purchase orders (the amounts also need cost.view). */
   PoRead: 'po.read',
   /** Module purchasing: create, change, submit, recall, cancel and close purchase orders. */
