@@ -14,7 +14,7 @@ describe('saveFile', () => {
   });
 
   it('names the download after the server and revokes the object URL after the click was handled, not in the same task', () => {
-    saveFile({ data: new Blob(['x']), fileName: 'ims-accounting.xlsx' }, 'fallback.xlsx');
+    saveFile({ data: new Blob(['x']), fileName: 'ims-export.xlsx' }, 'fallback.xlsx');
 
     expect(URL.revokeObjectURL).not.toHaveBeenCalled();
     jest.runAllTimers();

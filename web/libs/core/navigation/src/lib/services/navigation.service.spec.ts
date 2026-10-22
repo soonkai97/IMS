@@ -162,30 +162,6 @@ describe('NavigationService (menus follow the permissions)', () => {
       expect(order.indexOf('approvals')).toBe(order.indexOf('purchase-orders') + 1);
     });
   });
-
-  describe('Accounting export (module accounting + permission accounting.export)', () => {
-    it.each([
-      ['module on, permission held', ['accounting'], [PERMISSION.AccountingExport], true],
-      ['module on, permission missing', ['accounting'], [PERMISSION.ReportsRead], false],
-      ['module off, permission held', [], [PERMISSION.AccountingExport], false],
-      ['module off, permission missing', [], [PERMISSION.ReportsRead], false]
-    ])('%s', (_label, on, permissions, shown) => {
-      modulesOn.set(on);
-      granted.set(permissions);
-
-      expect(ids().includes('accounting-export')).toBe(shown);
-    });
-
-    it('sits in Insight next to Reports, and Reports is not the active item on its address', () => {
-      const reports = MENU_ITEMS.find(item => item.id === 'reports');
-      const accounting = MENU_ITEMS.find(item => item.id === 'accounting-export');
-
-      expect(accounting?.group).toBe('insight');
-      expect(accounting?.route).toBe('/reports/accounting');
-      expect(accounting?.module).toBe('accounting');
-      expect(reports?.exactMatch).toBe(true);
-    });
-  });
 });
 
 describe('NavigationService (an item tied to a module: module x permission)', () => {

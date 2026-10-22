@@ -104,15 +104,6 @@ export const MENU_ITEMS: readonly MenuItem[] = [
     exactMatch: true
   },
   {
-    id: 'accounting-export',
-    labelKey: 'nav.accountingExport',
-    icon: 'download',
-    route: '/reports/accounting',
-    permissions: [PERMISSION.AccountingExport],
-    group: 'insight',
-    module: MODULE_CODE.Accounting
-  },
-  {
     id: 'users',
     labelKey: 'nav.users',
     icon: 'users',
