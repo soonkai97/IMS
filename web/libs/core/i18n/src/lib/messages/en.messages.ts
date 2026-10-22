@@ -903,11 +903,11 @@ export const EN_MESSAGES = {
   'reorder.qty': 'Order qty',
   'reorder.qtyFor': 'Quantity to order of {sku}',
   'reorder.qtyInvalid': 'Enter a quantity above 0, with up to 4 decimals.',
-  'reorder.value': 'Value ({currency})',
+  'reorder.value': 'Est. value ({currency})',
   'reorder.hint':
     'The suggestion is up to twice the safety stock, less what is on hand and on order. Orders still in draft count as on order.',
   'reorder.select': 'Select',
-  'reorder.selectRow': 'Select {sku}',
+  'reorder.selectRow': 'Select {sku}, {name}',
   'reorder.selectAll': 'Select all on this page',
   'reorder.selectionNote':
     'Only this page is selected. Changing the page, the search or the warehouse clears the selection.',
@@ -916,7 +916,7 @@ export const EN_MESSAGES = {
   'reorder.supplierRequired': 'Choose a supplier.',
   'reorder.create': 'Create purchase order',
   'reorder.nothingSelected': 'Select at least one product to order.',
-  'reorder.fixQuantities': 'Correct the quantities marked in red.',
+  'reorder.fixQuantities': 'Correct the quantities that have an error under them.',
   'reorder.tooMany':
     'An order takes up to {max} lines. The first {max} selected go into this order; {omitted} are left out. Order them in another purchase order.'
 } as const;

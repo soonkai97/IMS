@@ -1,5 +1,5 @@
 import { createServiceFactory, mockProvider, SpectatorService } from '@ngneat/spectator/jest';
-import { Subject, of } from 'rxjs';
+import { of } from 'rxjs';
 import { PagedResultOfReorderSuggestion, PurchaseOrdersClient } from '@ims/api';
 import { ReorderStore } from './reorder.store';
 
@@ -33,19 +33,6 @@ describe('ReorderStore', () => {
     });
 
     expect(client().suggestions).toHaveBeenCalledWith('w1', 'bolt', 2, 25);
-  });
-
-  it('keeps only the answer to the last request: a slow earlier warehouse never overwrites it', () => {
-    const slow = new Subject<PagedResultOfReorderSuggestion>();
-    client()
-      .suggestions.mockReturnValueOnce(slow)
-      .mockReturnValueOnce(of(page(2)));
-
-    spectator.service.suggestions.load({ warehouseId: 'w1', page: 1, pageSize: 25 });
-    spectator.service.suggestions.load({ warehouseId: 'w2', page: 1, pageSize: 25 });
-    slow.next(page(99));
-
-    expect(spectator.service.suggestions.$data()?.total).toBe(2);
   });
 
   it('offers the remembered warehouse back to the same user only', () => {

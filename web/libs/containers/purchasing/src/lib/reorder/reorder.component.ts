@@ -2,6 +2,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  Injector,
+  afterNextRender,
   OnInit,
   computed,
   effect,
@@ -41,7 +43,13 @@ import {
   UiSelectComponent,
   UiTableComponent
 } from '@ims/ui';
-import { controlSignal, createPageState, debouncedSignal, loadOnChange } from '@ims/utils';
+import {
+  controlSignal,
+  createPageState,
+  debouncedSignal,
+  focusFirstInvalid,
+  loadOnChange
+} from '@ims/utils';
 
 /** Edits and selection belong to one view of the list; `key` says which (a new key means they are gone). */
 interface Keyed<Value> {
@@ -80,6 +88,7 @@ interface Keyed<Value> {
 })
 export class ReorderPageComponent implements OnInit {
   private readonly auth = inject(AuthService);
+  private readonly injector = inject(Injector);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly i18n = inject(I18nService);
   private readonly partners = inject(PartnersStore);
@@ -144,9 +153,14 @@ export class ReorderPageComponent implements OnInit {
       row => row.warehouseId === this.$warehouseId()
     )
   );
-  readonly $page = computed(() =>
-    this.$query() === null ? undefined : this.store.suggestions.$data()
-  );
+  /** The answer to the chosen warehouse only: the one before is held while the next loads, and its total must not show. */
+  readonly $page = computed(() => {
+    const data = this.store.suggestions.$data();
+    const first = data?.items[0];
+    return this.$query() === null || (first && first.warehouseId !== this.$warehouseId())
+      ? undefined
+      : data;
+  });
   readonly $isLoading = this.store.suggestions.$isLoading;
   readonly $failed = this.store.suggestions.$isFailed;
   readonly $emptyKey = computed<MessageKey>(() =>
@@ -261,7 +275,10 @@ export class ReorderPageComponent implements OnInit {
 
   private readonly rememberWarehouse = effect(() => {
     const warehouseId = this.$warehouseId();
-    untracked(() => this.store.remember(this.auth.$user()?.id, warehouseId));
+    untracked(() => {
+      this.store.remember(this.auth.$user()?.id, warehouseId);
+      this.$tried.set(false);
+    });
   });
 
   ngOnInit(): void {
@@ -326,10 +343,10 @@ export class ReorderPageComponent implements OnInit {
     const supplierId = this.$supplierId();
     const rows = this.$selectedRows();
     if (warehouseId === null || supplierId === null || rows.length === 0 || this.$hasInvalidQty()) {
-      // Take the person to the first box that needs a correction.
-      queueMicrotask(() =>
-        this.host.nativeElement.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
-      );
+      // To the first field with an error, once the errors are drawn (the app has no zone: a microtask would be too early).
+      afterNextRender(() => focusFirstInvalid(this.host.nativeElement), {
+        injector: this.injector
+      });
       return;
     }
     const link = buildReorderEntryLink(

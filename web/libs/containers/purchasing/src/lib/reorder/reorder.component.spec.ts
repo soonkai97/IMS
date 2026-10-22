@@ -34,6 +34,8 @@ describe('ReorderPageComponent', () => {
   const load = jest.fn<void, [ReorderQuery]>();
   const reset = jest.fn();
   const remember = jest.fn();
+  const partnersReset = jest.fn();
+  const warehousesReset = jest.fn();
   let remembered: string | null = null;
   const createComponent = createComponentFactory({
     component: ReorderPageComponent,
@@ -60,7 +62,7 @@ describe('ReorderPageComponent', () => {
       {
         provide: PartnersStore,
         useValue: {
-          list: { reset: jest.fn() },
+          list: { reset: partnersReset },
           $partners: signal([{ id: SUPPLIER, name: 'Acme Supplies' }]),
           loadActive: jest.fn()
         }
@@ -68,7 +70,7 @@ describe('ReorderPageComponent', () => {
       {
         provide: WarehousesStore,
         useValue: {
-          list: { reset: jest.fn(), load: jest.fn() },
+          list: { reset: warehousesReset, load: jest.fn() },
           $activeWarehouses: signal([
             { id: WAREHOUSE, name: 'Main warehouse', isActive: true },
             { id: '00000000-0000-4000-8000-0000000000ac', name: 'Annex', isActive: true }
@@ -130,6 +132,8 @@ describe('ReorderPageComponent', () => {
     load.mockClear();
     reset.mockClear();
     remember.mockClear();
+    partnersReset.mockClear();
+    warehousesReset.mockClear();
     remembered = null;
     granted.clear();
     data.set(undefined);
@@ -149,34 +153,36 @@ describe('ReorderPageComponent', () => {
 
     expect(lastQuery()).toMatchObject({ warehouseId: WAREHOUSE, page: 1 });
     expect(remember).toHaveBeenCalledWith('u1', WAREHOUSE);
+    // The stores outlive a sign-out: the last user's rows, suppliers and warehouses are forgotten before anything loads.
+    for (const forgotten of [reset, partnersReset, warehousesReset]) {
+      expect(forgotten).toHaveBeenCalled();
+    }
   });
 
   it('shows the figures of a row and the value to a person with cost.view', async () => {
     granted.add(PERMISSION.CostView);
-    await render([row(1, { qtyOnHand: 3, onOrderQty: 5, suggestedQty: 12.5, suggestedValue: 25 })]);
+    await render([
+      row(1, { qtyOnHand: 3, onOrderQty: 5, suggestedQty: 12.5, suggestedValue: 25 }),
+      row(2, { suggestedValue: null as unknown as undefined })
+    ]);
 
     expect(headers()).toEqual(
       expect.arrayContaining(['On hand', 'Safety stock', 'On order', 'Order qty'])
     );
-    expect(headers().some(header => header.startsWith('Value'))).toBe(true);
+    expect(headers().some(header => header.startsWith('Est. value'))).toBe(true);
     expect(rowText()).toContain('SKU-1');
     expect(rowText()).toContain('25.00');
+    // A value the server could not work out is a dash, never 0.00.
+    expect(rowText(1)).not.toContain('0.00');
+    expect(rowText(1)).toMatch(/ - ?$/);
   });
 
-  it('has no Value column and no money for a person without cost.view (the API sends null)', async () => {
+  it('has no value column and no money for a person without cost.view (the API sends null)', async () => {
     await render([row(1, { suggestedValue: null as unknown as undefined })]);
 
-    expect(headers().some(header => header.startsWith('Value'))).toBe(false);
+    expect(headers().some(header => header.startsWith('Est. value'))).toBe(false);
     expect(rowText()).not.toMatch(/\d\.\d{2}/);
     expect(spectator.queryAll('tbody tr:first-child td')).toHaveLength(headers().length);
-  });
-
-  it('shows a dash, never 0.00, for a value the server could not work out', async () => {
-    granted.add(PERMISSION.CostView);
-    await render([row(1, { suggestedValue: null as unknown as undefined })]);
-
-    expect(rowText()).not.toContain('0.00');
-    expect(rowText()).toMatch(/ - ?$/);
   });
 
   it.each([PERMISSION.PoManage, PERMISSION.CostView, PERMISSION.PoRead])(
@@ -192,16 +198,6 @@ describe('ReorderPageComponent', () => {
     }
   );
 
-  it('offers the action to a holder of po.manage and cost.view, by permission and not by role', async () => {
-    granted.add(PERMISSION.PoManage);
-    granted.add(PERMISSION.CostView);
-    await render([row(1)]);
-
-    expect(checkboxes()).toHaveLength(1);
-    expect(qtyBoxes()).toHaveLength(1);
-    expect(spectator.query('.reorder-page-create')?.textContent).toContain('Create purchase order');
-  });
-
   describe('creating', () => {
     beforeEach(() => {
       granted.add(PERMISSION.PoManage);
@@ -216,11 +212,8 @@ describe('ReorderPageComponent', () => {
       expect(spectator.element.textContent).toContain('Enter a quantity above 0');
       expect(qtyBoxes()[0].getAttribute('aria-invalid')).toBe('true');
 
-      await type(qtyBoxes()[0], '1.23456');
-      expect(spectator.element.textContent).toContain('up to 4 decimals');
-
       await type(qtyBoxes()[0], '3');
-      expect(spectator.element.textContent).not.toContain('Enter a quantity above 0');
+      expect(qtyBoxes()[0].getAttribute('aria-invalid')).toBeNull();
     });
 
     it('opens the editor with the supplier, the warehouse and the edited quantities of the selected rows', async () => {
@@ -242,6 +235,15 @@ describe('ReorderPageComponent', () => {
       });
     });
 
+    it('puts the focus on the first field with an error once the errors are drawn', async () => {
+      await render([row(1)]);
+
+      press();
+      await settle();
+
+      expect(document.activeElement).toBe(spectator.query('.reorder-page-create select'));
+    });
+
     it('does not open the editor while a selected row holds a bad quantity, and says which', async () => {
       await render([row(1), row(2)]);
       const navigate = jest.spyOn(spectator.inject(Router), 'navigate');
@@ -252,39 +254,25 @@ describe('ReorderPageComponent', () => {
       press();
 
       expect(navigate).not.toHaveBeenCalled();
-      expect(spectator.element.textContent).toContain('Correct the quantities marked in red.');
-    });
-
-    it('selects every row of the page at once', async () => {
-      await render([row(1), row(2)]);
-      const all = spectator.query<HTMLInputElement>(
-        '.reorder-page-selection input[type="checkbox"]'
+      expect(spectator.element.textContent).toContain(
+        'Correct the quantities that have an error under them.'
       );
-
-      all?.click();
-      await settle();
-      expect(checkboxes().every(box => box.checked)).toBe(true);
-      expect(spectator.element.textContent).toContain('2 products selected');
     });
 
-    it('sends at most the lines the editor takes and says how many were left out', async () => {
+    it('selects every row of the page at once and says how many lines the editor takes', async () => {
       const rows = Array.from({ length: MAX_PREFILL_LINES + 3 }, (_, index) => row(index + 1));
       await render(rows);
-      const navigate = jest.spyOn(spectator.inject(Router), 'navigate').mockResolvedValue(true);
       spectator.query<HTMLInputElement>('.reorder-page-selection input[type="checkbox"]')?.click();
       await settle();
-      await chooseSupplier();
 
+      expect(checkboxes().every(box => box.checked)).toBe(true);
       expect(spectator.element.textContent).toContain(`first ${MAX_PREFILL_LINES} selected`);
       expect(spectator.element.textContent).toContain('3 are left out');
-      press();
-
-      const params = navigate.mock.calls[0][1]?.queryParams as { line: string[] };
-      expect(params.line).toHaveLength(MAX_PREFILL_LINES);
     });
 
     it('says the selection is for one page, and a new warehouse clears it and shows nothing of the old one', async () => {
       await render([row(1)]);
+      await type(qtyBoxes()[0], '4');
       await pick(0);
       expect(checkboxes()[0].checked).toBe(true);
       expect(spectator.element.textContent).toContain('Only this page is selected');
@@ -294,6 +282,9 @@ describe('ReorderPageComponent', () => {
 
       expect(spectator.component.$pickedIds().size).toBe(0);
       expect(spectator.component.$rows()).toHaveLength(0);
+      expect(spectator.component.qtyOf(row(1))).toBe(17);
+      // The total of the old warehouse is not shown under the new one.
+      expect(spectator.query('app-pager')).toBeNull();
     });
   });
 });

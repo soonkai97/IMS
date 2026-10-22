@@ -34,22 +34,26 @@
       <app-button variant="primary" (clicked)="onCreate()">
         {{ 'reorder.create' | t }}
       </app-button>
-      <div class="reorder-page-selection" aria-live="polite">
+      <div class="reorder-page-selection">
         <app-checkbox
           [ngModel]="$allSelected()"
           (ngModelChange)="onPickAll($event)"
           [disabled]="$rows().length === 0"
           >{{ 'reorder.selectAll' | t }}</app-checkbox
         >
-        <span>{{ 'reorder.selected' | t: { count: $selectedRows().length } }}</span>
-        @if ($overflow() > 0) {
-          <span class="reorder-page-warning">{{
-            'reorder.tooMany' | t: { max: maxLines, omitted: $overflow() }
-          }}</span>
-        }
-        @if ($problem(); as problem) {
-          <span class="reorder-page-warning">{{ problem | t }}</span>
-        }
+        <span aria-live="polite">{{
+          'reorder.selected' | t: { count: $selectedRows().length }
+        }}</span>
+        <span class="reorder-page-warning" aria-live="polite">
+          @if ($overflow() > 0) {
+            {{ 'reorder.tooMany' | t: { max: maxLines, omitted: $overflow() } }}
+          }
+        </span>
+        <span class="reorder-page-warning" aria-live="polite">
+          @if ($problem(); as problem) {
+            {{ problem | t }}
+          }
+        </span>
       </div>
     </section>
   }
@@ -64,7 +68,9 @@
   >
     <ng-template appCell="select" let-row>
       <app-checkbox [ngModel]="isPicked(row)" (ngModelChange)="onPick(row, $event)">
-        <span class="sr-only">{{ 'reorder.selectRow' | t: { sku: row.sku } }}</span>
+        <span class="sr-only">{{
+          'reorder.selectRow' | t: { sku: row.sku, name: row.productName }
+        }}</span>
       </app-checkbox>
     </ng-template>
     <ng-template appCell="onHand" let-row

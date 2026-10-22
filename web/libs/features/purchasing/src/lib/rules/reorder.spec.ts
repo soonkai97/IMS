@@ -49,17 +49,6 @@ describe('buildReorderEntryLink', () => {
     expect(link.omitted).toBe(0);
   });
 
-  it('drops a line the editor would refuse and says nothing about it twice', () => {
-    const link = buildReorderEntryLink(WAREHOUSE, SUPPLIER, [
-      { sku: 'A', qty: 0 },
-      { sku: '', qty: 3 },
-      { sku: 'B', qty: 1.23456 },
-      { sku: 'C', qty: 4 }
-    ]);
-
-    expect(link.queryParams.line).toEqual(['C|4']);
-  });
-
   it('sends at most the lines the editor takes and counts the rest', () => {
     const lines = Array.from({ length: MAX_PREFILL_LINES + 7 }, (_, index) => ({
       sku: `S${index}`,

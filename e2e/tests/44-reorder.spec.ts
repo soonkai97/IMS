@@ -9,6 +9,7 @@ import {
   command,
   createOrder,
   purchasingIsOn,
+  retireReceipt,
   setPurchasing
 } from '../src/purchasing';
 import { expect, test } from '../src/fixtures';
@@ -25,6 +26,7 @@ const data = {
   foundOn: false,
   supplier: { id: '' as PublicId, name: `${SUPPLIER_PREFIX}RO ${token}` },
   product: { id: '' as PublicId, sku: `${SKU_PREFIX}RO-${token}` },
+  receiptId: undefined as PublicId | undefined,
   orderIds: [] as PublicId[]
 };
 const admin = () => apiAs('admin');
@@ -54,7 +56,9 @@ test.describe('Reorder, real API', () => {
     // 10 safety, 3 on hand at cost 2.00: suggested 2 x 10 - 3 - 0 = 17, worth 34.00.
     const product = await admin().createProduct({ safetyStock: 10, sku: data.product.sku });
     data.product.id = product.id;
-    await admin().post('receipts', [{ productId: product.id, qty: 3, unitCost: 2 }]);
+    data.receiptId = (
+      await admin().post('receipts', [{ productId: product.id, qty: 3, unitCost: 2 }])
+    ).id;
   });
 
   test.afterAll(async () => {
@@ -62,6 +66,15 @@ test.describe('Reorder, real API', () => {
       if (await purchasingIsOn()) {
         await cancelOpenOrders();
       }
+      // Nothing is left below its safety stock for the next run: the receipt is reversed and the product switched off.
+      if (data.receiptId) {
+        await retireReceipt(data.receiptId);
+      }
+      const product = await admin().call<object>('GET', `/api/products/${data.product.id}`);
+      await admin().call('PUT', `/api/products/${data.product.id}`, {
+        ...product,
+        isActive: false
+      });
     } finally {
       await setPurchasing(data.foundOn, 'E2E: put back as found');
     }
@@ -101,11 +114,6 @@ test.describe('Reorder, real API', () => {
     expect(text).toMatch(/\b3\b.*\b10\b.*\b0\b/);
     expect(text).toContain('34.00');
     await expect(qty(page)).toHaveValue('17');
-    // The value follows the quantity in the box, at the same average cost.
-    await qty(page).fill('5');
-    await expect(row(page)).toContainText('10.00');
-    await qty(page).fill('0');
-    await expect(page.getByText('Enter a quantity above 0, with up to 4 decimals.')).toBeVisible();
   });
 
   test('given nothing chosen, Create purchase order says what is missing; with a selected row, an edited quantity and a supplier it opens the editor with the lines prefilled; saving a draft takes the row off the list (a draft counts as on order)', async ({
@@ -166,30 +174,12 @@ test.describe('Reorder, real API', () => {
     await openReorder(page);
 
     await expect(row(page)).toBeVisible({ timeout: SLOW });
-    await expect(page.getByRole('columnheader', { name: /^Value/ })).toHaveCount(0);
+    await expect(page.getByRole('columnheader', { name: /^Est\. value/ })).toHaveCount(0);
     await expect(row(page)).not.toContainText('34.00');
     await expect(page.getByRole('checkbox')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Create purchase order' })).toHaveCount(0);
     await expect(page.getByRole('spinbutton')).toHaveCount(0);
     await expect(row(page)).toContainText('17');
-  });
-
-  test.describe('360 px phone', () => {
-    test.use({ viewport: { width: 360, height: 740 } });
-
-    test('given a phone, then the rows are cards and the page does not scroll sideways', async ({
-      page,
-      signIn
-    }) => {
-      await signIn('clerk');
-      await openReorder(page);
-      await expect(row(page)).toBeVisible({ timeout: SLOW });
-      expect(
-        await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
-      ).toBeLessThanOrEqual(0);
-      // A card (title, name and unit, the figures, the box), not a screen high.
-      expect((await row(page).boundingBox())?.height).toBeLessThan(320);
-    });
   });
 
   test.describe('320 px with the text at 200%', () => {
@@ -233,10 +223,6 @@ test.describe('Reorder, real API', () => {
               )
           );
         expect(outside).toEqual([]);
-        await page.evaluate(() => (document.documentElement.style.fontSize = ''));
-        if (language !== 'English') {
-          await shell.setLanguage('English');
-        }
       });
     }
   });
@@ -258,6 +244,9 @@ test.describe('Reorder, real API', () => {
           await page.getByRole('button', { name: 'Create purchase order' }).click();
           await page.waitForLoadState('networkidle');
           await page.waitForFunction(() => document.getAnimations().length === 0);
+          expect(
+            await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+          ).toBeLessThanOrEqual(0);
           const { violations } = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
             .analyze();

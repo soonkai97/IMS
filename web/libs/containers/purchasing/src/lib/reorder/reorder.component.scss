@@ -48,6 +48,10 @@
 .reorder-page-warning {
   color: color('danger');
   overflow-wrap: anywhere;
+
+  &:empty {
+    display: none;
+  }
 }
 
 // In a card the box shares the line with its label: it shrinks (never pushes the page sideways) but stays wide enough to type in.

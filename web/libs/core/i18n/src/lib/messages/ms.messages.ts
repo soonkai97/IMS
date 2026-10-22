@@ -898,6 +898,7 @@ export const MS_MESSAGES: Messages = {
   'po.print.total': 'Jumlah ({currency})',
   'po.unitFor': 'Unit bagi {sku}',
   'po.print.notPrintable': 'Hanya pesanan yang diluluskan atau ditutup boleh dicetak.',
+  // TODO-review: machine draft (PL2.10 reorder), needs a native speaker's pass.
   'reorder.title': 'Tempah semula',
   'reorder.chooseWarehouse': 'Pilih gudang',
   'reorder.pickWarehouse': 'Pilih gudang untuk melihat apa yang perlu ditempah.',
@@ -909,11 +910,11 @@ export const MS_MESSAGES: Messages = {
   'reorder.qty': 'Tempah',
   'reorder.qtyFor': 'Kuantiti untuk ditempah bagi {sku}',
   'reorder.qtyInvalid': 'Masukkan kuantiti melebihi 0, dengan sehingga 4 perpuluhan.',
-  'reorder.value': 'Nilai ({currency})',
+  'reorder.value': 'Nilai angg. ({currency})',
   'reorder.hint':
     'Cadangan ialah sehingga dua kali stok keselamatan, tolak stok di tangan dan dalam pesanan. Pesanan yang masih draf dikira dalam pesanan.',
   'reorder.select': 'Pilih',
-  'reorder.selectRow': 'Pilih {sku}',
+  'reorder.selectRow': 'Pilih {sku}, {name}',
   'reorder.selectAll': 'Pilih semua pada halaman ini',
   'reorder.selectionNote':
     'Hanya halaman ini dipilih. Menukar halaman, carian atau gudang mengosongkan pilihan.',
@@ -922,7 +923,7 @@ export const MS_MESSAGES: Messages = {
   'reorder.supplierRequired': 'Pilih pembekal.',
   'reorder.create': 'Cipta pesanan belian',
   'reorder.nothingSelected': 'Pilih sekurang-kurangnya satu produk untuk ditempah.',
-  'reorder.fixQuantities': 'Betulkan kuantiti yang ditandakan merah.',
+  'reorder.fixQuantities': 'Betulkan kuantiti yang ada ralat di bawahnya.',
   'reorder.tooMany':
     'Satu pesanan menerima sehingga {max} baris. {max} yang pertama dipilih masuk ke pesanan ini; {omitted} ditinggalkan. Tempah dalam pesanan belian lain.'
 };
