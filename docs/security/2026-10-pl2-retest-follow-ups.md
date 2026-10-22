@@ -31,7 +31,7 @@ A client reads the entity first and sends its `concurrencyToken` (or the `ETag` 
 
 ## F-4: login timing, risk accepted
 
-Decision (owner, 2026-10-22): do not change `LoginHandler`. A caller can tell an existing username from an unknown one by about 15 to 50 ms.
+Decision (accepted as a risk, 2026-10-22): do not change `LoginHandler`. A caller can tell an existing username from an unknown one by about 15 to 50 ms.
 
 Why it is acceptable:
 
