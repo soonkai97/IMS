@@ -6,7 +6,7 @@ public class CreatePartnerHandler(IRepository<Partner> partners, IModuleSwitches
 {
     public async Task<PartnerDto> HandleAsync(CreatePartnerCommand cmd, CancellationToken ct)
     {
-        var applyTaxIds = await modules.AcceptAsync(ModuleCodes.Accounting, [(TaxFieldNames.Tin, cmd.Data.Tin.Value), (TaxFieldNames.SstRegNo, cmd.Data.SstRegNo.Value)], ct);
+        var applyTaxIds = await modules.AcceptAsync(TaxFieldNames.RemovedModule, [(TaxFieldNames.Tin, cmd.Data.Tin.Value), (TaxFieldNames.SstRegNo, cmd.Data.SstRegNo.Value)], ct);
         var name = cmd.Data.Name.Trim();
         if (await partners.AnyAsync(new PartnerNameTakenSpec(cmd.Data.Type, name, 0), ct)) throw new ConflictException(Messages.PartnerExists(cmd.Data.Type, name));
         var p = Partner.Create(cmd.Data.Type, name, cmd.Data.Contact, cmd.Data.IsActive);

@@ -12,16 +12,16 @@ namespace Ims.Api.Tests.Tests.Modules;
 [Route("api/probe")]
 public class ModuleProbeController : ControllerBase
 {
-    /// <summary>Part of the accounting module and guarded by a permission every system role holds, so only the gate and a forged token can tell callers apart.</summary>
-    [HttpGet("accounting"), RequiresModule(ModuleCodes.Accounting), Authorize(Policy = Permissions.StockRead)]
-    public IActionResult Accounting() => Ok();
+    /// <summary>Part of the purchasing module and guarded by a permission every system role holds, so only the gate and a forged token can tell callers apart.</summary>
+    [HttpGet("gated"), RequiresModule(ModuleCodes.Purchasing), Authorize(Policy = Permissions.StockRead)]
+    public IActionResult Gated() => Ok();
 
-    /// <summary>Guarded by the module permission itself, as the accounting export endpoint (PL1.6) will be: the claim decides once the gate lets the caller through.</summary>
-    [HttpGet("export"), RequiresModule(ModuleCodes.Accounting), Authorize(Policy = Permissions.AccountingExport)]
-    public IActionResult Export() => Ok();
+    /// <summary>Guarded by a module permission itself, held by some system roles only (po.manage): the claim decides once the gate lets the caller through.</summary>
+    [HttpGet("manage"), RequiresModule(ModuleCodes.Purchasing), Authorize(Policy = Permissions.PoManage)]
+    public IActionResult Manage() => Ok();
 
     /// <summary>Allows anonymous callers AND belongs to a module: the gate must still answer 404 while the module is off.</summary>
-    [HttpGet("anonymous"), AllowAnonymous, RequiresModule(ModuleCodes.Accounting)]
+    [HttpGet("anonymous"), AllowAnonymous, RequiresModule(ModuleCodes.Purchasing)]
     public IActionResult Anonymous() => Ok();
 
     [HttpGet("unregistered"), RequiresModule("unregistered"), Authorize(Policy = Permissions.StockRead)]

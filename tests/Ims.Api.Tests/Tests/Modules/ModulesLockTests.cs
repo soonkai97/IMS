@@ -39,7 +39,7 @@ public class ModulesLockTests(ApiFixture fixture) : IAsyncLifetime
         await ResetAsync();
     }
 
-    private Task ResetAsync() => fixture.Database.ExecuteAsync("DELETE FROM SystemSetting WHERE [Key] LIKE N'Module.%'");
+    private Task ResetAsync() => Ims.Api.Tests.Tests.Purchasing.PurchasingScenario.ResetAsync(fixture); // also closes any order another test left open: the purchasing check refuses to switch off over one
 
     /// <summary>Takes an application lock in a transaction of its own; disposing the connection rolls back and releases it.</summary>
     private async Task<SqlConnection> HoldLockAsync(string resource)
@@ -61,7 +61,7 @@ public class ModulesLockTests(ApiFixture fixture) : IAsyncLifetime
         await using (await HoldLockAsync("modules"))
         {
             var clock = Stopwatch.StartNew();
-            answer = await _admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, "Lock test");
+            answer = await _admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, "Lock test");
             took = clock.Elapsed;
         }
 
@@ -71,6 +71,6 @@ public class ModulesLockTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(0, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM SystemSetting WHERE [Key] LIKE N'Module.%'"));
         Assert.Equal(auditBefore, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM AuditLogs WHERE [Action] LIKE N'module.%'"));
 
-        (await _admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, "Lock test")).ShouldBeOk();
+        (await _admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, "Lock test")).ShouldBeOk();
     }
 }

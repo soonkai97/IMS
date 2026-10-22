@@ -1,5 +1,5 @@
 // Area 1: authorization matrix. Every purchase-order endpoint x every caller kind. The expected cell comes from the permission each endpoint declares
-// (po.read / po.manage / document.create + po.read / DocumentReview / PurchaseOrderCancel / accounting.export), never from a role name.
+// (po.read / po.manage / document.create + po.read / DocumentReview / PurchaseOrderCancel), never from a role name.
 // A "door" cell is the 401/403 decision before any handler runs; where the door is open the probe uses a fresh order in the right state and expects 200.
 import { call, tokens, fx, forge, decode, expect, check, failures, useAdmin, PO, act, approvedPo, submitted, newPo, line, etag, tag } from './lib.mjs';
 const F = fx(), T = await tokens(); useAdmin(T.admin);
@@ -17,7 +17,7 @@ const sub = (await submitted(T.clerk, F, { lines: [line(F, { unitPrice: 600 })] 
 const appr = await approvedPo(F, T);
 const snap = async () => (await Promise.all([draft.id, sub.id, appr.id].map(async (i) => (await call('GET', `${PO}/${i}`, T.admin)).json.concurrencyToken))).join();
 const before = await snap();
-const listPath = `${PO}?page=1&pageSize=5`, sugg = `${PO}/suggestions?warehouseId=${F.whA}`, exp = `/api/accounting/export?from=2026-01-01&to=2026-01-02`;
+const listPath = `${PO}?page=1&pageSize=5`, sugg = `${PO}/suggestions?warehouseId=${F.whA}`;
 
 // ---- reads and denied writes, every kind
 for (const k of KINDS) {
@@ -25,7 +25,6 @@ for (const k of KINDS) {
   expect(1, `${k} GET list`, await call('GET', listPath, tok), status(k, read));
   expect(1, `${k} GET order`, await call('GET', `${PO}/${draft.id}`, tok), status(k, read));
   expect(1, `${k} GET suggestions`, await call('GET', sugg, tok), status(k, read));
-  expect(1, `${k} GET accounting export`, await call('GET', exp, tok), status(k, ['admin', 'owner']));
   if (!manage.includes(k)) {
     expect(1, `${k} POST create`, await call('POST', PO, tok, { warehouseId: F.whA, supplierId: F.supplier, lines: [line(F)] }), status(k, manage));
     expect(1, `${k} PUT update`, await call('PUT', `${PO}/${draft.id}`, tok, { warehouseId: F.whA, supplierId: F.supplier, lines: [line(F)] }, { 'If-Match': await tag(draft.id) }), status(k, manage));

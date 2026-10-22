@@ -13,7 +13,7 @@ import { goTo, loadPage } from '../src/pages/shell';
 // Settings > Modules (PL1.4): which parts of the system are on for the installation. This file never changes the state of the
 // installation: the scenarios on the real API only read (the list, the forbidden pages, the layout), and the switch itself (reason
 // dialog, result, errors, the stale-screen 404) is driven against a stubbed /api/modules that offers a second, made-up module.
-// The real flip of `purchasing` (the order screens appear and go) belongs to the purchasing scenarios; accounting is not offered here.
+// The real flip of `purchasing` (the order screens appear and go) belongs to the purchasing scenarios.
 const PURCHASING = 'Purchasing';
 /** The web's own sentence under the reason box (the API says the same thing, so a stub must not reuse it for a 400). */
 const REASON_SENTENCE = 'Enter a reason of at least 5 characters.';
@@ -96,7 +96,7 @@ class ModulesStub {
 const moduleSwitch = (page: Page, name: string) => page.getByRole('switch', { name });
 
 test.describe('Settings > Modules, real API (nothing is changed)', () => {
-  test('given the Admin opens Modules from the menu, then the list matches the API (accounting, which this build has no screens for, is left out) and purchasing is a switch like any other', async ({
+  test('given the Admin opens Modules from the menu, then the list matches the API and purchasing is a switch like any other', async ({
     page,
     signIn,
     shell,
@@ -111,14 +111,11 @@ test.describe('Settings > Modules, real API (nothing is changed)', () => {
 
     const listed = await api('admin').call<ModuleDto[]>('GET', '/api/modules');
     expect(listed.map(item => item.code)).toContain('purchasing');
-    for (const item of listed.filter(entry => entry.code !== 'accounting')) {
+    expect(listed.map(item => item.code)).not.toContain('accounting'); // removed from the API (RemoveAccountingModule)
+    for (const item of listed) {
       await expect(page.getByRole('heading', { level: 2, name: item.name })).toBeVisible();
     }
-    // The API may still list accounting until it is removed there; the screen must not offer a switch for it.
-    await expect(page.getByRole('switch')).toHaveCount(
-      listed.filter(entry => entry.code !== 'accounting').length
-    );
-    await expect(page.getByRole('switch', { name: 'Accounting' })).toHaveCount(0);
+    await expect(page.getByRole('switch')).toHaveCount(listed.length);
 
     const purchasing = moduleSwitch(page, PURCHASING);
     // The switch shows what the API says, in words, and nothing blocks it.

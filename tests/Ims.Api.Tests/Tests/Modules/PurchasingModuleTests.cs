@@ -10,8 +10,8 @@ namespace Ims.Api.Tests.Tests.Modules;
 
 /// <summary>
 /// PL2.1 acceptance 1 to 3 over the real API: the purchasing module is listed and switchable by an Administrator only, its permissions <c>po.read</c> and <c>po.manage</c> are offered only
-/// while it is on, a role that holds one keeps it (hidden) through a save while it is off, and the <c>Requires</c> closure is enforced. The role-page rules themselves are proven for the
-/// accounting module in <see cref="ModuleAwareRolesTests"/>; this class runs them over the purchasing codes. Every test starts and ends with no module row, and the roles it makes are deleted.
+/// while it is on, a role that holds one keeps it (hidden) through a save while it is off, and the <c>Requires</c> closure is enforced. The
+/// role-page rules themselves are proven in <see cref="ModuleAwareRolesTests"/> over <c>po.read</c>; this class runs them over both purchasing codes. Every test starts and ends with no module row, and the roles it makes are deleted.
 /// </summary>
 [Collection(ApiCollection.Name)]
 public class PurchasingModuleTests(ApiFixture fixture) : IAsyncLifetime

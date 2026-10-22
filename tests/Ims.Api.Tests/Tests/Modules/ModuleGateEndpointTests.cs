@@ -35,7 +35,7 @@ public class ModuleGateEndpointTests(ApiFixture fixture) : IAsyncLifetime
         await ResetAsync();
     }
 
-    private Task ResetAsync() => fixture.Database.ExecuteAsync("DELETE FROM SystemSetting WHERE [Key] LIKE N'Module.%'");
+    private Task ResetAsync() => Ims.Api.Tests.Tests.Purchasing.PurchasingScenario.ResetAsync(fixture); // also closes any order another test left open: the purchasing check refuses to switch off over one
 
     private ApiClient Caller(string? token = null)
     {
@@ -54,9 +54,9 @@ public class ModuleGateEndpointTests(ApiFixture fixture) : IAsyncLifetime
     public async Task While_the_module_is_off_every_signed_in_caller_gets_404_with_or_without_the_permission_and_an_anonymous_caller_still_gets_401()
     {
         foreach (var token in new[] { WithoutThePermission(), await PermittedAsync(Roles.WarehouseStaff), await PermittedAsync(Roles.Admin), await PermittedAsync(Roles.Clerk) })
-            (await Probe(Caller(token), "accounting")).ShouldBeProblem(HttpStatusCode.NotFound);
+            (await Probe(Caller(token), "gated")).ShouldBeProblem(HttpStatusCode.NotFound);
 
-        (await Probe(Caller(), "accounting")).ShouldBeProblem(HttpStatusCode.Unauthorized);
+        (await Probe(Caller(), "gated")).ShouldBeProblem(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class ModuleGateEndpointTests(ApiFixture fixture) : IAsyncLifetime
     {
         var caller = Caller(await PermittedAsync());
 
-        var gated = (await Probe(caller, "accounting")).ShouldBeProblem(HttpStatusCode.NotFound);
+        var gated = (await Probe(caller, "gated")).ShouldBeProblem(HttpStatusCode.NotFound);
         var unknown = (await Probe(caller, "no-such-endpoint")).ShouldBeProblem(HttpStatusCode.NotFound);
 
         Assert.Equal(unknown.Title, gated.Title);
@@ -75,25 +75,25 @@ public class ModuleGateEndpointTests(ApiFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task While_the_module_is_on_the_permission_decides_403_without_it_and_200_with_it_and_401_with_no_token()
     {
-        (await _admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, Reason)).ShouldBeOk();
+        (await _admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, Reason)).ShouldBeOk();
 
-        (await Probe(Caller(WithoutThePermission()), "accounting")).ShouldBeProblem(HttpStatusCode.Forbidden);
-        (await Probe(Caller(await PermittedAsync()), "accounting")).ShouldBeOk();
-        (await Probe(Caller(await PermittedAsync(Roles.Admin)), "accounting")).ShouldBeOk();
-        (await Probe(Caller(), "accounting")).ShouldBeProblem(HttpStatusCode.Unauthorized);
+        (await Probe(Caller(WithoutThePermission()), "gated")).ShouldBeProblem(HttpStatusCode.Forbidden);
+        (await Probe(Caller(await PermittedAsync()), "gated")).ShouldBeOk();
+        (await Probe(Caller(await PermittedAsync(Roles.Admin)), "gated")).ShouldBeOk();
+        (await Probe(Caller(), "gated")).ShouldBeProblem(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
     public async Task A_flip_works_on_the_very_next_request_in_both_directions_with_the_same_token()
     {
         var caller = Caller(await PermittedAsync());
-        (await Probe(caller, "accounting")).ShouldBe(HttpStatusCode.NotFound);
+        (await Probe(caller, "gated")).ShouldBe(HttpStatusCode.NotFound);
 
-        (await _admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, Reason)).ShouldBeOk();
-        (await Probe(caller, "accounting")).ShouldBeOk();
+        (await _admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, Reason)).ShouldBeOk();
+        (await Probe(caller, "gated")).ShouldBeOk();
 
-        (await _admin.Modules.SwitchAsync(ModuleCodes.Accounting, false, Reason)).ShouldBeOk();
-        (await Probe(caller, "accounting")).ShouldBe(HttpStatusCode.NotFound);
+        (await _admin.Modules.SwitchAsync(ModuleCodes.Purchasing, false, Reason)).ShouldBeOk();
+        (await Probe(caller, "gated")).ShouldBe(HttpStatusCode.NotFound);
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public class ModuleGateEndpointTests(ApiFixture fixture) : IAsyncLifetime
         (await Probe(Caller(), "anonymous")).ShouldBeProblem(HttpStatusCode.NotFound);
         (await Probe(Caller(await PermittedAsync()), "anonymous")).ShouldBeProblem(HttpStatusCode.NotFound);
 
-        (await _admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, Reason)).ShouldBeOk();
+        (await _admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, Reason)).ShouldBeOk();
 
         (await Probe(Caller(), "anonymous")).ShouldBeOk();
     }
@@ -124,7 +124,7 @@ public class ModuleGateEndpointTests(ApiFixture fixture) : IAsyncLifetime
 
         (await Probe(caller, "core")).ShouldBeOk();
 
-        (await _admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, Reason)).ShouldBeOk();
+        (await _admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, Reason)).ShouldBeOk();
         (await Probe(caller, "core")).ShouldBeOk();
     }
 
@@ -132,28 +132,28 @@ public class ModuleGateEndpointTests(ApiFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task A_person_who_holds_the_module_permission_while_the_module_is_off_still_has_the_claim_and_the_endpoint_answers_404_not_403()
     {
-        var owner = await fixture.AsAsync(Roles.Owner);
-        var claims = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(owner.AccessToken).Claims.Where(c => c.Type == ClaimNames.Permission).Select(c => c.Value);
-        Assert.Contains(Permissions.AccountingExport, claims); // the claim is not filtered by the switch
-        Assert.Contains(Permissions.AccountingExport, (await owner.Auth.MeAsync()).Data<UserInfo>().Permissions);
+        var holder = await fixture.AsAsync(Roles.Supervisor); // holds po.manage
+        var claims = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(holder.AccessToken).Claims.Where(c => c.Type == ClaimNames.Permission).Select(c => c.Value);
+        Assert.Contains(Permissions.PoManage, claims); // the claim is not filtered by the switch
+        Assert.Contains(Permissions.PoManage, (await holder.Auth.MeAsync()).Data<UserInfo>().Permissions);
 
-        (await Probe(Caller(owner.AccessToken), "export")).ShouldBeProblem(HttpStatusCode.NotFound);
-        (await Probe(Caller(await PermittedAsync(Roles.Supervisor)), "export")).ShouldBeProblem(HttpStatusCode.NotFound); // no claim, off: the same 404
-        (await Probe(Caller(), "export")).ShouldBeProblem(HttpStatusCode.Unauthorized);
+        (await Probe(Caller(holder.AccessToken), "manage")).ShouldBeProblem(HttpStatusCode.NotFound);
+        (await Probe(Caller(await PermittedAsync(Roles.Owner)), "manage")).ShouldBeProblem(HttpStatusCode.NotFound); // no claim, off: the same 404
+        (await Probe(Caller(), "manage")).ShouldBeProblem(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
     public async Task While_the_module_is_on_the_claim_decides_403_without_it_and_200_with_it_whatever_the_role_name_says()
     {
-        (await _admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, Reason)).ShouldBeOk();
-        var withoutIt = ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Admin, permissions: PermissionCatalog.Codes.Except([Permissions.AccountingExport]));
-        var withIt = ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Clerk, permissions: [Permissions.AccountingExport]);
+        (await _admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, Reason)).ShouldBeOk();
+        var withoutIt = ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Admin, permissions: PermissionCatalog.Codes.Except([Permissions.PoManage]));
+        var withIt = ForgedTokens.Create(fixture.Settings.JwtKey, Roles.WarehouseStaff, permissions: [Permissions.PoManage]);
 
-        (await Probe(Caller(withoutIt), "export")).ShouldBeProblem(HttpStatusCode.Forbidden);
-        (await Probe(Caller(withIt), "export")).ShouldBeOk();
-        (await Probe(Caller((await fixture.AsAsync(Roles.Owner)).AccessToken), "export")).ShouldBeOk();
-        (await Probe(Caller((await fixture.AsAsync(Roles.Admin)).AccessToken), "export")).ShouldBeOk();
-        foreach (var role in new[] { Roles.Supervisor, Roles.WarehouseStaff, Roles.Clerk })
-            (await Probe(Caller((await fixture.AsAsync(role)).AccessToken), "export")).ShouldBeProblem(HttpStatusCode.Forbidden);
+        (await Probe(Caller(withoutIt), "manage")).ShouldBeProblem(HttpStatusCode.Forbidden);
+        (await Probe(Caller(withIt), "manage")).ShouldBeOk();
+        foreach (var role in new[] { Roles.Admin, Roles.Supervisor, Roles.Clerk })
+            (await Probe(Caller((await fixture.AsAsync(role)).AccessToken), "manage")).ShouldBeOk();
+        foreach (var role in new[] { Roles.Owner, Roles.WarehouseStaff })
+            (await Probe(Caller((await fixture.AsAsync(role)).AccessToken), "manage")).ShouldBeProblem(HttpStatusCode.Forbidden);
     }
 }

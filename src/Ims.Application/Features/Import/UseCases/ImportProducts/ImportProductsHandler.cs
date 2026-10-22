@@ -39,9 +39,9 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
     {
         var present = new TaxColumns(sheet.Headers.Contains(ImportColumns.HsCode), sheet.Headers.Contains(ImportColumns.SstCode));
         if (!present.HsCode && !present.SstCode) return present;
-        if (await modules.IsEnabledAsync(ModuleCodes.Accounting, ct)) return present;
+        if (await modules.IsEnabledAsync(TaxFieldNames.RemovedModule, ct)) return present;
         var named = new[] { (present.HsCode, ImportTemplates.TaxColumns[0].Header), (present.SstCode, ImportTemplates.TaxColumns[1].Header) }.Where(c => c.Item1).Select(c => c.Item2);
-        throw new ValidationException(Messages.ImportColumnsNotAvailable(named, ModuleCodes.Accounting));
+        throw new ValidationException(Messages.ImportColumnsNotAvailable(named, TaxFieldNames.RemovedModule));
     }
 
     private async Task<(List<ImportRowResult> Results, List<ProductRow> Parsed)> ValidateAsync(ExcelSheet sheet, TaxColumns tax, CancellationToken ct)

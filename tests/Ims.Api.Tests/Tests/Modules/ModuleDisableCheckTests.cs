@@ -19,7 +19,6 @@ namespace Ims.Api.Tests.Tests.Modules;
 public class ModuleDisableCheckTests(ApiFixture fixture) : IAsyncLifetime
 {
     private const string Purchasing = ModuleCodes.Purchasing;
-    private const string Accounting = ModuleCodes.Accounting;
 
     private WebApplicationFactory<Program>? _host;
 
@@ -88,14 +87,14 @@ public class ModuleDisableCheckTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_module_without_a_check_is_never_refused_even_when_another_module_has_one_that_refuses()
+    public async Task A_check_of_another_module_never_refuses_a_module_it_does_not_guard()
     {
-        var admin = await AdminWithAsync(new FakeCheck(Purchasing, 3));
-        (await admin.Modules.SwitchAsync(Accounting, true, Why())).ShouldBeOk();
+        var admin = await AdminWithAsync(new FakeCheck("other", 3)); // a code that is not purchasing: its check must not be asked for purchasing
+        (await admin.Modules.SwitchAsync(Purchasing, true, Why())).ShouldBeOk();
 
-        (await admin.Modules.SwitchAsync(Accounting, false, Why())).ShouldBeOk();
+        (await admin.Modules.SwitchAsync(Purchasing, false, Why())).ShouldBeOk();
 
-        Assert.False(await IsOnAsync(admin, Accounting));
+        Assert.False(await IsOnAsync(admin, Purchasing));
     }
 
     [Fact]
@@ -183,7 +182,6 @@ public class ModuleDisableCheckTests(ApiFixture fixture) : IAsyncLifetime
         Assert.NotEmpty(checks);
         Assert.All(checks, c => Assert.True(ModuleCatalog.IsKnown(c.ModuleCode), $"{c.GetType().Name} guards '{c.ModuleCode}', which is not a module of the catalog"));
         Assert.Single(checks, c => c.ModuleCode == ModuleCodes.Purchasing);
-        Assert.DoesNotContain(checks, c => c.ModuleCode == ModuleCodes.Accounting); // accounting holds no data of its own: it is never refused
         var enableChecks = scope.ServiceProvider.GetServices<IModuleEnableCheck>().ToList();
         Assert.All(enableChecks, c => Assert.True(ModuleCatalog.IsKnown(c.ModuleCode), $"{c.GetType().Name} guards unknown module {c.ModuleCode}"));
         Assert.Single(enableChecks, c => c.ModuleCode == ModuleCodes.Purchasing);

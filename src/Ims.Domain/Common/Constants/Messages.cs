@@ -56,7 +56,7 @@ public static class Messages
     public const string ModuleReasonRequired = "A reason is required to turn a module on or off.";
     public static string ModuleHasOpenData(string module, string what) => $"The {module} module cannot be turned off while {what}. Finish or cancel them first.";
 
-    // ----- Tax-ready fields (module accounting). No message repeats the value: a TIN can be a person's, and the reason of a rejected request is logged. -----
+    // ----- Tax-ready fields (removed accounting module, kept until part B). No message repeats the value: a TIN can be a person's, and the reason of a rejected request is logged. -----
     public static string HsCodeInvalid => $"HS code may contain only digits and dots (maximum {Limits.HsCodeMaxLength} characters).";
     public static string SstCodeInvalid => $"SST code may contain only letters, digits and hyphens (maximum {Limits.SstCodeMaxLength} characters).";
     public static string TinInvalid => $"TIN may contain only letters and digits (maximum {Limits.TinMaxLength} characters).";

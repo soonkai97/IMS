@@ -96,7 +96,7 @@ public static class Limits
     public const int AuditTextMaxLength = 100;
     public const int UomNameMaxLength = 100;
     public const int SettingKeyMaxLength = 100;
-    /// <summary>A module code such as <c>accounting</c>: the catalog keeps them at most this long, so <c>Module.&lt;code&gt;</c> always fits <see cref="SettingKeyMaxLength"/>.</summary>
+    /// <summary>A module code such as <c>purchasing</c>: the catalog keeps them at most this long, so <c>Module.&lt;code&gt;</c> always fits <see cref="SettingKeyMaxLength"/>.</summary>
     public const int ModuleCodeMaxLength = 32;
     public const int PasswordMaxLength = 128;
     public const int MaxAttachmentsPerOwner = 20;

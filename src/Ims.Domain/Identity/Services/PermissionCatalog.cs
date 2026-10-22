@@ -52,10 +52,6 @@ public static class PermissionCatalog
         new(Permissions.StockRead, PermissionGroup.StockAndReports, "See stock levels, the ledger and the low-stock list."),
         new(Permissions.ReportsRead, PermissionGroup.StockAndReports, "Open and export the reports."),
 
-        // ----- Module permissions: offered only while their module is on -----
-        new(Permissions.AccountingExport, PermissionGroup.StockAndReports, "Download the accounting export: posted documents with their cost, for your accountant.")
-            { Module = ModuleCodes.Accounting, Requires = [Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead] },
-
         // ----- Cost and value -----
         new(Permissions.CostView, PermissionGroup.CostAndValue, "See unit cost, line cost and document totals on the documents you work with.")
             { IsDangerous = true },

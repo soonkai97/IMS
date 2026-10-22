@@ -22,8 +22,8 @@ namespace Ims.Api.Tests.Tests.Modules;
 [Collection(ApiCollection.Name)]
 public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
 {
-    private const string Export = Permissions.AccountingExport;
-    private const string Accounting = ModuleCodes.Accounting;
+    private const string Export = Permissions.PoRead;
+    private const string Purchasing = ModuleCodes.Purchasing;
 
     private readonly List<RoleDto> _made = [];
     private ApiClient _admin = null!;
@@ -44,13 +44,13 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
 
     private static string Why() => $"Roles test {Guid.NewGuid():N}"[..24];
 
-    private async Task<ModuleSwitchResult> SwitchAsync(bool enabled) => (await _admin.Modules.SwitchAsync(Accounting, enabled, Why())).Data<ModuleSwitchResult>();
+    private async Task<ModuleSwitchResult> SwitchAsync(bool enabled) => (await _admin.Modules.SwitchAsync(Purchasing, enabled, Why())).Data<ModuleSwitchResult>();
 
     /// <summary>A role made while the module is on (the only time a module permission can be named), so it holds the hidden grant when the module is turned off afterwards.</summary>
     private async Task<RoleDto> RoleHoldingExportAsync(params string[] permissions)
     {
         await SwitchAsync(true);
-        var role = (await _admin.CreateAsync(Unique.Name("Accountant"), permissions)).Data<RoleDto>();
+        var role = (await _admin.CreateAsync(Unique.Name("Buyer"), permissions)).Data<RoleDto>();
         _made.Add(role);
         Assert.Contains(Export, role.Permissions);
         return role;
@@ -80,10 +80,10 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
         await SwitchAsync(true);
         var on = (await _admin.GetAsync("/api/permissions")).Data<List<PermissionDto>>();
 
-        Assert.Equal(PermissionCatalog.Codes.Except([Permissions.PoRead, Permissions.PoManage]), on.Select(p => p.Code)); // the purchasing module is still off
+        Assert.Equal(PermissionCatalog.Codes, on.Select(p => p.Code)); // the one module there is is on
         var entry = on.Single(p => p.Code == Export);
-        Assert.Equal(Accounting, entry.Module);
-        Assert.Equal([Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead], entry.Requires);
+        Assert.Equal(Purchasing, entry.Module);
+        Assert.Equal([Permissions.MasterDataRead], entry.Requires);
         Assert.False(entry.IsDangerous);
 
         await SwitchAsync(false);
@@ -177,7 +177,7 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
         var problem = (await _admin.ReplaceAsync(seen, [Permissions.StockRead])).ShouldBeProblem(HttpStatusCode.BadRequest);
 
         Assert.Contains(Export, problem.Detail);
-        Assert.Contains(Permissions.CostView, problem.Detail);
+        Assert.Contains(Permissions.MasterDataRead, problem.Detail);
         var after = await ReadAsync(role.Id);
         Assert.Equal(seen.Permissions, after.Permissions);
         Assert.Equal(seen.ConcurrencyToken, after.ConcurrencyToken);
@@ -190,7 +190,7 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
     public async Task Turning_the_module_on_says_how_many_roles_get_the_permission_back_and_the_audit_event_records_it()
     {
         var first = await RoleHoldingExportAsync(Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export);
-        var second = (await _admin.CreateAsync(Unique.Name("Second accountant"), Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export)).Data<RoleDto>();
+        var second = (await _admin.CreateAsync(Unique.Name("Second buyer"), Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export)).Data<RoleDto>();
         _made.Add(second);
         var without = (await _admin.CreateAsync(Unique.Name("Without"), Permissions.CostView)).Data<RoleDto>();
         _made.Add(without);
@@ -201,17 +201,17 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
         Assert.True(holders >= 4);
         var reason = Why();
 
-        var on = (await _admin.Modules.SwitchAsync(Accounting, true, reason)).Data<ModuleSwitchResult>();
+        var on = (await _admin.Modules.SwitchAsync(Purchasing, true, reason)).Data<ModuleSwitchResult>();
 
         Assert.True(on.Enabled);
         Assert.Equal(holders, on.RolesRegainingGrants);
-        var page = (await _admin.Audit.QueryAsync(action: AuditActions.ModuleEnabled, entityId: "Module.accounting")).Data<AuditPage>();
+        var page = (await _admin.Audit.QueryAsync(action: AuditActions.ModuleEnabled, entityId: "Module.purchasing")).Data<AuditPage>();
         var enabled = Assert.Single(page.Items, e => e.After!.Contains(reason, StringComparison.Ordinal));
         Assert.Contains($"\"RolesRegainingGrants\":{holders}", enabled.After);
 
         // Nothing regains anything when the module is turned off, or when it is already in the state asked for.
-        Assert.Equal(0, (await _admin.Modules.SwitchAsync(Accounting, true, Why())).Data<ModuleSwitchResult>().RolesRegainingGrants);
-        var off = (await _admin.Modules.SwitchAsync(Accounting, false, Why())).Data<ModuleSwitchResult>();
+        Assert.Equal(0, (await _admin.Modules.SwitchAsync(Purchasing, true, Why())).Data<ModuleSwitchResult>().RolesRegainingGrants);
+        var off = (await _admin.Modules.SwitchAsync(Purchasing, false, Why())).Data<ModuleSwitchResult>();
         Assert.False(off.Enabled);
         Assert.Equal(0, off.RolesRegainingGrants);
         Assert.Equal(1, await StoredGrantsAsync(first.Id)); // switching never touches a grant
@@ -280,9 +280,9 @@ public class ModuleAwareRolesTests(ApiFixture fixture) : IAsyncLifetime
     {
         var role = await RoleHoldingExportAsync(Permissions.StockRead, Permissions.CostView, Permissions.MasterDataRead, Permissions.ReportsRead, Export);
         await SwitchAsync(false);
-        var username = Unique.Username("acct");
+        var username = Unique.Username("buyer");
         var password = $"Pw-{Guid.NewGuid():N}-1!";
-        (await _admin.Users.CreateAsync(new UserSaveRequest(username, Unique.Email(username), "Accountant", role.Code, true, password, [fixture.Reference.DefaultWarehouseId]))).ShouldBeOk();
+        (await _admin.Users.CreateAsync(new UserSaveRequest(username, Unique.Email(username), "Buyer", role.Code, true, password, [fixture.Reference.DefaultWarehouseId]))).ShouldBeOk();
 
         var login = (await fixture.CreateClient().Auth.LoginAsync(username, password)).Data<AuthResult>();
 

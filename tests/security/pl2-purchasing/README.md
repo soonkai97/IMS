@@ -42,3 +42,5 @@ Node 20+, no dependencies. Every script prints `ok` / `FAIL [area] label -> evid
 - Do not run on a database where purchasing is in real use: the probes switch the module on and off.
 
 Note (2026-10-22, RA1 part A1): `GET /api/accounting/export` was removed from the API. The probes that call it (`p1`, `p4`, `p5`, `p7`, `p9`) now get 404 for those calls; run them only for the purchasing parts, or retire the accounting steps before the next retest. `s0` and `p8` still switch the `accounting` module until part A2 removes it.
+
+Note (2026-10-22, RA1 part A2): the `accounting` module is removed from the API too. `s0`, `p1`, `p4` and `p8` no longer touch it (review of #192); `p5`, `p7` and `p9` still call the removed export and get 404 for those calls, so run them only for the purchasing parts or retire those steps before the next retest.

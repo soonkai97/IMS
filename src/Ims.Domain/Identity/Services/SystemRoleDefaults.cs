@@ -14,7 +14,7 @@ public static class SystemRoleDefaults
         [SystemRoleCodes.Owner] =
         [
             Permissions.MasterDataRead, Permissions.DocumentApproveLarge, Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead,
-            Permissions.CostView, Permissions.ValuationView, Permissions.AccountingExport, Permissions.PoRead
+            Permissions.CostView, Permissions.ValuationView, Permissions.PoRead
         ],
         [SystemRoleCodes.Supervisor] =
         [

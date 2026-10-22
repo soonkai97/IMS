@@ -14,9 +14,9 @@ public partial class ModuleCatalogTests
         .Select(f => (string)f.GetRawConstantValue()!).ToList();
 
     [Fact]
-    public void TheCatalogListsTheAccountingAndPurchasingModules_AndNoOtherYet()
+    public void TheCatalogListsThePurchasingModule_AndNoOtherYet()
     {
-        Assert.Equal([ModuleCodes.Accounting, ModuleCodes.Purchasing], ModuleCatalog.Codes);
+        Assert.Equal([ModuleCodes.Purchasing], ModuleCatalog.Codes);
     }
 
     [Fact]
@@ -89,16 +89,17 @@ public partial class ModuleCatalogTests
     [Fact]
     public void FindAndIsKnown_AgreeWithTheCatalog_AndAnUnregisteredCodeIsNotKnown()
     {
-        Assert.Equal(ModuleCodes.Accounting, ModuleCatalog.Find(ModuleCodes.Accounting)!.Code);
+        Assert.Equal(ModuleCodes.Purchasing, ModuleCatalog.Find(ModuleCodes.Purchasing)!.Code);
         Assert.Null(ModuleCatalog.Find("batch"));
-        Assert.False(ModuleCatalog.IsKnown("Accounting")); // codes are exact: the same rule as for permission codes
+        Assert.False(ModuleCatalog.IsKnown("accounting")); // removed in 2026-10 (RemoveAccountingModule): never on, whatever a stored row says
+        Assert.False(ModuleCatalog.IsKnown("Purchasing")); // codes are exact: the same rule as for permission codes
         Assert.False(ModuleCatalog.IsKnown(""));
     }
 
     [Fact]
     public void AModuleSwitchIsTheSettingRowModuleDotCode()
     {
-        Assert.Equal("Module.accounting", SettingKeys.ForModule(ModuleCodes.Accounting));
-        Assert.StartsWith(SettingKeys.ModulePrefix, SettingKeys.ForModule(ModuleCodes.Accounting));
+        Assert.Equal("Module.purchasing", SettingKeys.ForModule(ModuleCodes.Purchasing));
+        Assert.StartsWith(SettingKeys.ModulePrefix, SettingKeys.ForModule(ModuleCodes.Purchasing));
     }
 }

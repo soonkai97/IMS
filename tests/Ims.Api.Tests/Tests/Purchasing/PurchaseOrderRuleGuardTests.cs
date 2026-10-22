@@ -47,7 +47,6 @@ public class PurchaseOrderRuleGuardTests(ApiFixture fixture) : IAsyncLifetime
             Assert.Equal(Messages.PurchaseOrderRuleNeededToTurnOn, refused.Detail);
             Assert.Equal(0, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM SystemSetting WHERE [Key] = N'Module.purchasing'"));
             Assert.Equal(audit, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM AuditLogs WHERE [Action] LIKE N'module.%'"));
-            (await _p.Admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, Why())).ShouldBeOk(); // other modules have no such check
             await SetActiveAsync(active.Take(1), 1);
             (await _p.Admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, Why())).ShouldBeOk();
         }

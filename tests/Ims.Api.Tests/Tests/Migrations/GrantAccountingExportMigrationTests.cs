@@ -21,6 +21,9 @@ public class GrantAccountingExportMigrationTests
 
     private static readonly string[] Holders = [Roles.Admin, Roles.Owner];
 
+    /// <summary>The code this migration grants, FROZEN here: the permission left the catalog again in RemoveAccountingModule, so the live catalog no longer lists it and says nothing about a database at this migration.</summary>
+    private const string AccountingExport = "accounting.export";
+
     /// <summary>The permissions the catalog gains after this migration, each with a data migration of its own (PL2.1 adds po.read and po.manage): a database at this migration does not hold them yet.</summary>
     private static readonly string[] AddedLater = [Permissions.PoRead, Permissions.PoManage];
 
@@ -61,7 +64,7 @@ public class GrantAccountingExportMigrationTests
     }
 
     private static Task<int> GrantsOfAsync(TestDatabase database) =>
-        database.ScalarAsync<int>("SELECT COUNT(*) FROM RolePermission WHERE PermissionCode = @c", ("@c", Permissions.AccountingExport));
+        database.ScalarAsync<int>("SELECT COUNT(*) FROM RolePermission WHERE PermissionCode = @c", ("@c", AccountingExport));
 
     private static Task<int> TotalGrantsAsync(TestDatabase database) => database.ScalarAsync<int>("SELECT COUNT(*) FROM RolePermission");
 
@@ -72,18 +75,18 @@ public class GrantAccountingExportMigrationTests
         var grantsBefore = await TotalGrantsAsync(database);
         Assert.Equal(0, await GrantsOfAsync(database));
         foreach (var role in Holders)
-            Assert.DoesNotContain(Permissions.AccountingExport, await PermissionsOfAsync(database, role));
+            Assert.DoesNotContain(AccountingExport, await PermissionsOfAsync(database, role));
 
         await MigrateAsync(database, Latest);
 
         Assert.Equal(2, await GrantsOfAsync(database));
         Assert.Equal(grantsBefore + 2, await TotalGrantsAsync(database));
-        Assert.True((await PermissionsOfAsync(database, Roles.Admin)).SetEquals(PermissionCatalog.Codes.Except(AddedLater)), "Admin must hold every permission of the catalog.");
+        Assert.True((await PermissionsOfAsync(database, Roles.Admin)).SetEquals(PermissionCatalog.Codes.Except(AddedLater).Append(AccountingExport)), "Admin must hold every permission of the catalog of that day (today's catalog without the later ones, plus the code granted here).");
         foreach (var role in Roles.All.Where(r => r != Roles.Admin))
-            Assert.True((await PermissionsOfAsync(database, role)).SetEquals(SystemRoleDefaults.For(role).Except(AddedLater)), $"{role} must hold what the defaults say, and nothing more.");
-        Assert.Contains(Permissions.AccountingExport, await PermissionsOfAsync(database, Roles.Owner));
+            Assert.True((await PermissionsOfAsync(database, role)).SetEquals(SystemRoleDefaults.For(role).Except(AddedLater).Concat(role == Roles.Owner ? [AccountingExport] : [])), $"{role} must hold what the defaults of that day say, and nothing more.");
+        Assert.Contains(AccountingExport, await PermissionsOfAsync(database, Roles.Owner));
         foreach (var role in new[] { Roles.Supervisor, Roles.WarehouseStaff, Roles.Clerk })
-            Assert.DoesNotContain(Permissions.AccountingExport, await PermissionsOfAsync(database, role));
+            Assert.DoesNotContain(AccountingExport, await PermissionsOfAsync(database, role));
     });
 
     [Theory]
@@ -101,8 +104,8 @@ public class GrantAccountingExportMigrationTests
         await MigrateAsync(database, Latest);
 
         Assert.Equal(1, await GrantsOfAsync(database));
-        Assert.DoesNotContain(Permissions.AccountingExport, await PermissionsOfAsync(database, Roles.Owner)); // a role without cost.view would not be a closed set
-        Assert.Contains(Permissions.AccountingExport, await PermissionsOfAsync(database, Roles.Admin));
+        Assert.DoesNotContain(AccountingExport, await PermissionsOfAsync(database, Roles.Owner)); // a role without cost.view would not be a closed set
+        Assert.Contains(AccountingExport, await PermissionsOfAsync(database, Roles.Admin));
     });
 
     [Fact]
@@ -129,7 +132,7 @@ public class GrantAccountingExportMigrationTests
     public Task A_grant_that_is_already_there_is_not_added_twice() => WithDatabaseAsync(async database =>
     {
         await MigrateAsync(database, Before);
-        await database.ExecuteAsync("INSERT RolePermission (RoleId, PermissionCode) SELECT Id, @c FROM Role WHERE Code IN (@a, @o)", ("@c", Permissions.AccountingExport), ("@a", Roles.Admin), ("@o", Roles.Owner));
+        await database.ExecuteAsync("INSERT RolePermission (RoleId, PermissionCode) SELECT Id, @c FROM Role WHERE Code IN (@a, @o)", ("@c", AccountingExport), ("@a", Roles.Admin), ("@o", Roles.Owner));
 
         await MigrateAsync(database, Latest);
 
@@ -141,7 +144,7 @@ public class GrantAccountingExportMigrationTests
     {
         await MigrateAsync(database, Latest);
         await database.ExecuteAsync("INSERT Role (Code, Name, Description, IsSystem, IsActive) VALUES (N'Auditor', N'Auditor', N'Reads', 0, 1)");
-        await database.ExecuteAsync("INSERT RolePermission (RoleId, PermissionCode) SELECT Id, @c FROM Role WHERE Code = N'Auditor'", ("@c", Permissions.AccountingExport));
+        await database.ExecuteAsync("INSERT RolePermission (RoleId, PermissionCode) SELECT Id, @c FROM Role WHERE Code = N'Auditor'", ("@c", AccountingExport));
         Assert.Equal(3, await GrantsOfAsync(database));
         var otherGrants = await TotalGrantsAsync(database) - 3;
 
@@ -155,7 +158,7 @@ public class GrantAccountingExportMigrationTests
 
         Assert.Equal(2, await GrantsOfAsync(database));
         foreach (var role in Holders)
-            Assert.Contains(Permissions.AccountingExport, await PermissionsOfAsync(database, role));
+            Assert.Contains(AccountingExport, await PermissionsOfAsync(database, role));
     });
 
     [Fact]

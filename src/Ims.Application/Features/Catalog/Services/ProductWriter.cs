@@ -14,7 +14,7 @@ public class ProductWriter(IRepository<Product> products, IReadRepository<Uom> u
     {
         var sku = r.Sku.Trim();
         // Accounting off: a value is a 400 and a save without one leaves the stored tax fields alone. On: a key that was sent replaces its field (null clears), a key that was left out keeps it.
-        var applyTaxCodes = await modules.AcceptAsync(ModuleCodes.Accounting, [(TaxFieldNames.HsCode, r.HsCode.Value), (TaxFieldNames.SstCode, r.SstCode.Value)], ct);
+        var applyTaxCodes = await modules.AcceptAsync(TaxFieldNames.RemovedModule, [(TaxFieldNames.HsCode, r.HsCode.Value), (TaxFieldNames.SstCode, r.SstCode.Value)], ct);
         var existing = id is { } publicId
             ? await products.FirstOrDefaultAsync(new ProductForEditSpec(publicId), ct) ?? throw new NotFoundException(Messages.ProductNotFound)
             : null;
