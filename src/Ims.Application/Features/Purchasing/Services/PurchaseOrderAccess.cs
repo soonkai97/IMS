@@ -47,7 +47,8 @@ public class PurchaseOrderAccess(ICurrentUser current) : IPurchaseOrderAccess, I
 
 
     public IReadOnlyList<string> AllowedActions(PurchaseOrderDto o, SystemSettings settings, bool withinApprovalLimit) =>
-        PurchaseOrderActionPolicy.AllowedActions(current.Rights(), new PurchaseOrderActionContext(o.Status, o.RequiresApproval, o.IsLarge, o.CreatedByKey, o.SubmittedByKey, o.Lines.Any(l => l.ReceivedBaseQty > 0m)),
+        PurchaseOrderActionPolicy.AllowedActions(current.Rights(), new PurchaseOrderActionContext(o.Status, o.RequiresApproval, o.IsLarge, o.CreatedByKey, o.SubmittedByKey, o.Lines.Any(l => l.ReceivedBaseQty > 0m),
+                o.Lines.Any(l => l.RemainingBaseQty > 0m)),
             settings.AllowSelfApproval, withinApprovalLimit);
 
     public bool CanAct(PurchaseOrderListItem item, SystemSettings settings) =>

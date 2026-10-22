@@ -11,8 +11,8 @@ public class PurchaseOrderActionPolicyTests
 
     private static ActorRights Rights(string role) => SystemRoleDefaults.RightsFor(role, Me);
 
-    private static PurchaseOrderActionContext Order(PurchaseOrderStatus status, bool requiresApproval = false, bool isLarge = false, int createdBy = SomeoneElse, int? submittedBy = SomeoneElse, bool anythingReceived = false) =>
-        new(status, requiresApproval, isLarge, createdBy, submittedBy, anythingReceived);
+    private static PurchaseOrderActionContext Order(PurchaseOrderStatus status, bool requiresApproval = false, bool isLarge = false, int createdBy = SomeoneElse, int? submittedBy = SomeoneElse, bool anythingReceived = false, bool anythingRemaining = false) =>
+        new(status, requiresApproval, isLarge, createdBy, submittedBy, anythingReceived, anythingRemaining);
 
     private static string[] Actions(string role, PurchaseOrderActionContext order, bool allowSelf = false, bool withinLimit = true) =>
         PurchaseOrderActionPolicy.AllowedActions(Rights(role), order, allowSelf, withinLimit).Order().ToArray();
@@ -165,6 +165,47 @@ public class PurchaseOrderActionPolicyTests
         Assert.Equal(Sorted(DocumentActions.Cancel), Actions(Roles.Supervisor, released));
         Assert.Empty(Actions(Roles.Clerk, released));
         Assert.Equal(Sorted(DocumentActions.Close), Actions(Roles.Clerk, released with { AnythingReceived = true })); // the clerk who made it closes it short once something came in
+    }
+
+    // ----- receive: an Approved order with something left, to whoever holds document.create and po.read (PL2.9) -----
+    [Theory]
+    [InlineData(Roles.Admin, true)]
+    [InlineData(Roles.Supervisor, true)]
+    [InlineData(Roles.Clerk, true)]
+    [InlineData(Roles.WarehouseStaff, true)]
+    [InlineData(Roles.Owner, false)] // po.read but no document.create
+    public void An_approved_order_with_something_left_is_received_by_whoever_holds_document_create_and_po_read(string role, bool mayReceive)
+    {
+        var order = Order(PurchaseOrderStatus.Approved, requiresApproval: true, anythingRemaining: true);
+
+        Assert.Equal(mayReceive, Actions(role, order).Contains(DocumentActions.Receive));
+        Assert.Equal(mayReceive, PurchaseOrderActionPolicy.MayReceive(Rights(role), order));
+    }
+
+    [Theory]
+    [InlineData(PurchaseOrderStatus.Draft)]
+    [InlineData(PurchaseOrderStatus.Submitted)]
+    [InlineData(PurchaseOrderStatus.Cancelled)]
+    [InlineData(PurchaseOrderStatus.Closed)]
+    public void Receive_is_offered_only_on_an_approved_order(PurchaseOrderStatus status)
+    {
+        foreach (var role in new[] { Roles.Admin, Roles.Supervisor, Roles.Clerk, Roles.WarehouseStaff })
+            Assert.DoesNotContain(DocumentActions.Receive, Actions(role, Order(status, requiresApproval: true, anythingRemaining: true)));
+    }
+
+    [Fact]
+    public void Receive_needs_something_left_and_both_permissions_not_a_role()
+    {
+        var approved = Order(PurchaseOrderStatus.Approved, anythingRemaining: true);
+        var onlyCreate = new ActorRights(Me, EffectivePermissions.Compute([Permissions.DocumentCreate]));
+        var onlyRead = new ActorRights(Me, EffectivePermissions.Compute([Permissions.PoRead]));
+        var both = new ActorRights(Me, EffectivePermissions.Compute([Permissions.DocumentCreate, Permissions.PoRead]));
+
+        Assert.False(PurchaseOrderActionPolicy.MayReceive(onlyCreate, approved));
+        Assert.False(PurchaseOrderActionPolicy.MayReceive(onlyRead, approved));
+        Assert.True(PurchaseOrderActionPolicy.MayReceive(both, approved));
+        Assert.False(PurchaseOrderActionPolicy.MayReceive(both, approved with { AnythingRemaining = false })); // fully received
+        Assert.Equal([DocumentActions.Receive], PurchaseOrderActionPolicy.AllowedActions(both, approved, allowSelfApproval: false)); // and nothing else: no cancel, no close
     }
 
     [Theory]
