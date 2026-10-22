@@ -109,7 +109,12 @@ import { applyFieldErrors, controlSignal, isDefined, normalizePublicId } from '@
 import { DocumentActionsComponent } from '../document-actions/document-actions.component';
 import { DocumentLineEditorComponent } from '../line-editor/line-editor.component';
 import { parseEditorDraft } from './document-editor.draft';
-import { lineRefusals, orderLineContexts, orderProgress } from './document-editor.linked-order';
+import {
+  LineRefusal,
+  lineRefusals,
+  orderLineContexts,
+  orderProgress
+} from './document-editor.linked-order';
 import { DocumentEditorViewService } from './document-editor.view-service';
 
 const TAB_ITEMS = 'items';
@@ -262,10 +267,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     const document = this.documents.detail.$data();
     return document && document.id === this.$documentId() ? document : undefined;
   });
-  /**
-   * The purchase order this receipt belongs to. The API leaves it out (null) for an ordinary receipt and for a caller who may not
-   * read purchase orders. Supplier, warehouse and lines are the order's: they cannot be changed or added to here.
-   */
+  /** The purchase order this receipt belongs to. The API leaves it out (null) for an ordinary receipt and for a caller who may not read purchase orders. Supplier, warehouse and lines are the order's: they cannot be changed or added to here. */
   readonly $linkedOrder = computed(() => {
     const order = this.$document()?.purchaseOrder;
     return isDefined(order) ? order : undefined;
@@ -283,15 +285,25 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       this.$editable() &&
       overRemainingLines(this.$values(), this.$orderLines()).size > 0
   );
-  /** What posting this receipt did to the order: fully received and closed, or how many lines still have quantity to receive. */
+  /** What posting this receipt did to the order (closed, closed short, or how many lines are left). Nothing while the order is being read again: after a post it still holds the figures from before. */
   readonly $orderProgress = computed(() => {
     const order = this.orders.detail.$data();
     return order !== undefined &&
+      !this.orders.detail.$isLoading() &&
       this.$status() === DocumentStatus.Posted &&
       order.id === this.$linkedOrderId()
       ? orderProgress(order)
       : undefined;
   });
+  /** A receipt whose lines may carry an order's prices (cost data): one the API says is linked, and a saved receipt of a caller who sees prices but may not read orders (the API hides the link from them). Nothing of it is kept on the device. */
+  private readonly $holdsOrderPrices = computed(
+    () =>
+      this.$linkedOrder() !== undefined ||
+      (!this.$isNew() &&
+        !this.$isIssue() &&
+        this.permissions.has(PERMISSION.CostView) &&
+        !this.permissions.has(PERMISSION.PoRead))
+  );
   /** A brand-new document can be saved and submitted; an opened one offers what the server allows. */
   readonly $allowedActions = computed<readonly string[]>(() =>
     this.$isNew()
@@ -546,10 +558,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       ? { lines: overReceiptLines(error), message: error.message ?? error.detail }
       : undefined;
   });
-  /**
-   * Any other 409 of a command that is not a stale copy, stock or a blocked reversal (the order of a receipt is no longer open, the
-   * module is off): the API's own sentence in one alert. The interceptor does not toast a 409 on an If-Match call.
-   */
+  /** Any other 409 of a command that is not a stale copy, stock or a blocked reversal (the order of a receipt is no longer open, the module is off): the API's own sentence in one alert. The interceptor does not toast a 409 on an If-Match call. */
   readonly $conflictRefusal = computed(
     () =>
       this.$commandErrors().find(
@@ -561,13 +570,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
           !isReversalBlockedError(error)
       )?.message
   );
-  /** The 400 sentences about lines of a linked receipt (a quantity above what remains), with the SKU they belong to. */
-  readonly $lineRefusals = computed(() =>
-    lineRefusals(
-      [this.documents.save.$operation().error, this.documents.submit.$operation().error],
-      this.$values()
-    )
-  );
+  /** The 400 sentences about lines (a quantity above what remains), each with the SKU it was about when it came: the error counts lines by position, so the list is dropped as soon as a line is changed or removed. */
+  readonly $lineRefusals = signal<readonly LineRefusal[]>([]);
   /** Edit items (take it back to Draft) is offered under the over-receipt alert to whoever may. */
   readonly $canRecall = computed(() => this.$actions().has(DOCUMENT_ACTION.Recall));
   /**
@@ -768,10 +772,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     });
   });
 
-  /**
-   * A receipt from a purchase order shows the order's figures. The store outlives this page and a sign-out and may hold an older
-   * copy of this very order, so it is read again every time a linked receipt opens.
-   */
+  /** A receipt from a purchase order shows the order's figures. The store outlives this page and a sign-out and may hold an older copy of this very order, so it is read again every time a linked receipt opens. */
   private readonly loadLinkedOrder = effect(() => {
     const orderId = this.$linkedOrderId();
     if (orderId !== undefined) {
@@ -779,6 +780,38 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         this.orders.detail.reset();
         this.orders.detail.load(orderId, handledInline());
       });
+    }
+  });
+
+  private readonly captureLineRefusals = effect(() => {
+    const errors = [
+      this.documents.save.$operation().error,
+      this.documents.submit.$operation().error
+    ];
+    untracked(() => {
+      const refusals = lineRefusals(errors, this.$values());
+      this.$lineRefusals.set(refusals);
+      // A refused line says what the order had left when it was asked: read its figures again.
+      if (refusals.length > 0 && this.$linkedOrder() !== undefined) {
+        this.orders.detail.reload();
+      }
+    });
+  });
+
+  private readonly dropLineRefusals = effect(() => {
+    this.$values();
+    untracked(() => this.$lineRefusals.set([]));
+  });
+
+  /** A refused post is the answer to what the person just did: the alert takes the focus (the closed dialog leaves it on Post). */
+  private readonly focusOverReceipt = effect(() => {
+    if (this.$overReceipt() !== undefined) {
+      untracked(() =>
+        afterNextRender(
+          () => this.page.querySelector<HTMLElement>('.document-editor-over-receipt')?.focus(),
+          { injector: this.injector }
+        )
+      );
     }
   });
 
@@ -872,7 +905,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
 
   private keepDraft(): void {
     // A receipt from an order carries the order's prices, which are cost data: nothing of it is kept on the device.
-    if (this.hasUnsavedChanges() && this.$linkedOrder() === undefined) {
+    if (this.hasUnsavedChanges() && !this.$holdsOrderPrices()) {
       this.drafts.save(
         this.draftKey(),
         this.view.snapshot(this.$document()?.concurrencyToken ?? null)
@@ -887,7 +920,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
    */
   private restoreDraft(opened: { token: string; editable: boolean } | undefined): void {
     const stored = this.drafts.take<unknown>(this.draftKey());
-    if (stored === undefined) {
+    // Nothing of a receipt from an order is put back (and nothing was kept): what is found there is not this editor's.
+    if (stored === undefined || this.$holdsOrderPrices()) {
       return;
     }
     // What storage holds is untrusted: a draft that fails the check is dropped like one made on another version.
@@ -1486,8 +1520,11 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         const invalid = this.page.querySelector<HTMLElement>(
           'input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"], fieldset[aria-invalid="true"] input'
         );
+        // A receipt from an order has no Add item button: the heading of the lines takes the focus.
         const target =
-          invalid ?? this.page.querySelector<HTMLElement>('.document-editor-lines-header button');
+          invalid ??
+          this.page.querySelector<HTMLElement>('.document-editor-lines-header button') ??
+          this.page.querySelector<HTMLElement>('.document-editor-lines-header h2');
         target?.focus();
         // No line at all: the message sits under the Add item button; make sure it is on screen, not just the button (phone QA).
         if (!invalid) {

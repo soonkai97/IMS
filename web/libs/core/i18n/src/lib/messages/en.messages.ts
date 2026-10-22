@@ -926,7 +926,9 @@ export const EN_MESSAGES = {
   'doc.order.open': 'Open the order.',
   'doc.order.editHint':
     'Lower a quantity or remove a line that did not arrive. A quantity cannot be above what the order has left.',
-  'doc.order.closed': 'Order {order} is now fully received and closed.',
+  'doc.order.closed': 'Order {order} is fully received and closed.',
+  'doc.order.closedShort':
+    'Order {order} was closed short: what had not arrived will not be received.',
   'doc.order.remaining':
     'Order {order} still has {count, plural, one {1 line} other {# lines}} to receive.',
   'doc.linesOverOrder': 'A quantity is above what the order has left. Lower it to continue.',
@@ -939,6 +941,5 @@ export const EN_MESSAGES = {
   'doc.lineRefusals': 'These lines were not accepted',
   'line.order':
     'Order line {lineNo}: ordered {ordered}, received {received}, remaining {remaining} {uom}',
-  'line.orderNo': 'Order line {lineNo}',
   'line.order.over': 'Only {remaining} {uom} of this order line is left to receive.'
 } as const;

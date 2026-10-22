@@ -1,4 +1,5 @@
-import { PurchaseOrderCloseKind, PurchaseOrderDto } from '@ims/api';
+import { PurchaseOrderCloseKind, PurchaseOrderDto, PurchaseOrderStatus } from '@ims/api';
+import { MessageKey } from '@ims/core/i18n';
 import { LineValue, OrderLineContext } from '@ims/features/documents';
 import { ApiError, PublicId } from '@ims/models';
 import { isDefined } from '@ims/utils';
@@ -24,13 +25,24 @@ export function orderLineContexts(
   );
 }
 
-/** Where the order stands: closed because everything arrived (the API says so in `closeKind`), or how many lines still have quantity to receive. */
-export function orderProgress(order: PurchaseOrderDto): { closed: boolean; open: number } {
-  return {
-    // The API sends null, not an absent member, for an order that is still open.
-    closed: isDefined(order.closeKind) && order.closeKind === PurchaseOrderCloseKind.Received,
-    open: order.lines.filter(line => line.remainingQty > 0).length
-  };
+/**
+ * Where the order stands, in words: closed because everything arrived or closed short (`closeKind`), or still open with this many
+ * lines left. The remaining quantity is NOT zeroed when an order is closed, so it says nothing once `closeKind` is set.
+ */
+export function orderProgress(
+  order: PurchaseOrderDto
+): { key: MessageKey; open: number } | undefined {
+  // The API sends null, not an absent member, for an order that is still open.
+  if (isDefined(order.closeKind)) {
+    const received = order.closeKind === PurchaseOrderCloseKind.Received;
+    return { key: received ? 'doc.order.closed' : 'doc.order.closedShort', open: 0 };
+  }
+  return order.status === PurchaseOrderStatus.Approved
+    ? {
+        key: 'doc.order.remaining',
+        open: order.lines.filter(line => line.remainingQty > 0).length
+      }
+    : undefined;
 }
 
 export interface LineRefusal {

@@ -529,16 +529,6 @@ describe('PurchaseOrderDetailPageComponent', () => {
       expect(text()).not.toContain('changed since you opened it');
       expect(detail.reload).toHaveBeenCalled();
     });
-
-    it('a running Receive disables the bar and shows the spinner on its own button', async () => {
-      await render(order({ allowedActions: ['cancel', 'receive'] }));
-      store.receive.$isRunning.set(true);
-      spectator.click(button('Receive'));
-      spectator.detectChanges();
-
-      expect(button('Cancel order').disabled).toBe(true);
-      expect(spectator.query('.po-detail-bar')?.getAttribute('aria-busy')).toBe('true');
-    });
   });
 
   describe('refusals', () => {

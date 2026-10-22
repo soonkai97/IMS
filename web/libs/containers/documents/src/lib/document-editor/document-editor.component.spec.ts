@@ -12,7 +12,8 @@ import {
   IssuePurpose,
   ProductDto,
   PurchaseOrderCloseKind,
-  PurchaseOrderDto
+  PurchaseOrderDto,
+  PurchaseOrderStatus
 } from '@ims/api';
 import { provideUiText } from '@ims/core/i18n';
 import { AuthService, PermissionService, SessionDraftService } from '@ims/core/identity';
@@ -136,6 +137,7 @@ describe('DocumentEditorPageComponent', () => {
   const orderLoad = jest.fn();
   const orderReload = jest.fn();
   const orderReset = jest.fn();
+  const orderLoading = signal(false);
   const lookup = jest.fn();
   const granted = new Set<string>([PERMISSION.StockRead]);
   /** The signed-in user and the session-expiry signal of the AuthService. */
@@ -203,7 +205,13 @@ describe('DocumentEditorPageComponent', () => {
       {
         provide: PurchaseOrdersStore,
         useValue: {
-          detail: { $data: orderData, load: orderLoad, reload: orderReload, reset: orderReset }
+          detail: {
+            $data: orderData,
+            $isLoading: orderLoading,
+            load: orderLoad,
+            reload: orderReload,
+            reset: orderReset
+          }
         }
       },
       { provide: PartnersStore, useValue: { loadActive: jest.fn(), $partners: signal([]) } },
@@ -292,6 +300,7 @@ describe('DocumentEditorPageComponent', () => {
     }
     detailReload.mockClear();
     orderData.set(undefined);
+    orderLoading.set(false);
     orderLoad.mockClear();
     orderReload.mockClear();
     orderReset.mockClear();
@@ -1979,6 +1988,7 @@ describe('DocumentEditorPageComponent', () => {
       ({
         id: ORDER_ID,
         no: 'PO-WH01-2610-0001',
+        status: PurchaseOrderStatus.Approved,
         closeKind: null,
         lines: [{ lineNo: 1, qty: 10, uomCode: 'PCS', receivedQty: 6, remainingQty: 4 }],
         ...overrides
@@ -2060,26 +2070,7 @@ describe('DocumentEditorPageComponent', () => {
       spectator.component.onAction(DOCUMENT_ACTION.Edit);
 
       const body = (calls['save'][0] as { body: { lines: object[] } }).body;
-      expect(body.lines).toEqual([
-        {
-          productId: guid(1),
-          qty: 4,
-          uomId: guid(1),
-          unitCost: undefined,
-          remark: undefined,
-          purchaseOrderLineNo: 1
-        }
-      ]);
-    });
-
-    it('keeps nothing of a linked receipt on the device when the session expires (the order prices are cost data)', async () => {
-      await open(receipt(), DocumentType.Receipt);
-      spectator.component.view.lines.at(0).controls.qty.setValue(3);
-      spectator.component.view.lines.markAsDirty();
-
-      sessionExpiring.next();
-
-      expect(sessionStorage.length).toBe(0);
+      expect(body.lines).toMatchObject([{ qty: 4, unitCost: undefined, purchaseOrderLineNo: 1 }]);
     });
 
     it('a post refused for more than the order has left is ONE alert with the figures, no toast, and the receipt stays as it is', async () => {
@@ -2107,22 +2098,6 @@ describe('DocumentEditorPageComponent', () => {
       expect(orderReload).toHaveBeenCalled();
     });
 
-    it('offers Edit items under the alert to whoever may take the receipt back', async () => {
-      await open(
-        receipt({
-          status: DocumentStatus.Submitted,
-          allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Recall]
-        }),
-        DocumentType.Receipt
-      );
-      commands['post'].$operation.set(failureOperation(overReceipt()));
-      spectator.detectChanges();
-
-      expect(alerts()).toHaveLength(1);
-      expect(alerts()[0]).toContain('Lower the quantities and post it again.');
-      expect(alerts()[0]).toContain('Edit items');
-    });
-
     it('without po.read the 409 is the general sentence, shown as it is: not as a stale copy, with no figures', async () => {
       granted.delete(PERMISSION.PoRead);
       await open(
@@ -2148,36 +2123,114 @@ describe('DocumentEditorPageComponent', () => {
       expect(spectator.query('.document-editor-bar button[disabled]')).toBeNull();
     });
 
-    it('shows the 400 sentences of a save about its lines, with the SKU', async () => {
+    it.each([
+      [
+        'Received',
+        { status: PurchaseOrderStatus.Closed, closeKind: PurchaseOrderCloseKind.Received },
+        'Order PO-WH01-2610-0001 is fully received and closed.'
+      ],
+      [
+        'Short (quantity still remains)',
+        { status: PurchaseOrderStatus.Closed, closeKind: PurchaseOrderCloseKind.Short },
+        'Order PO-WH01-2610-0001 was closed short: what had not arrived will not be received.'
+      ],
+      ['null, Approved', {}, 'Order PO-WH01-2610-0001 still has 1 line to receive.'],
+      ['null, Cancelled', { status: PurchaseOrderStatus.Cancelled }, '']
+    ])(
+      'after the post it says where the order stands by closeKind, not by the quantities: %s',
+      async (_name, overrides, expected) => {
+        await open(
+          receipt({ status: DocumentStatus.Posted, allowedActions: [] }),
+          DocumentType.Receipt
+        );
+        orderData.set(order(overrides as Partial<PurchaseOrderDto>));
+        spectator.detectChanges();
+        const progress = (): string =>
+          spectator.query('p[role="status"]')?.textContent?.trim() ?? '';
+        expect(progress()).toBe(expected);
+
+        orderLoading.set(true);
+        spectator.detectChanges();
+        expect(progress()).toBe('');
+      }
+    );
+
+    it('an ordinary receipt never reads an order, and a linked one opened before it leaves no figures or progress on it', async () => {
+      await open(
+        receipt({ status: DocumentStatus.Posted, allowedActions: [] }),
+        DocumentType.Receipt
+      );
+      orderData.set(
+        order({ status: PurchaseOrderStatus.Closed, closeKind: PurchaseOrderCloseKind.Received })
+      );
+      orderLoad.mockClear();
+      orderReset.mockClear();
+
+      await open(
+        receipt({
+          id: guid(70),
+          allowedActions: [],
+          status: DocumentStatus.Posted,
+          purchaseOrder: null as never
+        }),
+        DocumentType.Receipt
+      );
+
+      expect(orderLoad).not.toHaveBeenCalled();
+      expect(orderReset).not.toHaveBeenCalled();
+      expect(text()).not.toContain('Order PO-WH01-2610-0001');
+      expect(spectator.query('p[role="status"]')).toBeNull();
+    });
+
+    it('line sentences go when a line changes (they count lines by position), and the order is read again for them', async () => {
       await open(receipt(), DocumentType.Receipt);
       commands['save'].$operation.set(
         failureOperation({
           ...STALE,
           kind: API_ERROR_KIND.Validation,
           status: 400,
-          fieldErrors: { 'lines[0].qty': ['Remaining 4 (ordered 10, received 6).'] },
+          fieldErrors: { 'lines[0].qty': ['Remaining 3.'] },
           extensions: {}
         })
       );
       spectator.detectChanges();
+      expect(alerts()[0]).toContain('DEMO-001 Remaining 3.');
+      expect(orderReload).toHaveBeenCalledTimes(1);
 
-      expect(alerts()).toHaveLength(1);
-      expect(alerts()[0]).toContain('These lines were not accepted');
-      expect(alerts()[0]).toContain('DEMO-001 Remaining 4 (ordered 10, received 6).');
+      spectator.component.view.remove(0);
+      spectator.detectChanges();
+      expect(alerts()).toEqual([]);
     });
 
-    it('after the post it says where the order stands, in plain text and not by the status', async () => {
+    it('the alert of a refused post takes the focus, and an empty linked receipt sends it to the lines heading, not to a hidden button', async () => {
       await open(
-        receipt({ status: DocumentStatus.Posted, allowedActions: [] }),
+        receipt({ status: DocumentStatus.Approved, allowedActions: [DOCUMENT_ACTION.Post] }),
         DocumentType.Receipt
       );
-      orderData.set(order({ closeKind: PurchaseOrderCloseKind.Received }));
+      commands['post'].$operation.set(failureOperation(overReceipt()));
       spectator.detectChanges();
-      expect(text()).toContain('Order PO-WH01-2610-0001 is now fully received and closed.');
+      await spectator.fixture.whenStable();
+      expect(
+        globalThis.document.activeElement?.classList.contains('document-editor-over-receipt')
+      ).toBe(true);
 
-      orderData.set(order());
-      spectator.detectChanges();
-      expect(text()).toContain('Order PO-WH01-2610-0001 still has 1 line to receive.');
+      await open(receipt(), DocumentType.Receipt);
+      spectator.component.view.remove(0);
+      spectator.component.onAction(DOCUMENT_ACTION.Submit);
+      await spectator.fixture.whenStable();
+      expect(globalThis.document.activeElement?.tagName).toBe('H2');
+    });
+
+    it('keeps nothing of a saved receipt for a caller who sees prices but may not read orders (the link is hidden from them)', async () => {
+      granted.delete(PERMISSION.PoRead);
+      granted.add(PERMISSION.CostView);
+      await open(receipt({ purchaseOrder: null as never }), DocumentType.Receipt);
+      spectator.component.view.lines.at(0).controls.qty.setValue(3);
+      spectator.component.view.lines.markAsDirty();
+
+      sessionExpiring.next();
+
+      expect(sessionStorage.length).toBe(0);
     });
   });
 

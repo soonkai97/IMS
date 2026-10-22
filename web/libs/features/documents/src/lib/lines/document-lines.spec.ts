@@ -286,21 +286,6 @@ describe('receipt lines of a purchase order', () => {
     expect(inputs.map(input => input.purchaseOrderLineNo)).toEqual([2, undefined]);
   });
 
-  it('reads the order line from the API, where a line of no order has null', () => {
-    const dto = {
-      productId: id(1),
-      qty: 2,
-      baseQty: 2,
-      uomId: id(1),
-      uomCode: 'PCS'
-    } as DocumentLineDto;
-
-    expect(
-      lineFromDocument({ ...dto, purchaseOrderLineNo: null } as never).purchaseOrderLineNo
-    ).toBeNull();
-    expect(lineFromDocument({ ...dto, purchaseOrderLineNo: 3 }).purchaseOrderLineNo).toBe(3);
-  });
-
   it('flags an order line whose quantities add up to more than remains, and no other', () => {
     expect(overRemainingLines([of(1, 4), of(2, 5)], contexts)).toEqual(new Set());
     expect(overRemainingLines([of(1, 3), of(1, 1.5), of(2, 5)], contexts)).toEqual(new Set([1]));

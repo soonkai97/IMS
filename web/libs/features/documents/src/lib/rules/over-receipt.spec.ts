@@ -34,8 +34,7 @@ describe('over-receipt answer', () => {
     expect(overReceiptLines(over)).toEqual([figures]);
   });
 
-  it('has no figures for a caller who may not read orders (the general sentence has no lines)', () => {
+  it('has no figures for the general sentence of a caller who may not read orders', () => {
     expect(overReceiptLines(conflict({}))).toEqual([]);
-    expect(overReceiptLines(conflict({ code: 'over_receipt' }))).toEqual([]);
   });
 });

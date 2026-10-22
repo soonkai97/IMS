@@ -31,8 +31,6 @@
                         uom: order.uomCode
                       }
               }}
-            } @else {
-              {{ 'line.orderNo' | t: { lineNo: row.value.purchaseOrderLineNo } }}
             }
           </span>
         }

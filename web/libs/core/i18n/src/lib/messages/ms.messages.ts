@@ -933,7 +933,9 @@ export const MS_MESSAGES: Messages = {
   'doc.order.open': 'Buka pesanan.',
   'doc.order.editHint':
     'Kurangkan kuantiti atau buang barisan yang tidak tiba. Kuantiti tidak boleh melebihi baki pesanan.',
-  'doc.order.closed': 'Pesanan {order} kini diterima sepenuhnya dan ditutup.',
+  'doc.order.closed': 'Pesanan {order} diterima sepenuhnya dan ditutup.',
+  'doc.order.closedShort':
+    'Pesanan {order} ditutup tidak lengkap: yang belum tiba tidak akan diterima.',
   'doc.order.remaining':
     'Pesanan {order} masih ada {count, plural, one {1 barisan} other {# barisan}} untuk diterima.',
   'doc.linesOverOrder': 'Satu kuantiti melebihi baki pesanan. Kurangkannya untuk meneruskan.',
@@ -946,6 +948,5 @@ export const MS_MESSAGES: Messages = {
   'doc.lineRefusals': 'Barisan ini tidak diterima',
   'line.order':
     'Barisan pesanan {lineNo}: dipesan {ordered}, diterima {received}, baki {remaining} {uom}',
-  'line.orderNo': 'Barisan pesanan {lineNo}',
   'line.order.over': 'Hanya {remaining} {uom} daripada barisan pesanan ini masih boleh diterima.'
 };

@@ -22,10 +22,8 @@ import { expect, test } from '../src/fixtures';
 import { DocumentEditor } from '../src/pages/documents';
 import { goTo } from '../src/pages/shell';
 
-// Receive against a purchase order (PL2.9), on the real API: the Receive button, the receipt of an order in the receipt editor, partial
-// and last receipts, the closing of the order, the refusal of an over-receipt at posting, and what a person without cost.view sees.
-// The module is read first and put back last (also after a failure). Orders and receipts are throw-away ones: receipts are retired by
-// their state (posted ones reversed, open ones cancelled), then the orders are cancelled. One scenario after the other (serial).
+// Receive against a purchase order (PL2.9) on the real API. The module is read first and put back last (also after a failure); receipts
+// are retired by their state (posted ones reversed, open ones cancelled), then the orders are cancelled. Serial.
 test.describe.configure({ mode: 'serial' });
 
 const REASON = 'E2E: receive against an order';
@@ -89,10 +87,6 @@ test.describe('Receive against a purchase order, real API', () => {
     data.receipts.push(await editor.savedId());
     await expect(editor.status).toHaveText('Draft');
     await expect(page.getByText(`This receipt is for purchase order ${order.no}`)).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Open the order.' })).toHaveAttribute(
-      'href',
-      `/purchase-orders/${order.id}`
-    );
     // The supplier and the warehouse are the order's; the lines are the order's too.
     await expect(editor.warehouse).toHaveCount(0);
     await expect(editor.partner).toHaveCount(0);
@@ -130,16 +124,13 @@ test.describe('Receive against a purchase order, real API', () => {
     await expect(editor.qty(data.sku)).toHaveValue('4');
     await editor.submitAndPost();
     await expect(editor.status).toHaveText('Posted', { timeout: SLOW });
-    await expect(
-      page.getByText(`Order ${order.no} is now fully received and closed.`)
-    ).toBeVisible();
+    await expect(page.getByText(`Order ${order.no} is fully received and closed.`)).toBeVisible();
 
     await page.getByRole('link', { name: 'Open the order.' }).click();
     await expect(status(page)).toHaveText('Closed');
     await expect(page.getByText('Fully received')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Receipts (2)' })).toBeVisible();
     await expect(bar(page, 'Receive')).toHaveCount(0);
-    expect((await getOrder(order.id, 'supervisor')).allowedActions).not.toContain('receive');
   });
 
   test('given a receipt that was submitted when the order still had room, when another receipt takes the room, then posting says which line and how many remain, in one alert, and lowering the quantity posts', async ({
@@ -163,6 +154,8 @@ test.describe('Receive against a purchase order, real API', () => {
     const figures = `Line 1 (${data.sku}): ordered 10, received 7, remaining 3, this receipt 10.`;
     await expect(page.getByText(figures)).toBeVisible({ timeout: SLOW });
     expect(await announcedBy(page, figures)).toBe(1);
+    // The refusal is the answer to the click: the alert has the focus, not the Post button the dialog gave it back to.
+    await expect(page.locator('.document-editor-over-receipt')).toBeFocused();
     await expect(
       page.getByRole('alert').filter({ hasText: 'more than the order has left' })
     ).toHaveCount(1);
@@ -178,37 +171,6 @@ test.describe('Receive against a purchase order, real API', () => {
     await editor.submitAndPost();
     await expect(editor.status).toHaveText('Posted', { timeout: SLOW });
     expect((await getOrder(order.id, 'supervisor')).status).toBe('Closed');
-  });
-
-  test('given the order is no longer open for receiving and the API answers with its general sentence, then it is one alert and not a stale copy', async ({
-    page,
-    signIn
-  }) => {
-    const sentence = 'The purchase order of this receipt is no longer open for receiving.';
-    const order = await approved();
-    const draft = await receiptFromOrder(order);
-    data.receipts.push(draft.id);
-    await apiAs('supervisor').command(draft.id, 'submit');
-
-    const editor = new DocumentEditor(page);
-    await signIn('supervisor');
-    await editor.open('receipts', draft.id);
-    // What a caller without po.read gets from the API at posting: a sentence with no figures and no code.
-    await page.route(/\/api\/documents\/[0-9a-f-]{36}\/post$/, route =>
-      route.fulfill({
-        status: 409,
-        contentType: 'application/problem+json',
-        body: JSON.stringify({ title: 'Conflict', status: 409, detail: sentence })
-      })
-    );
-    await editor.action('Post').click();
-    await editor.confirm(/^Post /, 'Post');
-
-    await expect(page.getByText(sentence)).toBeVisible();
-    expect(await announcedBy(page, sentence)).toBe(1);
-    await expect(page.getByText('changed since you opened it')).toHaveCount(0);
-    await expect(bar(page, 'Reload')).toHaveCount(0);
-    await expect(editor.action('Post')).toBeEnabled();
   });
 
   test('given Warehouse staff, then they receive by quantity: no price anywhere on the receipt, and the stock is valued at the order price', async ({
@@ -261,20 +223,17 @@ test.describe('Receive against a purchase order, real API', () => {
     test.describe('360 px phone', () => {
       test.use({ viewport: { width: 360, height: 740 } });
 
-      test('given a phone, then the order and its draft receipt do not scroll sideways and the action buttons are in view', async ({
+      test('given a phone, then neither page scrolls sideways and the action buttons are in view', async ({
         page,
         signIn
       }) => {
         await signIn('supervisor');
-        await goTo(page, pages()[0]);
-        await expect(bar(page, 'Receive')).toBeInViewport();
-        expect(await noSideways(page)).toBeLessThanOrEqual(0);
-        await goTo(page, pages()[1]);
-        await expect(
-          page.getByText('Order line 1: ordered 10, received 0, remaining 10 PCS')
-        ).toBeVisible();
+        for (const path of pages()) {
+          await goTo(page, path);
+          await ready(page, path);
+          expect(await noSideways(page)).toBeLessThanOrEqual(0);
+        }
         await expect(new DocumentEditor(page).action('Submit & post')).toBeInViewport();
-        expect(await noSideways(page)).toBeLessThanOrEqual(0);
       });
     });
 

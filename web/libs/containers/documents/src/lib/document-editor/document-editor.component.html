@@ -39,11 +39,8 @@
     }
   </p>
   @if ($orderProgress(); as progress) {
-    <p class="document-editor-hint">
-      {{
-        (progress.closed ? 'doc.order.closed' : 'doc.order.remaining')
-          | t: { order: linked.no, count: progress.open }
-      }}
+    <p class="document-editor-hint" role="status">
+      {{ progress.key | t: { order: linked.no, count: progress.open } }}
     </p>
   }
 }
@@ -135,7 +132,11 @@
     <app-banner kind="danger">{{ message }}</app-banner>
   }
   @if ($overReceipt(); as over) {
-    <app-banner kind="danger" [heading]="'doc.overReceipt.title' | t">
+    <app-banner
+      class="document-editor-over-receipt"
+      kind="danger"
+      [heading]="'doc.overReceipt.title' | t"
+    >
       @if (over.lines.length > 0) {
         <ul class="document-editor-order-lines">
           @for (line of over.lines; track line.lineNo) {
@@ -306,7 +307,7 @@
   @if ($editable()) {
     <section class="document-editor-lines" [attr.aria-label]="'doc.lines' | t">
       <div class="document-editor-lines-header">
-        <h2>{{ 'doc.items' | t: { count: $totals().lineCount } }}</h2>
+        <h2 tabindex="-1">{{ 'doc.items' | t: { count: $totals().lineCount } }}</h2>
         @if (!$linkedOrder()) {
           <app-button [disabled]="!$canAddItem()" (clicked)="onOpenAddItem()">
             <app-icon name="plus" />
