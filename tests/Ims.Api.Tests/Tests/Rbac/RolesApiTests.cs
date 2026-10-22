@@ -191,6 +191,23 @@ public class RolesApiTests(ApiFixture fixture)
         Assert.Equal(current.Permissions, (await admin.GetAsync($"/api/roles/{role.Id}")).Data<RoleDto>().Permissions);
     }
 
+    /// <summary>Security retest F-2: "*" is no version where the token is required (the permission replace), and stays "any version" where it is optional (a role rename).</summary>
+    [Fact]
+    public async Task The_star_is_refused_by_a_permission_replace_and_still_allowed_by_a_rename()
+    {
+        var admin = await fixture.AsAsync(Roles.Admin);
+        var role = await NewRoleAsync(admin, Permissions.StockRead);
+
+        var replace = await admin.SendAsync(HttpMethod.Put, $"/api/roles/{role.Id}/permissions", new RolePermissionsRequest([Permissions.ReportsRead]),
+            r => r.Headers.TryAddWithoutValidation("If-Match", "*"));
+        var renamed = await admin.SendAsync(HttpMethod.Put, $"/api/roles/{role.Id}", new RoleUpdateRequest(Unique.Name("Star"), role.Description, role.IsActive),
+            r => r.Headers.TryAddWithoutValidation("If-Match", "*"));
+
+        replace.ShouldBeProblem(HttpStatusCode.PreconditionRequired);
+        renamed.ShouldBeOk();
+        Assert.Equal(role.Permissions, (await admin.GetAsync($"/api/roles/{role.Id}")).Data<RoleDto>().Permissions);
+    }
+
     [Fact]
     public async Task A_user_whose_role_row_is_gone_is_still_listed_and_can_be_moved_to_a_live_role()
     {

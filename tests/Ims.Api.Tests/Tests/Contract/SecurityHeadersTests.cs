@@ -1,6 +1,7 @@
 using System.Net;
 using Ims.Api.Tests.Builders;
 using Ims.Api.Tests.Harness;
+using Ims.Application.Features.Documents;
 using Ims.Domain;
 
 namespace Ims.Api.Tests.Tests.Contract;
@@ -73,20 +74,32 @@ public class SecurityHeadersTests(ApiFixture fixture)
         AssertSecurityHeaders(limited);
     }
 
+    /// <summary>Security retest F-3 (API8, ASVS 8.2): every API response (cost data included) is private and never stored; pages that are not the API are left alone.</summary>
     [Fact]
-    public async Task Sign_in_responses_are_never_cacheable_but_other_json_is_left_to_the_endpoint()
+    public async Task Every_api_response_is_private_and_no_store_but_pages_outside_the_api_are_left_alone()
     {
-        var accounts = new AccountFactory(fixture);
-        var account = await accounts.CreateAsync(Roles.Clerk);
+        var account = await new AccountFactory(fixture).CreateAsync(Roles.Clerk);
         var anonymous = fixture.Anonymous();
+        var admin = await fixture.AsAsync(Roles.Admin);
+        var product = await new ProductBuilder(fixture.Reference).CreateAsync(admin);
+        var document = (await admin.Documents.CreateReceiptAsync(new DocumentSaveRequest(fixture.Reference.DefaultWarehouseId, fixture.Reference.SupplierId, null, null,
+            [new DocumentLineInput(product.Id, 2, null, 3m, null)]))).Data<DocumentDto>();
 
-        var login = await anonymous.Auth.LoginAsync(account.Username, account.Password);
-        var failedLogin = await anonymous.Auth.LoginAsync(account.Username, "wrong-password");
-        var warehouses = await (await fixture.AsAsync(Roles.Admin)).Warehouses.ListAsync();
+        var success = new[]
+        {
+            await anonymous.Auth.LoginAsync(account.Username, account.Password), await admin.Warehouses.ListAsync(), await admin.Products.ListAsync(),
+            await admin.Documents.ListAsync(), await admin.Documents.GetAsync(document.Id)
+        };
+        var errors = new[]
+        {
+            await anonymous.Auth.LoginAsync(account.Username, "wrong-password"), await anonymous.GetAsync("/api/purchase-orders"), await admin.GetAsync("/api/no-such-route"),
+            await admin.Documents.GetAsync(Guid.NewGuid()), await admin.PostRawJsonAsync("/api/categories", "{ not json")
+        };
 
-        Assert.Contains("no-store", login.Header("Cache-Control"));
-        Assert.Contains("no-store", failedLogin.Header("Cache-Control")); // error responses add no-cache as well
-        Assert.DoesNotContain("no-store", warehouses.Header("Cache-Control") ?? "");
+        foreach (var response in success) Assert.Equal(["no-store", "private"], response.ShouldBeOk().CacheDirectives);
+        foreach (var response in errors) Assert.Contains("no-store", response.Header("Cache-Control")); // an error answer adds no-cache as well
+        Assert.DoesNotContain("no-store", (await anonymous.GetAsync("/openapi/v1.json")).Header("Cache-Control") ?? "");
+        Assert.DoesNotContain("no-store", (await anonymous.GetAsync("/swagger/index.html")).Header("Cache-Control") ?? "");
     }
 
     [Fact]

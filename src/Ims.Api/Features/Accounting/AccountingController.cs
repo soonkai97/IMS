@@ -22,7 +22,7 @@ public class AccountingController(IDispatcher dispatcher) : ApiControllerBase(di
     public async Task<IActionResult> Export([FromQuery] AccountingExportFilter filter)
     {
         var file = await Send(new ExportAccountingQuery(filter));
-        Response.Headers[HeaderNames.CacheControl] = "private, no-store"; // cost and tax numbers: no shared cache keeps a copy
+        Response.Headers[HeaderNames.CacheControl] = SecurityHeaders.NoStore; // cost and tax numbers: no shared cache keeps a copy
         return File(file.Content, file.ContentType, file.FileName);
     }
 }

@@ -163,7 +163,8 @@ public class NegativeStockTests(ApiFixture fixture)
         await using var c = await ShortIssueAsync();
         (await c.S.Supervisor.Documents.ApproveWithReasonAsync(c.Submitted.Id, "Reason from the approver")).ShouldBeOk();
 
-        var posted = (await c.S.Admin.SendAsync(HttpMethod.Post, $"/api/documents/{c.Submitted.Id}/post", new { negativeStockOverrideReason = "Reason from the poster" }, r => r.Headers.TryAddWithoutValidation("If-Match", "*"))).Data<DocumentDto>();
+        var token = (await c.S.GetAsync(c.Submitted.Id)).ConcurrencyToken;
+        var posted = (await c.S.Admin.SendAsync(HttpMethod.Post, $"/api/documents/{c.Submitted.Id}/post", new { negativeStockOverrideReason = "Reason from the poster" }, r => r.Headers.TryAddWithoutValidation("If-Match", $"\"{token}\""))).Data<DocumentDto>();
 
         Assert.Equal(DocumentStatus.Posted, posted.Status);
         Assert.Equal("Reason from the approver", posted.NegativeStockOverrideReason);

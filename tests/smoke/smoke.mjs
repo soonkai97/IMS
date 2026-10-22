@@ -15,14 +15,22 @@ const check = (name, ok, detail = '') => {
   else { failures.push(name); console.log(`  FAIL ${name} ${detail}`); }
 };
 
-// Every document command must carry the document version in If-Match (428 otherwise); the smoke test uses the explicit "any version" wildcard.
+// Every document command must carry the document version in If-Match (428 otherwise, "*" included): the smoke test reads the document first and sends its current token.
 const DOCUMENT_COMMAND = /^\/api\/documents\/[0-9a-fA-F-]{36}(\/(submit|recall|approve|reject|cancel|post|reverse))?$/;
 const needsIfMatch = (method, path) => DOCUMENT_COMMAND.test(path) && (method === 'PUT' || (method === 'POST' && path.split('/').length === 5));
 
+// The current version of the document a command names (read as the administrator, so the command's own 403 or 404 still comes from the endpoint).
+async function currentToken(path) {
+  const res = await fetch(BASE + path.split('/').slice(0, 4).join('/'), { headers: { Authorization: `Bearer ${adminToken}` } });
+  return res.ok ? (await res.json()).concurrencyToken : 'unreadable';
+}
+
+let adminToken;
 async function api(method, path, { token, body, headers } = {}) {
+  const ifMatch = needsIfMatch(method, path) && !headers?.['If-Match'] ? { 'If-Match': `"${await currentToken(path)}"` } : {};
   const res = await fetch(BASE + path, {
     method,
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(needsIfMatch(method, path) ? { 'If-Match': '*' } : {}), ...(headers ?? {}) },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...ifMatch, ...(headers ?? {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await res.text();
@@ -32,6 +40,7 @@ async function api(method, path, { token, body, headers } = {}) {
 const login = async (username, password) => (await api('POST', '/api/auth/login', { body: { username, password } })).body.accessToken;
 
 const admin = await login('admin', ADMIN_PASSWORD);
+adminToken = admin;
 const supervisor = await login('supervisor', DEMO_PASSWORD);
 const staff = await login('staff', DEMO_PASSWORD);
 const clerk = await login('clerk', DEMO_PASSWORD);
@@ -288,6 +297,12 @@ r = await api('PUT', `/api/documents/${tokenDoc.id}`, { token: staff, body: doc(
 check('a save with the current token works and moves the token', r.status === 200 && r.body.concurrencyToken !== tokenDoc.concurrencyToken, String(r.status));
 r = await api('PUT', `/api/documents/${tokenDoc.id}`, { token: staff, body: doc(supplier.id, [{ productId: p1.id, qty: 4, unitCost: 1 }]), headers: { 'If-Match': `"${tokenDoc.concurrencyToken}"` } });
 check('a save with a stale token is refused (409) before anything changes', r.status === 409 && /changed by someone else/.test(r.body.detail ?? ''), JSON.stringify(r.body));
+r = await api('POST', `/api/documents/${tokenDoc.id}/submit`, { token: staff, headers: { 'If-Match': '*' } });
+check('If-Match: * is not a version (428), so it cannot skip the check', r.status === 428, String(r.status));
+r = await api('GET', `/api/documents/${tokenDoc.id}`, { token: staff });
+check('an API response is private and no-store', r.headers.get('cache-control') === 'private, no-store', String(r.headers.get('cache-control')));
+r = await api('POST', '/api/auth/login', { body: { username: { }, password: 1 } });
+check('a wrong JSON type is a 400 that names no framework type', r.status === 400 && !/System\.|Ims\.|LineNumber/.test(JSON.stringify(r.body)), JSON.stringify(r.body));
 r = await api('GET', `/api/documents?mine=true&search=${tokenDoc.no}`, { token: staff });
 check('mine=true lists my document with creator and flags', r.body.items.length === 1 && r.body.items[0].createdById === tokenDoc.createdById && r.body.items[0].requiresApproval === false && typeof r.body.items[0].concurrencyToken === 'string', JSON.stringify(r.body.items[0]));
 r = await api('GET', '/api/documents?status=Submitted&requiresApproval=true&pageSize=5', { token: supervisor });

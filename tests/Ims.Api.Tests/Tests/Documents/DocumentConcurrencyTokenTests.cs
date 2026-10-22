@@ -9,7 +9,7 @@ namespace Ims.Api.Tests.Tests.Documents;
 
 /// <summary>
 /// BR-12 / UX error E4: a document hands out a concurrency token (also its ETag). Sent back as If-Match, a stale token is refused with 409
-/// before anything is changed. The header is required on every document command (428 without it); "*" is the explicit "any version".
+/// before anything is changed. The header is required on every document command (428 without it); "*" ("any version") is refused the same way.
 /// </summary>
 [Collection(ApiCollection.Name)]
 public class DocumentConcurrencyTokenTests(ApiFixture fixture)
@@ -173,12 +173,15 @@ public class DocumentConcurrencyTokenTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task A_wildcard_If_Match_means_any_version_the_explicit_opt_out()
+    public async Task A_wildcard_If_Match_is_not_a_version_and_cannot_skip_the_check()
     {
         var (s, draft, productId) = await DraftAsync();
-        (await s.Admin.Documents.UpdateAsync(draft.Id, Edited(draft, productId, 7))).ShouldBeOk();
+        var saved = (await s.Admin.Documents.UpdateAsync(draft.Id, Edited(draft, productId, 7))).Data<DocumentDto>();
 
-        (await s.Clerk.Documents.UpdateAsync(draft.Id, Edited(draft, productId, 8), ifMatch: "*")).ShouldBeOk();
+        var response = await s.Clerk.Documents.UpdateAsync(draft.Id, Edited(draft, productId, 8), ifMatch: "*");
+
+        response.ShouldBeProblem((HttpStatusCode)428, "Precondition required");
+        Assert.Equal(saved.ConcurrencyToken, (await s.GetAsync(draft.Id)).ConcurrencyToken);
     }
 
     [Fact]

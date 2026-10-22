@@ -26,6 +26,19 @@ public class UploadSecurityTests(ApiFixture fixture)
 
     private static AttachmentsClient Files(ApiClient client) => new(client);
 
+    /// <summary>Security retest F-3: a download carries its own private, no-store header once; the API-wide header must not add a second value.</summary>
+    [Fact]
+    public async Task A_download_is_private_and_no_store_exactly_once()
+    {
+        var (admin, productId) = await AdminWithProductAsync();
+        var uploaded = (await Files(admin).UploadAsync(AttachmentOwnerType.Product, productId, Jpeg())).Data<AttachmentDto>();
+
+        var download = (await Files(admin).DownloadAsync(uploaded.Id)).ShouldBeOk();
+
+        Assert.Equal(["no-store", "private"], download.CacheDirectives);
+        Assert.Equal("default-src 'none'; sandbox", download.Header("Content-Security-Policy"));
+    }
+
     // ---------- metadata ----------
 
     [Fact]

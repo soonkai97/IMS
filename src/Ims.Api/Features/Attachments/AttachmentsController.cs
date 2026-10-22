@@ -35,7 +35,7 @@ public class AttachmentsController(IDispatcher dispatcher) : ApiControllerBase(d
         // The file is untrusted content: never let a browser sniff or run it.
         Response.Headers[HeaderNames.ContentTypeOptions] = "nosniff";
         Response.Headers[HeaderNames.ContentSecurityPolicy] = "default-src 'none'; sandbox";
-        Response.Headers[HeaderNames.CacheControl] = "private, no-store";
+        Response.Headers[HeaderNames.CacheControl] = SecurityHeaders.NoStore;
         return inline && file.IsImage ? File(file.Content, file.ContentType) : File(file.Content, file.ContentType, file.FileName);
     }
 

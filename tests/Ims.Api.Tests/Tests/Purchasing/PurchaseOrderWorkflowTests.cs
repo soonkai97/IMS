@@ -357,6 +357,30 @@ public class PurchaseOrderWorkflowTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(submitted.ConcurrencyToken, (await _p.ReadAsync(submitted.Id)).ConcurrencyToken); // nothing moved
     }
 
+    /// <summary>Security retest F-2 (API1/API5): "If-Match: *" is no version, so it cannot approve (or move) an order; the real token still can.</summary>
+    [Fact]
+    public async Task The_star_is_428_on_every_transition_and_the_real_token_still_works()
+    {
+        var draft = await _p.DraftWorthAsync(6000m);
+        var submitted = (await _p.Clerk.PurchaseOrders.SubmitAsync(draft.Id, draft.ConcurrencyToken)).Data<PurchaseOrderDto>();
+        var calls = new (string Action, ApiClient By, object? Body)[]
+        {
+            ("approve", _p.Supervisor, null), ("reject", _p.Supervisor, new { reason = "send it back" }),
+            ("recall", _p.Clerk, null), ("cancel", _p.Clerk, new { reason = "no longer needed" }), ("submit", _p.Clerk, null)
+        };
+
+        foreach (var (action, by, body) in calls)
+        {
+            var response = await by.SendAsync(HttpMethod.Post, $"/api/purchase-orders/{submitted.Id}/{action}", body, r => r.Headers.TryAddWithoutValidation("If-Match", "*"));
+            response.ShouldBeProblem(HttpStatusCode.PreconditionRequired);
+            Assert.Equal("if_match_required", response.Json().RootElement.GetProperty("code").GetString());
+        }
+
+        var after = await _p.ReadAsync(submitted.Id);
+        Assert.Equal((PurchaseOrderStatus.Submitted, submitted.ConcurrencyToken), (after.Status, after.ConcurrencyToken)); // nothing moved
+        Assert.Equal(PurchaseOrderStatus.Approved, (await _p.Supervisor.PurchaseOrders.ApproveAsync(submitted.Id, submitted.ConcurrencyToken)).Data<PurchaseOrderDto>().Status);
+    }
+
     // ----- acceptance 9: two approvers race -----
     [Fact]
     public async Task Two_approvers_with_the_same_version_give_one_approval_and_one_409_over_many_rounds()

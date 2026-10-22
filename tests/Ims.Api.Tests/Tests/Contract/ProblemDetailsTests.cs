@@ -165,6 +165,24 @@ public class ProblemDetailsTests(ApiFixture fixture)
         Assert.DoesNotContain("Microsoft.", response.Body);
     }
 
+    /// <summary>Security retest F-1 (API8): a value of the wrong JSON type must not echo CLR type names, JSON paths or byte positions back to the client.</summary>
+    [Theory]
+    [InlineData("/api/documents/receipts", "{\"lines\":{}}", false)]
+    [InlineData("/api/documents/issues", "{\"lines\":\"x\",\"warehouseId\":5}", false)]
+    [InlineData("/api/auth/login", "{\"username\":{},\"password\":1}", true)]
+    public async Task A_value_of_the_wrong_JSON_type_is_a_400_that_names_no_framework_internals(string url, string json, bool anonymous)
+    {
+        var client = anonymous ? fixture.Anonymous() : await fixture.AsAsync(Roles.Admin);
+
+        var response = await client.PostRawJsonAsync(url, json);
+
+        var problem = response.ShouldBeProblem(HttpStatusCode.BadRequest, "Request rejected");
+        Assert.Equal(Messages.RequestNotValid, problem.Detail);
+        Assert.NotEmpty(problem.Errors!); // the field keys stay, so a client can still point at the field
+        foreach (var internals in new[] { "Ims.", "System.", "Microsoft.", "LineNumber", "BytePositionInLine", "Path:", "$." })
+            Assert.DoesNotContain(internals, response.Body);
+    }
+
     // ---------- correlation id ----------
 
     [Fact]

@@ -68,6 +68,19 @@ public class PurchaseOrderUpdateTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(TestUsers.UsernameOf(Roles.Clerk), saved.CreatedBy); // the creator does not change
     }
 
+    /// <summary>Security retest F-2: "If-Match: *" is no version, so it cannot skip the required check.</summary>
+    [Fact]
+    public async Task A_save_with_the_star_is_428_and_changes_nothing()
+    {
+        var order = await Created();
+
+        var response = await _p.Admin.SendAsync(HttpMethod.Put, $"/api/purchase-orders/{order.Id}", Edited().WithLine(_product.Id, 1m, 1m).Build(),
+            r => r.Headers.TryAddWithoutValidation("If-Match", "*"));
+
+        response.ShouldBeProblem(HttpStatusCode.PreconditionRequired);
+        Assert.Equal(order.ConcurrencyToken, (await ReadAsync(order)).ConcurrencyToken);
+    }
+
     [Fact]
     public async Task A_save_without_the_header_is_428_and_changes_nothing()
     {
