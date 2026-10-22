@@ -1,5 +1,4 @@
 using Ardalis.Specification;
-using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Catalog;
 
@@ -7,14 +6,12 @@ namespace Ims.Application.Features.Catalog;
 /// Orchestrates saving a product: looks up what must come from the database (unit, category, uniqueness, stock history),
 /// then lets the <see cref="Product"/> aggregate apply and guard the change.
 /// </summary>
-public class ProductWriter(IRepository<Product> products, IReadRepository<Uom> uoms, IModuleSwitches modules, IReadRepository<Category> categories,
+public class ProductWriter(IRepository<Product> products, IReadRepository<Uom> uoms, IReadRepository<Category> categories,
     IReadRepository<ProductBarcode> barcodes, IReadRepository<StockLedgerEntry> ledger, IProductConversionUsage conversionUsage, IIdMap<Uom> uomIds, IUnitOfWork uow) : IProductWriter, IAppService
 {
     public async Task<int> SaveAsync(Guid? id, ProductSaveRequest r, CancellationToken ct)
     {
         var sku = r.Sku.Trim();
-        // Accounting off: a value is a 400 and a save without one leaves the stored tax fields alone. On: a key that was sent replaces its field (null clears), a key that was left out keeps it.
-        var applyTaxCodes = await modules.AcceptAsync(TaxFieldNames.RemovedModule, [(TaxFieldNames.HsCode, r.HsCode.Value), (TaxFieldNames.SstCode, r.SstCode.Value)], ct);
         var existing = id is { } publicId
             ? await products.FirstOrDefaultAsync(new ProductForEditSpec(publicId), ct) ?? throw new NotFoundException(Messages.ProductNotFound)
             : null;
@@ -44,7 +41,6 @@ public class ProductWriter(IRepository<Product> products, IReadRepository<Uom> u
                     await conversionUsage.UnitsInUseAsync(product.Id, product.Conversions.Select(c => c.FromUomId).ToList(), ct));
         }
 
-        if (applyTaxCodes) product.SetTaxCodes(r.HsCode.Or(product.HsCode), r.SstCode.Or(product.SstCode));
         product.SetBarcodes(codes);
         if (r.Conversions is not null)
         {

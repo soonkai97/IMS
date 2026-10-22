@@ -72,11 +72,6 @@ public static class Limits
     // Field lengths
     public const int SkuMaxLength = 64;
     public const int BarcodeMaxLength = 64;
-    /// <summary>Tax-ready fields (module accounting): shape only, no lookup or checksum. Sizes proposed in pilot-slice-1-plan section 4, confirmed against the accountant's package before PL1.6. The web mirrors these four numbers in TAX_FIELD (web/libs/shared/models); web/libs/shared/utils/src/lib/forms/tax-field.validator.spec.ts string-matches the lines below, so a change here must change both.</summary>
-    public const int HsCodeMaxLength = 16;
-    public const int SstCodeMaxLength = 20;
-    public const int TinMaxLength = 20;
-    public const int SstRegNoMaxLength = 30;
     public const int NameMaxLength = 300;
     public const int ShortNameMaxLength = 200;
     public const int CodeMaxLength = 20;

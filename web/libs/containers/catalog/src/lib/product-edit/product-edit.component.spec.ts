@@ -23,9 +23,7 @@ const PRODUCT: ProductDto = {
   safetyStock: 5,
   isActive: true,
   barcodes: ['9501234'],
-  conversions: [],
-  hsCode: '0901.21',
-  sstCode: 'ST-01'
+  conversions: []
 };
 
 describe('ProductEditPageComponent follows the URL (EA-20)', () => {
@@ -140,13 +138,13 @@ describe('ProductEditPageComponent follows the URL (EA-20)', () => {
     ).toBe('300');
   });
 
-  describe('the save request (the accounting fields are gone, the API leaves stored values alone)', () => {
+  describe('the save request (the tax fields are gone from the form and the API)', () => {
     const sent = () => run.mock.calls[0][0].body as Record<string, unknown>;
     const TAX_KEYS = ['hsCode', 'sstCode'];
 
     beforeEach(() => run.mockReturnValue(of(PRODUCT)));
 
-    it('an edit sends no tax code even when the API still returns one with the product', async () => {
+    it('an edit sends no tax code', async () => {
       data.set(PRODUCT);
       spectator = createComponent({ props: { id: NINE } as never });
       await settle();

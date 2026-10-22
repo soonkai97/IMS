@@ -1,4 +1,4 @@
-// Area 5: mass assignment and input handling on the purchase-order endpoints and the accounting export.
+// Area 5: mass assignment and input handling on the purchase-order endpoints.
 import zlib from 'node:zlib';
 import { call, tokens, fx, saveFx, expect, check, failures, useAdmin, PO, act, newPo, line, approvedPo, postReceipt, receiptDraft, items, etag, BASE, tag, docAct } from './lib.mjs';
 const F = fx(), T = await tokens(); useAdmin(T.admin);
@@ -77,25 +77,6 @@ for (const v of ['*', 'W/"abc"', '"' + 'a'.repeat(5000) + '"', 'not quoted', '""
 }
 expect(5, 'missing If-Match -> 428', await call('POST', `${PO}/${d0.json.id}/cancel`, T.clerk, {}), 428);
 
-// ---- accounting export: formula injection through names and remarks
-const inj = { supplier: `=HYPERLINK("http://127.0.0.1:9/x","pay${Date.now() % 100000}")`, product: '@SUM(1+1)', remark: '+1+1' };
-const sup = (await call('POST', '/api/partners', T.admin, { type: 'Supplier', name: inj.supplier, contact: '-2+3', isActive: true })).json;
-const prod = (await call('POST', '/api/products', T.admin, { sku: `SEC-${F.sfx}-INJ${Date.now() % 100000}`, name: inj.product, categoryId: null, baseUomId: F.pcs, safetyStock: 0, isActive: true, barcodes: [], conversions: [] })).json;
-const rc = await call('POST', '/api/documents/receipts', T.admin, { warehouseId: F.whA, partnerId: sup.id, remark: inj.remark, lines: [{ productId: prod.id, qty: 1, uomId: null, unitCost: 5, remark: '=2+2' }] });
-await docAct(T.admin, rc.json.id, 'submit'); const pst = await docAct(T.admin, rc.json.id, 'post'); check(5, 'injected-name receipt posted', pst.status === 200, `${pst.status}`);
-{ const f = fx(); (f.docs ??= []).push(rc.json.id); saveFx(f); } // remembered so z-cleanup reverses it
-const today = new Date().toISOString().slice(0, 10), x = await fetch(`${BASE}/api/accounting/export?from=${today}&to=${today}`, { headers: { Authorization: 'Bearer ' + T.admin } });
-const buf = Buffer.from(await x.arrayBuffer());
-check(5, 'export: 200, xlsx content type, no-store cache header, safe file name', x.status === 200 && /spreadsheetml/.test(x.headers.get('content-type')) && /no-store/.test(x.headers.get('cache-control')) && /^attachment/.test(x.headers.get('content-disposition') ?? '') && !/[\r\n"]{2,}|\.\./.test(x.headers.get('content-disposition')), `${x.status} ${x.headers.get('content-disposition')}`);
-const files = unzip(buf), xml = Object.entries(files).filter(([n]) => /sheet\d+\.xml$|sharedStrings\.xml$/.test(n)).map(([, v]) => v.toString('utf8')).join('\n');
-check(5, 'export: the injected text is in the file', xml.includes('SUM(1+1)') && xml.includes('HYPERLINK'), `${Object.keys(files).length} parts`);
-check(5, 'export: no cell is stored as a formula (<f>) and every cell starting = + - @ is a string cell', !/<(\w+:)?f[ >]/.test(xml), 'formula elements: ' + (xml.match(/<(\w+:)?f[ >]/g)?.length ?? 0));
-const st = Object.entries(files).find(([n]) => /sharedStrings/.test(n))?.[1]?.toString('utf8') ?? '';
-const raw = [...st.matchAll(/<(?:\w+:)?t[^>]*>([^<]*)<\/(?:\w+:)?t>/g)].map((m) => m[1]).filter((s) => /^[=+\-@]/.test(s));
-check(5, 'export: text cells that begin with = + - @ are stored verbatim as xlsx strings (INFO: inert in Excel, a CSV re-save would run them)', raw.length > 0, `${raw.length} such strings: ${raw.slice(0, 4).join(' | ')}`);
-expect(5, 'export without dates -> 400', await call('GET', '/api/accounting/export', T.admin), 400);
-expect(5, 'export from after to -> 400', await call('GET', '/api/accounting/export?from=2026-12-31&to=2026-01-01', T.admin), 400);
-expect(5, 'export for 50 years -> 400 (narrow the range) or 200, not 500', await call('GET', '/api/accounting/export?from=1980-01-01&to=2030-01-01', T.admin), 200, 400);
 console.log(failures() ? `${failures()} FAIL` : 'p5 all ok');
 
 function unzip(b) { // minimal central-directory reader, enough for an xlsx

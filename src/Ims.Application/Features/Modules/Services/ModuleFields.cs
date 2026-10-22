@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Modules;
 
 /// <summary>
-/// The rule for an optional field of a module on a core endpoint (ADR modules-and-tracking-dimensions 4.3): accepted and returned only while the module is on. Off, a request
+/// The rule for an optional field of a module on a core endpoint (ADR modules-and-tracking-dimensions 4.3): accepted only while the module is on. Off, a request
 /// that carries a value is a 400 naming the field, and a save that carries nothing is fine and must leave the stored values alone (the caller skips the write when this says no).
 /// </summary>
 public static class ModuleFields
@@ -15,8 +15,4 @@ public static class ModuleFields
         if (used.Count == 0) return false;
         throw new ValidationException(Messages.ModuleFieldNotAvailable(used[0], moduleCode), used.ToDictionary(f => f, f => new[] { Messages.ModuleFieldNotAvailable(f, moduleCode) }));
     }
-
-    /// <summary>True when a response may show the module's fields. Asks the switch only when a value is there to show, so a read of rows without any costs nothing extra.</summary>
-    public static async Task<bool> ShowsAsync(this IModuleSwitches modules, string moduleCode, bool anyValue, CancellationToken ct) =>
-        !anyValue || await modules.IsEnabledAsync(moduleCode, ct);
 }
