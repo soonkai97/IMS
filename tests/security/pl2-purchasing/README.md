@@ -40,3 +40,5 @@ Node 20+, no dependencies. Every script prints `ok` / `FAIL [area] label -> evid
 - Everything created is prefixed `SEC-` / `sec<4 characters>`; `z-cleanup.mjs` leaves nothing open, waiting or active. Ledger rows of reversed receipts and audit rows stay (they are history).
 - Step 11 needs `sqlcmd` and writes two columns of the two found purchase-order approval rules back by SQL, because turning the enable guard on needs the rules inactive and rules can only be saved while the module is on. It prints the rows before and after.
 - Do not run on a database where purchasing is in real use: the probes switch the module on and off.
+
+Note (2026-10-22, RA1 part A1): `GET /api/accounting/export` was removed from the API. The probes that call it (`p1`, `p4`, `p5`, `p7`, `p9`) now get 404 for those calls; run them only for the purchasing parts, or retire the accounting steps before the next retest. `s0` and `p8` still switch the `accounting` module until part A2 removes it.

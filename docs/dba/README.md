@@ -325,6 +325,8 @@ Use a throw-away database whose name starts with `Ims_Perf` (the scripts refuse 
 
 ## 11. Accounting export (PL1.6, `GET /api/accounting/export`)
 
+> Removed 2026-10-22 (RA1 part A1): the endpoint, its handler, reader and `AccountingExportVolumeTests` are deleted. This section is kept as the record of what was measured; nothing in it runs any more.
+
 The file for a period: one row per posted document line, plus a reversal row for every line of a document reversed in the period (dated by the reversal, as in the movements report), oldest first, at most `Limits.MaxExportRows` (50,000) rows, refused above that (never cut). Written by `EfAccountingReader`: two branches (postings, reversals) that reuse the movements report's predicates (`MovementFilters`, so the `IX_StockDocument_PostedAt` and `IX_StockDocument_ReversedAt` filtered indexes and the live-lines index are the ones available), each read in file order and cut to 50,001 rows, then merged and cut again, in ONE statement that projects every column of the file (product, partner, unit and warehouse are joins, not follow-up queries; the statement count is 1 plus the audit insert). One row more than the cap is asked for so the handler can refuse a period that is too big without a separate count.
 
 **Measured on a 50,000-row period** (`AccountingExportVolumeTests`: a database of its own that is dropped at the end; 24,500 documents, 245,000 lines: 4,000 posted and 500 reversed documents in March 2025 = exactly 50,000 export rows, and 20,000 posted documents in 2023 as noise, so the period is 18% of the documents; set-based `INSERT`, no API calls). LocalDB `ImsDev` on a shared workstation:

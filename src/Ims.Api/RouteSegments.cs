@@ -27,7 +27,6 @@ public static class RouteSegments
     public const string LowStock = "low-stock";
     public const string Summary = "summary";
     public const string Movements = "movements";
-    public const string Export = "export";
     public const string StockSummaryExport = "stock-summary/export";
     public const string MovementsExport = "movements/export";
     public const string LedgerExport = "ledger/export";

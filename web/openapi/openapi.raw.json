@@ -4652,62 +4652,6 @@
           }
         }
       }
-    },
-    "/api/accounting/export": {
-      "get": {
-        "tags": [
-          "Accounting"
-        ],
-        "summary": "The accounting file of a period (`from` and `to`, both required) as one .xlsx in a fixed layout, at cost, optionally for one warehouse. A period with more rows than\r\none file holds is a 400 that asks for a narrower range; the file is never cut short. A warehouse the caller may not read is a 404.",
-        "operationId": "Accounting_export",
-        "parameters": [
-          {
-            "name": "From",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "To",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "WarehouseId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The file.",
-            "headers": {
-              "Content-Disposition": {
-                "description": "attachment; filename=... (the name of the file).",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "content": {
-              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -8315,9 +8259,6 @@
     },
     {
       "name": "Attachments"
-    },
-    {
-      "name": "Accounting"
     }
   ]
 }

@@ -1,5 +1,4 @@
 using Ims.Application;
-using Ims.Application.Features.Accounting;
 using Ims.Application.Features.Attachments;
 using Ims.Application.Features.Documents;
 using Ims.Application.Features.Purchasing;
@@ -62,7 +61,6 @@ public static class DependencyInjection
         services.AddScoped<IReorderReader, EfReorderReader>();
         services.AddScoped<ILowOnlyStockReader, EfLowOnlyStockReader>();
         services.AddScoped<IMovementReader, EfMovementReader>();
-        services.AddScoped<IAccountingReader, EfAccountingReader>();
         services.AddScoped<IDocumentTextMatcher, EfDocumentTextMatcher>();
         services.AddScoped<ITransactionLocker, SqlTransactionLocker>();
         services.AddScoped<IRoleUsageReader, EfRoleUsageReader>();
