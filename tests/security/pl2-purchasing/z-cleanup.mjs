@@ -3,20 +3,23 @@
 import { call, tokens, fx, check, failures, useAdmin, PO, docAct, items, reverseDoc, act } from './lib.mjs';
 const stage = process.argv[2] ?? 'orders';
 const F = fx(), T = await tokens(); useAdmin(T.admin);
-const pageAll = async (path, tok = T.admin) => { const out = []; for (let p = 1; p < 20; p++) { const r = await call('GET', `${path}${path.includes('?') ? '&' : '?'}page=${p}&pageSize=200`, tok); const it = items(r); out.push(...it); if (it.length < 200) break; } return out; };
+const pageAll = async (path, tok = T.admin) => { const out = []; for (let p = 1; p < 20; p++) { const r = await call('GET', `${path}${path.includes('?') ? '&' : '?'}page=${p}&pageSize=200`, tok); if (r.status !== 200) throw new Error(`${path} page ${p}: ${r.status}`); const it = items(r); out.push(...it); if (it.length < 200) break; } return out; };
 const keyOf = Object.fromEntries([['admin', 'admin'], ['owner', 'owner'], ['supervisor', 'supervisor'], ['clerk', 'clerk'], ['staff', 'staff'], ...Object.entries(F.U).map(([k, u]) => [u.username, k])]);
 const asCreator = (name) => T[keyOf[name]] ?? T.admin;
 
 if (stage === 'orders') {
   // 1. documents of the probes: cancel what waits, reverse what posted
-  const docs = [...(await pageAll('/api/documents?search=SEC-')), ...(F.docs ?? []).length ? await Promise.all(F.docs.map(async (id) => (await call('GET', `/api/documents/${id}`, T.admin)).json)) : []];
-  let revd = 0, canc = 0, left = 0;
-  for (const d of docs) {
-    if (!d?.id || !/SEC-/.test(d.partnerName ?? '') && !(F.docs ?? []).includes(d.id)) continue;
-    if (d.status === 'Posted') { const r = await reverseDoc(T.admin, d.id); r.status === 200 ? revd++ : left++; }
-    else if (['Draft', 'Submitted', 'Approved'].includes(d.status)) { const r = (await docAct(asCreator(d.createdBy), d.id, 'cancel', { reason: 'SEC retest cleanup' })); if (r.status === 200) canc++; else { const r2 = await docAct(T.admin, d.id, 'cancel', { reason: 'SEC retest cleanup' }); r2.status === 200 ? canc++ : left++; } }
-  }
-  check(9, `documents of the probes: ${revd} reversed, ${canc} cancelled, none left waiting`, left === 0, `left=${left}`);
+  const sweepDocs = async () => {
+    const docs = [...(await pageAll('/api/documents?search=SEC-')), ...(await pageAll('/api/documents?search=HYPERLINK')), ...(F.docs ?? []).length ? await Promise.all(F.docs.map(async (id) => (await call('GET', `/api/documents/${id}`, T.admin)).json)) : []];
+    let revd = 0, canc = 0, left = 0;
+    for (const d of docs) {
+      if (!d?.id || !/SEC-|HYPERLINK/.test(d.partnerName ?? '') && !(F.docs ?? []).includes(d.id)) continue;
+      if (d.status === 'Posted') { const r = await reverseDoc(T.admin, d.id); r.status === 200 ? revd++ : (left++, console.log('not reversed:', d.no, r.status, String(r.json?.detail).slice(0, 100))); }
+      else if (['Draft', 'Submitted', 'Approved'].includes(d.status)) { const r = (await docAct(asCreator(d.createdBy), d.id, 'cancel', { reason: 'SEC retest cleanup' })); if (r.status === 200) canc++; else { const r2 = await docAct(T.admin, d.id, 'cancel', { reason: 'SEC retest cleanup' }); r2.status === 200 ? canc++ : (left++, console.log('left waiting:', d.no, d.status, r2.status, String(r2.json?.detail).slice(0, 100))); } }
+    }
+    return { revd, canc, left };
+  };
+  await sweepDocs();
   // 2. orders of the probes
   let open = 0;
   for (let pass = 0; pass < 3; pass++) {
@@ -29,6 +32,8 @@ if (stage === 'orders') {
       if (g.status === 'Draft') await act(T.admin, g.id, 'cancel', {});
     }
   }
+  const sw = await sweepDocs(); // receipts that the order passes released or that were waiting behind an order
+  check(9, `documents of the probes: ${sw.revd} reversed, ${sw.canc} cancelled in the last sweep, none left waiting or posted`, sw.left === 0, `left=${sw.left}`);
   const rest = (await pageAll(`${PO}?supplierId=${F.supplier}`)).filter((o) => !['Closed', 'Cancelled'].includes(o.status)); open = rest.length;
   check(9, 'no open purchase order of the probes remains (Draft, Submitted, Approved)', open === 0, `${open} left`);
   const stock = (await pageAll('/api/stock?search=SEC-')).filter((s) => s.qtyOnHand !== 0);
@@ -37,14 +42,13 @@ if (stage === 'orders') {
 
 if (stage === 'people') {
   const stamp = F.sfx; let off = 0, fail = 0;
-  for (const u of (await pageAll('/api/users?search=sec')).filter((x) => x.username.startsWith(`sec${stamp}`) && x.isActive)) {
-    const r = await call('PUT', `/api/users/${u.id}`, T.admin, { username: u.username, email: u.email, displayName: u.displayName, role: u.role, isActive: false, password: null, warehouseIds: u.warehouseIds, allWarehouses: u.allWarehouses }); r.status === 200 ? off++ : fail++;
+  // A role cannot be switched off while any user (inactive ones too) still holds it, so each throw-away user is first moved to the least-privileged system role, inactive.
+  for (const u of (await pageAll('/api/users?search=sec')).filter((x) => /^SEC /.test(x.displayName))) {
+    const r = await call('PUT', `/api/users/${u.id}`, T.admin, { username: u.username, email: u.email, displayName: u.displayName, role: 'WarehouseStaff', isActive: false, password: null, warehouseIds: u.warehouseIds, allWarehouses: u.allWarehouses }); r.status === 200 ? off++ : (fail++, console.log('refused', r.status, String(r.json?.detail ?? r.text).slice(0, 110)));
   }
-  for (const r of (await pageAll('/api/roles')).filter((x) => x.name.startsWith(`SEC-${stamp}-`) && x.isActive)) { const q = await call('PUT', `/api/roles/${r.id}`, T.admin, { name: r.name, description: r.description, isActive: false }); q.status === 200 ? off++ : fail++; }
-  for (const p of (await pageAll('/api/partners?includeInactive=false&search=SEC')).filter((x) => /^SEC-/.test(x.name) || x.id === F.supplier || x.id === F.customer)) { const q = await call('PUT', `/api/partners/${p.id}`, T.admin, { type: p.type, name: p.name, contact: p.contact, isActive: false }); q.status === 200 ? off++ : fail++; }
-  const inj = (await pageAll('/api/partners?includeInactive=false&search=HYPERLINK')).concat(await pageAll('/api/partners?includeInactive=false&search=SUM'));
-  for (const p of inj.filter((x) => /HYPERLINK|^@SUM/.test(x.name))) { const q = await call('PUT', `/api/partners/${p.id}`, T.admin, { type: p.type, name: p.name, contact: p.contact, isActive: false }); q.status === 200 ? off++ : fail++; }
-  for (const p of (await pageAll(`/api/products?search=SEC-${stamp}`)).filter((x) => x.isActive)) { const q = await call('PUT', `/api/products/${p.id}`, T.admin, { sku: p.sku, name: p.name, categoryId: p.categoryId, baseUomId: p.baseUomId, safetyStock: p.safetyStock, isActive: false, barcodes: p.barcodes, conversions: p.conversions }); q.status === 200 ? off++ : fail++; }
+  for (const r of (await pageAll('/api/roles')).filter((x) => x.name.startsWith('SEC-') && x.isActive)) { const q = await call('PUT', `/api/roles/${r.id}`, T.admin, { name: r.name, description: r.description, isActive: false }); (q.status === 200 ? off++ : (fail++, console.log('refused', q.status, String(q.json?.detail ?? q.text).slice(0, 110)))); }
+  for (const p of (await pageAll('/api/partners?includeInactive=false')).filter((x) => /^SEC-|^=HYPERLINK|^@SUM/.test(x.name) || x.id === F.supplier || x.id === F.customer)) { const q = await call('PUT', `/api/partners/${p.id}`, T.admin, { type: p.type, name: p.name, contact: p.contact, isActive: false }); (q.status === 200 ? off++ : (fail++, console.log('refused', q.status, String(q.json?.detail ?? q.text).slice(0, 110)))); }
+  for (const p of (await pageAll('/api/products?search=SEC-')).filter((x) => x.isActive)) { const q = await call('PUT', `/api/products/${p.id}`, T.admin, { sku: p.sku, name: p.name, categoryId: p.categoryId, baseUomId: p.baseUomId, safetyStock: p.safetyStock, isActive: false, barcodes: p.barcodes, conversions: p.conversions }); (q.status === 200 ? off++ : (fail++, console.log('refused', q.status, String(q.json?.detail ?? q.text).slice(0, 110)))); }
   check(9, `throw-away users, roles, partners, products switched off (${off}), none refused`, fail === 0, `refused=${fail}`);
 }
 console.log(failures() ? `${failures()} FAIL` : `z-cleanup ${stage} done`);

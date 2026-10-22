@@ -10,7 +10,7 @@ export const OUT = process.env.RV_OUT ?? '.';
 export const PROBE_PW = 'Probe#Pass12345'; // made-up; used only for the SEC- users these scripts create
 export const sfx = Date.now().toString(36).slice(-4);
 
-export async function call(method, path, token, body, headers = {}) {
+export async function call(method, path, token, body, headers = {}, tries = 4) {
   const h = { ...headers };
   if (token) h.Authorization = 'Bearer ' + token;
   let payload;
@@ -19,11 +19,14 @@ export async function call(method, path, token, body, headers = {}) {
   const r = await fetch(BASE + path, { method, headers: h, body: payload });
   const text = await r.text();
   let json; try { json = JSON.parse(text); } catch { json = text; }
+  // The per-user limit (600 requests a minute) is part of the API; a probe that hits it waits the window out and repeats, so clean-up and long runs never read a 429 as an answer. RV_NO_RETRY=1 turns this off.
+  if (r.status === 429 && tries > 0 && !process.env.RV_NO_RETRY && !path.startsWith('/api/auth/')) { await new Promise((res) => setTimeout(res, (Number(r.headers.get('retry-after')) || 60) * 1000 + 500)); return call(method, path, token, body, headers, tries - 1); }
   return { status: r.status, json, headers: r.headers, text, ms: performance.now() - t0 };
 }
 export async function login(user, pw) {
   const password = pw ?? (user === 'admin' ? process.env.RV_ADMIN_PW : process.env.RV_DEMO_PW);
-  const r = await call('POST', '/api/auth/login', null, { username: user, password });
+  let r = await call('POST', '/api/auth/login', null, { username: user, password });
+  for (let i = 0; i < 2 && r.status === 429; i++) { await new Promise((res) => setTimeout(res, 62000)); r = await call('POST', '/api/auth/login', null, { username: user, password }); } // login allows 20 a minute per address
   if (r.status !== 200) throw new Error(`login ${user} ${r.status} ${r.text.slice(0, 160)}`);
   return r.json.accessToken;
 }

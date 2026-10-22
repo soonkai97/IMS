@@ -1,6 +1,7 @@
 // Area 7: information disclosure and session behaviour. Needs the Development API (RV_BASE, serves the OpenAPI document) and, for the production-only checks, a second instance in Production
 // mode (RV_PROD_BASE, default http://127.0.0.1:5961, same database, Cors:Origins set to https://ims.example.test). The rate-limit steps run last and wait out their window.
 import { call, tokens, fx, login, forge, decode, expect, check, failures, useAdmin, PO, newPo, approvedPo, roleUser, sleep, PROBE_PW, BASE, saveFx } from './lib.mjs';
+const RUN = Date.now().toString(36).slice(-4); // fresh throw-away users per run (a locked account stays locked for 15 minutes)
 const PROD = process.env.RV_PROD_BASE ?? 'http://127.0.0.1:5961';
 const F = fx(), T = await tokens(); useAdmin(T.admin);
 const raw = async (base, method, path, { token, headers = {}, body } = {}) => { const r = await fetch(base + path, { method, headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}), ...headers }, body, redirect: 'manual' }); return { status: r.status, headers: r.headers, text: await r.text() }; };
@@ -53,8 +54,9 @@ check(7, `inventory: ${n} documented operations; all but the public ones answer 
 const mine = Object.keys(spec.paths).filter((p) => /purchase-orders|accounting|modules/.test(p)); check(7, 'inventory: purchasing/accounting/modules paths in the contract', mine.length >= 10, `${mine.length} paths`);
 check(7, 'inventory: undocumented purchase-order verbs are not routable (PATCH/DELETE -> 404/405)', [(await call('PATCH', `${PO}/${po.id}`, T.admin, {})).status, (await call('DELETE', `${PO}/${po.id}`, T.admin)).status].every((s) => [404, 405].includes(s)));
 
+await sleep(62000); // fresh login window
 // ---- E. sessions: lifetime, rotation, replay, logout, cookie flags, CSRF
-const u = await roleUser('sesu3', ['masterdata.read']); const uname = fx().extra.find((x) => x.name === 'sesu3').username;
+const u = await roleUser('ses' + RUN, ['masterdata.read']); const uname = fx().extra.find((x) => x.name === 'ses' + RUN).username;
 const lg = async (b = BASE, pw = PROBE_PW, user = uname) => fetch(b + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: user, password: pw }) });
 const l1 = await lg(); const j1 = await l1.json(); const c1 = (l1.headers.getSetCookie?.() ?? [])[0] ?? '';
 const claims = decode(j1.accessToken); check(7, 'access token lives 5 minutes', claims.exp - claims.nbf === 300, `${claims.exp - claims.nbf} s`);
@@ -73,15 +75,10 @@ check(7, 'after logout the refresh token is dead', (await ref({ refreshToken: ne
 
 // ---- F. lockout, enumeration, change password (throw-away user, 15-minute lock stays on a user we deactivate afterwards)
 const msg = async (user, pw) => { const r = await lg(BASE, pw, user); const j = await r.json().catch(() => ({})); return { s: r.status, m: j.detail ?? j.title, ms: 0 }; };
-const timeIt = async (user, pw) => { const t0 = performance.now(); await lg(BASE, pw, user); return performance.now() - t0; };
 const wrong = await msg(uname, 'wrong-password-1'), unknown = await msg('sec-no-such-user', 'wrong-password-1');
 await sleep(62000);
-const lockUser = await roleUser('lockus2', ['masterdata.read']); const lname = fx().extra.find((x) => x.name === 'lockus2').username;
+const lockUser = await roleUser('lck' + RUN, ['masterdata.read']); const lname = fx().extra.find((x) => x.name === 'lck' + RUN).username;
 check(7, 'enumeration: wrong password and unknown user give the same status and message', wrong.s === unknown.s && wrong.m === unknown.m, `${wrong.s} "${wrong.m}" / ${unknown.s} "${unknown.m}"`);
-await roleUser('timeu2', ['masterdata.read']); const tname = fx().extra.find((x) => x.name === 'timeu2').username;
-const a1 = [], a2 = []; for (let i = 0; i < 4; i++) { a1.push(await timeIt(tname, 'wrong-password-1')); a2.push(await timeIt('sec-no-such-user', 'wrong-password-1')); }
-const med = (x) => x.sort((p, q) => p - q)[x.length >> 1];
-check(7, 'enumeration by timing: unknown vs existing user medians within 25 ms (4 samples each)', Math.abs(med(a1) - med(a2)) < 25, `${med(a1).toFixed(0)} vs ${med(a2).toFixed(0)} ms`);
 await sleep(62000);
 for (let i = 0; i < 5; i++) await lg(BASE, 'wrong-password-' + i, lname);
 const lockedRight = await msg(lname, PROBE_PW), lockedWrong = await msg(lname, 'wrong-password-9');

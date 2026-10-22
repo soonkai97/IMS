@@ -26,6 +26,7 @@ Node 20+, no dependencies. Every script prints `ok` / `FAIL [area] label -> evid
 | 6 | `node p6-concurrency.mjs` | area 6: parallel posts of the last quantity, cancel/approve/recall/reject races, double submit, stale and missing `If-Match`, partial/auto-close/short/reversal, unit-conversion lock (`SEC_ROUNDS` = rounds, default 8) |
 | 7 | `node p8-modules.mjs open` | area 8, stage 1 (open orders exist): modules.manage, switch-off refused with a count, role closure rules |
 | 8 | `node p7-disclosure.mjs` | area 7: error bodies, headers, CORS, undocumented routes, session lifetime/rotation/replay/logout, lockout, enumeration (message and timing), change-password, rate limits |
+| 8b | `node p7b-timing.mjs` | area 7: username enumeration by login timing (8 samples each, two fresh users; needs only the Administrator) |
 | 9 | `node p9-logs.mjs mark` | pushes marker passwords, a TIN and a marker price through the API |
 | 10 | `node z-cleanup.mjs orders` | reverses the probes' receipts, cancels/closes every order, checks stock of `SEC-` products is back to 0 |
 | 11 | `node p8-modules.mjs off` | area 8, stage 2: switches both modules OFF (as found), module-off matrix (404 for everyone, 401 anonymous), hidden grants, enable guard (restores the two found approval rules by SQL) |

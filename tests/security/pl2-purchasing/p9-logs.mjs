@@ -8,7 +8,7 @@ if (process.argv[2] === 'mark') {
   const T = await tokens(); useAdmin(T.admin);
   await call('POST', '/api/auth/login', null, { username: 'admin', password: 'Marker#Pw-SEC-77' });
   await call('POST', '/api/auth/login', null, { username: 'sec-marker-user', password: 'Marker#Pw-SEC-78' });
-  const p = await call('POST', '/api/partners', T.admin, { type: 'Supplier', name: `SEC-${F.sfx} TIN partner`, contact: null, isActive: true, tin: 'C9876543210', sstRegNo: 'W10-1234-56789012' });
+  const p = await call('POST', '/api/partners', T.admin, { type: 'Supplier', name: `SEC-${F.sfx} TIN partner ${Date.now() % 100000}`, contact: null, isActive: true, tin: 'C9876543210', sstRegNo: 'W10-1234-56789012' });
   console.log('partner with TIN:', p.status);
   await newPo(T.clerk, F, { lines: [line(F, { qty: 3, unitPrice: 731.29 })] });
   await call('GET', '/api/accounting/export?from=2026-01-01&to=2026-12-31', T.admin);

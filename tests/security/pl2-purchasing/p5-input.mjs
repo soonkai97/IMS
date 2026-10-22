@@ -78,7 +78,7 @@ for (const v of ['*', 'W/"abc"', '"' + 'a'.repeat(5000) + '"', 'not quoted', '""
 expect(5, 'missing If-Match -> 428', await call('POST', `${PO}/${d0.json.id}/cancel`, T.clerk, {}), 428);
 
 // ---- accounting export: formula injection through names and remarks
-const inj = { supplier: '=HYPERLINK("http://127.0.0.1:9/x","pay")', product: '@SUM(1+1)', remark: '+1+1' };
+const inj = { supplier: `=HYPERLINK("http://127.0.0.1:9/x","pay${Date.now() % 100000}")`, product: '@SUM(1+1)', remark: '+1+1' };
 const sup = (await call('POST', '/api/partners', T.admin, { type: 'Supplier', name: inj.supplier, contact: '-2+3', isActive: true })).json;
 const prod = (await call('POST', '/api/products', T.admin, { sku: `SEC-${F.sfx}-INJ${Date.now() % 100000}`, name: inj.product, categoryId: null, baseUomId: F.pcs, safetyStock: 0, isActive: true, barcodes: [], conversions: [] })).json;
 const rc = await call('POST', '/api/documents/receipts', T.admin, { warehouseId: F.whA, partnerId: sup.id, remark: inj.remark, lines: [{ productId: prod.id, qty: 1, uomId: null, unitCost: 5, remark: '=2+2' }] });
