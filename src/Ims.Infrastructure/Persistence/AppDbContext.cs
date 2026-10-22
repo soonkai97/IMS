@@ -75,9 +75,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.HasIndex(x => x.Name).IncludeProperties(x => new { x.Sku, x.IsActive }).HasFilter(LiveRows);
             e.Property(x => x.Sku).HasMaxLength(Limits.SkuMaxLength);
             e.Property(x => x.Name).HasMaxLength(Limits.NameMaxLength);
-            // Tax-ready fields: nullable, no default and no index (metadata-only add; nothing searches or joins on them).
-            e.Property(x => x.HsCode).HasMaxLength(Limits.HsCodeMaxLength);
-            e.Property(x => x.SstCode).HasMaxLength(Limits.SstCodeMaxLength);
             e.Property(x => x.SafetyStock).HasColumnType(SqlTypes.Quantity);
             e.HasOne(x => x.Category).WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.BaseUom).WithMany().HasForeignKey(x => x.BaseUomId).OnDelete(DeleteBehavior.Restrict);
@@ -103,8 +100,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         b.Entity<Partner>(e =>
         {
             e.Property(x => x.Name).HasMaxLength(Limits.NameMaxLength);
-            e.Property(x => x.Tin).HasMaxLength(Limits.TinMaxLength);
-            e.Property(x => x.SstRegNo).HasMaxLength(Limits.SstRegNoMaxLength);
             // One live supplier or customer per name (case-insensitive under the database collation); also serves the name prefix search.
             e.HasIndex(x => new { x.Type, x.Name }).IsUnique();
         });

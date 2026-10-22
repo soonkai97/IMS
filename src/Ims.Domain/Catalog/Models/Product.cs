@@ -14,9 +14,6 @@ public class Product : PublicEntity
     public int BaseUomId { get; private set; }
     public decimal SafetyStock { get; private set; }
     public bool IsActive { get; private set; } = true;
-    /// <summary>Tax-ready fields of the accounting module (shape only, see <see cref="TaxFieldShapes"/>); both stay when the module is switched off.</summary>
-    public string? HsCode { get; private set; }
-    public string? SstCode { get; private set; }
     public Category? Category { get; private set; }
     public Uom BaseUom { get; private set; } = null!;
     private readonly List<ProductBarcode> _barcodes = [];
@@ -48,15 +45,6 @@ public class Product : PublicEntity
         CategoryId = category?.Id;
         SafetyStock = safetyStock;
         IsActive = isActive;
-    }
-
-    /// <summary>Replaces both tax-ready fields (blank clears one); refused when a value has the wrong shape. A value equal to the stored one is not checked again (a save that did not carry the key hands the stored value back, and it must not fail because the rules were tightened later). Not part of <see cref="Update"/>, so a save that does not carry them leaves them alone.</summary>
-    public void SetTaxCodes(string? hsCode, string? sstCode)
-    {
-        var hs = hsCode == HsCode ? HsCode : TaxFieldShapes.Accept(hsCode, TaxFieldShapes.HsCodeError);
-        var sst = sstCode == SstCode ? SstCode : TaxFieldShapes.Accept(sstCode, TaxFieldShapes.SstCodeError);
-        HsCode = hs;
-        SstCode = sst;
     }
 
     /// <summary>BR-04: refused once stock movements exist. Changing the unit drops every conversion, so it is also refused while one of them is in use (<paramref name="conversionsInUse"/>: unit id to code).</summary>

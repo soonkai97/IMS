@@ -16,8 +16,6 @@ public sealed class ProductBuilder
     private bool _isActive = true;
     private List<string> _barcodes = [];
     private List<UomConversionDto> _conversions = [];
-    private string? _hsCode;
-    private string? _sstCode;
 
     public ProductBuilder(ReferenceData reference)
     {
@@ -29,7 +27,7 @@ public sealed class ProductBuilder
     {
         _sku = existing.Sku, _name = existing.Name, _categoryId = existing.CategoryId, _baseUomId = existing.BaseUomId,
         _safetyStock = existing.SafetyStock, _isActive = existing.IsActive, _barcodes = [.. existing.Barcodes],
-        _conversions = [.. existing.Conversions], _hsCode = existing.HsCode, _sstCode = existing.SstCode
+        _conversions = [.. existing.Conversions]
     };
 
     public ProductBuilder WithSku(string sku) { _sku = sku; return this; }
@@ -38,8 +36,6 @@ public sealed class ProductBuilder
     public ProductBuilder WithBaseUnit(Guid uomId) { _baseUomId = uomId; return this; }
     public ProductBuilder WithSafetyStock(decimal safetyStock) { _safetyStock = safetyStock; return this; }
     public ProductBuilder WithBarcodes(params string[] barcodes) { _barcodes = [.. barcodes]; return this; }
-    /// <summary>The tax-ready fields (what is left of the removed accounting module, part B deletes them); always refused now, there is no module to switch them on.</summary>
-    public ProductBuilder WithTaxCodes(string? hsCode, string? sstCode) { _hsCode = hsCode; _sstCode = sstCode; return this; }
     public ProductBuilder Inactive() { _isActive = false; return this; }
     public ProductBuilder Active(bool isActive) { _isActive = isActive; return this; }
 
@@ -50,7 +46,7 @@ public sealed class ProductBuilder
         return this;
     }
 
-    public ProductSaveRequest Build() => new(_sku, _name, _categoryId, _baseUomId, _safetyStock, _isActive, _barcodes, _conversions, _hsCode, _sstCode);
+    public ProductSaveRequest Build() => new(_sku, _name, _categoryId, _baseUomId, _safetyStock, _isActive, _barcodes, _conversions);
 
     public async Task<ProductDto> CreateAsync(ApiClient by) => (await by.Products.CreateAsync(Build())).Data<ProductDto>();
 }

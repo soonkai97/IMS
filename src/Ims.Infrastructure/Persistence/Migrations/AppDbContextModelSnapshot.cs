@@ -452,14 +452,6 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("rowversion")
                         .HasColumnName("ROW_VERSION");
 
-                    b.Property<string>("SstRegNo")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("Tin")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
@@ -491,10 +483,6 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.Property<int?>("CategoryId")
                         .HasColumnType("int");
-
-                    b.Property<string>("HsCode")
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -547,10 +535,6 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("SstCode")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
 
                     b.HasKey("Id");
 

@@ -16,8 +16,6 @@ const ROW: PartnerDto = {
   isActive: true
 };
 
-const ROW_WITH_TAX_IDS: PartnerDto = { ...ROW, tin: 'C1234567890', sstRegNo: 'W10-1808-32000001' };
-
 const DUPLICATE: ApiError = {
   isApiError: true,
   kind: API_ERROR_KIND.Conflict,
@@ -141,7 +139,7 @@ describe('PartnersPageComponent (Clerk creates, Supervisor and Admin manage)', (
     expect(spectator.query('dialog input[type=checkbox]')).not.toBeNull();
   });
 
-  describe('the save request (the accounting fields are gone, the API leaves stored values alone)', () => {
+  describe('the save request (the tax fields are gone from the form and the API)', () => {
     const input = (name: string) =>
       spectator.query<HTMLInputElement>(`dialog app-input[formControlName="${name}"] input`);
     const body = () => (saveCalls[0] as { id: string; body: Record<string, unknown> }).body;
@@ -153,8 +151,8 @@ describe('PartnersPageComponent (Clerk creates, Supervisor and Admin manage)', (
       spectator.detectChanges();
     }
 
-    it('an edit sends no tax number even when the API still returns them with the row', () => {
-      edit(ROW_WITH_TAX_IDS);
+    it('an edit sends no tax number', () => {
+      edit(ROW);
 
       spectator.component.form.controls.name.setValue('Acme Trading Sdn Bhd');
       spectator.component.onSave();
