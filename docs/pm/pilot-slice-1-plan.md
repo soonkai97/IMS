@@ -1,5 +1,7 @@
 # Pilot slice 1 plan: module foundation, tax-ready fields and the accounting export
 
+Status 2026-10-22: accounting parts dropped from the pilot on 2026-10-22 (module dormant, OFF by default). The module foundation (PL1.1 to PL1.4) stays in use by purchasing.
+
 Author: project-manager (be-architect and business-analyst points marked). Date: 2026-10-19. Status: plan for the owner and the team; nothing here is built.
 Inputs: `docs/architecture/adr-modules-and-tracking-dimensions.md` (Accepted 2026-10-19; sections 4, 8, 12, 13), `docs/design/lean-scope.md` (section 1 rule), `docs/pm/ROADMAP.md` (sections 3.2, 3.3, 5, 8), `TASKS.md`, `docs/team/PR-REVIEW.md` section 8, the PRD (`docs/private/prd-v0.2.txt`, read on the owner's checkout), and the code at `origin/main` dd66ea2 (`Partner`, `Product`, `ExportMovementsHandler`, `PermissionCatalog`, `SystemRoleDefaults`).
 Owner decisions this plan takes as given (2026-10-19): Q1 pilot is a small trading / wholesale business; build order is (1) accounting export plus tax-ready fields carrying the module foundation, (2) purchase orders with receive-against-PO and reorder, (3) delivery / sales orders and returns, (4) stocktake; batch/expiry and serial come later. Q6 only an Admin flips a module, with a reason, audited. Q7 one fixed export layout. Standard approval is by a Supervisor, Large by the Owner, no Owner fallback.
