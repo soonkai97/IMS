@@ -91,23 +91,12 @@ describe('ModulesPageComponent (Settings > Modules)', () => {
     expect(text()).toContain('Requires: Purchasing');
   });
 
-  describe('a module this build has no screens for (the API may still list accounting)', () => {
-    it('is left out, and a module the API lists is shown with the API name when it has no text of its own', () => {
-      data.set([moduleOf('accounting', false), moduleOf('batch', false)]);
-      spectator.detectChanges();
+  it('shows a module the API lists with the API name when it has no text of its own', () => {
+    data.set([moduleOf('batch', false)]);
+    spectator.detectChanges();
 
-      expect(text()).not.toContain('Module accounting');
-      expect(switches()).toHaveLength(1);
-      expect(text()).toContain('Module batch');
-    });
-
-    it('is not offered even when it is the only module: the page says there are none', () => {
-      data.set([moduleOf('accounting', true)]);
-      spectator.detectChanges();
-
-      expect(switches()).toHaveLength(0);
-      expect(text()).toContain('No modules are available.');
-    });
+    expect(switches()).toHaveLength(1);
+    expect(text()).toContain('Module batch');
   });
 
   describe('a module is switchable', () => {

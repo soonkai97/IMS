@@ -58,15 +58,15 @@ public class ModuleGateTests
     }
 
     [Theory]
-    [InlineData("namespace A; [RequiresModule(ModuleCodes.Accounting)] class AccountingController { }", 0)]
-    [InlineData("namespace A; [RequiresModule(\"accounting\")] class AccountingController { }", 0)]
-    [InlineData("namespace A; [Route(\"x\")] [RequiresModule(ModuleCodes.Accounting)] class AccountingController { }", 0)]
-    [InlineData("namespace A; class AccountingController { }", 1)]
-    [InlineData("namespace A; [RequiresModule(ModuleCodes.Purchasing)] class AccountingController { }", 1)]
+    [InlineData("namespace A; [RequiresModule(ModuleCodes.Purchasing)] class PurchasingController { }", 0)]
+    [InlineData("namespace A; [RequiresModule(\"purchasing\")] class PurchasingController { }", 0)]
+    [InlineData("namespace A; [Route(\"x\")] [RequiresModule(ModuleCodes.Purchasing)] class PurchasingController { }", 0)]
+    [InlineData("namespace A; class PurchasingController { }", 1)]
+    [InlineData("namespace A; [RequiresModule(\"other\")] class PurchasingController { }", 1)]
     [InlineData("namespace A; class Helper { }", 0)]
     public void Detector_FlagsAModuleControllerWithoutItsAttribute(string code, int expectedOffenders)
     {
-        var file = new[] { (Path: "Ims.Api/Features/Accounting/AccountingController.cs", Root: CSharpSyntaxTree.ParseText(code).GetRoot()) };
+        var file = new[] { (Path: "Ims.Api/Features/Purchasing/PurchasingController.cs", Root: CSharpSyntaxTree.ParseText(code).GetRoot()) };
 
         Assert.Equal(expectedOffenders, ModuleControllerOffenders(file).Count());
     }
@@ -79,12 +79,12 @@ public class ModuleGateTests
     }
 
     [Theory]
-    [InlineData("class C { [HttpGet, Authorize(Policy = Permissions.AccountingExport)] public void A() { } }", 1)]
-    [InlineData("[RequiresModule(ModuleCodes.Accounting)] class C { [HttpGet, Authorize(Policy = Permissions.AccountingExport)] public void A() { } }", 0)]
-    [InlineData("class C { [HttpGet, RequiresModule(ModuleCodes.Accounting), Authorize(Policy = Permissions.AccountingExport)] public void A() { } }", 0)]
-    [InlineData("class C { [HttpGet, Authorize(Policy = \"accounting.export\")] public void A() { } }", 1)]
-    [InlineData("[Authorize(Policy = Permissions.AccountingExport)] class C { }", 1)]
-    [InlineData("[RequiresModule(\"other\")] class C { [Authorize(Policy = Permissions.AccountingExport)] public void A() { } }", 1)]
+    [InlineData("class C { [HttpGet, Authorize(Policy = Permissions.PoRead)] public void A() { } }", 1)]
+    [InlineData("[RequiresModule(ModuleCodes.Purchasing)] class C { [HttpGet, Authorize(Policy = Permissions.PoRead)] public void A() { } }", 0)]
+    [InlineData("class C { [HttpGet, RequiresModule(ModuleCodes.Purchasing), Authorize(Policy = Permissions.PoRead)] public void A() { } }", 0)]
+    [InlineData("class C { [HttpGet, Authorize(Policy = \"po.read\")] public void A() { } }", 1)]
+    [InlineData("[Authorize(Policy = Permissions.PoRead)] class C { }", 1)]
+    [InlineData("[RequiresModule(\"other\")] class C { [Authorize(Policy = Permissions.PoRead)] public void A() { } }", 1)]
     [InlineData("class C { [HttpGet, Authorize(Policy = Permissions.StockRead)] public void A() { } }", 0)]
     public void Detector_FlagsAModulePermissionOutsideItsGate(string code, int expectedOffenders)
     {

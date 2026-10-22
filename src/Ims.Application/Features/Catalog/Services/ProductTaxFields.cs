@@ -6,10 +6,10 @@ namespace Ims.Application.Features.Catalog;
 public static class ProductTaxFields
 {
     public static async Task<ProductDto> ShapeAsync(this IModuleSwitches modules, ProductDto product, CancellationToken ct) =>
-        await modules.ShowsAsync(ModuleCodes.Accounting, product.HsCode is not null || product.SstCode is not null, ct) ? product : Without(product);
+        await modules.ShowsAsync(TaxFieldNames.RemovedModule, product.HsCode is not null || product.SstCode is not null, ct) ? product : Without(product);
 
     public static async Task<IReadOnlyList<ProductDto>> ShapeAsync(this IModuleSwitches modules, IReadOnlyList<ProductDto> products, CancellationToken ct) =>
-        await modules.ShowsAsync(ModuleCodes.Accounting, products.Any(p => p.HsCode is not null || p.SstCode is not null), ct) ? products : products.Select(Without).ToList();
+        await modules.ShowsAsync(TaxFieldNames.RemovedModule, products.Any(p => p.HsCode is not null || p.SstCode is not null), ct) ? products : products.Select(Without).ToList();
 
     private static ProductDto Without(ProductDto p) => p with { HsCode = null, SstCode = null };
 }

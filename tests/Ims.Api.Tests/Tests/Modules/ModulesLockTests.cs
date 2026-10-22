@@ -61,7 +61,7 @@ public class ModulesLockTests(ApiFixture fixture) : IAsyncLifetime
         await using (await HoldLockAsync("modules"))
         {
             var clock = Stopwatch.StartNew();
-            answer = await _admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, "Lock test");
+            answer = await _admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, "Lock test");
             took = clock.Elapsed;
         }
 
@@ -71,6 +71,6 @@ public class ModulesLockTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(0, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM SystemSetting WHERE [Key] LIKE N'Module.%'"));
         Assert.Equal(auditBefore, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM AuditLogs WHERE [Action] LIKE N'module.%'"));
 
-        (await _admin.Modules.SwitchAsync(ModuleCodes.Accounting, true, "Lock test")).ShouldBeOk();
+        (await _admin.Modules.SwitchAsync(ModuleCodes.Purchasing, true, "Lock test")).ShouldBeOk();
     }
 }

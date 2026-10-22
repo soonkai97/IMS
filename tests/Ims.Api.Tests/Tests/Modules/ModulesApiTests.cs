@@ -19,8 +19,8 @@ namespace Ims.Api.Tests.Tests.Modules;
 [Collection(ApiCollection.Name)]
 public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
 {
-    private const string Accounting = ModuleCodes.Accounting;
-    private const string Key = "Module.accounting";
+    private const string Purchasing = ModuleCodes.Purchasing;
+    private const string Key = "Module.purchasing";
 
     private int _auditBaseline;
 
@@ -34,7 +34,7 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
 
     private Task ResetAsync() => Ims.Api.Tests.Tests.Purchasing.PurchasingScenario.ResetAsync(fixture); // also closes any order another test left open: the purchasing check refuses to switch off over one
 
-    private static async Task<bool> AccountingEnabledAsync(ApiClient admin) => (await admin.Modules.ListAsync()).Data<List<ModuleDto>>().Single(m => m.Code == Accounting).Enabled;
+    private static async Task<bool> EnabledAsync(ApiClient admin) => (await admin.Modules.ListAsync()).Data<List<ModuleDto>>().Single(m => m.Code == Purchasing).Enabled;
 
     private static string Why() => $"Pilot start {Guid.NewGuid():N}"[..24];
 
@@ -65,11 +65,11 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
     [InlineData(Roles.Supervisor)]
     [InlineData(Roles.WarehouseStaff)]
     [InlineData(Roles.Clerk)]
-    public async Task With_no_module_row_every_signed_in_role_sees_accounting_and_purchasing_listed_as_off(string role)
+    public async Task With_no_module_row_every_signed_in_role_sees_purchasing_listed_as_off(string role)
     {
         var list = (await (await fixture.AsAsync(role)).Modules.ListAsync()).Data<List<ModuleDto>>();
 
-        Assert.Equal([Accounting, ModuleCodes.Purchasing], list.Select(m => m.Code));
+        Assert.Equal([Purchasing], list.Select(m => m.Code));
         Assert.All(list, module =>
         {
             Assert.False(module.Enabled);
@@ -85,7 +85,7 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
         var anonymous = fixture.Anonymous();
 
         (await anonymous.Modules.ListAsync()).ShouldBeProblem(HttpStatusCode.Unauthorized);
-        (await anonymous.Modules.SwitchAsync(Accounting, true, Why())).ShouldBeProblem(HttpStatusCode.Unauthorized);
+        (await anonymous.Modules.SwitchAsync(Purchasing, true, Why())).ShouldBeProblem(HttpStatusCode.Unauthorized);
         Assert.Equal(0, await ModuleRowsAsync());
     }
 
@@ -96,12 +96,12 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
         var admin = await fixture.AsAsync(Roles.Admin);
         var reason = Why();
 
-        var answer = (await admin.Modules.SwitchAsync(Accounting, true, reason)).Data<ModuleDto>();
+        var answer = (await admin.Modules.SwitchAsync(Purchasing, true, reason)).Data<ModuleDto>();
 
-        Assert.Equal(Accounting, answer.Code);
+        Assert.Equal(Purchasing, answer.Code);
         Assert.True(answer.Enabled);
         Assert.Equal("true", await StoredAsync());
-        Assert.True(await AccountingEnabledAsync(admin));
+        Assert.True(await EnabledAsync(admin));
         var events = await EventsAsync(AuditActions.ModuleEnabled, reason);
         var enabled = Assert.Single(events);
         Assert.Equal(TestUsers.UsernameOf(Roles.Admin), enabled.Actor);
@@ -115,14 +115,14 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
     public async Task Turning_it_off_again_is_audited_as_disabled_with_before_on_and_after_off_and_the_reason_is_trimmed()
     {
         var admin = await fixture.AsAsync(Roles.Admin);
-        (await admin.Modules.SwitchAsync(Accounting, true, Why())).ShouldBeOk();
+        (await admin.Modules.SwitchAsync(Purchasing, true, Why())).ShouldBeOk();
         var reason = Why();
 
-        var answer = (await admin.Modules.SwitchAsync(Accounting, false, $"  {reason}  ")).Data<ModuleDto>();
+        var answer = (await admin.Modules.SwitchAsync(Purchasing, false, $"  {reason}  ")).Data<ModuleDto>();
 
         Assert.False(answer.Enabled);
         Assert.Equal("false", await StoredAsync());
-        Assert.False(await AccountingEnabledAsync(admin));
+        Assert.False(await EnabledAsync(admin));
         var disabled = Assert.Single(await EventsAsync(AuditActions.ModuleDisabled, reason));
         Assert.Equal("True", Field(disabled.Before, "Enabled"));
         Assert.Equal("False", Field(disabled.After, "Enabled"));
@@ -133,14 +133,14 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
     public async Task Asking_for_the_state_it_already_has_is_a_200_that_changes_nothing_and_writes_no_event()
     {
         var admin = await fixture.AsAsync(Roles.Admin);
-        (await admin.Modules.SwitchAsync(Accounting, false, Why())).ShouldBeOk(); // already off, and there is no row
+        (await admin.Modules.SwitchAsync(Purchasing, false, Why())).ShouldBeOk(); // already off, and there is no row
         Assert.Equal(0, await ModuleRowsAsync());
         Assert.Equal(0, await ModuleAuditRowsAsync());
-        (await admin.Modules.SwitchAsync(Accounting, true, Why())).ShouldBeOk();
+        (await admin.Modules.SwitchAsync(Purchasing, true, Why())).ShouldBeOk();
         var events = await ModuleAuditRowsAsync();
 
         var again = Why();
-        (await admin.Modules.SwitchAsync(Accounting, true, again)).ShouldBeOk();
+        (await admin.Modules.SwitchAsync(Purchasing, true, again)).ShouldBeOk();
 
         Assert.Equal(events, await ModuleAuditRowsAsync());
         Assert.Empty(await EventsAsync(AuditActions.ModuleEnabled, again));
@@ -155,7 +155,7 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
     {
         var admin = await fixture.AsAsync(Roles.Admin);
 
-        var problem = (await admin.Modules.SwitchAsync(Accounting, true, reason)).ShouldBeProblem(HttpStatusCode.BadRequest);
+        var problem = (await admin.Modules.SwitchAsync(Purchasing, true, reason)).ShouldBeProblem(HttpStatusCode.BadRequest);
 
         Assert.NotEmpty(problem.ErrorsFor("Reason"));
         Assert.Equal(0, await ModuleRowsAsync());
@@ -166,11 +166,11 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
     public async Task A_body_without_the_state_is_a_400_and_never_a_quiet_switch_off()
     {
         var admin = await fixture.AsAsync(Roles.Admin);
-        (await admin.Modules.SwitchAsync(Accounting, true, Why())).ShouldBeOk();
+        (await admin.Modules.SwitchAsync(Purchasing, true, Why())).ShouldBeOk();
         var events = await ModuleAuditRowsAsync();
 
-        var missing = await admin.Modules.SwitchAsync(Accounting, null, Why());
-        var empty = await admin.PutAsync($"/api/modules/{Accounting}", new { });
+        var missing = await admin.Modules.SwitchAsync(Purchasing, null, Why());
+        var empty = await admin.PutAsync($"/api/modules/{Purchasing}", new { });
 
         Assert.NotEmpty(missing.ShouldBeProblem(HttpStatusCode.BadRequest).ErrorsFor("Enabled"));
         empty.ShouldBeProblem(HttpStatusCode.BadRequest);
@@ -180,7 +180,8 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
 
     [Theory]
     [InlineData("batch")]
-    [InlineData("Accounting")]
+    [InlineData("Purchasing")]
+    [InlineData("accounting")] // removed in 2026-10: an unknown code now
     [InlineData("modules")]
     public async Task An_unknown_code_is_a_404_and_creates_no_row_and_no_event(string code)
     {
@@ -202,7 +203,7 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
     {
         var client = await fixture.AsAsync(role);
 
-        (await client.Modules.SwitchAsync(Accounting, true, Why())).ShouldBeProblem(HttpStatusCode.Forbidden);
+        (await client.Modules.SwitchAsync(Purchasing, true, Why())).ShouldBeProblem(HttpStatusCode.Forbidden);
 
         Assert.Equal(0, await ModuleRowsAsync());
         Assert.Equal(0, await ModuleAuditRowsAsync());
@@ -213,7 +214,7 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
     {
         var token = ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Admin, permissions: PermissionCatalog.Codes.Except([Permissions.ModulesManage]));
 
-        (await fixture.CreateClient(token).Modules.SwitchAsync(Accounting, true, Why())).ShouldBeProblem(HttpStatusCode.Forbidden);
+        (await fixture.CreateClient(token).Modules.SwitchAsync(Purchasing, true, Why())).ShouldBeProblem(HttpStatusCode.Forbidden);
 
         Assert.Equal(0, await ModuleRowsAsync());
     }
@@ -226,7 +227,7 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
 
         var client = fixture.CreateClient(token);
 
-        (await client.Modules.SwitchAsync(Accounting, true, Why())).ShouldBeProblem(HttpStatusCode.Unauthorized);
+        (await client.Modules.SwitchAsync(Purchasing, true, Why())).ShouldBeProblem(HttpStatusCode.Unauthorized);
         (await client.Modules.ListAsync()).ShouldBeProblem(HttpStatusCode.Unauthorized);
         Assert.Equal(0, await ModuleRowsAsync());
     }
@@ -242,15 +243,15 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Empty(login.User.Modules);
         Assert.Empty((await client.Auth.MeAsync()).Data<UserInfo>().Modules);
 
-        (await admin.Modules.SwitchAsync(Accounting, true, Why())).ShouldBeOk();
+        (await admin.Modules.SwitchAsync(Purchasing, true, Why())).ShouldBeOk();
 
-        Assert.Equal([Accounting], (await client.Auth.MeAsync()).Data<UserInfo>().Modules); // the token in hand is the old one: the list is read, not carried
+        Assert.Equal([Purchasing], (await client.Auth.MeAsync()).Data<UserInfo>().Modules); // the token in hand is the old one: the list is read, not carried
         var refreshed = (await fixture.CreateClient().Auth.RefreshAsync(login.RefreshToken)).Data<AuthResult>();
-        Assert.Equal([Accounting], refreshed.User.Modules);
+        Assert.Equal([Purchasing], refreshed.User.Modules);
         var second = (await fixture.CreateClient().Auth.LoginAsync(TestUsers.UsernameOf(Roles.Supervisor), fixture.PasswordOf(Roles.Supervisor))).Data<AuthResult>();
-        Assert.Equal([Accounting], second.User.Modules);
+        Assert.Equal([Purchasing], second.User.Modules);
 
-        (await admin.Modules.SwitchAsync(Accounting, false, Why())).ShouldBeOk();
+        (await admin.Modules.SwitchAsync(Purchasing, false, Why())).ShouldBeOk();
 
         Assert.Empty((await client.Auth.MeAsync()).Data<UserInfo>().Modules);
     }
@@ -260,26 +261,26 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
     {
         await fixture.Database.ExecuteAsync("INSERT SystemSetting ([Key], [Value]) VALUES (N'Module.ghost', N'true')");
         var admin = await fixture.AsAsync(Roles.Admin);
-        Assert.False(await AccountingEnabledAsync(admin));
+        Assert.False(await EnabledAsync(admin));
         Assert.Empty((await admin.Auth.MeAsync()).Data<UserInfo>().Modules);
 
         await fixture.Database.ExecuteAsync("INSERT SystemSetting ([Key], [Value]) VALUES (@k, N'True')", ("@k", Key));
 
-        Assert.False(await AccountingEnabledAsync(admin));
+        Assert.False(await EnabledAsync(admin));
     }
 
     [Fact]
     public async Task The_settings_endpoints_neither_show_nor_touch_the_module_rows()
     {
         var admin = await fixture.AsAsync(Roles.Admin);
-        (await admin.Modules.SwitchAsync(Accounting, true, Why())).ShouldBeOk();
+        (await admin.Modules.SwitchAsync(Purchasing, true, Why())).ShouldBeOk();
         var settings = (await admin.Settings.GetAsync()).Data<SettingsDto>();
 
         (await admin.Settings.UpdateAsync(settings)).ShouldBeOk();
 
         Assert.Equal(settings, (await admin.Settings.GetAsync()).Data<SettingsDto>());
         Assert.Equal("true", await StoredAsync());
-        Assert.True(await AccountingEnabledAsync(admin));
+        Assert.True(await EnabledAsync(admin));
     }
 
     // ----- races -----
@@ -289,7 +290,7 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
         var admin = await fixture.AsAsync(Roles.Admin);
         var reasons = Enumerable.Range(0, 8).Select(_ => Why()).ToList();
 
-        var on = await Concurrently.RunAsync(reasons.Select(r => (Func<Task<ApiResponse>>)(() => admin.Modules.SwitchAsync(Accounting, true, r))));
+        var on = await Concurrently.RunAsync(reasons.Select(r => (Func<Task<ApiResponse>>)(() => admin.Modules.SwitchAsync(Purchasing, true, r))));
 
         Assert.All(on, r => r.ShouldBeOk());
         var enabledEvents = (await Task.WhenAll(reasons.Select(r => EventsAsync(AuditActions.ModuleEnabled, r)))).SelectMany(e => e).ToList();
@@ -298,7 +299,7 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal("True", Field(change.After, "Enabled"));
 
         var offReasons = Enumerable.Range(0, 8).Select(_ => Why()).ToList();
-        var off = await Concurrently.RunAsync(offReasons.Select(r => (Func<Task<ApiResponse>>)(() => admin.Modules.SwitchAsync(Accounting, false, r))));
+        var off = await Concurrently.RunAsync(offReasons.Select(r => (Func<Task<ApiResponse>>)(() => admin.Modules.SwitchAsync(Purchasing, false, r))));
 
         Assert.All(off, r => r.ShouldBeOk());
         var disabledEvents = (await Task.WhenAll(offReasons.Select(r => EventsAsync(AuditActions.ModuleDisabled, r)))).SelectMany(e => e).ToList();

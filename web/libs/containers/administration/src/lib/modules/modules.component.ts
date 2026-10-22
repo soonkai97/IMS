@@ -19,13 +19,7 @@ import { handledInline } from '@ims/core/http';
 import { I18nService, TranslatePipe } from '@ims/core/i18n';
 import { ModulesStore, PermissionService, moduleDescription, moduleName } from '@ims/core/identity';
 import { ConfirmService, ToastService } from '@ims/core/notification';
-import {
-  ApiError,
-  HTTP_STATUS,
-  MIN_REASON_LENGTH,
-  MODULE_CODES_NOT_IN_THIS_BUILD,
-  PERMISSION
-} from '@ims/models';
+import { ApiError, HTTP_STATUS, MIN_REASON_LENGTH, PERMISSION } from '@ims/models';
 import {
   UiBannerComponent,
   UiButtonComponent,
@@ -90,16 +84,13 @@ export class ModulesPageComponent implements OnInit {
   $rows = computed<readonly ModuleRow[]>(() => {
     const modules = this.store.list.$data() ?? [];
     const names = new Map(modules.map(module => [module.code, moduleName(this.i18n, module)]));
-    // The names above come from the whole list, so a visible module that requires a hidden one still names it.
-    return modules
-      .filter(module => !MODULE_CODES_NOT_IN_THIS_BUILD.includes(module.code))
-      .map(module => ({
-        module,
-        name: names.get(module.code) ?? module.name,
-        description: moduleDescription(this.i18n, module),
-        requires: module.requires.map(code => names.get(code) ?? code).join(', '),
-        nameId: `modules-page-name-${module.code}`
-      }));
+    return modules.map(module => ({
+      module,
+      name: names.get(module.code) ?? module.name,
+      description: moduleDescription(this.i18n, module),
+      requires: module.requires.map(code => names.get(code) ?? code).join(', '),
+      nameId: `modules-page-name-${module.code}`
+    }));
   });
   $showSkeleton = computed(() => this.$isLoading() && this.store.list.$data() === undefined);
 

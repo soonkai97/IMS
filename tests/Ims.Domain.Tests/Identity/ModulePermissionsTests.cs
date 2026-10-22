@@ -4,23 +4,23 @@ namespace Ims.Domain.Tests.Identity;
 public class ModulePermissionsTests
 {
     private static readonly string[] Off = [];
-    private static readonly string[] On = [ModuleCodes.Accounting];
+    private static readonly string[] On = [ModuleCodes.Purchasing];
 
     [Fact]
     public void ACorePermissionIsAlwaysOffered_AModulePermissionOnlyWhileItsModuleIsOn()
     {
         Assert.True(ModulePermissions.IsOffered(Permissions.CostView, Off));
-        Assert.False(ModulePermissions.IsOffered(Permissions.AccountingExport, Off));
-        Assert.True(ModulePermissions.IsOffered(Permissions.AccountingExport, On));
-        Assert.False(ModulePermissions.IsOffered(Permissions.AccountingExport, ["batch"])); // another module being on does not offer it
+        Assert.False(ModulePermissions.IsOffered(Permissions.PoRead, Off));
+        Assert.True(ModulePermissions.IsOffered(Permissions.PoRead, On));
+        Assert.False(ModulePermissions.IsOffered(Permissions.PoRead, ["batch"])); // another module being on does not offer it
     }
 
     [Fact]
     public void NotOfferedAndOffered_SplitTheCodes_InCatalogOrder()
     {
-        string[] codes = [Permissions.AccountingExport, Permissions.CostView, Permissions.StockRead];
+        string[] codes = [Permissions.PoRead, Permissions.CostView, Permissions.StockRead];
 
-        Assert.Equal([Permissions.AccountingExport], ModulePermissions.NotOffered(codes, Off));
+        Assert.Equal([Permissions.PoRead], ModulePermissions.NotOffered(codes, Off));
         Assert.Equal([Permissions.StockRead, Permissions.CostView], ModulePermissions.Offered(codes, Off));
         Assert.Empty(ModulePermissions.NotOffered(codes, On));
     }
@@ -28,16 +28,16 @@ public class ModulePermissionsTests
     [Fact]
     public void TheMerge_KeepsTheHiddenGrantsOfTheRole_WhenTheSubmittedSetNeverMentionedThem()
     {
-        var merged = ModulePermissions.Merge([Permissions.StockRead, Permissions.CostView], [Permissions.StockRead, Permissions.CostView, Permissions.AccountingExport], Off);
+        var merged = ModulePermissions.Merge([Permissions.StockRead, Permissions.CostView], [Permissions.StockRead, Permissions.CostView, Permissions.PoRead], Off);
 
-        Assert.Equal([Permissions.StockRead, Permissions.AccountingExport, Permissions.CostView], merged); // catalog order
+        Assert.Equal([Permissions.PoRead, Permissions.StockRead, Permissions.CostView], merged); // catalog order
     }
 
     [Fact]
     public void TheMerge_IsTheSubmittedSetAsItIs_WhileTheModuleIsOn()
     {
         // On, the editor sees the grant, so leaving it out removes it.
-        var merged = ModulePermissions.Merge([Permissions.StockRead], [Permissions.StockRead, Permissions.AccountingExport], On);
+        var merged = ModulePermissions.Merge([Permissions.StockRead], [Permissions.StockRead, Permissions.PoRead], On);
 
         Assert.Equal([Permissions.StockRead], merged);
     }
@@ -46,18 +46,18 @@ public class ModulePermissionsTests
     public void TheMerge_DoesNotGiveAHiddenGrantTheRoleDoesNotHold_AndListsNothingTwice()
     {
         Assert.Equal([Permissions.StockRead], ModulePermissions.Merge([Permissions.StockRead], [Permissions.StockRead], Off));
-        Assert.Equal([Permissions.StockRead, Permissions.AccountingExport], ModulePermissions.Merge([Permissions.StockRead, Permissions.AccountingExport], [Permissions.AccountingExport], Off));
+        Assert.Equal([Permissions.PoRead, Permissions.StockRead], ModulePermissions.Merge([Permissions.StockRead, Permissions.PoRead], [Permissions.PoRead], Off));
     }
 
     [Fact]
     public void ARoleSavedWithTheMergedSet_ChangesNothingForTheHiddenGrant()
     {
-        var role = Role.Create("Accountant", "Accountant", null, isSystem: false, [Permissions.CostView, Permissions.StockRead, Permissions.AccountingExport]);
+        var role = Role.Create("Buyer", "Buyer", null, isSystem: false, [Permissions.CostView, Permissions.StockRead, Permissions.PoRead]);
 
         var (added, removed) = role.SetPermissions(ModulePermissions.Merge([Permissions.CostView, Permissions.StockRead, Permissions.ReportsRead], role.Grants.Select(g => g.PermissionCode), Off));
 
         Assert.Equal([Permissions.ReportsRead], added);
         Assert.Empty(removed);
-        Assert.Contains(role.Grants, g => g.PermissionCode == Permissions.AccountingExport);
+        Assert.Contains(role.Grants, g => g.PermissionCode == Permissions.PoRead);
     }
 }

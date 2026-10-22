@@ -19,8 +19,8 @@ public class GrantModulesManageMigrationTests
     private const string Before = "20261017125040_DropLegacyRoleColumns";
     private const string Latest = "20261019133035_GrantModulesManage";
 
-    /// <summary>The permissions the catalog gains after this migration, each with a data migration of its own (PL1.2 adds accounting.export, PL2.1 adds po.read and po.manage): a database at this migration does not hold them yet.</summary>
-    private static readonly string[] AddedLater = [Permissions.AccountingExport, Permissions.PoRead, Permissions.PoManage];
+    /// <summary>The permissions the catalog gains after this migration, each with a data migration of its own (PL2.1 adds po.read and po.manage; accounting.export, added by PL1.2 and removed again by RemoveAccountingModule, is no longer in the catalog): a database at this migration does not hold them yet.</summary>
+    private static readonly string[] AddedLater = [Permissions.PoRead, Permissions.PoManage];
 
     private static async Task MigrateAsync(TestDatabase database, string target)
     {

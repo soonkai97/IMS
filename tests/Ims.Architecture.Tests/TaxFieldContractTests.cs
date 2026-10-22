@@ -5,7 +5,7 @@ using Ims.Application;
 namespace Ims.Architecture.Tests;
 
 /// <summary>
-/// The tax-ready fields belong to the accounting module (ADR modules-and-tracking-dimensions 4.3): a response leaves them out while the module is off (a null property is not written),
+/// The tax-ready fields are what is left of the removed accounting module (ADR modules-and-tracking-dimensions 4.3; part B of the removal deletes them): a response leaves them out (a null property is not written),
 /// and a request may leave them out (an absent key keeps the stored value). So every contract that carries one says so in its shape, and a new contract that starts carrying one is a deliberate decision, not an accident.
 /// </summary>
 public class TaxFieldContractTests
@@ -42,7 +42,7 @@ public class TaxFieldContractTests
             .Where(c => c.Property.GetCustomAttribute<JsonIgnoreAttribute>()?.Condition != JsonIgnoreCondition.WhenWritingNull)
             .Select(c => $"{c.Type.Name}.{c.Property.Name}");
 
-        Verify.NoOffenders(offenders, "A response property of the accounting module must be [JsonIgnore(Condition = WhenWritingNull)], so a switched-off module shows nothing, not even a null:");
+        Verify.NoOffenders(offenders, "A tax-ready response property must be [JsonIgnore(Condition = WhenWritingNull)], so a field of a module that is off shows nothing, not even a null:");
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public class TaxFieldContractTests
                         || c.Property.SetMethod is null)
             .Select(c => $"{c.Type.Name}.{c.Property.Name}");
 
-        Verify.NoOffenders(offenders, "A request field of the accounting module is an init property outside the JSON constructor, so a client that does not know the module can still save:");
+        Verify.NoOffenders(offenders, "A tax-ready request field is an init property outside the JSON constructor, so a client that does not know the module can still save:");
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class TaxFieldContractTests
         Verify.NoOffenders(Carriers().Where(c => IsRequest(c.Type))
                 .Where(c => c.Property.GetCustomAttribute<JsonIgnoreAttribute>()?.Condition != JsonIgnoreCondition.WhenWritingDefault)
                 .Select(c => $"{c.Type.Name}.{c.Property.Name}"),
-            "A request property of the accounting module must be [JsonIgnore(Condition = WhenWritingDefault)], so an absent field is not sent as a null (which would clear the stored value):");
+            "A tax-ready request property must be [JsonIgnore(Condition = WhenWritingDefault)], so an absent field is not sent as a null (which would clear the stored value):");
     }
 
     private static bool IsRequest(Type type) => type.Name.EndsWith("Request", StringComparison.Ordinal);

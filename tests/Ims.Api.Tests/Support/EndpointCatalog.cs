@@ -63,7 +63,7 @@ public static class EndpointCatalog
             _ => new PartnerSaveRequest(PartnerType.Supplier, Unique.Name("Partner"), null, true)),
         new("PUT settings", Put, Permissions.SettingsManage, _ => "/api/settings", _ => new SettingsDto(false, false, 24)),
         // Switching a module off that is already off changes nothing, so the matrix leaves the installation as it found it.
-        new("PUT modules/{code}", Put, Permissions.ModulesManage, _ => $"/api/modules/{ModuleCodes.Accounting}", _ => new ModuleSwitchRequest(false, "Permission matrix check")),
+        new("PUT modules/{code}", Put, Permissions.ModulesManage, _ => $"/api/modules/{ModuleCodes.Purchasing}", _ => new ModuleSwitchRequest(false, "Permission matrix check")),
         new("POST approval-rules", Post, Permissions.SettingsManage, _ => "/api/approval-rules",
             _ => new ApprovalRuleSaveRequest(DocumentType.Issue, 1m, null, IsActive: false, ApproverTier: ApproverTier.Standard)),
         new("POST receipt", Post, Permissions.DocumentCreate, _ => "/api/documents/receipts",

@@ -19,8 +19,6 @@ public static class Permissions
     public const string SettingsManage = "settings.manage";
     /// <summary>Turn a module on or off for the whole installation, with a reason (ADR modules-and-tracking-dimensions 4.6). Core, dangerous, held by the Administrator.</summary>
     public const string ModulesManage = "modules.manage";
-    /// <summary>Download the accounting export file (posted documents in one fixed layout). Belongs to the <see cref="ModuleCodes.Accounting"/> module; requires <see cref="CostView"/>, because the file carries cost.</summary>
-    public const string AccountingExport = "accounting.export";
     /// <summary>See purchase orders. Belongs to the <see cref="ModuleCodes.Purchasing"/> module; requires <see cref="MasterDataRead"/> (the supplier and product lookups).</summary>
     public const string PoRead = "po.read";
     /// <summary>Create, edit a draft, submit, recall, cancel and close purchase orders. Belongs to the <see cref="ModuleCodes.Purchasing"/> module; requires <see cref="PoRead"/>, <see cref="CostView"/> (an order carries prices) and <see cref="StockRead"/> (the reorder list shows stock).</summary>

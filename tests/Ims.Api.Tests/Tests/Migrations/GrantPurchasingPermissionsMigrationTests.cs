@@ -27,6 +27,9 @@ public class GrantPurchasingPermissionsMigrationTests
     /// <summary>Permissions the catalog gains after this migration, each with a data migration of its own: none yet.</summary>
     private static readonly string[] AddedLater = [];
 
+    /// <summary>The permission that was in the catalog at this migration and left it again in RemoveAccountingModule: the Administrator and the Owner still hold it here, FROZEN as a string because the live catalog no longer lists it.</summary>
+    private const string AccountingExportThen = "accounting.export";
+
     private static async Task MigrateAsync(TestDatabase database, string target)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(database.ConnectionString).Options;
@@ -85,9 +88,9 @@ public class GrantPurchasingPermissionsMigrationTests
 
         Assert.Equal(Managers.Length * 2 + Readers.Length, await GrantsOfAsync(database)); // 3 x 2 + 2 x 1
         Assert.Equal(grantsBefore + 8, await TotalGrantsAsync(database));
-        Assert.True((await PermissionsOfAsync(database, Roles.Admin)).SetEquals(PermissionCatalog.Codes.Except(AddedLater)), "Admin must hold every permission of the catalog.");
+        Assert.True((await PermissionsOfAsync(database, Roles.Admin)).SetEquals(PermissionCatalog.Codes.Except(AddedLater).Append(AccountingExportThen)), "Admin must hold every permission of the catalog of that day.");
         foreach (var role in Roles.All.Where(r => r != Roles.Admin))
-            Assert.True((await PermissionsOfAsync(database, role)).SetEquals(SystemRoleDefaults.For(role).Except(AddedLater)), $"{role} must hold what the defaults say, and nothing more.");
+            Assert.True((await PermissionsOfAsync(database, role)).SetEquals(SystemRoleDefaults.For(role).Except(AddedLater).Concat(role == Roles.Owner ? [AccountingExportThen] : [])), $"{role} must hold what the defaults of that day say, and nothing more.");
         foreach (var role in Managers)
             Assert.True((await PermissionsOfAsync(database, role)).IsSupersetOf(Codes), role);
         foreach (var role in Readers)

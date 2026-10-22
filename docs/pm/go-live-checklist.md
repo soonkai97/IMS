@@ -1,8 +1,8 @@
 # Go-live checklist: turning the pilot on in a real environment
 
-Owner: project-manager. Written 2026-10-22 at the close of PL2 (`main` at `3e99afa6`, PL1 and PL2 merged, F-1 to F-3 of the security retest fixed in #183). The pilot is purchasing; the accounting export is built but out of the pilot since 2026-10-22. Nothing is switched on anywhere real. Work top to bottom; a step marked STOP blocks the next section. Detail lives in the files named in each row; this page does not repeat them.
+Owner: project-manager. Written 2026-10-22 at the close of PL2 (`main` at `3e99afa6`, PL1 and PL2 merged, F-1 to F-3 of the security retest fixed in #183). The pilot is purchasing; the accounting module was dropped from the pilot on 2026-10-22 and is removed from the code (RA1). Nothing is switched on anywhere real. Work top to bottom; a step marked STOP blocks the next section. Detail lives in the files named in each row; this page does not repeat them.
 
-accounting: out of the pilot (dormant, module OFF; do not switch on). Owner decision 2026-10-22; the code stays in `main`.
+accounting: removed (owner decision 2026-10-22; RA1). The API no longer lists the module or the `accounting.export` permission; the migration `RemoveAccountingModule` deletes the `Module.accounting` switch row and every `accounting.export` grant when the API is next started against a database.
 
 ## 1. Preconditions (nothing is switched on until these are answered)
 
@@ -36,7 +36,7 @@ accounting: out of the pilot (dormant, module OFF; do not switch on). Owner deci
 
 ## 4. Smoke checks after switch-on (about 30 minutes; use a test warehouse or reverse and cancel afterwards)
 
-1. Modules screen shows purchasing on and accounting off; the menu shows Purchase orders to Supervisor, Clerk, Warehouse staff and Owner (Owner reads only).
+1. Modules screen shows purchasing on (it is the only module); the menu shows Purchase orders to Supervisor, Clerk, Warehouse staff and Owner (Owner reads only).
 2. Clerk creates a PO of a few lines and submits it. Under the Standard amount it is Approved at once; above it, it waits and a Supervisor (not the Clerk) approves. A Supervisor cannot approve what they submitted.
 3. Warehouse staff opens the PO, presses Receive, posts part of it: no price anywhere, the PO stays Approved, stock rose, the ledger shows the PO price as unit cost. Post the rest: the PO closes itself. A receipt above what remains is refused with the figures.
 4. Reorder list for the warehouse shows a product below safety; creating a PO draft from it makes the row leave the list.
@@ -45,7 +45,7 @@ accounting: out of the pilot (dormant, module OFF; do not switch on). Owner deci
 
 ## 5. Rollback
 
-1. Accounting stays OFF. If it was switched on by mistake, switch it off (any time; data is kept).
+1. The migration `RemoveAccountingModule` is not undone by a rollback of the build (its Down does nothing): the deleted `accounting.export` grants and the `Module.accounting` switch stay deleted, which is what an older build treats as "off".
 2. Purchasing is REFUSED (409 "cannot be turned off while N purchase orders are open") while any order is Draft, Submitted or Approved. Finish them: a Draft is cancelled by its creator or any `modules.manage` holder; a Submitted order is recalled and cancelled by its submitter, or rejected by a reviewer and then cancelled as a Draft; an Approved order with nothing received is cancelled by a reviewer of its tier with a reason; an Approved order with something received is closed short (`po.manage`, reason) after every linked receipt is posted or cancelled. Closed and Cancelled orders do not block the switch.
 3. Do not roll the schema back after real use: `Down` of `AddPurchaseOrders` and `AddReceiptPurchaseOrderLinks` refuse while any order or link exists. To return to a build older than PL2, restore the backup of section 2 step 1.
 

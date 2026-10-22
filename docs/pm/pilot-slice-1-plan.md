@@ -1,6 +1,6 @@
 # Pilot slice 1 plan: module foundation, tax-ready fields and the accounting export
 
-Status 2026-10-22: accounting parts dropped from the pilot on 2026-10-22 (module dormant, OFF by default). The module foundation (PL1.1 to PL1.4) stays in use by purchasing.
+Status 2026-10-22: accounting parts dropped from the pilot on 2026-10-22 and the module removed from the code (RA1; the web in #187, #189 and #190, the API in part A with the migration `RemoveAccountingModule`, the tax fields in part B). The module foundation (PL1.1 to PL1.4) stays in use by purchasing. This plan's accounting sections are history.
 
 Author: project-manager (be-architect and business-analyst points marked). Date: 2026-10-19. Status: plan for the owner and the team; nothing here is built.
 Inputs: `docs/architecture/adr-modules-and-tracking-dimensions.md` (Accepted 2026-10-19; sections 4, 8, 12, 13), `docs/design/lean-scope.md` (section 1 rule), `docs/pm/ROADMAP.md` (sections 3.2, 3.3, 5, 8), `TASKS.md`, `docs/team/PR-REVIEW.md` section 8, the PRD (`docs/private/prd-v0.2.txt`, read on the owner's checkout), and the code at `origin/main` dd66ea2 (`Partner`, `Product`, `ExportMovementsHandler`, `PermissionCatalog`, `SystemRoleDefaults`).

@@ -13,7 +13,7 @@ public class GetImportTemplateHandler(IReportWriter report, IModuleSwitches modu
                 ImportTemplates.OpeningStockFile, ContentTypes.Xlsx);
 
         // The tax columns are part of the products template only while the accounting module is on (a file that carries them while it is off is refused).
-        var accounting = await modules.IsEnabledAsync(ModuleCodes.Accounting, ct);
+        var accounting = await modules.IsEnabledAsync(TaxFieldNames.RemovedModule, ct);
         ReportColumn[] columns = accounting ? [.. ImportTemplates.ProductColumns, .. ImportTemplates.TaxColumns] : ImportTemplates.ProductColumns;
         object?[] sample = [ImportTemplates.SampleSku, ImportTemplates.SampleName, ImportTemplates.SampleCategory, ImportColumns.DefaultUnit,
             ImportTemplates.SampleSafetyStock, ImportTemplates.SampleBarcodes];
