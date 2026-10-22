@@ -4,4 +4,3 @@ export * from './modules.const';
 export * from './pagination.const';
 export * from './permissions.const';
 export * from './public-id.const';
-export * from './tax-fields.const';

@@ -793,26 +793,6 @@ export const EN_MESSAGES = {
   'modules.error.notFound': 'That module is not available any more. The list was refreshed.',
   'modules.error.busy':
     'Another change to the modules is in progress. Wait a moment, then try again.',
-  'taxFields.turnedOn':
-    'Accounting was turned on after this was opened. It was read again with its tax codes: check them, then save.',
-  'product.tax': 'Tax codes',
-  'product.hsCode': 'HS code',
-  'product.hsCodeHint':
-    'Type it as text, for example 0901.21. Digits and dots only, up to {max} characters.',
-  'product.hsCodeShape': 'HS code may contain only digits and dots, up to {max} characters.',
-  'product.sstCode': 'SST code',
-  'product.sstCodeHint': 'Letters, digits and hyphens, up to {max} characters.',
-  'product.sstCodeShape':
-    'SST code may contain only letters, digits and hyphens, up to {max} characters.',
-  'partner.tin': 'TIN',
-  'partner.tinHint': 'Tax identification number. Letters and digits only, up to {max} characters.',
-  'partner.tinShape': 'TIN may contain only letters and digits, up to {max} characters.',
-  'partner.sstRegNo': 'SST registration no.',
-  'partner.sstRegNoHint': 'Letters, digits and hyphens, up to {max} characters.',
-  'partner.sstRegNoShape':
-    'SST registration no. may contain only letters, digits and hyphens, up to {max} characters.',
-  'import.rules.taxColumns':
-    'Optional columns for accounting: HsCode (digits and dots, up to {hsMax} characters) and SstCode (letters, digits and hyphens, up to {sstMax}). Format both columns as Text before you type: a number cell loses its leading and trailing zeros, and a file with number cells in these columns is refused. An empty cell clears the value; leave a column out to keep the stored values.',
   'nav.purchaseOrders': 'Purchase orders',
   'status.Closed': 'Closed',
   'po.title': 'Purchase orders',
