@@ -7,9 +7,8 @@ public class ReceiptLinkRules(IReadRepository<PurchaseOrder> orders, IPurchaseOr
     public async Task<PurchaseOrder> OrderForSaveAsync(StockDocument draft, Partner? supplier, CancellationToken ct)
     {
         draft.EnsureEditable();
-        // The link and the order's figures (ordered, received) are shown to readers of purchase orders only, so only they can change a linked draft: anyone else could not even name its order lines.
-        if (!caller.Has(Permissions.PoRead)) throw new ForbiddenException(Messages.ReceiptNeedsPoRead);
-        if (!await modules.IsEnabledAsync(ModuleCodes.Purchasing, ct)) throw new ConflictException(Messages.ReceiptModuleOff);
+        // Who may change a linked draft, and while the module is on, is one rule with its allowedActions (LinkedReceiptPolicy): the order is not looked at before it passes.
+        await LinkedReceiptGuard.EnsureAsync(DocumentActions.Edit, caller, modules, ct);
         var order = await orders.FirstOrDefaultAsync(new PurchaseOrderForReceiptSpec(draft.PurchaseOrderId!.Value), ct) ?? throw new NotFoundException(Messages.PurchaseOrderNotFound);
         if (!order.CanBeReceived) throw new ConflictException(Messages.PurchaseOrderNotReceivable(order.No, order.Status));
         if (supplier?.Id != order.SupplierId)
@@ -20,7 +19,7 @@ public class ReceiptLinkRules(IReadRepository<PurchaseOrder> orders, IPurchaseOr
     public async Task EnsureCanSubmitAsync(StockDocument draft, CancellationToken ct)
     {
         if (draft.PurchaseOrderId is not { } key) return;
-        if (!await modules.IsEnabledAsync(ModuleCodes.Purchasing, ct)) throw new ConflictException(Messages.ReceiptModuleOff);
+        await LinkedReceiptGuard.EnsureAsync(DocumentActions.Submit, caller, modules, ct);
         var order = await orders.FirstOrDefaultAsync(new PurchaseOrderForReceiptSpec(key), ct) ?? throw new NotFoundException(Messages.PurchaseOrderNotFound);
         // The order's number, status and figures are shown to readers of purchase orders only: anyone else is refused in general words (the same rule as at posting).
         var mayRead = caller.Has(Permissions.PoRead);
