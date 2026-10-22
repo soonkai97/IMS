@@ -243,6 +243,17 @@
           {{ 'doc.action.approve' | t }}
         </app-button>
       }
+      @if ($canReceive()) {
+        <app-button
+          variant="primary"
+          [disabled]="$isBusy() || $isStale()"
+          [loading]="$busyAction() === action.Receive"
+          (clicked)="onAction(action.Receive)"
+        >
+          <app-icon name="receipt" />
+          {{ 'po.action.receive' | t }}
+        </app-button>
+      }
     </footer>
   }
 }

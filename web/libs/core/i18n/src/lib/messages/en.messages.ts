@@ -918,5 +918,28 @@ export const EN_MESSAGES = {
   'reorder.nothingSelected': 'Select at least one product to order.',
   'reorder.fixQuantities': 'Correct the quantities that have an error under them.',
   'reorder.tooMany':
-    'An order takes up to {max} lines. The first {max} selected go into this order; {omitted} are left out. Order them in another purchase order.'
+    'An order takes up to {max} lines. The first {max} selected go into this order; {omitted} are left out. Order them in another purchase order.',
+  // PL2.9: receive against a purchase order.
+  'po.action.receive': 'Receive',
+  'doc.order.from':
+    'This receipt is for purchase order {order}. The supplier, the warehouse and the lines come from the order.',
+  'doc.order.open': 'Open the order.',
+  'doc.order.editHint':
+    'Lower a quantity or remove a line that did not arrive. A quantity cannot be above what the order has left.',
+  'doc.order.closed': 'Order {order} is fully received and closed.',
+  'doc.order.closedShort':
+    'Order {order} was closed short: what had not arrived will not be received.',
+  'doc.order.remaining':
+    'Order {order} still has {count, plural, one {1 line} other {# lines}} to receive.',
+  'doc.linesOverOrder': 'A quantity is above what the order has left. Lower it to continue.',
+  'doc.overReceipt.title': 'Not posted: more than the order has left',
+  'doc.overReceipt.line':
+    'Line {lineNo} ({sku}): ordered {ordered}, received {received}, remaining {remaining}, this receipt {requested}.',
+  'doc.overReceipt.fix': 'The receipt is unchanged. Lower the quantities and post it again.',
+  'doc.overReceipt.ask':
+    'The receipt is unchanged. Ask the person who made it to lower the quantities, or cancel it.',
+  'doc.lineRefusals': 'These lines were not accepted',
+  'line.order':
+    'Order line {lineNo}: ordered {ordered}, received {received}, remaining {remaining} {uom}',
+  'line.order.over': 'Only {remaining} {uom} of this order line is left to receive.'
 } as const;

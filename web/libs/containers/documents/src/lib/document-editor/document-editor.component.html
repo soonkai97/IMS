@@ -28,6 +28,23 @@
   <p class="document-editor-hint">{{ recallHint | t }}</p>
 }
 
+@if ($linkedOrder(); as linked) {
+  <p class="document-editor-hint">
+    {{ 'doc.order.from' | t: { order: linked.no } }}
+    @if ($canReadOrders()) {
+      <a [routerLink]="['/', orderRoute, linked.id]">{{ 'doc.order.open' | t }}</a>
+    }
+    @if ($editable()) {
+      {{ 'doc.order.editHint' | t }}
+    }
+  </p>
+  @if ($orderProgress(); as progress) {
+    <p class="document-editor-hint" role="status">
+      {{ progress.key | t: { order: linked.no, count: progress.open } }}
+    </p>
+  }
+}
+
 @if ($isLoading()) {
   <app-skeleton [count]="4" />
 } @else if ($notFound()) {
@@ -114,31 +131,101 @@
   @for (message of $saveGeneralErrors(); track message) {
     <app-banner kind="danger">{{ message }}</app-banner>
   }
+  @if ($overReceipt(); as over) {
+    <app-banner
+      class="document-editor-over-receipt"
+      kind="danger"
+      [heading]="'doc.overReceipt.title' | t"
+    >
+      @if (over.lines.length > 0) {
+        <ul class="document-editor-order-lines">
+          @for (line of over.lines; track line.lineNo) {
+            <li>
+              {{
+                'doc.overReceipt.line'
+                  | t
+                    : {
+                        lineNo: line.lineNo,
+                        sku: line.sku,
+                        ordered: (line.ordered | appQty),
+                        received: (line.received | appQty),
+                        remaining: (line.remaining | appQty),
+                        requested: (line.requested | appQty)
+                      }
+              }}
+            </li>
+          }
+        </ul>
+      } @else {
+        {{ over.message }}
+      }
+      {{ ($editable() || $canRecall() ? 'doc.overReceipt.fix' : 'doc.overReceipt.ask') | t }}
+      @if ($canRecall()) {
+        <app-button
+          bannerActions
+          [disabled]="$isBusy() || $isStale()"
+          (clicked)="onAction(recallAction)"
+          >{{ 'dialog.post.edit' | t }}</app-button
+        >
+      }
+    </app-banner>
+  }
+  @if ($conflictRefusal(); as refusal) {
+    <app-banner kind="danger">{{ refusal }}</app-banner>
+  }
+  @if ($lineRefusals().length > 0) {
+    <app-banner kind="danger" [heading]="'doc.lineRefusals' | t">
+      <ul class="document-editor-order-lines">
+        @for (refusal of $lineRefusals(); track $index) {
+          <li>
+            <strong>{{ refusal.sku }}</strong> {{ refusal.text }}
+          </li>
+        }
+      </ul>
+    </app-banner>
+  }
 
   @if ($editable()) {
     <form class="document-editor-form" [formGroup]="view.header" novalidate>
       <!-- Warehouse (and Purpose on an issue) are required: one legend for the header, none in the line editor. -->
       <app-form-legend />
-      <div class="document-editor-header-fields">
-        <app-form-field
-          [label]="'doc.warehouse' | t"
-          [required]="true"
-          [control]="view.header.controls.warehouseId"
-        >
-          <app-select
-            formControlName="warehouseId"
-            [options]="$warehouseOptions()"
-            [placeholder]="''"
-          />
-        </app-form-field>
-        <app-form-field [label]="$partnerLabelKey() | t" [control]="view.header.controls.partnerId">
-          <app-select
-            formControlName="partnerId"
-            [options]="$partnerOptions()"
-            [placeholder]="'filter.none' | t"
-          />
-        </app-form-field>
-      </div>
+      @if ($linkedOrder() && $document(); as order) {
+        <!-- The order fixes the supplier and the warehouse (the API refuses another): they are read, not chosen. -->
+        <dl class="document-editor-summary">
+          <div>
+            <dt>{{ 'doc.warehouse' | t }}</dt>
+            <dd>{{ order.warehouseName }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'doc.supplier' | t }}</dt>
+            <dd>{{ order.partnerName || '-' }}</dd>
+          </div>
+        </dl>
+      } @else {
+        <div class="document-editor-header-fields">
+          <app-form-field
+            [label]="'doc.warehouse' | t"
+            [required]="true"
+            [control]="view.header.controls.warehouseId"
+          >
+            <app-select
+              formControlName="warehouseId"
+              [options]="$warehouseOptions()"
+              [placeholder]="''"
+            />
+          </app-form-field>
+          <app-form-field
+            [label]="$partnerLabelKey() | t"
+            [control]="view.header.controls.partnerId"
+          >
+            <app-select
+              formControlName="partnerId"
+              [options]="$partnerOptions()"
+              [placeholder]="'filter.none' | t"
+            />
+          </app-form-field>
+        </div>
+      }
       @if ($isIssue()) {
         @let purposeInvalid =
           view.header.controls.purpose.touched && view.header.controls.purpose.invalid;
@@ -220,11 +307,13 @@
   @if ($editable()) {
     <section class="document-editor-lines" [attr.aria-label]="'doc.lines' | t">
       <div class="document-editor-lines-header">
-        <h2>{{ 'doc.items' | t: { count: $totals().lineCount } }}</h2>
-        <app-button [disabled]="!$canAddItem()" (clicked)="onOpenAddItem()">
-          <app-icon name="plus" />
-          {{ 'doc.addItem' | t }}
-        </app-button>
+        <h2 tabindex="-1">{{ 'doc.items' | t: { count: $totals().lineCount } }}</h2>
+        @if (!$linkedOrder()) {
+          <app-button [disabled]="!$canAddItem()" (clicked)="onOpenAddItem()">
+            <app-icon name="plus" />
+            {{ 'doc.addItem' | t }}
+          </app-button>
+        }
       </div>
       <app-document-line-editor
         [lines]="view.lines"
@@ -232,6 +321,7 @@
         [type]="$type()"
         [warehouseName]="$warehouseName()"
         [allowNegativeStock]="$allowNegativeStock()"
+        [orderLines]="$orderLines()"
         (stepped)="onStep($event)"
         (removed)="onRemoveLine($event)"
         (setToAvailable)="onSetToAvailable($event)"
@@ -351,6 +441,11 @@
             {{ 'doc.linesShort' | t: { count: $totals().shortLineCount } }}
           </p>
         }
+        @if ($overOrder()) {
+          <p class="document-editor-error document-editor-bar-note" role="alert">
+            {{ 'doc.linesOverOrder' | t }}
+          </p>
+        }
         @if ($needsOverride()) {
           <app-status-chip flag="danger" [label]="'doc.overrideNeeded' | t" />
         }
@@ -360,7 +455,7 @@
         [canPost]="$canPost()"
         [busy]="$isBusy()"
         [selfApprovalBlocked]="$selfApprovalBlocked()"
-        [submitDisabled]="$linesBlocked()"
+        [submitDisabled]="$linesBlocked() || $overOrder()"
         [locked]="$isStale()"
         [busyAction]="$busyAction()"
         (triggered)="onAction($event)"

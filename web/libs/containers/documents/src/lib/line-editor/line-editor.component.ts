@@ -14,8 +14,10 @@ import {
   LineGroup,
   LineValue,
   LinesArray,
+  OrderLineContext,
   lineShortfall,
-  maxCoveredQuantity
+  maxCoveredQuantity,
+  overRemainingLines
 } from '@ims/features/documents';
 import {
   SelectOption,
@@ -39,6 +41,10 @@ export interface LineRow {
   readonly blocked: boolean;
   /** True when the stock does not cover the line but a supervisor may override. */
   readonly needsOverride: boolean;
+  /** What the purchase order says about the order line this line receives; undefined for a line of no order or before the order arrived. */
+  readonly order: OrderLineContext | undefined;
+  /** The quantities received against this order line add up to more than the order has left. */
+  readonly overRemaining: boolean;
 }
 
 /**
@@ -70,6 +76,8 @@ export class DocumentLineEditorComponent {
   $warehouseName = input('', { alias: 'warehouseName' });
   $allowNegativeStock = input(false, { alias: 'allowNegativeStock', transform: booleanAttribute });
   $readonly = input(false, { alias: 'readonly', transform: booleanAttribute });
+  /** The figures of the purchase order of a receipt from an order, by order line number. */
+  $orderLines = input<ReadonlyMap<number, OrderLineContext>>(new Map(), { alias: 'orderLines' });
 
   $stepped = output<{ group: LineGroup; delta: number }>({ alias: 'stepped' });
   $removed = output<number>({ alias: 'removed' });
@@ -80,6 +88,8 @@ export class DocumentLineEditorComponent {
   $rows = computed<readonly LineRow[]>(() => {
     const groups = this.$lines().controls;
     const allowNegative = this.$allowNegativeStock();
+    const orderLines = this.$orderLines();
+    const over = overRemainingLines(this.$values(), orderLines);
     return this.$values().map((value, index) => {
       const shortfall = this.$isIssue() ? lineShortfall(value) : 0;
       return {
@@ -93,7 +103,12 @@ export class DocumentLineEditorComponent {
         unitCode:
           value.uomOptions.find(option => option.uomId === value.uomId)?.code ?? value.baseUomCode,
         blocked: shortfall > 0 && !allowNegative,
-        needsOverride: shortfall > 0 && allowNegative
+        needsOverride: shortfall > 0 && allowNegative,
+        order:
+          value.purchaseOrderLineNo === null
+            ? undefined
+            : orderLines.get(value.purchaseOrderLineNo),
+        overRemaining: value.purchaseOrderLineNo !== null && over.has(value.purchaseOrderLineNo)
       };
     });
   });

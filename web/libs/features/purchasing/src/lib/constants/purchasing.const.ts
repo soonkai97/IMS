@@ -13,7 +13,9 @@ export const PO_ACTION = {
   Reject: 'reject',
   Cancel: 'cancel',
   /** Close short: only after something was received (the server offers it then). */
-  Close: 'close'
+  Close: 'close',
+  /** Start a draft receipt from the order: offered on an Approved order with something left to receive, to whoever may create receipts and read orders. */
+  Receive: 'receive'
 } as const;
 
 export type PoAction = (typeof PO_ACTION)[keyof typeof PO_ACTION];

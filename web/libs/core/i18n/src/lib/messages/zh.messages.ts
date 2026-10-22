@@ -855,5 +855,22 @@ export const ZH_MESSAGES: Messages = {
   'reorder.nothingSelected': '请至少选择一件要订购的商品。',
   'reorder.fixQuantities': '请更正下方有错误提示的数量。',
   'reorder.tooMany':
-    '一个订单最多 {max} 行。所选的前 {max} 行进入本订单，{omitted} 行未包含。请另建采购订单。'
+    '一个订单最多 {max} 行。所选的前 {max} 行进入本订单，{omitted} 行未包含。请另建采购订单。',
+  // TODO-review: machine draft (PL2.9: receive against a purchase order).
+  'po.action.receive': '收货',
+  'doc.order.from': '此收货单对应采购订单 {order}。供应商、仓库和明细行均来自该订单。',
+  'doc.order.open': '打开订单。',
+  'doc.order.editHint': '可减少数量，或删除未到货的明细行。数量不能超过订单剩余数量。',
+  'doc.order.closed': '订单 {order} 已全部收货并关闭。',
+  'doc.order.closedShort': '订单 {order} 已提前关闭：未到货的部分将不再收货。',
+  'doc.order.remaining': '订单 {order} 还有 {count, plural, other {# 行}}待收货。',
+  'doc.linesOverOrder': '有数量超过订单剩余数量。请减少后再继续。',
+  'doc.overReceipt.title': '未过账：超过订单剩余数量',
+  'doc.overReceipt.line':
+    '第 {lineNo} 行（{sku}）：订购 {ordered}，已收 {received}，剩余 {remaining}，本收货单 {requested}。',
+  'doc.overReceipt.fix': '收货单未改动。请减少数量后重新过账。',
+  'doc.overReceipt.ask': '收货单未改动。请让制单人减少数量，或将其取消。',
+  'doc.lineRefusals': '以下明细行未被接受',
+  'line.order': '订单行 {lineNo}：订购 {ordered}，已收 {received}，剩余 {remaining} {uom}',
+  'line.order.over': '此订单行只剩 {remaining} {uom} 可收货。'
 };

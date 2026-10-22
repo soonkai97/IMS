@@ -3,7 +3,7 @@
     <li
       class="line-editor-row"
       [formGroup]="row.group"
-      [class.--blocked]="row.blocked"
+      [class.--blocked]="row.blocked || row.overRemaining"
       [class.--override]="row.needsOverride"
     >
       <div class="line-editor-product">
@@ -15,6 +15,23 @@
               'line.available'
                 | t: { qty: (row.value.available | appQty), uom: row.value.baseUomCode }
             }}
+          </span>
+        }
+        @if (row.value.purchaseOrderLineNo !== null) {
+          <span class="line-editor-available">
+            @if (row.order; as order) {
+              {{
+                'line.order'
+                  | t
+                    : {
+                        lineNo: row.value.purchaseOrderLineNo,
+                        ordered: (order.ordered | appQty),
+                        received: (order.received | appQty),
+                        remaining: (order.remaining | appQty),
+                        uom: order.uomCode
+                      }
+              }}
+            }
           </span>
         }
       </div>
@@ -98,6 +115,11 @@
               {{ 'line.setToAvailable' | t: { qty: (row.maxCovered | appQty) } }}
             </app-button>
           }
+        </p>
+      }
+      @if (row.overRemaining && row.order; as order) {
+        <p class="line-editor-message --blocked" role="alert">
+          {{ 'line.order.over' | t: { remaining: (order.remaining | appQty), uom: order.uomCode } }}
         </p>
       }
       @if (row.needsOverride) {

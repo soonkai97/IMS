@@ -2,6 +2,7 @@ import { HttpContext } from '@angular/common/http';
 import { Injectable, Signal, inject } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import {
+  DocumentDto,
   PagedResultOfPurchaseOrderListItem,
   PurchaseOrderDto,
   PurchaseOrderSaveRequest,
@@ -123,6 +124,16 @@ export class PurchaseOrdersStore {
     true
   );
 
+  /**
+   * Starts a draft receipt from the order, at the order's prices, for what is still to receive. The call carries no token (the
+   * API checks the order itself); a refusal (409: the order is no longer open, module off) is the page's alert, so no toast.
+   */
+  readonly receive: ApiCommand<PublicId, DocumentDto> = new ApiCommand(
+    id =>
+      this.client.createReceipt(id, new HttpContext().set(HANDLED_INLINE, [HTTP_STATUS.Conflict])),
+    true
+  );
+
   /** Forgets the outcome of every command (their errors drive banners such as "changed by someone else"). */
   resetCommands(): void {
     this.resetCommandsExcept(undefined);
@@ -146,7 +157,8 @@ export class PurchaseOrdersStore {
       this.approve,
       this.reject,
       this.cancel,
-      this.close
+      this.close,
+      this.receive
     ];
   }
 

@@ -13,9 +13,14 @@ import {
   untracked
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { finalize, switchMap, tap } from 'rxjs';
-import { PurchaseOrderCloseKind, PurchaseOrderLineDto, PurchaseOrderStatus } from '@ims/api';
+import {
+  DocumentType,
+  PurchaseOrderCloseKind,
+  PurchaseOrderLineDto,
+  PurchaseOrderStatus
+} from '@ims/api';
 import { handledInline } from '@ims/core/http';
 import {
   AppDatePipe,
@@ -31,7 +36,7 @@ import {
 import { CanDirective, PermissionService } from '@ims/core/identity';
 import { PageTitleService } from '@ims/core/navigation';
 import { ConfirmService, ToastService } from '@ims/core/notification';
-import { STATUS_TONE } from '@ims/features/documents';
+import { DOCUMENT_ROUTE, STATUS_TONE } from '@ims/features/documents';
 import {
   PO_ACTION,
   PO_STATUS_TONE,
@@ -115,6 +120,7 @@ export class PurchaseOrderDetailPageComponent {
   private readonly page = inject(DOCUMENT);
   private readonly pageTitle = inject(PageTitleService);
   private readonly permissions = inject(PermissionService);
+  private readonly router = inject(Router);
   private readonly store = inject(PurchaseOrdersStore);
   private readonly toast = inject(ToastService);
 
@@ -176,8 +182,11 @@ export class PurchaseOrderDetailPageComponent {
   readonly $canReject = computed(() => this.$actions().has(PO_ACTION.Reject));
   readonly $canCancel = computed(() => this.$actions().has(PO_ACTION.Cancel));
   readonly $canClose = computed(() => this.$actions().has(PO_ACTION.Close));
+  /** Offered by the API only when a receipt can be created from this order by this person (never decided here from the status). */
+  readonly $canReceive = computed(() => this.$actions().has(PO_ACTION.Receive));
   readonly $showBar = computed(
     () =>
+      this.$canReceive() ||
       this.$canEdit() ||
       this.$canSubmit() ||
       this.$canRecall() ||
@@ -194,7 +203,8 @@ export class PurchaseOrderDetailPageComponent {
       this.store.approve.$isRunning() ||
       this.store.reject.$isRunning() ||
       this.store.cancel.$isRunning() ||
-      this.store.close.$isRunning()
+      this.store.close.$isRunning() ||
+      this.store.receive.$isRunning()
   );
   readonly $busyAction = computed(() => (this.$isBusy() ? this.$activeAction() : undefined));
 
@@ -205,7 +215,8 @@ export class PurchaseOrderDetailPageComponent {
     this.store.approve.$operation().error,
     this.store.reject.$operation().error,
     this.store.cancel.$operation().error,
-    this.store.close.$operation().error
+    this.store.close.$operation().error,
+    this.store.receive.$operation().error
   ]);
   /** Someone changed the order since it was opened: nothing can be done with this copy until it is read again. */
   readonly $isStale = computed(() => this.$commandErrors().some(isStaleOrderError));
@@ -373,6 +384,9 @@ export class PurchaseOrderDetailPageComponent {
       case PO_ACTION.Close:
         this.close();
         break;
+      case PO_ACTION.Receive:
+        this.receive();
+        break;
       case PO_ACTION.Edit:
         // The editor is a later slice; the button is not rendered.
         break;
@@ -496,6 +510,30 @@ export class PurchaseOrderDetailPageComponent {
         switchMap(reason => this.store.cancel.run({ ...toPurchaseOrderRef(order), reason })),
         tap(() => this.toast.success(this.i18n.t('po.toast.cancelled'))),
         finalize(() => this.settleFocus()),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe();
+  }
+
+  /** Starts the draft receipt and opens it in the receipt editor; a refusal is the alert above, and the order is read again so the buttons match. */
+  private receive(): void {
+    const order = this.$order();
+    if (!order) {
+      return;
+    }
+    this.store.receive
+      .run(order.id)
+      .pipe(
+        tap(
+          receipt =>
+            void this.router.navigate(['/', DOCUMENT_ROUTE[DocumentType.Receipt], receipt.id])
+        ),
+        finalize(() => {
+          if (this.store.receive.$operation().error?.kind === API_ERROR_KIND.Conflict) {
+            this.store.detail.reload();
+          }
+          this.settleFocus();
+        }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();

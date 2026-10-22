@@ -60,7 +60,9 @@ const offered: [string, string][] = [
   ['close', 'Close short'],
   ['recall', 'Back to draft'],
   ['submit', 'Submit'],
-  ['approve', 'Approve']
+  ['approve', 'Approve'],
+  // PL2.9: the API offers it on an Approved order with something left to receive, to whoever may create receipts and read orders.
+  ['receive', 'Receive']
 ];
 async function expectedButtons(
   order: ApiOrder,

@@ -55,7 +55,9 @@ export function lineFromOrderLine(line: PurchaseOrderLineDto): LineValue {
         code: line.uomCode,
         factorToBase: line.qty > 0 ? line.baseQty / line.qty : 1
       }
-    ]
+    ],
+    // An order line is never a receipt line.
+    purchaseOrderLineNo: null
   };
 }
 

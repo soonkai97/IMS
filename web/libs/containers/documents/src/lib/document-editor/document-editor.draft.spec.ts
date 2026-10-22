@@ -16,6 +16,7 @@ const line = (overrides: Record<string, unknown> = {}) => ({
   available: 10,
   baseUomCode: 'PCS',
   uomOptions: [{ uomId: guid(2), code: 'PCS', factorToBase: 1 }],
+  purchaseOrderLineNo: null,
   ...overrides
 });
 

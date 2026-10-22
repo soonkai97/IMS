@@ -10,7 +10,10 @@ import {
   DocumentStatus,
   DocumentType,
   IssuePurpose,
-  ProductDto
+  ProductDto,
+  PurchaseOrderCloseKind,
+  PurchaseOrderDto,
+  PurchaseOrderStatus
 } from '@ims/api';
 import { provideUiText } from '@ims/core/i18n';
 import { AuthService, PermissionService, SessionDraftService } from '@ims/core/identity';
@@ -19,6 +22,7 @@ import { ConfirmService, ToastService } from '@ims/core/notification';
 import { SystemSettingsStore } from '@ims/core/settings';
 import { CatalogStore, ProductsStore } from '@ims/features/catalog';
 import { DocumentsStore, StockAvailabilityService } from '@ims/features/documents';
+import { PurchaseOrdersStore } from '@ims/features/purchasing';
 import { StockStore } from '@ims/features/stock';
 import { PartnersStore, WarehousesStore } from '@ims/features/warehousing';
 import {
@@ -128,6 +132,12 @@ describe('DocumentEditorPageComponent', () => {
     }
   });
   const detailOperation = signal<ApiOperation>(IDLE_OPERATION);
+  /** The purchase order store a linked receipt reads its figures from. */
+  const orderData = signal<PurchaseOrderDto | undefined>(undefined);
+  const orderLoad = jest.fn();
+  const orderReload = jest.fn();
+  const orderReset = jest.fn();
+  const orderLoading = signal(false);
   const lookup = jest.fn();
   const granted = new Set<string>([PERMISSION.StockRead]);
   /** The signed-in user and the session-expiry signal of the AuthService. */
@@ -191,6 +201,18 @@ describe('DocumentEditorPageComponent', () => {
           currentToken,
           ...commands
         })
+      },
+      {
+        provide: PurchaseOrdersStore,
+        useValue: {
+          detail: {
+            $data: orderData,
+            $isLoading: orderLoading,
+            load: orderLoad,
+            reload: orderReload,
+            reset: orderReset
+          }
+        }
       },
       { provide: PartnersStore, useValue: { loadActive: jest.fn(), $partners: signal([]) } },
       {
@@ -277,6 +299,11 @@ describe('DocumentEditorPageComponent', () => {
       delete calls[key];
     }
     detailReload.mockClear();
+    orderData.set(undefined);
+    orderLoading.set(false);
+    orderLoad.mockClear();
+    orderReload.mockClear();
+    orderReset.mockClear();
     resetCommands.mockClear();
     currentToken.mockReset();
     for (const key of Object.keys(responses)) {
@@ -348,11 +375,13 @@ describe('DocumentEditorPageComponent', () => {
     expect(text()).toContain('Short by 5 (on hand 10)');
   });
 
-  it('a stale document (409 without a product) shows the E4 banner; Reload rereads it', async () => {
+  it('a stale document (409 document_changed) shows the E4 banner; Reload rereads it', async () => {
     await open(document());
     expect(text()).not.toContain('changed since you opened it');
 
-    commands['approve'].$operation.set(failureOperation(STALE));
+    commands['approve'].$operation.set(
+      failureOperation({ ...STALE, extensions: { code: 'document_changed' } })
+    );
     spectator.detectChanges();
 
     expect(text()).toContain('ISS-WH01-2610-0001 changed since you opened it');
@@ -1925,6 +1954,283 @@ describe('DocumentEditorPageComponent', () => {
         expect(text()).not.toContain("Can't be posted now");
         expect(labels().some(label => label === 'Post')).toBe(false);
       });
+    });
+  });
+
+  describe('a receipt from a purchase order (PL2.9)', () => {
+    const ORDER_ID = guid(50);
+    const receipt = (overrides: Partial<DocumentDto> = {}): DocumentDto =>
+      document({
+        id: guid(51),
+        type: DocumentType.Receipt,
+        no: 'RCV-WH01-2610-0007',
+        status: DocumentStatus.Draft,
+        requiresApproval: false,
+        purpose: null as never,
+        partnerId: guid(60),
+        partnerName: 'Acme Supplies',
+        purchaseOrder: { id: ORDER_ID, no: 'PO-WH01-2610-0001' },
+        lines: [
+          {
+            ...document().lines[0],
+            qty: 4,
+            baseQty: 4,
+            unitCost: 5,
+            available: null as never,
+            purchaseOrderLineNo: 1
+          }
+        ],
+        allowedActions: [DOCUMENT_ACTION.Edit, DOCUMENT_ACTION.Submit, DOCUMENT_ACTION.Cancel],
+        ...overrides
+      });
+    /** The order as the API sends it: ordered 10, 6 received, 4 left. */
+    const order = (overrides: Partial<PurchaseOrderDto> = {}): PurchaseOrderDto =>
+      ({
+        id: ORDER_ID,
+        no: 'PO-WH01-2610-0001',
+        status: PurchaseOrderStatus.Approved,
+        closeKind: null,
+        lines: [{ lineNo: 1, qty: 10, uomCode: 'PCS', receivedQty: 6, remainingQty: 4 }],
+        ...overrides
+      }) as unknown as PurchaseOrderDto;
+    const overReceipt = (): ApiError => ({
+      ...STALE,
+      detail: 'Over',
+      extensions: {
+        code: 'over_receipt',
+        lines: [
+          { lineNo: 1, sku: 'DEMO-001', ordered: 10, received: 6, remaining: 4, requested: 5 }
+        ]
+      }
+    });
+    const alerts = (): string[] =>
+      spectator
+        .queryAll('app-banner[role="alert"]')
+        .map(banner => (banner.textContent ?? '').replace(/\s+/g, ' ').trim());
+    const toasts = (): string[] =>
+      TestBed.inject(ToastService)
+        .$toasts()
+        .map(toast => toast.message);
+
+    beforeEach(() => granted.add(PERMISSION.PoRead));
+
+    it('names the order, opens it only for a holder of po.read, and reads the supplier and warehouse instead of choosing them', async () => {
+      await open(receipt(), DocumentType.Receipt);
+
+      expect(text()).toContain('purchase order PO-WH01-2610-0001');
+      expect(spectator.query(`a[href="/purchase-orders/${ORDER_ID}"]`)).not.toBeNull();
+      expect(spectator.queryAll('app-select')).toHaveLength(0);
+      expect(spectator.queryAll('dd').map(dd => dd.textContent?.trim())).toEqual(
+        expect.arrayContaining(['Main warehouse', 'Acme Supplies'])
+      );
+      // The lines come from the order: nothing is added from outside it.
+      expect(text()).not.toContain('Add item');
+
+      granted.delete(PERMISSION.PoRead);
+      await open(receipt(), DocumentType.Receipt);
+      expect(spectator.query('a[href^="/purchase-orders"]')).toBeNull();
+    });
+
+    it('reads the order again when it opens (the store may hold an older copy) and shows the figures of the line', async () => {
+      await open(receipt(), DocumentType.Receipt);
+      orderData.set(order());
+      spectator.detectChanges();
+
+      expect(orderReset).toHaveBeenCalled();
+      expect(orderLoad).toHaveBeenCalledWith(ORDER_ID, expect.anything());
+      expect(text()).toContain('Order line 1: ordered 10, received 6, remaining 4 PCS');
+    });
+
+    it('a quantity above what remains is said in words and stops Submit, and lowering it clears both', async () => {
+      await open(receipt(), DocumentType.Receipt);
+      orderData.set(order());
+      const qty = spectator.component.view.lines.at(0).controls.qty;
+      qty.setValue(5);
+      spectator.detectChanges();
+
+      expect(text()).toContain('Only 4 PCS of this order line is left to receive.');
+      expect(text()).toContain('A quantity is above what the order has left.');
+      const submit = spectator
+        .queryAll<HTMLButtonElement>('.document-editor-bar button')
+        .find(button => button.textContent?.includes('Submit'));
+      expect(submit?.disabled).toBe(true);
+
+      qty.setValue(4);
+      spectator.detectChanges();
+      expect(text()).not.toContain('Only 4 PCS');
+      expect(text()).not.toContain('A quantity is above what the order has left.');
+    });
+
+    it('a save sends the order line of every line, and no price from a caller without cost.view', async () => {
+      await open(
+        receipt({ lines: [{ ...receipt().lines[0], unitCost: null as never }] }),
+        DocumentType.Receipt
+      );
+
+      spectator.component.onAction(DOCUMENT_ACTION.Edit);
+
+      const body = (calls['save'][0] as { body: { lines: object[] } }).body;
+      expect(body.lines).toMatchObject([{ qty: 4, unitCost: undefined, purchaseOrderLineNo: 1 }]);
+    });
+
+    it('a post refused for more than the order has left is ONE alert with the figures, no toast, and the receipt stays as it is', async () => {
+      await open(
+        receipt({
+          status: DocumentStatus.Approved,
+          allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Cancel]
+        }),
+        DocumentType.Receipt
+      );
+      failing.set('post', overReceipt());
+
+      spectator.component.onAction(DOCUMENT_ACTION.Post);
+      confirm().confirm('');
+      spectator.detectChanges();
+
+      expect(alerts()).toHaveLength(1);
+      expect(alerts()[0]).toContain(
+        'Line 1 (DEMO-001): ordered 10, received 6, remaining 4, this receipt 5.'
+      );
+      expect(alerts()[0]).toContain('Ask the person who made it to lower the quantities');
+      expect(text()).not.toContain('changed by someone else');
+      expect(toasts()).toEqual([]);
+      // The figures may have moved: the order is read again.
+      expect(orderReload).toHaveBeenCalled();
+    });
+
+    it('without po.read the 409 is the general sentence, shown as it is: not as a stale copy, with no figures', async () => {
+      granted.delete(PERMISSION.PoRead);
+      await open(
+        receipt({
+          purchaseOrder: null as never,
+          status: DocumentStatus.Approved,
+          allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Cancel]
+        }),
+        DocumentType.Receipt
+      );
+      commands['post'].$operation.set(
+        failureOperation({
+          ...STALE,
+          message: 'The purchase order of this receipt is no longer open for receiving.'
+        })
+      );
+      spectator.detectChanges();
+
+      expect(alerts()).toEqual([
+        'The purchase order of this receipt is no longer open for receiving.'
+      ]);
+      expect(text()).not.toContain('changed by someone else');
+      expect(spectator.query('.document-editor-bar button[disabled]')).toBeNull();
+    });
+
+    it.each([
+      [
+        'Received',
+        { status: PurchaseOrderStatus.Closed, closeKind: PurchaseOrderCloseKind.Received },
+        'Order PO-WH01-2610-0001 is fully received and closed.'
+      ],
+      [
+        'Short (quantity still remains)',
+        { status: PurchaseOrderStatus.Closed, closeKind: PurchaseOrderCloseKind.Short },
+        'Order PO-WH01-2610-0001 was closed short: what had not arrived will not be received.'
+      ],
+      ['null, Approved', {}, 'Order PO-WH01-2610-0001 still has 1 line to receive.'],
+      ['null, Cancelled', { status: PurchaseOrderStatus.Cancelled }, '']
+    ])(
+      'after the post it says where the order stands by closeKind, not by the quantities: %s',
+      async (_name, overrides, expected) => {
+        await open(
+          receipt({ status: DocumentStatus.Posted, allowedActions: [] }),
+          DocumentType.Receipt
+        );
+        orderData.set(order(overrides as Partial<PurchaseOrderDto>));
+        spectator.detectChanges();
+        const progress = (): string =>
+          spectator.query('p[role="status"]')?.textContent?.trim() ?? '';
+        expect(progress()).toBe(expected);
+
+        orderLoading.set(true);
+        spectator.detectChanges();
+        expect(progress()).toBe('');
+      }
+    );
+
+    it('an ordinary receipt never reads an order, and a linked one opened before it leaves no figures or progress on it', async () => {
+      await open(
+        receipt({ status: DocumentStatus.Posted, allowedActions: [] }),
+        DocumentType.Receipt
+      );
+      orderData.set(
+        order({ status: PurchaseOrderStatus.Closed, closeKind: PurchaseOrderCloseKind.Received })
+      );
+      orderLoad.mockClear();
+      orderReset.mockClear();
+
+      await open(
+        receipt({
+          id: guid(70),
+          allowedActions: [],
+          status: DocumentStatus.Posted,
+          purchaseOrder: null as never
+        }),
+        DocumentType.Receipt
+      );
+
+      expect(orderLoad).not.toHaveBeenCalled();
+      expect(orderReset).not.toHaveBeenCalled();
+      expect(text()).not.toContain('Order PO-WH01-2610-0001');
+      expect(spectator.query('p[role="status"]')).toBeNull();
+    });
+
+    it('line sentences go when a line changes (they count lines by position), and the order is read again for them', async () => {
+      await open(receipt(), DocumentType.Receipt);
+      commands['save'].$operation.set(
+        failureOperation({
+          ...STALE,
+          kind: API_ERROR_KIND.Validation,
+          status: 400,
+          fieldErrors: { 'lines[0].qty': ['Remaining 3.'] },
+          extensions: {}
+        })
+      );
+      spectator.detectChanges();
+      expect(alerts()[0]).toContain('DEMO-001 Remaining 3.');
+      expect(orderReload).toHaveBeenCalledTimes(1);
+
+      spectator.component.view.remove(0);
+      spectator.detectChanges();
+      expect(alerts()).toEqual([]);
+    });
+
+    it('the alert of a refused post takes the focus, and an empty linked receipt sends it to the lines heading, not to a hidden button', async () => {
+      await open(
+        receipt({ status: DocumentStatus.Approved, allowedActions: [DOCUMENT_ACTION.Post] }),
+        DocumentType.Receipt
+      );
+      commands['post'].$operation.set(failureOperation(overReceipt()));
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+      expect(
+        globalThis.document.activeElement?.classList.contains('document-editor-over-receipt')
+      ).toBe(true);
+
+      await open(receipt(), DocumentType.Receipt);
+      spectator.component.view.remove(0);
+      spectator.component.onAction(DOCUMENT_ACTION.Submit);
+      await spectator.fixture.whenStable();
+      expect(globalThis.document.activeElement?.tagName).toBe('H2');
+    });
+
+    it('keeps nothing of a saved receipt for a caller who sees prices but may not read orders (the link is hidden from them)', async () => {
+      granted.delete(PERMISSION.PoRead);
+      granted.add(PERMISSION.CostView);
+      await open(receipt({ purchaseOrder: null as never }), DocumentType.Receipt);
+      spectator.component.view.lines.at(0).controls.qty.setValue(3);
+      spectator.component.view.lines.markAsDirty();
+
+      sessionExpiring.next();
+
+      expect(sessionStorage.length).toBe(0);
     });
   });
 

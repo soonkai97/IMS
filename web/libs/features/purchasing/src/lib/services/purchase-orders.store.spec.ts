@@ -1,7 +1,7 @@
 import { HttpContext } from '@angular/common/http';
 import { createServiceFactory, mockProvider, SpectatorService } from '@ngneat/spectator/jest';
 import { Subject, firstValueFrom, of } from 'rxjs';
-import { PurchaseOrderDto, PurchaseOrderStatus, PurchaseOrdersClient } from '@ims/api';
+import { DocumentDto, PurchaseOrderDto, PurchaseOrderStatus, PurchaseOrdersClient } from '@ims/api';
 import { IF_MATCH, isHandledInline } from '@ims/core/http';
 import { ApiError, failureOperation } from '@ims/models';
 import { PurchaseOrdersStore, toPurchaseOrderRef } from './purchase-orders.store';
@@ -147,5 +147,26 @@ describe('PurchaseOrdersStore', () => {
     await first;
 
     expect(client().submit).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts a receipt from the order with no token, shows a 409 itself and forgets the outcome with the other commands', async () => {
+    const receipt = { id: 'r1' } as DocumentDto;
+    client().createReceipt.mockReturnValue(of(receipt));
+
+    const result = await firstValueFrom(spectator.service.receive.run(ORDER_ID));
+
+    expect(result).toBe(receipt);
+    const [id, context] = client().createReceipt.mock.calls[0] as [string, HttpContext];
+    expect(id).toBe(ORDER_ID);
+    expect(tokenOf(context)).toBeUndefined();
+    expect([409, 403, 400].map(status => isHandledInline(context, status))).toEqual([
+      true,
+      false,
+      false
+    ]);
+
+    spectator.service.receive.$operation.set(failureOperation({ status: 409 } as ApiError));
+    spectator.service.resetCommands();
+    expect(spectator.service.receive.$operation().error).toBeUndefined();
   });
 });

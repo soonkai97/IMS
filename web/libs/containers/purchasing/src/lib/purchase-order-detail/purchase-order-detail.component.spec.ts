@@ -1,8 +1,9 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import {
+  DocumentDto,
   DocumentStatus,
   PurchaseOrderCloseKind,
   PurchaseOrderDto,
@@ -24,9 +25,9 @@ import { PurchaseOrderDetailPageComponent } from './purchase-order-detail.compon
 
 const ID = '00000000-0000-4000-8000-000000000001';
 
-function command() {
+function command(result: () => unknown = () => order()) {
   return {
-    run: jest.fn((): Observable<PurchaseOrderDto> => of(order())),
+    run: jest.fn((..._args: unknown[]): Observable<unknown> => of(result())),
     $isRunning: signal(false),
     $operation: signal<ApiOperation>(IDLE_OPERATION),
     reset: jest.fn()
@@ -114,7 +115,8 @@ function apiError(
   };
 }
 
-const COMMANDS = ['submit', 'recall', 'approve', 'reject', 'cancel', 'close'] as const;
+const COMMANDS = ['submit', 'recall', 'approve', 'reject', 'cancel', 'close', 'receive'] as const;
+const RECEIPT_ID = '00000000-0000-4000-8000-0000000000bb';
 const OTHER_ID = '00000000-0000-4000-8000-000000000002';
 
 describe('PurchaseOrderDetailPageComponent', () => {
@@ -137,6 +139,7 @@ describe('PurchaseOrderDetailPageComponent', () => {
     reject: command(),
     cancel: command(),
     close: command(),
+    receive: command(() => ({ id: RECEIPT_ID }) as DocumentDto),
     // Like the real store: forgetting a command empties its outcome.
     resetCommands: jest.fn(() => {
       for (const name of COMMANDS) {
@@ -191,7 +194,7 @@ describe('PurchaseOrderDetailPageComponent', () => {
     store.resetFailed.mockClear();
     for (const name of COMMANDS) {
       store[name].run.mockReset();
-      store[name].run.mockReturnValue(of(order()));
+      store[name].run.mockReturnValue(of(name === 'receive' ? { id: RECEIPT_ID } : order()));
       store[name].$operation.set(IDLE_OPERATION);
       store[name].$isRunning.set(false);
     }
@@ -217,7 +220,12 @@ describe('PurchaseOrderDetailPageComponent', () => {
         ['close', 'cancel'],
         ['Cancel order', 'Close short']
       ],
-      [['receive', 'teleport'], []]
+      [['receive', 'teleport'], ['Receive']],
+      [
+        ['cancel', 'close', 'receive'],
+        ['Cancel order', 'Close short', 'Receive']
+      ],
+      [['teleport'], []]
     ])('%j shows %j', async (allowedActions, expected) => {
       await render(order({ allowedActions }));
 
@@ -487,6 +495,39 @@ describe('PurchaseOrderDetailPageComponent', () => {
       ).toBe(true);
       expect(spectator.query('.po-detail-bar')?.getAttribute('aria-busy')).toBe('true');
       running.complete();
+    });
+  });
+
+  describe('Receive starts a draft receipt from the order', () => {
+    let navigate: jest.SpyInstance;
+    beforeEach(() => {
+      navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    });
+
+    it('opens the new draft in the receipt editor, sending nothing but the order id', async () => {
+      await render(order({ allowedActions: ['receive'] }));
+
+      spectator.click(button('Receive'));
+
+      expect(store.receive.run).toHaveBeenCalledWith(ID);
+      expect(navigate).toHaveBeenCalledWith(['/', 'receipts', RECEIPT_ID]);
+    });
+
+    it('a 409 (the order is no longer open) is one alert with the API sentence, and the order is read again so the button goes', async () => {
+      await render(order({ allowedActions: ['receive'] }));
+      store.receive.run.mockReturnValue(of());
+      store.receive.$operation.set(
+        failureOperation(apiError(API_ERROR_KIND.Conflict, 409, 'PO-1 is Cancelled.', {}))
+      );
+      spectator.click(button('Receive'));
+      spectator.detectChanges();
+
+      expect(spectator.queryAll('app-banner[role="alert"]')).toHaveLength(1);
+      expect(spectator.query('app-banner[role="alert"]')?.textContent).toContain(
+        'PO-1 is Cancelled.'
+      );
+      expect(text()).not.toContain('changed since you opened it');
+      expect(detail.reload).toHaveBeenCalled();
     });
   });
 

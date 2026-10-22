@@ -31,7 +31,7 @@
 
 .document-editor-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
   gap: space(2);
   margin: 0;
 
@@ -153,4 +153,9 @@
 
 .document-editor-hint {
   color: color('text-muted');
+}
+
+.document-editor-order-lines {
+  margin: 0;
+  padding-inline-start: space(3);
 }
