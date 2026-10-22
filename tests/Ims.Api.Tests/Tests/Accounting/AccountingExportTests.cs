@@ -174,7 +174,7 @@ public class AccountingExportTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(ContentTypes.Xlsx, response.ContentType);
         Assert.Contains("ims-accounting-2026-10-01-2026-10-31.xlsx", response.ContentDisposition);
         var cacheControl = response.Header("Cache-Control") ?? "";
-        Assert.True(cacheControl.Contains("no-store", StringComparison.Ordinal) && cacheControl.Contains("private", StringComparison.Ordinal), cacheControl);
+        Assert.Equal(["no-store", "private"], response.CacheDirectives); // its own header, once
         var file = Xlsx.Read(response.Bytes);
         Assert.Equal("Accounting", file.SheetName);
         Assert.Equal(["Date", "Document no.", "Type", "Purpose", "Reversal of", "Warehouse", "Partner", "Partner TIN", "Partner SST reg. no.", "SKU", "Product", "HS code", "SST code", "Unit",

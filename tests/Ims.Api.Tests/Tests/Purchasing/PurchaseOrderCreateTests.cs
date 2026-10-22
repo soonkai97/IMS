@@ -210,6 +210,30 @@ public class PurchaseOrderCreateTests(ApiFixture fixture) : IAsyncLifetime
         Assert.NotEmpty(problem.ErrorsFor("lines[0]"));
     }
 
+    /// <summary>Security retest F-3: a purchase order carries cost data, so no shared cache may keep it.</summary>
+    [Fact]
+    public async Task A_purchase_order_response_is_private_and_no_store()
+    {
+        var warehouse = await _p.NewWarehouseAsync();
+        var product = await _p.NewProductAsync();
+        var order = (await _p.Admin.PurchaseOrders.CreateAsync(new PurchaseOrderBuilder(warehouse.Id, fixture.Reference.SupplierId).WithLine(product.Id, 1m, 5m).Build())).Data<PurchaseOrderDto>();
+
+        Assert.Equal(["no-store", "private"], (await _p.Admin.PurchaseOrders.GetAsync(order.Id)).ShouldBeOk().CacheDirectives);
+        Assert.Equal(["no-store", "private"], (await _p.Admin.PurchaseOrders.ListAsync()).ShouldBeOk().CacheDirectives);
+    }
+
+    /// <summary>Security retest F-1: lines of the wrong JSON type are a 400 that names no CLR type, JSON path or byte position.</summary>
+    [Fact]
+    public async Task Lines_of_the_wrong_JSON_type_are_a_400_that_names_no_framework_internals()
+    {
+        var response = await _p.Admin.PostRawJsonAsync("/api/purchase-orders", "{\"lines\":{}}");
+
+        var problem = response.ShouldBeProblem(HttpStatusCode.BadRequest);
+        Assert.Equal(Messages.RequestNotValid, problem.Detail);
+        Assert.NotEmpty(problem.Errors!);
+        foreach (var internals in new[] { "Ims.", "System.", "LineNumber", "Path:" }) Assert.DoesNotContain(internals, response.Body);
+    }
+
     [Fact]
     public async Task A_price_of_zero_is_accepted_on_a_draft_and_a_unit_the_product_converts_is_accepted()
     {

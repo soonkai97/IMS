@@ -23,8 +23,8 @@ public static class SecurityHeaders
         "accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), " +
         "magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), usb=(), xr-spatial-tracking=()";
 
-    /// <summary>Responses of the sign-in endpoints hold tokens and must never be stored by a browser or a proxy.</summary>
-    public const string NoStore = "no-store";
+    /// <summary>API responses hold tokens, costs and personal data: a browser may keep its own copy but no shared cache may.</summary>
+    public const string NoStore = "private, no-store";
 
     public static readonly TimeSpan HstsMaxAge = TimeSpan.FromDays(365);
 }

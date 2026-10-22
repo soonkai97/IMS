@@ -24,6 +24,9 @@ public sealed class ApiResponse
     public string? Header(string name) =>
         Message.Headers.TryGetValues(name, out var v) ? v.FirstOrDefault() : Message.Content.Headers.TryGetValues(name, out var c) ? c.FirstOrDefault() : null;
 
+    /// <summary>The <c>Cache-Control</c> directives, sorted, one entry per directive sent (a client re-orders them, so tests compare them as a set; a repeated header shows as a repeated entry).</summary>
+    public string[] CacheDirectives => [.. HeaderValues("Cache-Control").SelectMany(v => v.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)).Order()];
+
     public IReadOnlyList<string> HeaderValues(string name) => Message.Headers.TryGetValues(name, out var v) ? v.ToList() : [];
 
     public bool IsSuccess => Message.IsSuccessStatusCode;

@@ -33,15 +33,25 @@ public sealed class PurchaseOrdersClient(ApiClient api)
     public Task<ApiResponse> GetAsync(Guid id) => api.GetAsync($"/api/purchase-orders/{id}");
     public Task<ApiResponse> CreateAsync(PurchaseOrderSaveRequest request) => api.PostAsync("/api/purchase-orders", request);
 
-    /// <summary>A save with an <c>If-Match</c> header: the given token (quoted like an ETag unless it already is), or "*" (any version) when a test does not care.</summary>
-    public Task<ApiResponse> UpdateAsync(Guid id, PurchaseOrderSaveRequest request, string? ifMatch = null) =>
-        api.SendAsync(HttpMethod.Put, $"/api/purchase-orders/{id}", request, r => r.Headers.TryAddWithoutValidation("If-Match", Quote(ifMatch ?? "*")));
+    /// <summary>A save with an <c>If-Match</c> header: the given token (quoted like an ETag unless it already is), or the order's current token when a test does not care.</summary>
+    public Task<ApiResponse> UpdateAsync(Guid id, PurchaseOrderSaveRequest request, string? ifMatch = null) => Send(HttpMethod.Put, $"/api/purchase-orders/{id}", request, ifMatch);
 
     /// <summary>Creates the Draft receipt of an Approved order (no body, no If-Match: it makes a new document).</summary>
     public Task<ApiResponse> CreateReceiptAsync(Guid id) => api.PostAsync($"/api/purchase-orders/{id}/receipt", null);
 
-    private Task<ApiResponse> Send(HttpMethod method, string url, object? body, string? ifMatch) =>
-        api.SendAsync(method, url, body, r => r.Headers.TryAddWithoutValidation("If-Match", Quote(ifMatch ?? "*")));
+    /// <summary>Sends a write with the given <c>If-Match</c> token, or the order's current one (the API refuses "*" on a purchase order write).</summary>
+    private async Task<ApiResponse> Send(HttpMethod method, string url, object? body, string? ifMatch)
+    {
+        ifMatch ??= await CurrentTokenAsync(url);
+        return await api.SendAsync(method, url, body, r => r.Headers.TryAddWithoutValidation("If-Match", Quote(ifMatch)));
+    }
+
+    /// <summary>The token the order has now; a placeholder when it cannot be read, so a 403 or 404 still comes from the endpoint and not from a missing header.</summary>
+    private async Task<string> CurrentTokenAsync(string url)
+    {
+        var read = await api.GetAsync(string.Join('/', url.Split('/').Take(4)));
+        return read.IsSuccess ? read.Data<PurchaseOrderDto>().ConcurrencyToken : "unreadable";
+    }
 
     public Task<ApiResponse> SubmitAsync(Guid id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/purchase-orders/{id}/submit", null, ifMatch);
     public Task<ApiResponse> ApproveAsync(Guid id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/purchase-orders/{id}/approve", null, ifMatch);

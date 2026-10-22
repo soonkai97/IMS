@@ -7,7 +7,7 @@ namespace Ims.Api;
 /// </summary>
 public sealed class SecurityHeadersMiddleware(RequestDelegate next)
 {
-    private static readonly PathString AuthPath = "/" + ApiRoutes.Auth;
+    private static readonly PathString ApiPath = "/" + ApiRoutes.Prefix;
     private static readonly PathString SwaggerPath = "/" + OpenApiConstants.UiRoute;
 
     public Task InvokeAsync(HttpContext context)
@@ -31,6 +31,7 @@ public sealed class SecurityHeadersMiddleware(RequestDelegate next)
 
         // Swagger UI (Development and Testing only) is an HTML page with scripts of its own, so the JSON-only policy would blank it.
         if (!context.Request.Path.StartsWithSegments(SwaggerPath)) headers.TryAdd(HeaderNames.ContentSecurityPolicy, SecurityHeaders.ContentSecurityPolicy);
-        if (context.Request.Path.StartsWithSegments(AuthPath)) headers.TryAdd(HeaderNames.CacheControl, SecurityHeaders.NoStore);
+        // Every API response can carry cost, stock or personal data (OWASP ASVS 8.2): no shared cache keeps a copy. Static files, Swagger, health and the SPA keep their own caching.
+        if (context.Request.Path.StartsWithSegments(ApiPath)) headers.TryAdd(HeaderNames.CacheControl, SecurityHeaders.NoStore);
     }
 }

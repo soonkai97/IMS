@@ -43,9 +43,22 @@ public sealed class DocumentsClient(ApiClient api)
     public Task<ApiResponse> WithRawIfMatchAsync(HttpMethod method, string url, string raw, object? body = null) =>
         api.SendAsync(method, url, body, r => r.Headers.TryAddWithoutValidation("If-Match", raw));
 
-    /// <summary>Sends a write with an <c>If-Match</c> header: the given token (quoted like an ETag unless it already is, or is "*"), or "*" (any version) when a test does not care.</summary>
-    private Task<ApiResponse> Send(HttpMethod method, string url, object? body, string? ifMatch) =>
-        api.SendAsync(method, url, body, r => r.Headers.TryAddWithoutValidation("If-Match", Quote(ifMatch ?? "*")));
+    /// <summary>
+    /// Sends a write with an <c>If-Match</c> header: the given token (quoted like an ETag unless it already is), or the document's current token when a test
+    /// does not care (the API refuses "*" on a document command).
+    /// </summary>
+    private async Task<ApiResponse> Send(HttpMethod method, string url, object? body, string? ifMatch)
+    {
+        ifMatch ??= await CurrentTokenAsync(url);
+        return await api.SendAsync(method, url, body, r => r.Headers.TryAddWithoutValidation("If-Match", Quote(ifMatch)));
+    }
+
+    /// <summary>The token the document has now; a placeholder when it cannot be read, so a 403 or 404 still comes from the endpoint and not from a missing header.</summary>
+    private async Task<string> CurrentTokenAsync(string url)
+    {
+        var read = await api.GetAsync(string.Join('/', url.Split('/').Take(4)));
+        return read.IsSuccess ? read.Data<DocumentDto>().ConcurrencyToken : "unreadable";
+    }
 
     private static string Quote(string token) => token == "*" || token.StartsWith('"') ? token : $"\"{token}\"";
 }

@@ -188,7 +188,7 @@ public class RecallTests(ApiFixture fixture)
             case DocumentStatus.Cancelled: (await s.Clerk.Documents.CancelAsync(document.Id)).ShouldBeOk(); break;
         }
 
-        var response = await s.Clerk.Documents.RecallAsync(document.Id); // "*": the explicit any-version opt-out, so only the state is in question
+        var response = await s.Clerk.Documents.RecallAsync(document.Id); // the current token is sent, so only the state is in question
 
         Assert.Equal(Messages.OnlySubmittedCanRecall(document.No, status), response.ShouldBeProblem(HttpStatusCode.BadRequest).Detail);
         Assert.Equal(status, (await s.GetAsync(document.Id)).Status);

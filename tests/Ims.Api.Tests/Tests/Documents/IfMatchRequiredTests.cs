@@ -71,14 +71,30 @@ public class IfMatchRequiredTests(ApiFixture fixture)
         Assert.Equal(DocumentStatus.Draft, (await s.GetAsync(draft.Id)).Status);
     }
 
-    [Fact]
-    public async Task The_star_is_still_the_explicit_any_version()
+    /// <summary>Security retest F-2 (API1/API5): "*" names no version, so it must not switch the required check off.</summary>
+    [Theory]
+    [InlineData("PUT", "")]
+    [InlineData("POST", "/submit")]
+    [InlineData("POST", "/approve")]
+    [InlineData("POST", "/post")]
+    [InlineData("POST", "/reverse")]
+    public async Task The_star_is_428_on_a_document_command_and_changes_nothing(string method, string action)
     {
-        var (s, draft, _) = await DraftAsync();
+        var (s, draft, productId) = await DraftAsync();
+        object? body = action switch
+        {
+            "" => new DocumentSaveRequest(draft.WarehouseId, draft.PartnerId, null, draft.Remark, [new DocumentLineInput(productId, 9, null, 1m, null)]),
+            "/reverse" => new ReverseRequest("Entered twice"),
+            _ => null
+        };
 
-        var submitted = await s.Clerk.Documents.WithRawIfMatchAsync(HttpMethod.Post, $"/api/documents/{draft.Id}/submit", "*");
+        var response = await s.Admin.Documents.WithRawIfMatchAsync(new HttpMethod(method), $"/api/documents/{draft.Id}{action}", "*", body);
 
-        Assert.Equal(DocumentStatus.Submitted, submitted.Data<DocumentDto>().Status);
+        var problem = response.ShouldBeProblem((HttpStatusCode)428, "Precondition required");
+        Assert.Equal("if_match_required", response.Json().RootElement.GetProperty("code").GetString());
+        Assert.Contains("If-Match", problem.Detail);
+        var after = await s.GetAsync(draft.Id);
+        Assert.Equal((DocumentStatus.Draft, draft.ConcurrencyToken), (after.Status, after.ConcurrencyToken));
     }
 
     [Fact]

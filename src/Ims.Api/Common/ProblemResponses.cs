@@ -2,6 +2,7 @@ using Ims.Application;
 using Ims.Domain;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Ims.Api;
 
@@ -12,6 +13,7 @@ namespace Ims.Api;
 public static class ProblemResponses
 {
     public const string ProblemJson = "application/problem+json";
+    private const string JsonPathRoot = "$";
 
     public static ProblemDetails Create(HttpContext ctx, int status, string title, string detail)
     {
@@ -30,7 +32,7 @@ public static class ProblemResponses
         var errors = context.ModelState
             .Where(kv => kv.Value is { Errors.Count: > 0 })
             .ToDictionary(kv => ErrorKeys.Normalize(kv.Key),
-                kv => kv.Value!.Errors.Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage) ? Messages.RequestNotValid : e.ErrorMessage).Distinct().ToArray());
+                kv => kv.Value!.Errors.Select(e => SafeMessage(kv.Key, e)).Distinct().ToArray());
 
         // Framework messages for malformed JSON describe internals; clients get a plain sentence plus the field list.
         var pd = Create(http, StatusCodes.Status400BadRequest, Messages.RequestRejectedTitle, Messages.RequestNotValid);
@@ -38,6 +40,14 @@ public static class ProblemResponses
         StampCorrelationId(http);
         return new ObjectResult(pd) { StatusCode = StatusCodes.Status400BadRequest, ContentTypes = { ProblemJson } };
     }
+
+    /// <summary>
+    /// The JSON formatter reports a body it cannot read under a JSON path key ("$", "$.lines") and puts the serializer's own message in it: CLR type names,
+    /// line and byte positions. That text, and any error that carries an exception or no message, is never sent to a client; the field key still is.
+    /// A message from the binder for a route or query value is a plain sentence and is returned as is.
+    /// </summary>
+    private static string SafeMessage(string key, ModelError error) =>
+        key.StartsWith(JsonPathRoot, StringComparison.Ordinal) || error.Exception is not null || string.IsNullOrWhiteSpace(error.ErrorMessage) ? Messages.RequestNotValid : error.ErrorMessage;
 
     /// <summary>
     /// A request refused by the rate limiter: 429 with a readable sentence, the <c>Retry-After</c> header and <c>retryAfterSeconds</c>, so a client can

@@ -3,6 +3,7 @@ using Ims.Api.Tests.Clients;
 using Ims.Api.Tests.Harness;
 using Ims.Api.Tests.Support;
 using Ims.Application.Features.Auth;
+using Ims.Application.Features.Documents;
 using Ims.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -82,10 +83,12 @@ public class PostingStatementCountTests(ApiFixture fixture)
     private async Task<Dictionary<string, Measure>> CycleAsync(StockScenario s, ApiClient client, SqlStatementLog log, int products)
     {
         var measured = new Dictionary<string, Measure>();
-        async Task MeasureAsync(string operation, Func<Task<ApiResponse>> request)
+        // The version token is read before the count starts: reading it is the caller's own request, not part of the use case measured.
+        async Task MeasureAsync(string operation, Guid id, Func<string, Task<ApiResponse>> request)
         {
+            var token = (await client.Documents.GetAsync(id)).Data<DocumentDto>().ConcurrencyToken;
             log.Clear();
-            var response = await request();
+            var response = await request(token);
             measured[operation] = new Measure(log.Count, log.WriteCount, log.Texts);
             response.ShouldBeOk();
         }
@@ -94,15 +97,15 @@ public class PostingStatementCountTests(ApiFixture fixture)
         for (var i = 0; i < products; i++) items.Add((await s.NewProductAsync()).Id);
 
         var receipt = await s.DraftReceiptAsync(s.Admin, Warehouse, items.Select(p => new Line(p, 10, 2m)).ToArray());
-        await MeasureAsync(SubmitReceipt, () => client.Documents.SubmitAsync(receipt.Id));
-        await MeasureAsync(PostReceipt, () => client.Documents.PostAsync(receipt.Id));
-        await MeasureAsync(ReadPosted, () => client.Documents.GetAsync(receipt.Id));
+        await MeasureAsync(SubmitReceipt, receipt.Id, t => client.Documents.SubmitAsync(receipt.Id, t));
+        await MeasureAsync(PostReceipt, receipt.Id, t => client.Documents.PostAsync(receipt.Id, t));
+        await MeasureAsync(ReadPosted, receipt.Id, _ => client.Documents.GetAsync(receipt.Id));
 
         var issue = await s.DraftIssueAsync(s.Admin, Warehouse, items.Select(p => new Line(p, 4)).ToArray());
-        await MeasureAsync(SubmitIssue, () => client.Documents.SubmitAsync(issue.Id));
-        await MeasureAsync(PostIssue, () => client.Documents.PostAsync(issue.Id));
-        await MeasureAsync(ReverseIssue, () => client.Documents.ReverseAsync(issue.Id, "Entered twice"));
-        await MeasureAsync(ReverseReceipt, () => client.Documents.ReverseAsync(receipt.Id, "Entered twice"));
+        await MeasureAsync(SubmitIssue, issue.Id, t => client.Documents.SubmitAsync(issue.Id, t));
+        await MeasureAsync(PostIssue, issue.Id, t => client.Documents.PostAsync(issue.Id, t));
+        await MeasureAsync(ReverseIssue, issue.Id, t => client.Documents.ReverseAsync(issue.Id, "Entered twice", t));
+        await MeasureAsync(ReverseReceipt, receipt.Id, t => client.Documents.ReverseAsync(receipt.Id, "Entered twice", t));
         return measured;
     }
 
