@@ -891,5 +891,32 @@ export const EN_MESSAGES = {
   'po.print.lineNo': 'No.',
   'po.print.total': 'Total ({currency})',
   'po.unitFor': 'Unit of {sku}',
-  'po.print.notPrintable': 'Only an approved or closed order can be printed.'
+  'po.print.notPrintable': 'Only an approved or closed order can be printed.',
+  'reorder.title': 'Reorder',
+  'reorder.chooseWarehouse': 'Choose a warehouse',
+  'reorder.pickWarehouse': 'Choose a warehouse to see what to order.',
+  'reorder.empty': 'Nothing to order for this warehouse.',
+  'reorder.noMatch': 'No product to order matches this search.',
+  'reorder.searchLabel': 'Search products',
+  'reorder.searchPlaceholder': 'Code or name',
+  'reorder.onOrder': 'On order',
+  'reorder.qty': 'Order qty',
+  'reorder.qtyFor': 'Quantity to order of {sku}',
+  'reorder.qtyInvalid': 'Enter a quantity above 0, with up to 4 decimals.',
+  'reorder.value': 'Est. value ({currency})',
+  'reorder.hint':
+    'The suggestion is up to twice the safety stock, less what is on hand and on order. Orders still in draft count as on order.',
+  'reorder.select': 'Select',
+  'reorder.selectRow': 'Select {sku}, {name}',
+  'reorder.selectAll': 'Select all on this page',
+  'reorder.selectionNote':
+    'Only this page is selected. Changing the page, the search or the warehouse clears the selection.',
+  'reorder.selected': '{count, plural, one {1 product selected} other {# products selected}}',
+  'reorder.chooseSupplier': 'Choose a supplier',
+  'reorder.supplierRequired': 'Choose a supplier.',
+  'reorder.create': 'Create purchase order',
+  'reorder.nothingSelected': 'Select at least one product to order.',
+  'reorder.fixQuantities': 'Correct the quantities that have an error under them.',
+  'reorder.tooMany':
+    'An order takes up to {max} lines. The first {max} selected go into this order; {omitted} are left out. Order them in another purchase order.'
 } as const;

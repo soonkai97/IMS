@@ -114,6 +114,16 @@ describe('UiFormFieldComponent required marker (D4, RQ-01 to RQ-06)', () => {
     expect(asterisk()?.getAttribute('aria-hidden')).toBe('true');
   });
 
+  it('a hidden label is still there: visually hidden, and it names the input (a field in a table cell)', () => {
+    spectator = createHost(
+      `<app-form-field label="Quantity of A1" labelHidden><app-input /></app-form-field>`
+    );
+
+    expect(label()?.classList).toContain('sr-only');
+    expect(label()?.getAttribute('for')).toBe(spectator.query('input')?.id);
+    expect(accessibleLabel(label())).toBe('Quantity of A1');
+  });
+
   it('the name is the label alone and the control exposes the state, so "required" is read once, never "star"', () => {
     spectator = createHost(
       `<app-form-field label="Email or username" [required]="true"><app-input /></app-form-field>`

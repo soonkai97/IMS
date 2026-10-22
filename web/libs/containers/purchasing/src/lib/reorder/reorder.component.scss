@@ -1,0 +1,62 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.reorder-page-notes {
+  margin-top: space(2);
+  color: color('text-muted');
+
+  p {
+    margin: 0 0 space(1);
+  }
+}
+
+.reorder-page-filters {
+  @include filter-row;
+}
+
+// The supplier, the button and the selection line stack on a phone and sit in a row from the tablet width.
+.reorder-page-create {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: space(1) space(2);
+  align-items: start;
+  margin-bottom: space(2);
+
+  @include media-tablet {
+    grid-template-columns: minmax(12rem, 20rem) auto;
+
+    > app-button {
+      margin-top: font-size(2) * $line-height + space(0);
+    }
+
+    .reorder-page-selection {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.reorder-page-selection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1) space(2);
+  align-items: center;
+}
+
+.reorder-page-warning {
+  color: color('danger');
+  overflow-wrap: anywhere;
+
+  &:empty {
+    display: none;
+  }
+}
+
+// In a card the box shares the line with its label: it shrinks (never pushes the page sideways) but stays wide enough to type in.
+.reorder-page-qty {
+  flex: 1 1 5rem;
+  min-width: 0;
+  max-width: 9rem;
+}

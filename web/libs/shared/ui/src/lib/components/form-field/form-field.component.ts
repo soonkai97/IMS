@@ -36,6 +36,8 @@ export class UiFormFieldComponent implements FormFieldContext {
   $label = input.required<string>({ alias: 'label' });
   $hint = input<string | undefined>(undefined, { alias: 'hint' });
   $required = input(false, { alias: 'required', transform: booleanAttribute });
+  /** The label is read by a screen reader but not shown (a field in a table cell, whose column header already says it). */
+  $labelHidden = input(false, { alias: 'labelHidden', transform: booleanAttribute });
   /** Reactive-forms control whose errors are shown once it was touched. */
   $control = input<AbstractControl | null>(null, { alias: 'control' });
   /** Explicit error text (wins over the control's own errors). */

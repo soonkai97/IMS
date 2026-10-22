@@ -1,5 +1,6 @@
 <app-page-header [heading]="'po.title' | t">
   <div actions>
+    <a class="ui-link-button" routerLink="/purchase-orders/reorder">{{ 'reorder.title' | t }}</a>
     @if ($canCreate()) {
       <a class="ui-link-button --primary" routerLink="/purchase-orders/new">{{ 'po.new' | t }}</a>
     }

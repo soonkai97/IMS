@@ -1,0 +1,129 @@
+<app-page-header
+  [heading]="'reorder.title' | t"
+  [backLink]="backLink"
+  [backLabel]="'po.title' | t"
+/>
+
+<div class="reorder-page-filters">
+  <app-form-field [label]="'doc.warehouse' | t">
+    <app-select
+      [formControl]="warehouseControl"
+      [options]="$warehouseOptions()"
+      [placeholder]="'reorder.chooseWarehouse' | t"
+    />
+  </app-form-field>
+  <app-search-input
+    [(value)]="$searchInput"
+    [label]="'reorder.searchLabel' | t"
+    [placeholder]="'reorder.searchPlaceholder' | t"
+  />
+</div>
+
+@if ($query() === null) {
+  <app-empty-state icon="warehouse" [message]="'reorder.pickWarehouse' | t" />
+} @else {
+  @if ($canCreate()) {
+    <section class="reorder-page-create" [attr.aria-label]="'reorder.create' | t">
+      <app-form-field [label]="'doc.supplier' | t" [error]="$supplierError()">
+        <app-select
+          [formControl]="supplierControl"
+          [options]="$supplierOptions()"
+          [placeholder]="'reorder.chooseSupplier' | t"
+        />
+      </app-form-field>
+      <app-button variant="primary" (clicked)="onCreate()">
+        {{ 'reorder.create' | t }}
+      </app-button>
+      <div class="reorder-page-selection">
+        <app-checkbox
+          [ngModel]="$allSelected()"
+          (ngModelChange)="onPickAll($event)"
+          [disabled]="$rows().length === 0"
+          >{{ 'reorder.selectAll' | t }}</app-checkbox
+        >
+        <span aria-live="polite">{{
+          'reorder.selected' | t: { count: $selectedRows().length }
+        }}</span>
+        <span class="reorder-page-warning" aria-live="polite">
+          @if ($overflow() > 0) {
+            {{ 'reorder.tooMany' | t: { max: maxLines, omitted: $overflow() } }}
+          }
+        </span>
+        <span class="reorder-page-warning" aria-live="polite">
+          @if ($problem(); as problem) {
+            {{ problem | t }}
+          }
+        </span>
+      </div>
+    </section>
+  }
+
+  <app-table
+    [columns]="$columns()"
+    [rows]="$rows()"
+    [caption]="'reorder.title' | t"
+    [loading]="$isLoading()"
+    [failed]="$failed()"
+    (retried)="onRetry()"
+  >
+    <ng-template appCell="select" let-row>
+      <app-checkbox [ngModel]="isPicked(row)" (ngModelChange)="onPick(row, $event)">
+        <span class="sr-only">{{
+          'reorder.selectRow' | t: { sku: row.sku, name: row.productName }
+        }}</span>
+      </app-checkbox>
+    </ng-template>
+    <ng-template appCell="onHand" let-row
+      ><strong>{{ row.qtyOnHand | appQty }}</strong></ng-template
+    >
+    <ng-template appCell="safety" let-row>{{ row.safetyStock | appQty }}</ng-template>
+    <ng-template appCell="onOrder" let-row>{{ row.onOrderQty | appQty }}</ng-template>
+    <ng-template appCell="qty" let-row>
+      @if ($canCreate()) {
+        <app-form-field
+          class="reorder-page-qty"
+          labelHidden
+          [label]="'reorder.qtyFor' | t: { sku: row.sku }"
+          [error]="qtyError(row)"
+        >
+          <app-input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            [ngModel]="qtyOf(row)"
+            (ngModelChange)="onQty(row, $event)"
+          />
+        </app-form-field>
+      } @else {
+        {{ row.suggestedQty | appQty }}
+      }
+    </ng-template>
+    <ng-template appCell="value" let-row>
+      @let value = valueOf(row);
+      @if (value !== null) {
+        {{ value | appMoney }}
+      } @else {
+        -
+      }
+    </ng-template>
+    <app-empty-state empty icon="check" [message]="$emptyKey() | t" />
+  </app-table>
+
+  @if ($page(); as page) {
+    <app-pager
+      [pageSizes]="pageSizes"
+      (pageSizeChange)="onPageSizeChange($event)"
+      [page]="page.page"
+      [pageSize]="page.pageSize"
+      [total]="page.total"
+      (pageChange)="onPageChange($event)"
+    />
+  }
+}
+
+<div class="reorder-page-notes">
+  <p>{{ 'reorder.hint' | t }}</p>
+  @if ($canCreate()) {
+    <p>{{ 'reorder.selectionNote' | t }}</p>
+  }
+</div>
