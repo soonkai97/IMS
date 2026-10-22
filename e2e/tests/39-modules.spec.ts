@@ -13,7 +13,6 @@ import { goTo, loadPage } from '../src/pages/shell';
 // Settings > Modules (PL1.4): which parts of the system are on for the installation. This file never changes the state of the
 // installation: the scenarios on the real API only read (the list, the forbidden pages, the layout), and the switch itself (reason
 // dialog, result, errors, the stale-screen 404) is driven against a stubbed /api/modules that offers a second, made-up module.
-// The real flip of `accounting` (on with a reason, forms and export, off again, the data put back) is `40-accounting.spec.ts`.
 const ACCOUNTING = 'Accounting';
 /** The web's own sentence under the reason box (the API says the same thing, so a stub must not reuse it for a 400). */
 const REASON_SENTENCE = 'Enter a reason of at least 5 characters.';
@@ -116,7 +115,7 @@ test.describe('Settings > Modules, real API (nothing is changed)', () => {
     }
 
     const accounting = moduleSwitch(page, ACCOUNTING);
-    // The switch shows what the API says, in words, and nothing blocks it (the PL1.4 gate is gone; 40-accounting flips it).
+    // The switch shows what the API says, in words, and nothing blocks it.
     const state = listed.find(item => item.code === 'accounting')?.enabled === true;
     await expect(accounting).toHaveAttribute('aria-checked', String(state));
     await expect(accounting).toContainText(state ? 'On' : 'Off');

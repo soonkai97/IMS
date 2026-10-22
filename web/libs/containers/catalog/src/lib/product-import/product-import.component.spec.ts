@@ -68,7 +68,7 @@ describe('ProductImportPageComponent, rules text', () => {
     component: ProductImportPageComponent,
     providers: [provideRouter([]), mockProvider(ImportClient)]
   });
-  const text = (): string => spectator.element.textContent?.replace(/s+/g, ' ') ?? '';
+  const text = (): string => spectator.element.textContent?.replace(/\s+/g, ' ') ?? '';
 
   it('names no tax column (HsCode, SstCode) on either tab', () => {
     spectator = createComponent();
