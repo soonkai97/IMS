@@ -97,6 +97,14 @@ export async function approvedOrder(
   return submitted.status === 'Approved' ? submitted : command('supervisor', order.id, 'approve');
 }
 
+/** A draft receipt made from an Approved order, as a role (the Receive button of the web makes the same call). */
+export function receiptFromOrder(
+  order: Pick<ApiOrder, 'id'>,
+  role: Role = 'supervisor'
+): Promise<ReceiptDraft> {
+  return apiAs(role).call<ReceiptDraft>('POST', `/api/purchase-orders/${order.id}/receipt`);
+}
+
 /** Receives `qty` of the first line against the order: a draft receipt from the order, set to `qty`, submitted, approved if held, posted. */
 export async function receive(
   order: ApiOrder,
@@ -131,8 +139,9 @@ export async function receive(
   return supervisor.command(draft.id, 'post');
 }
 
-interface ReceiptDraft {
+export interface ReceiptDraft {
   id: PublicId;
+  no: string;
   partnerId: PublicId | null;
   warehouseId: PublicId;
   lines: {

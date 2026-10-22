@@ -16,6 +16,8 @@
 // Phone: stacked card. Desktop: one grid row per line.
 .line-editor-row {
   display: grid;
+  // A code that is one long word must wrap, not widen the card past a 320 px phone at 200% text.
+  grid-template-columns: minmax(0, 1fr);
   gap: space(1) space(2);
   padding: space(2);
   background: color('surface');
@@ -43,6 +45,7 @@
   min-width: 0;
 }
 
+.line-editor-sku,
 .line-editor-name {
   overflow-wrap: anywhere;
 }
@@ -58,6 +61,8 @@
   $label-block: font-size(2) * $line-height + space(0);
 
   display: flex;
+  // At 320 px with the text at 200% the field, both steppers and the unit do not fit on one line: the last ones wrap.
+  flex-wrap: wrap;
   gap: space(0);
   align-items: flex-start;
 

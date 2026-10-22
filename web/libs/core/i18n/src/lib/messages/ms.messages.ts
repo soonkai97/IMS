@@ -925,5 +925,27 @@ export const MS_MESSAGES: Messages = {
   'reorder.nothingSelected': 'Pilih sekurang-kurangnya satu produk untuk ditempah.',
   'reorder.fixQuantities': 'Betulkan kuantiti yang ada ralat di bawahnya.',
   'reorder.tooMany':
-    'Satu pesanan menerima sehingga {max} baris. {max} yang pertama dipilih masuk ke pesanan ini; {omitted} ditinggalkan. Tempah dalam pesanan belian lain.'
+    'Satu pesanan menerima sehingga {max} baris. {max} yang pertama dipilih masuk ke pesanan ini; {omitted} ditinggalkan. Tempah dalam pesanan belian lain.',
+  // TODO-review: machine draft (PL2.9: receive against a purchase order).
+  'po.action.receive': 'Terima',
+  'doc.order.from':
+    'Resit ini untuk pesanan pembelian {order}. Pembekal, gudang dan barisan datang daripada pesanan itu.',
+  'doc.order.open': 'Buka pesanan.',
+  'doc.order.editHint':
+    'Kurangkan kuantiti atau buang barisan yang tidak tiba. Kuantiti tidak boleh melebihi baki pesanan.',
+  'doc.order.closed': 'Pesanan {order} kini diterima sepenuhnya dan ditutup.',
+  'doc.order.remaining':
+    'Pesanan {order} masih ada {count, plural, one {1 barisan} other {# barisan}} untuk diterima.',
+  'doc.linesOverOrder': 'Satu kuantiti melebihi baki pesanan. Kurangkannya untuk meneruskan.',
+  'doc.overReceipt.title': 'Tidak disiarkan: melebihi baki pesanan',
+  'doc.overReceipt.line':
+    'Barisan {lineNo} ({sku}): dipesan {ordered}, diterima {received}, baki {remaining}, resit ini {requested}.',
+  'doc.overReceipt.fix': 'Resit tidak berubah. Kurangkan kuantiti dan siarkan sekali lagi.',
+  'doc.overReceipt.ask':
+    'Resit tidak berubah. Minta orang yang membuatnya mengurangkan kuantiti, atau batalkannya.',
+  'doc.lineRefusals': 'Barisan ini tidak diterima',
+  'line.order':
+    'Barisan pesanan {lineNo}: dipesan {ordered}, diterima {received}, baki {remaining} {uom}',
+  'line.orderNo': 'Barisan pesanan {lineNo}',
+  'line.order.over': 'Hanya {remaining} {uom} daripada barisan pesanan ini masih boleh diterima.'
 };

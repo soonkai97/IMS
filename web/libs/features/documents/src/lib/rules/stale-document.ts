@@ -9,7 +9,8 @@ const CODE_MEMBER = 'code';
 export const CONFLICT_CODE = {
   DocumentChanged: 'document_changed',
   InsufficientStock: 'insufficient_stock',
-  ReversalBlocked: 'reversal_blocked'
+  ReversalBlocked: 'reversal_blocked',
+  OverReceipt: 'over_receipt'
 } as const;
 
 function codeOf(error: ApiError): unknown {
@@ -22,18 +23,12 @@ function isConflict(error: ApiError | undefined): error is ApiError {
 
 /**
  * A 409 that says the document changed since the user opened it (the If-Match token no longer matches): UX error E4,
- * a banner with a Reload button. The API names it (`code`); an API without codes answers a 409 that has no product.
- * A blocked reversal and an insufficient-stock answer are 409s too, but they are not this.
+ * a banner with a Reload button. The API names it (`code`). A 409 without a code is another refusal with its own sentence
+ * (the order of a receipt is no longer open, the module is off): it is shown as what it is, not as a stale copy. A blocked
+ * reversal, an insufficient-stock and an over-receipt answer are 409s too, but they are not this.
  */
 export function isStaleDocumentError(error: ApiError | undefined): boolean {
-  if (!isConflict(error)) {
-    return false;
-  }
-  const code = codeOf(error);
-  if (code !== undefined) {
-    return code === CONFLICT_CODE.DocumentChanged;
-  }
-  return error.extensions[STOCK_CONFLICT_MEMBER] === undefined;
+  return isConflict(error) && codeOf(error) === CONFLICT_CODE.DocumentChanged;
 }
 
 /** The insufficient-stock 409 (E5): says which product, how much is there and how much was asked for. */

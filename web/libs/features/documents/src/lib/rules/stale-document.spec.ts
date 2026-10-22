@@ -22,8 +22,8 @@ function conflict(extensions: Record<string, unknown> = {}): ApiError {
 }
 
 describe('stale document detection', () => {
-  it('treats a plain 409 as a stale copy', () => {
-    expect(isStaleDocumentError(conflict())).toBe(true);
+  it('does not take a 409 without a code for a stale copy: it is another refusal with its own sentence', () => {
+    expect(isStaleDocumentError(conflict())).toBe(false);
     expect(isStockConflictError(conflict())).toBe(false);
   });
 

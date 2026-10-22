@@ -7,6 +7,7 @@ import {
   createLineGroup,
   lineFromDocument,
   lineShortfall,
+  overRemainingLines,
   isValidQuantity,
   maxCoveredQuantity,
   toLineInputs
@@ -30,6 +31,7 @@ function line(overrides: Partial<LineValue> = {}): LineValue {
     available: null,
     baseUomCode: 'PCS',
     uomOptions: [PCS, CARTON],
+    purchaseOrderLineNo: null,
     ...overrides
   };
 }
@@ -267,5 +269,41 @@ describe('request building and validation', () => {
     expect(cost.errors).toEqual({ decimals: { max: 2 } });
     cost.setValue(-5);
     expect(cost.errors).toHaveProperty('min');
+  });
+});
+
+describe('receipt lines of a purchase order', () => {
+  const contexts = new Map([
+    [1, { ordered: 10, received: 6, remaining: 4, uomCode: 'PCS' }],
+    [2, { ordered: 5, received: 0, remaining: 5, uomCode: 'PCS' }]
+  ]);
+  const of = (purchaseOrderLineNo: number | null, qty: number): LineValue =>
+    line({ purchaseOrderLineNo, qty });
+
+  it('always sends the order line a line receives, and nothing for a line of no order', () => {
+    const inputs = toLineInputs([of(2, 3), of(null, 1)], DocumentType.Receipt);
+
+    expect(inputs.map(input => input.purchaseOrderLineNo)).toEqual([2, undefined]);
+  });
+
+  it('reads the order line from the API, where a line of no order has null', () => {
+    const dto = {
+      productId: id(1),
+      qty: 2,
+      baseQty: 2,
+      uomId: id(1),
+      uomCode: 'PCS'
+    } as DocumentLineDto;
+
+    expect(
+      lineFromDocument({ ...dto, purchaseOrderLineNo: null } as never).purchaseOrderLineNo
+    ).toBeNull();
+    expect(lineFromDocument({ ...dto, purchaseOrderLineNo: 3 }).purchaseOrderLineNo).toBe(3);
+  });
+
+  it('flags an order line whose quantities add up to more than remains, and no other', () => {
+    expect(overRemainingLines([of(1, 4), of(2, 5)], contexts)).toEqual(new Set());
+    expect(overRemainingLines([of(1, 3), of(1, 1.5), of(2, 5)], contexts)).toEqual(new Set([1]));
+    expect(overRemainingLines([of(7, 99), of(null, 99)], contexts)).toEqual(new Set());
   });
 });

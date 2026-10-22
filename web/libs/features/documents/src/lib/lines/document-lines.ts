@@ -32,6 +32,8 @@ export interface LineValue {
   readonly available: number | null;
   readonly baseUomCode: string;
   readonly uomOptions: readonly UomOption[];
+  /** The order line a receipt from a purchase order line receives; null for every other line. Always sent back unchanged. */
+  readonly purchaseOrderLineNo: number | null;
 }
 
 /** Typed form of one document line. The display-only members (sku, name, available...) are disabled controls. */
@@ -46,6 +48,7 @@ export type LineGroup = FormGroup<{
   available: FormControl<number | null>;
   baseUomCode: FormControl<string>;
   uomOptions: FormControl<readonly UomOption[]>;
+  purchaseOrderLineNo: FormControl<number | null>;
 }>;
 
 export type LinesArray = FormArray<LineGroup>;
@@ -101,7 +104,12 @@ export function createLineGroup(value: LineValue): LineGroup {
       { value: value.baseUomCode, disabled: true },
       { nonNullable: true }
     ),
-    uomOptions: new FormControl<readonly UomOption[]>(value.uomOptions, { nonNullable: true })
+    uomOptions: new FormControl<readonly UomOption[]>(value.uomOptions, { nonNullable: true }),
+    // Display only (the line is not this person's to re-point), but it travels with every save.
+    purchaseOrderLineNo: new FormControl<number | null>({
+      value: value.purchaseOrderLineNo,
+      disabled: true
+    })
   });
 }
 
@@ -146,7 +154,8 @@ export function lineFromProduct(
     remark: '',
     available,
     baseUomCode: product.baseUomCode,
-    uomOptions: buildUomOptions(product, codes)
+    uomOptions: buildUomOptions(product, codes),
+    purchaseOrderLineNo: null
   };
 }
 
@@ -163,7 +172,9 @@ export function lineFromDocument(line: DocumentLineDto): LineValue {
     remark: line.remark ?? '',
     available: line.available ?? null,
     baseUomCode: line.uomCode,
-    uomOptions: [{ uomId: line.uomId, code: line.uomCode, factorToBase: factor }]
+    uomOptions: [{ uomId: line.uomId, code: line.uomCode, factorToBase: factor }],
+    // The API sends null (or leaves it out while purchasing is off) for a line that belongs to no order.
+    purchaseOrderLineNo: line.purchaseOrderLineNo ?? null
   };
 }
 
@@ -237,6 +248,39 @@ export function toLineInputs(lines: readonly LineValue[], type: DocumentType): D
     qty: toNumber(line.qty),
     uomId: line.uomId,
     unitCost: type === DocumentType.Receipt && line.unitCost !== null ? line.unitCost : undefined,
-    remark: line.remark.trim().length > 0 ? line.remark.trim() : undefined
+    remark: line.remark.trim().length > 0 ? line.remark.trim() : undefined,
+    purchaseOrderLineNo: line.purchaseOrderLineNo ?? undefined
   }));
+}
+
+/** What a purchase order says about one of its lines, in the line's own unit: the context of a receipt line and the limit of its quantity. */
+export interface OrderLineContext {
+  readonly ordered: number;
+  readonly received: number;
+  readonly remaining: number;
+  readonly uomCode: string;
+}
+
+/**
+ * The order lines whose receipt quantities add up to more than the order has left (lines of one order line add up, as the API does).
+ * Advisory: the API decides at save and again at posting.
+ */
+export function overRemainingLines(
+  lines: readonly LineValue[],
+  contexts: ReadonlyMap<number, OrderLineContext>
+): ReadonlySet<number> {
+  const sums = new Map<number, number>();
+  for (const line of lines) {
+    if (line.purchaseOrderLineNo !== null) {
+      sums.set(
+        line.purchaseOrderLineNo,
+        roundQuantity((sums.get(line.purchaseOrderLineNo) ?? 0) + toNumber(line.qty))
+      );
+    }
+  }
+  return new Set(
+    [...sums]
+      .filter(([lineNo, sum]) => sum > (contexts.get(lineNo)?.remaining ?? Infinity))
+      .map(([lineNo]) => lineNo)
+  );
 }
