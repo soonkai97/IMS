@@ -38,6 +38,13 @@ public static class PurchaseOrderActionPolicy
     public static bool MayClose(ActorRights actor, in PurchaseOrderActionContext order) =>
         order.Status == PurchaseOrderStatus.Approved && order.AnythingReceived && actor.Has(Permissions.PoManage);
 
+    /// <summary>
+    /// Create a receipt from an Approved order: the door of that endpoint is <c>document.create</c>, the order must be readable (<c>po.read</c>) and something must be left to receive. Any role or custom role holding both
+    /// permissions may; an order fully received is Closed by then, so the status alone rules the rest out.
+    /// </summary>
+    public static bool MayReceive(ActorRights actor, in PurchaseOrderActionContext order) =>
+        order.Status == PurchaseOrderStatus.Approved && order.AnythingRemaining && actor.Has(Permissions.DocumentCreate) && actor.Has(Permissions.PoRead);
+
     /// <summary>Approve or reject a Submitted order held for approval: the reviewer it is routed to, and not the submitter unless self-approval is on.</summary>
     public static bool MayReview(ActorRights actor, in PurchaseOrderActionContext order, bool allowSelfApproval)
     {
@@ -65,6 +72,7 @@ public static class PurchaseOrderActionPolicy
 
             case PurchaseOrderStatus.Approved:
                 if (MayCancel(actor, order)) actions.Add(DocumentActions.Cancel);
+                if (MayReceive(actor, order)) actions.Add(DocumentActions.Receive);
                 if (MayClose(actor, order)) actions.Add(DocumentActions.Close);
                 break;
         }
