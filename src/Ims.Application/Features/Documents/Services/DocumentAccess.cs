@@ -47,9 +47,9 @@ public class DocumentAccess(ICurrentUser current) : IDocumentAccess, IAppService
 
     public bool IsRepeatedRecall(StockDocument document) => document is { Status: DocumentStatus.Draft, IsReturned: false };
 
-    public IReadOnlyList<string> AllowedActions(DocumentDto d, SystemSettings settings, bool withinApprovalLimit) =>
+    public IReadOnlyList<string> AllowedActions(DocumentDto d, SystemSettings settings, bool withinApprovalLimit, LinkedReceiptContext? link = null) =>
         DocumentActionPolicy.AllowedActions(current.Rights(),
-            new DocumentActionContext(d.Status, d.RequiresApproval, d.IsLarge, d.CreatedByKey, d.SubmittedByKey), settings.AllowSelfApproval, withinApprovalLimit);
+            new DocumentActionContext(d.Status, d.RequiresApproval, d.IsLarge, d.CreatedByKey, d.SubmittedByKey), settings.AllowSelfApproval, withinApprovalLimit, link);
 
     public bool CanAct(DocumentListItem item, SystemSettings settings) =>
         DocumentActionPolicy.MayReview(current.Rights(),

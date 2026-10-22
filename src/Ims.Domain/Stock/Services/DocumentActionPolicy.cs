@@ -62,7 +62,8 @@ public static class DocumentActionPolicy
     }
 
     /// <param name="withinApprovalLimit">False when the approval rules in force need a higher approver than the caller (checked by the caller, which knows the rules).</param>
-    public static IReadOnlyList<string> AllowedActions(ActorRights actor, in DocumentActionContext doc, bool allowSelfApproval, bool withinApprovalLimit = true)
+    /// <param name="link">Set for a receipt created from a purchase order: <see cref="LinkedReceiptPolicy"/> then takes away what the API would refuse (no <c>po.read</c>, module off).</param>
+    public static IReadOnlyList<string> AllowedActions(ActorRights actor, in DocumentActionContext doc, bool allowSelfApproval, bool withinApprovalLimit = true, LinkedReceiptContext? link = null)
     {
         var actions = new List<string>();
 
@@ -97,6 +98,6 @@ public static class DocumentActionPolicy
                 actions.Add(DocumentActions.Reverse);
                 break;
         }
-        return actions;
+        return link is { } linked ? LinkedReceiptPolicy.Offered(actions, actor.Has(Permissions.PoRead), linked.PurchasingOn) : actions;
     }
 }

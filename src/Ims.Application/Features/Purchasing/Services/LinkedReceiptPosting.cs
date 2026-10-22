@@ -11,7 +11,7 @@ public class LinkedReceiptPosting(IReadRepository<PurchaseOrder> orders, IPurcha
 
         // First lock of the transaction: nothing has locked stock yet (the balance loader does it after this returns).
         await locker.LockPurchaseOrderAsync(key, ct);
-        if (!await modules.IsEnabledAsync(ModuleCodes.Purchasing, ct)) throw new ConflictException(Messages.ReceiptCannotPostModuleOff);
+        await LinkedReceiptGuard.EnsureAsync(DocumentActions.Post, caller, modules, ct);
         var order = await orders.FirstOrDefaultAsync(new PurchaseOrderForReceiptSpec(key), ct) ?? throw new NotFoundException(Messages.PurchaseOrderNotFound);
         // The order's number, status and figures are shown to readers of purchase orders only (as when the receipt was made), so anyone else is refused in general words.
         var mayRead = caller.Has(Permissions.PoRead);
