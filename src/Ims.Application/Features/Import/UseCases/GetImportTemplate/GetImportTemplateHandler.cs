@@ -1,5 +1,4 @@
 using Ims.Application.Features.Reports;
-using Ims.Domain;
 namespace Ims.Application.Features.Import;
 
 public class GetImportTemplateHandler(IReportWriter report) : IQueryHandler<GetImportTemplateQuery, ExportFile>

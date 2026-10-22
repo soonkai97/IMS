@@ -29,8 +29,6 @@ for (const [env, base] of [['Development', BASE], ['Production', PROD]]) {
 }
 check(7, 'Production: HSTS is wired (PipelineSetup.cs:20 UseHsts outside Development); NOT TESTABLE over loopback HTTP (the middleware skips plain HTTP and localhost)', true, `header seen: ${(await raw(PROD, 'GET', '/health')).headers.get('strict-transport-security')}`);
 check(7, 'Production: Swagger UI and the OpenAPI document are not served (not 200)', (await raw(PROD, 'GET', '/openapi/v1.json')).status !== 200 && (await raw(PROD, 'GET', '/swagger/index.html')).status !== 200);
-const ex = await raw(BASE, 'GET', '/api/accounting/export?from=2026-01-01&to=2026-01-02', { token: T.admin });
-check(7, 'accounting export: Cache-Control private, no-store; attachment', /no-store/.test(ex.headers.get('cache-control')) && /attachment/.test(ex.headers.get('content-disposition')), ex.headers.get('cache-control'));
 
 // ---- C. CORS (Cors:Origins = http://localhost:4300 on the Development run)
 const okOrigin = 'http://localhost:4300';
@@ -51,7 +49,7 @@ for (const [path, ops] of Object.entries(spec.paths)) for (const m of Object.key
   if (r.status !== 401 && !pub.has(path)) open.push(`${m.toUpperCase()} ${path} -> ${r.status}`);
 }
 check(7, `inventory: ${n} documented operations; all but the public ones answer 401 without a token`, open.length === 0, open.slice(0, 4).join('; '));
-const mine = Object.keys(spec.paths).filter((p) => /purchase-orders|accounting|modules/.test(p)); check(7, 'inventory: purchasing/accounting/modules paths in the contract', mine.length >= 10, `${mine.length} paths`);
+const mine = Object.keys(spec.paths).filter((p) => /purchase-orders|modules/.test(p)); check(7, 'inventory: purchasing/modules paths in the contract', mine.length >= 10, `${mine.length} paths`);
 check(7, 'inventory: undocumented purchase-order verbs are not routable (PATCH/DELETE -> 404/405)', [(await call('PATCH', `${PO}/${po.id}`, T.admin, {})).status, (await call('DELETE', `${PO}/${po.id}`, T.admin)).status].every((s) => [404, 405].includes(s)));
 
 await sleep(62000); // fresh login window

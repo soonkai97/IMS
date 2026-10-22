@@ -1,6 +1,6 @@
 # PL2.11 purchasing security retest probes
 
-Manual probes (not CI) for the purchasing pilot: purchase orders, approval tiers, receive against an order, reorder suggestions, accounting export, module switches. Report: `docs/reviews/pl2-security-retest/report.md`.
+Manual probes (not CI) for the purchasing pilot: purchase orders, approval tiers, receive against an order, reorder suggestions, module switches. Report: `docs/reviews/pl2-security-retest/report.md`.
 Node 20+, no dependencies. Every script prints `ok` / `FAIL [area] label -> evidence` and appends one JSON line per check to `$RV_OUT/results.jsonl`.
 
 ## Set-up (once)
@@ -17,12 +17,12 @@ Node 20+, no dependencies. Every script prints `ok` / `FAIL [area] label -> evid
 
 | Step | Command | Covers |
 |---|---|---|
-| 0 | `node s0.mjs` | switches `purchasing` and `accounting` ON (remembers how they were), creates the `SEC-` roles, users, supplier, customer, products, `fixtures.json` |
+| 0 | `node s0.mjs` | switches `purchasing` ON (remembers how they were), creates the `SEC-` roles, users, supplier, customer, products, `fixtures.json` |
 | 1 | `node p1-authz.mjs` | area 1: every purchase-order endpoint x 11 caller kinds (five system roles, `po.read`-only, `document.post` without `po.read`, no rights, anonymous, forged role-claim token, expired), token abuse (alg none, wrong key/audience/issuer, tampered payload) |
 | 2 | `node p2-segregation.mjs` | area 2: self-approval (Administrator, Supervisor, Owner-like), tier routing and amount boundaries, cancel and close authority, the known editor-then-approver gap |
 | 3 | `node p3-cost.mjs` | area 3: callers without `cost.view` get JSON null and no money in raw bodies (order, list, receipt, documents, suggestions, audit log, triggers, `over_receipt` 409) and cannot set prices |
 | 4 | `node p4-scope.mjs` | area 4: warehouse scope, 404 sameness, GUID guessing, timing, foreign ids in bodies, scoped export |
-| 5 | `node p5-input.mjs` | area 5: mass assignment, malformed/oversized input, control characters, search and filter injection, correlation id, `If-Match`, accounting export formula injection (unzips the .xlsx) |
+| 5 | `node p5-input.mjs` | area 5: mass assignment, malformed/oversized input, control characters, search and filter injection, correlation id, `If-Match` |
 | 6 | `node p6-concurrency.mjs` | area 6: parallel posts of the last quantity, cancel/approve/recall/reject races, double submit, stale and missing `If-Match`, partial/auto-close/short/reversal, unit-conversion lock (`SEC_ROUNDS` = rounds, default 8) |
 | 7 | `node p8-modules.mjs open` | area 8, stage 1 (open orders exist): modules.manage, switch-off refused with a count, role closure rules |
 | 8 | `node p7-disclosure.mjs` | area 7: error bodies, headers, CORS, undocumented routes, session lifetime/rotation/replay/logout, lockout, enumeration (message and timing), change-password, rate limits |
@@ -41,6 +41,4 @@ Node 20+, no dependencies. Every script prints `ok` / `FAIL [area] label -> evid
 - Step 11 needs `sqlcmd` and writes two columns of the two found purchase-order approval rules back by SQL, because turning the enable guard on needs the rules inactive and rules can only be saved while the module is on. It prints the rows before and after.
 - Do not run on a database where purchasing is in real use: the probes switch the module on and off.
 
-Note (2026-10-22, RA1 part A1): `GET /api/accounting/export` was removed from the API. The probes that call it (`p1`, `p4`, `p5`, `p7`, `p9`) now get 404 for those calls; run them only for the purchasing parts, or retire the accounting steps before the next retest. `s0` and `p8` still switch the `accounting` module until part A2 removes it.
-
-Note (2026-10-22, RA1 part A2): the `accounting` module is removed from the API too. `s0`, `p1`, `p4` and `p8` no longer touch it (review of #192); `p5`, `p7` and `p9` still call the removed export and get 404 for those calls, so run them only for the purchasing parts or retire those steps before the next retest.
+Note (2026-10-22, RA1): the `accounting` module, its export and the tax fields (`tin`, `sstRegNo`, `hsCode`, `sstCode`) were removed from the API. No probe here uses them any more (the export checks of `p5`, `p7` and `p9` were dropped in the review of #193); the report of the retest keeps its accounting findings as history.

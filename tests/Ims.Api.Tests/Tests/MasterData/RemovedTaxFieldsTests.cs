@@ -68,6 +68,30 @@ public class RemovedTaxFieldsTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_save_that_changes_nothing_writes_no_audit_row_and_a_rename_writes_one_for_a_product_and_a_partner()
+    {
+        var productRequest = new ProductBuilder(fixture.Reference).Build();
+        var product = (await _admin.Products.CreateAsync(productRequest)).Data<ProductDto>();
+        var partnerRequest = new PartnerSaveRequest(PartnerType.Customer, Unique.Name("Same"), "0123", true);
+        var partner = (await _admin.Partners.CreateAsync(partnerRequest)).Data<PartnerDto>();
+
+        (await _admin.PutAsync($"/api/products/{product.Id}", WithOldKeys(productRequest))).ShouldBeOk(); // same values, old keys on top
+        (await _admin.PutAsync($"/api/partners/{partner.Id}", WithOldKeys(partnerRequest))).ShouldBeOk();
+        Assert.DoesNotContain(await AuditRowsAsync(nameof(Domain.Product), product.Id), e => e.Action == AuditActions.RowUpdated);
+        Assert.DoesNotContain(await AuditRowsAsync(nameof(Domain.Partner), partner.Id), e => e.Action == AuditActions.RowUpdated);
+
+        (await _admin.PutAsync($"/api/products/{product.Id}", WithOldKeys(productRequest with { Name = Unique.Name("Renamed") }))).ShouldBeOk();
+        (await _admin.PutAsync($"/api/partners/{partner.Id}", WithOldKeys(partnerRequest with { Contact = "0999" }))).ShouldBeOk();
+        var productUpdate = Assert.Single(await AuditRowsAsync(nameof(Domain.Product), product.Id), e => e.Action == AuditActions.RowUpdated);
+        var partnerUpdate = Assert.Single(await AuditRowsAsync(nameof(Domain.Partner), partner.Id), e => e.Action == AuditActions.RowUpdated);
+        Assert.All(new[] { productUpdate.Before, productUpdate.After }, json => Assert.DoesNotContain("HsCode", json));
+        Assert.All(new[] { partnerUpdate.Before, partnerUpdate.After }, json => Assert.DoesNotContain("Tin", json));
+    }
+
+    private async Task<List<AuditEntry>> AuditRowsAsync(string entityType, Guid id) =>
+        (await _admin.Audit.QueryAsync(entityType: entityType, entityId: id.ToString())).Data<AuditPage>().Items.AsEnumerable().Reverse().ToList();
+
+    [Fact]
     public async Task The_products_template_has_no_tax_columns_and_a_file_with_one_imports_without_it()
     {
         var template = Xlsx.Read((await _admin.Import.TemplateAsync(ImportKinds.Products)).ShouldBeOk().Bytes);
