@@ -68,7 +68,7 @@ public class PermissionEnforcementTests(ApiFixture fixture)
             Assert.False(PermissionCatalog.IsKnown(p.Key), $"{p.Key} must not look like a permission code");
             Assert.All(p.Value, code => Assert.True(PermissionCatalog.IsKnown(code), code));
         });
-        Assert.Equal(3, AuthPolicies.AnyOf.Count);
+        Assert.Equal(4, AuthPolicies.AnyOf.Count);
     }
 
     // ---------- what the system roles are allowed ----------

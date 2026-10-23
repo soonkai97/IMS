@@ -122,6 +122,11 @@ public static class EndpointCatalog
         new("GET sales-orders/{id}", Get, Permissions.SoRead, _ => $"/api/sales-orders/{MissingPublicId}", OkWhenAllowed: false),
         new("POST sales-orders", Post, Permissions.SoManage, _ => "/api/sales-orders", OkWhenAllowed: false),
         new("PUT sales-orders/{id}", Put, Permissions.SoManage, _ => $"/api/sales-orders/{MissingPublicId}", OkWhenAllowed: false),
+        new("POST sales-orders/{id}/submit", Post, Permissions.SoManage, _ => $"/api/sales-orders/{MissingPublicId}/submit", OkWhenAllowed: false),
+        new("POST sales-orders/{id}/approve", Post, AuthPolicies.DocumentReview, _ => $"/api/sales-orders/{MissingPublicId}/approve", OkWhenAllowed: false),
+        new("POST sales-orders/{id}/reject", Post, AuthPolicies.DocumentReview, _ => $"/api/sales-orders/{MissingPublicId}/reject", _ => new { reason = "x" }, OkWhenAllowed: false),
+        new("POST sales-orders/{id}/recall", Post, Permissions.SoManage, _ => $"/api/sales-orders/{MissingPublicId}/recall", OkWhenAllowed: false),
+        new("POST sales-orders/{id}/cancel", Post, AuthPolicies.SalesOrderCancel, _ => $"/api/sales-orders/{MissingPublicId}/cancel", _ => new { reason = "x" }, OkWhenAllowed: false),
     ];
 
     public static EndpointCase Named(string name) => All.Single(c => c.Name == name);

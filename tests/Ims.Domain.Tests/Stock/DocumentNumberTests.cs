@@ -9,6 +9,7 @@ public class DocumentNumberTests
     [InlineData(DocumentType.Transfer, "TRF")]
     [InlineData(DocumentType.Adjust, "ADJ")]
     [InlineData(DocumentType.PurchaseOrder, "PO")]
+    [InlineData(DocumentType.SalesOrder, "SO")]
     public void PrefixFor_EachDocumentType(DocumentType type, string expected)
     {
         Assert.Equal(expected, DocumentNumber.PrefixFor(type));

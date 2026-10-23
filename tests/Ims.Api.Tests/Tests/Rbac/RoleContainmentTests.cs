@@ -135,6 +135,7 @@ public class RoleContainmentTests(ApiFixture fixture)
     {
         // "Every permission" includes the ones of the modules, which a role can only be given while the module is on; the modules are off again for the test itself (the token keeps the claim).
         var admin0 = await fixture.AsAsync(Roles.Admin);
+        await Sales.SalesScenario.EnsureRulesAsync(fixture); // sales is refused without an approval rule
         foreach (var module in ModuleCatalog.Codes) (await admin0.Modules.SwitchAsync(module, true, "Containment test setup")).ShouldBeOk();
         try
         {

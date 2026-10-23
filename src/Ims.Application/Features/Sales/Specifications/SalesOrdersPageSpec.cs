@@ -16,6 +16,6 @@ public sealed class SalesOrdersPageSpec : Specification<SalesOrder, SalesOrderLi
         }
         else Query.Skip((page - 1) * size).Take(size);
         Query.Select(o => new SalesOrderListItem(o.PublicId, o.No, o.Status, o.Warehouse.Name, o.Customer.Name, o.CreatedAt, o.CreatedByUser.Username,
-            o.Lines.Count(), o.Lines.Sum(l => l.SellingAmount), o.RowVersion, o.CreatedBy, o.Id));
+            o.Lines.Count(), o.Lines.Sum(l => l.SellingAmount), o.RequiresApproval, o.IsLarge, o.RowVersion, o.CreatedBy, o.SubmittedBy, o.Id));
     }
 }

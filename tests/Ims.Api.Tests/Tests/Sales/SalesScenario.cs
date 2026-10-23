@@ -33,19 +33,34 @@ public sealed class SalesScenario
     /// <summary>Switches every module off and closes what the test left open: the check refuses to turn a module off while an order is open, and the database is shared by all test classes.</summary>
     public static async Task ResetAsync(ApiFixture fixture)
     {
+        await TurnOffAsync(fixture);
+        await fixture.Database.ExecuteAsync("DELETE FROM ApprovalRule WHERE DocType = 6"); // the sales-order rules of a test (the standard pair arrives with PL3.4)
+    }
+
+    private static async Task TurnOffAsync(ApiFixture fixture)
+    {
         await fixture.Database.ExecuteAsync("UPDATE SalesOrder SET Status = 4 WHERE Status <= 2"); // Cancelled
         await fixture.Database.ExecuteAsync("UPDATE PurchaseOrder SET Status = 4 WHERE Status <= 2");
         await fixture.Database.ExecuteAsync("DELETE FROM SystemSetting WHERE [Key] LIKE N'Module.%'");
     }
 
+    /// <summary>Gives the database an active sales-order rule where it has none: switching <c>sales</c> on is refused without one (until PL3.4 writes the standard pair), and a test that turns every module on needs it.</summary>
+    public static Task EnsureRulesAsync(ApiFixture fixture) => fixture.Database.ExecuteAsync(
+        "IF NOT EXISTS (SELECT 1 FROM ApprovalRule WHERE DocType = 6 AND IsActive = 1 AND REC_DELETED = 0) INSERT ApprovalRule (DocType, AmountThreshold, QtyThreshold, Tier, IsActive) VALUES (6, 5000, NULL, 1, 1)");
+
+    /// <summary>The two placeholder rules the data migration of PL3.4 will write: 5,000.00 for a Supervisor, 20,000.00 for the Owner. Written straight into the table, as the migration will.</summary>
+    public static Task AddStandardRulesAsync(ApiFixture fixture) => fixture.Database.ExecuteAsync(
+        "INSERT ApprovalRule (DocType, AmountThreshold, QtyThreshold, Tier, IsActive) VALUES (6, 5000, NULL, 1, 1), (6, 20000, NULL, 2, 1)");
+
     public static async Task<SalesScenario> CreateAsync(ApiFixture fixture, bool moduleOn = true)
     {
         await ResetAsync(fixture);
+        await AddStandardRulesAsync(fixture);
         if (moduleOn) await fixture.Database.ExecuteAsync("INSERT SystemSetting ([Key], [Value]) VALUES (N'Module.sales', N'true')");
         return new SalesScenario(fixture, await StockScenario.CreateAsync(fixture));
     }
 
-    public Task TurnOffAsync() => ResetAsync(Fixture);
+    public Task TurnOffAsync() => TurnOffAsync(Fixture);
 
     public Task<WarehouseDto> NewWarehouseAsync(bool isActive = true) => Stock.NewWarehouseAsync(isActive);
 
@@ -60,6 +75,28 @@ public sealed class SalesScenario
 
     public async Task<SalesOrderDto> CreateAsync(Guid warehouseId, Guid productId, ApiClient? by = null, Guid? customerId = null) =>
         (await (by ?? Admin).SalesOrders.CreateAsync(Request(warehouseId, productId, customerId).Build())).Data<SalesOrderDto>();
+
+    /// <summary>The default warehouse: the one the Supervisor and the Clerk work in (the Administrator and the Owner see every warehouse).</summary>
+    public Guid Warehouse => Reference.DefaultWarehouseId;
+
+    private Application.Features.Catalog.ProductDto? _product;
+
+    /// <summary>A Draft in the default warehouse with one line worth exactly <paramref name="total"/> (one unit at that price); 0 is the unpriced draft.</summary>
+    public async Task<SalesOrderDto> DraftWorthAsync(decimal total, ApiClient? by = null)
+    {
+        _product ??= await NewProductAsync();
+        return (await (by ?? Clerk).SalesOrders.CreateAsync(new SalesOrderBuilder(Warehouse, Reference.CustomerId).WithLine(_product.Id, 1m, total).Build())).Data<SalesOrderDto>();
+    }
+
+    /// <summary>Creates a Draft worth <paramref name="total"/> and submits it as <paramref name="by"/> (the Clerk by default); the result is Submitted, or Approved when no rule fires.</summary>
+    public async Task<SalesOrderDto> SubmittedWorthAsync(decimal total, ApiClient? by = null)
+    {
+        var maker = by ?? Clerk;
+        var draft = await DraftWorthAsync(total, maker);
+        return (await maker.SalesOrders.SubmitAsync(draft.Id, draft.ConcurrencyToken)).Data<SalesOrderDto>();
+    }
+
+    public async Task<SalesOrderDto> ReadAsync(Guid id, ApiClient? reader = null) => (await (reader ?? Admin).SalesOrders.GetAsync(id)).Data<SalesOrderDto>();
 
     public Task SetStatusAsync(SalesOrderDto order, SalesOrderStatus status) =>
         Fixture.Database.ExecuteAsync("UPDATE SalesOrder SET Status = @s WHERE PublicId = @id", ("@s", (int)status), ("@id", order.Id));
