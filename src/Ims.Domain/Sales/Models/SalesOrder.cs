@@ -116,6 +116,8 @@ public class SalesOrder : PublicEntity
     {
         if (Status != SalesOrderStatus.Draft)
             throw new DomainException(Messages.SalesOrderOnlyDraftCanSubmit(Status));
+        if (Lines.Count == 0)
+            throw new DomainException(Messages.SalesOrderNeedsLines);
         if (Lines.Where(l => l.SellingPrice <= 0).Select(l => l.LineNo).ToList() is { Count: > 0 } unpriced)
             throw new DomainException(Messages.SalesOrderLinesNeedPrice(unpriced));
 

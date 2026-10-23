@@ -215,6 +215,7 @@ public static class Messages
     public const string ChooseCustomer = "Choose a customer.";
     public static string SalesOrderNotEditable(string no, SalesOrderStatus status) => $"Sales order {no} is {status} and can no longer be edited.";
     public static string SalesOrdersOpen(int count) => count == 1 ? "1 sales order is open" : $"{count} sales orders are open";
+    public const string SalesOrderNeedsLines = "A sales order with no lines cannot be submitted. Add a line first.";
     public static string SalesOrderOnlyDraftCanSubmit(SalesOrderStatus status) => $"Only a Draft sales order can be submitted (current: {status}).";
     public static string SalesOrderOnlySubmittedCanApprove(SalesOrderStatus status) => $"Only a Submitted sales order can be approved (current: {status}).";
     public static string SalesOrderOnlySubmittedCanReject(SalesOrderStatus status) => $"Only a Submitted sales order can be rejected (current: {status}).";

@@ -159,6 +159,14 @@ Pilot slice PL2 (module `purchasing`): purchase orders, receiving against them, 
 
 **The web pattern.** Menu and routes use `requireModule(purchasing)` then `requirePermission(po.read)`; buttons are exactly the API's `allowedActions` (`submit`, `recall`, `approve`, `reject`, `cancel`, `close`, `receive`, `edit`), never a role, a permission or a status test, so a rule change in `PurchaseOrderActionPolicy` reaches the screens with no web change. `receive` is offered when the order is Approved, something remains, and the caller holds `document.create` and `po.read`; `edit`, `submit` and `post` of a linked receipt are filtered by `LinkedReceiptPolicy` (the one rule behind both `allowedActions` and the handler guards; edit needs `po.read` and the module on, submit and post need the module on). The receipt editor knows a linked receipt from `DocumentDto.purchaseOrder` and always sends `purchaseOrderLineNo`; every form sends every field; a stale copy is recognised by `code = document_changed` only. Agreement tests (`ReceiveActionAgreementTests`, `LinkedReceiptActionAgreementTests`) assert that an action is offered exactly when the API accepts it.
 
+## Sales (PL3.2 to PL3.4, in progress; the full section follows in PL3.19)
+
+A sales order is its own aggregate (`SalesOrder`, `SalesOrderLine`), not a `StockDocument`. Points that differ from purchasing and that later slices must not assume away:
+
+- **Selling price is not cost.** Price, line amount and order total are gated by `so.manage`, never by `cost.view`. The contracts are tagged and carry `JsonIgnore(WhenWritingNull)`, so a caller without `so.manage` receives the key **absent**, where a purchase order sends it as `null`. The entity properties have names of their own (`SellingPrice`, `SellingAmount`, `TotalSellingAmount`) and the audit key is `AuditFields.SellingAmount`, because `AuditPayloadScrubber` withholds a tagged name unless the caller holds every permission that tags it, and `UnitPrice`, `Amount` and `TotalAmount` are already cost-gated names. The rule numbers of an approval trigger on a sales order are the total at selling price, so they are hidden from a caller without `so.manage` as well.
+- **One price per entered unit.** There is no per-base-unit price column on the line (the plan's section 5 listed one; it was not built because nothing reads it). A price lookup (PL3.12) must work per entered unit and must not assume a base-unit price exists.
+- **Approval** reuses `ApprovalRule` with `DocumentType.SalesOrder = 6`; the module that owns a rule type is `ApprovalRuleModules.ModuleOf`. `sales` cannot be switched on without an active sales-order rule (`SalesModuleEnableCheck`), and the migration `AddSalesOrderApprovalRules` writes the placeholder pair (an open owner item).
+
 ## Data, concurrency and performance rules
 
 Standard audit columns on every table, soft delete, parameterised data access only, split queries, O(1)-minded design, ordered locks, timeouts and

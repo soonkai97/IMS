@@ -15,6 +15,9 @@ public interface ISalesOrderAccess
     /// <summary>The warehouses the caller may read; null means all of them.</summary>
     IReadOnlyCollection<int>? WarehouseScope();
 
+    /// <summary>True when the caller may see selling prices and amounts (<c>so.manage</c>). The rule numbers of an approval trigger are the order total at selling price, so they follow it.</summary>
+    bool MaySeeAmounts();
+
     /// <summary>The door of approve, reject and cancel is the approval tier or so.manage; seeing the order they act on needs so.read as well (one policy per endpoint, so this is asked here, before the order is looked up).</summary>
     /// <exception cref="ForbiddenException">The caller does not hold so.read.</exception>
     void EnsureMayRead();

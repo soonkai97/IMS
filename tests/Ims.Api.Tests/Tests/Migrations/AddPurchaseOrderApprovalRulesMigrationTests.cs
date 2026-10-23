@@ -77,6 +77,7 @@ public class AddPurchaseOrderApprovalRulesMigrationTests(ApiFixture fixture)
             SELECT (SELECT MAX(Id) FROM StockDocument), (SELECT TOP (1) Id FROM Product), 1, (SELECT TOP (1) Id FROM Uom), 1, 1, 1, 1, 0, 1, 1;
             """);
         await database.ExecuteAsync("UPDATE StockDocumentLine SET PurchaseOrderLineNo = NULL WHERE PurchaseOrderLineNo IS NOT NULL; UPDATE StockDocument SET PurchaseOrderId = NULL WHERE PurchaseOrderId IS NOT NULL");
+        await database.ExecuteAsync("DELETE FROM SalesOrderLine; DELETE FROM SalesOrder;"); // AddSalesOrders refuses to go down while an order exists; the sales tests leave cancelled ones behind
         await MigrateAsync(database, Before);
         await MigrateAsync(database, null); // to the newest, not to Latest: a later migration adds columns the rest of the suite reads
     }

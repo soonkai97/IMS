@@ -43,7 +43,7 @@ public class SalesOrderWorkflowTests(ApiFixture fixture) : IAsyncLifetime
         Assert.NotEqual(draft.ConcurrencyToken, order.ConcurrencyToken);
         Assert.Equal(1, await AuditCountAsync(AuditActions.SalesOrderSubmitted, order.No));
         var after = Json(await fixture.Database.ScalarAsync<string>("SELECT [After] FROM AuditLogs WHERE EntityId = @no AND Action = @a", ("@no", order.No), ("@a", AuditActions.SalesOrderSubmitted)));
-        Assert.Equal(4999.99m, after.GetProperty(AuditFields.Amount).GetDecimal());
+        Assert.Equal(4999.99m, after.GetProperty(AuditFields.SellingAmount).GetDecimal());
     }
 
     [Fact]

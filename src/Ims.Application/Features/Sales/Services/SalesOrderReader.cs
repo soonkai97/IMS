@@ -15,13 +15,20 @@ public class SalesOrderReader(IReadRepository<SalesOrder> orders, IReadRepositor
         var amount = dto.TotalAmount.GetValueOrDefault();
         var heldForApproval = dto.RequiresApproval && dto.Status is SalesOrderStatus.Submitted or SalesOrderStatus.Approved;
         var triggers = heldForApproval
-            ? (await approvals.TriggersAsync(DocumentType.SalesOrder, dto.TotalQty, amount, ct)).Select(ApprovalTriggerDto.From).ToList()
+            ? (await approvals.TriggersAsync(DocumentType.SalesOrder, dto.TotalQty, amount, ct)).Select(ApprovalTriggerDto.From).Select(HideAmounts).ToList()
             : [];
         var withinLimit = dto.Status != SalesOrderStatus.Submitted || !dto.RequiresApproval ||
                           await approvals.ReviewRefusalAsync(DocumentType.SalesOrder, dto.IsLarge, dto.TotalQty, amount, ct) is null;
         var named = await NamedAsync(dto, ct);
         return named with { ApprovalTriggers = triggers, AllowedActions = access.AllowedActions(named, await settings.GetAsync(ct), withinLimit), ConcurrencyToken = version.Token(dto.Id, dto.RowVersion) };
     }
+
+    /// <summary>
+    /// The numbers of an amount rule are the order total at selling price (the threshold tells the caller where the total sits), so a caller without <c>so.manage</c> gets them as null whatever else they
+    /// hold: cost.view alone, which the shared trigger contract is tagged with, must not reveal a selling total. A quantity rule is not money and stays.
+    /// </summary>
+    private ApprovalTriggerDto HideAmounts(ApprovalTriggerDto trigger) =>
+        trigger.IsAmount && !access.MaySeeAmounts() ? trigger with { Threshold = null, Actual = null } : trigger;
 
     /// <summary>The people named on the order, in one query on their integer keys (the order has foreign keys to users but no navigation to them).</summary>
     private async Task<SalesOrderDto> NamedAsync(SalesOrderDto dto, CancellationToken ct)

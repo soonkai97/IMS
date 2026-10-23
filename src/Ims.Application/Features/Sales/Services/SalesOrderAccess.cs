@@ -17,6 +17,8 @@ public class SalesOrderAccess(ICurrentUser current) : ISalesOrderAccess, IAppSer
 
     public IReadOnlyCollection<int>? WarehouseScope() => current.AllWarehouses ? null : current.WarehouseIds;
 
+    public bool MaySeeAmounts() => current.Rights().Has(Permissions.SoManage);
+
     public void EnsureMayRead()
     {
         if (!current.Rights().Has(Permissions.SoRead)) throw new ForbiddenException(Messages.SalesOrderNeedsSoRead);
