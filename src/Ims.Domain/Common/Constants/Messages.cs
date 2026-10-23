@@ -215,6 +215,23 @@ public static class Messages
     public const string ChooseCustomer = "Choose a customer.";
     public static string SalesOrderNotEditable(string no, SalesOrderStatus status) => $"Sales order {no} is {status} and can no longer be edited.";
     public static string SalesOrdersOpen(int count) => count == 1 ? "1 sales order is open" : $"{count} sales orders are open";
+    public static string SalesOrderOnlyDraftCanSubmit(SalesOrderStatus status) => $"Only a Draft sales order can be submitted (current: {status}).";
+    public static string SalesOrderOnlySubmittedCanApprove(SalesOrderStatus status) => $"Only a Submitted sales order can be approved (current: {status}).";
+    public static string SalesOrderOnlySubmittedCanReject(SalesOrderStatus status) => $"Only a Submitted sales order can be rejected (current: {status}).";
+    public static string SalesOrderOnlySubmittedCanRecall(string no, SalesOrderStatus status) => $"Sales order {no} is {status} and can't be taken back to draft.";
+    public static string SalesOrderCannotCancel(SalesOrderStatus status) => $"Only a Draft, Submitted or Approved sales order can be cancelled (current: {status}).";
+    public static string SalesOrderLinesNeedPrice(IReadOnlyList<int> lineNos) =>
+        (lineNos.Count == 1 ? $"Line {lineNos[0]} has no price." : $"Lines {string.Join(", ", lineNos)} have no price.") + " Enter a price above 0 before submitting (free goods go out as an issue with purpose Use).";
+    public const string SalesOrderSelfApproval = "You cannot approve a sales order you submitted.";
+    public const string SalesOrderSelfRejection = "You cannot reject a sales order you submitted.";
+    public const string SalesOrderCancelReasonRequired = "A reason is required to cancel an approved sales order.";
+    public const string SalesOrderNeedsSoRead = "Reviewing or cancelling a sales order needs the permission to read sales orders.";
+    public const string SalesOrderOwnOnly = "You can only cancel sales orders you created or submitted.";
+    public const string SalesOrderOnlyReviewerCanCancelApproved = "Only an approver for this sales order can cancel it after approval.";
+    public const string SalesOrderOwnRecallOnly = "Only the person who submitted a sales order can take it back to draft.";
+    public const string SalesOrderRuleNeededToTurnOn = "Sales cannot be turned on yet: no approval rule for sales orders is active, so every priced order would be released with no approver. Add a rule in Settings first, or ask whoever maintains the database to apply the standard pair.";
+    public const string SalesOrderLastRule = "This is the last active approval rule for sales orders. While sales is on, at least one must stay active, or every priced order would be released with no approver.";
+    public const string SalesOrderRuleTypeFixed = "An approval rule cannot be moved to or from sales orders. Add a new rule for the other type instead.";
 
     // ----- Receiving against a purchase order (PL2.4) -----
     public static string PurchaseOrderNotReceivable(string no, PurchaseOrderStatus status) => $"Purchase order {no} is {status}. Only an Approved purchase order can be received.";

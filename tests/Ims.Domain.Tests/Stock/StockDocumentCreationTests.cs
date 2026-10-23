@@ -36,6 +36,7 @@ public class StockDocumentCreationTests
     [InlineData(DocumentType.Transfer)]
     [InlineData(DocumentType.Adjust)]
     [InlineData(DocumentType.PurchaseOrder)]
+    [InlineData(DocumentType.SalesOrder)]
     public void Create_TypeOtherThanReceiptOrIssue_Throws(DocumentType type)
     {
         var ex = Assert.Throws<DomainException>(() => StockDocument.Create(type, NewWarehouse(), null, null, null, Creator, Now));

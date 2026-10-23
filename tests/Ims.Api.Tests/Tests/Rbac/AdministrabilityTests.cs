@@ -39,6 +39,7 @@ public class AdministrabilityTests : IAsyncLifetime
         _accounts = new AccountFactory(_fixture);
         var seeded = await _fixture.AsAsync(Roles.Admin);
         // A role can only be given a module permission while the module is on, and "every permission" includes it: turn every module on in this throw-away database.
+        await Sales.SalesScenario.EnsureRulesAsync(_fixture); // sales is refused without an approval rule
         foreach (var module in ModuleCatalog.Codes) (await seeded.Modules.SwitchAsync(module, true, "Administrability test setup")).ShouldBeOk();
         _core = (await seeded.CreateAsync(Unique.Name("Everything"), [.. PermissionCatalog.Codes])).Data<RoleDto>();
         _a = await _accounts.CreateAsync(Roles.Admin);

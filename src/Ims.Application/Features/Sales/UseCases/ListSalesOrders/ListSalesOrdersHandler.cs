@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class ListSalesOrdersHandler(IReadRepository<SalesOrder> orders, ISalesOrderAccess access, ICursorProtector cursors, IIdMap<Warehouse> warehouseIds, IIdMap<Partner> partnerIds, IDocumentVersion version)
+public class ListSalesOrdersHandler(IReadRepository<SalesOrder> orders, ISalesOrderAccess access, ICursorProtector cursors, IIdMap<Warehouse> warehouseIds, IIdMap<Partner> partnerIds, ISystemSettings settings, IDocumentVersion version)
     : IQueryHandler<ListSalesOrdersQuery, PagedResult<SalesOrderListItem>>
 {
     public async Task<PagedResult<SalesOrderListItem>> HandleAsync(ListSalesOrdersQuery q, CancellationToken ct)
@@ -15,7 +15,8 @@ public class ListSalesOrdersHandler(IReadRepository<SalesOrder> orders, ISalesOr
         var rows = await orders.ListAsync(new SalesOrdersPageSpec(q.Filter, customerId, warehouseId, scope, after), ct);
         var (page, size) = Paging.Normalize(q.Filter.Page, q.Filter.PageSize);
 
-        var items = rows.Select(r => r with { ConcurrencyToken = version.Token(r.Id, r.RowVersion) }).ToList();
+        var system = await settings.GetAsync(ct);
+        var items = rows.Select(r => r with { CanAct = access.CanAct(r, system), ConcurrencyToken = version.Token(r.Id, r.RowVersion) }).ToList();
         return new PagedResult<SalesOrderListItem>(items, total, page, size, Paging.NextCursor(items, size, o => o.Key, cursors, CursorLists.SalesOrders));
     }
 }

@@ -7,8 +7,10 @@ public static class DocumentNumber
         DocumentType.Receipt => DocumentNumberFormat.ReceiptPrefix,
         DocumentType.Issue => DocumentNumberFormat.IssuePrefix,
         DocumentType.Transfer => DocumentNumberFormat.TransferPrefix,
+        DocumentType.Adjust => DocumentNumberFormat.AdjustPrefix,
         DocumentType.PurchaseOrder => DocumentNumberFormat.PurchaseOrderPrefix,
-        _ => DocumentNumberFormat.AdjustPrefix
+        DocumentType.SalesOrder => DocumentNumberFormat.SalesOrderPrefix,
+        _ => throw new ArgumentOutOfRangeException(nameof(t), t, "A document type needs a number prefix of its own.")
     };
 
     /// <summary>BR-10: times are stored in UTC and shown in Asia/Kuala_Lumpur. Returns yyMM.</summary>
