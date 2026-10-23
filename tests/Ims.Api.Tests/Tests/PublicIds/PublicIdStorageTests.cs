@@ -14,7 +14,7 @@ namespace Ims.Api.Tests.Tests.PublicIds;
 public class PublicIdStorageTests(PublicIdDatabase fixture) : IClassFixture<PublicIdDatabase>
 {
     private static readonly Type[] PublicEntities =
-        [typeof(User), typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom), typeof(Product), typeof(ApprovalRule), typeof(StockDocument), typeof(Attachment), typeof(Role), typeof(PurchaseOrder)];
+        [typeof(User), typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom), typeof(Product), typeof(ApprovalRule), typeof(StockDocument), typeof(Attachment), typeof(Role), typeof(PurchaseOrder), typeof(SalesOrder)];
 
     private async Task<Uom> AddUomAsync()
     {

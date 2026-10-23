@@ -1806,6 +1806,272 @@
         }
       }
     },
+    "/api/sales-orders": {
+      "get": {
+        "tags": [
+          "SalesOrders"
+        ],
+        "summary": "Sales orders, newest first, in the warehouses the caller may read. Prices and totals are absent for a caller without `so.manage`.",
+        "operationId": "SalesOrders_list",
+        "parameters": [
+          {
+            "name": "Status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SalesOrderStatus"
+            }
+          },
+          {
+            "name": "CustomerId",
+            "in": "query",
+            "description": "Orders of this customer; an id that names no customer matches nothing.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "WarehouseId",
+            "in": "query",
+            "description": "Orders for this ship-from warehouse. A warehouse the caller may not read matches nothing.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "From",
+            "in": "query",
+            "description": "Orders created on or after this date (Malaysia time).",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "To",
+            "in": "query",
+            "description": "Orders created on or before this date (Malaysia time).",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "Orders whose number contains the text (case-insensitive; a partial number such as 0100 works).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Cursor",
+            "in": "query",
+            "description": "Seek paging: the `nextCursor` of the previous page, unchanged; returns the orders after it.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "IncludeTotal",
+            "in": "query",
+            "description": "False skips the row count.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfSalesOrderListItem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfSalesOrderListItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfSalesOrderListItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "SalesOrders"
+        ],
+        "summary": "Creates a Draft with the next number of the warehouse and month (`SO-&lt;WH&gt;-&lt;yyMM&gt;-&lt;nnnn&gt;`).",
+        "operationId": "SalesOrders_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalesOrderSaveRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalesOrderSaveRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalesOrderSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesOrderDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesOrderDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sales-orders/{id}": {
+      "get": {
+        "tags": [
+          "SalesOrders"
+        ],
+        "operationId": "SalesOrders_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesOrderDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesOrderDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesOrderDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "SalesOrders"
+        ],
+        "summary": "Replaces the customer, the remark and all lines of a Draft. The warehouse cannot change. `If-Match` is required (428 without, 409 when stale).",
+        "operationId": "SalesOrders_update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalesOrderSaveRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalesOrderSaveRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SalesOrderSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesOrderDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesOrderDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesOrderDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/permissions": {
       "get": {
         "tags": [
@@ -6544,6 +6810,44 @@
         },
         "description": "One page of a server-side paged list."
       },
+      "PagedResultOfSalesOrderListItem": {
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SalesOrderListItem"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "description": "Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count.",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it."
+          }
+        },
+        "description": "One page of a server-side paged list."
+      },
       "PagedResultOfStockRow": {
         "required": [
           "items",
@@ -7693,6 +7997,307 @@
         },
         "description": "The text and the state of a role. Its code, its kind and its permissions are not here. A description or state that is left out stays as it is."
       },
+      "SalesOrderDto": {
+        "required": [
+          "id",
+          "no",
+          "status",
+          "warehouseId",
+          "warehouseName",
+          "customerId",
+          "customerName",
+          "remark",
+          "createdById",
+          "createdBy",
+          "createdByName",
+          "createdAt",
+          "totalQty",
+          "totalAmount",
+          "lines",
+          "concurrencyToken"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "no": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SalesOrderStatus"
+          },
+          "warehouseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "warehouseName": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "remark": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdById": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdByName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalQty": {
+            "type": "number",
+            "description": "The total base quantity: what a quantity rule of the approval rules is tested against.",
+            "format": "double"
+          },
+          "totalAmount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The sum of the line amounts, in money. Absent for a caller without `so.manage`: a selling price is not cost, so `cost.view` is not what decides it.",
+            "format": "double"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SalesOrderLineDto"
+            }
+          },
+          "concurrencyToken": {
+            "type": "string",
+            "description": "Changes whenever the order (header, status or lines) changes; opaque: compare it only for equality. Also sent as the ETag header; send it back as If-Match to refuse a stale save."
+          }
+        }
+      },
+      "SalesOrderLineDto": {
+        "required": [
+          "lineNo",
+          "productId",
+          "sku",
+          "productName",
+          "qty",
+          "uomId",
+          "uomCode",
+          "baseQty",
+          "unitPrice",
+          "amount",
+          "remark"
+        ],
+        "type": "object",
+        "properties": {
+          "lineNo": {
+            "type": "integer",
+            "description": "1 to n inside the order.",
+            "format": "int32"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "number",
+            "format": "double"
+          },
+          "uomId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uomCode": {
+            "type": "string"
+          },
+          "baseQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "unitPrice": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The price per ENTERED unit (the unit in `UomCode`), in money. Absent for a caller without `so.manage`.",
+            "format": "double"
+          },
+          "amount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The value of the line, in money: `round(qty x unitPrice, 2)`. The order total is the sum of these. Absent for a caller without `so.manage`.",
+            "format": "double"
+          },
+          "remark": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SalesOrderLineInput": {
+        "required": [
+          "productId",
+          "qty",
+          "uomId",
+          "unitPrice",
+          "remark"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "qty": {
+            "type": "number",
+            "description": "In the unit named by `uomId`; at most 4 decimal places.",
+            "format": "double"
+          },
+          "uomId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Any unit the product converts to its base unit; null means the base unit.",
+            "format": "uuid"
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "The price per ENTERED unit, in money (at most 2 decimal places, never negative). 0.00 is accepted on a draft; submitting it is refused (PL3.3).",
+            "format": "double"
+          },
+          "remark": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SalesOrderListItem": {
+        "required": [
+          "id",
+          "no",
+          "status",
+          "warehouseName",
+          "customerName",
+          "createdAt",
+          "createdBy",
+          "lineCount",
+          "totalAmount",
+          "concurrencyToken"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "no": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SalesOrderStatus"
+          },
+          "warehouseName": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "lineCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalAmount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The sum of the line amounts, in money. Absent for a caller without `so.manage`.",
+            "format": "double"
+          },
+          "concurrencyToken": {
+            "type": "string",
+            "description": "Same value as `concurrencyToken` on the full order: compare it to know whether an open order has gone stale."
+          }
+        }
+      },
+      "SalesOrderSaveRequest": {
+        "required": [
+          "warehouseId",
+          "customerId",
+          "remark",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "warehouseId": {
+            "type": "string",
+            "description": "The ship-from warehouse. It cannot change after the order is created: it carries the number.",
+            "format": "uuid"
+          },
+          "customerId": {
+            "type": "string",
+            "description": "An active partner of type Customer.",
+            "format": "uuid"
+          },
+          "remark": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SalesOrderLineInput"
+            }
+          }
+        },
+        "description": "A whole sales-order draft: every field is sent on every save (there is no \"absent = unchanged\"), and the lines replace the old ones. The same product may appear on several lines (different units, prices or remarks): anything that refers to a line, such as delivering against the order (PL3.5), must use its line number, never the product."
+      },
+      "SalesOrderStatus": {
+        "enum": [
+          "Draft",
+          "Submitted",
+          "Approved",
+          "Closed",
+          "Cancelled"
+        ],
+        "type": "string",
+        "description": "The stored state of a sales order. \"Partly delivered\" is a derived label, never stored. An order is open (it blocks switching the sales module off) while it is Draft, Submitted or Approved.\r\nOnly Draft is reachable until the workflow slice (PL3.3); the other values are in place so that slice needs no migration."
+      },
       "SettingsDto": {
         "required": [
           "allowNegativeStock",
@@ -8175,6 +8780,9 @@
     },
     {
       "name": "Settings"
+    },
+    {
+      "name": "SalesOrders"
     },
     {
       "name": "Permissions"

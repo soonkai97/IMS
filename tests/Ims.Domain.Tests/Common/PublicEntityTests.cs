@@ -8,7 +8,7 @@ public class PublicEntityTests
     /// <summary>The tables a client addresses (ADR docs/architecture/adr-guid-keys.md section 3): these, and only these, carry a public id.</summary>
     private static readonly Type[] Addressed =
     [
-        typeof(User), typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom), typeof(Product), typeof(ApprovalRule), typeof(StockDocument), typeof(Attachment), typeof(Role), typeof(PurchaseOrder)
+        typeof(User), typeof(Warehouse), typeof(Partner), typeof(Category), typeof(Uom), typeof(Product), typeof(ApprovalRule), typeof(StockDocument), typeof(Attachment), typeof(Role), typeof(PurchaseOrder), typeof(SalesOrder)
     ];
 
     private static PublicEntity Blank(Type type) => (PublicEntity)Activator.CreateInstance(type, nonPublic: true)!;

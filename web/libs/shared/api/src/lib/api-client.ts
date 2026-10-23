@@ -2109,6 +2109,291 @@ export class SettingsClient {
 @Injectable({
     providedIn: 'root'
 })
+export class SalesOrdersClient {
+    private http: HttpClient;
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
+        this.http = http;
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+    }
+
+    /**
+     * Sales orders, newest first, in the warehouses the caller may read. Prices and totals are absent for a caller without `so.manage`.
+     * @param status (optional) 
+     * @param customerId (optional) Orders of this customer; an id that names no customer matches nothing.
+     * @param warehouseId (optional) Orders for this ship-from warehouse. A warehouse the caller may not read matches nothing.
+     * @param from (optional) Orders created on or after this date (Malaysia time).
+     * @param to (optional) Orders created on or before this date (Malaysia time).
+     * @param search (optional) Orders whose number contains the text (case-insensitive; a partial number such as 0100 works).
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     * @param cursor (optional) Seek paging: the `nextCursor` of the previous page, unchanged; returns the orders after it.
+     * @param includeTotal (optional) False skips the row count.
+     * @return OK
+     */
+    list(status?: SalesOrderStatus | undefined, customerId?: string | undefined, warehouseId?: string | undefined, from?: string | undefined, to?: string | undefined, search?: string | undefined, page?: number | undefined, pageSize?: number | undefined, cursor?: string | undefined, includeTotal?: boolean | undefined, httpContext?: HttpContext): Observable<PagedResultOfSalesOrderListItem> {
+        let url_ = this.baseUrl + "/api/sales-orders?";
+        if (status === null)
+            throw new globalThis.Error("The parameter 'status' cannot be null.");
+        else if (status !== undefined)
+            url_ += "Status=" + encodeURIComponent("" + status) + "&";
+        if (customerId === null)
+            throw new globalThis.Error("The parameter 'customerId' cannot be null.");
+        else if (customerId !== undefined)
+            url_ += "CustomerId=" + encodeURIComponent("" + customerId) + "&";
+        if (warehouseId === null)
+            throw new globalThis.Error("The parameter 'warehouseId' cannot be null.");
+        else if (warehouseId !== undefined)
+            url_ += "WarehouseId=" + encodeURIComponent("" + warehouseId) + "&";
+        if (from === null)
+            throw new globalThis.Error("The parameter 'from' cannot be null.");
+        else if (from !== undefined)
+            url_ += "From=" + encodeURIComponent("" + from) + "&";
+        if (to === null)
+            throw new globalThis.Error("The parameter 'to' cannot be null.");
+        else if (to !== undefined)
+            url_ += "To=" + encodeURIComponent("" + to) + "&";
+        if (search === null)
+            throw new globalThis.Error("The parameter 'search' cannot be null.");
+        else if (search !== undefined)
+            url_ += "Search=" + encodeURIComponent("" + search) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (cursor === null)
+            throw new globalThis.Error("The parameter 'cursor' cannot be null.");
+        else if (cursor !== undefined)
+            url_ += "Cursor=" + encodeURIComponent("" + cursor) + "&";
+        if (includeTotal === null)
+            throw new globalThis.Error("The parameter 'includeTotal' cannot be null.");
+        else if (includeTotal !== undefined)
+            url_ += "IncludeTotal=" + encodeURIComponent("" + includeTotal) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processList(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processList(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PagedResultOfSalesOrderListItem>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PagedResultOfSalesOrderListItem>;
+        }));
+    }
+
+    protected processList(response: HttpResponseBase): Observable<PagedResultOfSalesOrderListItem> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PagedResultOfSalesOrderListItem;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * Creates a Draft with the next number of the warehouse and month (`SO-&lt;WH&gt;-&lt;yyMM&gt;-&lt;nnnn&gt;`).
+     * @return OK
+     */
+    create(body: SalesOrderSaveRequest, httpContext?: HttpContext): Observable<SalesOrderDto> {
+        let url_ = this.baseUrl + "/api/sales-orders";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processCreate(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processCreate(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<SalesOrderDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<SalesOrderDto>;
+        }));
+    }
+
+    protected processCreate(response: HttpResponseBase): Observable<SalesOrderDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as SalesOrderDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    get(id: string, httpContext?: HttpContext): Observable<SalesOrderDto> {
+        let url_ = this.baseUrl + "/api/sales-orders/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGet(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGet(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<SalesOrderDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<SalesOrderDto>;
+        }));
+    }
+
+    protected processGet(response: HttpResponseBase): Observable<SalesOrderDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as SalesOrderDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * Replaces the customer, the remark and all lines of a Draft. The warehouse cannot change. `If-Match` is required (428 without, 409 when stale).
+     * @return OK
+     */
+    update(id: string, body: SalesOrderSaveRequest, httpContext?: HttpContext): Observable<SalesOrderDto> {
+        let url_ = this.baseUrl + "/api/sales-orders/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("put", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processUpdate(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processUpdate(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<SalesOrderDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<SalesOrderDto>;
+        }));
+    }
+
+    protected processUpdate(response: HttpResponseBase): Observable<SalesOrderDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as SalesOrderDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+}
+
+@Injectable({
+    providedIn: 'root'
+})
 export class PermissionsClient {
     private http: HttpClient;
     private baseUrl: string;
@@ -5960,6 +6245,17 @@ export interface PagedResultOfReorderSuggestion {
 }
 
 /** One page of a server-side paged list. */
+export interface PagedResultOfSalesOrderListItem {
+    items: SalesOrderListItem[];
+    /** Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count. */
+    total: number;
+    page: number;
+    pageSize: number;
+    /** Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it. */
+    nextCursor?: string | undefined;
+}
+
+/** One page of a server-side paged list. */
 export interface PagedResultOfStockRow {
     items: StockRow[];
     /** Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count. */
@@ -6280,6 +6576,90 @@ export interface RoleUpdateRequest {
     name: string;
     description?: string | undefined;
     isActive?: boolean | undefined;
+}
+
+export interface SalesOrderDto {
+    id: string;
+    no: string;
+    status: SalesOrderStatus;
+    warehouseId: string;
+    warehouseName: string;
+    customerId: string;
+    customerName: string;
+    remark: string | undefined;
+    createdById: string;
+    createdBy: string;
+    createdByName: string;
+    createdAt: string;
+    /** The total base quantity: what a quantity rule of the approval rules is tested against. */
+    totalQty: number;
+    /** The sum of the line amounts, in money. Absent for a caller without `so.manage`: a selling price is not cost, so `cost.view` is not what decides it. */
+    totalAmount: number | undefined;
+    lines: SalesOrderLineDto[];
+    /** Changes whenever the order (header, status or lines) changes; opaque: compare it only for equality. Also sent as the ETag header; send it back as If-Match to refuse a stale save. */
+    concurrencyToken: string;
+}
+
+export interface SalesOrderLineDto {
+    /** 1 to n inside the order. */
+    lineNo: number;
+    productId: string;
+    sku: string;
+    productName: string;
+    qty: number;
+    uomId: string;
+    uomCode: string;
+    baseQty: number;
+    /** The price per ENTERED unit (the unit in `UomCode`), in money. Absent for a caller without `so.manage`. */
+    unitPrice: number | undefined;
+    /** The value of the line, in money: `round(qty x unitPrice, 2)`. The order total is the sum of these. Absent for a caller without `so.manage`. */
+    amount: number | undefined;
+    remark: string | undefined;
+}
+
+export interface SalesOrderLineInput {
+    productId: string;
+    /** In the unit named by `uomId`; at most 4 decimal places. */
+    qty: number;
+    /** Any unit the product converts to its base unit; null means the base unit. */
+    uomId: string | undefined;
+    /** The price per ENTERED unit, in money (at most 2 decimal places, never negative). 0.00 is accepted on a draft; submitting it is refused (PL3.3). */
+    unitPrice: number;
+    remark: string | undefined;
+}
+
+export interface SalesOrderListItem {
+    id: string;
+    no: string;
+    status: SalesOrderStatus;
+    warehouseName: string;
+    customerName: string;
+    createdAt: string;
+    createdBy: string;
+    lineCount: number;
+    /** The sum of the line amounts, in money. Absent for a caller without `so.manage`. */
+    totalAmount: number | undefined;
+    /** Same value as `concurrencyToken` on the full order: compare it to know whether an open order has gone stale. */
+    concurrencyToken: string;
+}
+
+/** A whole sales-order draft: every field is sent on every save (there is no "absent = unchanged"), and the lines replace the old ones. The same product may appear on several lines (different units, prices or remarks): anything that refers to a line, such as delivering against the order (PL3.5), must use its line number, never the product. */
+export interface SalesOrderSaveRequest {
+    /** The ship-from warehouse. It cannot change after the order is created: it carries the number. */
+    warehouseId: string;
+    /** An active partner of type Customer. */
+    customerId: string;
+    remark: string | undefined;
+    lines: SalesOrderLineInput[];
+}
+
+/** The stored state of a sales order. "Partly delivered" is a derived label, never stored. An order is open (it blocks switching the sales module off) while it is Draft, Submitted or Approved. Only Draft is reachable until the workflow slice (PL3.3); the other values are in place so that slice needs no migration. */
+export enum SalesOrderStatus {
+    Draft = "Draft",
+    Submitted = "Submitted",
+    Approved = "Approved",
+    Closed = "Closed",
+    Cancelled = "Cancelled",
 }
 
 export interface SettingsDto {

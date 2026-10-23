@@ -9,6 +9,8 @@ public static class DocumentNumberFormat
     public const string AdjustPrefix = "ADJ";
     /// <summary>Purchase orders (module purchasing): <c>PO-&lt;WH&gt;-&lt;yyMM&gt;-&lt;nnnn&gt;</c>, with a sequence of their own (the prefix is part of its key).</summary>
     public const string PurchaseOrderPrefix = "PO";
+    /// <summary>Sales orders (module sales): <c>SO-&lt;WH&gt;-&lt;yyMM&gt;-&lt;nnnn&gt;</c>, with a sequence of their own (the prefix is part of its key).</summary>
+    public const string SalesOrderPrefix = "SO";
     public const string Separator = "-";
     public const string YearMonthFormat = "D4";
     public const string RunningFormat = "D4";
