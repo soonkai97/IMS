@@ -34,7 +34,7 @@ public sealed class SalesScenario
     public static async Task ResetAsync(ApiFixture fixture)
     {
         await TurnOffAsync(fixture);
-        await fixture.Database.ExecuteAsync("DELETE FROM ApprovalRule WHERE DocType = 6"); // the sales-order rules of a test (the standard pair arrives with PL3.4)
+        await RestoreStandardRulesAsync(fixture);
     }
 
     private static async Task TurnOffAsync(ApiFixture fixture)
@@ -44,18 +44,16 @@ public sealed class SalesScenario
         await fixture.Database.ExecuteAsync("DELETE FROM SystemSetting WHERE [Key] LIKE N'Module.%'");
     }
 
-    /// <summary>Gives the database an active sales-order rule where it has none: switching <c>sales</c> on is refused without one (until PL3.4 writes the standard pair), and a test that turns every module on needs it.</summary>
-    public static Task EnsureRulesAsync(ApiFixture fixture) => fixture.Database.ExecuteAsync(
-        "IF NOT EXISTS (SELECT 1 FROM ApprovalRule WHERE DocType = 6 AND IsActive = 1 AND REC_DELETED = 0) INSERT ApprovalRule (DocType, AmountThreshold, QtyThreshold, Tier, IsActive) VALUES (6, 5000, NULL, 1, 1)");
-
-    /// <summary>The two placeholder rules the data migration of PL3.4 will write: 5,000.00 for a Supervisor, 20,000.00 for the Owner. Written straight into the table, as the migration will.</summary>
-    public static Task AddStandardRulesAsync(ApiFixture fixture) => fixture.Database.ExecuteAsync(
-        "INSERT ApprovalRule (DocType, AmountThreshold, QtyThreshold, Tier, IsActive) VALUES (6, 5000, NULL, 1, 1), (6, 20000, NULL, 2, 1)");
+    /// <summary>The two rules the migration AddSalesOrderApprovalRules writes (5,000.00 for a Supervisor, 20,000.00 for the Owner), restored after a test changed, switched off or added rules.</summary>
+    private static async Task RestoreStandardRulesAsync(ApiFixture fixture)
+    {
+        await fixture.Database.ExecuteAsync("DELETE FROM ApprovalRule WHERE DocType = 6");
+        await fixture.Database.ExecuteAsync("INSERT ApprovalRule (DocType, AmountThreshold, QtyThreshold, Tier, IsActive) VALUES (6, 5000, NULL, 1, 1), (6, 20000, NULL, 2, 1)");
+    }
 
     public static async Task<SalesScenario> CreateAsync(ApiFixture fixture, bool moduleOn = true)
     {
         await ResetAsync(fixture);
-        await AddStandardRulesAsync(fixture);
         if (moduleOn) await fixture.Database.ExecuteAsync("INSERT SystemSetting ([Key], [Value]) VALUES (N'Module.sales', N'true')");
         return new SalesScenario(fixture, await StockScenario.CreateAsync(fixture));
     }

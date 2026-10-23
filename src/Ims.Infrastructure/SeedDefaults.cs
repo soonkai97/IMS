@@ -19,6 +19,10 @@ public static class SeedDefaults
     public const decimal PurchaseOrderStandardAmount = 5000m;
     public const decimal PurchaseOrderLargeAmount = 20000m;
 
+    /// <summary>Placeholder sales-order thresholds (plan PL3 D3; the owner confirms them, an Administrator changes them in Settings): the same two tiers as purchase orders.</summary>
+    public const decimal SalesOrderStandardAmount = 5000m;
+    public const decimal SalesOrderLargeAmount = 20000m;
+
     public static readonly (string Code, string Name)[] Units = [("PCS", "Piece"), ("CTN", "Carton"), ("KG", "Kilogram"), ("BOX", "Box")];
     /// <summary>Username, role code and whether the person sees every warehouse (the owner does; the others work in the default warehouse).</summary>
     public static readonly (string Username, string Role, bool AllWarehouses)[] DemoUsers =

@@ -44,14 +44,20 @@ public static class Seeder
         foreach (var (key, value) in defaults)
             if (!await db.Set<SystemSetting>().AnyAsync(s => s.Key == key, ct)) db.Add(SystemSetting.Create(key, value));
 
-        // The purchase-order pair is written by a migration too, so "no rule at all" would never be true on a fresh database: the default is for the document types.
-        if (!await db.Set<ApprovalRule>().AnyAsync(r => r.DocType != DocumentType.PurchaseOrder, ct))
+        // The order pairs are written by migrations too, so "no rule at all" would never be true on a fresh database: the default is for the stock-document types (receipt, issue, transfer, adjust).
+        if (!await db.Set<ApprovalRule>().AnyAsync(r => r.DocType != DocumentType.PurchaseOrder && r.DocType != DocumentType.SalesOrder, ct))
             db.Add(ApprovalRule.Create(DocumentType.Issue, SeedDefaults.DefaultApprovalAmount, null, ApproverTier.Standard));
         // The two purchase-order tiers, once per database; the migration AddPurchaseOrderApprovalRules writes the same rows, so this only matters where they were removed by hand (a rule is never deleted, only switched off, so an Administrator who turned them off is not overruled). They sit unused and hidden until the purchasing module is on.
         if (!await db.Set<ApprovalRule>().AnyAsync(r => r.DocType == DocumentType.PurchaseOrder, ct))
         {
             db.Add(ApprovalRule.Create(DocumentType.PurchaseOrder, SeedDefaults.PurchaseOrderStandardAmount, null, ApproverTier.Standard));
             db.Add(ApprovalRule.Create(DocumentType.PurchaseOrder, SeedDefaults.PurchaseOrderLargeAmount, null, ApproverTier.Large));
+        }
+        // The two sales-order tiers, the same way (the migration AddSalesOrderApprovalRules writes the same rows; a rule is never deleted, only switched off, so an Administrator's choice is not overruled).
+        if (!await db.Set<ApprovalRule>().AnyAsync(r => r.DocType == DocumentType.SalesOrder, ct))
+        {
+            db.Add(ApprovalRule.Create(DocumentType.SalesOrder, SeedDefaults.SalesOrderStandardAmount, null, ApproverTier.Standard));
+            db.Add(ApprovalRule.Create(DocumentType.SalesOrder, SeedDefaults.SalesOrderLargeAmount, null, ApproverTier.Large));
         }
         await db.SaveChangesAsync(ct);
     }

@@ -122,6 +122,32 @@ public class SalesModuleDisableTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task An_order_created_while_a_flip_is_in_flight_that_then_fails_is_created_once_the_lock_is_free()
+    {
+        var product = await _s.NewProductAsync();
+        var tx = await HoldModulesLockAsync();
+        var create = _s.Admin.SalesOrders.CreateAsync(_s.Request(_s.Reference.DefaultWarehouseId, product.Id).Build());
+        await Task.Delay(500);
+        var waited = !create.IsCompleted;
+
+        await ReleaseAsync(tx, commit: false); // the flip was refused or failed: nothing changed, the module stays on
+
+        var created = (await create).Data<SalesOrderDto>();
+        Assert.True(waited);
+        Assert.Equal(SalesOrderStatus.Draft, created.Status);
+    }
+
+    [Fact]
+    public async Task Switching_on_after_a_switch_off_works_with_the_rules_of_the_migration_in_place()
+    {
+        (await SwitchOffAsync()).ShouldBeOk();
+
+        (await _s.Admin.Modules.SwitchAsync(ModuleCodes.Sales, true, Why())).ShouldBeOk(); // the standard pair is there, so the enable check lets it through
+
+        Assert.True(await IsOnAsync());
+    }
+
+    [Fact]
     public async Task Creates_racing_a_switch_off_never_leave_an_open_order_behind_a_module_that_is_off()
     {
         for (var round = 0; round < 12; round++)
