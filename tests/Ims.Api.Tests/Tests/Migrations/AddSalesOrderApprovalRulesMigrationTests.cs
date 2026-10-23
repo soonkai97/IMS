@@ -12,7 +12,7 @@ namespace Ims.Api.Tests.Tests.Migrations;
 
 /// <summary>
 /// Migration <c>AddSalesOrderApprovalRules</c> (PL3.4): data only. A database with no sales-order rule gets the two placeholder rules (5,000.00 Standard, 20,000.00 Large); one that has any
-/// rule of that type, active, switched off, edited or soft-deleted, gets nothing; running it again adds nothing; Down does nothing; the generated script does what the runner does; and the rows are the
+/// rule of that type, active, switched off, edited or soft-deleted, gets nothing; running it again adds nothing; Down removes the two untouched rows it wrote and nothing else (an edited, added, switched-off or soft-deleted rule stays, and so does every sales order); the generated script does what the runner does; and the rows are the
 /// ones the Seeder writes (the same values, no duplicates when either runs after the other). Each migration test has its own throw-away database; the last two use the shared API database.
 /// </summary>
 [Collection(ApiCollection.Name)]
@@ -130,6 +130,28 @@ public class AddSalesOrderApprovalRulesMigrationTests(ApiFixture fixture)
         await MigrateAsync(database, Before);
 
         Assert.Equal(1, await CountAsync(database)); // the untouched one went, the changed one stayed
+    });
+
+    [Fact]
+    public Task Going_down_with_sales_orders_present_removes_the_untouched_pair_and_leaves_the_orders_intact() => WithDatabaseAsync(async database =>
+    {
+        await MigrateAsync(database, Latest);
+        await database.ExecuteAsync("""
+            INSERT Uom (Code, Name) VALUES (N'PCS', N'Pieces');
+            INSERT Partner (Type, Name, IsActive) VALUES (2, N'Customer', 1);
+            INSERT Warehouse (Code, Name, IsActive) VALUES (N'W1', N'One', 1);
+            INSERT [User] (Username, Email, DisplayName, PasswordHash, RoleId, AllWarehouses, IsActive, FailedLoginCount)
+            VALUES (N'first', N'first@example.test', N'First', N'x', (SELECT TOP (1) Id FROM Role), 1, 1, 0);
+            INSERT SalesOrder (No, Status, WarehouseId, CustomerId, CreatedBy, CreatedAt, RequiresApproval, IsLarge)
+            SELECT N'SO-W1-2610-0001', 2, (SELECT TOP (1) Id FROM Warehouse), (SELECT TOP (1) Id FROM Partner), (SELECT TOP (1) Id FROM [User]), SYSUTCDATETIME(), 1, 1;
+            """);
+        await database.ExecuteAsync("UPDATE ApprovalRule SET AmountThreshold = 30000.00 WHERE DocType = 6 AND Tier = 2"); // the Large rule was edited after an order was routed to it
+
+        await MigrateAsync(database, Before);
+
+        Assert.Equal(1, await database.ScalarAsync<int>("SELECT COUNT(*) FROM SalesOrder WHERE No = N'SO-W1-2610-0001' AND IsLarge = 1 AND Status = 2")); // the order is untouched
+        Assert.Equal(1, await database.ScalarAsync<int>("SELECT COUNT(*) FROM ApprovalRule WHERE DocType = 6")); // the untouched Standard rule went
+        Assert.Equal(1, await database.ScalarAsync<int>("SELECT COUNT(*) FROM ApprovalRule WHERE DocType = 6 AND Tier = 2 AND AmountThreshold = 30000.00")); // the edited Large rule stayed
     });
 
     [Fact]
