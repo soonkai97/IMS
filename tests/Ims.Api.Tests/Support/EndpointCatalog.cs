@@ -118,6 +118,10 @@ public static class EndpointCatalog
         new("POST purchase-orders/{id}/cancel", Post, AuthPolicies.PurchaseOrderCancel, _ => $"/api/purchase-orders/{MissingPublicId}/cancel", _ => new { reason = "x" }, OkWhenAllowed: false),
         new("POST purchase-orders/{id}/close", Post, Permissions.PoManage, _ => $"/api/purchase-orders/{MissingPublicId}/close", _ => new { reason = "x" }, OkWhenAllowed: false),
         new("POST purchase-orders/{id}/receipt", Post, Permissions.DocumentCreate, _ => $"/api/purchase-orders/{MissingPublicId}/receipt", OkWhenAllowed: false),
+        new("GET sales-orders", Get, Permissions.SoRead, _ => "/api/sales-orders"),
+        new("GET sales-orders/{id}", Get, Permissions.SoRead, _ => $"/api/sales-orders/{MissingPublicId}", OkWhenAllowed: false),
+        new("POST sales-orders", Post, Permissions.SoManage, _ => "/api/sales-orders", OkWhenAllowed: false),
+        new("PUT sales-orders/{id}", Put, Permissions.SoManage, _ => $"/api/sales-orders/{MissingPublicId}", OkWhenAllowed: false),
     ];
 
     public static EndpointCase Named(string name) => All.Single(c => c.Name == name);

@@ -210,6 +210,12 @@ public static class Messages
     public const string PurchaseOrderLastRule = "This is the last active approval rule for purchase orders. While purchasing is on, at least one must stay active, or every priced order would be released with no approver.";
     public const string PurchaseOrderRuleTypeFixed = "An approval rule cannot be moved to or from purchase orders. Add a new rule for the other type instead.";
 
+    // ----- Sales orders (module sales) -----
+    public const string SalesOrderNotFound = "Sales order not found.";
+    public const string ChooseCustomer = "Choose a customer.";
+    public static string SalesOrderNotEditable(string no, SalesOrderStatus status) => $"Sales order {no} is {status} and can no longer be edited.";
+    public static string SalesOrdersOpen(int count) => count == 1 ? "1 sales order is open" : $"{count} sales orders are open";
+
     // ----- Receiving against a purchase order (PL2.4) -----
     public static string PurchaseOrderNotReceivable(string no, PurchaseOrderStatus status) => $"Purchase order {no} is {status}. Only an Approved purchase order can be received.";
     public static string PurchaseOrderNothingToReceive(string no) => $"Purchase order {no} has nothing left to receive.";

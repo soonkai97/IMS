@@ -3,7 +3,7 @@ namespace Ims.Api.Tests.Tests.Schema;
 /// <summary>
 /// The shape of the database as the migrations build it today (<see cref="SchemaShape"/> writes the same lines). Change it in the pull request
 /// that changes a key, a foreign key or a unique index, never to make a red test green. Order does not matter.
-/// 23 tables, 39 foreign keys, 28 unique indexes besides the primary keys, 2 append-only triggers. The eleven <c>UX_&lt;Table&gt;_PublicId</c> indexes carry no
+/// 25 tables, 50 foreign keys, 30 unique indexes besides the primary keys, 2 append-only triggers. The thirteen <c>UX_&lt;Table&gt;_PublicId</c> indexes carry no
 /// filter on purpose: a soft-deleted row keeps its public id, so an id is never handed out twice.
 /// </summary>
 public static class SchemaPin
@@ -22,6 +22,8 @@ public static class SchemaPin
         TABLE RefreshToken PK(Id:int identity) clustered
         TABLE Role PK(Id:int identity) clustered
         TABLE RolePermission PK(Id:int identity) clustered
+        TABLE SalesOrder PK(Id:int identity) clustered
+        TABLE SalesOrderLine PK(Id:int identity) clustered
         TABLE StockBalance PK(ProductId:int, WarehouseId:int) clustered
         TABLE StockDocument PK(Id:int identity) clustered
         TABLE StockDocumentLine PK(Id:int identity) clustered
@@ -48,6 +50,16 @@ public static class SchemaPin
         FK PurchaseOrderLine(UomId) -> Uom(Id) on delete no_action
         FK RefreshToken(UserId) -> User(Id) on delete cascade
         FK RolePermission(RoleId) -> Role(Id) on delete no_action
+        FK SalesOrder(ApprovedBy) -> User(Id) on delete no_action
+        FK SalesOrder(ClosedBy) -> User(Id) on delete no_action
+        FK SalesOrder(CreatedBy) -> User(Id) on delete no_action
+        FK SalesOrder(CustomerId) -> Partner(Id) on delete no_action
+        FK SalesOrder(RejectedBy) -> User(Id) on delete no_action
+        FK SalesOrder(SubmittedBy) -> User(Id) on delete no_action
+        FK SalesOrder(WarehouseId) -> Warehouse(Id) on delete no_action
+        FK SalesOrderLine(ProductId) -> Product(Id) on delete no_action
+        FK SalesOrderLine(SalesOrderId) -> SalesOrder(Id) on delete cascade
+        FK SalesOrderLine(UomId) -> Uom(Id) on delete no_action
         FK StockBalance(ProductId) -> Product(Id) on delete no_action
         FK StockBalance(WarehouseId) -> Warehouse(Id) on delete no_action
         FK StockDocument(ApprovedBy) -> User(Id) on delete no_action
@@ -89,6 +101,8 @@ public static class SchemaPin
         UNIQUE Role.IX_Role_Name (Name) where ([REC_DELETED]=(0))
         UNIQUE Role.UX_Role_PublicId (PublicId)
         UNIQUE RolePermission.IX_RolePermission_RoleId_PermissionCode (RoleId, PermissionCode) where ([REC_DELETED]=(0))
+        UNIQUE SalesOrder.IX_SalesOrder_No (No) where ([REC_DELETED]=(0))
+        UNIQUE SalesOrder.UX_SalesOrder_PublicId (PublicId)
         UNIQUE StockDocument.IX_StockDocument_No (No) where ([REC_DELETED]=(0))
         UNIQUE StockDocument.UX_StockDocument_PublicId (PublicId)
         UNIQUE Uom.IX_Uom_Code (Code) where ([REC_DELETED]=(0))

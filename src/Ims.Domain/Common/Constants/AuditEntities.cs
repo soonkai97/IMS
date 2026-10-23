@@ -7,6 +7,7 @@ public static class AuditEntities
     public const string Role = nameof(Ims.Domain.Role);
     public const string StockDocument = nameof(Ims.Domain.StockDocument);
     public const string PurchaseOrder = nameof(Ims.Domain.PurchaseOrder);
+    public const string SalesOrder = nameof(Ims.Domain.SalesOrder);
     public const string SystemSetting = nameof(Ims.Domain.SystemSetting);
     public const string Product = nameof(Ims.Domain.Product);
     public const string Attachment = nameof(Ims.Domain.Attachment);
@@ -22,7 +23,7 @@ public static class AuditEntities
     public static readonly IReadOnlyList<string> Known =
     [
         nameof(Ims.Domain.ApprovalRule), nameof(Ims.Domain.Attachment), nameof(Ims.Domain.Category), nameof(Ims.Domain.Partner),
-        nameof(Ims.Domain.Product), nameof(Ims.Domain.ProductBarcode), nameof(Ims.Domain.PurchaseOrder), nameof(Ims.Domain.Role), nameof(Ims.Domain.RolePermission), nameof(Ims.Domain.StockDocument),
+        nameof(Ims.Domain.Product), nameof(Ims.Domain.ProductBarcode), nameof(Ims.Domain.PurchaseOrder), nameof(Ims.Domain.Role), nameof(Ims.Domain.RolePermission), nameof(Ims.Domain.SalesOrder), nameof(Ims.Domain.StockDocument),
         nameof(Ims.Domain.SystemSetting), nameof(Ims.Domain.Uom), nameof(Ims.Domain.UomConversion), nameof(Ims.Domain.User), nameof(Ims.Domain.Warehouse)
     ];
 
