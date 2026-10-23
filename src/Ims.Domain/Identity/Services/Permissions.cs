@@ -23,6 +23,10 @@ public static class Permissions
     public const string PoRead = "po.read";
     /// <summary>Create, edit a draft, submit, recall, cancel and close purchase orders. Belongs to the <see cref="ModuleCodes.Purchasing"/> module; requires <see cref="PoRead"/>, <see cref="CostView"/> (an order carries prices) and <see cref="StockRead"/> (the reorder list shows stock).</summary>
     public const string PoManage = "po.manage";
+    /// <summary>See sales orders. Belongs to the <see cref="ModuleCodes.Sales"/> module; requires <see cref="MasterDataRead"/> (the customer and product lookups).</summary>
+    public const string SoRead = "so.read";
+    /// <summary>Create, edit a draft, submit, cancel and close sales orders. Belongs to the <see cref="ModuleCodes.Sales"/> module; requires <see cref="SoRead"/> only: a selling price is not cost, so it does not need <see cref="CostView"/>.</summary>
+    public const string SoManage = "so.manage";
 
     /// <summary>
     /// See the cost of the documents one works on: unit cost, line cost, document totals and estimates, and the approval amounts and thresholds.

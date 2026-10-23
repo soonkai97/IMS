@@ -8,4 +8,7 @@ public static class ModuleCodes
 {
     /// <summary>Purchase orders, receiving against them, and a reorder list (pilot slice 2).</summary>
     public const string Purchasing = "purchasing";
+
+    /// <summary>Sales orders, delivery against them and price lists (pilot slice 3).</summary>
+    public const string Sales = "sales";
 }

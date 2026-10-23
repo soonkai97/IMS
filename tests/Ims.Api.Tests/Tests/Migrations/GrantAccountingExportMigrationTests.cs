@@ -25,7 +25,7 @@ public class GrantAccountingExportMigrationTests
     private const string AccountingExport = "accounting.export";
 
     /// <summary>The permissions the catalog gains after this migration, each with a data migration of its own (PL2.1 adds po.read and po.manage): a database at this migration does not hold them yet.</summary>
-    private static readonly string[] AddedLater = [Permissions.PoRead, Permissions.PoManage];
+    private static readonly string[] AddedLater = [Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage];
 
     private static async Task MigrateAsync(TestDatabase database, string target)
     {

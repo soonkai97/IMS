@@ -16,6 +16,15 @@ public class ModulePermissionsTests
     }
 
     [Fact]
+    public void ASalesPermissionIsOfferedOnlyWhileTheSalesModuleIsOn_NotWhilePurchasingIs()
+    {
+        Assert.False(ModulePermissions.IsOffered(Permissions.SoRead, Off));
+        Assert.False(ModulePermissions.IsOffered(Permissions.SoManage, On)); // purchasing on does not offer a sales permission
+        Assert.True(ModulePermissions.IsOffered(Permissions.SoRead, [ModuleCodes.Sales]));
+        Assert.True(ModulePermissions.IsOffered(Permissions.SoManage, [ModuleCodes.Sales]));
+    }
+
+    [Fact]
     public void NotOfferedAndOffered_SplitTheCodes_InCatalogOrder()
     {
         string[] codes = [Permissions.PoRead, Permissions.CostView, Permissions.StockRead];

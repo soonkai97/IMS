@@ -14,9 +14,20 @@ public partial class ModuleCatalogTests
         .Select(f => (string)f.GetRawConstantValue()!).ToList();
 
     [Fact]
-    public void TheCatalogListsThePurchasingModule_AndNoOtherYet()
+    public void TheCatalogListsThePurchasingAndSalesModules_AndNoOtherYet()
     {
-        Assert.Equal([ModuleCodes.Purchasing], ModuleCatalog.Codes);
+        Assert.Equal([ModuleCodes.Purchasing, ModuleCodes.Sales], ModuleCatalog.Codes);
+    }
+
+    [Fact]
+    public void TheSalesModuleIsNamedAsTheContractSays_AndRequiresNothing()
+    {
+        var sales = ModuleCatalog.Find(ModuleCodes.Sales)!;
+
+        Assert.Equal("sales", sales.Code);
+        Assert.Equal("Sales", sales.Name);
+        Assert.Equal("Sales orders, delivery against them and price lists.", sales.Description);
+        Assert.Empty(sales.Requires);
     }
 
     [Fact]

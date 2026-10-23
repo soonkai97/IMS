@@ -163,6 +163,6 @@ public class RemoveAccountingModuleMigrationTests
         Assert.Equal(0, await ExportGrantsAsync(database));
         Assert.Equal(0, await SwitchRowsAsync(database, AccountingSwitch));
         var admin = await database.ScalarAsync<string>("SELECT STRING_AGG(p.PermissionCode, ';') FROM RolePermission p JOIN Role r ON r.Id = p.RoleId WHERE r.Code = @c AND p.REC_DELETED = 0", ("@c", Roles.Admin));
-        Assert.True(admin.Split(';').ToHashSet().SetEquals(PermissionCatalog.Codes), "Admin must hold every permission of the catalog (24), and nothing else.");
+        Assert.True(admin.Split(';').ToHashSet().SetEquals(PermissionCatalog.Codes.Except([Permissions.SoRead, Permissions.SoManage])), "Admin must hold every permission of the catalog of that day (24, the sales pair comes later), and nothing else.");
     });
 }
