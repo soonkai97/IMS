@@ -24,8 +24,8 @@ public class GrantPurchasingPermissionsMigrationTests
     private static readonly string[] Managers = [Roles.Admin, Roles.Supervisor, Roles.Clerk];
     private static readonly string[] Readers = [Roles.Owner, Roles.WarehouseStaff];
 
-    /// <summary>Permissions the catalog gains after this migration, each with a data migration of its own: none yet.</summary>
-    private static readonly string[] AddedLater = [];
+    /// <summary>Permissions the catalog gains after this migration, each with a data migration of its own: the sales pair (PL3.1).</summary>
+    private static readonly string[] AddedLater = [Permissions.SoRead, Permissions.SoManage];
 
     /// <summary>The permission that was in the catalog at this migration and left it again in RemoveAccountingModule: the Administrator and the Owner still hold it here, FROZEN as a string because the live catalog no longer lists it.</summary>
     private const string AccountingExportThen = "accounting.export";

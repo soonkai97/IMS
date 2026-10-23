@@ -20,6 +20,7 @@ namespace Ims.Api.Tests.Tests.Modules;
 public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
 {
     private const string Purchasing = ModuleCodes.Purchasing;
+    private const string Sales = ModuleCodes.Sales;
     private const string Key = "Module.purchasing";
 
     private int _auditBaseline;
@@ -69,7 +70,7 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
     {
         var list = (await (await fixture.AsAsync(role)).Modules.ListAsync()).Data<List<ModuleDto>>();
 
-        Assert.Equal([Purchasing], list.Select(m => m.Code));
+        Assert.Equal([Purchasing, Sales], list.Select(m => m.Code));
         Assert.All(list, module =>
         {
             Assert.False(module.Enabled);
