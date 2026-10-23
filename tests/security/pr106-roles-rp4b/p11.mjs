@@ -1,0 +1,10 @@
+import { call, short, T } from './lib.mjs';
+const PW='Probe#Pass12345';
+const wh1 = (await call('GET', '/api/warehouses', T.admin)).json[0].id;
+const u = (await call('GET','/api/users?search=ma',T.admin)).json.items.find(x=>x.username.startsWith('ma')&&x.displayName==='ma2');
+const r = await call('PUT','/api/users/'+u.id,T.admin,{username:u.username,email:u.email,displayName:'CHANGED',role:'Hacker',isActive:false,password:'Another#Pass9999',warehouseIds:[],allWarehouses:false});
+console.log('PUT bad role+deactivate+new password ->', short(r));
+const after = (await call('GET','/api/users?search='+u.username,T.admin)).json.items[0];
+console.log('after: displayName', after.displayName, 'isActive', after.isActive, 'warehouses', after.warehouseIds.length, '| old password still works:', (await call('POST','/api/auth/login',null,{username:u.username,password:PW})).status);
+const r2 = await call('PUT','/api/users/'+u.id,T.admin,{username:u.username,email:u.email,displayName:'CHANGED',role:'Dormant',isActive:true,warehouseIds:[wh1]});
+console.log('PUT inactive role ->', short(r2), '| displayName now', (await call('GET','/api/users?search='+u.username,T.admin)).json.items[0].displayName);
