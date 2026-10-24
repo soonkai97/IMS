@@ -50,7 +50,7 @@
     "@nx/workspace": "23.3.0",
     "@schematics/angular": "^22.2.2",
     "@swc-node/register": "^1.10.0",
-    "@swc/core": "^1.13.0",
+    "@swc/core": "^1.16.18",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.19.0",
     "angular-eslint": "^22.6.0",
