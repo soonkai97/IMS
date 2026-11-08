@@ -137,4 +137,12 @@ describe('ApprovalsInboxPageComponent', () => {
     expect(rows()).toHaveLength(1);
     expect(rows()[0]).toContain('ISS-3');
   });
+
+  it('PL3.8: a sales order is named in words and its row opens the sales order page, not a receipt', () => {
+    waiting.set([item(7, { type: DocumentType.SalesOrder, no: 'SO-MAIN-2611-0007' })]);
+    spectator.detectChanges();
+
+    expect(rows()[0]).toContain('Sales order');
+    expect(spectator.query('tbody a')?.getAttribute('href')).toBe(`/sales-orders/${guid(7)}`);
+  });
 });

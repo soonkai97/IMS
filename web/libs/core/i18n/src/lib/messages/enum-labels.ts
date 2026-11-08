@@ -28,12 +28,15 @@ export const PURCHASE_ORDER_STATUS_LABELS: LabelMap = {
   Cancelled: 'status.Cancelled'
 };
 
+export const SALES_ORDER_STATUS_LABELS: LabelMap = PURCHASE_ORDER_STATUS_LABELS;
+
 export const DOCUMENT_TYPE_LABELS: LabelMap = {
   Receipt: 'docType.Receipt',
   Issue: 'docType.Issue',
   Transfer: 'docType.Transfer',
   Adjust: 'docType.Adjust',
-  PurchaseOrder: 'docType.PurchaseOrder'
+  PurchaseOrder: 'docType.PurchaseOrder',
+  SalesOrder: 'docType.SalesOrder'
 };
 
 export const ISSUE_PURPOSE_LABELS: LabelMap = {

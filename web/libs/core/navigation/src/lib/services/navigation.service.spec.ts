@@ -159,7 +159,31 @@ describe('NavigationService (menus follow the permissions)', () => {
       expect(item?.route).toBe('/purchase-orders');
       expect(item?.module).toBe('purchasing');
       expect(order.indexOf('purchase-orders')).toBe(order.indexOf('issues') + 1);
-      expect(order.indexOf('approvals')).toBe(order.indexOf('purchase-orders') + 1);
+      expect(order.indexOf('approvals')).toBeGreaterThan(order.indexOf('purchase-orders'));
+    });
+  });
+
+  describe('Sales orders (module sales + permission so.read)', () => {
+    it.each([
+      ['module on, permission held', ['sales'], [PERMISSION.SoRead], true],
+      ['module on, permission missing', ['sales'], [PERMISSION.PoRead], false],
+      ['module off, permission held', [], [PERMISSION.SoRead], false],
+      ['module off, permission missing', [], [PERMISSION.StockRead], false]
+    ])('%s', (_label, on, permissions, shown) => {
+      modulesOn.set(on);
+      granted.set(permissions);
+
+      expect(ids().includes('sales-orders')).toBe(shown);
+    });
+
+    it('sits in Documents, right after Purchase orders, and is tied to the sales module', () => {
+      const order = MENU_ITEMS.map(item => item.id);
+      const item = MENU_ITEMS.find(entry => entry.id === 'sales-orders');
+
+      expect(item?.group).toBe('documents');
+      expect(item?.route).toBe('/sales-orders');
+      expect(item?.module).toBe('sales');
+      expect(order.indexOf('sales-orders')).toBe(order.indexOf('purchase-orders') + 1);
     });
   });
 });

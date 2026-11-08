@@ -8,8 +8,8 @@ export const DOCUMENT_ROUTE: Readonly<Record<DocumentType, string>> = {
   [DocumentType.Adjust]: 'receipts',
   // Not a stock document: purchase orders have no editor in this route table (the PL2.7 screens add their own); the entry only keeps the table exhaustive.
   [DocumentType.PurchaseOrder]: 'receipts',
-  // Not a stock document either: sales orders get their own screens in PL3.8; the entry only keeps the table exhaustive.
-  [DocumentType.SalesOrder]: 'receipts'
+  // A sales order opens on its own page; the approvals inbox links through this table.
+  [DocumentType.SalesOrder]: 'sales-orders'
 };
 
 /**

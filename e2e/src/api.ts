@@ -79,7 +79,7 @@ async function signIn(role: Role): Promise<string> {
 /** A document or purchase-order write: the API answers 428 unless If-Match carries the real concurrency token (`*` is a 428 too). */
 const COMMAND_SUFFIX = /\/(submit|approve|reject|recall|cancel|close|post|reverse)$/;
 const DOCUMENT_COMMAND =
-  /^\/api\/(documents|purchase-orders)\/[0-9a-f-]{36}(\/(submit|approve|reject|recall|cancel|close|post|reverse))?$/;
+  /^\/api\/(documents|purchase-orders|sales-orders)\/[0-9a-f-]{36}(\/(submit|approve|reject|recall|cancel|close|post|reverse))?$/;
 
 /** The header the API reads: the token in quotes, the way the web client sends it. */
 export const ifMatch = (token: string): Record<string, string> => ({ 'If-Match': `"${token}"` });
