@@ -59,6 +59,13 @@ public class StockDocument : PublicEntity
     /// </summary>
     public int? PurchaseOrderId { get; private set; }
 
+    /// <summary>
+    /// The sales order this delivery was created from (module sales); null for every other document. Set once, when the delivery is created from an Approved order (<see cref="CreateFromSalesOrder"/>),
+    /// and never changed: no method assigns it again. A document carries at most one link (<see cref="PurchaseOrderId"/> or this), because each is set only by its own factory on a document that has none.
+    /// Its lines then name the order's lines by <see cref="StockDocumentLine.SalesOrderLineNo"/>.
+    /// </summary>
+    public int? SalesOrderId { get; private set; }
+
     /// <summary>Why the approver allowed stock to go below zero. Entered when approving (BR-03), required when <see cref="RequiresOverride"/> is set, and read by the posting run.</summary>
     public string? NegativeStockOverrideReason { get; private set; }
 
@@ -77,9 +84,18 @@ public class StockDocument : PublicEntity
     public User? RejectedByUser { get; private set; }
     public User? ReversedByUser { get; private set; }
     public PurchaseOrder? PurchaseOrder { get; private set; }
+    public SalesOrder? SalesOrder { get; private set; }
 
-    /// <summary>True for a receipt created from a purchase order: its lines must name the order's lines, and its supplier and warehouse are the order's.</summary>
-    public bool IsLinked => PurchaseOrderId is not null;
+    /// <summary>The order this document was created from, if any: its kind and key. At most one (see <see cref="SalesOrderId"/>).</summary>
+    /// <exception cref="InvalidOperationException">Both keys are set: no code path does that, so the stored row is corrupt and nothing should act on it.</exception>
+    public DocumentLink Link =>
+        PurchaseOrderId is not null && SalesOrderId is not null ? throw new InvalidOperationException($"Document {No} is linked to both a purchase order and a sales order.")
+        : PurchaseOrderId is { } purchase ? new DocumentLink(DocumentLinkKind.PurchaseOrder, purchase)
+        : SalesOrderId is { } sales ? new DocumentLink(DocumentLinkKind.SalesOrder, sales)
+        : DocumentLink.None;
+
+    /// <summary>True for a receipt created from a purchase order or a delivery created from a sales order: its lines must name the order's lines, and its partner and warehouse are the order's.</summary>
+    public bool IsLinked => Link.IsLinked;
 
     public decimal TotalQty => Lines.Sum(l => l.BaseQty);
     [VisibleWith(Permissions.CostView)]
@@ -116,6 +132,15 @@ public class StockDocument : PublicEntity
         return receipt;
     }
 
+    /// <summary>Opens an Issue Draft with purpose Sale against an Approved sales order (its warehouse and customer, which must be loaded with it) and the link that is never changed afterwards. The lines are added separately.</summary>
+    public static StockDocument CreateFromSalesOrder(SalesOrder order, int createdBy, DateTime now)
+    {
+        if (!order.CanBeDelivered) throw new DomainException(Messages.SalesOrderNotDeliverable(order.No, order.Status));
+        var delivery = Create(DocumentType.Issue, order.Warehouse, order.Customer, IssuePurpose.Sale, remark: null, createdBy, now); // the order's own, loaded with it: they cannot be another warehouse or customer
+        delivery.SalesOrderId = order.Id;
+        return delivery;
+    }
+
     /// <summary>The number is allocated once (BR-11) and never changes afterwards.</summary>
     public void AssignNumber(string no)
     {
@@ -127,6 +152,8 @@ public class StockDocument : PublicEntity
     {
         EnsureEditable();
         partner?.EnsureUsableFor(Type);
+        // A delivery against a sales order keeps the order's customer and the purpose Sale: nothing in a save can change them.
+        if (SalesOrderId is not null && (partner?.Id != PartnerId || purpose != IssuePurpose.Sale)) throw new DomainException(Messages.DeliveryHeaderLocked);
         // An issue says why stock leaves (UX: required); checked before anything changes, so a refusal leaves the draft as it was.
         var newPurpose = Type == DocumentType.Issue ? purpose ?? throw new DomainException(Messages.PurposeRequired) : (IssuePurpose?)null;
         Partner = partner;

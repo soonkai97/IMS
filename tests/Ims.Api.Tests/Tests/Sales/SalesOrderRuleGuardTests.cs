@@ -5,6 +5,7 @@ using Ims.Api.Tests.Support;
 using Ims.Application.Features.Sales;
 using Ims.Application.Features.Settings;
 using Ims.Domain;
+using Ims.Infrastructure.Persistence;
 
 namespace Ims.Api.Tests.Tests.Sales;
 
@@ -125,6 +126,28 @@ public class SalesOrderRuleGuardTests(ApiFixture fixture) : IAsyncLifetime
         finally
         {
             await SetActiveAsync(rules.Select(r => r.Id), 1);
+        }
+    }
+
+    // ----- the Seeder -----
+    [Fact]
+    public async Task The_seeder_neither_adds_nor_revives_sales_order_rules_when_it_runs_again()
+    {
+        var before = await SalesRulesAsync();
+        var victim = before.First();
+        await SetActiveAsync([victim.Id], 0);
+        try
+        {
+            await Seeder.SeedAsync(fixture.Host.Services, development: true);
+            await Seeder.SeedAsync(fixture.Host.Services, development: true);
+
+            var after = await SalesRulesAsync();
+            Assert.Equal(before.Select(r => r.Id).Order(), after.Select(r => r.Id).Order()); // no new row
+            Assert.False(after.Single(r => r.Id == victim.Id).IsActive); // and a rule an Administrator switched off stays off
+        }
+        finally
+        {
+            await SetActiveAsync([victim.Id], 1);
         }
     }
 

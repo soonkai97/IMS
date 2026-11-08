@@ -36,4 +36,11 @@ public interface ITransactionLocker
     /// </summary>
     /// <exception cref="ConcurrencyException">The lock could not be obtained in time; the whole transaction is retried.</exception>
     Task LockPurchaseOrderAsync(int orderId, CancellationToken ct);
+
+    /// <summary>
+    /// The same for a sales order (resource <c>so:{id}</c>): serialises the writes that decide whether it can still be delivered against, creating a delivery from it now, cancelling it (PL3.6) and posting a
+    /// linked delivery (PL3.7). Taken FIRST, before any stock lock and before the document-sequence lock, and never together with the roles, modules or purchase-order locks (no path touches two orders).
+    /// </summary>
+    /// <exception cref="ConcurrencyException">The lock could not be obtained in time; the whole transaction is retried.</exception>
+    Task LockSalesOrderAsync(int orderId, CancellationToken ct);
 }
