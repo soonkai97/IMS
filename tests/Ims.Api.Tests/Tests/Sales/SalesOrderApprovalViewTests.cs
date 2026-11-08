@@ -39,7 +39,7 @@ public class SalesOrderApprovalViewTests(ApiFixture fixture) : IAsyncLifetime
         var approvedLarge = await _p.SubmittedWorthAsync(30000m);
         approvedLarge = (await _p.Owner.SalesOrders.ApproveAsync(approvedLarge.Id, approvedLarge.ConcurrencyToken)).Data<SalesOrderDto>();
         string[] none = [];
-        var (edit, submit, cancel, recall, approve, reject) = (DocumentActions.Edit, DocumentActions.Submit, DocumentActions.Cancel, DocumentActions.Recall, DocumentActions.Approve, DocumentActions.Reject);
+        var (edit, submit, cancel, recall, approve, reject, deliver) = (DocumentActions.Edit, DocumentActions.Submit, DocumentActions.Cancel, DocumentActions.Recall, DocumentActions.Approve, DocumentActions.Reject, DocumentActions.Deliver);
         var table = new (string State, SalesOrderDto Order, string[] Admin, string[] Owner, string[] Supervisor, string[] Clerk, string[] Staff)[]
         {
             // so.manage (Administrator, Owner, Supervisor, Clerk) edits and submits any draft; only its creator cancels it, and whoever holds modules.manage (the Administrator) any draft
@@ -47,8 +47,8 @@ public class SalesOrderApprovalViewTests(ApiFixture fixture) : IAsyncLifetime
             ("submitted standard", standard, [approve, reject], none, [approve, reject], [recall, cancel], none),
             ("submitted large", large, [approve, reject], [approve, reject], none, [recall, cancel], none),
             // an order released at once is standard tier: a Supervisor or the Administrator cancels it; delivering and closing short come with PL3.5 to PL3.7
-            ("approved by release", released, [cancel], none, [cancel], none, none),
-            ("approved large", approvedLarge, [cancel], [cancel], none, none, none)
+            ("approved by release", released, [cancel, deliver], none, [cancel, deliver], [deliver], [deliver]), // deliver: whoever holds document.create and so.read, everyone here but the Owner
+            ("approved large", approvedLarge, [cancel, deliver], [cancel], [deliver], [deliver], [deliver])
         };
 
         foreach (var (state, order, admin, owner, supervisor, clerk, staff) in table)

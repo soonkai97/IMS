@@ -248,6 +248,9 @@ public static class Messages
     public static string DeliveryLineWrongUnit(int lineNo, string uomCode) => $"Sales order line {lineNo} is ordered in {uomCode}; deliver it in {uomCode}.";
     public static string DeliveryLineOverDelivery(OverDelivery over, string sku, string uomCode) =>
         $"Sales order line {over.LineNo} ({sku}): {Quantity(over.Requested)} {uomCode} is more than remains. Remaining {Quantity(over.Remaining)} {uomCode} (ordered {Quantity(over.Ordered)}, delivered {Quantity(over.Delivered)}).";
+    public static string SalesOrderHasDeliveries(string no, string deliveryNo, DocumentStatus deliveryStatus, int count) =>
+        $"Sales order {no} cannot be cancelled while delivery {deliveryNo} ({deliveryStatus}) is linked to it" + (count > 1 ? $" (and {count - 1} more)" : "") +
+        (deliveryStatus == DocumentStatus.Posted ? ". It already took stock out: reverse it first." : ". Cancel that delivery first.");
     public const string DeliveryOverRemaining = "This delivery asks for more than the sales order has left to deliver.";
     public const string DeliveryOrderNotOpen = "The sales order of this delivery is no longer open for delivery.";
     public const string DeliveryNeedsSoRead = "This delivery belongs to a sales order, so changing it needs the permission to read sales orders.";

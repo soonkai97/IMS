@@ -3,7 +3,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Ims.Api.Tests.Support;
 
-/// <summary>Holds a purchase order's application lock (<c>po:{id}</c>) in a transaction of its own until <see cref="CommitAsync"/>; work done through it is invisible to others until then. Disposing without committing rolls it back and lets go.</summary>
+/// <summary>Holds an order's application lock (<c>po:{id}</c> or <c>so:{id}</c>) in a transaction of its own until <see cref="CommitAsync"/>; work done through it is invisible to others until then. Disposing without committing rolls it back and lets go.</summary>
 public sealed class HeldOrderLock : IAsyncDisposable
 {
     private readonly SqlConnection _connection;
@@ -15,13 +15,18 @@ public sealed class HeldOrderLock : IAsyncDisposable
         _transaction = transaction;
     }
 
-    public static async Task<HeldOrderLock> TakeAsync(ApiFixture fixture, Guid orderId)
+    public static Task<HeldOrderLock> TakeAsync(ApiFixture fixture, Guid orderId) => TakeAsync(fixture, orderId, "PurchaseOrder", "po");
+
+    /// <summary>The same for a sales order (<c>so:{id}</c>).</summary>
+    public static Task<HeldOrderLock> TakeSalesAsync(ApiFixture fixture, Guid orderId) => TakeAsync(fixture, orderId, "SalesOrder", "so");
+
+    private static async Task<HeldOrderLock> TakeAsync(ApiFixture fixture, Guid orderId, string table, string prefix)
     {
-        var key = await fixture.Database.ScalarAsync<int>("SELECT Id FROM PurchaseOrder WHERE PublicId = @id", ("@id", orderId));
+        var key = await fixture.Database.ScalarAsync<int>($"SELECT Id FROM {table} WHERE PublicId = @id", ("@id", orderId));
         var connection = new SqlConnection(fixture.Database.ConnectionString);
         await connection.OpenAsync();
         var held = new HeldOrderLock(connection, (SqlTransaction)await connection.BeginTransactionAsync());
-        var granted = await held.ScalarAsync<int>($"DECLARE @r int; EXEC @r = sp_getapplock @Resource = N'po:{key}', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 0; SELECT @r");
+        var granted = await held.ScalarAsync<int>($"DECLARE @r int; EXEC @r = sp_getapplock @Resource = N'{prefix}:{key}', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 0; SELECT @r");
         Assert.True(granted >= 0, "the test could not take the order's lock");
         return held;
     }

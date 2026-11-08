@@ -6,4 +6,5 @@ namespace Ims.Domain;
 /// </summary>
 /// <param name="CreatedBy">User id of the creator.</param>
 /// <param name="SubmittedBy">User id of the submitter; null while the order is a Draft.</param>
-public readonly record struct SalesOrderActionContext(SalesOrderStatus Status, bool RequiresApproval, bool IsLarge, int CreatedBy, int? SubmittedBy);
+/// <param name="AnythingRemaining">Some line still has a quantity left to deliver (ordered less what Posted deliveries took out). It decides only whether a delivery may be created from an Approved order; the entity does not know it (computed from the delivery side), so it is false unless the caller says otherwise.</param>
+public readonly record struct SalesOrderActionContext(SalesOrderStatus Status, bool RequiresApproval, bool IsLarge, int CreatedBy, int? SubmittedBy, bool AnythingRemaining = false);
