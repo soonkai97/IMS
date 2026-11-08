@@ -32,8 +32,15 @@ public static class SalesOrderActionPolicy
     };
 
     /// <summary>
+    /// Close an Approved order short (what is still to go out will not go): any holder of <c>so.manage</c>, with a reason, and only once something has been delivered. An order with nothing delivered is voided by
+    /// cancelling it, so the cancel authority stays the only way to void an order. Whether a delivery is still open is the handler's to check.
+    /// </summary>
+    public static bool MayClose(ActorRights actor, in SalesOrderActionContext order) =>
+        order.Status == SalesOrderStatus.Approved && order.AnythingDelivered && actor.Has(Permissions.SoManage);
+
+    /// <summary>
     /// Create a delivery from an Approved order: the door of that endpoint is <c>document.create</c>, the order must be readable (<c>so.read</c>) and something must be left to deliver. Any role or custom role holding both
-    /// permissions may; an order fully delivered is Closed by then (PL3.7), so the status alone rules the rest out.
+    /// permissions may; an order fully delivered is Closed by then, so the status alone rules the rest out.
     /// </summary>
     public static bool MayDeliver(ActorRights actor, in SalesOrderActionContext order) =>
         order.Status == SalesOrderStatus.Approved && order.AnythingRemaining && actor.Has(Permissions.DocumentCreate) && actor.Has(Permissions.SoRead);
@@ -64,8 +71,10 @@ public static class SalesOrderActionPolicy
                 break;
 
             case SalesOrderStatus.Approved:
-                if (MayCancel(actor, order)) actions.Add(DocumentActions.Cancel);
+                // A listed action is one the API will accept: cancel is refused while a delivery is open or posted, close while one is open.
+                if (MayCancel(actor, order) && !order.DeliveriesBlockCancel) actions.Add(DocumentActions.Cancel);
                 if (MayDeliver(actor, order)) actions.Add(DocumentActions.Deliver);
+                if (MayClose(actor, order) && !order.DeliveryOpen) actions.Add(DocumentActions.Close);
                 break;
         }
         return actions;

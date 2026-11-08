@@ -9,6 +9,7 @@ public static class ProblemCodes
     public const string ReversalBlocked = "reversal_blocked";
     /// <summary>409: a receipt from a purchase order asks, at posting, for more of an order line than remains (extension lines: line number, sku, ordered, received, remaining, requested; quantities only).</summary>
     public const string OverReceipt = "over_receipt";
+    public const string OverDelivery = "over_delivery";
     /// <summary>409: the document was changed by someone else since the caller opened it (extensions changedBy, changedAt).</summary>
     public const string DocumentChanged = "document_changed";
     /// <summary>428: a document command was sent without the If-Match header.</summary>

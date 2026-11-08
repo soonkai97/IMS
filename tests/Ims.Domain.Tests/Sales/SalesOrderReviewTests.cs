@@ -194,3 +194,76 @@ public class SalesOrderReviewTests
         Assert.False(SalesOrderActionPolicy.MayCancel(rights, unsigned));
     }
 }
+
+/// <summary>PL3.7 review: the base quantity is rounded like the column that stores it, and "fully delivered" is decided on the entered quantity in the order line's unit.</summary>
+public class SalesOrderRoundingTests
+{
+    private static Product Carton(decimal factor, int id = 1) => NewProduct(id, $"SKU-{id}", cartonFactor: factor);
+
+    [Fact]
+    public void A_base_quantity_is_rounded_to_four_decimals_half_away_from_zero_so_what_is_in_memory_is_what_is_stored()
+    {
+        var product = Carton(0.666667m);
+
+        Assert.Equal(0.6667m, product.ToBaseQuantity(1m, CartonId));   // 0.666667
+        Assert.Equal(2.0000m, product.ToBaseQuantity(3m, CartonId));   // 2.000001
+        Assert.Equal(0.3333m, product.ToBaseQuantity(0.5m, CartonId)); // 0.3333335, rounded at the fourth decimal
+        Assert.Equal(0.0001m, Carton(0.5m).ToBaseQuantity(0.0002m, CartonId)); // exactly the smallest step
+    }
+
+    [Fact]
+    public void A_purchase_order_line_gets_the_same_rounded_base_quantity_the_column_would_store()
+    {
+        var line = PurchaseOrderLine.Create(Carton(0.666667m), 1m, CartonId, 2m, null);
+
+        Assert.Equal(0.6667m, line.BaseQty);
+    }
+
+    [Fact]
+    public void A_stock_document_line_whose_quantity_rounds_to_nothing_is_refused()
+    {
+        var product = Carton(0.1m);
+
+        Assert.Equal(Messages.QtyTooSmall, Assert.Throws<DomainException>(() => StockDocumentLine.Create(product, DocumentType.Issue, 0.0001m, CartonId, null, null, costFromAverage: true)).Message);
+    }
+
+    [Fact]
+    public void Three_deliveries_of_one_against_an_order_of_three_cartons_are_never_over_and_leave_nothing_whatever_the_factor_does_to_the_base_quantity()
+    {
+        var product = Carton(0.666667m);
+        var order = SalesOrder.Create(NewWarehouse(), NewCustomer(), null, 11, Now);
+        order.AssignNumber("SO-WH1-2601-0009");
+        order.ReplaceLines([SalesOrderLine.Create(product, 3m, CartonId, 2m, null)]);
+        var line = order.Lines[0];
+        var delivered = new Dictionary<int, DeliveredQuantity>();
+
+        for (var i = 1; i <= 3; i++)
+        {
+            Assert.Empty(SalesOrderQuantities.OverDeliveries(order.Lines, delivered, [new DeliveryQuantity(1, 1m, product.ToBaseQuantity(1m, CartonId))]));
+            var before = delivered.GetValueOrDefault(1);
+            delivered[1] = new DeliveredQuantity(before.Qty + 1m, before.BaseQty + product.ToBaseQuantity(1m, CartonId));
+        }
+
+        Assert.Equal(0m, SalesOrderQuantities.RemainingQty(line, delivered[1]));                 // the measure of every decision
+        Assert.Equal(2.0001m, delivered[1].BaseQty);                                              // the booked base quantity is 0.0001 more than the order's 2.0000: it is shown, never compared
+        Assert.Single(SalesOrderQuantities.OverDeliveries(order.Lines, delivered, [new DeliveryQuantity(1, 0.0001m, 0.0001m)]));
+    }
+
+    [Fact]
+    public void Cancel_and_close_are_not_listed_while_a_delivery_stands_in_their_way()
+    {
+        var actor = SystemRoleDefaults.RightsFor(Roles.Admin, 1);
+        var open = new SalesOrderActionContext(SalesOrderStatus.Approved, false, false, 2, 2, AnythingRemaining: true, AnythingDelivered: true, DeliveriesBlockCancel: true, DeliveryOpen: true);
+        var posted = open with { DeliveryOpen = false };
+        var none = open with { DeliveriesBlockCancel = false, DeliveryOpen = false };
+
+        string[] Listed(SalesOrderActionContext c) => [.. SalesOrderActionPolicy.AllowedActions(actor, c, allowSelfApproval: false)];
+
+        Assert.DoesNotContain(DocumentActions.Cancel, Listed(open));
+        Assert.DoesNotContain(DocumentActions.Close, Listed(open));
+        Assert.DoesNotContain(DocumentActions.Cancel, Listed(posted)); // a posted delivery blocks cancel (reverse it first) ...
+        Assert.Contains(DocumentActions.Close, Listed(posted));        // ... but not a close short
+        Assert.Contains(DocumentActions.Cancel, Listed(none));
+        Assert.Contains(DocumentActions.Close, Listed(none));
+    }
+}

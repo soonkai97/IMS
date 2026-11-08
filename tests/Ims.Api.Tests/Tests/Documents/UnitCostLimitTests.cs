@@ -34,9 +34,9 @@ public class UnitCostLimitTests(ApiFixture fixture)
     public async Task A_cost_that_is_too_large_once_spread_over_a_small_unit_is_a_400_not_an_overflow()
     {
         var s = await StockScenario.CreateAsync(fixture);
-        var product = await s.NewProductAsync(customize: b => b.WithConversion(fixture.Reference.CartonUnitId, 0.000001m)); // 1 carton = 0.000001 pieces
+        var product = await s.NewProductAsync(customize: b => b.WithConversion(fixture.Reference.CartonUnitId, 0.000001m)); // 1 carton = 0.000001 pieces, so 1,000 cartons are a thousandth of a piece (a single carton would round to nothing and be refused as too small)
         var request = new DocumentBuilder(Warehouse).WithPartner(s.Reference.SupplierId)
-            .WithLines(new Line(product.Id, 1, 900_000_000m, fixture.Reference.CartonUnitId)).Build();
+            .WithLines(new Line(product.Id, 1000, 900_000_000m, fixture.Reference.CartonUnitId)).Build();
 
         var created = await s.Admin.Documents.CreateReceiptAsync(request);
 

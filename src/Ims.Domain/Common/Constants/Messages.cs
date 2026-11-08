@@ -251,12 +251,17 @@ public static class Messages
     public static string SalesOrderHasDeliveries(string no, string deliveryNo, DocumentStatus deliveryStatus, int count) =>
         $"Sales order {no} cannot be cancelled while delivery {deliveryNo} ({deliveryStatus}) is linked to it" + (count > 1 ? $" (and {count - 1} more)" : "") +
         (deliveryStatus == DocumentStatus.Posted ? ". It already took stock out: reverse it first." : ". Cancel that delivery first.");
+    public static string SalesOrderCannotClose(SalesOrderStatus status) => $"Only an Approved sales order can be closed (current: {status}).";
+    public const string SalesOrderCloseReasonRequired = "A reason is required to close a sales order short.";
+    public const string SalesOrderNeedsSoManage = "Closing a sales order needs the permission to manage sales orders.";
+    public static string SalesOrderNothingDelivered(string no) => $"Nothing has been delivered against sales order {no}, so it cannot be closed short. Cancel it instead.";
+    public static string SalesOrderHasOpenDeliveries(string no, string deliveryNo, DocumentStatus deliveryStatus, int count) =>
+        $"Sales order {no} cannot be closed while delivery {deliveryNo} ({deliveryStatus}) is waiting" + (count > 1 ? $" (and {count - 1} more)" : "") + ". Post or cancel it first.";
     public const string DeliveryOverRemaining = "This delivery asks for more than the sales order has left to deliver.";
     public const string DeliveryOrderNotOpen = "The sales order of this delivery is no longer open for delivery.";
     public const string DeliveryNeedsSoRead = "This delivery belongs to a sales order, so changing it needs the permission to read sales orders.";
     public const string DeliveryModuleOff = "This delivery belongs to a sales order, and the Sales module is off. Turn the module on to change it.";
     public const string DeliveryCannotPostModuleOff = "This delivery belongs to a sales order, and the Sales module is off. Turn the module on to post it.";
-    public const string DeliveryCannotPostYet = "Posting a delivery against a sales order is not available yet. Posting arrives with the next release of the sales module.";
 
     // ----- Receiving against a purchase order (PL2.4) -----
     public static string PurchaseOrderNotReceivable(string no, PurchaseOrderStatus status) => $"Purchase order {no} is {status}. Only an Approved purchase order can be received.";

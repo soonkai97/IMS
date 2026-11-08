@@ -24,7 +24,7 @@ public class CreateDeliveryFromSalesOrderHandler(IReadRepository<SalesOrder> ord
 
             // What is left to deliver of each line, in the order's own unit: the quantity of the order less what Posted deliveries took out. A line with nothing left is not copied.
             var done = await delivered.PostedByLineAsync(order.Id, ct);
-            var open = order.Lines.Where(l => SalesOrderQuantities.RemainingBase(l, done.GetValueOrDefault(l.LineNo)) > 0).OrderBy(l => l.LineNo).ToList();
+            var open = order.Lines.Where(l => SalesOrderQuantities.RemainingQty(l, done.GetValueOrDefault(l.LineNo)) > 0).OrderBy(l => l.LineNo).ToList();
             if (open.Count == 0) throw new ConflictException(Messages.SalesOrderNothingToDeliver(order.No));
 
             // The delivery carries no price: it is valued at the average cost when it posts, like every issue.

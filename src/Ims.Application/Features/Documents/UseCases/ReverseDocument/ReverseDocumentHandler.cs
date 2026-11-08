@@ -4,7 +4,7 @@ namespace Ims.Application.Features.Documents;
 /// <summary>BR-02: a reversal writes opposite ledger entries linked to the original document; nothing is edited or deleted.</summary>
 public class ReverseDocumentHandler(IRepository<StockDocument> documents, IRepository<StockLedgerEntry> ledger, IReadRepository<Product> products,
     IBalanceLoader balances, IPostingEngine engine, ISystemSettings settings, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version,
-    ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<ReverseDocumentCommand, DocumentDto>
+    ITransactionLocker locker, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<ReverseDocumentCommand, DocumentDto>
 {
     public async Task<DocumentDto> HandleAsync(ReverseDocumentCommand cmd, CancellationToken ct)
     {
@@ -13,6 +13,9 @@ public class ReverseDocumentHandler(IRepository<StockDocument> documents, IRepos
             var doc = await documents.FirstOrDefaultAsync(new DocumentForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
             access.EnsureDocumentInScope(doc.WarehouseId);
             version.EnsureCurrent(doc, cmd.IfMatch);
+            // A delivery created from a sales order changes what the order has delivered: the order's lock comes FIRST, before any stock lock, exactly where posting takes it, so a reversal cannot
+            // slip between a posting's read of the delivered quantities and the auto-close that depends on them, nor under a close short's check that something was delivered.
+            if (doc.SalesOrderId is { } orderKey) await locker.LockSalesOrderAsync(orderKey, ct);
             var now = clock.UtcNow;
             doc.MarkReversed(cmd.Data.Reason, now, current.UserId);
 

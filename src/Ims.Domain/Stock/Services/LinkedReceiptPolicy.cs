@@ -19,12 +19,7 @@ public static class LinkedReceiptPolicy
         _ => LinkedReceiptRefusal.None
     };
 
-    /// <summary>
-    /// The actions of <paramref name="actions"/> that the API will not refuse for the order-independent reasons above. Posting a delivery created from a sales order is refused until PL3.7 adds the order's
-    /// check (<c>SalesDeliveryPosting</c>), so it is not offered for <see cref="DocumentLinkKind.SalesOrder"/>.
-    /// </summary>
-    public static List<string> Offered(IEnumerable<string> actions, bool mayReadOrders, bool moduleOn, DocumentLinkKind kind) =>
-        actions.Where(a => Refusal(a, mayReadOrders, moduleOn) == LinkedReceiptRefusal.None
-                           && !(kind == DocumentLinkKind.SalesOrder && a == DocumentActions.Post)) // PL3.7 deletes this line together with SalesDeliveryPosting's refusal
-            .ToList();
+    /// <summary>The actions of <paramref name="actions"/> that the API will not refuse for the order-independent reasons above. The kind of link does not change the answer.</summary>
+    public static List<string> Offered(IEnumerable<string> actions, bool mayReadOrders, bool moduleOn) =>
+        actions.Where(a => Refusal(a, mayReadOrders, moduleOn) == LinkedReceiptRefusal.None).ToList();
 }

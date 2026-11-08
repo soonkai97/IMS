@@ -439,9 +439,9 @@ public class ReceiptReversalCostingTests
     [Fact]
     public void ACostBeyondTheLimitOfAUnitOfMeasure_IsADomainError_NotADatabaseOverflow()
     {
-        var product = NewProduct(id: 6, cartonFactor: 0.000001m);
+        var product = NewProduct(id: 6, cartonFactor: 0.000001m); // 1,000 cartons are a thousandth of a base unit: above the rounding step, below any sensible cost
 
-        var ex = Assert.Throws<DomainException>(() => StockDocumentLine.Create(product, DocumentType.Receipt, 1m, CartonId, 900_000_000m, null));
+        var ex = Assert.Throws<DomainException>(() => StockDocumentLine.Create(product, DocumentType.Receipt, 1000m, CartonId, 900_000_000m, null));
 
         Assert.Equal(Messages.CostTooLargeForUnit, ex.Message);
     }

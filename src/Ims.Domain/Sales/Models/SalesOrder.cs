@@ -190,6 +190,36 @@ public class SalesOrder : PublicEntity
         CancelReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
     }
 
+    /// <summary>
+    /// Closes an Approved order because every line is fully delivered (plan D7): called by posting, in the same transaction as the delivery that took out the last quantity. The poster is recorded;
+    /// there is no reason to give. A reversal of a delivery later never reopens it.
+    /// </summary>
+    public void CloseDelivered(int userId, DateTime utcNow)
+    {
+        if (Status != SalesOrderStatus.Approved)
+            throw new DomainException(Messages.SalesOrderCannotClose(Status));
+        MarkClosed(SalesOrderCloseKind.Delivered, null, userId, utcNow);
+    }
+
+    /// <summary>Closes an Approved order short: what is still to go out will not go. It needs a reason (at least <see cref="Limits.ReasonMinLength"/> characters once trimmed). Deliveries already posted stay; the handler refuses while one is still open.</summary>
+    public void CloseShort(string? reason, int userId, DateTime utcNow)
+    {
+        if (Status != SalesOrderStatus.Approved)
+            throw new DomainException(Messages.SalesOrderCannotClose(Status));
+        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.SalesOrderCloseReasonRequired));
+        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
+        MarkClosed(SalesOrderCloseKind.Short, reason!.Trim(), userId, utcNow);
+    }
+
+    private void MarkClosed(SalesOrderCloseKind kind, string? reason, int userId, DateTime utcNow)
+    {
+        Status = SalesOrderStatus.Closed;
+        CloseKind = kind;
+        CloseReason = reason;
+        ClosedBy = userId;
+        ClosedAt = utcNow;
+    }
+
     /// <summary>The submit-time facts no longer describe a Draft; submitting again assesses the rules from scratch.</summary>
     private void ClearSubmission()
     {

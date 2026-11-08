@@ -64,10 +64,19 @@ public class SalesOrdersController(IDispatcher dispatcher) : ApiControllerBase(d
     public Task<IActionResult> Cancel(Guid id, [FromBody] CancelRequest body) => SendOrder(new CancelSalesOrderCommand(id, body, IfMatch));
 
     /// <summary>
+    /// Closes an Approved order short: what is still to go out will not go. A reason of at least 5 characters is required, something must have been delivered (with nothing delivered, cancel it instead), and no
+    /// delivery of the order may be waiting (Draft, Submitted or Approved): post or cancel it first. What was delivered stays. A closed order cannot be delivered against, and is not reopened by a reversal. An order whose last
+    /// quantity is delivered closes itself when that delivery posts.
+    /// </summary>
+    [HttpPost(RouteSegments.Close), Authorize(Policy = Permissions.SoManage)]
+    [ProducesResponseType<SalesOrderDto>(StatusCodes.Status200OK)]
+    public Task<IActionResult> Close(Guid id, [FromBody] CloseSalesOrderRequest body) => SendOrder(new CloseSalesOrderCommand(id, body, IfMatch));
+
+    /// <summary>
     /// Creates the Draft delivery of an Approved order: an Issue with purpose Sale in the order's warehouse for the order's customer, one line for every order line that still has something to deliver, with the
     /// quantity that remains and the order's unit, and NO price anywhere (the delivery is valued at the average cost like every issue). Each line names its order line in <c>salesOrderLineNo</c>. The
     /// delivery is then saved, submitted and approved like any other (<c>/api/documents</c>); the link never changes. The door is <c>document.create</c>; the order must be readable (<c>so.read</c>, checked in
-    /// the command). 409 when the order is not Approved or has nothing left to deliver. Posting a linked delivery is not available yet (409).
+    /// the command). 409 when the order is not Approved or has nothing left to deliver. Posting the delivery (<c>/api/documents/{id}/post</c>) is checked against what remains under the order's lock (409 <c>over_delivery</c> when it asks for more) and closes the order when the last quantity goes out.
     /// </summary>
     [HttpPost(RouteSegments.Delivery), Authorize(Policy = Permissions.DocumentCreate)]
     [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]

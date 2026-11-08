@@ -12,7 +12,7 @@ public sealed class SalesOrderDtoSpec : Specification<SalesOrder, SalesOrderDto>
             o.PublicId, o.No, o.Status, o.Warehouse.PublicId, o.Warehouse.Name, o.Customer.PublicId, o.Customer.Name, o.Remark,
             o.CreatedByUser.PublicId, o.CreatedByUser.Username, o.CreatedByUser.DisplayName, o.CreatedAt,
             o.RequiresApproval, o.IsLarge, o.Status == SalesOrderStatus.Draft && o.RejectionReason != null, o.RejectionReason, o.CancelReason,
-            o.SubmittedAt, o.ApprovedAt, o.RejectedAt,
+            o.SubmittedAt, o.ApprovedAt, o.RejectedAt, o.ClosedAt, o.CloseKind, o.CloseReason,
             o.Lines.Sum(l => l.BaseQty), o.Lines.Sum(l => l.SellingAmount),
             o.Lines.OrderBy(l => l.LineNo).Select(l => new SalesOrderLineDto(l.LineNo, l.Product.PublicId, l.Product.Sku, l.Product.Name, l.Qty, l.Uom.PublicId, l.Uom.Code,
                 l.BaseQty, l.SellingPrice, l.SellingAmount, l.Remark)).ToList(),

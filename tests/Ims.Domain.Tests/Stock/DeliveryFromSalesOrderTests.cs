@@ -155,7 +155,7 @@ public class DeliveryFromSalesOrderTests
     }
 
     [Fact]
-    public void Posting_is_not_offered_for_a_delivery_until_PL3_7_but_still_for_a_receipt_from_a_purchase_order_and_an_ordinary_issue()
+    public void Posting_is_offered_for_a_linked_delivery_like_for_a_receipt_from_a_purchase_order_and_an_ordinary_issue()
     {
         var poster = new ActorRights(1, EffectivePermissions.Compute([Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.DocumentPostApproved, Permissions.SoRead, Permissions.PoRead]));
         var approved = new DocumentActionContext(DocumentStatus.Approved, true, false, 2, 3);
@@ -163,7 +163,8 @@ public class DeliveryFromSalesOrderTests
 
         Assert.Contains(DocumentActions.Post, Offered(null));
         Assert.Contains(DocumentActions.Post, Offered(new LinkedReceiptContext(true, DocumentLinkKind.PurchaseOrder)));
-        Assert.DoesNotContain(DocumentActions.Post, Offered(new LinkedReceiptContext(true, DocumentLinkKind.SalesOrder)));
+        Assert.Contains(DocumentActions.Post, Offered(new LinkedReceiptContext(true, DocumentLinkKind.SalesOrder)));
+        Assert.DoesNotContain(DocumentActions.Post, Offered(new LinkedReceiptContext(false, DocumentLinkKind.SalesOrder))); // the module is off: the API would refuse it
     }
 
     [Fact]
