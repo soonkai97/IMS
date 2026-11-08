@@ -147,6 +147,7 @@ describe('DocumentEditorPageComponent', () => {
   const salesLoad = jest.fn();
   const salesReload = jest.fn();
   const salesReset = jest.fn();
+  const salesFailed = signal(false);
   const lookup = jest.fn();
   const granted = new Set<string>([PERMISSION.StockRead]);
   /** The signed-in user and the session-expiry signal of the AuthService. */
@@ -229,6 +230,7 @@ describe('DocumentEditorPageComponent', () => {
           detail: {
             $data: salesData,
             $isLoading: signal(false),
+            $isFailed: salesFailed,
             load: salesLoad,
             reload: salesReload,
             reset: salesReset
@@ -2179,6 +2181,101 @@ describe('DocumentEditorPageComponent', () => {
 
       expect(text()).toContain('ISS-B');
       expect(alerts().join(' ')).not.toContain('Not posted');
+    });
+
+    const button = (name: string): HTMLButtonElement | undefined =>
+      spectator
+        .queryAll<HTMLButtonElement>('.document-editor-bar button')
+        .find(candidate => candidate.textContent?.includes(name));
+
+    it('the over-delivery alert gives every figure with the unit of the order line', async () => {
+      await open(
+        delivery({
+          status: DocumentStatus.Approved,
+          allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Cancel]
+        }),
+        DocumentType.Issue
+      );
+      salesData.set(order());
+      failing.set('post', overDelivery());
+
+      spectator.component.onAction(DOCUMENT_ACTION.Post);
+      confirm().confirm('');
+      spectator.detectChanges();
+
+      expect(alerts().join(' ')).toContain(
+        'Line 1 (DEMO-001): ordered 10 PCS, delivered 6 PCS, remaining 4 PCS, this delivery 5 PCS.'
+      );
+    });
+
+    it('while the quantities of the order are loading Submit waits and says so; when they cannot be loaded it says that with Retry', async () => {
+      await open(delivery(), DocumentType.Issue);
+
+      expect(text()).toContain("Loading the order's quantities.");
+      expect(button('Submit')?.disabled).toBe(true);
+
+      salesData.set(order());
+      spectator.detectChanges();
+      expect(text()).not.toContain("Loading the order's quantities.");
+      expect(button('Submit')?.disabled).toBe(false);
+    });
+
+    it('a failed read of the order quantities keeps Submit off and offers Retry', async () => {
+      salesFailed.set(true);
+      await open(delivery(), DocumentType.Issue);
+
+      expect(alerts().join(' ')).toContain("The order's quantities could not be loaded.");
+      expect(button('Submit')?.disabled).toBe(true);
+      spectator.click(
+        spectator
+          .queryAll<HTMLButtonElement>('app-banner button')
+          .find(b => b.textContent?.includes('Retry'))!
+      );
+      expect(salesReload).toHaveBeenCalled();
+      salesFailed.set(false);
+    });
+
+    it('an order that is no longer Approved turns Submit and Post off, says to cancel the delivery, and leaves Cancel on', async () => {
+      await open(
+        delivery({
+          status: DocumentStatus.Approved,
+          allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Cancel]
+        }),
+        DocumentType.Issue
+      );
+      salesData.set({ ...order(), status: SalesOrderStatus.Cancelled });
+      spectator.detectChanges();
+
+      expect(alerts().join(' ')).toContain(
+        'Order SO-WH01-2611-0001 is no longer open for delivery. Cancel this delivery.'
+      );
+      expect(button('Post')?.disabled).toBe(true);
+      expect(button('Cancel')?.disabled).toBe(false);
+    });
+
+    it('a caller who may not read sales orders gets one sentence, no Save draft, Submit or Post, and nothing is kept on the device, once the API refuses the order line', async () => {
+      granted.delete(PERMISSION.SoRead);
+      await open(delivery({ salesOrder: null as never }), DocumentType.Issue);
+      expect(text()).not.toContain('You cannot read sales orders');
+
+      commands['save'].$operation.set(
+        failureOperation({
+          ...STALE,
+          kind: API_ERROR_KIND.Validation,
+          status: 400,
+          detail: 'Name the sales order line this line delivers (salesOrderLineNo).',
+          fieldErrors: { 'lines[0].salesOrderLineNo': ['Name the sales order line.'] }
+        })
+      );
+      spectator.detectChanges();
+
+      expect(alerts().join(' ')).toContain(
+        'You cannot read sales orders, so this delivery cannot be edited here.'
+      );
+      expect(button('Save draft')?.disabled).toBe(true);
+      expect(button('Submit')?.disabled).toBe(true);
+      expect(button('Cancel')?.disabled).toBe(false);
+      expect(spectator.component.$deliveryUnreadable()).toBe(true);
     });
 
     it('says in words how posting left the order: closed, closed short or lines still to deliver', async () => {

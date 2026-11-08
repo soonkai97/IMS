@@ -43,6 +43,25 @@
       {{ progress.key | t: { order: linked.no, count: progress.open } }}
     </p>
   }
+  @switch ($orderState()) {
+    @case ('closed') {
+      <app-banner kind="danger" alert>{{
+        'doc.salesOrder.notOpen' | t: { order: linked.no }
+      }}</app-banner>
+    }
+    @case ('failed') {
+      <app-banner kind="danger" alert>
+        {{ 'doc.salesOrder.loadFailed' | t }}
+        <app-button bannerActions (clicked)="onRetryLinkedOrder()">{{ 'ui.retry' | t }}</app-button>
+      </app-banner>
+    }
+    @case ('loading') {
+      <p class="document-editor-hint" role="status">{{ 'doc.salesOrder.loading' | t }}</p>
+    }
+  }
+}
+@if ($deliveryUnreadable()) {
+  <app-banner kind="danger" alert>{{ 'doc.delivery.unreadable' | t }}</app-banner>
 }
 
 @if ($isLoading()) {
@@ -147,10 +166,10 @@
                     : {
                         lineNo: line.lineNo,
                         sku: line.sku,
-                        ordered: (line.ordered | appQty),
-                        received: (line.received | appQty),
-                        remaining: (line.remaining | appQty),
-                        requested: (line.requested | appQty)
+                        ordered: (line.ordered | appQty) + unitOfOrderLine(line.lineNo),
+                        received: (line.received | appQty) + unitOfOrderLine(line.lineNo),
+                        remaining: (line.remaining | appQty) + unitOfOrderLine(line.lineNo),
+                        requested: (line.requested | appQty) + unitOfOrderLine(line.lineNo)
                       }
               }}
             </li>
@@ -464,7 +483,11 @@
         [canPost]="$canPost()"
         [busy]="$isBusy()"
         [selfApprovalBlocked]="$selfApprovalBlocked()"
-        [submitDisabled]="$linesBlocked() || $overOrder()"
+        [submitDisabled]="
+          $linesBlocked() || $overOrder() || $orderBlocksSubmit() || $deliveryUnreadable()
+        "
+        [saveDisabled]="$deliveryUnreadable()"
+        [postDisabled]="$orderBlocksSubmit() || $deliveryUnreadable()"
         [locked]="$isStale()"
         [busyAction]="$busyAction()"
         (triggered)="onAction($event)"

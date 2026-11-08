@@ -6,7 +6,6 @@ import {
   SKU_PREFIX,
   cancelOpenSalesOrders,
   createSalesOrder,
-  deliver,
   getSalesOrder,
   salesCommand,
   salesIsOn,

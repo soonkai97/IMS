@@ -161,17 +161,3 @@ export async function submitDelivery(
   }
   return current as unknown as ApiDelivery;
 }
-
-/** Delivers `qty` of the first line against the order: draft, save, submit, post. Returns the posted delivery's id. */
-export async function deliver(
-  order: Pick<ApiSalesOrder, 'id'>,
-  qty: number,
-  onDraft?: (id: PublicId) => void
-): Promise<PublicId> {
-  const draft = await startDelivery(order);
-  onDraft?.(draft.id);
-  const saved = await saveDelivery(draft, qty);
-  const ready = await submitDelivery(saved);
-  await apiAs('supervisor').command(draft.id, 'post', {}, ready.concurrencyToken);
-  return draft.id;
-}

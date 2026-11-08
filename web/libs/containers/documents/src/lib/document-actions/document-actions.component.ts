@@ -37,6 +37,10 @@ export class DocumentActionsComponent {
   });
   /** Disables Submit (e.g. lines short on stock); the page shows the reason next to the buttons. */
   $submitDisabled = input(false, { alias: 'submitDisabled', transform: booleanAttribute });
+  /** Disables Save draft (a delivery this person cannot edit); the page says why. */
+  $saveDisabled = input(false, { alias: 'saveDisabled', transform: booleanAttribute });
+  /** Disables Post (the order of a delivery is no longer open, or its quantities are not known); the page says why. */
+  $postDisabled = input(false, { alias: 'postDisabled', transform: booleanAttribute });
 
   $triggered = output<DocumentAction>({ alias: 'triggered' });
 

@@ -24,7 +24,8 @@ import {
   DocumentType,
   IssuePurpose,
   LedgerRow,
-  PartnerType
+  PartnerType,
+  SalesOrderStatus
 } from '@ims/api';
 import {
   AppDatePipe,
@@ -323,10 +324,55 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       ? orderProgress(order)
       : undefined;
   });
-  /** A receipt whose lines may carry an order's prices (cost data): one the API says is linked, and a saved receipt of a caller who sees prices but may not read orders (the API hides the link from them). Nothing of it is kept on the device. */
+  /**
+   * A delivery this person cannot edit: the API drops the link and the order line numbers for a caller who may not read sales
+   * orders, so it looks like an ordinary issue, and a save is refused on the order line (fail closed). Known only once that
+   * refusal came; then Save draft, Submit and Post are off and the sentence says why.
+   */
+  readonly $deliveryUnreadable = computed(
+    () =>
+      !this.$isSalesOrder() &&
+      !this.permissions.has(PERMISSION.SoRead) &&
+      [this.documents.save.$operation().error, this.documents.submit.$operation().error].some(
+        error =>
+          Object.keys(error?.fieldErrors ?? {}).some(field => /salesOrderLineNo$/i.test(field))
+      )
+  );
+  /** A document that can still change: Draft, Submitted or Approved. */
+  private readonly $documentOpen = computed(() =>
+    [DocumentStatus.Draft, DocumentStatus.Submitted, DocumentStatus.Approved].includes(
+      this.$status()
+    )
+  );
+  /**
+   * What the sales order says about delivering now, for an open delivery: its quantities are still being read ('loading'), could
+   * not be read ('failed'), or it is no longer Approved ('closed': cancelled, or closed after this draft was made). Submit and Post
+   * wait for 'ready'; Cancel stays.
+   */
+  readonly $orderState = computed<'loading' | 'failed' | 'closed' | 'ready' | undefined>(() => {
+    if (!this.$isSalesOrder() || !this.$documentOpen()) {
+      return undefined;
+    }
+    const order = this.salesOrders.detail.$data();
+    if (order !== undefined && order.id === this.$linkedOrderId()) {
+      return order.status === SalesOrderStatus.Approved ? 'ready' : 'closed';
+    }
+    return this.salesOrders.detail.$isFailed() ? 'failed' : 'loading';
+  });
+  readonly $orderBlocksSubmit = computed(() => {
+    const state = this.$orderState();
+    return state !== undefined && state !== 'ready';
+  });
+  /** The unit of an order line, for the figures of the over-delivery alert (the 409 carries quantities only). */
+  unitOfOrderLine(lineNo: number): string {
+    const code = this.$isSalesOrder() ? this.$orderLines().get(lineNo)?.uomCode : undefined;
+    return code ? ` ${code}` : '';
+  }
+  /** A receipt whose lines may carry an order's prices (cost data): one the API says is linked, and a saved receipt of a caller who sees prices but may not read orders (the API hides the link from them). A delivery carries no price, but nothing of a linked document is kept on the device either: its lines are the order's, and what is found there is not this editor's to put back. */
   private readonly $holdsOrderPrices = computed(
     () =>
       this.$linkedOrder() !== undefined ||
+      this.$deliveryUnreadable() ||
       (!this.$isNew() &&
         !this.$isIssue() &&
         this.permissions.has(PERMISSION.CostView) &&
@@ -1638,6 +1684,11 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         this.reloadLinkedOrder();
       }
     }
+  }
+
+  /** Retry after the order's quantities could not be read. */
+  onRetryLinkedOrder(): void {
+    this.reloadLinkedOrder();
   }
 
   /** Reads the order of this document again (a purchase order or a sales order): its figures moved. */

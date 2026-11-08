@@ -898,7 +898,7 @@ export const EN_MESSAGES = {
     'None of the orders on this page are waiting for you. There may be more on the next page.',
   'sales.new': 'New sales order',
   'doc.salesOrder.from':
-    'This delivery is for sales order {order}. The customer, the warehouse and the lines come from the order.',
+    'This delivery is for sales order {order}. The customer, the warehouse and the lines come from the order. The purpose must stay Sale.',
   'doc.salesOrder.editHint':
     'Lower a quantity or remove a line that will not go out now. A quantity cannot be above what the order has left.',
   'doc.salesOrder.closed': 'Order {order} is fully delivered and closed.',
@@ -916,6 +916,12 @@ export const EN_MESSAGES = {
     'Order line {lineNo}: ordered {ordered}, delivered {delivered}, remaining {remaining} {uom}',
   'line.salesOrder.over': 'Only {remaining} {uom} of this order line is left to deliver.',
   'sales.deliver': 'Deliver',
+  'doc.salesOrder.notOpen': 'Order {order} is no longer open for delivery. Cancel this delivery.',
+  'doc.salesOrder.loadFailed':
+    "The order's quantities could not be loaded. Submit and Post wait for them.",
+  'doc.salesOrder.loading': "Loading the order's quantities. Submit and Post wait for them.",
+  'doc.delivery.unreadable':
+    'You cannot read sales orders, so this delivery cannot be edited here. Ask someone who can, or cancel it.',
   'sales.findCustomer': 'Find a customer',
   'sales.customersTruncated': 'Only the first customers are listed. Type to search for the others.',
   'sales.priceHint':
