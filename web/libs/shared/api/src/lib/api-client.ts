@@ -6932,6 +6932,15 @@ export interface RoleUpdateRequest {
     isActive?: boolean | undefined;
 }
 
+/** A delivery created from a sales order, as the order lists it: its id (for the delivery screen), number and state. No money. */
+export interface SalesOrderDeliveryDto {
+    id: string;
+    no: string;
+    status: DocumentStatus;
+    createdAt: string;
+    postedAt: string | undefined;
+}
+
 export interface SalesOrderDto {
     id: string;
     no: string;
@@ -6970,6 +6979,8 @@ export interface SalesOrderDto {
     submittedByName?: string | undefined;
     approvedBy?: string | undefined;
     approvedByName?: string | undefined;
+    /** The deliveries created from this order, oldest first (number, state), whatever their state. Empty until the order is Approved. The quantities per line (`deliveredQty`, `remainingQty`) count the Posted ones only. */
+    deliveries: SalesOrderDeliveryDto[];
     returnedById?: string | undefined;
     returnedBy?: string | undefined;
     returnedByName?: string | undefined;
@@ -6990,6 +7001,14 @@ export interface SalesOrderLineDto {
     /** The value of the line, in money: `round(qty x unitPrice, 2)`. The order total is the sum of these. Absent for a caller without `so.manage`. */
     amount: number | undefined;
     remark: string | undefined;
+    /** What Posted deliveries linked to the order have delivered of this line, in `uomCode`. Computed on every read, never stored: a Draft, Submitted, Approved or Cancelled delivery counts as nothing, and so does a Reversed one. Zero until a delivery is posted. No money. */
+    deliveredQty: number;
+    /** What is still to deliver of this line, in `uomCode`: `qty` minus `deliveredQty`, never below zero. A delivery may not ask for more than this. */
+    remainingQty: number;
+    /** `deliveredQty` in base units: the unit the ledger and the over-delivery check use. */
+    deliveredBaseQty: number;
+    /** `remainingQty` in base units. */
+    remainingBaseQty: number;
 }
 
 export interface SalesOrderLineInput {

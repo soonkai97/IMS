@@ -8125,6 +8125,39 @@
         "description": "The text and the state of a role. Its code, its kind and its permissions are not here. A description or state that is left out stays as it is.",
         "additionalProperties": false
       },
+      "SalesOrderDeliveryDto": {
+        "required": [
+          "id",
+          "no",
+          "status",
+          "createdAt",
+          "postedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "no": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DocumentStatus"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "postedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "description": "A delivery created from a sales order, as the order lists it: its id (for the delivery screen), number and state. No money.",
+        "additionalProperties": false
+      },
       "SalesOrderDto": {
         "required": [
           "id",
@@ -8152,7 +8185,8 @@
           "lines",
           "concurrencyToken",
           "allowedActions",
-          "approvalTriggers"
+          "approvalTriggers",
+          "deliveries"
         ],
         "type": "object",
         "properties": {
@@ -8287,6 +8321,13 @@
             "type": "string",
             "nullable": true
           },
+          "deliveries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SalesOrderDeliveryDto"
+            },
+            "description": "The deliveries created from this order, oldest first (number, state), whatever their state. Empty until the order is Approved. The quantities per line (`deliveredQty`, `remainingQty`) count the Posted ones only."
+          },
           "returnedById": {
             "type": "string",
             "format": "uuid",
@@ -8315,7 +8356,11 @@
           "baseQty",
           "unitPrice",
           "amount",
-          "remark"
+          "remark",
+          "deliveredQty",
+          "remainingQty",
+          "deliveredBaseQty",
+          "remainingBaseQty"
         ],
         "type": "object",
         "properties": {
@@ -8364,6 +8409,26 @@
           "remark": {
             "type": "string",
             "nullable": true
+          },
+          "deliveredQty": {
+            "type": "number",
+            "description": "What Posted deliveries linked to the order have delivered of this line, in `uomCode`. Computed on every read, never stored: a Draft, Submitted, Approved or Cancelled delivery counts as nothing, and so does a Reversed one. Zero until a delivery is posted. No money.",
+            "format": "double"
+          },
+          "remainingQty": {
+            "type": "number",
+            "description": "What is still to deliver of this line, in `uomCode`: `qty` minus `deliveredQty`, never below zero. A delivery may not ask for more than this.",
+            "format": "double"
+          },
+          "deliveredBaseQty": {
+            "type": "number",
+            "description": "`deliveredQty` in base units: the unit the ledger and the over-delivery check use.",
+            "format": "double"
+          },
+          "remainingBaseQty": {
+            "type": "number",
+            "description": "`remainingQty` in base units.",
+            "format": "double"
           }
         },
         "additionalProperties": false

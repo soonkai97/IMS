@@ -113,6 +113,39 @@ public class DeliveryFromSalesOrderTests
         Assert.Empty(SalesOrderQuantities.OverDeliveries(order.Lines, None, [new DeliveryQuantity(1, 10m, 10m)]));
     }
 
+    [Theory]
+    [InlineData(DocumentStatus.Draft, true)]
+    [InlineData(DocumentStatus.Submitted, true)]
+    [InlineData(DocumentStatus.Approved, true)]
+    [InlineData(DocumentStatus.Posted, true)]
+    [InlineData(DocumentStatus.Cancelled, false)]
+    [InlineData(DocumentStatus.Reversed, false)]
+    public void A_delivery_keeps_its_order_from_being_cancelled_while_it_is_open_or_posted_not_when_it_is_history(DocumentStatus status, bool blocks)
+    {
+        Assert.Equal(blocks, DocumentStatuses.BlocksSalesOrderCancel(status));
+    }
+
+    [Theory]
+    [InlineData(SalesOrderStatus.Approved, true, true, true, true)]
+    [InlineData(SalesOrderStatus.Approved, false, true, true, false)]   // nothing left
+    [InlineData(SalesOrderStatus.Approved, true, false, true, false)]   // no document.create
+    [InlineData(SalesOrderStatus.Approved, true, true, false, false)]    // no so.read
+    [InlineData(SalesOrderStatus.Submitted, true, true, true, false)]
+    [InlineData(SalesOrderStatus.Draft, true, true, true, false)]
+    [InlineData(SalesOrderStatus.Closed, true, true, true, false)]
+    [InlineData(SalesOrderStatus.Cancelled, true, true, true, false)]
+    public void Deliver_needs_an_approved_order_with_something_left_and_both_permissions(SalesOrderStatus status, bool remaining, bool create, bool read, bool expected)
+    {
+        var permissions = new List<string>();
+        if (create) permissions.Add(Permissions.DocumentCreate);
+        if (read) permissions.Add(Permissions.SoRead);
+        var actor = new ActorRights(1, EffectivePermissions.Compute(permissions));
+        var order = new SalesOrderActionContext(status, RequiresApproval: false, IsLarge: false, CreatedBy: 2, SubmittedBy: 2, AnythingRemaining: remaining);
+
+        Assert.Equal(expected, SalesOrderActionPolicy.MayDeliver(actor, order));
+        Assert.Equal(expected, SalesOrderActionPolicy.AllowedActions(actor, order, allowSelfApproval: false).Contains(DocumentActions.Deliver));
+    }
+
     [Fact]
     public void A_document_linked_to_both_kinds_of_order_is_corrupt_and_its_link_is_an_error_not_a_guess()
     {
