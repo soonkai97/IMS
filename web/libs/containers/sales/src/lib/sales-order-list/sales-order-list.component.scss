@@ -1,0 +1,59 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.so-list-page-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(0);
+}
+
+.so-list-page-toolbar {
+  display: flex;
+  gap: space(1);
+  align-items: center;
+  margin-bottom: space(1);
+
+  app-search-input {
+    flex: 1;
+  }
+
+  @include media-tablet {
+    max-width: width('form-max');
+  }
+}
+
+// The toggle exists for phones; from 600px the filters are always laid out.
+.so-list-page-filter-toggle {
+  @include media-tablet {
+    display: none;
+  }
+}
+
+.so-list-page-filters {
+  @include filter-row;
+
+  display: none;
+
+  &.--open {
+    display: grid;
+  }
+
+  @include media-tablet {
+    display: grid;
+  }
+}
+
+.so-list-page-awaiting {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  align-items: center;
+}
+
+.so-list-page-note {
+  font-size: font-size(2);
+  color: color('text-muted');
+}

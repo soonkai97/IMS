@@ -29,5 +29,9 @@ export const PERMISSION = {
   /** Module purchasing: see purchase orders (the amounts also need cost.view). */
   PoRead: 'po.read',
   /** Module purchasing: create, change, submit, recall, cancel and close purchase orders. */
-  PoManage: 'po.manage'
+  PoManage: 'po.manage',
+  /** Module sales: see sales orders (prices and amounts need so.manage). */
+  SoRead: 'so.read',
+  /** Module sales: create, change, submit, recall, cancel and close sales orders; sees selling prices. */
+  SoManage: 'so.manage'
 } as const;

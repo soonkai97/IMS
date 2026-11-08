@@ -39,6 +39,15 @@ export const MENU_ITEMS: readonly MenuItem[] = [
     module: MODULE_CODE.Purchasing
   },
   {
+    id: 'sales-orders',
+    labelKey: 'nav.salesOrders',
+    icon: 'file',
+    route: '/sales-orders',
+    permissions: [PERMISSION.SoRead],
+    group: 'documents',
+    module: MODULE_CODE.Sales
+  },
+  {
     id: 'approvals',
     labelKey: 'nav.approvals',
     icon: 'check-double',

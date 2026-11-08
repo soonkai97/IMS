@@ -42,6 +42,7 @@ export const LIBS = [
   lib('features', 'documents'),
   lib('features', 'purchasing'),
   lib('features', 'reports'),
+  lib('features', 'sales'),
   lib('features', 'stock'),
   lib('features', 'warehousing'),
   // containers: routed pages. *-shared containers hold UI that several containers reuse.
@@ -55,6 +56,7 @@ export const LIBS = [
   lib('containers', 'home'),
   lib('containers', 'purchasing'),
   lib('containers', 'reports'),
+  lib('containers', 'sales'),
   lib('containers', 'stock'),
   lib('containers', 'system'),
   lib('containers', 'warehousing')

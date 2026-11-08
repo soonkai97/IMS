@@ -1,0 +1,10 @@
+{
+  "name": "containers-sales",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/containers/sales/src",
+  "prefix": "app",
+  "tags": ["scope:containers"],
+  "implicitDependencies": ["shared-styles", "shared-assets"],
+  "targets": {}
+}

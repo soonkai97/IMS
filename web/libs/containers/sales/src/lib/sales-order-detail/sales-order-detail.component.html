@@ -1,0 +1,250 @@
+<app-page-header [heading]="$heading()" [backLink]="backLink" [backLabel]="'so.title' | t">
+  <div chips class="so-detail-chips">
+    @if ($order(); as order) {
+      <app-status-chip
+        [status]="tone[order.status]"
+        [label]="order.status | enumLabel: statusLabels"
+      />
+      @if (order.isReturned) {
+        <app-status-chip flag="warning" [label]="'doc.returned' | t" />
+      }
+      @if (order.isLarge) {
+        <app-status-chip flag="info" [label]="'doc.flag.large' | t" />
+      }
+    }
+  </div>
+</app-page-header>
+
+@if ($isLoading()) {
+  <app-skeleton [count]="4" />
+} @else if ($notFound()) {
+  <!-- The load call is flagged handledInline (no toast), so this page is the one announcement. -->
+  <div role="alert">
+    <app-empty-state icon="file" [message]="'notFound.body' | t">
+      <a class="ui-link-button --primary" routerLink="/">{{ 'system.goHome' | t }}</a>
+    </app-empty-state>
+  </div>
+} @else if ($loadFailed()) {
+  <app-banner kind="danger" alert>
+    {{ $loadErrorMessage() || ('error.generic' | t) }}
+    @if ($canRetry()) {
+      <app-button bannerActions (clicked)="onRetryLoad()">{{ 'ui.retry' | t }}</app-button>
+    }
+    <a bannerActions class="ui-link-button" [routerLink]="backLink">{{ 'so.title' | t }}</a>
+  </app-banner>
+} @else if ($order(); as order) {
+  @if ($isStale()) {
+    <app-banner kind="danger" [heading]="'doc.stale' | t: { docNo: order.no }">
+      @if ($staleDetails(); as by) {
+        {{ 'po.staleBodyBy' | t: { name: by.name, time: (by.at | appDate) } }}
+      } @else {
+        {{ 'po.staleBody' | t }}
+      }
+      <app-button bannerActions (clicked)="onReload()">{{ 'doc.reload' | t }}</app-button>
+    </app-banner>
+  }
+  @if ($refusal(); as refusal) {
+    <app-banner kind="danger" alert>{{ refusal }}</app-banner>
+  }
+  @if (order.isReturned) {
+    <app-banner
+      kind="warning"
+      [heading]="
+        $returnedBy() ? ('doc.returnedBanner' | t: { name: $returnedBy() }) : ('doc.returned' | t)
+      "
+    >
+      {{ order.rejectionReason }}
+      @if (order.returnedAt) {
+        <span class="so-detail-muted">· {{ order.returnedAt | appDate }}</span>
+      }
+    </app-banner>
+  }
+  @if ($isCancelled()) {
+    <app-banner kind="info" [heading]="'doc.cancelledBanner' | t">{{
+      order.cancelReason
+    }}</app-banner>
+  }
+  @if ($closeText(); as closeText) {
+    <app-banner kind="info" [heading]="closeText | t">{{ order.closeReason }}</app-banner>
+  }
+  @for (trigger of $approvalTriggers(); track $index) {
+    <app-banner kind="info" [heading]="'doc.whyApproval' | t">
+      {{
+        trigger.key
+          | t: { actual: trigger.actual, threshold: trigger.threshold, role: trigger.role }
+      }}
+    </app-banner>
+  }
+
+  <dl class="so-detail-summary">
+    <div>
+      <dt>{{ 'doc.customer' | t }}</dt>
+      <dd>{{ order.customerName }}</dd>
+    </div>
+    <div>
+      <dt>{{ 'doc.warehouse' | t }}</dt>
+      <dd>{{ order.warehouseName }}</dd>
+    </div>
+    <div>
+      <dt>{{ 'doc.totalQty' | t }}</dt>
+      <dd>{{ order.totalQty | appQty }}</dd>
+    </div>
+    @if (order.totalAmount !== undefined) {
+      <div>
+        <dt>{{ 'doc.amount' | t }}</dt>
+        <dd>{{ order.totalAmount | appMoney }}</dd>
+      </div>
+    }
+    <div>
+      <dt>{{ 'doc.createdBy' | t }}</dt>
+      <dd>{{ order.createdByName }} · {{ order.createdAt | appDate }}</dd>
+    </div>
+    <div>
+      <dt>{{ 'doc.remark' | t }}</dt>
+      <dd>{{ order.remark || '-' }}</dd>
+    </div>
+  </dl>
+
+  <section class="so-detail-section" aria-labelledby="so-lines-heading">
+    <h2 id="so-lines-heading">{{ 'so.lines' | t: { count: order.lines.length } }}</h2>
+    <app-table
+      [columns]="$lineColumns()"
+      [rows]="order.lines"
+      [caption]="'so.linesOf' | t: { docNo: order.no }"
+    >
+      <ng-template appCell="qty" let-line>{{ line.qty | appQty }} {{ line.uomCode }}</ng-template>
+      <ng-template appCell="delivered" let-line>
+        {{ line.deliveredQty | appQty }} {{ line.uomCode }}
+      </ng-template>
+      <ng-template appCell="remaining" let-line>
+        {{ line.remainingQty | appQty }} {{ line.uomCode }}
+      </ng-template>
+      <ng-template appCell="price" let-line>{{ line.unitPrice | appMoney }}</ng-template>
+      <ng-template appCell="amount" let-line>{{ line.amount | appMoney }}</ng-template>
+      <app-empty-state empty icon="list" [message]="'doc.noLines' | t" />
+    </app-table>
+  </section>
+
+  @if (order.deliveries.length > 0) {
+    <section class="so-detail-section" aria-labelledby="so-deliveries-heading">
+      <h2 id="so-deliveries-heading">
+        {{ 'so.deliveries' | t: { count: order.deliveries.length } }}
+      </h2>
+      <ul class="so-detail-list">
+        @for (delivery of order.deliveries; track delivery.id) {
+          <li>
+            @if ($canOpenDeliveries()) {
+              <a [routerLink]="['/', deliveryRoute, delivery.id]">{{ delivery.no }}</a>
+            } @else {
+              <strong>{{ delivery.no }}</strong>
+            }
+            <app-status-chip
+              [status]="deliveryTone[delivery.status]"
+              [label]="delivery.status | enumLabel: deliveryStatusLabels"
+            />
+            <span class="so-detail-muted">{{
+              delivery.postedAt ?? delivery.createdAt | appDate
+            }}</span>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <section class="so-detail-section" aria-labelledby="so-history-heading">
+    <h2 id="so-history-heading">{{ 'doc.tab.history' | t }}</h2>
+    <ol class="so-detail-list so-detail-history">
+      @for (event of $history(); track $index) {
+        <li>
+          <strong>{{ event.labelKey | t }}</strong>
+          @if (event.by) {
+            <span>{{ event.by }}</span>
+          }
+          @if (event.at) {
+            <span class="so-detail-muted">{{ event.at | appDate }}</span>
+          }
+          @if (event.reason) {
+            <span class="so-detail-muted">{{
+              'doc.history.reason' | t: { reason: event.reason }
+            }}</span>
+          }
+        </li>
+      }
+    </ol>
+  </section>
+
+  @if ($showBar()) {
+    <footer
+      class="so-detail-bar"
+      role="group"
+      [attr.aria-label]="'so.actionsLabel' | t: { docNo: order.no }"
+      appPublishHeight="--ims-action-bar-height"
+      appPublishClearance="--ims-action-bar-clearance"
+      [attr.aria-busy]="$isBusy()"
+    >
+      @if ($canCancel()) {
+        <app-button
+          variant="ghost"
+          [disabled]="$isBusy() || $isStale()"
+          [loading]="$busyAction() === action.Cancel"
+          (clicked)="onAction(action.Cancel)"
+        >
+          <app-icon name="x" />
+          {{ 'po.action.cancel' | t }}
+        </app-button>
+      }
+      @if ($canReject()) {
+        <app-button
+          variant="danger"
+          [disabled]="$isBusy() || $isStale()"
+          [loading]="$busyAction() === action.Reject"
+          (clicked)="onAction(action.Reject)"
+        >
+          {{ 'doc.action.reject' | t }}
+        </app-button>
+      }
+      @if ($canClose()) {
+        <app-button
+          [disabled]="$isBusy() || $isStale()"
+          [loading]="$busyAction() === action.Close"
+          (clicked)="onAction(action.Close)"
+        >
+          {{ 'po.action.close' | t }}
+        </app-button>
+      }
+      @if ($canRecall()) {
+        <app-button
+          [disabled]="$isBusy() || $isStale()"
+          [loading]="$busyAction() === action.Recall"
+          (clicked)="onAction(action.Recall)"
+        >
+          <app-icon name="pencil" />
+          {{ 'po.action.recall' | t }}
+        </app-button>
+      }
+      @if ($canSubmit()) {
+        <app-button
+          variant="primary"
+          [disabled]="$isBusy() || $isStale()"
+          [loading]="$busyAction() === action.Submit"
+          (clicked)="onAction(action.Submit)"
+        >
+          {{
+            ($busyAction() === action.Submit ? 'doc.action.submitting' : 'doc.action.submit') | t
+          }}
+        </app-button>
+      }
+      @if ($canApprove()) {
+        <app-button
+          variant="primary"
+          [disabled]="$isBusy() || $isStale()"
+          [loading]="$busyAction() === action.Approve"
+          (clicked)="onAction(action.Approve)"
+        >
+          <app-icon name="check" />
+          {{ 'doc.action.approve' | t }}
+        </app-button>
+      }
+    </footer>
+  }
+}

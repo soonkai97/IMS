@@ -120,12 +120,15 @@ export class SettingsPageComponent implements OnInit {
   $isLoading = this.store.settings.$isLoading;
   $isSavingSettings = this.store.saveSettings.$isRunning;
   $isSavingRule = this.store.saveRule.$isRunning;
-  /** Purchase orders have approval rules only while the purchasing module is on (the API refuses and hides them otherwise). */
+  /** Purchase and sales orders have approval rules only while their module is on (the API refuses and hides them otherwise). */
   $docTypeOptions = computed<readonly SelectOption[]>(() => [
     { value: DocumentType.Issue, label: this.i18n.t('docType.Issue') },
     { value: DocumentType.Receipt, label: this.i18n.t('docType.Receipt') },
     ...(this.modules.isEnabled(MODULE_CODE.Purchasing)
       ? [{ value: DocumentType.PurchaseOrder, label: this.i18n.t('docType.PurchaseOrder') }]
+      : []),
+    ...(this.modules.isEnabled(MODULE_CODE.Sales)
+      ? [{ value: DocumentType.SalesOrder, label: this.i18n.t('docType.SalesOrder') }]
       : [])
   ]);
   $tierOptions = computed<readonly SelectOption[]>(() =>

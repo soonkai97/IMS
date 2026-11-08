@@ -140,15 +140,19 @@ describe('SettingsPageComponent approval rule tier (RP-4b: the rule says who app
   );
 });
 
-describe('SettingsPageComponent approval rule document types (module purchasing)', () => {
+describe('SettingsPageComponent approval rule document types (modules purchasing and sales)', () => {
   const purchasingOn = signal(false);
+  const salesOn = signal(false);
   const createComponent = createComponentFactory({
     component: SettingsPageComponent,
     detectChanges: false,
     providers: [
       provideUiText(),
       { provide: ToastService, useValue: { success: jest.fn() } },
-      { provide: ModulesStore, useValue: { isEnabled: () => purchasingOn() } },
+      {
+        provide: ModulesStore,
+        useValue: { isEnabled: (code: string) => (code === 'sales' ? salesOn() : purchasingOn()) }
+      },
       {
         provide: SystemRulesStore,
         useValue: {
@@ -176,5 +180,17 @@ describe('SettingsPageComponent approval rule document types (module purchasing)
 
     purchasingOn.set(true);
     expect(labels(spectator)).toEqual(['Issue', 'Receipt', 'Purchase order']);
+  });
+
+  it('offers Sales order only while the sales module is on, whatever purchasing does', () => {
+    const spectator = createComponent();
+
+    purchasingOn.set(true);
+    salesOn.set(false);
+    expect(labels(spectator)).not.toContain('Sales order');
+
+    purchasingOn.set(false);
+    salesOn.set(true);
+    expect(labels(spectator)).toEqual(['Issue', 'Receipt', 'Sales order']);
   });
 });
