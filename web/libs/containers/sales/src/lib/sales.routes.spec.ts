@@ -69,6 +69,30 @@ describe('SALES_ORDER_ROUTES (module sales, then permission so.read)', () => {
     expect(urlOf(answer())).toBe('/not-found');
   });
 
+  it.each([['new'], [':id/edit'], [':id/print']])(
+    'the page %s needs so.manage: so.read alone is the forbidden page; the editor asks before leaving',
+    path => {
+      const route = SALES_ORDER_ROUTES[0].children?.find(child => child.path === path);
+      const guards = route?.canActivate as CanActivateFn[];
+      const run = (): boolean | UrlTree =>
+        TestBed.runInInjectionContext(() =>
+          guards[0]({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot)
+        ) as boolean | UrlTree;
+
+      held.add(PERMISSION.SoRead);
+      expect(urlOf(run())).toBe('/forbidden');
+      held.add(PERMISSION.SoManage);
+      expect(run()).toBe(true);
+      expect(route?.canDeactivate?.length ?? 0).toBe(path === ':id/print' ? 0 : 1);
+    }
+  );
+
+  it('the new page comes before :id, which would take it for an order', () => {
+    const paths = SALES_ORDER_ROUTES[0].children?.map(child => child.path);
+
+    expect(paths?.indexOf('new')).toBeLessThan(paths?.indexOf(':id') ?? -1);
+  });
+
   it('shows the forbidden page to a user without so.read while the module is on', () => {
     held.add(PERMISSION.PoRead);
 

@@ -16,6 +16,7 @@ import {
   type ApiSalesOrder
 } from '../src/sales';
 import { expect, openSession, test } from '../src/fixtures';
+import { DocumentEditor } from '../src/pages/documents';
 import { goTo, loadPage } from '../src/pages/shell';
 
 // Sales orders on the real API (PL3.8): the menu, the route guards, the list (filters, "Waiting for my approval"), the detail (lines
@@ -33,6 +34,7 @@ const data = {
   customer: { id: '' as PublicId, name: `${CUSTOMER_PREFIX}${token}` },
   otherCustomer: { id: '' as PublicId, name: `${CUSTOMER_PREFIX}B${token}` },
   productId: '' as PublicId,
+  productName: '',
   sku: `${SKU_PREFIX}${token}`
 };
 const admin = () => apiAs('admin');
@@ -73,7 +75,9 @@ test.describe('Sales orders, real API', () => {
     for (const customer of [data.customer, data.otherCustomer]) {
       customer.id = (await admin().createPartner('Customer', { name: customer.name })).id;
     }
-    data.productId = (await admin().createProduct({ sku: data.sku })).id;
+    const product = await admin().createProduct({ sku: data.sku });
+    data.productId = product.id;
+    data.productName = product.name;
   });
 
   test.afterAll(async () => {
@@ -323,6 +327,113 @@ test.describe('Sales orders, real API', () => {
     await salesCommand('clerk', order.id, 'cancel');
   });
 
+  test('given a Clerk, when an order is created in the editor, changed, submitted, and approved by a Supervisor, then each step shows its result and the whole order is saved every time', async ({
+    page,
+    signIn,
+    shell
+  }) => {
+    await signIn('clerk');
+    await shell.nav.getByRole('link', { name: 'Sales orders' }).click();
+    await page.getByRole('link', { name: 'New sales order' }).click();
+    await expect(page).toHaveURL(/\/sales-orders\/new$/);
+    const editor = new DocumentEditor(page);
+
+    // Nothing filled: the first field in error is focused and the words say what is missing.
+    await page.getByRole('button', { name: 'Save draft' }).click();
+    await expect(page.getByText('Add at least one item.')).toBeVisible();
+    await expect(editor.partner).toBeFocused();
+    await expect(editor.partner).toHaveAccessibleName(/^Customer/);
+
+    await editor.partner.selectOption({ label: data.customer.name });
+    await editor.remark.fill('Deliver to bay 3');
+    await editor.addItem({ sku: data.sku, name: data.productName });
+    await page.getByRole('spinbutton', { name: `Quantity of ${data.sku}` }).fill('10');
+    await page.getByRole('spinbutton', { name: `Unit price of ${data.sku}` }).fill('600');
+    await expect(page.locator('.so-editor-amount')).toContainText('6,000.00');
+    await expect(page.locator('.so-editor-totals')).toContainText('6,000.00');
+    await page.getByRole('button', { name: 'Save draft' }).click();
+
+    await expect(page).toHaveURL(/\/sales-orders\/[0-9a-f-]{36}$/);
+    const id = page.url().split('/').pop()!;
+    await expect(status(page)).toHaveText('Draft');
+    await expect(page.getByRole('main')).toContainText('6,000.00');
+
+    await page.getByRole('link', { name: 'Edit' }).click();
+    await expect(page).toHaveURL(new RegExp(`/sales-orders/${id}/edit$`));
+    await expect(editor.warehouse).toBeDisabled();
+    await page.getByRole('spinbutton', { name: `Quantity of ${data.sku}` }).fill('12');
+    await page.getByRole('button', { name: 'Save draft' }).click();
+    await expect(page).toHaveURL(new RegExp(`/sales-orders/${id}$`));
+    await expect(page.getByRole('main')).toContainText('7,200.00');
+    const saved = await getSalesOrder(id, 'clerk');
+    expect(saved.lines[0]?.qty).toBe(12);
+    expect(saved.totalAmount).toBe(7200);
+
+    await bar(page, 'Submit').click();
+    await expect(shell.toast('Submitted for approval.')).toHaveCount(1);
+    await expect(status(page)).toHaveText('Submitted');
+    await expect(page.getByRole('link', { name: 'Edit' })).toHaveCount(0);
+
+    const supervisor = await openSession(page.context().browser()!, 'supervisor');
+    try {
+      await goTo(supervisor.page, `/sales-orders/${id}`);
+      await bar(supervisor.page, 'Approve').click();
+      await shell
+        .dialog(`Approve ${saved.no}?`)
+        .getByRole('button', { name: 'Approve', exact: true })
+        .click();
+      await expect(status(supervisor.page)).toHaveText('Approved');
+    } finally {
+      await supervisor.context.close();
+    }
+    await salesCommand('supervisor', id, 'cancel', { reason: 'E2E: throw-away order' });
+  });
+
+  test('given an Approved order, then the customer copy prints with prices and no navigation, and Warehouse staff have no editor, no Print and the print address is the forbidden page', async ({
+    page,
+    signIn,
+    shell,
+    browser
+  }) => {
+    const order = await createSalesOrder(data.customer.id, data.productId, NO_APPROVAL);
+    await salesCommand('clerk', order.id, 'submit');
+
+    await signIn('clerk');
+    await goTo(page, `/sales-orders/${order.id}`);
+    await page.getByRole('link', { name: 'Print' }).click();
+    await expect(page).toHaveURL(new RegExp(`/sales-orders/${order.id}/print$`));
+    await expect(
+      page.getByRole('heading', { level: 1, name: `Sales order ${order.no}` })
+    ).toBeVisible();
+    await expect(page.locator('.so-print')).toContainText(data.customer.name);
+    await expect(page.locator('.so-print')).toContainText('50.00');
+    await page.emulateMedia({ media: 'print' });
+    await expect(shell.nav).toHaveCount(0);
+    await page.emulateMedia({ media: 'screen' });
+
+    const staff = await openSession(browser, 'staff');
+    try {
+      await goTo(staff.page, `/sales-orders/${order.id}`);
+      await expect(staff.page.getByRole('heading', { level: 1, name: order.no })).toBeVisible();
+      await expect(staff.page.getByRole('link', { name: 'Print' })).toHaveCount(0);
+      await expect(staff.page.getByRole('link', { name: 'Edit' })).toHaveCount(0);
+      await expect(staff.page.getByRole('main')).not.toContainText(MONEY);
+      await goTo(staff.page, '/sales-orders');
+      await expect(staff.page.getByRole('link', { name: 'New sales order' })).toHaveCount(0);
+      for (const path of [
+        '/sales-orders/new',
+        `/sales-orders/${order.id}/edit`,
+        `/sales-orders/${order.id}/print`
+      ]) {
+        await loadPage(staff.page, path);
+        await expect(staff.page).toHaveURL(/\/forbidden$/);
+      }
+    } finally {
+      await staff.context.close();
+    }
+    await salesCommand('supervisor', order.id, 'cancel', { reason: 'E2E: throw-away order' });
+  });
+
   test.describe('layout and accessibility', () => {
     let waiting: ApiSalesOrder;
     test.beforeAll(async () => {
@@ -364,7 +475,11 @@ test.describe('Sales orders, real API', () => {
             signIn
           }) => {
             await signIn('supervisor');
-            for (const path of ['/sales-orders', `/sales-orders/${waiting.id}`]) {
+            for (const path of [
+              '/sales-orders',
+              `/sales-orders/${waiting.id}`,
+              '/sales-orders/new'
+            ]) {
               await goTo(page, path);
               await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
               await page.waitForLoadState('networkidle');

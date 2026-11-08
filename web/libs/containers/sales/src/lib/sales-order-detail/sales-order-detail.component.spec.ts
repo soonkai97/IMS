@@ -232,10 +232,27 @@ describe('SalesOrderDetailPageComponent', () => {
       expect(buttons()).toEqual(expected);
     });
 
-    it('does not render Edit or Deliver yet: their screens are PL3.9 and PL3.10, and a dead button is worse than none', async () => {
+    it('renders Edit as a link to the editor, but not Deliver yet: its screen is PL3.10', async () => {
       await render(order({ allowedActions: ['edit', 'deliver', 'cancel'] }));
 
-      expect(buttons()).toEqual(['Cancel order']);
+      expect(buttons()).toEqual(['Cancel order', 'Edit']);
+      expect(spectator.query('.so-detail-bar a')?.getAttribute('href')).toBe(
+        `/sales-orders/${ID}/edit`
+      );
+    });
+
+    it('Print (the customer copy, with selling prices) is offered when the API sent prices and the order is Approved or Closed', async () => {
+      const printLink = (): Element | null => spectator.query('a[href$="/print"]');
+      await render(order({ status: SalesOrderStatus.Approved }));
+      expect(printLink()?.getAttribute('href')).toBe(`/sales-orders/${ID}/print`);
+
+      for (const status of [SalesOrderStatus.Draft, SalesOrderStatus.Cancelled]) {
+        await render(order({ status }));
+        expect(printLink()).toBeNull();
+      }
+
+      await render(withoutMoney(order({ status: SalesOrderStatus.Approved })));
+      expect(printLink()).toBeNull();
     });
 
     it('does not look at what the user holds: a holder of every right sees nothing the server did not list', async () => {

@@ -13,6 +13,14 @@
       }
     }
   </div>
+  @if ($canPrint()) {
+    <div actions>
+      <a class="ui-link-button" [routerLink]="['/', route, $order()?.id, 'print']">
+        <app-icon name="file" />
+        {{ 'sales.print' | t }}
+      </a>
+    </div>
+  }
 </app-page-header>
 
 @if ($isLoading()) {
@@ -211,6 +219,12 @@
         >
           {{ 'po.action.close' | t }}
         </app-button>
+      }
+      @if ($canEdit()) {
+        <a class="ui-link-button" [routerLink]="['/', route, order.id, 'edit']">
+          <app-icon name="pencil" />
+          {{ 'sales.edit' | t }}
+        </a>
       }
       @if ($canRecall()) {
         <app-button

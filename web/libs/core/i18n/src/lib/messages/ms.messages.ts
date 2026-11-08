@@ -901,6 +901,27 @@ export const MS_MESSAGES: Messages = {
   'so.awaitingNote': 'Halaman ini sahaja',
   'so.emptyAwaiting':
     'Tiada pesanan di halaman ini yang menunggu anda. Mungkin ada lagi di halaman seterusnya.',
+  // TODO-review: machine draft (PL3.9 sales order editor).
+  'sales.new': 'Pesanan jualan baharu',
+  // TODO-review: machine draft (PL3.9 review fixes).
+  'sales.findCustomer': 'Cari pelanggan',
+  'sales.customersTruncated': 'Hanya pelanggan pertama disenaraikan. Taip untuk mencari yang lain.',
+  'sales.priceHint':
+    'Harga kosong disimpan sebagai 0.00. Pesanan berharga sifar tidak boleh dihantar.',
+  'sales.warehouseFixed': 'Tetap selepas pesanan disimpan.',
+  'sales.lineRemoved': '{sku} dibuang.',
+  'sales.edit': 'Ubah',
+  'sales.staleSaveBody':
+    'Orang lain telah mengubah pesanan ini. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',
+  'sales.priceFor': 'Harga seunit bagi {sku}',
+  'sales.unitFor': 'Unit bagi {sku}',
+  'sales.col.price': 'Harga seunit ({currency})',
+  'sales.print': 'Cetak',
+  'sales.print.title': 'Pesanan jualan {docNo}',
+  'sales.print.shipFrom': 'Dihantar dari',
+  'sales.print.lineNo': 'No.',
+  'sales.print.total': 'Jumlah ({currency})',
+  'sales.print.notPrintable': 'Hanya pesanan yang diluluskan atau ditutup boleh dicetak.',
   'so.actionsLabel': 'Tindakan untuk {docNo}',
   'perm.so.read': 'Lihat pesanan jualan',
   'perm.so.read.help':

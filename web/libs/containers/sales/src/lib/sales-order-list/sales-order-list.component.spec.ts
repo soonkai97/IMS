@@ -179,6 +179,15 @@ describe('SalesOrderListPageComponent', () => {
     });
   });
 
+  it('offers New sales order by the so.manage permission, never by role', async () => {
+    await render([ITEM]);
+    expect(spectator.query('a[href="/sales-orders/new"]')).toBeNull();
+
+    granted.add(PERMISSION.SoManage);
+    await render([ITEM]);
+    expect(spectator.query('a[href="/sales-orders/new"]')).not.toBeNull();
+  });
+
   it('opens the order page from a row', async () => {
     await render([ITEM]);
 

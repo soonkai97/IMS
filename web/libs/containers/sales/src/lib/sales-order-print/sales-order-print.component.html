@@ -1,0 +1,89 @@
+<div class="so-print-actions">
+  <a class="ui-link-button" [routerLink]="backLink()">{{ 'common.back' | t }}</a>
+  <app-button variant="primary" [disabled]="!$printable()" (clicked)="onPrint()">
+    {{ 'sales.print' | t }}
+  </app-button>
+</div>
+
+@if ($isLoading()) {
+  <app-skeleton [count]="4" />
+} @else if ($notFound()) {
+  <div role="alert">
+    <app-empty-state icon="file" [message]="'notFound.body' | t">
+      <a class="ui-link-button --primary" routerLink="/">{{ 'system.goHome' | t }}</a>
+    </app-empty-state>
+  </div>
+} @else if ($failed()) {
+  <app-banner kind="danger">
+    {{ $errorMessage() || ('error.generic' | t) }}
+    <app-button bannerActions (clicked)="onRetry()">{{ 'ui.retry' | t }}</app-button>
+  </app-banner>
+} @else if ($order(); as order) {
+  @if (!$printable()) {
+    <div role="alert">
+      <app-empty-state icon="file" [message]="'sales.print.notPrintable' | t" />
+    </div>
+  } @else {
+    <article class="so-print">
+      <header class="so-print-head">
+        <h1>{{ 'sales.print.title' | t: { docNo: order.no } }}</h1>
+        <p>{{ 'doc.date' | t }}: {{ order.approvedAt ?? order.createdAt | appDate: false }}</p>
+      </header>
+      <dl class="so-print-parties">
+        <div>
+          <dt>{{ 'doc.customer' | t }}</dt>
+          <dd>{{ order.customerName }}</dd>
+        </div>
+        <div>
+          <dt>{{ 'sales.print.shipFrom' | t }}</dt>
+          <dd>{{ order.warehouseName }}</dd>
+        </div>
+      </dl>
+      <div
+        class="so-print-scroll"
+        tabindex="0"
+        role="region"
+        [attr.aria-label]="'so.lines' | t: { count: order.lines.length }"
+      >
+        <table class="so-print-lines">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'sales.print.lineNo' | t }}</th>
+              <th scope="col">{{ 'product.sku' | t }}</th>
+              <th scope="col">{{ 'product.name' | t }}</th>
+              <th scope="col" class="--num">{{ 'doc.qty' | t }}</th>
+              <th scope="col">{{ 'doc.unit' | t }}</th>
+              <th scope="col" class="--num">{{ 'sales.col.price' | t }}</th>
+              <th scope="col" class="--num">{{ 'doc.amount' | t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of order.lines; track line.lineNo) {
+              <tr>
+                <td>{{ line.lineNo }}</td>
+                <td>{{ line.sku }}</td>
+                <td>{{ line.productName }}</td>
+                <td class="--num">{{ line.qty | appQty }}</td>
+                <td>{{ line.uomCode }}</td>
+                <td class="--num">{{ line.unitPrice | appMoney }}</td>
+                <td class="--num">{{ line.amount | appMoney }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot class="so-print-total">
+            <tr>
+              <th scope="row" colspan="6">{{ 'sales.print.total' | t }}</th>
+              <td class="--num">{{ order.totalAmount | appMoney }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      @if (order.remark) {
+        <section class="so-print-remark">
+          <h2>{{ 'doc.remark' | t }}</h2>
+          <p>{{ order.remark }}</p>
+        </section>
+      }
+    </article>
+  }
+}
