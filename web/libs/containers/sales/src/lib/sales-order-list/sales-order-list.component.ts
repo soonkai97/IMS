@@ -8,7 +8,9 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { PartnerType, SalesOrderListItem, SalesOrderStatus } from '@ims/api';
+import { PermissionService } from '@ims/core/identity';
 import {
   AppDatePipe,
   AppMoneyPipe,
@@ -25,7 +27,7 @@ import {
   SalesOrdersStore
 } from '@ims/features/sales';
 import { PartnersStore } from '@ims/features/warehousing';
-import { API_MIN_SEARCH_LENGTH, PAGE_SIZES, PublicId } from '@ims/models';
+import { API_MIN_SEARCH_LENGTH, PAGE_SIZES, PERMISSION, PublicId } from '@ims/models';
 import {
   SelectOption,
   StatusTone,
@@ -58,6 +60,7 @@ import { controlSignal, createPageState, debouncedSignal, loadOnChange } from '@
     AppMoneyPipe,
     EnumLabelPipe,
     ReactiveFormsModule,
+    RouterLink,
     TranslatePipe,
     UiButtonComponent,
     UiCellDirective,
@@ -79,10 +82,13 @@ import { controlSignal, createPageState, debouncedSignal, loadOnChange } from '@
 export class SalesOrderListPageComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly partners = inject(PartnersStore);
+  private readonly permissions = inject(PermissionService);
   private readonly store = inject(SalesOrdersStore);
 
   readonly statusControl = new FormControl<SalesOrderStatus | null>(null);
   readonly customerControl = new FormControl<PublicId | null>(null);
+  /** By permission, never by role: whoever may manage sales orders may start one. */
+  readonly $canCreate = computed(() => this.permissions.has(PERMISSION.SoManage));
   readonly awaitingControl = new FormControl(false, { nonNullable: true });
 
   $searchInput = signal('');

@@ -1,13 +1,15 @@
+import { HttpContext } from '@angular/common/http';
 import { Injectable, Signal, inject } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import {
   PagedResultOfSalesOrderListItem,
   SalesOrderDto,
+  SalesOrderSaveRequest,
   SalesOrderStatus,
   SalesOrdersClient
 } from '@ims/api';
-import { withIfMatch } from '@ims/core/http';
-import { ApiError, ApiOperation, PagedQuery, PublicId } from '@ims/models';
+import { HANDLED_INLINE, withIfMatch } from '@ims/core/http';
+import { ApiError, ApiOperation, HTTP_STATUS, PagedQuery, PublicId } from '@ims/models';
 import { ApiCommand, QueryLoader } from '@ims/utils';
 
 export interface SalesOrderQuery extends PagedQuery {
@@ -24,6 +26,12 @@ export interface SalesOrderRef {
 
 export interface SalesOrderReasonArgs extends SalesOrderRef {
   readonly reason: string;
+}
+
+/** Save a draft: without `ref` it is created, with one it is updated (If-Match) from the version the person opened. */
+export interface SaveSalesOrderArgs {
+  readonly ref?: SalesOrderRef;
+  readonly body: SalesOrderSaveRequest;
 }
 
 export function toSalesOrderRef(order: SalesOrderDto): SalesOrderRef {
@@ -56,6 +64,19 @@ export class SalesOrdersStore {
     this.client.get(id, context)
   );
 
+  readonly save: ApiCommand<SaveSalesOrderArgs, SalesOrderDto> = new ApiCommand(args => {
+    // The editor shows a refusal (403) and a conflict (409) in its own alert: no toast on top.
+    const context = (args.ref ? withIfMatch(args.ref.concurrencyToken) : new HttpContext()).set(
+      HANDLED_INLINE,
+      [HTTP_STATUS.Forbidden, HTTP_STATUS.Conflict]
+    );
+    return this.accept(
+      args.ref
+        ? this.client.update(args.ref.id, args.body, context)
+        : this.client.create(args.body, context),
+      this.save
+    );
+  }, true);
   readonly submit: ApiCommand<SalesOrderRef, SalesOrderDto> = new ApiCommand(
     ref => this.accept(this.client.submit(ref.id, withIfMatch(ref.concurrencyToken)), this.submit),
     true
@@ -115,7 +136,15 @@ export class SalesOrdersStore {
   }
 
   private commands(): readonly { $operation: Signal<ApiOperation>; reset(): void }[] {
-    return [this.submit, this.recall, this.approve, this.reject, this.cancel, this.close];
+    return [
+      this.save,
+      this.submit,
+      this.recall,
+      this.approve,
+      this.reject,
+      this.cancel,
+      this.close
+    ];
   }
 
   private resetCommandsExcept(keep: { reset(): void } | undefined): void {

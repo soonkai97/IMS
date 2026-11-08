@@ -896,6 +896,19 @@ export const EN_MESSAGES = {
   'so.awaitingNote': 'This page only',
   'so.emptyAwaiting':
     'None of the orders on this page are waiting for you. There may be more on the next page.',
+  'sales.new': 'New sales order',
+  'sales.edit': 'Edit',
+  'sales.staleSaveBody':
+    'Someone else changed this order. Reload to see the latest version. Your changes were not saved.',
+  'sales.priceFor': 'Unit price of {sku}',
+  'sales.unitFor': 'Unit of {sku}',
+  'sales.col.price': 'Unit price ({currency})',
+  'sales.print': 'Print',
+  'sales.print.title': 'Sales order {docNo}',
+  'sales.print.shipFrom': 'Ship from',
+  'sales.print.lineNo': 'No.',
+  'sales.print.total': 'Total ({currency})',
+  'sales.print.notPrintable': 'Only an approved or closed order can be printed.',
   'so.actionsLabel': 'Actions for {docNo}',
   'perm.so.read': 'See sales orders',
   'perm.so.read.help':

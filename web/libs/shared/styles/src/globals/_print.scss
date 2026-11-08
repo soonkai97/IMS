@@ -18,7 +18,8 @@
   }
 
   // A page that marks itself as a print view (the supplier copy of an order) prints without the navigation around it.
-  body.po-print-view {
+  body.po-print-view,
+  body.so-print-view {
     .shell-bar,
     .shell-nav,
     .shell-tabbar,

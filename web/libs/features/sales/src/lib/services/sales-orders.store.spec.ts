@@ -23,7 +23,16 @@ describe('SalesOrdersStore', () => {
 
   beforeEach(() => {
     spectator = createService();
-    for (const action of ['submit', 'recall', 'approve', 'reject', 'cancel', 'close']) {
+    for (const action of [
+      'create',
+      'update',
+      'submit',
+      'recall',
+      'approve',
+      'reject',
+      'cancel',
+      'close'
+    ]) {
       (client() as unknown as Record<string, jest.Mock>)[action].mockReturnValue(of(FRESH));
     }
   });
@@ -73,6 +82,18 @@ describe('SalesOrdersStore', () => {
     expect(tokenOf(client().close.mock.calls[0][2])).toBe('AAAA');
   });
 
+  it('saves a new draft without a token and an existing one with the version the person opened', async () => {
+    const body = { warehouseId: 'w1', customerId: 'c1', remark: undefined, lines: [] };
+
+    await firstValueFrom(spectator.service.save.run({ body }));
+    await firstValueFrom(spectator.service.save.run({ ref: toSalesOrderRef(ORDER), body }));
+
+    expect(client().create.mock.calls[0][0]).toEqual(body);
+    expect(tokenOf(client().create.mock.calls[0][1])).toBeUndefined();
+    expect(client().update.mock.calls[0][0]).toBe(ORDER_ID);
+    expect(tokenOf(client().update.mock.calls[0][2])).toBe('AAAA');
+  });
+
   it('keeps the answer as the opened order and drops the other commands old errors', async () => {
     spectator.service.detail.$data.set(ORDER);
 
@@ -99,7 +120,7 @@ describe('toSoActions', () => {
     expect(toSoActions(undefined).size).toBe(0);
   });
 
-  it('holds back exactly the two actions whose screens are later slices', () => {
-    expect([...SO_ACTIONS_NOT_BUILT].sort()).toEqual([SO_ACTION.Deliver, SO_ACTION.Edit]);
+  it('holds back exactly the action whose screen is a later slice (the delivery, PL3.10)', () => {
+    expect([...SO_ACTIONS_NOT_BUILT]).toEqual([SO_ACTION.Deliver]);
   });
 });

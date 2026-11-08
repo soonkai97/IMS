@@ -901,6 +901,20 @@ export const MS_MESSAGES: Messages = {
   'so.awaitingNote': 'Halaman ini sahaja',
   'so.emptyAwaiting':
     'Tiada pesanan di halaman ini yang menunggu anda. Mungkin ada lagi di halaman seterusnya.',
+  // TODO-review: machine draft (PL3.9 sales order editor).
+  'sales.new': 'Pesanan jualan baharu',
+  'sales.edit': 'Ubah',
+  'sales.staleSaveBody':
+    'Orang lain telah mengubah pesanan ini. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',
+  'sales.priceFor': 'Harga seunit bagi {sku}',
+  'sales.unitFor': 'Unit bagi {sku}',
+  'sales.col.price': 'Harga seunit ({currency})',
+  'sales.print': 'Cetak',
+  'sales.print.title': 'Pesanan jualan {docNo}',
+  'sales.print.shipFrom': 'Dihantar dari',
+  'sales.print.lineNo': 'No.',
+  'sales.print.total': 'Jumlah ({currency})',
+  'sales.print.notPrintable': 'Hanya pesanan yang diluluskan atau ditutup boleh dicetak.',
   'so.actionsLabel': 'Tindakan untuk {docNo}',
   'perm.so.read': 'Lihat pesanan jualan',
   'perm.so.read.help':

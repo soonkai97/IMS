@@ -48,6 +48,7 @@ import {
   SO_STATUS_TONE,
   SalesOrdersStore,
   SoAction,
+  isPrintable,
   toSalesOrderRef,
   toSoActions
 } from '@ims/features/sales';
@@ -177,6 +178,12 @@ export class SalesOrderDetailPageComponent {
         [...toSoActions(this.$order()?.allowedActions)].filter(a => !SO_ACTIONS_NOT_BUILT.has(a))
       )
   );
+  readonly $canEdit = computed(() => this.$actions().has(SO_ACTION.Edit));
+  /** The customer copy shows selling prices: offered when the API sent them (so.manage), for an order that may be printed. */
+  readonly $canPrint = computed(() => {
+    const status = this.$order()?.status;
+    return this.$hasMoney() && status !== undefined && isPrintable(status);
+  });
   readonly $canSubmit = computed(() => this.$actions().has(SO_ACTION.Submit));
   readonly $canRecall = computed(() => this.$actions().has(SO_ACTION.Recall));
   readonly $canApprove = computed(() => this.$actions().has(SO_ACTION.Approve));
