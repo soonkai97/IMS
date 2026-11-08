@@ -152,7 +152,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.No).HasMaxLength(Limits.DocumentNoMaxLength);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
             e.Property(x => x.RowVersion).IsRowVersion();
-            e.Ignore(x => x.TotalQty).Ignore(x => x.TotalAmount).Ignore(x => x.CanPost).Ignore(x => x.IsReturned).Ignore(x => x.ActionContext).Ignore(x => x.IsLinked);
+            e.Ignore(x => x.TotalQty).Ignore(x => x.TotalAmount).Ignore(x => x.CanPost).Ignore(x => x.IsReturned).Ignore(x => x.ActionContext).Ignore(x => x.IsLinked).Ignore(x => x.Link);
             e.HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Partner).WithMany().HasForeignKey(x => x.PartnerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedBy).OnDelete(DeleteBehavior.Restrict);
@@ -167,6 +167,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             // order" and the received-quantity sum of the order, and costs nothing on a document that is not linked. EF would otherwise make the default unfiltered index over every row.
             e.HasIndex(x => x.PurchaseOrderId).HasFilter("[PurchaseOrderId] IS NOT NULL");
             e.HasOne(x => x.PurchaseOrder).WithMany().HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.Restrict);
+            // The same for deliveries created from a sales order (NULL on every other document): the filtered foreign-key index serves "the deliveries of this order" and the delivered-quantity sum, and costs nothing on an unlinked document.
+            e.HasIndex(x => x.SalesOrderId).HasFilter("[SalesOrderId] IS NOT NULL");
+            e.HasOne(x => x.SalesOrder).WithMany().HasForeignKey(x => x.SalesOrderId).OnDelete(DeleteBehavior.Restrict);
             e.HasMany(x => x.Lines).WithOne(x => x.Document).HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
@@ -265,6 +268,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
             // As the purchase-order line: the order foreign-key index stays unfiltered (a physical delete must find soft-deleted lines); the product index covers the delivered sums of later slices.
             e.HasIndex(x => x.ProductId).IncludeProperties(x => new { x.SalesOrderId, x.BaseQty });
+            // The foreign-key index of the order also covers what the list and the detail add up per order (quantity and selling amount), so those sums read the index alone.
+            e.HasIndex(x => x.SalesOrderId).IncludeProperties(x => new { x.BaseQty, x.SellingAmount });
+            // A line number is unique among the live lines of an order: a delivery names a line by it (PL3.5). Soft-deleted lines (a save replaces them) are out of the index.
+            e.HasIndex(x => new { x.SalesOrderId, x.LineNo }).IsUnique();
+            // The domain refuses these; the database says it too, while the table is empty (a CHECK costs nothing to add now and validates every row later).
+            e.ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_SalesOrderLine_Qty", "[Qty] > 0");
+                t.HasCheckConstraint("CK_SalesOrderLine_BaseQty", "[BaseQty] > 0");
+                t.HasCheckConstraint("CK_SalesOrderLine_SellingPrice", "[SellingPrice] >= 0");
+            });
             e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Uom).WithMany().HasForeignKey(x => x.UomId).OnDelete(DeleteBehavior.Restrict);
         });

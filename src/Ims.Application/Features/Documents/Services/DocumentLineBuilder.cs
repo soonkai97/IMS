@@ -6,9 +6,11 @@ namespace Ims.Application.Features.Documents;
 public class DocumentLineBuilder(IReadRepository<Product> products, IIdMap<Uom> uomIds, ICallerPermissions caller, IModuleSwitches modules) : IDocumentLineBuilder, IAppService
 {
     public async Task<List<StockDocumentLine>> BuildAsync(DocumentType type, IReadOnlyList<DocumentLineInput> inputs, CancellationToken ct,
-        IEnumerable<StockDocumentLine>? existing = null, PurchaseOrder? order = null)
+        IEnumerable<StockDocumentLine>? existing = null, LinkedOrder? link = null)
     {
-        if (order is null) await EnsureNoOrderLinesAsync(inputs, ct);
+        var order = (link as PurchaseLinkedOrder)?.Order;
+        var salesOrder = (link as SalesLinkedOrder)?.Order;
+        if (link is null) await EnsureNoOrderLinesAsync(inputs, ct);
 
         // The cost of a line is used only on a receipt saved by someone who may enter cost. An issue takes the average and a Warehouse staff receipt takes the
         // last known cost, whatever the request carried, so a cost that is not used is not judged (and not stored).
@@ -35,11 +37,22 @@ public class DocumentLineBuilder(IReadRepository<Product> products, IIdMap<Uom> 
             if (!byId.TryGetValue(i.ProductId, out var product)) throw new ValidationException(Messages.ProductMissing(i.ProductId));
             int? uomId = i.UomId is { } unit ? units.GetValueOrDefault(unit, IdMapExtensions.NoRow) : null;
 
+            if (salesOrder is not null)
+            {
+                // A delivery against a sales order: the line names an order line with its product and unit. It carries no price: an issue is valued at the average whatever the order says.
+                var (soLine, soProblem) = SalesOrderLineProblem(salesOrder, i.SalesOrderLineNo, product, uomId ?? product.BaseUomId);
+                if (i.PurchaseOrderLineNo is not null) orderErrors[ErrorKeys.Normalize($"Data.Lines[{index}].PurchaseOrderLineNo")] = [Messages.DeliveryNotLinked];
+                else if (soProblem is not null) orderErrors[ErrorKeys.Normalize($"Data.Lines[{index}].SalesOrderLineNo")] = [soProblem];
+                else lines.Add(StockDocumentLine.Create(product, type, i.Qty, uomId, null, i.Remark, costFromAverage: true, salesOrderLineNo: soLine!.LineNo));
+                continue;
+            }
+
             if (order is not null)
             {
                 // A receipt against an order: the line names an order line, and is priced at the order's price (a caller who may enter cost can send another). It is never at the average.
                 var (orderLine, problem) = OrderLineProblem(order, i.PurchaseOrderLineNo, product, uomId ?? product.BaseUomId);
-                if (problem is not null) orderErrors[ErrorKeys.Normalize($"Data.Lines[{index}].PurchaseOrderLineNo")] = [problem];
+                if (i.SalesOrderLineNo is not null) orderErrors[ErrorKeys.Normalize($"Data.Lines[{index}].SalesOrderLineNo")] = [Messages.DeliveryNotLinked];
+                else if (problem is not null) orderErrors[ErrorKeys.Normalize($"Data.Lines[{index}].PurchaseOrderLineNo")] = [problem];
                 else
                 {
                     var price = costIsUsed && i.UnitCost is { } typed ? typed : orderLine!.UnitPrice;
@@ -68,16 +81,32 @@ public class DocumentLineBuilder(IReadRepository<Product> products, IIdMap<Uom> 
         return (line, null);
     }
 
+    /// <summary>The sales order line a delivery line names, or the sentence that says why it cannot: no number, no such line, another product, another unit (the price is per ordered unit).</summary>
+    private static (SalesOrderLine? Line, string? Problem) SalesOrderLineProblem(SalesOrder order, int? lineNo, Product product, int uomId)
+    {
+        if (lineNo is null) return (null, Messages.DeliveryLineNeedsOrderLine);
+        var line = order.Lines.FirstOrDefault(l => l.LineNo == lineNo);
+        if (line is null) return (null, Messages.DeliveryLineUnknownOrderLine(lineNo.Value, order.No));
+        if (line.ProductId != product.Id) return (line, Messages.DeliveryLineWrongProduct(line.LineNo, line.Product.Sku));
+        if (line.UomId != uomId) return (line, Messages.DeliveryLineWrongUnit(line.LineNo, line.Uom.Code));
+        return (line, null);
+    }
+
     /// <summary>
-    /// A document that is not linked to an order takes no order line numbers: a 400 "not available" while the Purchasing module is off, "not linked" while it is on. Asked only when a line carries
-    /// the field, so every ordinary document costs nothing extra.
+    /// A document that is not linked to an order takes no order line numbers: a 400 "not available" while the owning module (Purchasing or Sales) is off, "not linked" while it is on. Asked only when a line
+    /// carries the field, so every ordinary document costs nothing extra.
     /// </summary>
     private async Task EnsureNoOrderLinesAsync(IReadOnlyList<DocumentLineInput> inputs, CancellationToken ct)
     {
-        var carried = inputs.Select((l, n) => (Field: ErrorKeys.Normalize($"Data.Lines[{n}].PurchaseOrderLineNo"), Value: l.PurchaseOrderLineNo?.ToString())).Where(c => c.Value is not null).ToList();
-        if (carried.Count == 0) return;
-        await modules.AcceptAsync(ModuleCodes.Purchasing, carried, ct); // throws while the module is off
-        throw new ValidationException(Messages.ReceiptNotLinked, carried.ToDictionary(c => c.Field, _ => new[] { Messages.ReceiptNotLinked }));
+        var purchase = inputs.Select((l, n) => (Field: ErrorKeys.Normalize($"Data.Lines[{n}].PurchaseOrderLineNo"), Value: l.PurchaseOrderLineNo?.ToString())).Where(c => c.Value is not null).ToList();
+        var sales = inputs.Select((l, n) => (Field: ErrorKeys.Normalize($"Data.Lines[{n}].SalesOrderLineNo"), Value: l.SalesOrderLineNo?.ToString())).Where(c => c.Value is not null).ToList();
+        if (purchase.Count == 0 && sales.Count == 0) return;
+        if (purchase.Count > 0) await modules.AcceptAsync(ModuleCodes.Purchasing, purchase, ct); // throws while the module is off
+        if (sales.Count > 0) await modules.AcceptAsync(ModuleCodes.Sales, sales, ct);
+        var errors = new Dictionary<string, string[]>();
+        foreach (var c in purchase) errors[c.Field] = [Messages.ReceiptNotLinked];
+        foreach (var c in sales) errors[c.Field] = [Messages.DeliveryNotLinked];
+        throw new ValidationException(errors.First().Value[0], errors);
     }
 
     /// <summary>Money has two decimal places: a unit cost with a fraction of a cent is a 400 with a field error on that line (all of them, not the first).</summary>

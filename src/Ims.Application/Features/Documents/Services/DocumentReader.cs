@@ -11,7 +11,9 @@ public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentA
         var dto = await documents.FirstOrDefaultAsync(new DocumentDtoSpec(publicId, access.WarehouseScope()), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
         dto = await WithStockAsync(dto, ct);
         // The module is asked only for a linked receipt, so every other document costs nothing extra. The actions are decided with the link as the API sees it, before it is hidden from this caller.
-        LinkedReceiptContext? link = dto.PurchaseOrder is null ? null : new LinkedReceiptContext(await modules.IsEnabledAsync(ModuleCodes.Purchasing, ct));
+        LinkedReceiptContext? link = dto.PurchaseOrder is not null ? new LinkedReceiptContext(await modules.IsEnabledAsync(ModuleCodes.Purchasing, ct))
+            : dto.SalesOrder is not null ? new LinkedReceiptContext(await modules.IsEnabledAsync(ModuleCodes.Sales, ct), DocumentLinkKind.SalesOrder)
+            : null;
         dto = WithoutLinkUnlessVisible(dto, link);
 
         // A document held for approval: say why (the thresholds it reaches) and whether the caller's role can satisfy the rules in force.
@@ -26,11 +28,16 @@ public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentA
         return dto with { ApprovalTriggers = triggers, AllowedActions = access.AllowedActions(dto, await settings.GetAsync(ct), withinLimit, link), ConcurrencyToken = version.Token(dto.Id, dto.RowVersion) };
     }
 
-    /// <summary>A receipt's link to its purchase order (its number and the line numbers) is shown only while the Purchasing module is on AND to a caller who may read purchase orders: the number and the order's existence are the order's business. </summary>
+    /// <summary>
+    /// A document's link to its order (its number and the line numbers) is shown only while the owning module is on AND to a caller who may read that kind of order (<c>po.read</c> for a receipt from a purchase
+    /// order, <c>so.read</c> for a delivery from a sales order): the number and the order's existence are the order's business.
+    /// </summary>
     private DocumentDto WithoutLinkUnlessVisible(DocumentDto dto, LinkedReceiptContext? link)
     {
-        if (link is not { } linked || (caller.Has(Permissions.PoRead) && linked.PurchasingOn)) return dto;
-        return dto with { PurchaseOrder = null, Lines = dto.Lines.Select(l => l with { PurchaseOrderLineNo = null }).ToList() };
+        if (link is not { } linked) return dto;
+        if (linked.Kind == DocumentLinkKind.SalesOrder)
+            return caller.Has(Permissions.SoRead) && linked.ModuleOn ? dto : dto with { SalesOrder = null, Lines = dto.Lines.Select(l => l with { SalesOrderLineNo = null }).ToList() };
+        return caller.Has(Permissions.PoRead) && linked.ModuleOn ? dto : dto with { PurchaseOrder = null, Lines = dto.Lines.Select(l => l with { PurchaseOrderLineNo = null }).ToList() };
     }
 
     /// <summary>Fills <c>available</c> on every line with one balance query for the whole document (no query per line).</summary>

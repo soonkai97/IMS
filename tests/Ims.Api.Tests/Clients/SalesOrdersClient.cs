@@ -47,6 +47,9 @@ public sealed class SalesOrdersClient(ApiClient api)
     /// <summary>A transition with NO If-Match header at all, to test that the server demands one (428).</summary>
     public Task<ApiResponse> TransitionWithoutIfMatchAsync(Guid id, string action, object? body = null) => api.SendAsync(HttpMethod.Post, $"/api/sales-orders/{id}/{action}", body);
 
+    /// <summary>Creates the Draft delivery of an Approved order (no body, no If-Match: it makes a new document).</summary>
+    public Task<ApiResponse> CreateDeliveryAsync(Guid id) => api.PostAsync($"/api/sales-orders/{id}/delivery", null);
+
     /// <summary>A save with NO If-Match header at all, to test that the server demands one (428).</summary>
     public Task<ApiResponse> UpdateWithoutIfMatchAsync(Guid id, SalesOrderSaveRequest request) => api.SendAsync(HttpMethod.Put, $"/api/sales-orders/{id}", request);
 

@@ -2673,6 +2673,64 @@ export class SalesOrdersClient {
         }
         return _observableOf(null as any);
     }
+
+    /**
+     * Creates the Draft delivery of an Approved order: an Issue with purpose Sale in the order's warehouse for the order's customer, one line for every order line that still has something to deliver, with the
+    quantity that remains and the order's unit, and NO price anywhere (the delivery is valued at the average cost like every issue). Each line names its order line in `salesOrderLineNo`. The
+    delivery is then saved, submitted and approved like any other (`/api/documents`); the link never changes. The door is `document.create`; the order must be readable (`so.read`, checked in
+    the command). 409 when the order is not Approved or has nothing left to deliver. Posting a linked delivery is not available yet (409).
+     * @return OK
+     */
+    createDelivery(id: string, httpContext?: HttpContext): Observable<DocumentDto> {
+        let url_ = this.baseUrl + "/api/sales-orders/{id}/delivery";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processCreateDelivery(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processCreateDelivery(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<DocumentDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<DocumentDto>;
+        }));
+    }
+
+    protected processCreateDelivery(response: HttpResponseBase): Observable<DocumentDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as DocumentDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
 }
 
 @Injectable({
@@ -6184,6 +6242,7 @@ export interface DocumentDto {
     /** While the document is Submitted or Approved and an approval rule held it back: which thresholds it reaches (value or quantity), for the approver and the "sent for approval" message. Empty otherwise, and when only a negative-stock override (`requiresOverride`) sent it to approval. */
     approvalTriggers: ApprovalTriggerDto[];
     purchaseOrder?: LinkedPurchaseOrder | undefined;
+    salesOrder?: LinkedSalesOrder | undefined;
     /** True for an issue that has not posted yet: its lines carry the average cost seen when it was last saved or submitted, and posting books the real cost. Label the amount "estimated". */
     amountIsEstimate: boolean;
     /** Changes whenever the document (header, status or lines) changes; opaque (a keyed hash bound to this document, not a counter): compare it only for equality. Also sent as the ETag header; send it back as If-Match to refuse a stale save. */
@@ -6211,6 +6270,8 @@ export interface DocumentLineDto {
     available?: number | undefined;
     /** On a receipt created from a purchase order: the order line this line receives (its `lineNo`); null otherwise, and omitted while the Purchasing module is off. Send it back unchanged when saving the draft. */
     purchaseOrderLineNo?: number | undefined;
+    /** On a delivery created from a sales order: the order line this line delivers (its `lineNo`); null otherwise, and omitted while the Sales module is off or for a caller who may not read sales orders. Send it back unchanged when saving the draft. */
+    salesOrderLineNo?: number | undefined;
 }
 
 export interface DocumentLineInput {
@@ -6221,6 +6282,8 @@ export interface DocumentLineInput {
     remark: string | undefined;
     /** Only on a receipt created from a purchase order (`POST /api/purchase-orders/{id}/receipt`): the `lineNo` of the purchase order line this line receives. Every line of such a receipt must name one (a save without it is a 400 and the link is kept), the line's product and unit must be the order line's, and the quantities named for one order line must not exceed what remains of it. On any other document it must be left out (a 400 otherwise), and it is a 400 "not available" while the Purchasing module is off. The link itself is never sent and never changes: it is set when the receipt is created. */
     purchaseOrderLineNo?: number | undefined;
+    /** Only on a delivery created from a sales order (`POST /api/sales-orders/{id}/delivery`): the `lineNo` of the sales order line this line delivers. Every line of such a delivery must name one (a save without it is a 400 and the link is kept), the line's product and unit must be the order line's, and the quantities named for one order line must not exceed what remains of it. On any other document it must be left out (a 400 otherwise), and it is a 400 "not available" while the Sales module is off. The link itself is never sent and never changes. A delivery carries no price. */
+    salesOrderLineNo?: number | undefined;
 }
 
 export interface DocumentListItem {
@@ -6352,6 +6415,12 @@ export interface LedgerRow {
 
 /** The purchase order a receipt was created from: its id and number. Omitted while the Purchasing module is off. */
 export interface LinkedPurchaseOrder {
+    id: string;
+    no: string;
+}
+
+/** The sales order a delivery was created from: its id and number. Omitted while the Sales module is off, and for a caller who may not read sales orders. */
+export interface LinkedSalesOrder {
     id: string;
     no: string;
 }
