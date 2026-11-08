@@ -106,6 +106,9 @@ public class SalesOrder : PublicEntity
     /// <summary>A Draft that no reviewer sent back: what a recall leaves behind, so a repeated recall (a double tap) finds it and changes nothing.</summary>
     public bool IsPlainDraft => Status == SalesOrderStatus.Draft && RejectionReason is null;
 
+    /// <summary>Only an Approved order can be delivered against (a delivery can be created from it and saved against it); the other states cannot, whatever has been delivered.</summary>
+    public bool CanBeDelivered => Status == SalesOrderStatus.Approved;
+
     public SalesOrderActionContext ActionContext => new(Status, RequiresApproval, IsLarge, CreatedBy, SubmittedBy);
 
     /// <summary>
@@ -116,6 +119,8 @@ public class SalesOrder : PublicEntity
     {
         if (Status != SalesOrderStatus.Draft)
             throw new DomainException(Messages.SalesOrderOnlyDraftCanSubmit(Status));
+        if (Lines.Count == 0)
+            throw new DomainException(Messages.SalesOrderNeedsLines);
         if (Lines.Where(l => l.SellingPrice <= 0).Select(l => l.LineNo).ToList() is { Count: > 0 } unpriced)
             throw new DomainException(Messages.SalesOrderLinesNeedPrice(unpriced));
 

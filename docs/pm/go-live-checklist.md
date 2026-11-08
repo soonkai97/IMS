@@ -12,6 +12,7 @@ accounting: removed (owner decision 2026-10-22; RA1). The API no longer lists th
 | 2 | Hosting and backup decision (O3). Default: one small VM, Docker Compose, Caddy as the TLS proxy; nightly full plus 15-minute log backups; one restore drill before go-live | Owner | open, due Fri 23 Oct | `ROADMAP.md` 8.2; `docs/dba/README.md` section 8. `deploy.yml` is a skeleton: the deploy command for the chosen host is not written |
 | 3 | F-1 to F-3 of the retest are fixed (#183 merged); CI is green on the `main` commit to deploy; the image comes from `release.yml` | Orchestrator | merged, confirm CI on the commit | `docs/reviews/pl2-security-retest/report.md` |
 | 4 | zh and ms: accept the machine translations (`TODO-review`) or name native speakers (O10) | Owner | open | `ROADMAP.md` 8.2 |
+| 5 | STOP, before SALES is switched on (pilot slice 3). The placeholder sales-order approval amounts (RM 5,000 Supervisor, RM 20,000 Owner, written by the migration `AddSalesOrderApprovalRules`) are reviewed and the real amounts are given. Sales is not part of the first pilot go-live: keep it off until PL3.19 | Owner | open | `pilot-slice-3-plan.md` section 11 question 3. Editable in Settings only once sales is on, so see 3.4 |
 
 ## 2. Deployment
 
@@ -33,6 +34,7 @@ accounting: removed (owner decision 2026-10-22; RA1). The API no longer lists th
 1. Purchasing needs an ACTIVE purchase-order approval rule. The migration `AddPurchaseOrderApprovalRules` seeded the two placeholders, so the switch works; without an active rule it is refused (409).
 2. Purchasing is live the moment it is on: Supervisor and Clerk already hold `po.manage`. So switch it on at a quiet time, open Settings > Approval rules at once, set the real amounts from precondition 1, and only then tell the buyers. Orders submitted before that are routed by the placeholders.
 3. Check Settings: self-approval is off (default). Create the suppliers (partners of type Supplier) and the safety stock of the products the reorder list should watch. Give custom roles `po.read` / `po.manage` in the role editor (`po.manage` also needs `cost.view` and `stock.read`).
+4. Sales (later, not with the first go-live): needs an ACTIVE sales-order approval rule. The migration `AddSalesOrderApprovalRules` (20261023110329) writes the two placeholders where none exists, so the switch works; without an active rule it is refused (409). Sales is live the moment it is on (Supervisor, Clerk and Owner hold `so.manage`): switch it on at a quiet time, open Settings > Approval rules at once and set the real amounts from precondition 5 before anyone submits an order. Orders submitted before that are routed by the placeholders. A sales order cannot be switched off while any order is Draft, Submitted or Approved.
 
 ## 4. Smoke checks after switch-on (about 30 minutes; use a test warehouse or reverse and cancel afterwards)
 
