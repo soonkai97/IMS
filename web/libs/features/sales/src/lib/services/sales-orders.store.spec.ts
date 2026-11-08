@@ -3,7 +3,7 @@ import { createServiceFactory, mockProvider, SpectatorService } from '@ngneat/sp
 import { firstValueFrom, of } from 'rxjs';
 import { SalesOrderDto, SalesOrderStatus, SalesOrdersClient } from '@ims/api';
 import { IF_MATCH } from '@ims/core/http';
-import { SO_ACTION, SO_ACTIONS_NOT_BUILT, toSoActions } from '../constants/sales.const';
+import { SO_ACTION, toSoActions } from '../constants/sales.const';
 import { SalesOrdersStore, toSalesOrderRef } from './sales-orders.store';
 
 const ORDER_ID = '00000000-0000-4000-8000-000000000007';
@@ -118,9 +118,5 @@ describe('toSoActions', () => {
       SO_ACTION.Close
     ]);
     expect(toSoActions(undefined).size).toBe(0);
-  });
-
-  it('holds back exactly the action whose screen is a later slice (the delivery, PL3.10)', () => {
-    expect([...SO_ACTIONS_NOT_BUILT]).toEqual([SO_ACTION.Deliver]);
   });
 });

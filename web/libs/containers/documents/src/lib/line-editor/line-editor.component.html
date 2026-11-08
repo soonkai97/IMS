@@ -17,14 +17,15 @@
             }}
           </span>
         }
-        @if (row.value.purchaseOrderLineNo !== null) {
+        @if (row.value.purchaseOrderLineNo !== null || row.value.salesOrderLineNo !== null) {
           <span class="line-editor-available">
             @if (row.order; as order) {
               {{
-                'line.order'
+                (row.forSalesOrder ? 'line.salesOrder' : 'line.order')
                   | t
                     : {
-                        lineNo: row.value.purchaseOrderLineNo,
+                        lineNo: row.orderLineNo ?? '',
+                        delivered: (order.received | appQty),
                         ordered: (order.ordered | appQty),
                         received: (order.received | appQty),
                         remaining: (order.remaining | appQty),
@@ -119,7 +120,10 @@
       }
       @if (row.overRemaining && row.order; as order) {
         <p class="line-editor-message --blocked" role="alert">
-          {{ 'line.order.over' | t: { remaining: (order.remaining | appQty), uom: order.uomCode } }}
+          {{
+            (row.forSalesOrder ? 'line.salesOrder.over' : 'line.order.over')
+              | t: { remaining: (order.remaining | appQty), uom: order.uomCode }
+          }}
         </p>
       }
       @if (row.needsOverride) {

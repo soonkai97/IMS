@@ -10,6 +10,7 @@ import {
   overRemainingLines,
   isValidQuantity,
   maxCoveredQuantity,
+  orderLineNoOf,
   toLineInputs
 } from './document-lines';
 
@@ -32,6 +33,7 @@ function line(overrides: Partial<LineValue> = {}): LineValue {
     baseUomCode: 'PCS',
     uomOptions: [PCS, CARTON],
     purchaseOrderLineNo: null,
+    salesOrderLineNo: null,
     ...overrides
   };
 }
@@ -290,5 +292,48 @@ describe('receipt lines of a purchase order', () => {
     expect(overRemainingLines([of(1, 4), of(2, 5)], contexts)).toEqual(new Set());
     expect(overRemainingLines([of(1, 3), of(1, 1.5), of(2, 5)], contexts)).toEqual(new Set([1]));
     expect(overRemainingLines([of(7, 99), of(null, 99)], contexts)).toEqual(new Set());
+  });
+});
+
+describe('delivery lines of a sales order', () => {
+  const DOCUMENT_LINE: DocumentLineDto = {
+    productId: id(1),
+    sku: 'WIDGET-A',
+    productName: 'Widget A',
+    qty: 2,
+    uomId: id(2),
+    uomCode: 'CTN',
+    baseQty: 24,
+    unitCost: undefined,
+    baseUnitCost: undefined,
+    amount: undefined,
+    costFromAverage: false,
+    remark: undefined,
+    available: 18
+  };
+  const contexts = new Map([[1, { ordered: 10, received: 6, remaining: 4, uomCode: 'PCS' }]]);
+  const of = (salesOrderLineNo: number | null, qty: number): LineValue =>
+    line({ salesOrderLineNo, qty });
+
+  it('ALWAYS sends the order line a line delivers (a save without it is refused), and nothing for a line of no order', () => {
+    const inputs = toLineInputs([of(1, 3), of(null, 1)], DocumentType.Issue);
+
+    expect(inputs.map(input => input.salesOrderLineNo)).toEqual([1, undefined]);
+    expect(inputs.map(input => input.purchaseOrderLineNo)).toEqual([undefined, undefined]);
+  });
+
+  it('keeps the order line of a saved delivery line, and null when the API leaves it out', () => {
+    const dto = { ...DOCUMENT_LINE, salesOrderLineNo: 3 };
+
+    expect(lineFromDocument(dto).salesOrderLineNo).toBe(3);
+    expect(lineFromDocument({ ...dto, salesOrderLineNo: undefined }).salesOrderLineNo).toBeNull();
+  });
+
+  it('names the order line of either kind, and flags a delivery line above what remains', () => {
+    expect(orderLineNoOf({ purchaseOrderLineNo: 2, salesOrderLineNo: null })).toBe(2);
+    expect(orderLineNoOf({ purchaseOrderLineNo: null, salesOrderLineNo: 5 })).toBe(5);
+    expect(orderLineNoOf({ purchaseOrderLineNo: null, salesOrderLineNo: null })).toBeNull();
+    expect(overRemainingLines([of(1, 3), of(1, 1.5)], contexts)).toEqual(new Set([1]));
+    expect(overRemainingLines([of(1, 4)], contexts)).toEqual(new Set());
   });
 });

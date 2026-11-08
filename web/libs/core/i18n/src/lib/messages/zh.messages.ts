@@ -830,7 +830,7 @@ export const ZH_MESSAGES: Messages = {
   'so.lines': '{count, plural, other {明细（#）}}',
   'so.deliveries': '{count, plural, other {发货单（#）}}',
   'so.col.delivered': '已发货',
-  'so.closedShort': '提前关闭',
+  'so.closedShort': '未发完即关闭',
   'so.closedDelivered': '已全部发货',
   'so.dialog.approve.body': '之后即可按此订单发货。',
   'so.dialog.close.body': '尚未发货的部分将不会按此订单发货。此操作无法撤销。',
@@ -840,6 +840,27 @@ export const ZH_MESSAGES: Messages = {
   'so.emptyAwaiting': '本页没有等待您处理的订单。下一页可能还有。',
   // TODO-review: machine draft (PL3.9 sales order editor).
   'sales.new': '新建销售订单',
+  // TODO-review: machine draft (PL3.10 deliver against a sales order).
+  'doc.salesOrder.from':
+    '此发货单对应销售订单 {order}。客户、仓库和明细均来自该订单。用途必须保持为销售。',
+  'doc.salesOrder.editHint': '请减少数量，或移除暂不发出的明细。数量不能超过订单剩余数量。',
+  'doc.salesOrder.closed': '订单 {order} 已全部发货并关闭。',
+  'doc.salesOrder.closedShort': '订单 {order} 已在未发完时关闭：未发出的部分将不再发货。',
+  'doc.salesOrder.remaining': '订单 {order} 还有 {count, plural, other {# 行}}待发货。',
+  'doc.overDelivery.title': '未过账：超过订单剩余数量',
+  'doc.overDelivery.line':
+    '第 {lineNo} 行（{sku}）：订购 {ordered}，已发 {received}，剩余 {remaining}，本发货单 {requested}。',
+  'doc.overDelivery.fix': '发货单未改动。请减少数量后再过账。',
+  'doc.overDelivery.ask': '发货单未改动。请让制单人减少数量，或将其取消。',
+  'line.salesOrder': '订单第 {lineNo} 行：订购 {ordered}，已发 {delivered}，剩余 {remaining} {uom}',
+  'line.salesOrder.over': '此订单行只剩 {remaining} {uom} 可发货。',
+  'sales.deliver': '发货',
+  // TODO-review: machine draft (PL3.10 review fixes).
+  'doc.salesOrder.notOpen': '订单 {order} 已不能再发货。请取消此发货单。',
+  'doc.salesOrder.loadFailed': '无法加载订单数量。提交和过账需等待数量加载。',
+  'doc.salesOrder.loading': '正在加载订单数量。提交和过账需等待数量加载。',
+  'doc.delivery.unreadable':
+    '您无权查看销售订单，因此无法在此修改此发货单。请让有权限的人处理，或将其取消。',
   // TODO-review: machine draft (PL3.9 review fixes).
   'sales.findCustomer': '查找客户',
   'sales.customersTruncated': '只列出了前面的客户。输入文字可搜索其他客户。',

@@ -100,7 +100,8 @@ function lineOf(value: unknown): LineValue | undefined {
     baseUomCode,
     uomOptions: uomOptions as UomOption[],
     // A draft is kept only for a document that belongs to no order (its prices would be cost data in storage).
-    purchaseOrderLineNo: null
+    purchaseOrderLineNo: null,
+    salesOrderLineNo: null
   };
 }
 

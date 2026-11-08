@@ -1,4 +1,11 @@
-import { PurchaseOrderCloseKind, PurchaseOrderDto, PurchaseOrderStatus } from '@ims/api';
+import {
+  PurchaseOrderCloseKind,
+  PurchaseOrderDto,
+  PurchaseOrderStatus,
+  SalesOrderCloseKind,
+  SalesOrderDto,
+  SalesOrderStatus
+} from '@ims/api';
 import { MessageKey } from '@ims/core/i18n';
 import { LineValue, OrderLineContext } from '@ims/features/documents';
 import { ApiError, PublicId } from '@ims/models';
@@ -72,4 +79,50 @@ export function lineRefusals(
     }
   }
   return refusals;
+}
+
+/** Which order a document belongs to: a receipt to a purchase order, a delivery to a sales order. */
+export type LinkedOrderKind = 'purchase' | 'sales';
+
+export interface LinkedOrderRef {
+  readonly id: PublicId;
+  readonly no: string;
+  readonly kind: LinkedOrderKind;
+}
+
+/** What a sales order says about each of its lines, by line number (`received` holds what was delivered). Quantities only: no price is read. */
+export function salesOrderLineContexts(
+  order: SalesOrderDto | undefined,
+  orderId: PublicId | undefined
+): ReadonlyMap<number, OrderLineContext> {
+  if (!order || order.id !== orderId) {
+    return new Map();
+  }
+  return new Map(
+    order.lines.map(line => [
+      line.lineNo,
+      {
+        ordered: line.qty,
+        received: line.deliveredQty,
+        remaining: line.remainingQty,
+        uomCode: line.uomCode
+      }
+    ])
+  );
+}
+
+/** Where the sales order stands after a post, in words: closed (delivered or short) or this many lines left to deliver. */
+export function salesOrderProgress(
+  order: SalesOrderDto
+): { key: MessageKey; open: number } | undefined {
+  if (isDefined(order.closeKind)) {
+    const delivered = order.closeKind === SalesOrderCloseKind.Delivered;
+    return { key: delivered ? 'doc.salesOrder.closed' : 'doc.salesOrder.closedShort', open: 0 };
+  }
+  return order.status === SalesOrderStatus.Approved
+    ? {
+        key: 'doc.salesOrder.remaining',
+        open: order.lines.filter(line => line.remainingQty > 0).length
+      }
+    : undefined;
 }

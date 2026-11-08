@@ -51,7 +51,7 @@
 }
 @if ($canSave()) {
   <app-button
-    [disabled]="$inactive()"
+    [disabled]="$inactive() || $saveDisabled()"
     [loading]="$busyAction() === action.Edit"
     (clicked)="onTrigger(action.Edit)"
     >{{ 'doc.action.saveDraft' | t }}</app-button
@@ -91,7 +91,7 @@
 @if ($canPostDocument()) {
   <app-button
     variant="primary"
-    [disabled]="$locked()"
+    [disabled]="$locked() || $postDisabled()"
     [loading]="$busyAction() === action.Post"
     (clicked)="onTrigger(action.Post)"
   >

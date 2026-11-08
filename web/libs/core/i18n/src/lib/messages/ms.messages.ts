@@ -891,7 +891,7 @@ export const MS_MESSAGES: Messages = {
   'so.lines': '{count, plural, one {Baris (1)} other {Baris (#)}}',
   'so.deliveries': '{count, plural, one {Penghantaran (1)} other {Penghantaran (#)}}',
   'so.col.delivered': 'Dihantar',
-  'so.closedShort': 'Ditutup awal',
+  'so.closedShort': 'Ditutup sebelum lengkap',
   'so.closedDelivered': 'Dihantar sepenuhnya',
   'so.dialog.approve.body': 'Pesanan kemudian boleh dihantar mengikutnya.',
   'so.dialog.close.body':
@@ -903,6 +903,34 @@ export const MS_MESSAGES: Messages = {
     'Tiada pesanan di halaman ini yang menunggu anda. Mungkin ada lagi di halaman seterusnya.',
   // TODO-review: machine draft (PL3.9 sales order editor).
   'sales.new': 'Pesanan jualan baharu',
+  // TODO-review: machine draft (PL3.10 deliver against a sales order).
+  'doc.salesOrder.from':
+    'Penghantaran ini untuk pesanan jualan {order}. Pelanggan, gudang dan baris datang daripada pesanan. Tujuan mesti kekal Jualan.',
+  'doc.salesOrder.editHint':
+    'Kurangkan kuantiti atau buang baris yang tidak dihantar sekarang. Kuantiti tidak boleh melebihi baki pesanan.',
+  'doc.salesOrder.closed': 'Pesanan {order} telah dihantar sepenuhnya dan ditutup.',
+  'doc.salesOrder.closedShort':
+    'Pesanan {order} ditutup sebelum lengkap: yang belum dihantar tidak akan dihantar.',
+  'doc.salesOrder.remaining':
+    'Pesanan {order} masih ada {count, plural, one {1 baris} other {# baris}} untuk dihantar.',
+  'doc.overDelivery.title': 'Tidak disiarkan: melebihi baki pesanan',
+  'doc.overDelivery.line':
+    'Baris {lineNo} ({sku}): dipesan {ordered}, dihantar {received}, baki {remaining}, penghantaran ini {requested}.',
+  'doc.overDelivery.fix': 'Penghantaran tidak berubah. Kurangkan kuantiti dan siarkan semula.',
+  'doc.overDelivery.ask':
+    'Penghantaran tidak berubah. Minta pembuatnya mengurangkan kuantiti, atau batalkannya.',
+  'line.salesOrder':
+    'Baris pesanan {lineNo}: dipesan {ordered}, dihantar {delivered}, baki {remaining} {uom}',
+  'line.salesOrder.over': 'Hanya {remaining} {uom} baris pesanan ini tinggal untuk dihantar.',
+  'sales.deliver': 'Hantar barang',
+  // TODO-review: machine draft (PL3.10 review fixes).
+  'doc.salesOrder.notOpen':
+    'Pesanan {order} tidak lagi terbuka untuk penghantaran. Batalkan penghantaran ini.',
+  'doc.salesOrder.loadFailed':
+    'Kuantiti pesanan tidak dapat dimuatkan. Hantar dan Siarkan menunggunya.',
+  'doc.salesOrder.loading': 'Memuatkan kuantiti pesanan. Hantar dan Siarkan menunggunya.',
+  'doc.delivery.unreadable':
+    'Anda tidak boleh membaca pesanan jualan, jadi penghantaran ini tidak boleh diubah di sini. Minta orang yang boleh, atau batalkannya.',
   // TODO-review: machine draft (PL3.9 review fixes).
   'sales.findCustomer': 'Cari pelanggan',
   'sales.customersTruncated': 'Hanya pelanggan pertama disenaraikan. Taip untuk mencari yang lain.',

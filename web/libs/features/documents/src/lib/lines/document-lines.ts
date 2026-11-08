@@ -34,6 +34,8 @@ export interface LineValue {
   readonly uomOptions: readonly UomOption[];
   /** The order line a receipt from a purchase order line receives; null for every other line. Always sent back unchanged. */
   readonly purchaseOrderLineNo: number | null;
+  /** The order line a delivery from a sales order delivers; null for every other line. Always sent back unchanged. */
+  readonly salesOrderLineNo: number | null;
 }
 
 /** Typed form of one document line. The display-only members (sku, name, available...) are disabled controls. */
@@ -49,6 +51,7 @@ export type LineGroup = FormGroup<{
   baseUomCode: FormControl<string>;
   uomOptions: FormControl<readonly UomOption[]>;
   purchaseOrderLineNo: FormControl<number | null>;
+  salesOrderLineNo: FormControl<number | null>;
 }>;
 
 export type LinesArray = FormArray<LineGroup>;
@@ -109,6 +112,10 @@ export function createLineGroup(value: LineValue): LineGroup {
     purchaseOrderLineNo: new FormControl<number | null>({
       value: value.purchaseOrderLineNo,
       disabled: true
+    }),
+    salesOrderLineNo: new FormControl<number | null>({
+      value: value.salesOrderLineNo,
+      disabled: true
     })
   });
 }
@@ -155,7 +162,8 @@ export function lineFromProduct(
     available,
     baseUomCode: product.baseUomCode,
     uomOptions: buildUomOptions(product, codes),
-    purchaseOrderLineNo: null
+    purchaseOrderLineNo: null,
+    salesOrderLineNo: null
   };
 }
 
@@ -174,7 +182,9 @@ export function lineFromDocument(line: DocumentLineDto): LineValue {
     baseUomCode: line.uomCode,
     uomOptions: [{ uomId: line.uomId, code: line.uomCode, factorToBase: factor }],
     // The API sends null (or leaves it out while purchasing is off) for a line that belongs to no order.
-    purchaseOrderLineNo: line.purchaseOrderLineNo ?? null
+    purchaseOrderLineNo: line.purchaseOrderLineNo ?? null,
+    // Same for a delivery: null or left out for a line of no order, and for a caller who may not read sales orders.
+    salesOrderLineNo: line.salesOrderLineNo ?? null
   };
 }
 
@@ -249,11 +259,18 @@ export function toLineInputs(lines: readonly LineValue[], type: DocumentType): D
     uomId: line.uomId,
     unitCost: type === DocumentType.Receipt && line.unitCost !== null ? line.unitCost : undefined,
     remark: line.remark.trim().length > 0 ? line.remark.trim() : undefined,
-    purchaseOrderLineNo: line.purchaseOrderLineNo ?? undefined
+    purchaseOrderLineNo: line.purchaseOrderLineNo ?? undefined,
+    // A linked delivery names its order line on EVERY save (the API refuses a save without it, and never unlinks).
+    salesOrderLineNo: line.salesOrderLineNo ?? undefined
   }));
 }
 
-/** What a purchase order says about one of its lines, in the line's own unit: the context of a receipt line and the limit of its quantity. */
+/** The order line a document line belongs to, of whichever kind of order the document is linked to; null for a line of no order. */
+export const orderLineNoOf = (
+  line: Pick<LineValue, 'purchaseOrderLineNo' | 'salesOrderLineNo'>
+): number | null => line.purchaseOrderLineNo ?? line.salesOrderLineNo;
+
+/** What an order (purchase or sales) says about one of its lines, in the line's own unit: the context of a receipt or delivery line and the limit of its quantity. For a sales order `received` holds what was delivered. */
 export interface OrderLineContext {
   readonly ordered: number;
   readonly received: number;
@@ -271,11 +288,9 @@ export function overRemainingLines(
 ): ReadonlySet<number> {
   const sums = new Map<number, number>();
   for (const line of lines) {
-    if (line.purchaseOrderLineNo !== null) {
-      sums.set(
-        line.purchaseOrderLineNo,
-        roundQuantity((sums.get(line.purchaseOrderLineNo) ?? 0) + toNumber(line.qty))
-      );
+    const lineNo = orderLineNoOf(line);
+    if (lineNo !== null) {
+      sums.set(lineNo, roundQuantity((sums.get(lineNo) ?? 0) + toNumber(line.qty)));
     }
   }
   return new Set(

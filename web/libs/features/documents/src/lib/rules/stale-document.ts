@@ -10,7 +10,8 @@ export const CONFLICT_CODE = {
   DocumentChanged: 'document_changed',
   InsufficientStock: 'insufficient_stock',
   ReversalBlocked: 'reversal_blocked',
-  OverReceipt: 'over_receipt'
+  OverReceipt: 'over_receipt',
+  OverDelivery: 'over_delivery'
 } as const;
 
 function codeOf(error: ApiError): unknown {
