@@ -27,7 +27,7 @@ public class CancelSalesOrderHandler(IRepository<SalesOrder> orders, IReadReposi
 
     /// <summary>
     /// An order with a delivery open (Draft, Submitted, Approved) or Posted against it is not cancelled: the delivery is dealt with first. The check runs under the order's lock, which creating a delivery from the
-    /// order takes too (and, from PL3.7, posting one), so a delivery made at the same moment is either seen here or waits and finds the order cancelled.
+    /// order takes too (and posting one), so a delivery made at the same moment is either seen here or waits and finds the order cancelled.
     /// </summary>
     private async Task EnsureNoDeliveryAsync(SalesOrder order, CancellationToken ct)
     {

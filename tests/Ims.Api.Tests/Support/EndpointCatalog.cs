@@ -126,6 +126,7 @@ public static class EndpointCatalog
         new("POST sales-orders/{id}/approve", Post, AuthPolicies.DocumentReview, _ => $"/api/sales-orders/{MissingPublicId}/approve", OkWhenAllowed: false),
         new("POST sales-orders/{id}/reject", Post, AuthPolicies.DocumentReview, _ => $"/api/sales-orders/{MissingPublicId}/reject", _ => new { reason = "x" }, OkWhenAllowed: false),
         new("POST sales-orders/{id}/recall", Post, Permissions.SoManage, _ => $"/api/sales-orders/{MissingPublicId}/recall", OkWhenAllowed: false),
+        new("POST sales-orders/{id}/close", Post, Permissions.SoManage, _ => $"/api/sales-orders/{MissingPublicId}/close", _ => new { reason = "x" }, OkWhenAllowed: false),
         new("POST sales-orders/{id}/delivery", Post, Permissions.DocumentCreate, _ => $"/api/sales-orders/{MissingPublicId}/delivery", OkWhenAllowed: false),
         new("POST sales-orders/{id}/cancel", Post, AuthPolicies.SalesOrderCancel, _ => $"/api/sales-orders/{MissingPublicId}/cancel", _ => new { reason = "x" }, OkWhenAllowed: false),
     ];

@@ -13,7 +13,7 @@ namespace Ims.Api.Tests.Tests.Sales;
 /// <summary>
 /// PL3.5 acceptance 1 to 4 on a real SQL Server: a delivery is created from an Approved sales order (an Issue with purpose Sale, the order's warehouse and customer, one line per order line with
 /// something left, no price), its lines name the order's lines and may not exceed what remains, its customer and warehouse cannot change, and the link can be neither set nor cleared by a request.
-/// Posting a linked delivery is PL3.7: until then it is refused, so nothing leaves stock unchecked.
+/// Posting a linked delivery is covered by <c>SalesDeliveryPostingTests</c>.
 /// </summary>
 [Collection(ApiCollection.Name)]
 public class SalesDeliveryTests(ApiFixture fixture) : IAsyncLifetime
@@ -113,7 +113,7 @@ public class SalesDeliveryTests(ApiFixture fixture) : IAsyncLifetime
     public async Task An_order_with_nothing_left_to_deliver_is_409_and_a_line_with_nothing_left_is_not_copied()
     {
         var (order, first, a, b) = await DeliveryAsync();
-        // What Posted deliveries took out is what reduces the remaining quantity; posting itself is PL3.7, so the two rows are set the way a post leaves them.
+        // What Posted deliveries took out is what reduces the remaining quantity; the two rows are set the way a post leaves them.
         await fixture.Database.ExecuteAsync("DELETE FROM StockDocumentLine WHERE DocumentId = (SELECT Id FROM StockDocument WHERE No = @no) AND SalesOrderLineNo = 2", ("@no", first.No)); // the first delivery took line 1 only
         await fixture.Database.ExecuteAsync("UPDATE StockDocument SET Status = 3 WHERE No = @no", ("@no", first.No));
 
@@ -329,19 +329,13 @@ public class SalesDeliveryTests(ApiFixture fixture) : IAsyncLifetime
 
     // ----- submit and post -----
     [Fact]
-    public async Task Submitting_a_delivery_checks_the_quantities_again_and_posting_a_linked_delivery_is_refused_until_PL3_7()
+    public async Task Submitting_a_delivery_checks_the_quantities_again()
     {
-        var (_, delivery, a, _) = await DeliveryAsync();
+        var (_, delivery, _, _) = await DeliveryAsync();
         await fixture.Database.ExecuteAsync("UPDATE StockDocumentLine SET Qty = 11, BaseQty = 11 WHERE DocumentId = (SELECT Id FROM StockDocument WHERE No = @no) AND SalesOrderLineNo = 1", ("@no", delivery.No)); // a stored draft that is over
+
         var over = (await _s.Clerk.Documents.SubmitAsync(delivery.Id, (await _s.Clerk.Documents.GetAsync(delivery.Id)).Data<DocumentDto>().ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.BadRequest);
+
         Assert.Contains("is more than remains", over.Detail);
-
-        // An approved linked delivery: set the way approval leaves it, since stock is not the point here.
-        await fixture.Database.ExecuteAsync("UPDATE StockDocument SET Status = 2 WHERE No = @no", ("@no", delivery.No));
-        var refused = (await _s.Admin.Documents.PostAsync(delivery.Id, (await _s.Admin.Documents.GetAsync(delivery.Id)).Data<DocumentDto>().ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Conflict);
-
-        Assert.Equal(Messages.DeliveryCannotPostYet, refused.Detail);
-        Assert.Equal(0, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM StockLedgerEntry WHERE SourceDocId = (SELECT Id FROM StockDocument WHERE No = @no)", ("@no", delivery.No)));
-        Assert.Equal(DocumentStatus.Approved, (await _s.Admin.Documents.GetAsync(delivery.Id)).Data<DocumentDto>().Status);
     }
 }

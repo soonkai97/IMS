@@ -45,6 +45,10 @@ public class ApiExceptionHandler(ILogger<ApiExceptionHandler> log, IProblemDetai
                 pd.Extensions[ProblemExtensions.Code] = ProblemCodes.OverReceipt;
                 pd.Extensions[ProblemExtensions.OverReceiptLines] = over.Lines;
                 break;
+            case OverDeliveryException overDelivery:
+                pd.Extensions[ProblemExtensions.Code] = ProblemCodes.OverDelivery;
+                pd.Extensions[ProblemExtensions.OverReceiptLines] = overDelivery.Lines; // the same extension key ("lines") as an over-receipt
+                break;
             case StaleDocumentException stale:
                 pd.Extensions[ProblemExtensions.Code] = ProblemCodes.DocumentChanged;
                 if (stale.ChangedByName is not null) pd.Extensions[ProblemExtensions.ChangedBy] = stale.ChangedByName;

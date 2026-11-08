@@ -2675,10 +2675,71 @@ export class SalesOrdersClient {
     }
 
     /**
+     * Closes an Approved order short: what is still to go out will not go. A reason of at least 5 characters is required, something must have been delivered (with nothing delivered, cancel it instead), and no
+    delivery of the order may be waiting (Draft, Submitted or Approved): post or cancel it first. What was delivered stays. A closed order cannot be delivered against, and is not reopened by a reversal. An order whose last
+    quantity is delivered closes itself when that delivery posts.
+     * @return OK
+     */
+    close(id: string, body: CloseSalesOrderRequest, httpContext?: HttpContext): Observable<SalesOrderDto> {
+        let url_ = this.baseUrl + "/api/sales-orders/{id}/close";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processClose(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processClose(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<SalesOrderDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<SalesOrderDto>;
+        }));
+    }
+
+    protected processClose(response: HttpResponseBase): Observable<SalesOrderDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as SalesOrderDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
      * Creates the Draft delivery of an Approved order: an Issue with purpose Sale in the order's warehouse for the order's customer, one line for every order line that still has something to deliver, with the
     quantity that remains and the order's unit, and NO price anywhere (the delivery is valued at the average cost like every issue). Each line names its order line in `salesOrderLineNo`. The
     delivery is then saved, submitted and approved like any other (`/api/documents`); the link never changes. The door is `document.create`; the order must be readable (`so.read`, checked in
-    the command). 409 when the order is not Approved or has nothing left to deliver. Posting a linked delivery is not available yet (409).
+    the command). 409 when the order is not Approved or has nothing left to deliver. Posting the delivery (`/api/documents/{id}/post`) is checked against what remains under the order's lock (409 `over_delivery` when it asks for more) and closes the order when the last quantity goes out.
      * @return OK
      */
     createDelivery(id: string, httpContext?: HttpContext): Observable<DocumentDto> {
@@ -6175,6 +6236,11 @@ export interface CloseRequest {
     reason: string | undefined;
 }
 
+export interface CloseSalesOrderRequest {
+    /** Why what is still to go out will not go: required, at least 5 characters once trimmed. */
+    reason: string | undefined;
+}
+
 /** The numbers behind the Home tiles and menu badges, for the signed-in user, within the warehouses they may see. */
 export interface DocumentCounts {
     /** Drafts I created that a reviewer sent back. */
@@ -6932,6 +6998,11 @@ export interface RoleUpdateRequest {
     isActive?: boolean | undefined;
 }
 
+export enum SalesOrderCloseKind {
+    Delivered = "Delivered",
+    Short = "Short",
+}
+
 /** A delivery created from a sales order, as the order lists it: its id (for the delivery screen), number and state. No money. */
 export interface SalesOrderDeliveryDto {
     id: string;
@@ -6965,6 +7036,11 @@ export interface SalesOrderDto {
     submittedAt: string | undefined;
     approvedAt: string | undefined;
     returnedAt: string | undefined;
+    /** When a Closed order was closed; null otherwise. */
+    closedAt: string | undefined;
+    closeKind: SalesOrderCloseKind | undefined;
+    /** Why a person closed the order short (5 or more characters); null for any other order. */
+    closeReason: string | undefined;
     /** The total base quantity: what a quantity rule of the approval rules is tested against. */
     totalQty: number;
     /** The sum of the line amounts, in money. Absent for a caller without `so.manage`: a selling price is not cost, so `cost.view` is not what decides it. */

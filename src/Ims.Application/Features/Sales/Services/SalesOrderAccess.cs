@@ -30,6 +30,13 @@ public class SalesOrderAccess(ICurrentUser current) : ISalesOrderAccess, IAppSer
             throw new ForbiddenException(order.Status == SalesOrderStatus.Approved ? Messages.SalesOrderOnlyReviewerCanCancelApproved : Messages.SalesOrderOwnOnly);
     }
 
+    public void EnsureMayClose(SalesOrder order, bool anythingDelivered)
+    {
+        if (order.Status != SalesOrderStatus.Approved) return; // the state machine refuses it and names the status
+        if (SalesOrderActionPolicy.MayClose(current.Rights(), order.ActionContext with { AnythingDelivered = anythingDelivered })) return;
+        throw current.Rights().Has(Permissions.SoManage) ? new ConflictException(Messages.SalesOrderNothingDelivered(order.No)) : new ForbiddenException(Messages.SalesOrderNeedsSoManage);
+    }
+
     public void EnsureMayRecall(SalesOrder order)
     {
         // Whoever submitted it. Once recalled an order no longer names its submitter, so the person who made the Draft or last changed it (the recall itself did) counts too:
@@ -41,7 +48,8 @@ public class SalesOrderAccess(ICurrentUser current) : ISalesOrderAccess, IAppSer
     }
 
     public IReadOnlyList<string> AllowedActions(SalesOrderDto o, SystemSettings settings, bool withinApprovalLimit) =>
-        SalesOrderActionPolicy.AllowedActions(current.Rights(), new SalesOrderActionContext(o.Status, o.RequiresApproval, o.IsLarge, o.CreatedByKey, o.SubmittedByKey, o.Lines.Any(l => l.RemainingBaseQty > 0m)),
+        SalesOrderActionPolicy.AllowedActions(current.Rights(), new SalesOrderActionContext(o.Status, o.RequiresApproval, o.IsLarge, o.CreatedByKey, o.SubmittedByKey, o.Lines.Any(l => l.RemainingQty > 0m), o.Lines.Any(l => l.DeliveredQty > 0m),
+                o.Deliveries.Any(d => DocumentStatuses.BlocksSalesOrderCancel(d.Status)), o.Deliveries.Any(d => DocumentStatuses.IsOpen(d.Status))),
             settings.AllowSelfApproval, withinApprovalLimit);
 
     public bool CanAct(SalesOrderListItem item, SystemSettings settings) =>

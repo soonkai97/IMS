@@ -11,7 +11,7 @@ namespace Ims.Api.Tests.Tests.Sales;
 
 /// <summary>
 /// PL3.6 acceptance 1 to 3 and 5: what the order says about its deliveries (delivered and remaining per line, the list), the cancel it refuses while a delivery is open, the <c>deliver</c> action and the order
-/// number on a delivery. Posting is PL3.7, so a Posted delivery is set the way a post leaves it (status and quantities) straight in the table.
+/// number on a delivery. A Posted delivery is set the way a post leaves it (status and quantities) straight in the table, so the read side is judged on its own.
 /// </summary>
 [Collection(ApiCollection.Name)]
 public class SalesOrderDeliveryReadTests(ApiFixture fixture) : IAsyncLifetime

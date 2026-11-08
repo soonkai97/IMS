@@ -44,6 +44,8 @@ public sealed class SalesOrdersClient(ApiClient api)
     public Task<ApiResponse> RecallAsync(Guid id, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/sales-orders/{id}/recall", null, ifMatch);
     public Task<ApiResponse> CancelAsync(Guid id, string? reason = null, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/sales-orders/{id}/cancel", new CancelRequest(reason), ifMatch);
 
+    public Task<ApiResponse> CloseAsync(Guid id, string? reason, string? ifMatch = null) => Send(HttpMethod.Post, $"/api/sales-orders/{id}/close", new CloseSalesOrderRequest(reason), ifMatch);
+
     /// <summary>A transition with NO If-Match header at all, to test that the server demands one (428).</summary>
     public Task<ApiResponse> TransitionWithoutIfMatchAsync(Guid id, string action, object? body = null) => api.SendAsync(HttpMethod.Post, $"/api/sales-orders/{id}/{action}", body);
 

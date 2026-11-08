@@ -11,6 +11,9 @@ namespace Ims.Application.Features.Sales;
 /// <param name="ApprovedBy">Who approved it; null for an order released at once (no rule fired): it is Approved with no approver, and <c>approvedAt</c> is when it was released.</param>
 /// <param name="AllowedActions">What the caller may do right now (edit, submit, recall, approve, reject, cancel, deliver). <c>deliver</c> (create a delivery from the order, <c>POST .../delivery</c>) is offered on an Approved order with something left to deliver to a caller holding both <c>document.create</c> and <c>so.read</c>. The UI shows buttons from this list only. It already accounts for ownership, the approver the order is routed to (the Owner reviews only <c>isLarge</c> orders, a Supervisor the rest) and self-approval, so a listed action is one the API will accept.</param>
 /// <param name="ApprovalTriggers">While the order is Submitted, or Approved after a rule held it: which thresholds it reaches. The amounts are null for a caller without <c>cost.view</c>. Empty otherwise.</param>
+/// <param name="CloseReason">Why a person closed the order short (5 or more characters); null for any other order.</param>
+/// <param name="ClosedAt">When a Closed order was closed; null otherwise.</param>
+/// <param name="CloseKind">How it was closed: <c>Delivered</c> (the last quantity was delivered, by posting) or <c>Short</c> (a person closed it with <c>closeReason</c>). Null while not Closed.</param>
 /// <param name="TotalQty">The total base quantity: what a quantity rule of the approval rules is tested against.</param>
 /// <param name="TotalAmount">The sum of the line amounts, in money. Absent for a caller without <c>so.manage</c>: a selling price is not cost, so <c>cost.view</c> is not what decides it.</param>
 /// <param name="RowVersion">Source of <see cref="ConcurrencyToken"/>; not part of the JSON.</param>
@@ -22,7 +25,7 @@ namespace Ims.Application.Features.Sales;
 public record SalesOrderDto(Guid Id, string No, SalesOrderStatus Status, Guid WarehouseId, string WarehouseName, Guid CustomerId, string CustomerName, string? Remark,
     Guid CreatedById, string CreatedBy, string CreatedByName, DateTime CreatedAt,
     bool RequiresApproval, bool IsLarge, bool IsReturned, string? RejectionReason, string? CancelReason,
-    DateTime? SubmittedAt, DateTime? ApprovedAt, DateTime? ReturnedAt,
+    DateTime? SubmittedAt, DateTime? ApprovedAt, DateTime? ReturnedAt, DateTime? ClosedAt, SalesOrderCloseKind? CloseKind, string? CloseReason,
     decimal TotalQty, [property: VisibleWith(Permissions.SoManage), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] decimal? TotalAmount, IReadOnlyList<SalesOrderLineDto> Lines,
     [property: JsonIgnore] byte[] RowVersion, [property: JsonIgnore] int Key, [property: JsonIgnore] int CreatedByKey, [property: JsonIgnore] int? SubmittedByKey,
     [property: JsonIgnore] int? ApprovedByKey, [property: JsonIgnore] int? ReturnedByKey)

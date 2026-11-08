@@ -91,6 +91,7 @@ public class StockDocumentLine : Entity
         var uom = uomId ?? product.BaseUomId;
         var baseQty = product.ToBaseQuantity(qty, uom);
         if (baseQty > Limits.MaxBaseQuantity) throw new DomainException(Messages.QtyTooLarge);
+        if (baseQty <= 0m) throw new DomainException(Messages.QtyTooSmall); // a fraction of the smallest step of the base unit rounds to nothing
         var enteredCost = typed ?? 0m;
         return new StockDocumentLine
         {
