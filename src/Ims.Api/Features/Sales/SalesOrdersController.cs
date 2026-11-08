@@ -63,6 +63,21 @@ public class SalesOrdersController(IDispatcher dispatcher) : ApiControllerBase(d
     [ProducesResponseType<SalesOrderDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Cancel(Guid id, [FromBody] CancelRequest body) => SendOrder(new CancelSalesOrderCommand(id, body, IfMatch));
 
+    /// <summary>
+    /// Creates the Draft delivery of an Approved order: an Issue with purpose Sale in the order's warehouse for the order's customer, one line for every order line that still has something to deliver, with the
+    /// quantity that remains and the order's unit, and NO price anywhere (the delivery is valued at the average cost like every issue). Each line names its order line in <c>salesOrderLineNo</c>. The
+    /// delivery is then saved, submitted and approved like any other (<c>/api/documents</c>); the link never changes. The door is <c>document.create</c>; the order must be readable (<c>so.read</c>, checked in
+    /// the command). 409 when the order is not Approved or has nothing left to deliver. Posting a linked delivery is not available yet (409).
+    /// </summary>
+    [HttpPost(RouteSegments.Delivery), Authorize(Policy = Permissions.DocumentCreate)]
+    [ProducesResponseType<DocumentDto>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> CreateDelivery(Guid id)
+    {
+        var delivery = await Send(new CreateDeliveryFromSalesOrderCommand(id));
+        Response.Headers[HeaderNames.ETag] = $"\"{delivery.ConcurrencyToken}\"";
+        return Ok(delivery);
+    }
+
     /// <summary>The concurrency token the client last saw; required on every write (a missing header is 428, see <see cref="IfMatchHeader"/>).</summary>
     private string? IfMatch => IfMatchHeader.Read(Request, required: true);
 
