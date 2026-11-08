@@ -2322,6 +2322,48 @@
         }
       }
     },
+    "/api/sales-orders/{id}/delivery": {
+      "post": {
+        "tags": [
+          "SalesOrders"
+        ],
+        "summary": "Creates the Draft delivery of an Approved order: an Issue with purpose Sale in the order's warehouse for the order's customer, one line for every order line that still has something to deliver, with the\r\nquantity that remains and the order's unit, and NO price anywhere (the delivery is valued at the average cost like every issue). Each line names its order line in `salesOrderLineNo`. The\r\ndelivery is then saved, submitted and approved like any other (`/api/documents`); the link never changes. The door is `document.create`; the order must be readable (`so.read`, checked in\r\nthe command). 409 when the order is not Approved or has nothing left to deliver. Posting a linked delivery is not available yet (409).",
+        "operationId": "SalesOrders_createDelivery",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/permissions": {
       "get": {
         "tags": [
@@ -5903,6 +5945,16 @@
               }
             ]
           },
+          "salesOrder": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinkedSalesOrder"
+              }
+            ]
+          },
           "amountIsEstimate": {
             "type": "boolean",
             "description": "True for an issue that has not posted yet: its lines carry the average cost seen when it was last saved or submitted, and posting books the real cost. Label the amount \"estimated\"."
@@ -6004,6 +6056,14 @@
             ],
             "description": "On a receipt created from a purchase order: the order line this line receives (its `lineNo`); null otherwise, and omitted while the Purchasing module is off. Send it back unchanged when saving the draft.",
             "format": "int32"
+          },
+          "salesOrderLineNo": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "On a delivery created from a sales order: the order line this line delivers (its `lineNo`); null otherwise, and omitted while the Sales module is off or for a caller who may not read sales orders. Send it back unchanged when saving the draft.",
+            "format": "int32"
           }
         }
       },
@@ -6051,6 +6111,14 @@
               "integer"
             ],
             "description": "Only on a receipt created from a purchase order (`POST /api/purchase-orders/{id}/receipt`): the `lineNo` of the purchase order line this line receives. Every line of such a receipt must name one (a save without it is a 400 and the link is kept), the line's product and unit must be the order line's, and the quantities named for one order line must not exceed what remains of it. On any other document it must be left out (a 400 otherwise), and it is a 400 \"not available\" while the Purchasing module is off. The link itself is never sent and never changes: it is set when the receipt is created.",
+            "format": "int32"
+          },
+          "salesOrderLineNo": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "Only on a delivery created from a sales order (`POST /api/sales-orders/{id}/delivery`): the `lineNo` of the sales order line this line delivers. Every line of such a delivery must name one (a save without it is a 400 and the link is kept), the line's product and unit must be the order line's, and the quantities named for one order line must not exceed what remains of it. On any other document it must be left out (a 400 otherwise), and it is a 400 \"not available\" while the Sales module is off. The link itself is never sent and never changes. A delivery carries no price.",
             "format": "int32"
           }
         }
@@ -6461,6 +6529,23 @@
           }
         },
         "description": "The purchase order a receipt was created from: its id and number. Omitted while the Purchasing module is off."
+      },
+      "LinkedSalesOrder": {
+        "required": [
+          "id",
+          "no"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "no": {
+            "type": "string"
+          }
+        },
+        "description": "The sales order a delivery was created from: its id and number. Omitted while the Sales module is off, and for a caller who may not read sales orders."
       },
       "LoginRequest": {
         "required": [

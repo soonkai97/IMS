@@ -106,6 +106,9 @@ public class SalesOrder : PublicEntity
     /// <summary>A Draft that no reviewer sent back: what a recall leaves behind, so a repeated recall (a double tap) finds it and changes nothing.</summary>
     public bool IsPlainDraft => Status == SalesOrderStatus.Draft && RejectionReason is null;
 
+    /// <summary>Only an Approved order can be delivered against (a delivery can be created from it and saved against it); the other states cannot, whatever has been delivered.</summary>
+    public bool CanBeDelivered => Status == SalesOrderStatus.Approved;
+
     public SalesOrderActionContext ActionContext => new(Status, RequiresApproval, IsLarge, CreatedBy, SubmittedBy);
 
     /// <summary>

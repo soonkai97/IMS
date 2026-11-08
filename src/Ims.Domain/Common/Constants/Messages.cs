@@ -215,6 +215,7 @@ public static class Messages
     public const string ChooseCustomer = "Choose a customer.";
     public static string SalesOrderNotEditable(string no, SalesOrderStatus status) => $"Sales order {no} is {status} and can no longer be edited.";
     public static string SalesOrdersOpen(int count) => count == 1 ? "1 sales order is open" : $"{count} sales orders are open";
+    public const string QtyTooSmall = "That quantity is less than the smallest step of the unit of stock (0.0001). Enter a larger quantity.";
     public const string SalesOrderNeedsLines = "A sales order with no lines cannot be submitted. Add a line first.";
     public static string SalesOrderOnlyDraftCanSubmit(SalesOrderStatus status) => $"Only a Draft sales order can be submitted (current: {status}).";
     public static string SalesOrderOnlySubmittedCanApprove(SalesOrderStatus status) => $"Only a Submitted sales order can be approved (current: {status}).";
@@ -233,6 +234,26 @@ public static class Messages
     public const string SalesOrderRuleNeededToTurnOn = "Sales cannot be turned on yet: no approval rule for sales orders is active, so every priced order would be released with no approver. Add a rule in Settings first, or ask whoever maintains the database to apply the standard pair.";
     public const string SalesOrderLastRule = "This is the last active approval rule for sales orders. While sales is on, at least one must stay active, or every priced order would be released with no approver.";
     public const string SalesOrderRuleTypeFixed = "An approval rule cannot be moved to or from sales orders. Add a new rule for the other type instead.";
+
+    // ----- Delivering against a sales order (PL3.5) -----
+    public static string SalesOrderNotDeliverable(string no, SalesOrderStatus status) => $"Sales order {no} is {status}. Only an Approved sales order can be delivered.";
+    public static string SalesOrderNothingToDeliver(string no) => $"Sales order {no} has nothing left to deliver.";
+    public const string DeliveryHeaderLocked = "The customer and the purpose of a delivery against a sales order are the order's and cannot be changed.";
+    public const string DeliveryCustomerLocked = "The customer of a delivery against a sales order is the customer of the order and cannot be changed.";
+    public const string DeliveryNotLinked = "This document is not linked to a sales order, so a line cannot name a sales order line. Create the delivery from the sales order instead.";
+    public const string DeliveryLineNeedsOrderLine = "Name the sales order line this line delivers (salesOrderLineNo).";
+    public const string DeliveryNotAnIssue = "A sales order line can only be named on a delivery created from that sales order.";
+    public static string DeliveryLineUnknownOrderLine(int lineNo, string orderNo) => $"Sales order {orderNo} has no line {lineNo}.";
+    public static string DeliveryLineWrongProduct(int lineNo, string sku) => $"Sales order line {lineNo} is for {sku}, not for this product.";
+    public static string DeliveryLineWrongUnit(int lineNo, string uomCode) => $"Sales order line {lineNo} is ordered in {uomCode}; deliver it in {uomCode}.";
+    public static string DeliveryLineOverDelivery(OverDelivery over, string sku, string uomCode) =>
+        $"Sales order line {over.LineNo} ({sku}): {Quantity(over.Requested)} {uomCode} is more than remains. Remaining {Quantity(over.Remaining)} {uomCode} (ordered {Quantity(over.Ordered)}, delivered {Quantity(over.Delivered)}).";
+    public const string DeliveryOverRemaining = "This delivery asks for more than the sales order has left to deliver.";
+    public const string DeliveryOrderNotOpen = "The sales order of this delivery is no longer open for delivery.";
+    public const string DeliveryNeedsSoRead = "This delivery belongs to a sales order, so changing it needs the permission to read sales orders.";
+    public const string DeliveryModuleOff = "This delivery belongs to a sales order, and the Sales module is off. Turn the module on to change it.";
+    public const string DeliveryCannotPostModuleOff = "This delivery belongs to a sales order, and the Sales module is off. Turn the module on to post it.";
+    public const string DeliveryCannotPostYet = "Posting a delivery against a sales order is not available yet. Posting arrives with the next release of the sales module.";
 
     // ----- Receiving against a purchase order (PL2.4) -----
     public static string PurchaseOrderNotReceivable(string no, PurchaseOrderStatus status) => $"Purchase order {no} is {status}. Only an Approved purchase order can be received.";

@@ -71,6 +71,13 @@ public sealed class ApiClient
     public Task<ApiResponse> PostRawJsonAsync(string url, string json) => SendAsync(HttpMethod.Post, url, customize: r =>
         r.Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"));
 
+    /// <summary>Sends raw text as the JSON body of a PUT with the given <c>If-Match</c> token (to test what a body can and cannot carry).</summary>
+    public Task<ApiResponse> PutRawJsonAsync(string url, string json, string ifMatch) => SendAsync(HttpMethod.Put, url, customize: r =>
+    {
+        r.Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        r.Headers.TryAddWithoutValidation("If-Match", ifMatch.StartsWith('"') ? ifMatch : $"\"{ifMatch}\"");
+    });
+
     /// <summary>Multipart upload with a single "file" part, as the import endpoints expect.</summary>
     public Task<ApiResponse> UploadAsync(string url, byte[] content, string fileName = "import.xlsx") => SendAsync(HttpMethod.Post, url, customize: r =>
     {

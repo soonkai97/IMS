@@ -1281,9 +1281,22 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("SalesOrderId");
 
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("SalesOrderId"), new[] { "BaseQty", "SellingAmount" });
+
                     b.HasIndex("UomId");
 
-                    b.ToTable("SalesOrderLine");
+                    b.HasIndex("SalesOrderId", "LineNo")
+                        .IsUnique()
+                        .HasFilter("[REC_DELETED] = 0");
+
+                    b.ToTable("SalesOrderLine", t =>
+                        {
+                            t.HasCheckConstraint("CK_SalesOrderLine_BaseQty", "[BaseQty] > 0");
+
+                            t.HasCheckConstraint("CK_SalesOrderLine_Qty", "[Qty] > 0");
+
+                            t.HasCheckConstraint("CK_SalesOrderLine_SellingPrice", "[SellingPrice] >= 0");
+                        });
                 });
 
             modelBuilder.Entity("Ims.Domain.StockBalance", b =>
@@ -1460,6 +1473,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasColumnType("rowversion")
                         .HasColumnName("ROW_VERSION");
 
+                    b.Property<int?>("SalesOrderId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -1516,6 +1532,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.HasIndex("ReversedBy")
                         .HasFilter("[ReversedBy] IS NOT NULL");
 
+                    b.HasIndex("SalesOrderId")
+                        .HasFilter("[SalesOrderId] IS NOT NULL");
+
                     b.HasIndex("SubmittedBy");
 
                     b.HasIndex("WarehouseId");
@@ -1526,7 +1545,10 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Status", "Type", "Id"), new[] { "WarehouseId" });
 
-                    b.ToTable("StockDocument");
+                    b.ToTable("StockDocument", t =>
+                        {
+                            t.HasCheckConstraint("CK_StockDocument_OneLink", "[PurchaseOrderId] IS NULL OR [SalesOrderId] IS NULL");
+                        });
                 });
 
             modelBuilder.Entity("Ims.Domain.StockDocumentLine", b =>
@@ -1604,6 +1626,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion")
                         .HasColumnName("ROW_VERSION");
+
+                    b.Property<int?>("SalesOrderLineNo")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("UnitCost")
                         .HasColumnType("decimal(22,10)");
@@ -2378,6 +2403,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ReversedBy")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Ims.Domain.SalesOrder", "SalesOrder")
+                        .WithMany()
+                        .HasForeignKey("SalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Ims.Domain.User", "SubmittedByUser")
                         .WithMany()
                         .HasForeignKey("SubmittedBy")
@@ -2402,6 +2432,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Navigation("RejectedByUser");
 
                     b.Navigation("ReversedByUser");
+
+                    b.Navigation("SalesOrder");
 
                     b.Navigation("SubmittedByUser");
 

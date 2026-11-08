@@ -51,6 +51,25 @@ public class SalesOrderUpdateTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Replacing_five_lines_with_the_same_five_in_another_order_renumbers_them_under_the_unique_line_number()
+    {
+        var products = new List<ProductDto>();
+        for (var i = 0; i < 5; i++) products.Add(await _s.NewProductAsync());
+        var builder = new SalesOrderBuilder(_warehouse.Id, fixture.Reference.CustomerId);
+        foreach (var p in products) builder.WithLine(p.Id, 1m, 1m);
+        var order = (await _s.Admin.SalesOrders.CreateAsync(builder.Build())).Data<SalesOrderDto>();
+        var reversed = new SalesOrderBuilder(_warehouse.Id, fixture.Reference.CustomerId);
+        foreach (var p in Enumerable.Reverse(products)) reversed.WithLine(p.Id, 2m, 1m);
+
+        var saved = (await _s.Admin.SalesOrders.UpdateAsync(order.Id, reversed.Build(), order.ConcurrencyToken)).Data<SalesOrderDto>();
+
+        Assert.Equal([1, 2, 3, 4, 5], saved.Lines.Select(l => l.LineNo));
+        Assert.Equal(Enumerable.Reverse(products).Select(p => p.Id), saved.Lines.Select(p => p.ProductId));
+        Assert.Equal(5, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM SalesOrderLine l JOIN SalesOrder o ON o.Id = l.SalesOrderId WHERE o.PublicId = @id AND l.REC_DELETED = 0", ("@id", order.Id)));
+        Assert.Equal(5, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM SalesOrderLine l JOIN SalesOrder o ON o.Id = l.SalesOrderId WHERE o.PublicId = @id AND l.REC_DELETED = 1", ("@id", order.Id))); // the old five are soft-deleted, outside the unique index
+    }
+
+    [Fact]
     public async Task Any_holder_of_so_manage_may_edit_any_draft_not_only_their_own()
     {
         var order = await _s.CreateAsync(fixture.Reference.DefaultWarehouseId, _product.Id, by: _s.Clerk);
