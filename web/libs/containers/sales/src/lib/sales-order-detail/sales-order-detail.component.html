@@ -25,11 +25,12 @@
     </app-empty-state>
   </div>
 } @else if ($loadFailed()) {
-  <app-banner kind="danger">
+  <app-banner kind="danger" alert>
     {{ $loadErrorMessage() || ('error.generic' | t) }}
     @if ($canRetry()) {
       <app-button bannerActions (clicked)="onRetryLoad()">{{ 'ui.retry' | t }}</app-button>
     }
+    <a bannerActions class="ui-link-button" [routerLink]="backLink">{{ 'so.title' | t }}</a>
   </app-banner>
 } @else if ($order(); as order) {
   @if ($isStale()) {
@@ -46,7 +47,12 @@
     <app-banner kind="danger" alert>{{ refusal }}</app-banner>
   }
   @if (order.isReturned) {
-    <app-banner kind="warning" [heading]="'doc.returnedBanner' | t: { name: $returnedBy() }">
+    <app-banner
+      kind="warning"
+      [heading]="
+        $returnedBy() ? ('doc.returnedBanner' | t: { name: $returnedBy() }) : ('doc.returned' | t)
+      "
+    >
       {{ order.rejectionReason }}
       @if (order.returnedAt) {
         <span class="so-detail-muted">· {{ order.returnedAt | appDate }}</span>
@@ -104,7 +110,7 @@
     <app-table
       [columns]="$lineColumns()"
       [rows]="order.lines"
-      [caption]="'so.lines' | t: { count: order.lines.length }"
+      [caption]="'so.linesOf' | t: { docNo: order.no }"
     >
       <ng-template appCell="qty" let-line>{{ line.qty | appQty }} {{ line.uomCode }}</ng-template>
       <ng-template appCell="delivered" let-line>

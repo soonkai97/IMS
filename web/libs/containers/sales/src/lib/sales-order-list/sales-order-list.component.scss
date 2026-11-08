@@ -45,3 +45,15 @@
     display: grid;
   }
 }
+
+.so-list-page-awaiting {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  align-items: center;
+}
+
+.so-list-page-note {
+  font-size: font-size(2);
+  color: color('text-muted');
+}

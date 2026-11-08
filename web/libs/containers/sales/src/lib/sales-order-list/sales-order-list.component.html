@@ -36,7 +36,12 @@
       [placeholder]="'filter.all' | t"
     />
   </app-form-field>
-  <app-checkbox [formControl]="awaitingControl">{{ 'so.awaiting' | t }}</app-checkbox>
+  <div class="so-list-page-awaiting">
+    <app-checkbox [formControl]="awaitingControl">{{ 'so.awaiting' | t }}</app-checkbox>
+    @if ($awaiting()) {
+      <span class="so-list-page-note">{{ 'so.awaitingNote' | t }}</span>
+    }
+  </div>
 </div>
 
 <app-table
@@ -76,6 +81,7 @@
 @if ($page(); as page) {
   <app-pager
     [pageSizes]="pageSizes"
+    [hideRange]="$awaiting()"
     (pageSizeChange)="onPageSizeChange($event)"
     [page]="page.page"
     [pageSize]="page.pageSize"

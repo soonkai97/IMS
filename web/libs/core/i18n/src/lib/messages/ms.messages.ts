@@ -894,14 +894,23 @@ export const MS_MESSAGES: Messages = {
   'so.closedShort': 'Ditutup awal',
   'so.closedDelivered': 'Dihantar sepenuhnya',
   'so.dialog.approve.body': 'Pesanan kemudian boleh dihantar mengikutnya.',
-  'so.dialog.close.body': 'Apa yang belum dihantar tidak akan dihantar mengikut pesanan ini. Ini tidak boleh dibatalkan.',
+  'so.dialog.close.body':
+    'Apa yang belum dihantar tidak akan dihantar mengikut pesanan ini. Ini tidak boleh dibatalkan.',
+  'so.linesOf': 'Baris {docNo}',
+  'so.history.closed': 'Pesanan ditutup',
+  'so.awaitingNote': 'Halaman ini sahaja',
+  'so.emptyAwaiting':
+    'Tiada pesanan di halaman ini yang menunggu anda. Mungkin ada lagi di halaman seterusnya.',
   'so.actionsLabel': 'Tindakan untuk {docNo}',
   'perm.so.read': 'Lihat pesanan jualan',
-  'perm.so.read.help': 'Buka pesanan jualan gudang tempat anda bekerja. Harga jualan juga memerlukan kebenaran mengurus pesanan jualan.',
+  'perm.so.read.help':
+    'Buka pesanan jualan gudang tempat anda bekerja. Harga jualan juga memerlukan kebenaran mengurus pesanan jualan.',
   'perm.so.manage': 'Urus pesanan jualan',
-  'perm.so.manage.help': 'Cipta, ubah, hantar, tarik balik, batalkan dan tutup pesanan jualan, dan lihat harga jualan.',
+  'perm.so.manage.help':
+    'Cipta, ubah, hantar, tarik balik, batalkan dan tutup pesanan jualan, dan lihat harga jualan.',
   'module.sales.name': 'Jualan',
-  'module.sales.description': 'Pesanan jualan untuk pelanggan, kelulusan pesanan besar dan penghantaran mengikut pesanan.',
+  'module.sales.description':
+    'Pesanan jualan untuk pelanggan, kelulusan pesanan besar dan penghantaran mengikut pesanan.',
   'doc.order.from':
     'Resit ini untuk pesanan pembelian {order}. Pembekal, gudang dan barisan datang daripada pesanan itu.',
   'doc.order.open': 'Buka pesanan.',

@@ -889,14 +889,23 @@ export const EN_MESSAGES = {
   'so.closedShort': 'Closed short',
   'so.closedDelivered': 'Fully delivered',
   'so.dialog.approve.body': 'The order can then be delivered against.',
-  'so.dialog.close.body': 'What has not been delivered yet will not be delivered against this order. This cannot be undone.',
+  'so.dialog.close.body':
+    'What has not been delivered yet will not be delivered against this order. This cannot be undone.',
+  'so.linesOf': 'Lines of {docNo}',
+  'so.history.closed': 'Order closed',
+  'so.awaitingNote': 'This page only',
+  'so.emptyAwaiting':
+    'None of the orders on this page are waiting for you. There may be more on the next page.',
   'so.actionsLabel': 'Actions for {docNo}',
   'perm.so.read': 'See sales orders',
-  'perm.so.read.help': 'Open the sales orders of the warehouses you work in. Selling prices also need permission to manage sales orders.',
+  'perm.so.read.help':
+    'Open the sales orders of the warehouses you work in. Selling prices also need permission to manage sales orders.',
   'perm.so.manage': 'Manage sales orders',
-  'perm.so.manage.help': 'Create, change, submit, recall, cancel and close sales orders, and see selling prices.',
+  'perm.so.manage.help':
+    'Create, change, submit, recall, cancel and close sales orders, and see selling prices.',
   'module.sales.name': 'Sales',
-  'module.sales.description': 'Sales orders for customers, approval of large orders, and delivery against an order.',
+  'module.sales.description':
+    'Sales orders for customers, approval of large orders, and delivery against an order.',
   'doc.order.from':
     'This receipt is for purchase order {order}. The supplier, the warehouse and the lines come from the order.',
   'doc.order.open': 'Open the order.',

@@ -6,6 +6,7 @@ import {
   inject,
   signal
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { PartnerType, SalesOrderListItem, SalesOrderStatus } from '@ims/api';
 import {
@@ -17,7 +18,6 @@ import {
   SALES_ORDER_STATUS_LABELS,
   TranslatePipe
 } from '@ims/core/i18n';
-import { PermissionService } from '@ims/core/identity';
 import {
   SALES_ORDER_ROUTE,
   SO_STATUS_TONE,
@@ -25,7 +25,7 @@ import {
   SalesOrdersStore
 } from '@ims/features/sales';
 import { PartnersStore } from '@ims/features/warehousing';
-import { API_MIN_SEARCH_LENGTH, PAGE_SIZES, PERMISSION, PublicId } from '@ims/models';
+import { API_MIN_SEARCH_LENGTH, PAGE_SIZES, PublicId } from '@ims/models';
 import {
   SelectOption,
   StatusTone,
@@ -79,7 +79,6 @@ import { controlSignal, createPageState, debouncedSignal, loadOnChange } from '@
 export class SalesOrderListPageComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly partners = inject(PartnersStore);
-  private readonly permissions = inject(PermissionService);
   private readonly store = inject(SalesOrdersStore);
 
   readonly statusControl = new FormControl<SalesOrderStatus | null>(null);
@@ -98,7 +97,7 @@ export class SalesOrderListPageComponent implements OnInit {
   });
   private readonly $status = controlSignal(this.statusControl);
   private readonly $customerId = controlSignal(this.customerControl);
-  private readonly $awaiting = controlSignal(this.awaitingControl);
+  readonly $awaiting = controlSignal(this.awaitingControl);
   private readonly $filterKey = computed(() =>
     JSON.stringify([this.$search(), this.$status(), this.$customerId(), this.$awaiting()])
   );
@@ -142,7 +141,10 @@ export class SalesOrderListPageComponent implements OnInit {
   readonly $customerOptions = computed<readonly SelectOption[]>(() =>
     this.partners.$partners().map(partner => ({ value: partner.id, label: partner.name }))
   );
-  private readonly $canViewMoney = computed(() => this.permissions.has(PERMISSION.SoManage));
+  /** Money is on the rows only for a holder of so.manage: the API leaves the key out for the others, and so does this table (same rule as the detail). */
+  private readonly $hasMoney = computed(() =>
+    (this.store.list.$data()?.items ?? []).some(item => item.totalAmount !== undefined)
+  );
   readonly $columns = computed<readonly TableColumn<SalesOrderListItem>[]>(() => [
     { key: 'no', type: 'code', header: this.i18n.t('doc.no'), value: row => row.no, primary: true },
     { key: 'date', type: 'date', header: this.i18n.t('doc.date'), phoneInline: true },
@@ -158,14 +160,24 @@ export class SalesOrderListPageComponent implements OnInit {
       value: row => row.warehouseName,
       phoneInline: true
     },
-    ...columnWhen<SalesOrderListItem>(this.$canViewMoney(), {
+    ...columnWhen<SalesOrderListItem>(this.$hasMoney(), {
       key: 'amount',
       header: this.i18n.t('doc.amount'),
       align: 'end'
     }),
     { key: 'status', type: 'status', header: this.i18n.t('product.status'), phoneEnd: true }
   ]);
-  readonly $emptyKey = computed<MessageKey>(() => (this.$hasFilters() ? 'so.noMatch' : 'so.empty'));
+  /** More pages exist than this one: the rows kept by "waiting for my approval" are only this page's. */
+  private readonly $hasMorePages = computed(() => {
+    const page = this.$page();
+    return page !== undefined && page.page * page.pageSize < page.total;
+  });
+  readonly $emptyKey = computed<MessageKey>(() => {
+    if (this.$awaiting() && this.$hasMorePages()) {
+      return 'so.emptyAwaiting';
+    }
+    return this.$hasFilters() ? 'so.noMatch' : 'so.empty';
+  });
 
   readonly rowLink = (row: SalesOrderListItem): readonly unknown[] => [
     '/',
@@ -179,6 +191,14 @@ export class SalesOrderListPageComponent implements OnInit {
     // The store outlives a sign-out: the next user must not see the last user's orders for a moment.
     this.store.list.reset();
     loadOnChange(this.$query, query => this.store.list.load(query));
+    // The status is fixed to Submitted while the box is ticked: the select would only mislead.
+    this.awaitingControl.valueChanges.pipe(takeUntilDestroyed()).subscribe(on => {
+      if (on) {
+        this.statusControl.disable();
+      } else {
+        this.statusControl.enable();
+      }
+    });
   }
 
   ngOnInit(): void {

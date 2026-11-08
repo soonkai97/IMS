@@ -1,5 +1,5 @@
 import { API_ERROR_KIND, ApiError } from '@ims/models';
-import { isNonEmptyString } from '@ims/utils';
+import { isNonEmptyString } from '../guards/type-guards';
 
 /** `code` of the 409 that says the order changed since it was opened (the If-Match token no longer matches). */
 const DOCUMENT_CHANGED = 'document_changed';

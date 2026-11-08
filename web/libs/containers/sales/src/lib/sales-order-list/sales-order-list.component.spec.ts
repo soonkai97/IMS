@@ -99,9 +99,10 @@ describe('SalesOrderListPageComponent', () => {
     expect(spectator.queryAll('tbody tr:first-child td')).toHaveLength(headers().length);
   });
 
-  it('has no Amount column for a holder of cost.view alone: a selling price is not cost', async () => {
+  it('follows the money keys, not any permission: a holder of cost.view alone gets rows without them and so no column', async () => {
     granted.add(PERMISSION.CostView);
-    await render([ITEM]);
+    const { totalAmount: _total, ...withoutTotal } = ITEM;
+    await render([withoutTotal as SalesOrderListItem]);
 
     expect(headers()).not.toContain('Amount (RM)');
   });
@@ -122,6 +123,60 @@ describe('SalesOrderListPageComponent', () => {
     expect(lastQuery().status).toBe(SalesOrderStatus.Submitted);
     expect(rows()).toHaveLength(1);
     expect(rows()[0]).toContain('SO-MAIN-2611-0001');
+  });
+
+  describe('"waiting for my approval" keeps this page only', () => {
+    const tick = async (): Promise<void> => {
+      spectator.click(spectator.query('app-checkbox input') as HTMLElement);
+      await spectator.fixture.whenStable();
+    };
+    const firstOfMany = (items: SalesOrderListItem[]): Promise<void> => {
+      spectator = createComponent();
+      const store = spectator.inject(SalesOrdersStore) as unknown as {
+        list: { $data: { set(value: unknown): void } };
+      };
+      store.list.$data.set({ items, page: 1, pageSize: 25, total: 60 });
+      spectator.detectChanges();
+      return spectator.fixture.whenStable();
+    };
+
+    it('disables the status select, says "This page only" and hides the x-y of n total, while Next still works', async () => {
+      await firstOfMany([ITEM, OTHER]);
+      expect(spectator.query('.ui-pager-range')?.textContent).toContain('60');
+
+      await tick();
+
+      expect(spectator.query('app-select select, app-select [role="combobox"]')).toBeTruthy();
+      expect(spectator.component.statusControl.disabled).toBe(true);
+      expect(spectator.element.textContent).toContain('This page only');
+      expect(spectator.query('.ui-pager-range')).toBeNull();
+      expect(spectator.query('.ui-pager-nav')).not.toBeNull();
+      spectator.component.onPageChange(2);
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+      expect(lastQuery().page).toBe(2);
+
+      await tick();
+      expect(spectator.component.statusControl.enabled).toBe(true);
+    });
+
+    it('an empty page with more pages behind it says so instead of "no orders match"', async () => {
+      await firstOfMany([OTHER]);
+
+      await tick();
+
+      expect(rows()).toHaveLength(0);
+      expect(spectator.element.textContent).toContain('There may be more on the next page.');
+      expect(spectator.element.textContent).not.toContain('No sales orders match');
+    });
+
+    it('an empty last page says there are no matches', async () => {
+      await render([OTHER]);
+
+      await tick();
+
+      expect(spectator.element.textContent).toContain('No sales orders match these filters.');
+    });
   });
 
   it('opens the order page from a row', async () => {

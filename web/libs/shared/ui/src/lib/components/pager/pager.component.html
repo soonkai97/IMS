@@ -1,5 +1,7 @@
-<p class="ui-pager-range">{{ $range() }}</p>
-<span class="ui-pager-announce" aria-live="polite" aria-atomic="true">{{ $announcement() }}</span>
+@if (!$hideRange()) {
+  <p class="ui-pager-range">{{ $range() }}</p>
+  <span class="ui-pager-announce" aria-live="polite" aria-atomic="true">{{ $announcement() }}</span>
+}
 @if ($pageSizes().length > 0) {
   <div class="ui-pager-size">
     <label class="ui-pager-size-label" [for]="sizeId">{{ $text().pageSize }}</label>

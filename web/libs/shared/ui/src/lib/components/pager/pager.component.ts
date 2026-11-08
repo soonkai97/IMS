@@ -37,6 +37,8 @@ export class UiPagerComponent {
   $total = input.required<number>({ alias: 'total' });
   /** The choices of the "Rows per page" select. None (the default) = no select. */
   $pageSizes = input<readonly number[]>([], { alias: 'pageSizes' });
+  /** Hides "x-y of n" and its announcement (a list that filters a page on the client has no honest total). Previous and Next still work. */
+  $hideRange = input(false, { alias: 'hideRange' });
 
   $pageChange = output<number>({ alias: 'pageChange' });
   $pageSizeChange = output<number>({ alias: 'pageSizeChange' });

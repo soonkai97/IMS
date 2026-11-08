@@ -184,6 +184,7 @@ describe('NavigationService (menus follow the permissions)', () => {
       expect(item?.route).toBe('/sales-orders');
       expect(item?.module).toBe('sales');
       expect(order.indexOf('sales-orders')).toBe(order.indexOf('purchase-orders') + 1);
+      expect(order.indexOf('approvals')).toBe(order.indexOf('sales-orders') + 1);
     });
   });
 });

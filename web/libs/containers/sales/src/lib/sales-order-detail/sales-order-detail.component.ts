@@ -185,8 +185,11 @@ export class SalesOrderDetailPageComponent {
   readonly $canClose = computed(() => this.$actions().has(SO_ACTION.Close));
   readonly $showBar = computed(() => this.$actions().size > 0);
 
+  /** A dialog is open or about to be: a second tap on a button must not open another one. */
+  private readonly $asking = signal(false);
   readonly $isBusy = computed(
     () =>
+      this.$asking() ||
       this.store.submit.$isRunning() ||
       this.store.recall.$isRunning() ||
       this.store.approve.$isRunning() ||
@@ -285,7 +288,7 @@ export class SalesOrderDetailPageComponent {
           }
         : undefined,
       order.closedAt
-        ? { labelKey: 'po.history.closed', at: order.closedAt, reason: order.closeReason }
+        ? { labelKey: 'so.history.closed', at: order.closedAt, reason: order.closeReason }
         : undefined,
       order.status === SalesOrderStatus.Cancelled
         ? { labelKey: 'doc.history.cancelled', reason: order.cancelReason ?? undefined }
@@ -293,7 +296,13 @@ export class SalesOrderDetailPageComponent {
     ];
     // Oldest first; an event without a time (the API has no cancel time) stays last.
     const time = (event: HistoryEvent): number => (event.at ? Date.parse(event.at) : Infinity);
-    return events.filter(isDefined).sort((a, b) => time(a) - time(b));
+    return events.filter(isDefined).sort((a, b) => {
+      const [x, y] = [time(a), time(b)];
+      if (x === y) {
+        return 0;
+      }
+      return x < y ? -1 : 1;
+    });
   });
   readonly $lineColumns = computed<readonly TableColumn<SalesOrderLineDto>[]>(() => [
     {
@@ -333,6 +342,13 @@ export class SalesOrderDetailPageComponent {
     });
   });
 
+  /** A failed load replaces the page with one banner: the keyboard and the screen reader land on it. */
+  private readonly focusLoadFailure = effect(() => {
+    if (this.$loadFailed() && !this.$notFound()) {
+      untracked(() => this.settleFocus());
+    }
+  });
+
   private readonly syncTitle = effect(() => this.pageTitle.setDetail(this.$order()?.no));
 
   /**
@@ -365,7 +381,7 @@ export class SalesOrderDetailPageComponent {
 
   onAction(action: SoAction): void {
     const order = this.$order();
-    if (!order) {
+    if (!order || this.$isBusy()) {
       return;
     }
     this.opener = this.page.activeElement instanceof HTMLElement ? this.page.activeElement : null;
@@ -486,12 +502,16 @@ export class SalesOrderDetailPageComponent {
     toastKey: MessageKey,
     toastParams?: Record<string, string>
   ): void {
+    this.$asking.set(true);
     this.confirm
       .ask(request)
       .pipe(
         switchMap(reason => command(reason)),
         tap(() => this.toast.success(this.i18n.t(toastKey, toastParams))),
-        finalize(() => this.settleFocus()),
+        finalize(() => {
+          this.$asking.set(false);
+          this.settleFocus();
+        }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();
