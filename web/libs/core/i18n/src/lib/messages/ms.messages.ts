@@ -903,6 +903,26 @@ export const MS_MESSAGES: Messages = {
     'Tiada pesanan di halaman ini yang menunggu anda. Mungkin ada lagi di halaman seterusnya.',
   // TODO-review: machine draft (PL3.9 sales order editor).
   'sales.new': 'Pesanan jualan baharu',
+  // TODO-review: machine draft (PL3.10 deliver against a sales order).
+  'doc.salesOrder.from':
+    'Penghantaran ini untuk pesanan jualan {order}. Pelanggan, gudang dan baris datang daripada pesanan.',
+  'doc.salesOrder.editHint':
+    'Kurangkan kuantiti atau buang baris yang tidak dihantar sekarang. Kuantiti tidak boleh melebihi baki pesanan.',
+  'doc.salesOrder.closed': 'Pesanan {order} telah dihantar sepenuhnya dan ditutup.',
+  'doc.salesOrder.closedShort':
+    'Pesanan {order} ditutup awal: yang belum dihantar tidak akan dihantar.',
+  'doc.salesOrder.remaining':
+    'Pesanan {order} masih ada {count, plural, one {1 baris} other {# baris}} untuk dihantar.',
+  'doc.overDelivery.title': 'Tidak disiarkan: melebihi baki pesanan',
+  'doc.overDelivery.line':
+    'Baris {lineNo} ({sku}): dipesan {ordered}, dihantar {received}, baki {remaining}, penghantaran ini {requested}.',
+  'doc.overDelivery.fix': 'Penghantaran tidak berubah. Kurangkan kuantiti dan siarkan semula.',
+  'doc.overDelivery.ask':
+    'Penghantaran tidak berubah. Minta pembuatnya mengurangkan kuantiti, atau batalkannya.',
+  'line.salesOrder':
+    'Baris pesanan {lineNo}: dipesan {ordered}, dihantar {delivered}, baki {remaining} {uom}',
+  'line.salesOrder.over': 'Hanya {remaining} {uom} baris pesanan ini tinggal untuk dihantar.',
+  'sales.deliver': 'Hantar',
   // TODO-review: machine draft (PL3.9 review fixes).
   'sales.findCustomer': 'Cari pelanggan',
   'sales.customersTruncated': 'Hanya pelanggan pertama disenaraikan. Taip untuk mencari yang lain.',

@@ -57,7 +57,8 @@ export function lineFromOrderLine(line: PurchaseOrderLineDto): LineValue {
       }
     ],
     // An order line is never a receipt line.
-    purchaseOrderLineNo: null
+    purchaseOrderLineNo: null,
+    salesOrderLineNo: null
   };
 }
 

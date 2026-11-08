@@ -2,6 +2,7 @@ import { HttpContext } from '@angular/common/http';
 import { Injectable, Signal, inject } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import {
+  DocumentDto,
   PagedResultOfSalesOrderListItem,
   SalesOrderDto,
   SalesOrderSaveRequest,
@@ -120,6 +121,16 @@ export class SalesOrdersStore {
     true
   );
 
+  /**
+   * Starts a draft delivery from the order, for what is still to deliver, with no price. The call carries no token (the API checks
+   * the order itself); a refusal (409: the order is no longer open, nothing left, module off) is the page's alert, so no toast.
+   */
+  readonly deliver: ApiCommand<PublicId, DocumentDto> = new ApiCommand(
+    id =>
+      this.client.createDelivery(id, new HttpContext().set(HANDLED_INLINE, [HTTP_STATUS.Conflict])),
+    true
+  );
+
   /** Forgets the outcome of every command (their errors drive banners such as "changed by someone else"). */
   resetCommands(): void {
     this.resetCommandsExcept(undefined);
@@ -143,7 +154,8 @@ export class SalesOrdersStore {
       this.approve,
       this.reject,
       this.cancel,
-      this.close
+      this.close,
+      this.deliver
     ];
   }
 

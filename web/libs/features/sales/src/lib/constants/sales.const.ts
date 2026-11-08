@@ -20,13 +20,6 @@ export const SO_ACTION = {
 
 export type SoAction = (typeof SO_ACTION)[keyof typeof SO_ACTION];
 
-/**
- * Actions whose screen is a later slice: the delivery editor with its order banner (PL3.10). The API may offer it already; the
- * button is not rendered until the screen exists (a draft delivery that cannot be saved is worse than no button). PL3.10 removes
- * its entry.
- */
-export const SO_ACTIONS_NOT_BUILT: ReadonlySet<SoAction> = new Set([SO_ACTION.Deliver]);
-
 /** The customer copy is for an order that was approved (and one that was then closed): not for a Draft, Submitted or Cancelled one. */
 export const isPrintable = (status: SalesOrderStatus): boolean =>
   status === SalesOrderStatus.Approved || status === SalesOrderStatus.Closed;

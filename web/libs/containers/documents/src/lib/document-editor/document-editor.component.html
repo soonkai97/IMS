@@ -30,12 +30,12 @@
 
 @if ($linkedOrder(); as linked) {
   <p class="document-editor-hint">
-    {{ 'doc.order.from' | t: { order: linked.no } }}
+    {{ ($isSalesOrder() ? 'doc.salesOrder.from' : 'doc.order.from') | t: { order: linked.no } }}
     @if ($canReadOrders()) {
-      <a [routerLink]="['/', orderRoute, linked.id]">{{ 'doc.order.open' | t }}</a>
+      <a [routerLink]="['/', $orderRoute(), linked.id]">{{ 'doc.order.open' | t }}</a>
     }
     @if ($editable()) {
-      {{ 'doc.order.editHint' | t }}
+      {{ ($isSalesOrder() ? 'doc.salesOrder.editHint' : 'doc.order.editHint') | t }}
     }
   </p>
   @if ($orderProgress(); as progress) {
@@ -135,14 +135,14 @@
     <app-banner
       class="document-editor-over-receipt"
       kind="danger"
-      [heading]="'doc.overReceipt.title' | t"
+      [heading]="(over.sales ? 'doc.overDelivery.title' : 'doc.overReceipt.title') | t"
     >
       @if (over.lines.length > 0) {
         <ul class="document-editor-order-lines">
           @for (line of over.lines; track line.lineNo) {
             <li>
               {{
-                'doc.overReceipt.line'
+                (over.sales ? 'doc.overDelivery.line' : 'doc.overReceipt.line')
                   | t
                     : {
                         lineNo: line.lineNo,
@@ -159,7 +159,16 @@
       } @else {
         {{ over.message }}
       }
-      {{ ($editable() || $canRecall() ? 'doc.overReceipt.fix' : 'doc.overReceipt.ask') | t }}
+      {{
+        ($editable() || $canRecall()
+          ? over.sales
+            ? 'doc.overDelivery.fix'
+            : 'doc.overReceipt.fix'
+          : over.sales
+            ? 'doc.overDelivery.ask'
+            : 'doc.overReceipt.ask'
+        ) | t
+      }}
       @if ($canRecall()) {
         <app-button
           bannerActions
@@ -197,7 +206,7 @@
             <dd>{{ order.warehouseName }}</dd>
           </div>
           <div>
-            <dt>{{ 'doc.supplier' | t }}</dt>
+            <dt>{{ ($isSalesOrder() ? 'doc.customer' : 'doc.supplier') | t }}</dt>
             <dd>{{ order.partnerName || '-' }}</dd>
           </div>
         </dl>

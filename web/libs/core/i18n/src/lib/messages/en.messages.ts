@@ -897,6 +897,25 @@ export const EN_MESSAGES = {
   'so.emptyAwaiting':
     'None of the orders on this page are waiting for you. There may be more on the next page.',
   'sales.new': 'New sales order',
+  'doc.salesOrder.from':
+    'This delivery is for sales order {order}. The customer, the warehouse and the lines come from the order.',
+  'doc.salesOrder.editHint':
+    'Lower a quantity or remove a line that will not go out now. A quantity cannot be above what the order has left.',
+  'doc.salesOrder.closed': 'Order {order} is fully delivered and closed.',
+  'doc.salesOrder.closedShort':
+    'Order {order} was closed short: what had not been delivered will not be delivered.',
+  'doc.salesOrder.remaining':
+    'Order {order} still has {count, plural, one {1 line} other {# lines}} to deliver.',
+  'doc.overDelivery.title': 'Not posted: more than the order has left',
+  'doc.overDelivery.line':
+    'Line {lineNo} ({sku}): ordered {ordered}, delivered {received}, remaining {remaining}, this delivery {requested}.',
+  'doc.overDelivery.fix': 'The delivery is unchanged. Lower the quantities and post it again.',
+  'doc.overDelivery.ask':
+    'The delivery is unchanged. Ask the person who made it to lower the quantities, or cancel it.',
+  'line.salesOrder':
+    'Order line {lineNo}: ordered {ordered}, delivered {delivered}, remaining {remaining} {uom}',
+  'line.salesOrder.over': 'Only {remaining} {uom} of this order line is left to deliver.',
+  'sales.deliver': 'Deliver',
   'sales.findCustomer': 'Find a customer',
   'sales.customersTruncated': 'Only the first customers are listed. Type to search for the others.',
   'sales.priceHint':

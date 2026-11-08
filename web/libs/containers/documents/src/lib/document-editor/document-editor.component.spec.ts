@@ -13,7 +13,10 @@ import {
   ProductDto,
   PurchaseOrderCloseKind,
   PurchaseOrderDto,
-  PurchaseOrderStatus
+  PurchaseOrderStatus,
+  SalesOrderCloseKind,
+  SalesOrderDto,
+  SalesOrderStatus
 } from '@ims/api';
 import { provideUiText } from '@ims/core/i18n';
 import { AuthService, PermissionService, SessionDraftService } from '@ims/core/identity';
@@ -23,6 +26,7 @@ import { SystemSettingsStore } from '@ims/core/settings';
 import { CatalogStore, ProductsStore } from '@ims/features/catalog';
 import { DocumentsStore, StockAvailabilityService } from '@ims/features/documents';
 import { PurchaseOrdersStore } from '@ims/features/purchasing';
+import { SalesOrdersStore } from '@ims/features/sales';
 import { StockStore } from '@ims/features/stock';
 import { PartnersStore, WarehousesStore } from '@ims/features/warehousing';
 import {
@@ -138,6 +142,11 @@ describe('DocumentEditorPageComponent', () => {
   const orderReload = jest.fn();
   const orderReset = jest.fn();
   const orderLoading = signal(false);
+  /** The sales order store a linked delivery reads its figures from. */
+  const salesData = signal<SalesOrderDto | undefined>(undefined);
+  const salesLoad = jest.fn();
+  const salesReload = jest.fn();
+  const salesReset = jest.fn();
   const lookup = jest.fn();
   const granted = new Set<string>([PERMISSION.StockRead]);
   /** The signed-in user and the session-expiry signal of the AuthService. */
@@ -211,6 +220,18 @@ describe('DocumentEditorPageComponent', () => {
             load: orderLoad,
             reload: orderReload,
             reset: orderReset
+          }
+        }
+      },
+      {
+        provide: SalesOrdersStore,
+        useValue: {
+          detail: {
+            $data: salesData,
+            $isLoading: signal(false),
+            load: salesLoad,
+            reload: salesReload,
+            reset: salesReset
           }
         }
       },
@@ -300,6 +321,10 @@ describe('DocumentEditorPageComponent', () => {
     }
     detailReload.mockClear();
     orderData.set(undefined);
+    salesData.set(undefined);
+    salesLoad.mockClear();
+    salesReload.mockClear();
+    salesReset.mockClear();
     orderLoading.set(false);
     orderLoad.mockClear();
     orderReload.mockClear();
@@ -1954,6 +1979,224 @@ describe('DocumentEditorPageComponent', () => {
         expect(text()).not.toContain("Can't be posted now");
         expect(labels().some(label => label === 'Post')).toBe(false);
       });
+    });
+  });
+
+  describe('a delivery from a sales order (PL3.10)', () => {
+    const ORDER_ID = guid(70);
+    const delivery = (overrides: Partial<DocumentDto> = {}): DocumentDto =>
+      document({
+        id: guid(71),
+        type: DocumentType.Issue,
+        no: 'ISS-WH01-2611-0007',
+        status: DocumentStatus.Draft,
+        requiresApproval: false,
+        purpose: IssuePurpose.Sale,
+        partnerId: guid(80),
+        partnerName: 'Acme Trading',
+        salesOrder: { id: ORDER_ID, no: 'SO-WH01-2611-0001' },
+        lines: [
+          {
+            ...document().lines[0],
+            qty: 4,
+            baseQty: 4,
+            available: 50,
+            salesOrderLineNo: 1
+          }
+        ],
+        allowedActions: [DOCUMENT_ACTION.Edit, DOCUMENT_ACTION.Submit, DOCUMENT_ACTION.Cancel],
+        ...overrides
+      });
+    /** The order as a holder of so.manage gets it, selling price included: ordered 10, 6 delivered, 4 left. */
+    const order = (): SalesOrderDto =>
+      ({
+        id: ORDER_ID,
+        no: 'SO-WH01-2611-0001',
+        status: SalesOrderStatus.Approved,
+        closeKind: null,
+        totalAmount: 5000,
+        lines: [
+          {
+            lineNo: 1,
+            qty: 10,
+            uomCode: 'PCS',
+            deliveredQty: 6,
+            remainingQty: 4,
+            unitPrice: 500,
+            amount: 5000
+          }
+        ]
+      }) as unknown as SalesOrderDto;
+    const overDelivery = (): ApiError => ({
+      ...STALE,
+      detail: 'Over',
+      extensions: {
+        code: 'over_delivery',
+        lines: [
+          { lineNo: 1, sku: 'DEMO-001', ordered: 10, delivered: 6, remaining: 4, requested: 5 }
+        ]
+      }
+    });
+    const alerts = (): string[] =>
+      spectator
+        .queryAll('app-banner[role="alert"]')
+        .map(banner => (banner.textContent ?? '').replace(/\s+/g, ' ').trim());
+
+    beforeEach(() => granted.add(PERMISSION.SoRead));
+
+    it('names the order and opens it for a holder of so.read; the customer and the warehouse are read, not chosen; no item can be added', async () => {
+      await open(delivery(), DocumentType.Issue);
+
+      expect(text()).toContain('sales order SO-WH01-2611-0001');
+      expect(spectator.query(`a[href="/sales-orders/${ORDER_ID}"]`)).not.toBeNull();
+      expect(spectator.queryAll('dt').map(dt => dt.textContent?.trim())).toEqual(
+        expect.arrayContaining(['Warehouse', 'Customer'])
+      );
+      expect(spectator.queryAll('dd').map(dd => dd.textContent?.trim())).toEqual(
+        expect.arrayContaining(['Main warehouse', 'Acme Trading'])
+      );
+      expect(spectator.queryAll('app-select')).toHaveLength(0);
+      expect(text()).not.toContain('Add item');
+
+      granted.delete(PERMISSION.SoRead);
+      await open(delivery(), DocumentType.Issue);
+      expect(spectator.query('a[href^="/sales-orders"]')).toBeNull();
+    });
+
+    it('reads the order again when it opens and shows ordered, delivered and remaining per line, and never a price', async () => {
+      granted.add(PERMISSION.CostView);
+      await open(delivery(), DocumentType.Issue);
+      salesData.set(order());
+      spectator.detectChanges();
+
+      expect(salesReset).toHaveBeenCalled();
+      expect(salesLoad).toHaveBeenCalledWith(ORDER_ID, expect.anything());
+      expect(text()).toContain('Order line 1: ordered 10, delivered 6, remaining 4 PCS');
+      // The order holds a selling price for its so.manage readers: nothing of it reaches this screen.
+      expect(text()).not.toContain('500');
+      expect(text()).not.toContain('5,000');
+    });
+
+    it('a quantity above what remains is said in words and stops Submit; lowering or removing the line clears it', async () => {
+      await open(delivery(), DocumentType.Issue);
+      salesData.set(order());
+      const qty = spectator.component.view.lines.at(0).controls.qty;
+      qty.setValue(5);
+      spectator.detectChanges();
+
+      expect(text()).toContain('Only 4 PCS of this order line is left to deliver.');
+      expect(text()).toContain('A quantity is above what the order has left.');
+      const submit = (): HTMLButtonElement | undefined =>
+        spectator
+          .queryAll<HTMLButtonElement>('.document-editor-bar button')
+          .find(button => button.textContent?.includes('Submit'));
+      expect(submit()?.disabled).toBe(true);
+
+      qty.setValue(3);
+      spectator.detectChanges();
+      expect(text()).not.toContain('Only 4 PCS');
+      expect(submit()?.disabled).toBe(false);
+    });
+
+    it('a save ALWAYS sends the order line of every line, unchanged, and no price', async () => {
+      await open(delivery(), DocumentType.Issue);
+
+      spectator.component.view.lines.at(0).controls.qty.setValue(2);
+      spectator.component.onAction(DOCUMENT_ACTION.Edit);
+
+      const body = (calls['save'][0] as { body: { lines: Record<string, unknown>[] } }).body;
+      expect(body.lines).toHaveLength(1);
+      expect(body.lines[0]).toMatchObject({ qty: 2, salesOrderLineNo: 1 });
+      expect(body.lines[0]['purchaseOrderLineNo']).toBeUndefined();
+      expect(body.lines[0]['unitPrice']).toBeUndefined();
+    });
+
+    it('a post refused for more than the order has left is ONE alert naming the line and how many remain, no toast, and the order is read again', async () => {
+      await open(
+        delivery({
+          status: DocumentStatus.Approved,
+          allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Cancel]
+        }),
+        DocumentType.Issue
+      );
+      failing.set('post', overDelivery());
+
+      spectator.component.onAction(DOCUMENT_ACTION.Post);
+      confirm().confirm('');
+      spectator.detectChanges();
+
+      expect(alerts()).toHaveLength(1);
+      expect(alerts()[0]).toContain(
+        'Line 1 (DEMO-001): ordered 10, delivered 6, remaining 4, this delivery 5.'
+      );
+      expect(alerts()[0]).toContain('Ask the person who made it to lower the quantities');
+      expect(text()).not.toContain('changed by someone else');
+      expect(TestBed.inject(ToastService).$toasts()).toHaveLength(0);
+      expect(salesReload).toHaveBeenCalled();
+      expect(orderReload).not.toHaveBeenCalled();
+    });
+
+    it('without so.read the 409 is the general sentence, shown as it is, with no figures', async () => {
+      granted.delete(PERMISSION.SoRead);
+      await open(
+        delivery({
+          salesOrder: null as never,
+          status: DocumentStatus.Approved,
+          allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Cancel]
+        }),
+        DocumentType.Issue
+      );
+      commands['post'].$operation.set(
+        failureOperation({
+          ...STALE,
+          extensions: { code: 'over_delivery' },
+          message: 'This delivery asks for more than the order has left.'
+        })
+      );
+      spectator.detectChanges();
+
+      expect(alerts()[0]).toContain('This delivery asks for more than the order has left.');
+      expect(text()).not.toContain('ordered 10');
+    });
+
+    it('a stale 409 left by the document or user before does not show when a delivery opens, and the next delivery starts clean', async () => {
+      commands['approve'].$operation.set(
+        failureOperation({ ...STALE, extensions: { code: 'document_changed' } })
+      );
+      await open(delivery(), DocumentType.Issue);
+      expect(text()).not.toContain('changed since you opened it');
+      expect(resetCommands).toHaveBeenCalled();
+
+      commands['post'].$operation.set(failureOperation(overDelivery()));
+      spectator.detectChanges();
+      expect(alerts().join(' ')).toContain('Not posted');
+
+      opened.set(delivery({ id: guid(72), no: 'ISS-B' }));
+      spectator.setInput('id', guid(72));
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+      spectator.detectChanges();
+
+      expect(text()).toContain('ISS-B');
+      expect(alerts().join(' ')).not.toContain('Not posted');
+    });
+
+    it('says in words how posting left the order: closed, closed short or lines still to deliver', async () => {
+      await open(
+        delivery({ status: DocumentStatus.Posted, allowedActions: [] }),
+        DocumentType.Issue
+      );
+      salesData.set(order());
+      spectator.detectChanges();
+      expect(text()).toContain('Order SO-WH01-2611-0001 still has 1 line to deliver.');
+
+      salesData.set({
+        ...order(),
+        status: SalesOrderStatus.Closed,
+        closeKind: SalesOrderCloseKind.Delivered
+      });
+      spectator.detectChanges();
+      expect(text()).toContain('Order SO-WH01-2611-0001 is fully delivered and closed.');
     });
   });
 

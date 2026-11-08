@@ -13,7 +13,7 @@ import {
   untracked
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Observable, finalize, switchMap, tap } from 'rxjs';
 import {
   ApprovalMetric,
@@ -44,7 +44,6 @@ import { isStaleOrderError, staleOrderDetails } from '@ims/features/purchasing';
 import {
   SALES_ORDER_ROUTE,
   SO_ACTION,
-  SO_ACTIONS_NOT_BUILT,
   SO_STATUS_TONE,
   SalesOrdersStore,
   SoAction,
@@ -52,7 +51,14 @@ import {
   toSalesOrderRef,
   toSoActions
 } from '@ims/features/sales';
-import { API_ERROR_KIND, ApiError, HTTP_STATUS, MIN_REASON_LENGTH, PERMISSION } from '@ims/models';
+import {
+  API_ERROR_KIND,
+  ApiError,
+  HTTP_STATUS,
+  MIN_REASON_LENGTH,
+  PERMISSION,
+  PublicId
+} from '@ims/models';
 import {
   StatusTone,
   TableColumn,
@@ -122,6 +128,7 @@ export class SalesOrderDetailPageComponent {
   private readonly page = inject(DOCUMENT);
   private readonly pageTitle = inject(PageTitleService);
   private readonly permissions = inject(PermissionService);
+  private readonly router = inject(Router);
   private readonly store = inject(SalesOrdersStore);
   private readonly toast = inject(ToastService);
   private readonly moneyPipe = new AppMoneyPipe();
@@ -172,19 +179,16 @@ export class SalesOrderDetailPageComponent {
     () => this.$order()?.no ?? this.i18n.t(this.$notFound() ? 'notFound.title' : 'ui.loading')
   );
 
-  /** What the API offers, minus the two actions whose screen is not built yet. */
-  private readonly $actions = computed(
-    () =>
-      new Set(
-        [...toSoActions(this.$order()?.allowedActions)].filter(a => !SO_ACTIONS_NOT_BUILT.has(a))
-      )
-  );
+  /** What the API offers, nothing decided here from the status. */
+  private readonly $actions = computed(() => toSoActions(this.$order()?.allowedActions));
   readonly $canEdit = computed(() => this.$actions().has(SO_ACTION.Edit));
   /** The customer copy shows selling prices: offered when the API sent them (so.manage), for an order that may be printed. */
   readonly $canPrint = computed(() => {
     const status = this.$order()?.status;
     return this.$hasMoney() && status !== undefined && isPrintable(status);
   });
+  /** Offered by the API only when a delivery can be started from this order by this person (never decided here from the status). */
+  readonly $canDeliver = computed(() => this.$actions().has(SO_ACTION.Deliver));
   readonly $canSubmit = computed(() => this.$actions().has(SO_ACTION.Submit));
   readonly $canRecall = computed(() => this.$actions().has(SO_ACTION.Recall));
   readonly $canApprove = computed(() => this.$actions().has(SO_ACTION.Approve));
@@ -203,7 +207,8 @@ export class SalesOrderDetailPageComponent {
       this.store.approve.$isRunning() ||
       this.store.reject.$isRunning() ||
       this.store.cancel.$isRunning() ||
-      this.store.close.$isRunning()
+      this.store.close.$isRunning() ||
+      this.store.deliver.$isRunning()
   );
   readonly $busyAction = computed(() => (this.$isBusy() ? this.$activeAction() : undefined));
 
@@ -214,7 +219,8 @@ export class SalesOrderDetailPageComponent {
     this.store.approve.$operation().error,
     this.store.reject.$operation().error,
     this.store.cancel.$operation().error,
-    this.store.close.$operation().error
+    this.store.close.$operation().error,
+    this.store.deliver.$operation().error
   ]);
   /** Someone changed the order since it was opened: nothing can be done with this copy until it is read again. */
   readonly $isStale = computed(() => this.$commandErrors().some(isStaleOrderError));
@@ -497,10 +503,33 @@ export class SalesOrderDetailPageComponent {
           'po.toast.closed'
         );
         break;
+      case SO_ACTION.Deliver:
+        this.deliver(order.id);
+        break;
       default:
-        // Edit and Deliver are not rendered yet (SO_ACTIONS_NOT_BUILT).
+        // Edit is a link to the editor, not a command.
         break;
     }
+  }
+
+  /** Starts the draft delivery and opens it in the document editor; a refusal is the alert above, and the order is read again so the buttons match. */
+  private deliver(id: PublicId): void {
+    this.store.deliver
+      .run(id)
+      .pipe(
+        tap(
+          delivery =>
+            void this.router.navigate(['/', DOCUMENT_ROUTE[DocumentType.Issue], delivery.id])
+        ),
+        finalize(() => {
+          if (this.store.deliver.$operation().error?.kind === API_ERROR_KIND.Conflict) {
+            this.store.detail.reload();
+          }
+          this.settleFocus();
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe();
   }
 
   /** Asks first, then runs the command with the reason entered, tells the person, and settles the focus. */

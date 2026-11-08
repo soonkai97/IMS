@@ -248,6 +248,17 @@
           }}
         </app-button>
       }
+      @if ($canDeliver()) {
+        <app-button
+          variant="primary"
+          [disabled]="$isBusy() || $isStale()"
+          [loading]="$busyAction() === action.Deliver"
+          (clicked)="onAction(action.Deliver)"
+        >
+          <app-icon name="issue" />
+          {{ 'sales.deliver' | t }}
+        </app-button>
+      }
       @if ($canApprove()) {
         <app-button
           variant="primary"

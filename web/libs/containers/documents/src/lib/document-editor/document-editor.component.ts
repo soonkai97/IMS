@@ -56,10 +56,12 @@ import {
   LineValue,
   NEW_DOCUMENT_ID,
   STATUS_TONE,
+  isOverDeliveryError,
   isOverReceiptError,
   isReversalBlockedError,
   isStaleDocumentError,
   isStockConflictError,
+  overDeliveryLines,
   overReceiptLines,
   overRemainingLines,
   reversalShortages,
@@ -67,6 +69,7 @@ import {
   toDocumentRef
 } from '@ims/features/documents';
 import { PURCHASE_ORDER_ROUTE, PurchaseOrdersStore } from '@ims/features/purchasing';
+import { SALES_ORDER_ROUTE, SalesOrdersStore } from '@ims/features/sales';
 import { StockStore } from '@ims/features/stock';
 import { PartnersStore, WarehousesStore } from '@ims/features/warehousing';
 import {
@@ -111,9 +114,12 @@ import { DocumentLineEditorComponent } from '../line-editor/line-editor.componen
 import { parseEditorDraft } from './document-editor.draft';
 import {
   LineRefusal,
+  LinkedOrderRef,
   lineRefusals,
   orderLineContexts,
-  orderProgress
+  orderProgress,
+  salesOrderLineContexts,
+  salesOrderProgress
 } from './document-editor.linked-order';
 import { DocumentEditorViewService } from './document-editor.view-service';
 
@@ -205,6 +211,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   private readonly injector = inject(Injector);
   private readonly page = inject(DOCUMENT);
   private readonly orders = inject(PurchaseOrdersStore);
+  private readonly salesOrders = inject(SalesOrdersStore);
   private readonly pageTitle = inject(PageTitleService);
   private readonly partners = inject(PartnersStore);
   private readonly permissions = inject(PermissionService);
@@ -220,7 +227,6 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   readonly view = inject(DocumentEditorViewService);
   /** The shortage banner offers Cancel document as a button of its own. */
   readonly cancelAction = DOCUMENT_ACTION.Cancel;
-  readonly orderRoute = PURCHASE_ORDER_ROUTE;
   /** The over-receipt alert offers Edit items, which is the recall. */
   readonly recallAction = DOCUMENT_ACTION.Recall;
 
@@ -268,15 +274,27 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     return document && document.id === this.$documentId() ? document : undefined;
   });
   /** The purchase order this receipt belongs to. The API leaves it out (null) for an ordinary receipt and for a caller who may not read purchase orders. Supplier, warehouse and lines are the order's: they cannot be changed or added to here. */
-  readonly $linkedOrder = computed(() => {
-    const order = this.$document()?.purchaseOrder;
-    return isDefined(order) ? order : undefined;
+  readonly $linkedOrder = computed<LinkedOrderRef | undefined>(() => {
+    const document = this.$document();
+    const purchase = document?.purchaseOrder;
+    if (isDefined(purchase)) {
+      return { ...purchase, kind: 'purchase' };
+    }
+    // A delivery names its sales order the same way (omitted for a caller who may not read sales orders).
+    const sales = document?.salesOrder;
+    return isDefined(sales) ? { ...sales, kind: 'sales' } : undefined;
   });
+  readonly $isSalesOrder = computed(() => this.$linkedOrder()?.kind === 'sales');
+  readonly $orderRoute = computed(() =>
+    this.$isSalesOrder() ? SALES_ORDER_ROUTE : PURCHASE_ORDER_ROUTE
+  );
   /** Only the id: a save brings a new document object, and the order is not read again for that. */
   private readonly $linkedOrderId = computed(() => this.$linkedOrder()?.id);
   /** The order's own figures per line, once they have arrived (the API stays the authority; they only make the advice readable). */
   readonly $orderLines = computed(() =>
-    orderLineContexts(this.orders.detail.$data(), this.$linkedOrderId())
+    this.$isSalesOrder()
+      ? salesOrderLineContexts(this.salesOrders.detail.$data(), this.$linkedOrderId())
+      : orderLineContexts(this.orders.detail.$data(), this.$linkedOrderId())
   );
   /** A quantity above what the order has left: advisory here, refused by the API at save and at posting. */
   readonly $overOrder = computed(
@@ -287,10 +305,20 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   );
   /** What posting this receipt did to the order (closed, closed short, or how many lines are left). Nothing while the order is being read again: after a post it still holds the figures from before. */
   readonly $orderProgress = computed(() => {
+    if (this.$status() !== DocumentStatus.Posted) {
+      return undefined;
+    }
+    if (this.$isSalesOrder()) {
+      const sales = this.salesOrders.detail.$data();
+      return sales !== undefined &&
+        !this.salesOrders.detail.$isLoading() &&
+        sales.id === this.$linkedOrderId()
+        ? salesOrderProgress(sales)
+        : undefined;
+    }
     const order = this.orders.detail.$data();
     return order !== undefined &&
       !this.orders.detail.$isLoading() &&
-      this.$status() === DocumentStatus.Posted &&
       order.id === this.$linkedOrderId()
       ? orderProgress(order)
       : undefined;
@@ -330,8 +358,10 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       this.documents.detail.$operation().error?.kind === API_ERROR_KIND.NotFound
   );
   readonly $canPost = computed(() => this.permissions.has(PERMISSION.DocumentPost));
-  /** The order opens for a holder of po.read (the API shows the link to nobody else). */
-  readonly $canReadOrders = computed(() => this.permissions.has(PERMISSION.PoRead));
+  /** The order opens for a holder of po.read (a purchase order) or so.read (a sales order): the API shows the link to nobody else. */
+  readonly $canReadOrders = computed(() =>
+    this.permissions.has(this.$isSalesOrder() ? PERMISSION.SoRead : PERMISSION.PoRead)
+  );
   /** The button that was tapped shows the spinner, not whichever button is primary (NV-21). */
   private readonly $activeAction = signal<DocumentAction | undefined>(undefined);
   readonly $busyAction = computed(() => (this.$isBusy() ? this.$activeAction() : undefined));
@@ -553,9 +583,16 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   );
   /** Posting refused because the order has less left than this receipt brings (409 over_receipt): the figures of each line, in one alert. */
   readonly $overReceipt = computed(() => {
-    const error = this.$postingErrors().find(isOverReceiptError);
+    const error = this.$postingErrors().find(
+      candidate => isOverReceiptError(candidate) || isOverDeliveryError(candidate)
+    );
+    // Delivery (over_delivery, sales order) or receipt (over_receipt, purchase order): the same figures, other words.
     return error
-      ? { lines: overReceiptLines(error), message: error.message ?? error.detail }
+      ? {
+          sales: isOverDeliveryError(error),
+          lines: isOverDeliveryError(error) ? overDeliveryLines(error) : overReceiptLines(error),
+          message: error.message ?? error.detail
+        }
       : undefined;
   });
   /** Any other 409 of a command that is not a stale copy, stock or a blocked reversal (the order of a receipt is no longer open, the module is off): the API's own sentence in one alert. The interceptor does not toast a 409 on an If-Match call. */
@@ -567,6 +604,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
           !isStaleDocumentError(error) &&
           !isStockConflictError(error) &&
           !isOverReceiptError(error) &&
+          !isOverDeliveryError(error) &&
           !isReversalBlockedError(error)
       )?.message
   );
@@ -775,10 +813,13 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   /** A receipt from a purchase order shows the order's figures. The store outlives this page and a sign-out and may hold an older copy of this very order, so it is read again every time a linked receipt opens. */
   private readonly loadLinkedOrder = effect(() => {
     const orderId = this.$linkedOrderId();
+    const sales = this.$isSalesOrder();
     if (orderId !== undefined) {
       untracked(() => {
-        this.orders.detail.reset();
-        this.orders.detail.load(orderId, handledInline());
+        const store = sales ? this.salesOrders : this.orders;
+        // Nothing of the last order, or of a command that failed on it, is this order's.
+        store.detail.reset();
+        store.detail.load(orderId, handledInline());
       });
     }
   });
@@ -793,7 +834,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       this.$lineRefusals.set(refusals);
       // A refused line says what the order had left when it was asked: read its figures again.
       if (refusals.length > 0 && this.$linkedOrder() !== undefined) {
-        this.orders.detail.reload();
+        this.reloadLinkedOrder();
       }
     });
   });
@@ -1426,7 +1467,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         finalize(() => {
           // Refused for more than the order has left: its figures may have moved since this page opened.
           if (this.$overReceipt() !== undefined) {
-            this.orders.detail.reload();
+            this.reloadLinkedOrder();
           }
           // The submit worked and the post did not: one sentence says so, with the reason, and the document stays Submitted.
           const error = this.documents.post.$operation().error;
@@ -1594,8 +1635,13 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       this.stock.summary.load();
       // Posting or reversing moved what the order has received: show it, and the order's own page reads it again when it opens.
       if (this.$linkedOrder() !== undefined) {
-        this.orders.detail.reload();
+        this.reloadLinkedOrder();
       }
     }
+  }
+
+  /** Reads the order of this document again (a purchase order or a sales order): its figures moved. */
+  private reloadLinkedOrder(): void {
+    (this.$isSalesOrder() ? this.salesOrders : this.orders).detail.reload();
   }
 }
