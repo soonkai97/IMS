@@ -114,6 +114,26 @@ public class DeliveryFromSalesOrderTests
     }
 
     [Fact]
+    public void A_document_linked_to_both_kinds_of_order_is_corrupt_and_its_link_is_an_error_not_a_guess()
+    {
+        var delivery = StockDocument.CreateFromSalesOrder(Order(approved: true), 3, Now).WithPrivate(nameof(StockDocument.PurchaseOrderId), 9);
+
+        Assert.Throws<InvalidOperationException>(() => delivery.Link);
+    }
+
+    [Fact]
+    public void Posting_is_not_offered_for_a_delivery_until_PL3_7_but_still_for_a_receipt_from_a_purchase_order_and_an_ordinary_issue()
+    {
+        var poster = new ActorRights(1, EffectivePermissions.Compute([Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.DocumentPostApproved, Permissions.SoRead, Permissions.PoRead]));
+        var approved = new DocumentActionContext(DocumentStatus.Approved, true, false, 2, 3);
+        string[] Offered(LinkedReceiptContext? link) => [.. DocumentActionPolicy.AllowedActions(poster, approved, allowSelfApproval: false, withinApprovalLimit: true, link)];
+
+        Assert.Contains(DocumentActions.Post, Offered(null));
+        Assert.Contains(DocumentActions.Post, Offered(new LinkedReceiptContext(true, DocumentLinkKind.PurchaseOrder)));
+        Assert.DoesNotContain(DocumentActions.Post, Offered(new LinkedReceiptContext(true, DocumentLinkKind.SalesOrder)));
+    }
+
+    [Fact]
     public void The_policy_for_a_linked_delivery_asks_for_so_read_not_po_read()
     {
         var staffWithSoRead = new ActorRights(1, EffectivePermissions.Compute([Permissions.DocumentCreate, Permissions.SoRead]));

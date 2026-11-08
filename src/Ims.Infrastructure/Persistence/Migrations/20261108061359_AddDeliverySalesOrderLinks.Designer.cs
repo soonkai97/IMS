@@ -1548,7 +1548,10 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Status", "Type", "Id"), new[] { "WarehouseId" });
 
-                    b.ToTable("StockDocument");
+                    b.ToTable("StockDocument", t =>
+                        {
+                            t.HasCheckConstraint("CK_StockDocument_OneLink", "[PurchaseOrderId] IS NULL OR [SalesOrderId] IS NULL");
+                        });
                 });
 
             modelBuilder.Entity("Ims.Domain.StockDocumentLine", b =>

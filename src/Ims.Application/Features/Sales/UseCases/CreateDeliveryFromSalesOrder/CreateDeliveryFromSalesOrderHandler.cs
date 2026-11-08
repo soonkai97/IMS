@@ -13,11 +13,13 @@ public class CreateDeliveryFromSalesOrderHandler(IReadRepository<SalesOrder> ord
         // The whole body re-runs if two requests race for the same document number or the order's lock.
         var publicId = await uow.ExecuteAsync(async () =>
         {
-            // The order's lock comes first and the order is read after it: a cancel of the order waits for this delivery (and refuses), or has finished and is seen here (409).
-            var key = await orders.FirstOrDefaultAsync(new SalesOrderKeySpec(cmd.OrderId), ct) ?? throw new NotFoundException(Messages.SalesOrderNotFound);
+            // The caller's scope is judged on the key BEFORE any lock is taken, so a caller who may not see the order cannot make others wait on its lock. The order's lock then comes first and the order is
+            // read after it, so the quantities and the status seen are the truth for this transaction. (A cancel of the order does not take this lock yet: that, and the refusal while a delivery is open, is PL3.6.)
+            var found = await orders.FirstOrDefaultAsync(new SalesOrderKeySpec(cmd.OrderId), ct) ?? throw new NotFoundException(Messages.SalesOrderNotFound);
+            orderAccess.EnsureInScope(found.WarehouseId);
+            var key = found.Id;
             await locker.LockSalesOrderAsync(key, ct);
             var order = await orders.FirstOrDefaultAsync(new SalesOrderForDeliverySpec(key), ct) ?? throw new NotFoundException(Messages.SalesOrderNotFound);
-            orderAccess.EnsureInScope(order.WarehouseId);
             if (!order.CanBeDelivered) throw new ConflictException(Messages.SalesOrderNotDeliverable(order.No, order.Status));
 
             // What is left to deliver of each line, in the order's own unit: the quantity of the order less what Posted deliveries took out. A line with nothing left is not copied.
@@ -29,7 +31,7 @@ public class CreateDeliveryFromSalesOrderHandler(IReadRepository<SalesOrder> ord
             var delivery = StockDocument.CreateFromSalesOrder(order, current.UserId, clock.UtcNow);
             delivery.AssignNumber(await numbering.NextAsync(DocumentType.Issue, order.Warehouse, ct));
             delivery.AddLines(open.Select(l => StockDocumentLine.Create(l.Product, DocumentType.Issue, SalesOrderQuantities.RemainingQty(l, done.GetValueOrDefault(l.LineNo)), l.UomId,
-                null, l.Remark, costFromAverage: true, salesOrderLineNo: l.LineNo)));
+                null, null, costFromAverage: true, salesOrderLineNo: l.LineNo))); // the order line's remark is the seller's note, not the warehouse's: it is not copied
 
             documents.Add(delivery);
             audit.Record(AuditActions.DocumentCreated, AuditEntities.StockDocument, delivery.No,

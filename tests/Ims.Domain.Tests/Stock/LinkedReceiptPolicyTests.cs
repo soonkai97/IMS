@@ -43,9 +43,9 @@ public class LinkedReceiptPolicyTests
         var reader = With(Permissions.DocumentCreate, Permissions.PoRead);
 
         Assert.Equal([DocumentActions.Cancel, DocumentActions.Edit, DocumentActions.Submit], Offered(blind, null)); // not linked: unchanged
-        Assert.Equal([DocumentActions.Cancel, DocumentActions.Submit], Offered(blind, new LinkedReceiptContext(true)));
-        Assert.Equal([DocumentActions.Cancel, DocumentActions.Edit, DocumentActions.Submit], Offered(reader, new LinkedReceiptContext(true)));
-        Assert.Equal([DocumentActions.Cancel], Offered(reader, new LinkedReceiptContext(false)));
-        Assert.Equal([DocumentActions.Cancel], Offered(blind, new LinkedReceiptContext(false)));
+        Assert.Equal([DocumentActions.Cancel, DocumentActions.Submit], Offered(blind, new LinkedReceiptContext(true, DocumentLinkKind.PurchaseOrder)));
+        Assert.Equal([DocumentActions.Cancel, DocumentActions.Edit, DocumentActions.Submit], Offered(reader, new LinkedReceiptContext(true, DocumentLinkKind.PurchaseOrder)));
+        Assert.Equal([DocumentActions.Cancel], Offered(reader, new LinkedReceiptContext(false, DocumentLinkKind.PurchaseOrder)));
+        Assert.Equal([DocumentActions.Cancel], Offered(blind, new LinkedReceiptContext(false, DocumentLinkKind.PurchaseOrder)));
     }
 }

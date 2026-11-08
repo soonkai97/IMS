@@ -11,7 +11,7 @@ public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentA
         var dto = await documents.FirstOrDefaultAsync(new DocumentDtoSpec(publicId, access.WarehouseScope()), ct) ?? throw new NotFoundException(Messages.DocumentNotFound);
         dto = await WithStockAsync(dto, ct);
         // The module is asked only for a linked receipt, so every other document costs nothing extra. The actions are decided with the link as the API sees it, before it is hidden from this caller.
-        LinkedReceiptContext? link = dto.PurchaseOrder is not null ? new LinkedReceiptContext(await modules.IsEnabledAsync(ModuleCodes.Purchasing, ct))
+        LinkedReceiptContext? link = dto.PurchaseOrder is not null ? new LinkedReceiptContext(await modules.IsEnabledAsync(ModuleCodes.Purchasing, ct), DocumentLinkKind.PurchaseOrder)
             : dto.SalesOrder is not null ? new LinkedReceiptContext(await modules.IsEnabledAsync(ModuleCodes.Sales, ct), DocumentLinkKind.SalesOrder)
             : null;
         dto = WithoutLinkUnlessVisible(dto, link);

@@ -6,6 +6,7 @@ using Ims.Api.Tests.Support;
 using Ims.Application.Features.Documents;
 using Ims.Application.Features.Sales;
 using Ims.Domain;
+using Microsoft.Data.SqlClient;
 
 namespace Ims.Api.Tests.Tests.Sales;
 
@@ -28,7 +29,7 @@ public class SalesDeliveryTests(ApiFixture fixture) : IAsyncLifetime
     /// <summary>An Approved order in the default warehouse for the default customer: line 1 is 10 of <paramref name="a"/> at 2.50, line 2 is 5 of <paramref name="b"/> at 4.00 (released at once: below every rule).</summary>
     private async Task<SalesOrderDto> ApprovedAsync(Guid a, Guid b)
     {
-        var draft = (await _s.Clerk.SalesOrders.CreateAsync(new SalesOrderBuilder(_s.Warehouse, fixture.Reference.CustomerId).WithLine(a, 10m, 2.50m).WithLine(b, 5m, 4m).Build())).Data<SalesOrderDto>();
+        var draft = (await _s.Clerk.SalesOrders.CreateAsync(new SalesOrderBuilder(_s.Warehouse, fixture.Reference.CustomerId).WithLine(a, 10m, 2.50m, remark: "seller note").WithLine(b, 5m, 4m).Build())).Data<SalesOrderDto>();
         var approved = (await _s.Clerk.SalesOrders.SubmitAsync(draft.Id, draft.ConcurrencyToken)).Data<SalesOrderDto>();
         Assert.Equal(SalesOrderStatus.Approved, approved.Status);
         return approved;
@@ -60,6 +61,15 @@ public class SalesDeliveryTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Null(delivery.PurchaseOrder);
         Assert.StartsWith($"ISS-", delivery.No); // the normal sequence of an issue
         Assert.Equal(1, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM AuditLogs WHERE Action = @a AND EntityId = @no", ("@a", AuditActions.DocumentCreated), ("@no", delivery.No)));
+    }
+
+    [Fact]
+    public async Task The_remark_of_an_order_line_is_the_sellers_note_and_is_not_copied_into_the_delivery()
+    {
+        var (order, delivery, _, _) = await DeliveryAsync();
+
+        Assert.Equal("seller note", order.Lines[0].Remark);
+        Assert.All(delivery.Lines, l => Assert.Null(l.Remark));
     }
 
     [Fact]
@@ -128,6 +138,27 @@ public class SalesDeliveryTests(ApiFixture fixture) : IAsyncLifetime
         (await scoped.SalesOrders.CreateDeliveryAsync(order.Id)).ShouldBeProblem(HttpStatusCode.NotFound);
 
         Assert.Equal(before, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM StockDocument WHERE SalesOrderId IS NOT NULL"));
+    }
+
+    [Fact]
+    public async Task A_caller_outside_the_orders_warehouse_is_refused_before_the_orders_lock_so_a_held_lock_does_not_make_them_wait()
+    {
+        var order = await ApprovedAsync((await _s.NewProductAsync()).Id, (await _s.NewProductAsync()).Id);
+        var key = await fixture.Database.ScalarAsync<int>("SELECT Id FROM SalesOrder WHERE PublicId = @id", ("@id", order.Id));
+        var other = await _s.NewWarehouseAsync();
+        var (scoped, _) = await new AccountFactory(fixture).SignInAsync(await new AccountFactory(fixture).CreateAsync(Roles.Clerk, [other.Id]));
+        await using var connection = new SqlConnection(fixture.Database.ConnectionString);
+        await connection.OpenAsync();
+        await using var tx = (SqlTransaction)await connection.BeginTransactionAsync();
+        await new SqlCommand($"EXEC sp_getapplock @Resource = N'so:{key}', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 0", connection, tx).ExecuteNonQueryAsync();
+
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var response = await scoped.SalesOrders.CreateDeliveryAsync(order.Id);
+        clock.Stop();
+        await tx.RollbackAsync();
+
+        response.ShouldBeProblem(HttpStatusCode.NotFound);
+        Assert.True(clock.ElapsedMilliseconds < 3000, $"the refusal waited {clock.ElapsedMilliseconds} ms: it must not queue on the order's lock");
     }
 
     [Fact]

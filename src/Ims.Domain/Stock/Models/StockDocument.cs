@@ -87,8 +87,10 @@ public class StockDocument : PublicEntity
     public SalesOrder? SalesOrder { get; private set; }
 
     /// <summary>The order this document was created from, if any: its kind and key. At most one (see <see cref="SalesOrderId"/>).</summary>
+    /// <exception cref="InvalidOperationException">Both keys are set: no code path does that, so the stored row is corrupt and nothing should act on it.</exception>
     public DocumentLink Link =>
-        PurchaseOrderId is { } purchase ? new DocumentLink(DocumentLinkKind.PurchaseOrder, purchase)
+        PurchaseOrderId is not null && SalesOrderId is not null ? throw new InvalidOperationException($"Document {No} is linked to both a purchase order and a sales order.")
+        : PurchaseOrderId is { } purchase ? new DocumentLink(DocumentLinkKind.PurchaseOrder, purchase)
         : SalesOrderId is { } sales ? new DocumentLink(DocumentLinkKind.SalesOrder, sales)
         : DocumentLink.None;
 

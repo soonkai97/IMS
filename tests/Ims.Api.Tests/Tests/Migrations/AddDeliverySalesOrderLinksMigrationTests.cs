@@ -155,7 +155,9 @@ public class AddDeliverySalesOrderLinksMigrationTests : IAsyncLifetime
         Assert.Equal(ReferentialAction.Restrict, Assert.Single(up.OfType<AddForeignKeyOperation>()).OnDelete);
         Assert.Equal(["CK_SalesOrderLine_BaseQty", "CK_SalesOrderLine_Qty", "CK_SalesOrderLine_SellingPrice"], up.OfType<AddCheckConstraintOperation>().Select(c => c.Name).Order());
         Assert.All(up.OfType<DropIndexOperation>().Concat<MigrationOperation>(up.OfType<CreateIndexOperation>()), op => Assert.Equal("SalesOrderLine", op is DropIndexOperation d ? d.Table : ((CreateIndexOperation)op).Table));
-        Assert.Equal(10, up.Count);
+        Assert.Contains(sql, q => q.Contains("CK_StockDocument_OneLink")); // dynamic SQL: it names the new column
+        Assert.Contains(sql, q => q.Contains("THROW 50009")); // the pre-check of the sales-order line rows
+        Assert.Equal(12, up.Count);
     }
 
     [Fact]
@@ -188,6 +190,43 @@ public class AddDeliverySalesOrderLinksMigrationTests : IAsyncLifetime
             "SELECT STRING_AGG(c.name, N',') WITHIN GROUP (ORDER BY c.name) FROM sys.index_columns ic JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id " +
             "WHERE ic.object_id = OBJECT_ID(N'SalesOrderLine') AND ic.index_id = (SELECT index_id FROM sys.indexes WHERE object_id = OBJECT_ID(N'SalesOrderLine') AND name = N'IX_SalesOrderLine_SalesOrderId') AND ic.is_included_column = 1"));
         Assert.Equal(3, await _db.ScalarAsync<int>("SELECT COUNT(*) FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID(N'SalesOrderLine')"));
+    }
+
+    [Fact]
+    public async Task A_document_cannot_carry_both_links_and_the_check_goes_with_down()
+    {
+        await MigrateAsync(Before);
+        await SeedAsync();
+        await MigrateAsync(Latest);
+        await InsertOrderAsync();
+        await _db.ExecuteAsync("INSERT PurchaseOrder (No, Status, WarehouseId, SupplierId, CreatedBy, CreatedAt, RequiresApproval, IsLarge) SELECT N'PO-W1-2610-0001', 2, (SELECT TOP (1) Id FROM Warehouse), (SELECT TOP (1) Id FROM Partner), (SELECT TOP (1) Id FROM [User]), SYSUTCDATETIME(), 0, 0");
+
+        await _db.ExecuteAsync("UPDATE StockDocument SET SalesOrderId = (SELECT TOP (1) Id FROM SalesOrder) WHERE No = @no", ("@no", LinkedNo)); // one link is fine
+        await Assert.ThrowsAnyAsync<SqlException>(() => _db.ExecuteAsync("UPDATE StockDocument SET PurchaseOrderId = (SELECT TOP (1) Id FROM PurchaseOrder) WHERE No = @no", ("@no", LinkedNo)));
+        await _db.ExecuteAsync("UPDATE StockDocument SET SalesOrderId = NULL");
+        await MigrateAsync(Before);
+
+        Assert.Equal(0, await _db.ScalarAsync<int>("SELECT COUNT(*) FROM sys.check_constraints WHERE name = N'CK_StockDocument_OneLink'"));
+    }
+
+    [Fact]
+    public async Task Up_refuses_in_words_when_a_sales_order_line_row_would_break_what_it_adds_and_changes_nothing()
+    {
+        await MigrateAsync(Before);
+        await SeedAsync();
+        await InsertOrderAsync();
+        await _db.ExecuteAsync("""
+            INSERT SalesOrderLine (SalesOrderId, [LineNo], ProductId, Qty, UomId, BaseQty, SellingPrice, SellingAmount)
+            SELECT (SELECT TOP (1) Id FROM SalesOrder), 1, (SELECT TOP (1) Id FROM Product), 1, (SELECT TOP (1) Id FROM Uom), 1, 1, 1;
+            INSERT SalesOrderLine (SalesOrderId, [LineNo], ProductId, Qty, UomId, BaseQty, SellingPrice, SellingAmount)
+            SELECT (SELECT TOP (1) Id FROM SalesOrder), 1, (SELECT TOP (1) Id FROM Product), 1, (SELECT TOP (1) Id FROM Uom), 1, 1, 1;
+            """);
+
+        var refused = await Assert.ThrowsAnyAsync<Exception>(() => MigrateAsync(Latest));
+
+        Assert.Contains("SalesOrderLine holds rows this migration cannot accept", Messages(refused));
+        Assert.Equal(0, await ColumnCountAsync());
+        Assert.Equal(0, await MigrationRowAsync());
     }
 
     [Fact]

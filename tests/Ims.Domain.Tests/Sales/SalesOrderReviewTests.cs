@@ -148,6 +148,15 @@ public class SalesOrderReviewTests
     }
 
     [Fact]
+    public void A_quantity_that_is_less_than_the_smallest_step_of_the_base_unit_once_converted_is_refused_not_stored_as_zero()
+    {
+        var product = NewProduct(cartonFactor: 0.1m); // one carton is a tenth of a piece
+
+        Assert.Equal(Messages.QtyTooSmall, Assert.Throws<DomainException>(() => SalesOrderLine.Create(product, 0.0001m, CartonId, 1m, null)).Message); // 0.00001 pieces
+        Assert.Equal(0.0001m, SalesOrderLine.Create(product, 0.001m, CartonId, 1m, null).BaseQty);                                                       // exactly the smallest step is fine
+    }
+
+    [Fact]
     public void One_step_past_the_limits_is_refused()
     {
         Assert.Throws<DomainException>(() => Line(1m, Limits.MaxUnitCost + 0.01m));
