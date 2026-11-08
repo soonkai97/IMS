@@ -44,11 +44,15 @@
       "cache": true,
       "inputs": ["default", "{workspaceRoot}/eslint.config.mjs", "{workspaceRoot}/nx.json"]
     },
-    "@nx/jest:jest": {
+    "test": {
       "cache": true,
       "inputs": ["default", "^production", "{workspaceRoot}/jest.preset.js"],
       "options": { "passWithNoTests": true }
     },
     "serve": { "cache": false }
-  }
+  },
+  "plugins": [
+    { "plugin": "@nx/eslint/plugin", "options": { "targetName": "lint" } },
+    { "plugin": "@nx/jest/plugin", "options": { "targetName": "test" } }
+  ]
 }
