@@ -11,24 +11,49 @@
       "executor": "@angular/build:application",
       "outputs": ["{options.outputPath.base}"],
       "options": {
-        "outputPath": { "base": "dist/main", "browser": "browser" },
+        "outputPath": {
+          "base": "dist/main",
+          "browser": "browser"
+        },
         "browser": "apps/main/src/main.ts",
         "index": "apps/main/src/index.html",
         "tsConfig": "apps/main/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
         "assets": [
-          { "glob": "**/*", "input": "libs/shared/assets/src/assets", "output": "/assets" },
-          { "glob": "manifest.webmanifest", "input": "libs/shared/assets/src", "output": "/" },
-          { "glob": "favicon.svg", "input": "libs/shared/assets/src", "output": "/" }
+          {
+            "glob": "**/*",
+            "input": "libs/shared/assets/src/assets",
+            "output": "/assets"
+          },
+          {
+            "glob": "manifest.webmanifest",
+            "input": "libs/shared/assets/src",
+            "output": "/"
+          },
+          {
+            "glob": "favicon.svg",
+            "input": "libs/shared/assets/src",
+            "output": "/"
+          }
         ],
         "styles": ["libs/shared/styles/src/index.scss"],
-        "stylePreprocessorOptions": { "includePaths": ["libs/shared/styles/src"] }
+        "stylePreprocessorOptions": {
+          "includePaths": ["libs/shared/styles/src"]
+        }
       },
       "configurations": {
         "production": {
           "budgets": [
-            { "type": "initial", "maximumWarning": "600kB", "maximumError": "650kB" },
-            { "type": "anyComponentStyle", "maximumWarning": "8kB", "maximumError": "16kB" }
+            {
+              "type": "initial",
+              "maximumWarning": "600kB",
+              "maximumError": "650kB"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "8kB",
+              "maximumError": "16kB"
+            }
           ],
           "fileReplacements": [
             {
@@ -38,7 +63,10 @@
           ],
           "optimization": {
             "scripts": true,
-            "styles": { "minify": true, "inlineCritical": false },
+            "styles": {
+              "minify": true,
+              "inlineCritical": false
+            },
             "fonts": true
           },
           "outputHashing": "all",
@@ -54,21 +82,18 @@
     },
     "serve": {
       "executor": "@angular/build:dev-server",
-      "options": { "port": 4200 },
+      "options": {
+        "port": 4200
+      },
       "configurations": {
-        "production": { "buildTarget": "main:build:production" },
-        "development": { "buildTarget": "main:build:development" }
+        "production": {
+          "buildTarget": "main:build:production"
+        },
+        "development": {
+          "buildTarget": "main:build:development"
+        }
       },
       "defaultConfiguration": "development"
-    },
-    "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/apps/main"],
-      "options": { "jestConfig": "apps/main/jest.config.ts", "passWithNoTests": true }
-    },
-    "lint": {
-      "executor": "@nx/eslint:lint",
-      "options": { "lintFilePatterns": ["apps/main/src/**/*.ts", "apps/main/src/**/*.html"] }
     }
   }
 }
