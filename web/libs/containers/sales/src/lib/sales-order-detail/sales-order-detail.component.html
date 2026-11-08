@@ -15,7 +15,7 @@
   </div>
   @if ($canPrint()) {
     <div actions>
-      <a class="ui-link-button" [routerLink]="['/', 'sales-orders', $order()?.id, 'print']">
+      <a class="ui-link-button" [routerLink]="['/', route, $order()?.id, 'print']">
         <app-icon name="file" />
         {{ 'sales.print' | t }}
       </a>
@@ -221,7 +221,7 @@
         </app-button>
       }
       @if ($canEdit()) {
-        <a class="ui-link-button" [routerLink]="['/', 'sales-orders', order.id, 'edit']">
+        <a class="ui-link-button" [routerLink]="['/', route, order.id, 'edit']">
           <app-icon name="pencil" />
           {{ 'sales.edit' | t }}
         </a>

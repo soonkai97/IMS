@@ -840,6 +840,12 @@ export const ZH_MESSAGES: Messages = {
   'so.emptyAwaiting': '本页没有等待您处理的订单。下一页可能还有。',
   // TODO-review: machine draft (PL3.9 sales order editor).
   'sales.new': '新建销售订单',
+  // TODO-review: machine draft (PL3.9 review fixes).
+  'sales.findCustomer': '查找客户',
+  'sales.customersTruncated': '只列出了前面的客户。输入文字可搜索其他客户。',
+  'sales.priceHint': '空白单价会保存为 0.00。单价为零的订单无法提交。',
+  'sales.warehouseFixed': '订单保存后不可更改。',
+  'sales.lineRemoved': '已移除 {sku}。',
   'sales.edit': '修改',
   'sales.staleSaveBody': '其他人已修改此订单。请重新加载以查看最新版本。您的修改未保存。',
   'sales.priceFor': '{sku} 的单价',

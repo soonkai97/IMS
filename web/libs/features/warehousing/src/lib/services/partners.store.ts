@@ -42,7 +42,7 @@ export class PartnersStore {
   readonly $partners = computed(() => this.list.$data()?.items ?? []);
 
   /** Loads the active partners of one type for a document form (suppliers for receipts, customers for issues). */
-  loadActive(type: PartnerType): void {
-    this.list.load({ type, includeInactive: false, page: 1, pageSize: MAX_PAGE_SIZE });
+  loadActive(type: PartnerType, search?: string): void {
+    this.list.load({ type, includeInactive: false, search, page: 1, pageSize: MAX_PAGE_SIZE });
   }
 }

@@ -903,6 +903,13 @@ export const MS_MESSAGES: Messages = {
     'Tiada pesanan di halaman ini yang menunggu anda. Mungkin ada lagi di halaman seterusnya.',
   // TODO-review: machine draft (PL3.9 sales order editor).
   'sales.new': 'Pesanan jualan baharu',
+  // TODO-review: machine draft (PL3.9 review fixes).
+  'sales.findCustomer': 'Cari pelanggan',
+  'sales.customersTruncated': 'Hanya pelanggan pertama disenaraikan. Taip untuk mencari yang lain.',
+  'sales.priceHint':
+    'Harga kosong disimpan sebagai 0.00. Pesanan berharga sifar tidak boleh dihantar.',
+  'sales.warehouseFixed': 'Tetap selepas pesanan disimpan.',
+  'sales.lineRemoved': '{sku} dibuang.',
   'sales.edit': 'Ubah',
   'sales.staleSaveBody':
     'Orang lain telah mengubah pesanan ini. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',

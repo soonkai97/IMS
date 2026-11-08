@@ -897,6 +897,12 @@ export const EN_MESSAGES = {
   'so.emptyAwaiting':
     'None of the orders on this page are waiting for you. There may be more on the next page.',
   'sales.new': 'New sales order',
+  'sales.findCustomer': 'Find a customer',
+  'sales.customersTruncated': 'Only the first customers are listed. Type to search for the others.',
+  'sales.priceHint':
+    'A blank price is saved as 0.00. An order with a zero price cannot be submitted.',
+  'sales.warehouseFixed': 'Fixed once the order is saved.',
+  'sales.lineRemoved': '{sku} removed.',
   'sales.edit': 'Edit',
   'sales.staleSaveBody':
     'Someone else changed this order. Reload to see the latest version. Your changes were not saved.',

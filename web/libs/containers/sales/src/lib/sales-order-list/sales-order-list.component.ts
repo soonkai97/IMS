@@ -107,6 +107,7 @@ export class SalesOrderListPageComponent implements OnInit {
   private readonly $filterKey = computed(() =>
     JSON.stringify([this.$search(), this.$status(), this.$customerId(), this.$awaiting()])
   );
+  readonly route = SALES_ORDER_ROUTE;
   readonly pageSizes = PAGE_SIZES;
   private readonly pageState = createPageState(this.$filterKey);
 

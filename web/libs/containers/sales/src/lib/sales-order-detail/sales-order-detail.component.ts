@@ -131,6 +131,7 @@ export class SalesOrderDetailPageComponent {
   $id = input<string | undefined>(undefined, { alias: 'id' });
 
   readonly action = SO_ACTION;
+  readonly route = SALES_ORDER_ROUTE;
   readonly backLink = ['/', SALES_ORDER_ROUTE];
   readonly statusLabels = SALES_ORDER_STATUS_LABELS;
   readonly deliveryStatusLabels = DOCUMENT_STATUS_LABELS;

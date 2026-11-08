@@ -59,6 +59,7 @@ import {
   UiInputComponent,
   UiPageHeaderComponent,
   UiPublishHeightDirective,
+  UiSearchInputComponent,
   UiSelectComponent,
   UiSkeletonComponent,
   UiTextareaComponent
@@ -67,6 +68,8 @@ import {
   applyFieldErrors,
   focusFirstInvalid,
   isDefined,
+  controlSignal,
+  debouncedSignal,
   isStaleOrderError,
   lineAmount,
   normalizePublicId,
@@ -74,7 +77,10 @@ import {
   toNumber
 } from '@ims/utils';
 
-type PoForm = FormGroup<{
+/** How long the totals must stay unchanged before a screen reader says them. */
+const TOTALS_ANNOUNCE_MS = 1200;
+
+type SoForm = FormGroup<{
   customerId: SoHeaderGroup['controls']['customerId'];
   warehouseId: SoHeaderGroup['controls']['warehouseId'];
   remark: SoHeaderGroup['controls']['remark'];
@@ -105,6 +111,7 @@ type PoForm = FormGroup<{
     UiInputComponent,
     UiPageHeaderComponent,
     UiPublishHeightDirective,
+    UiSearchInputComponent,
     UiSelectComponent,
     UiSkeletonComponent,
     UiTextareaComponent
@@ -125,13 +132,14 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
   private readonly router = inject(Router);
   private readonly store = inject(SalesOrdersStore);
   private readonly toast = inject(ToastService);
+  private readonly money = new AppMoneyPipe();
   private readonly warehouses = inject(WarehousesStore);
 
   /** Route parameter; absent on `/new`. */
   $id = input<string | undefined>(undefined, { alias: 'id' });
 
   readonly backLink = ['/', SALES_ORDER_ROUTE];
-  readonly form: PoForm = new FormGroup({
+  readonly form: SoForm = new FormGroup({
     ...createSoHeader().controls,
     lines: new FormArray<LineGroup>([])
   });
@@ -153,6 +161,31 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
   );
   readonly $totals = computed(() => computeTotals(this.$values(), DocumentType.Receipt));
   readonly $canAddLine = computed(() => this.$values().length < MAX_DOCUMENT_LINES);
+  /** A line's unit choices, built once per line (the form keeps the same array while the person types). */
+  private readonly unitChoices = new WeakMap<LineValue['uomOptions'], readonly SelectOption[]>();
+  private unitsOf(value: LineValue): readonly SelectOption[] {
+    let units = this.unitChoices.get(value.uomOptions);
+    if (!units) {
+      units = value.uomOptions.map((option): SelectOption => ({
+        value: option.uomId,
+        label: option.code
+      }));
+      this.unitChoices.set(value.uomOptions, units);
+    }
+    return units;
+  }
+  /** What a screen reader hears about the totals: after the person stopped typing, not on every key. */
+  private readonly $totalsSentence = computed(
+    () =>
+      `${this.i18n.t('doc.totals', { lines: this.$totals().lineCount, qty: this.$totals().totalQty })} · ${this.money.transform(this.$totals().totalAmount)}`
+  );
+  readonly $totalsAnnounced = debouncedSignal(this.$totalsSentence, TOTALS_ANNOUNCE_MS);
+  /** "Line removed", for the screen reader (the row is gone and so is its text). */
+  readonly $removedNote = signal('');
+  /** A blank or zero price is saved as 0.00; submitting refuses it, so say so while it is there. */
+  readonly $hasUnpricedLine = computed(() =>
+    this.$values().some(value => value.unitCost === null || toNumber(value.unitCost) === 0)
+  );
   readonly $rows = computed(() =>
     this.$values().map((value, index) => ({
       index,
@@ -163,10 +196,7 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
         isValidQuantity(value.qty) && isValidUnitCost(value.unitCost)
           ? lineAmount(toNumber(value.qty), toNumber(value.unitCost))
           : 0,
-      units: value.uomOptions.map((option): SelectOption => ({
-        value: option.uomId,
-        label: option.code
-      })),
+      units: this.unitsOf(value),
       unitCode:
         value.uomOptions.find(option => option.uomId === value.uomId)?.code ?? value.baseUomCode
     }))
@@ -205,15 +235,43 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
       (!this.$isEdit() || this.$order() !== undefined)
   );
 
+  /** The list holds the first customers only (the API page size): above that a search box finds the rest. */
+  readonly $customersTruncated = computed(() => {
+    const page = this.partners.list.$data();
+    return page !== undefined && page.total > page.items.length;
+  });
+  readonly $customerSearch = signal('');
+  private readonly $customerTyped = debouncedSignal(this.$customerSearch);
+  private lastCustomerSearch = '';
+  /** Every customer seen so far, so the one already chosen stays in the select when a search narrows the list. */
+  private readonly knownCustomers = new Map<string, string>();
+  private readonly $customerId = controlSignal(this.form.controls.customerId);
   readonly $customerOptions = computed<readonly SelectOption[]>(() => {
     const options = this.partners
       .$partners()
       .map(partner => ({ value: partner.id, label: partner.name }));
+    for (const option of options) {
+      this.knownCustomers.set(option.value, option.label);
+    }
     const order = this.$order();
-    // A customer switched off since the order was made is still the order's customer.
-    return order && !options.some(option => option.value === order.customerId)
-      ? [...options, { value: order.customerId, label: order.customerName }]
+    if (order) {
+      this.knownCustomers.set(order.customerId, order.customerName);
+    }
+    // A customer switched off since the order was made, or one chosen before a search, is still the chosen one.
+    const chosen = this.$customerId();
+    const chosenName = chosen === null ? undefined : this.knownCustomers.get(chosen);
+    return chosen !== null && chosenName !== undefined && !options.some(o => o.value === chosen)
+      ? [...options, { value: chosen, label: chosenName }]
       : options;
+  });
+  private readonly searchCustomers = effect(() => {
+    const typed = this.$customerTyped().trim();
+    untracked(() => {
+      if (typed !== this.lastCustomerSearch) {
+        this.lastCustomerSearch = typed;
+        this.partners.loadActive(PartnerType.Customer, typed || undefined);
+      }
+    });
   });
   readonly $warehouseOptions = computed<readonly SelectOption[]>(() =>
     this.warehouses
@@ -264,6 +322,8 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
   private readonly leaveWhenNotEditable = effect(() => {
     const order = this.$order();
     if (order && this.$notEditable()) {
+      // The form is hidden: its edits are not the person's to lose, so the unsaved-changes guard must not ask.
+      untracked(() => this.markPristine());
       void this.router.navigate(['/', SALES_ORDER_ROUTE, order.id], { replaceUrl: true });
     }
   });
@@ -306,6 +366,7 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
           ? [error.detail || error.message].filter(isDefined)
           : [];
       this.$saveMessages.set([...lineMessages, ...unmatched, ...refusal]);
+      afterNextRender(() => focusFirstInvalid(this.page), { injector: this.injector });
     });
   });
 
@@ -340,6 +401,7 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
 
   /** Adds the product, or raises the quantity of the line it is already on. */
   onProductPicked(picked: PickedProduct): void {
+    this.$removedNote.set('');
     const added = this.addProduct(picked.product, 1);
     if (added !== undefined) {
       this.$lastAdded.set(
@@ -357,6 +419,8 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
   }
 
   onRemove(index: number): void {
+    const sku = this.lines.at(index)?.controls.sku.value ?? '';
+    this.$removedNote.set(this.i18n.t('sales.lineRemoved', { sku }));
     this.lines.removeAt(index);
     this.lines.markAsDirty();
     // The button that had the focus is gone: leave it on the way into the lines, not on the page.

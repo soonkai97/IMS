@@ -116,6 +116,7 @@ describe('SalesOrderEditorPageComponent', () => {
   const partnersReset = jest.fn();
   const warehousesReset = jest.fn();
   const loadActive = jest.fn();
+  const partnersData = signal<{ total: number; items: unknown[] } | undefined>(undefined);
   const createComponent = createComponentFactory({
     component: SalesOrderEditorPageComponent,
     detectChanges: false,
@@ -136,7 +137,7 @@ describe('SalesOrderEditorPageComponent', () => {
         useValue: {
           $partners: signal([{ id: CUSTOMER, name: 'Acme Trading' }]),
           loadActive,
-          list: { reset: partnersReset }
+          list: { reset: partnersReset, $data: partnersData }
         }
       },
       {
@@ -168,6 +169,7 @@ describe('SalesOrderEditorPageComponent', () => {
     detail.$isFailed.set(false);
     save.$operation.set(IDLE_OPERATION);
     save.run.mockClear();
+    partnersData.set(undefined);
     for (const mock of [
       detail.load,
       detail.reload,
@@ -359,6 +361,138 @@ describe('SalesOrderEditorPageComponent', () => {
 
       expect(component().lines.length).toBe(0);
       expect(component().form.controls.warehouseId.disabled).toBe(false);
+    });
+  });
+
+  describe('review fixes', () => {
+    it('a customer past the first page can be found: a truncated list says so and offers a search that asks the API', async () => {
+      jest.useFakeTimers();
+      partnersData.set({ total: 450, items: [{ id: CUSTOMER }] });
+      spectator = createComponent();
+      spectator.detectChanges();
+      await jest.advanceTimersByTimeAsync(0);
+      loadActive.mockClear();
+
+      expect(text()).toContain('Only the first customers are listed.');
+      component().$customerSearch.set('zed');
+      spectator.detectChanges();
+      await jest.advanceTimersByTimeAsync(1000);
+      spectator.detectChanges();
+
+      expect(loadActive).toHaveBeenCalledWith('Customer', 'zed');
+      jest.useRealTimers();
+    });
+
+    it('no search box and no notice while every customer is in the list', async () => {
+      partnersData.set({ total: 1, items: [{ id: CUSTOMER }] });
+      await render();
+
+      expect(text()).not.toContain('Only the first customers are listed.');
+      expect(spectator.query('app-search-input')).toBeNull();
+    });
+
+    it('says a blank or zero price is saved as 0.00 and cannot be submitted, and says it no more once priced', async () => {
+      await render();
+      component().onProductPicked({ product: PRODUCT, available: null });
+      spectator.detectChanges();
+      expect(text()).toContain('A blank price is saved as 0.00.');
+
+      component().lines.at(0).patchValue({ unitCost: 2 });
+      spectator.detectChanges();
+      expect(text()).not.toContain('A blank price is saved as 0.00.');
+
+      component().lines.at(0).patchValue({ unitCost: 0 });
+      spectator.detectChanges();
+      expect(text()).toContain('A blank price is saved as 0.00.');
+    });
+
+    it('says the warehouse is fixed once saved, on an existing order only', async () => {
+      detail.$data.set(draft());
+      await render({ id: ID });
+      expect(text()).toContain('Fixed once the order is saved.');
+
+      detail.$data.set(undefined);
+      await render();
+      expect(text()).not.toContain('Fixed once the order is saved.');
+    });
+
+    it('the totals are a live region only after the typing stopped, and a removed line is announced', async () => {
+      jest.useFakeTimers();
+      spectator = createComponent();
+      spectator.detectChanges();
+      component().onProductPicked({ product: PRODUCT, available: null });
+      component().lines.at(0).patchValue({ qty: 2, unitCost: 3 });
+      spectator.detectChanges();
+
+      expect(spectator.query('.so-editor-totals')?.hasAttribute('aria-live')).toBe(false);
+      const announced = (): string =>
+        spectator.query('.so-editor-bar [role="status"]')?.textContent?.trim() ?? '';
+      expect(announced()).not.toContain('6.00');
+      await jest.advanceTimersByTimeAsync(2000);
+      spectator.detectChanges();
+      expect(announced()).toContain('6.00');
+
+      component().onRemove(0);
+      spectator.detectChanges();
+      expect(spectator.query('.so-editor-lines [role="status"]')?.textContent).toContain(
+        'SKU-1 removed.'
+      );
+      jest.useRealTimers();
+    });
+
+    it('the units of a line are built once, not on every key', async () => {
+      await render();
+      component().onProductPicked({ product: PRODUCT, available: null });
+      const first = component().$rows()[0].units;
+
+      component().lines.at(0).patchValue({ qty: 3 });
+
+      expect(component().$rows()[0].units).toBe(first);
+    });
+
+    it('two identical messages are both shown (no duplicate-key crash)', async () => {
+      detail.$data.set(draft());
+      await render({ id: ID });
+      save.$operation.set(
+        failureOperation(
+          apiError(400, API_ERROR_KIND.Validation, {
+            fieldErrors: { 'lines[0]': ['Same.', 'Same.'] }
+          })
+        )
+      );
+      spectator.detectChanges();
+
+      expect(spectator.queryAll('app-banner[role="alert"]')).toHaveLength(2);
+    });
+
+    it('moves the focus to the first field the API found fault with', async () => {
+      detail.$data.set(draft());
+      await render({ id: ID });
+      save.$operation.set(
+        failureOperation(
+          apiError(400, API_ERROR_KIND.Validation, { fieldErrors: { remark: ['Too long.'] } })
+        )
+      );
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(document.activeElement?.getAttribute('aria-invalid')).toBe('true');
+      expect(text()).toContain('Too long.');
+    });
+
+    it('an order that stops being editable leaves with the form clean, so the unsaved-changes guard does not ask', async () => {
+      detail.$data.set(draft());
+      await render({ id: ID });
+      jest.spyOn(spectator.inject(Router), 'navigate').mockResolvedValue(true);
+      component().form.controls.remark.setValue('typed');
+      component().form.controls.remark.markAsDirty();
+      expect(component().hasUnsavedChanges()).toBe(true);
+
+      detail.$data.set(draft({ allowedActions: ['cancel'] }));
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(component().hasUnsavedChanges()).toBe(false);
     });
   });
 

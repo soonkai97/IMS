@@ -1,7 +1,9 @@
 <app-page-header [heading]="'so.title' | t">
   @if ($canCreate()) {
     <div actions>
-      <a class="ui-link-button --primary" routerLink="/sales-orders/new">{{ 'sales.new' | t }}</a>
+      <a class="ui-link-button --primary" [routerLink]="['/', route, 'new']">{{
+        'sales.new' | t
+      }}</a>
     </div>
   }
 </app-page-header>
