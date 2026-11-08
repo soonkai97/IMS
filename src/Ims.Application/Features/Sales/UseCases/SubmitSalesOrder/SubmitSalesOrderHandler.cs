@@ -18,7 +18,7 @@ public class SubmitSalesOrderHandler(IRepository<SalesOrder> orders, IApprovalEv
         audit.Record(AuditActions.SalesOrderSubmitted, AuditEntities.SalesOrder, order.No, new { Status = before },
             new Dictionary<string, object?>
             {
-                [nameof(order.Status)] = order.Status, [nameof(order.RequiresApproval)] = order.RequiresApproval, [nameof(order.IsLarge)] = order.IsLarge, [AuditFields.Amount] = assessment.Amount
+                [nameof(order.Status)] = order.Status, [nameof(order.RequiresApproval)] = order.RequiresApproval, [nameof(order.IsLarge)] = order.IsLarge, [AuditFields.SellingAmount] = assessment.Amount
             });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);

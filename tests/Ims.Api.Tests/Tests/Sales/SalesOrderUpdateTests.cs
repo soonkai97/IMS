@@ -144,8 +144,8 @@ public class SalesOrderUpdateTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(1, await fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM AuditLogs WHERE Action = @a AND EntityId = @no", ("@a", AuditActions.SalesOrderUpdated), ("@no", order.No)));
         var before = await fixture.Database.ScalarAsync<string>("SELECT [Before] FROM AuditLogs WHERE Action = @a AND EntityId = @no", ("@a", AuditActions.SalesOrderUpdated), ("@no", order.No));
         var after = await fixture.Database.ScalarAsync<string>("SELECT [After] FROM AuditLogs WHERE Action = @a AND EntityId = @no", ("@a", AuditActions.SalesOrderUpdated), ("@no", order.No));
-        Assert.Equal((1, 25m), (Read(before, "Lines").GetInt32(), Read(before, "Amount").GetDecimal()));
-        Assert.Equal((2, 11m), (Read(after, "Lines").GetInt32(), Read(after, "Amount").GetDecimal()));
+        Assert.Equal((1, 25m), (Read(before, "Lines").GetInt32(), Read(before, "SellingAmount").GetDecimal()));
+        Assert.Equal((2, 11m), (Read(after, "Lines").GetInt32(), Read(after, "SellingAmount").GetDecimal()));
     }
 
     private static System.Text.Json.JsonElement Read(string json, string key) => System.Text.Json.JsonDocument.Parse(json).RootElement.GetProperty(key);
