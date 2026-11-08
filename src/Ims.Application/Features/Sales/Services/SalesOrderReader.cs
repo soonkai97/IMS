@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class SalesOrderReader(IReadRepository<SalesOrder> orders, IReadRepository<User> users, ISalesOrderAccess access, IApprovalEvaluator approvals, ISystemSettings settings,
+public class SalesOrderReader(IReadRepository<SalesOrder> orders, IReadRepository<User> users, IReadRepository<StockDocument> documents, IDeliveredQuantityReader delivered, ISalesOrderAccess access, IApprovalEvaluator approvals, ISystemSettings settings,
     IDocumentVersion version) : ISalesOrderReader, IAppService
 {
     public async Task<SalesOrderDto> GetAsync(Guid publicId, CancellationToken ct)
@@ -19,8 +19,28 @@ public class SalesOrderReader(IReadRepository<SalesOrder> orders, IReadRepositor
             : [];
         var withinLimit = dto.Status != SalesOrderStatus.Submitted || !dto.RequiresApproval ||
                           await approvals.ReviewRefusalAsync(DocumentType.SalesOrder, dto.IsLarge, dto.TotalQty, amount, ct) is null;
-        var named = await NamedAsync(dto, ct);
+        var named = await WithDeliveriesAsync(await NamedAsync(dto, ct), ct);
         return named with { ApprovalTriggers = triggers, AllowedActions = access.AllowedActions(named, await settings.GetAsync(ct), withinLimit), ConcurrencyToken = version.Token(dto.Id, dto.RowVersion) };
+    }
+
+    /// <summary>
+    /// What has been delivered per line (Posted deliveries only) and the deliveries themselves, computed now and never stored. A Draft or Submitted order cannot have a delivery (one is made from an Approved
+    /// order), so those two reads are skipped (everything is still to deliver) and cost nothing there. No money: Warehouse staff see the quantities.
+    /// </summary>
+    private async Task<SalesOrderDto> WithDeliveriesAsync(SalesOrderDto dto, CancellationToken ct)
+    {
+        if (dto.Status is SalesOrderStatus.Draft or SalesOrderStatus.Submitted) return dto with { Lines = dto.Lines.Select(l => l with { RemainingQty = l.Qty, RemainingBaseQty = l.BaseQty }).ToList() };
+        var done = await delivered.PostedByLineAsync(dto.Key, ct);
+        var lines = dto.Lines.Select(l =>
+        {
+            var d = done.GetValueOrDefault(l.LineNo);
+            return l with
+            {
+                DeliveredQty = d.Qty, RemainingQty = SalesOrderQuantities.Remaining(l.Qty, d.Qty),
+                DeliveredBaseQty = d.BaseQty, RemainingBaseQty = SalesOrderQuantities.Remaining(l.BaseQty, d.BaseQty)
+            };
+        }).ToList();
+        return dto with { Lines = lines, Deliveries = await documents.ListAsync(new DeliveriesOfOrderSpec(dto.Key), ct) };
     }
 
     /// <summary>
