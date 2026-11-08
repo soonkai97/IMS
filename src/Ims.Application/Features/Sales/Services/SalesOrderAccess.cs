@@ -41,7 +41,7 @@ public class SalesOrderAccess(ICurrentUser current) : ISalesOrderAccess, IAppSer
     }
 
     public IReadOnlyList<string> AllowedActions(SalesOrderDto o, SystemSettings settings, bool withinApprovalLimit) =>
-        SalesOrderActionPolicy.AllowedActions(current.Rights(), new SalesOrderActionContext(o.Status, o.RequiresApproval, o.IsLarge, o.CreatedByKey, o.SubmittedByKey),
+        SalesOrderActionPolicy.AllowedActions(current.Rights(), new SalesOrderActionContext(o.Status, o.RequiresApproval, o.IsLarge, o.CreatedByKey, o.SubmittedByKey, o.Lines.Any(l => l.RemainingBaseQty > 0m)),
             settings.AllowSelfApproval, withinApprovalLimit);
 
     public bool CanAct(SalesOrderListItem item, SystemSettings settings) =>

@@ -31,6 +31,13 @@ public static class SalesOrderActionPolicy
         _ => true
     };
 
+    /// <summary>
+    /// Create a delivery from an Approved order: the door of that endpoint is <c>document.create</c>, the order must be readable (<c>so.read</c>) and something must be left to deliver. Any role or custom role holding both
+    /// permissions may; an order fully delivered is Closed by then (PL3.7), so the status alone rules the rest out.
+    /// </summary>
+    public static bool MayDeliver(ActorRights actor, in SalesOrderActionContext order) =>
+        order.Status == SalesOrderStatus.Approved && order.AnythingRemaining && actor.Has(Permissions.DocumentCreate) && actor.Has(Permissions.SoRead);
+
     /// <summary>Approve or reject a Submitted order held for approval: the reviewer it is routed to, and not the submitter unless self-approval is on.</summary>
     public static bool MayReview(ActorRights actor, in SalesOrderActionContext order, bool allowSelfApproval)
     {
@@ -58,6 +65,7 @@ public static class SalesOrderActionPolicy
 
             case SalesOrderStatus.Approved:
                 if (MayCancel(actor, order)) actions.Add(DocumentActions.Cancel);
+                if (MayDeliver(actor, order)) actions.Add(DocumentActions.Deliver);
                 break;
         }
         return actions;

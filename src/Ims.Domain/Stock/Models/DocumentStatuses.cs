@@ -7,4 +7,7 @@ public static class DocumentStatuses
 
     /// <summary>A receipt in this state keeps its purchase order from being cancelled: it is still to be decided (open) or it brought stock in (Posted). A Cancelled or Reversed one is history and does not.</summary>
     public static bool BlocksPurchaseOrderCancel(DocumentStatus status) => IsOpen(status) || status == DocumentStatus.Posted;
+
+    /// <summary>The same for a delivery and its sales order: still to be decided (open) or it took stock out (Posted) keeps the order from being cancelled; a Cancelled or Reversed delivery is history and does not.</summary>
+    public static bool BlocksSalesOrderCancel(DocumentStatus status) => IsOpen(status) || status == DocumentStatus.Posted;
 }
