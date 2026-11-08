@@ -1,11 +1,14 @@
+using Ims.Application.Features.Documents;
 using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
 public class LinkedReceiptPosting(IReadRepository<PurchaseOrder> orders, IPurchaseOrderReceiving receiving, IModuleSwitches modules, ITransactionLocker locker, ICurrentUser current,
-    IClock clock, IAuditTrail audit, ICallerPermissions caller) : ILinkedReceiptPosting, IAppService
+    IClock clock, IAuditTrail audit, ICallerPermissions caller) : IDocumentLinkPosting, IAppService
 {
-    public async Task<LinkedPosting?> BeforePostAsync(StockDocument document, CancellationToken ct)
+    public DocumentLinkKind Kind => DocumentLinkKind.PurchaseOrder;
+
+    public async Task<LinkedPostingState?> BeforePostAsync(StockDocument document, CancellationToken ct)
     {
         if (document.PurchaseOrderId is not { } key) return null;
 
@@ -27,9 +30,9 @@ public class LinkedReceiptPosting(IReadRepository<PurchaseOrder> orders, IPurcha
         return new LinkedPosting(order, fullyReceived);
     }
 
-    public void AfterPost(LinkedPosting? linked, StockDocument document)
+    public void AfterPost(LinkedPostingState? state, StockDocument document)
     {
-        if (linked is not { FullyReceived: true, Order: var order }) return;
+        if (state is not LinkedPosting { FullyReceived: true, Order: var order }) return;
         var before = order.Status;
         order.CloseReceived(current.UserId, clock.UtcNow);
         audit.Record(AuditActions.PurchaseOrderClosed, AuditEntities.PurchaseOrder, order.No, new { Status = before },

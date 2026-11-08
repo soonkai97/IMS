@@ -98,6 +98,6 @@ public static class DocumentActionPolicy
                 actions.Add(DocumentActions.Reverse);
                 break;
         }
-        return link is { } linked ? LinkedReceiptPolicy.Offered(actions, actor.Has(Permissions.PoRead), linked.PurchasingOn) : actions;
+        return link is { } linked ? LinkedReceiptPolicy.Offered(actions, actor.Has(linked.Kind == DocumentLinkKind.SalesOrder ? Permissions.SoRead : Permissions.PoRead), linked.ModuleOn, linked.Kind) : actions;
     }
 }

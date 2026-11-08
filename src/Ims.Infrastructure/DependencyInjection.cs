@@ -4,6 +4,7 @@ using Ims.Application.Features.Documents;
 using Ims.Application.Features.Purchasing;
 using Ims.Application.Features.Reports;
 using Ims.Application.Features.Roles;
+using Ims.Application.Features.Sales;
 using Ims.Application.Features.Stock;
 using Ims.Domain;
 using Ims.Infrastructure.Excel;
@@ -65,6 +66,7 @@ public static class DependencyInjection
         services.AddScoped<ITransactionLocker, SqlTransactionLocker>();
         services.AddScoped<IRoleUsageReader, EfRoleUsageReader>();
         services.AddScoped<IReceivedQuantityReader, EfReceivedQuantityReader>();
+        services.AddScoped<IDeliveredQuantityReader, EfDeliveredQuantityReader>();
         services.AddSingleton<IExceptionMapper, SqlExceptionMapper>();
         services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
         return services;

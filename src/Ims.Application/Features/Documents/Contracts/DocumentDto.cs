@@ -32,7 +32,7 @@ public record DocumentDto(Guid Id, DocumentType Type, string No, DocumentStatus 
     Guid? ReturnedById, string? ReturnedBy, string? ReturnedByName, DateTime? ReturnedAt,
     decimal TotalQty, [property: VisibleWith(Permissions.CostView)] decimal? TotalAmount, IReadOnlyList<DocumentLineDto> Lines, IReadOnlyList<string> AllowedActions,
     IReadOnlyList<ApprovalTriggerDto> ApprovalTriggers, [property: JsonIgnore] byte[] RowVersion, [property: JsonIgnore] int WarehouseKey,
-    [property: JsonIgnore] int CreatedByKey, [property: JsonIgnore] int? SubmittedByKey, LinkedPurchaseOrder? PurchaseOrder = null)
+    [property: JsonIgnore] int CreatedByKey, [property: JsonIgnore] int? SubmittedByKey, LinkedPurchaseOrder? PurchaseOrder = null, LinkedSalesOrder? SalesOrder = null)
 {
     /// <summary>True for an issue that has not posted yet: its lines carry the average cost seen when it was last saved or submitted, and posting books the real cost. Label the amount "estimated".</summary>
     [Required]
