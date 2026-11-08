@@ -46,6 +46,8 @@ public class SalesOrderLine : Entity
         var uom = uomId ?? product.BaseUomId;
         var baseQty = product.ToBaseQuantity(qty, uom);
         if (baseQty > Limits.MaxBaseQuantity) throw new DomainException(Messages.QtyTooLarge);
+        // The column keeps four decimals: a quantity that is only a fraction of the smallest step of the base unit would be stored as 0 and the CHECK on the column would refuse it as a 500.
+        if (Math.Round(baseQty, Limits.QuantityScale) <= 0m) throw new DomainException(Messages.QtyTooSmall);
         var amount = Money.Amount(qty, unitPrice);
         if (amount > Limits.MaxLineAmount) throw new DomainException(Messages.LineAmountTooLarge);
 
