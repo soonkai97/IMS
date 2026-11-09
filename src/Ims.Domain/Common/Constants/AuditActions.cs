@@ -49,6 +49,8 @@ public static class AuditActions
     public const string SalesOrderRecalled = "sales-order.recalled";
     public const string SalesOrderCancelled = "sales-order.cancelled";
     public const string SalesOrderClosed = "sales-order.closed";
+    /// <summary>A saved line whose price is not the one the price list gave (plan D10): written at save, for a line that is new or repriced since the previous save.</summary>
+    public const string SalesOrderPriceChanged = "sales-order.price-changed";
     public const string PriceListCreated = "price-list.created";
     public const string PriceListUpdated = "price-list.updated";
     public const string PriceListCustomerSet = "price-list.customer-set";
@@ -70,7 +72,7 @@ public static class AuditActions
     public static readonly IReadOnlyList<string> Known =
     [
         RowCreated, RowUpdated, RowDeleted, LoginSuccess, LoginFailed, LoginLocked, LoginLockout, Logout, UserCreated, UserUpdated, PasswordChanged, RoleCreated, RoleUpdated, RolePermissionsChanged, RoleDeleted,
-        SettingsUpdated, ModuleEnabled, ModuleDisabled, DocumentCreated, DocumentSubmitted, DocumentApproved, DocumentRejected, DocumentRecalled, DocumentCancelled, DocumentPosted, DocumentReversed, PurchaseOrderCreated, PurchaseOrderUpdated, PurchaseOrderSubmitted, PurchaseOrderApproved, PurchaseOrderRejected, PurchaseOrderRecalled, PurchaseOrderCancelled, PurchaseOrderClosed, SalesOrderCreated, SalesOrderUpdated, SalesOrderSubmitted, SalesOrderApproved, SalesOrderRejected, SalesOrderRecalled, SalesOrderCancelled, SalesOrderClosed,
+        SettingsUpdated, ModuleEnabled, ModuleDisabled, DocumentCreated, DocumentSubmitted, DocumentApproved, DocumentRejected, DocumentRecalled, DocumentCancelled, DocumentPosted, DocumentReversed, PurchaseOrderCreated, PurchaseOrderUpdated, PurchaseOrderSubmitted, PurchaseOrderApproved, PurchaseOrderRejected, PurchaseOrderRecalled, PurchaseOrderCancelled, PurchaseOrderClosed, SalesOrderCreated, SalesOrderUpdated, SalesOrderSubmitted, SalesOrderApproved, SalesOrderRejected, SalesOrderRecalled, SalesOrderCancelled, SalesOrderClosed, SalesOrderPriceChanged,
         PriceListCreated, PriceListUpdated, PriceListCustomerSet, PriceListDeleted,
         AttachmentUploaded, AttachmentDeleted, ImportProducts, ImportOpeningStock, ApprovalRulesWidened
     ];

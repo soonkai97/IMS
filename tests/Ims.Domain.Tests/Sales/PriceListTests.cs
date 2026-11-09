@@ -137,4 +137,29 @@ public class PriceListTests
         Assert.Same(added, list.Items[2]);
         Assert.DoesNotContain(removed, list.Items);
     }
+
+    // ----- what was fine when it was saved stays savable (PL3.12) -----
+    [Fact]
+    public void A_customer_who_has_the_list_and_was_deactivated_since_does_not_make_the_list_unsavable_but_a_new_inactive_customer_is_refused()
+    {
+        var customer = NewCustomer(id: 7);
+        var list = PriceList.Create("Beta", false, customer);
+        var deactivated = NewCustomer(id: 7, active: false);
+
+        list.Update("Beta renamed", false, deactivated);   // the same customer, now inactive
+        Assert.Equal((7, "Beta renamed"), (list.CustomerId, list.Name));
+
+        Assert.Equal(Messages.PartnerInactive, Assert.Throws<DomainException>(() => list.SetCustomer(NewCustomer(id: 8, active: false))).Message);
+        Assert.Equal(7, list.CustomerId);
+    }
+
+    [Fact]
+    public void An_item_the_list_already_has_can_be_built_again_for_a_product_that_is_not_in_use_but_a_new_one_cannot()
+    {
+        var inactive = NewProduct(active: false);
+
+        Assert.Throws<DomainException>(() => PriceListItem.Create(inactive, null, 1m));
+        Assert.Equal(1m, PriceListItem.Create(inactive, null, 1m, requireUsable: false).ListPrice);
+        Assert.Throws<DomainException>(() => PriceListItem.Create(inactive, null, 0m, requireUsable: false)); // every other rule still holds
+    }
 }

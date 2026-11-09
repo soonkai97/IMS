@@ -1912,6 +1912,66 @@
         }
       }
     },
+    "/api/price-lists/lookup": {
+      "get": {
+        "tags": [
+          "PriceLists"
+        ],
+        "summary": "The price an order line is prefilled with (pilot slice PL3.12): the customer's own list item for the product and unit, else the default list's item for that product and unit, else nothing\r\n(`found` false: the person types the price). Per item, not per list. The unit is exact and nothing is converted; a unit with no item has no price. Asked by an order editor, so it needs\r\n`so.manage` and NOT `pricelist.manage` (the rest of this controller): a seller who cannot open the lists still sees the price they are offered. Read only; it audits nothing.",
+        "operationId": "PriceLists_lookup",
+        "parameters": [
+          {
+            "name": "CustomerId",
+            "in": "query",
+            "description": "The customer of the order. An active or inactive partner that exists; an id that names none is a 400.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ProductId",
+            "in": "query",
+            "description": "The product of the line.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "UomId",
+            "in": "query",
+            "description": "The unit of the line; null means the product's base unit. A price is for exactly this unit: a unit with no item has no price, nothing is converted.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceLookupDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceLookupDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceLookupDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/price-lists/{id}": {
       "get": {
         "tags": [
@@ -7838,6 +7898,44 @@
         },
         "description": "A whole price list: every field is sent on every save (there is no \"absent = unchanged\"), and the items replace the old ones.",
         "additionalProperties": false
+      },
+      "PriceLookupDto": {
+        "required": [
+          "found",
+          "price",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "found": {
+            "type": "boolean",
+            "description": "True when a live list has an item for the product and unit."
+          },
+          "price": {
+            "type": "number",
+            "description": "The selling price per ONE of the unit, in money. Absent for a caller without `so.manage` (every caller of this endpoint holds it, a price-list editor's permission is not what opens it).",
+            "format": "double",
+            "nullable": true
+          },
+          "source": {
+            "nullable": true,
+            "allOf": [
+              {
+                "description": "The customer's own list, or the default list; null when nothing was found.",
+                "$ref": "#/components/schemas/PriceSource"
+              }
+            ]
+          }
+        },
+        "description": "The answer to a price lookup. Nothing found is an ordinary answer: `found` false, no price, no source (the person types the price).",
+        "additionalProperties": false
+      },
+      "PriceSource": {
+        "enum": [
+          "Customer",
+          "Default"
+        ],
+        "type": "string"
       },
       "ProductDto": {
         "required": [

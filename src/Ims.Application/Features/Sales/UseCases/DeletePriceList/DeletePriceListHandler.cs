@@ -10,7 +10,7 @@ public class DeletePriceListHandler(IRepository<PriceList> lists, IDocumentVersi
         var list = await lists.FirstOrDefaultAsync(new PriceListForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.PriceListNotFound);
         version.EnsureCurrent(list.PublicId, list.Name, list, cmd.IfMatch);
 
-        audit.Record(AuditActions.PriceListDeleted, AuditEntities.PriceList, list.PublicId.ToString(), ListAudit.Summary(list));
+        audit.Record(AuditActions.PriceListDeleted, AuditEntities.PriceList, list.PublicId.ToString(), ListAudit.Deleted(list));
         lists.Remove(list); // its tracked items go with it (the persistence layer turns both deletes into soft deletes)
         await uow.SaveChangesAsync(ct);
         return Unit.Value;

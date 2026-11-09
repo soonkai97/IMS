@@ -13,6 +13,9 @@ public sealed class PriceListsClient(ApiClient api)
     }
 
     public Task<ApiResponse> GetAsync(Guid id) => api.GetAsync($"/api/price-lists/{id}");
+
+    public Task<ApiResponse> LookupAsync(Guid customerId, Guid productId, Guid? uomId = null) =>
+        api.GetAsync($"/api/price-lists/lookup?customerId={customerId}&productId={productId}" + (uomId is null ? "" : $"&uomId={uomId}"));
     public Task<ApiResponse> CreateAsync(PriceListSaveRequest request) => api.PostAsync("/api/price-lists", request);
 
     /// <summary>A save with an <c>If-Match</c> header: the given token (quoted like an ETag unless it already is), or the list's current token when a test does not care.</summary>

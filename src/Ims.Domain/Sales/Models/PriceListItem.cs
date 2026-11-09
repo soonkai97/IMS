@@ -21,10 +21,10 @@ public class PriceListItem : Entity
     public Product Product { get; private set; } = null!;
     public Uom Uom { get; private set; } = null!;
 
-    /// <summary>Builds an item. The product must be usable and the unit one the product converts to its base unit (null means the base unit); the price must be above 0, within the limit and in whole cents.</summary>
-    public static PriceListItem Create(Product product, int? uomId, decimal price)
+    /// <summary>Builds an item. The product must be usable (unless <paramref name="requireUsable"/> is false: an item the list already has, saved again unchanged, does not fail because its product was deactivated since) and the unit one the product converts to its base unit (null means the base unit); the price must be above 0, within the limit and in whole cents.</summary>
+    public static PriceListItem Create(Product product, int? uomId, decimal price, bool requireUsable = true)
     {
-        product.EnsureUsableOnDocuments();
+        if (requireUsable) product.EnsureUsableOnDocuments();
         if (price <= 0) throw new DomainException(Messages.PriceListItemPricePositive);
         if (price > Limits.MaxUnitCost) throw new DomainException(Messages.PriceTooLarge);
         if (!Money.IsExact(price)) throw new DomainException(Messages.PriceTooPrecise);

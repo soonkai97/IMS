@@ -2244,6 +2244,75 @@ export class PriceListsClient {
     }
 
     /**
+     * The price an order line is prefilled with (pilot slice PL3.12): the customer's own list item for the product and unit, else the default list's item for that product and unit, else nothing
+    (`found` false: the person types the price). Per item, not per list. The unit is exact and nothing is converted; a unit with no item has no price. Asked by an order editor, so it needs
+    `so.manage` and NOT `pricelist.manage` (the rest of this controller): a seller who cannot open the lists still sees the price they are offered. Read only; it audits nothing.
+     * @param customerId (optional) The customer of the order. An active or inactive partner that exists; an id that names none is a 400.
+     * @param productId (optional) The product of the line.
+     * @param uomId (optional) The unit of the line; null means the product's base unit. A price is for exactly this unit: a unit with no item has no price, nothing is converted.
+     * @return OK
+     */
+    lookup(customerId?: string | undefined, productId?: string | undefined, uomId?: string | undefined, httpContext?: HttpContext): Observable<PriceLookupDto> {
+        let url_ = this.baseUrl + "/api/price-lists/lookup?";
+        if (customerId === null)
+            throw new globalThis.Error("The parameter 'customerId' cannot be null.");
+        else if (customerId !== undefined)
+            url_ += "CustomerId=" + encodeURIComponent("" + customerId) + "&";
+        if (productId === null)
+            throw new globalThis.Error("The parameter 'productId' cannot be null.");
+        else if (productId !== undefined)
+            url_ += "ProductId=" + encodeURIComponent("" + productId) + "&";
+        if (uomId === null)
+            throw new globalThis.Error("The parameter 'uomId' cannot be null.");
+        else if (uomId !== undefined)
+            url_ += "UomId=" + encodeURIComponent("" + uomId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processLookup(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processLookup(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PriceLookupDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PriceLookupDto>;
+        }));
+    }
+
+    protected processLookup(response: HttpResponseBase): Observable<PriceLookupDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PriceLookupDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
      * @return OK
      */
     get(id: string, httpContext?: HttpContext): Observable<PriceListDto> {
@@ -7172,6 +7241,20 @@ export interface PriceListSaveRequest {
     /** An active partner of type Customer, who then has this list; a customer has at most one (409 otherwise). Null for the default list and for a list not yet assigned. */
     customerId: string | undefined;
     items: PriceListItemInput[];
+}
+
+/** The answer to a price lookup. Nothing found is an ordinary answer: `found` false, no price, no source (the person types the price). */
+export interface PriceLookupDto {
+    /** True when a live list has an item for the product and unit. */
+    found: boolean;
+    /** The selling price per ONE of the unit, in money. Absent for a caller without `so.manage` (every caller of this endpoint holds it, a price-list editor's permission is not what opens it). */
+    price: number | undefined;
+    source: PriceSource | undefined;
+}
+
+export enum PriceSource {
+    Customer = "Customer",
+    Default = "Default",
 }
 
 export interface ProductDto {

@@ -12,7 +12,7 @@ public class CreatePriceListHandler(IRepository<PriceList> lists, IReadRepositor
             var r = cmd.Data;
             var customer = r.CustomerId is { } id ? await partners.FirstOrDefaultAsync(new ByPublicIdSpec<Partner>(id), ct) ?? throw new ValidationException(Messages.PartnerMissing) : null;
             var list = PriceList.Create(r.Name, r.IsDefault, customer);
-            var built = await builder.BuildAsync(r.Items, ct);
+            var built = await builder.BuildAsync(r.Items, null, ct);
             list.ReplaceItems(built.Items);
             await uniqueness.EnsureAsync(list, ct);
 

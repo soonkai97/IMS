@@ -18,4 +18,12 @@ public static class AuditFields
     /// <summary>The prices a price list save added, removed or changed, in words. A selling price is not cost: it is gated by <c>pricelist.manage</c>.</summary>
     [VisibleWith(Permissions.PricelistManage)]
     public const string ListPriceChanges = "ListPriceChanges";
+
+    /// <summary>The price the price list gave a sales order line when the order was saved. A selling price: gated by <c>so.manage</c>. (Not named ListPrice: that name is the price-list item column, gated by <c>pricelist.manage</c>, and the audit scrubber works on names.)</summary>
+    [VisibleWith(Permissions.SoManage)]
+    public const string ListedPrice = "ListedPrice";
+
+    /// <summary>The price the seller entered on the line instead.</summary>
+    [VisibleWith(Permissions.SoManage)]
+    public const string EnteredPrice = "EnteredPrice";
 }

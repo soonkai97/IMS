@@ -214,4 +214,38 @@ public class PriceListRuleTests(ApiFixture fixture) : IAsyncLifetime
 
         Assert.Contains(Messages.PriceListTooManyItems(Limits.MaxPriceListItems), problem.ErrorsFor("items"));
     }
+
+    // ----- what was fine when it was saved stays savable (PL3.12) -----
+    [Fact]
+    public async Task A_list_with_an_item_whose_product_was_deactivated_since_can_still_be_saved_but_a_new_item_for_an_inactive_product_is_refused()
+    {
+        var kept = await _s.NewProductAsync();
+        var gone = await _s.NewProductAsync();
+        var list = await _s.NewListAsync(_s.List().WithItem(kept.Id, 1m).WithItem(gone.Id, 2m));
+        await fixture.Database.ExecuteAsync("UPDATE Product SET IsActive = 0 WHERE PublicId = @id", ("@id", gone.Id));
+
+        var saved = (await _s.Admin.PriceLists.UpdateAsync(list.Id, _s.List(list.Name).WithItem(kept.Id, 1.5m).WithItem(gone.Id, 2m).Build())).Data<PriceListDto>();   // the old item stays, even repriced
+        Assert.Equal([1.5m, 2m], saved.Items.Select(i => i.Price!.Value).Order());
+
+        var fresh = await _s.NewProductAsync();
+        await fixture.Database.ExecuteAsync("UPDATE Product SET IsActive = 0 WHERE PublicId = @id", ("@id", fresh.Id));
+        var refused = (await _s.Admin.PriceLists.UpdateAsync(list.Id, _s.List(list.Name).WithItem(kept.Id, 1.5m).WithItem(gone.Id, 2m).WithItem(fresh.Id, 3m).Build())).ShouldBeProblem(HttpStatusCode.BadRequest);
+        Assert.NotEmpty(refused.ErrorsFor("items[2]"));
+    }
+
+    [Fact]
+    public async Task A_list_of_a_customer_who_was_deactivated_since_can_still_be_saved_but_giving_it_to_another_inactive_customer_is_refused()
+    {
+        var customer = await _s.NewPartnerAsync();
+        var list = await _s.NewListAsync(_s.List().ForCustomer(customer.Id));
+        await fixture.Database.ExecuteAsync("UPDATE Partner SET IsActive = 0 WHERE PublicId = @id", ("@id", customer.Id));
+        var inactive = await _s.NewPartnerAsync(isActive: false);
+
+        var renamed = (await _s.Admin.PriceLists.UpdateAsync(list.Id, _s.List("Renamed").ForCustomer(customer.Id).Build())).Data<PriceListDto>();
+        Assert.Equal(("Renamed", customer.Id), (renamed.Name, renamed.CustomerId!.Value));
+        Assert.Equal(customer.Id, (await _s.Admin.PriceLists.SetCustomerAsync(list.Id, customer.Id)).Data<PriceListDto>().CustomerId);   // setting the same customer again
+
+        Assert.Equal(Messages.PartnerInactive, (await _s.Admin.PriceLists.SetCustomerAsync(list.Id, inactive.Id)).ShouldBeProblem(HttpStatusCode.BadRequest).Detail);
+        Assert.Equal(Messages.PartnerInactive, (await _s.Admin.PriceLists.UpdateAsync(list.Id, _s.List("Renamed").ForCustomer(inactive.Id).Build())).ShouldBeProblem(HttpStatusCode.BadRequest).Detail);
+    }
 }

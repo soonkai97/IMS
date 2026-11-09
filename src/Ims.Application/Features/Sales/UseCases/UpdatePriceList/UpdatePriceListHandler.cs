@@ -17,7 +17,7 @@ public class UpdatePriceListHandler(IRepository<PriceList> lists, IReadRepositor
             var before = ListAudit.Summary(list);
             var beforeItems = ListAudit.Snapshot(list);
             list.Update(r.Name, r.IsDefault, customer);
-            var built = await builder.BuildAsync(r.Items, ct);
+            var built = await builder.BuildAsync(r.Items, list.Items.Select(i => (i.ProductId, i.UomId)).ToHashSet(), ct);
             list.ReplaceItems(built.Items);
             await uniqueness.EnsureAsync(list, ct);
 
