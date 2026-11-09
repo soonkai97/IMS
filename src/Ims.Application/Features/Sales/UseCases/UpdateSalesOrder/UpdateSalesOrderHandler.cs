@@ -10,6 +10,8 @@ public class UpdateSalesOrderHandler(IRepository<SalesOrder> orders, IReadReposi
     {
         var order = await orders.FirstOrDefaultAsync(new SalesOrderForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.SalesOrderNotFound);
         access.EnsureInScope(order.WarehouseId);
+        // The audit of a changed price is exactly-once only because a save names the version it was made against: an empty token skips the check in DocumentVersion, so this write does not run without one.
+        if (string.IsNullOrEmpty(cmd.IfMatch)) throw new PreconditionRequiredException(Messages.IfMatchRequired);
         version.EnsureCurrent(order.PublicId, order.No, order, cmd.IfMatch);
         // A state the order is no longer in is a conflict (409), not a bad field: the web reloads the order on a 409.
         if (order.Status != SalesOrderStatus.Draft) throw new ConflictException(Messages.SalesOrderNotEditable(order.No, order.Status));

@@ -21,12 +21,12 @@ public static class SystemRoleDefaults
             Permissions.MasterDataManage, Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.DocumentEditAny,
             Permissions.DocumentApprove, Permissions.DocumentPost, Permissions.DocumentPostApproved, Permissions.DocumentReverse,
             Permissions.StockNegativeOverride, Permissions.StockRead, Permissions.ReportsRead, Permissions.CostView, Permissions.ValuationView,
-            Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage, Permissions.PricelistManage
+            Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage, Permissions.PricelistManage, Permissions.ReturnsCreate
         ],
-        [SystemRoleCodes.WarehouseStaff] = [Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.StockRead, Permissions.PoRead, Permissions.SoRead],
+        [SystemRoleCodes.WarehouseStaff] = [Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.StockRead, Permissions.PoRead, Permissions.SoRead, Permissions.ReturnsCreate],
         [SystemRoleCodes.Clerk] =
         [
-            Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.StockRead, Permissions.CostView, Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage
+            Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.StockRead, Permissions.CostView, Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage, Permissions.ReturnsCreate
         ],
     };
 

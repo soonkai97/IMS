@@ -41,12 +41,12 @@ public class RightsParityTests
 
             var (expectedAdded, expectedRemoved) = role switch
             {
-                Roles.Admin => ([Permissions.DocumentApproveLarge, Permissions.DocumentEditAny, Permissions.DocumentPostApproved, Permissions.ModulesManage, Permissions.PoManage, Permissions.PoRead, Permissions.PricelistManage, Permissions.RolesManage, Permissions.RolesRead,
+                Roles.Admin => ([Permissions.DocumentApproveLarge, Permissions.DocumentEditAny, Permissions.DocumentPostApproved, Permissions.ModulesManage, Permissions.PoManage, Permissions.PoRead, Permissions.PricelistManage, Permissions.ReturnsCreate, Permissions.RolesManage, Permissions.RolesRead,
                     Permissions.SoManage, Permissions.SoRead, Permissions.StockNegativeOverride], Array.Empty<string>()),
                 Roles.Owner => ([Permissions.DocumentApproveLarge, Permissions.PoRead, Permissions.PricelistManage, Permissions.SoManage, Permissions.SoRead], [Permissions.DocumentApprove]),
-                Roles.Supervisor => ([Permissions.DocumentEditAny, Permissions.DocumentPostApproved, Permissions.PoManage, Permissions.PoRead, Permissions.PricelistManage, Permissions.SoManage, Permissions.SoRead, Permissions.StockNegativeOverride], Array.Empty<string>()),
-                Roles.WarehouseStaff => ([Permissions.PoRead, Permissions.SoRead], Array.Empty<string>()),
-                Roles.Clerk => ([Permissions.PoManage, Permissions.PoRead, Permissions.SoManage, Permissions.SoRead], Array.Empty<string>()),
+                Roles.Supervisor => ([Permissions.DocumentEditAny, Permissions.DocumentPostApproved, Permissions.PoManage, Permissions.PoRead, Permissions.PricelistManage, Permissions.ReturnsCreate, Permissions.SoManage, Permissions.SoRead, Permissions.StockNegativeOverride], Array.Empty<string>()),
+                Roles.WarehouseStaff => ([Permissions.PoRead, Permissions.ReturnsCreate, Permissions.SoRead], Array.Empty<string>()),
+                Roles.Clerk => ([Permissions.PoManage, Permissions.PoRead, Permissions.ReturnsCreate, Permissions.SoManage, Permissions.SoRead], Array.Empty<string>()),
                 _ => (Array.Empty<string>(), Array.Empty<string>())
             };
 

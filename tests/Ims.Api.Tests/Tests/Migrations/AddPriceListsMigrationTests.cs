@@ -184,7 +184,7 @@ public class AddPriceListsMigrationTests : IAsyncLifetime
         foreach (var role in Roles.All)
         {
             var held = (await _db.ScalarAsync<string>("SELECT STRING_AGG(p.PermissionCode, ';') FROM RolePermission p JOIN Role r ON r.Id = p.RoleId WHERE r.Code = @c AND p.REC_DELETED = 0", ("@c", role)) ?? "").Split(';').ToHashSet();
-            Assert.True(role == Roles.Admin ? held.SetEquals(PermissionCatalog.Codes) : held.SetEquals(SystemRoleDefaults.For(role)), $"{role} must hold what the defaults say, and nothing more.");
+            Assert.True(role == Roles.Admin ? held.SetEquals(PermissionCatalog.Codes.Except([Permissions.ReturnsCreate])) : held.SetEquals(SystemRoleDefaults.For(role).Except([Permissions.ReturnsCreate])), $"{role} must hold what the defaults say, and nothing more.");
         }
     }
 

@@ -14,9 +14,9 @@ public partial class PermissionCatalogTests
         .Select(f => (string)f.GetRawConstantValue()!).ToList();
 
     [Fact]
-    public void TheCatalogHasTheTwentySevenPermissions_TheTwentyOneOfTheAdr_ModulesManage_ThePurchasingAndSalesPairs_AndPricelistManage()
+    public void TheCatalogHasTheTwentyEightPermissions_TheTwentyOneOfTheAdr_ModulesManage_ThePurchasingAndSalesPairs_PricelistManage_AndReturnsCreate()
     {
-        Assert.Equal(27, PermissionCatalog.All.Count);
+        Assert.Equal(28, PermissionCatalog.All.Count);
     }
 
     [Fact]
@@ -198,7 +198,7 @@ public partial class PermissionCatalogTests
     {
         foreach (var entry in PermissionCatalog.All.Where(p => p.Module is not null))
             Assert.True(ModuleCatalog.IsKnown(entry.Module!), $"{entry.Code} names unknown module {entry.Module}");
-        Assert.Equal([Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage, Permissions.PricelistManage], PermissionCatalog.All.Where(p => p.Module is not null).Select(p => p.Code)); // pinned: adding one is a visible diff
+        Assert.Equal([Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage, Permissions.PricelistManage, Permissions.ReturnsCreate], PermissionCatalog.All.Where(p => p.Module is not null).Select(p => p.Code)); // pinned: adding one is a visible diff
     }
 
     // ----- the defaults of the system roles -----
@@ -241,14 +241,14 @@ public partial class PermissionCatalogTests
             {
                 Permissions.MasterDataManage, Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.DocumentEditAny, Permissions.DocumentApprove,
                 Permissions.DocumentPost, Permissions.DocumentPostApproved, Permissions.DocumentReverse, Permissions.StockNegativeOverride, Permissions.StockRead,
-                Permissions.ReportsRead, Permissions.CostView, Permissions.ValuationView, Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage, Permissions.PricelistManage
+                Permissions.ReportsRead, Permissions.CostView, Permissions.ValuationView, Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage, Permissions.PricelistManage, Permissions.ReturnsCreate
             }.Order(StringComparer.Ordinal),
             SystemRoleDefaults.For(Roles.Supervisor).Order(StringComparer.Ordinal));
         Assert.Equal(
-            new[] { Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.StockRead, Permissions.PoRead, Permissions.SoRead }.Order(StringComparer.Ordinal),
+            new[] { Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.StockRead, Permissions.PoRead, Permissions.SoRead, Permissions.ReturnsCreate }.Order(StringComparer.Ordinal),
             SystemRoleDefaults.For(Roles.WarehouseStaff).Order(StringComparer.Ordinal));
         Assert.Equal(
-            new[] { Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.StockRead, Permissions.CostView, Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage }.Order(StringComparer.Ordinal),
+            new[] { Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.StockRead, Permissions.CostView, Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage, Permissions.ReturnsCreate }.Order(StringComparer.Ordinal),
             SystemRoleDefaults.For(Roles.Clerk).Order(StringComparer.Ordinal));
     }
 }

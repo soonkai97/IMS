@@ -55,6 +55,8 @@ public static class Messages
     public const string ModuleStateRequired = "Say whether the module is to be turned on or off.";
     public const string ModuleReasonRequired = "A reason is required to turn a module on or off.";
     public static string ModuleHasOpenData(string module, string what) => $"The {module} module cannot be turned off while {what}. Finish or cancel them first.";
+    public static string ModuleNeedsOthers(string module, IEnumerable<string> missing) => $"The {module} module cannot be turned on until {string.Join(" and ", missing)} {(missing.Count() == 1 ? "is" : "are")} on.";
+    public static string ModuleIsNeededBy(string module, IEnumerable<string> dependents) => $"The {module} module cannot be turned off while {string.Join(" and ", dependents)} {(dependents.Count() == 1 ? "is" : "are")} on. Turn {(dependents.Count() == 1 ? "it" : "them")} off first.";
     public static string ModuleFieldNotAvailable(string field, string module) => $"'{field}' is not available while the {module} module is off.";
 
     // ----- Roles -----

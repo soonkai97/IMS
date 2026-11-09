@@ -178,13 +178,18 @@ public class PurchaseOrderRuleGuardTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task The_door_of_cancel_stays_shut_for_modules_manage_alone_the_draft_rule_needs_a_caller_who_gets_through_it()
+    public async Task The_door_of_cancel_is_open_to_modules_manage_alone_so_a_departed_creators_draft_cannot_block_the_switch_off_but_only_a_draft()
     {
         var draft = await _p.DraftWorthAsync(10m);
+        var submitted = await _p.SubmittedWorthAsync(6000m);
         var token = fixture.CreateClient(ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Admin, permissions: [Permissions.ModulesManage, Permissions.PoRead]));
 
-        (await token.PurchaseOrders.CancelAsync(draft.Id, null, draft.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Forbidden); // the policy asks for po.manage or an approval tier
+        (await token.PurchaseOrders.CancelAsync(submitted.Id, null, submitted.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Forbidden); // a Submitted order stays its submitter's
+        var cancelled = (await token.PurchaseOrders.CancelAsync(draft.Id, null, draft.ConcurrencyToken)).Data<PurchaseOrderDto>();
 
-        Assert.Equal(PurchaseOrderStatus.Draft, (await _p.ReadAsync(draft.Id)).Status);
+        Assert.Equal(PurchaseOrderStatus.Cancelled, cancelled.Status);
+        var another = await _p.DraftWorthAsync(10m);
+        (await fixture.CreateClient(ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Admin, permissions: [Permissions.ModulesManage])).PurchaseOrders.CancelAsync(another.Id, null, another.ConcurrencyToken))
+            .ShouldBeProblem(HttpStatusCode.Forbidden); // and po.read is still asked in the handler
     }
 }
