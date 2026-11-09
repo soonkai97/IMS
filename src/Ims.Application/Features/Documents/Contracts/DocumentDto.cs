@@ -20,6 +20,9 @@ namespace Ims.Application.Features.Documents;
 /// <param name="WarehouseKey">The integer key of the warehouse, for the server to look up stock without translating <c>WarehouseId</c> back with another query; not part of the JSON.</param>
 /// <param name="CreatedByKey">The integer key of the user who created the document, for the ownership rules (compared with the caller's own integer key, never with a client id); not part of the JSON.</param>
 /// <param name="SubmittedByKey">Same for the user who submitted it, for the self-approval rule; not part of the JSON.</param>
+/// <param name="ReturnOf">The document this return was created from (id and number); null for every other document, and omitted while the Returns module is off or for a caller who may not create returns. Set when the return is created and never changed.</param>
+/// <param name="Key">The integer key of the document; not part of the JSON.</param>
+/// <param name="HasReturns">A Posted return of this document exists; answered by the same statement as the document, so the returned quantities are summed only when there is something to sum; not part of the JSON.</param>
 public record DocumentDto(Guid Id, DocumentType Type, string No, DocumentStatus Status, Guid WarehouseId, string WarehouseName,
     Guid? PartnerId, string? PartnerName, IssuePurpose? Purpose, string? Remark,
     bool RequiresApproval, bool RequiresOverride, bool IsLarge, bool IsReturned,
@@ -32,7 +35,7 @@ public record DocumentDto(Guid Id, DocumentType Type, string No, DocumentStatus 
     Guid? ReturnedById, string? ReturnedBy, string? ReturnedByName, DateTime? ReturnedAt,
     decimal TotalQty, [property: VisibleWith(Permissions.CostView)] decimal? TotalAmount, IReadOnlyList<DocumentLineDto> Lines, IReadOnlyList<string> AllowedActions,
     IReadOnlyList<ApprovalTriggerDto> ApprovalTriggers, [property: JsonIgnore] byte[] RowVersion, [property: JsonIgnore] int WarehouseKey,
-    [property: JsonIgnore] int CreatedByKey, [property: JsonIgnore] int? SubmittedByKey, LinkedPurchaseOrder? PurchaseOrder = null, LinkedSalesOrder? SalesOrder = null)
+    [property: JsonIgnore] int CreatedByKey, [property: JsonIgnore] int? SubmittedByKey, LinkedPurchaseOrder? PurchaseOrder = null, LinkedSalesOrder? SalesOrder = null, LinkedReturnOf? ReturnOf = null, [property: JsonIgnore] int Key = 0, [property: JsonIgnore] bool HasReturns = false)
 {
     /// <summary>True for an issue that has not posted yet: its lines carry the average cost seen when it was last saved or submitted, and posting books the real cost. Label the amount "estimated".</summary>
     [Required]

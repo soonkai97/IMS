@@ -177,7 +177,7 @@ public class SalesOrder : PublicEntity
     /// Cancels a Draft, a Submitted or an Approved order. An Approved order was released to the customer's side of the business, so cancelling it must say why (at least
     /// <see cref="Limits.ReasonMinLength"/> characters once trimmed); who approved and when stays as history. An order with a delivery open or posted against it is not cancelled (PL3.6); the handler will refuse.
     /// </summary>
-    public void Cancel(string? reason)
+    public void Cancel(string? reason, bool byAnotherUser = false)
     {
         if (Status is not (SalesOrderStatus.Draft or SalesOrderStatus.Submitted or SalesOrderStatus.Approved))
             throw new DomainException(Messages.SalesOrderCannotCancel(Status));
@@ -186,6 +186,7 @@ public class SalesOrder : PublicEntity
             BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.SalesOrderCancelReasonRequired));
             BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
         }
+        if (Status == SalesOrderStatus.Draft && byAnotherUser) BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.CancelOthersDraftReasonRequired, Limits.ReasonMinLength)); // a holder of modules.manage clearing a departed creator draft says why
         Status = SalesOrderStatus.Cancelled;
         CancelReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
     }

@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
 public class CancelSalesOrderHandler(IRepository<SalesOrder> orders, IReadRepository<StockDocument> documents, ISalesOrderAccess access, ISalesOrderReader reader, IDocumentVersion version,
-    ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CancelSalesOrderCommand, SalesOrderDto>
+    ITransactionLocker locker, ICurrentUser current, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CancelSalesOrderCommand, SalesOrderDto>
 {
     public async Task<SalesOrderDto> HandleAsync(CancelSalesOrderCommand cmd, CancellationToken ct)
     {
@@ -17,7 +17,7 @@ public class CancelSalesOrderHandler(IRepository<SalesOrder> orders, IReadReposi
             if (order.Status == SalesOrderStatus.Approved) await EnsureNoDeliveryAsync(order, ct); // a Draft or Submitted order has no delivery: none can be made before approval
 
             var before = order.Status;
-            order.Cancel(cmd.Data.Reason);
+            order.Cancel(cmd.Data.Reason, byAnotherUser: order.CreatedBy != current.UserId);
             audit.Record(AuditActions.SalesOrderCancelled, AuditEntities.SalesOrder, order.No, new { Status = before }, new { order.Status, Reason = order.CancelReason });
             await uow.SaveChangesAsync(ct);
             return true;

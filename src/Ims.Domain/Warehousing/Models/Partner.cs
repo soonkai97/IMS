@@ -33,6 +33,9 @@ public class Partner : PublicEntity
         if (Type != PartnerType.Supplier) throw new DomainException(Messages.SupplierRequired);
     }
 
+    /// <summary>The same question as <see cref="EnsureUsableFor"/>, answered without throwing.</summary>
+    public bool IsUsableFor(DocumentType documentType) => IsActive && Type == (documentType == DocumentType.Receipt ? PartnerType.Supplier : PartnerType.Customer);
+
     /// <summary>Receipts need a supplier, issues need a customer, and the partner must still be active.</summary>
     public void EnsureUsableFor(DocumentType documentType)
     {

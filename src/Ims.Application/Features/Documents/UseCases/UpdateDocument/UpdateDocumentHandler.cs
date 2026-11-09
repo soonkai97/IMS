@@ -1,10 +1,11 @@
 using Ims.Application.Features.Purchasing;
+using Ims.Application.Features.Returns;
 using Ims.Application.Features.Sales;
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 public class UpdateDocumentHandler(IRepository<StockDocument> documents, IReadRepository<Partner> partners,
-    IDocumentLineBuilder lineBuilder, IIssueValuation valuation, IReceiptCostDefaults receiptCosts, IReceiptLinkRules links, ISalesDeliveryRules deliveries, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version,
+    IDocumentLineBuilder lineBuilder, IIssueValuation valuation, IReceiptCostDefaults receiptCosts, IReceiptLinkRules links, ISalesDeliveryRules deliveries, IReturnRules returns, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version,
     IIdMap<Warehouse> warehouseIds, IUnitOfWork uow)
     : ICommandHandler<UpdateDocumentCommand, DocumentDto>
 {
@@ -22,12 +23,14 @@ public class UpdateDocumentHandler(IRepository<StockDocument> documents, IReadRe
         {
             DocumentLinkKind.PurchaseOrder => new PurchaseLinkedOrder(await links.OrderForSaveAsync(doc, partner, ct)),
             DocumentLinkKind.SalesOrder => new SalesLinkedOrder(await deliveries.OrderForSaveAsync(doc, partner, cmd.Data.Purpose, ct)),
+            DocumentLinkKind.Return => new ReturnLinkedOriginal(await returns.OriginalForSaveAsync(doc, partner, cmd.Data.Purpose, ct)),
             _ => null
         };
         doc.UpdateHeader(partner, cmd.Data.Purpose, cmd.Data.Remark);
         var lines = await lineBuilder.BuildAsync(doc.Type, cmd.Data.Lines, ct, existing: doc.Lines.ToList(), link);
         if (link is PurchaseLinkedOrder purchase) await links.EnsureWithinRemainingAsync(purchase.Order, lines, ct);
         else if (link is SalesLinkedOrder sales) await deliveries.EnsureWithinRemainingAsync(sales.Order, lines, ct);
+        else if (link is ReturnLinkedOriginal original) await returns.EnsureWithinRemainingAsync(original.Original, lines, ct);
         doc.ReplaceLines(lines);
         await valuation.EstimateAsync(doc, ct);
         await receiptCosts.ApplyAsync(doc, ct);

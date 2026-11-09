@@ -1604,6 +1604,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Property<bool>("RequiresOverride")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("ReturnOfDocumentId")
+                        .HasColumnType("int");
+
                     b.Property<string>("ReversalReason")
                         .HasColumnType("nvarchar(max)");
 
@@ -1674,6 +1677,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("RejectedBy");
 
+                    b.HasIndex("ReturnOfDocumentId")
+                        .HasFilter("[ReturnOfDocumentId] IS NOT NULL");
+
                     b.HasIndex("ReversedAt")
                         .HasFilter("[REC_DELETED] = 0 AND [ReversedAt] IS NOT NULL");
 
@@ -1697,7 +1703,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
 
                     b.ToTable("StockDocument", t =>
                         {
-                            t.HasCheckConstraint("CK_StockDocument_OneLink", "[PurchaseOrderId] IS NULL OR [SalesOrderId] IS NULL");
+                            t.HasCheckConstraint("CK_StockDocument_OneLink", "(CASE WHEN [PurchaseOrderId] IS NULL THEN 0 ELSE 1 END + CASE WHEN [SalesOrderId] IS NULL THEN 0 ELSE 1 END + CASE WHEN [ReturnOfDocumentId] IS NULL THEN 0 ELSE 1 END) <= 1");
                         });
                 });
 
@@ -1769,6 +1775,9 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Property<string>("Remark")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("ReturnOfLineNo")
+                        .HasColumnType("int");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -2585,6 +2594,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasForeignKey("RejectedBy")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Ims.Domain.StockDocument", "ReturnOf")
+                        .WithMany()
+                        .HasForeignKey("ReturnOfDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Ims.Domain.User", "ReversedByUser")
                         .WithMany()
                         .HasForeignKey("ReversedBy")
@@ -2617,6 +2631,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.Navigation("PurchaseOrder");
 
                     b.Navigation("RejectedByUser");
+
+                    b.Navigation("ReturnOf");
 
                     b.Navigation("ReversedByUser");
 

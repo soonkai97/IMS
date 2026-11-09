@@ -42,6 +42,8 @@ public sealed class SqlTransactionLocker(AppDbContext db, int rolesLockTimeoutMs
 
     public Task LockSalesOrderAsync(int orderId, CancellationToken ct) => AcquireAsync($"so:{orderId}", Limits.StockLockTimeoutMs, retry: true, ct);
 
+    public Task LockReturnOriginAsync(int documentId, CancellationToken ct) => AcquireAsync($"ret:{documentId}", Limits.StockLockTimeoutMs, retry: true, ct);
+
     private async Task AcquireAsync(string resource, int timeoutMs, bool retry, CancellationToken ct, string busyMessage = Messages.LockBusy, string mode = LockMode.Exclusive)
     {
         // An application lock owned by the transaction needs one. Outside a transaction there is nothing to hold it for.

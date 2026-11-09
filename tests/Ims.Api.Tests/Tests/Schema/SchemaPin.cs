@@ -3,7 +3,7 @@ namespace Ims.Api.Tests.Tests.Schema;
 /// <summary>
 /// The shape of the database as the migrations build it today (<see cref="SchemaShape"/> writes the same lines). Change it in the pull request
 /// that changes a key, a foreign key or a unique index, never to make a red test green. Order does not matter.
-/// 27 tables, 55 foreign keys, 36 unique indexes besides the primary keys, 2 append-only triggers. The fourteen <c>UX_&lt;Table&gt;_PublicId</c> indexes carry no
+/// 27 tables, 56 foreign keys, 36 unique indexes besides the primary keys, 2 append-only triggers. The fourteen <c>UX_&lt;Table&gt;_PublicId</c> indexes carry no
 /// filter on purpose: a soft-deleted row keeps its public id, so an id is never handed out twice.
 /// </summary>
 public static class SchemaPin
@@ -74,6 +74,7 @@ public static class SchemaPin
         FK StockDocument(PostedBy) -> User(Id) on delete no_action
         FK StockDocument(PurchaseOrderId) -> PurchaseOrder(Id) on delete no_action
         FK StockDocument(SalesOrderId) -> SalesOrder(Id) on delete no_action
+        FK StockDocument(ReturnOfDocumentId) -> StockDocument(Id) on delete no_action
         FK StockDocument(RejectedBy) -> User(Id) on delete no_action
         FK StockDocument(ReversedBy) -> User(Id) on delete no_action
         FK StockDocument(SubmittedBy) -> User(Id) on delete no_action

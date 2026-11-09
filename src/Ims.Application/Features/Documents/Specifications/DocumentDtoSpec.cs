@@ -23,9 +23,11 @@ public sealed class DocumentDtoSpec : Specification<StockDocument, DocumentDto>
             d.RejectedByUser != null ? d.RejectedByUser.DisplayName : null, d.RejectedAt,
             d.Lines.Sum(l => l.BaseQty), d.Lines.Sum(l => l.Amount),
             d.Lines.OrderBy(l => l.Id).Select(l => new DocumentLineDto(l.Product.PublicId, l.Product.Sku, l.Product.Name, l.Qty, l.Uom.PublicId,
-                l.Uom.Code, l.BaseQty, l.CostFromAverage ? null : l.EnteredUnitCost, Math.Round(l.UnitCost, Money.UnitPriceDecimals), l.Amount, l.CostFromAverage, l.Remark, l.ProductId, null, l.PurchaseOrderLineNo, l.SalesOrderLineNo)).ToList(),
+                l.Uom.Code, l.BaseQty, l.CostFromAverage ? null : l.EnteredUnitCost, Math.Round(l.UnitCost, Money.UnitPriceDecimals), l.Amount, l.CostFromAverage, l.Remark, l.ProductId, null, l.PurchaseOrderLineNo, l.SalesOrderLineNo, l.ReturnOfLineNo)).ToList(),
             new List<string>(), new List<ApprovalTriggerDto>(), d.RowVersion, d.WarehouseId, d.CreatedBy, d.SubmittedBy,
             d.PurchaseOrder != null ? new LinkedPurchaseOrder(d.PurchaseOrder.PublicId, d.PurchaseOrder.No) : null,
-            d.SalesOrder != null ? new LinkedSalesOrder(d.SalesOrder.PublicId, d.SalesOrder.No) : null));
+            d.SalesOrder != null ? new LinkedSalesOrder(d.SalesOrder.PublicId, d.SalesOrder.No) : null,
+            d.ReturnOf != null ? new LinkedReturnOf(d.ReturnOf.PublicId, d.ReturnOf.No) : null, d.Id,
+            d.Status == DocumentStatus.Posted && d.Returns.Any(r => r.Status == DocumentStatus.Posted)));
     }
 }
