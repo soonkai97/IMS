@@ -916,6 +916,13 @@ export const EN_MESSAGES = {
     'Order line {lineNo}: ordered {ordered}, delivered {delivered}, remaining {remaining} {uom}',
   'line.salesOrder.over': 'Only {remaining} {uom} of this order line is left to deliver.',
   'sales.deliver': 'Deliver',
+  'sales.listPrice.sourceCustomer': "the customer's list",
+  'sales.listPrice.sourceDefault': 'the default list',
+  'sales.listPrice.same': 'List price {price}, from {source}.',
+  'sales.listPrice.changed': 'List price {price}, from {source}. This price is different.',
+  'sales.listPrice.use': 'Use list price',
+  'sales.listPrice.none': 'No list price for this product and unit. Type the price.',
+  'sales.listPrice.unavailable': 'List price unavailable. Type the price.',
   'nav.priceLists': 'Price lists',
   'perm.pricelist.manage': 'Manage price lists',
   'perm.pricelist.manage.help':

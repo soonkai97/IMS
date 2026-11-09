@@ -123,6 +123,27 @@
                 [ariaLabel]="'sales.priceFor' | t: { sku: row.value.sku }"
               />
             </app-form-field>
+            @switch (row.listState) {
+              @case ('found') {
+                <p class="so-editor-listprice">
+                  {{
+                    (row.listChanged ? 'sales.listPrice.changed' : 'sales.listPrice.same')
+                      | t: { price: (row.listPrice | appMoney), source: (row.listSourceKey | t) }
+                  }}
+                  @if (row.listChanged) {
+                    <app-button variant="ghost" (clicked)="onUseListPrice(row.group)">{{
+                      'sales.listPrice.use' | t
+                    }}</app-button>
+                  }
+                </p>
+              }
+              @case ('none') {
+                <p class="so-editor-listprice">{{ 'sales.listPrice.none' | t }}</p>
+              }
+              @case ('unavailable') {
+                <p class="so-editor-listprice">{{ 'sales.listPrice.unavailable' | t }}</p>
+              }
+            }
             <p class="so-editor-amount">
               <span>{{ 'doc.amount' | t }}</span>
               <strong>{{ row.amount | appMoney }}</strong>

@@ -138,3 +138,11 @@
   font-size: font-size(2);
   color: color('text-muted');
 }
+
+// What the price lists say about this line, quietly, under its price.
+.so-editor-listprice {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: font-size(2);
+  color: color('text-muted');
+}

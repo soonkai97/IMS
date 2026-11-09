@@ -15,8 +15,8 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { map, startWith, tap } from 'rxjs';
-import { DocumentType, PartnerType } from '@ims/api';
+import { distinctUntilChanged, map, startWith, tap } from 'rxjs';
+import { DocumentType, PartnerType, PriceSource } from '@ims/api';
 import { PickedProduct, ProductPickerComponent } from '@ims/containers/catalog-shared';
 import { handledInline } from '@ims/core/http';
 import { AppMoneyPipe, I18nService, TranslatePipe } from '@ims/core/i18n';
@@ -43,7 +43,10 @@ import {
   lineFromOrderLine,
   toSoActions,
   toSalesOrderRef,
-  toSaveRequest
+  toSaveRequest,
+  ListPricePrefill,
+  PrefillLine,
+  PriceListsStore
 } from '@ims/features/sales';
 import { PartnersStore, WarehousesStore } from '@ims/features/warehousing';
 import { API_ERROR_KIND, MAX_DOCUMENT_LINES, MAX_REMARK_LENGTH } from '@ims/models';
@@ -132,6 +135,12 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
   private readonly router = inject(Router);
   private readonly store = inject(SalesOrdersStore);
   private readonly toast = inject(ToastService);
+  private readonly priceLists = inject(PriceListsStore);
+  /** The list price of each line, asked of the price lists and kept honest (see the class). */
+  private readonly prefill = new ListPricePrefill((customerId, productId, uomId) =>
+    this.priceLists.lookup(customerId, productId, uomId)
+  );
+  private readonly adapters = new WeakMap<LineGroup, PrefillLine>();
   private readonly money = new AppMoneyPipe();
   private readonly warehouses = inject(WarehousesStore);
 
@@ -187,19 +196,34 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
     this.$values().some(value => value.unitCost === null || toNumber(value.unitCost) === 0)
   );
   readonly $rows = computed(() =>
-    this.$values().map((value, index) => ({
-      index,
-      group: this.lines.at(index),
-      value,
-      // The same gate as the total: a value the form refuses is left out.
-      amount:
-        isValidQuantity(value.qty) && isValidUnitCost(value.unitCost)
-          ? lineAmount(toNumber(value.qty), toNumber(value.unitCost))
-          : 0,
-      units: this.unitsOf(value),
-      unitCode:
-        value.uomOptions.find(option => option.uomId === value.uomId)?.code ?? value.baseUomCode
-    }))
+    this.$values().map((value, index) => {
+      const list = this.prefill.$states().get(this.lineOf(this.lines.at(index)));
+      const listPrice = list?.status === 'found' ? list.price : undefined;
+      return {
+        index,
+        group: this.lines.at(index),
+        value,
+        listState: list?.status,
+        listPrice,
+        /** A price in the field that is not the list price: said in words beside it. */
+        listChanged:
+          listPrice !== undefined &&
+          value.unitCost !== null &&
+          toNumber(value.unitCost) !== listPrice,
+        listSourceKey:
+          list?.source === PriceSource.Customer
+            ? ('sales.listPrice.sourceCustomer' as const)
+            : ('sales.listPrice.sourceDefault' as const),
+        // The same gate as the total: a value the form refuses is left out.
+        amount:
+          isValidQuantity(value.qty) && isValidUnitCost(value.unitCost)
+            ? lineAmount(toNumber(value.qty), toNumber(value.unitCost))
+            : 0,
+        units: this.unitsOf(value),
+        unitCode:
+          value.uomOptions.find(option => option.uomId === value.uomId)?.code ?? value.baseUomCode
+      };
+    })
   );
 
   private readonly $orderId = computed(() => normalizePublicId(this.$id()));
@@ -291,6 +315,8 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
       // The store outlives this page and a sign-out: nothing of the last order or the last save is this page's.
       this.store.resetCommands();
       this.store.detail.reset();
+      // A price asked for another order, or answered to another user, is nobody's now.
+      this.prefill.reset();
       this.$saveMessages.set([]);
       this.$showLineError.set(false);
       this.$saved.set(false);
@@ -315,6 +341,8 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
         this.lines.push(createLineGroup(lineFromOrderLine(line)));
       }
       this.markPristine();
+      // Also after a Reload: the prices offered now are what the server will decide at save.
+      this.askAll();
     });
   });
 
@@ -377,7 +405,13 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
     this.warehouses.list.reset();
     this.partners.loadActive(PartnerType.Customer);
     this.warehouses.ensureLoaded();
-    this.destroyRef.onDestroy(() => this.pageTitle.setDetail(undefined));
+    this.destroyRef.onDestroy(() => {
+      this.pageTitle.setDetail(undefined);
+      this.prefill.destroy();
+    });
+    this.form.controls.customerId.valueChanges
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.askAll());
     effect(() =>
       this.pageTitle.setDetail(this.$isEdit() ? this.$order()?.no : this.i18n.t('sales.new'))
     );
@@ -421,6 +455,7 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
   onRemove(index: number): void {
     const sku = this.lines.at(index)?.controls.sku.value ?? '';
     this.$removedNote.set(this.i18n.t('sales.lineRemoved', { sku }));
+    this.prefill.forget(this.lineOf(this.lines.at(index)));
     this.lines.removeAt(index);
     this.lines.markAsDirty();
     // The button that had the focus is gone: leave it on the way into the lines, not on the page.
@@ -493,7 +528,48 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
       })
     );
     this.lines.markAsDirty();
+    const added = this.lines.at(this.lines.length - 1);
+    // A new unit of the line is a new question.
+    added.controls.uomId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.askLine(added));
+    this.askLine(added);
     return { increased: false, qty };
+  }
+
+  /** The line as the prefill sees it: its product, unit and price field. */
+  private lineOf(group: LineGroup): PrefillLine {
+    let line = this.adapters.get(group);
+    if (!line) {
+      line = {
+        productId: () => group.controls.productId.value,
+        uomId: () => group.controls.uomId.value,
+        price: () => group.controls.unitCost.value,
+        setPrice: price => {
+          group.controls.unitCost.setValue(price);
+          group.controls.unitCost.markAsDirty();
+        }
+      };
+      this.adapters.set(group, line);
+    }
+    return line;
+  }
+
+  private askLine(group: LineGroup): void {
+    this.prefill.ask(this.lineOf(group), this.form.controls.customerId.value);
+  }
+
+  /** Every line asks again: the customer changed, or the order was read again. */
+  private askAll(): void {
+    this.prefill.askAll(
+      this.lines.controls.map(group => this.lineOf(group)),
+      this.form.controls.customerId.value
+    );
+  }
+
+  /** The explicit action beside a price that differs from the list price. */
+  onUseListPrice(group: LineGroup): void {
+    this.prefill.useListPrice(this.lineOf(group));
   }
 
   /** An empty form (a single warehouse is pre-selected by an effect). */

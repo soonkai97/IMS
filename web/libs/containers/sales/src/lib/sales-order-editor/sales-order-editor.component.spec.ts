@@ -1,11 +1,12 @@
 import { Component, input, output, signal } from '@angular/core';
 import { Router, provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
-import { of } from 'rxjs';
-import { ProductDto, SalesOrderDto, SalesOrderStatus } from '@ims/api';
+import { Subject, of, throwError } from 'rxjs';
+import { PriceLookupDto, PriceSource, ProductDto, SalesOrderDto, SalesOrderStatus } from '@ims/api';
+import { PermissionService } from '@ims/core/identity';
 import { PickedProduct, ProductPickerComponent } from '@ims/containers/catalog-shared';
 import { CatalogStore } from '@ims/features/catalog';
-import { SalesOrdersStore } from '@ims/features/sales';
+import { PriceListsStore, SalesOrdersStore } from '@ims/features/sales';
 import { PartnersStore, WarehousesStore } from '@ims/features/warehousing';
 import {
   API_ERROR_KIND,
@@ -116,6 +117,8 @@ describe('SalesOrderEditorPageComponent', () => {
   const partnersReset = jest.fn();
   const warehousesReset = jest.fn();
   const loadActive = jest.fn();
+  const lookup = jest.fn<ReturnType<PriceListsStore['lookup']>, [string, string, string]>();
+  const permissionHas = jest.fn((code: string) => code === 'so.manage');
   const partnersData = signal<{ total: number; items: unknown[] } | undefined>(undefined);
   const createComponent = createComponentFactory({
     component: SalesOrderEditorPageComponent,
@@ -132,6 +135,9 @@ describe('SalesOrderEditorPageComponent', () => {
     providers: [
       provideRouter([]),
       { provide: SalesOrdersStore, useValue: store },
+      { provide: PriceListsStore, useValue: { lookup } },
+      // A seller: so.manage and nothing about price lists. The price they are offered must not depend on more.
+      { provide: PermissionService, useValue: { has: permissionHas, hasAny: () => true } },
       {
         provide: PartnersStore,
         useValue: {
@@ -170,6 +176,9 @@ describe('SalesOrderEditorPageComponent', () => {
     save.$operation.set(IDLE_OPERATION);
     save.run.mockClear();
     partnersData.set(undefined);
+    lookup.mockReset();
+    lookup.mockReturnValue(of({ found: false, price: undefined, source: undefined }));
+    permissionHas.mockClear();
     for (const mock of [
       detail.load,
       detail.reload,
@@ -493,6 +502,208 @@ describe('SalesOrderEditorPageComponent', () => {
       await spectator.fixture.whenStable();
 
       expect(component().hasUnsavedChanges()).toBe(false);
+    });
+  });
+
+  describe('the list price of a line (PL3.14)', () => {
+    const found = (price: number, source = PriceSource.Customer): PriceLookupDto => ({
+      found: true,
+      price,
+      source
+    });
+    const settle = async (): Promise<void> => {
+      await jest.advanceTimersByTimeAsync(300);
+      spectator.detectChanges();
+    };
+    const open = async (): Promise<void> => {
+      jest.useFakeTimers();
+      await render();
+      component().form.patchValue({ customerId: CUSTOMER, warehouseId: WAREHOUSE });
+      await settle();
+    };
+    const price = (): number | null => component().lines.at(0).controls.unitCost.value;
+    const note = (): string =>
+      (spectator.query('.so-editor-listprice')?.textContent ?? '').replace(/\s+/g, ' ').trim();
+    afterEach(() => jest.useRealTimers());
+
+    it('asks for the customer, product and unit of a new line and puts the list price in the field; a seller with so.manage only gets it', async () => {
+      lookup.mockReturnValue(of(found(5)));
+      await open();
+
+      component().onProductPicked({ product: PRODUCT, available: null });
+      await settle();
+
+      expect(lookup).toHaveBeenCalledWith(CUSTOMER, 'p1', 'pcs');
+      expect(price()).toBe(5);
+      expect(note()).toBe("List price 5.00, from the customer's list.");
+      expect(permissionHas.mock.calls.map(call => call[0])).not.toContain('pricelist.manage');
+    });
+
+    it('a price the person changes stays theirs; the list price is shown beside it in words, and "Use list price" takes it back', async () => {
+      lookup.mockReturnValue(of(found(5, PriceSource.Default)));
+      await open();
+      component().onProductPicked({ product: PRODUCT, available: null });
+      await settle();
+
+      component().lines.at(0).patchValue({ unitCost: 7 });
+      spectator.detectChanges();
+      expect(note()).toContain('List price 5.00, from the default list. This price is different.');
+      expect(price()).toBe(7);
+
+      spectator.click(spectator.query('.so-editor-listprice button') as HTMLElement);
+      expect(price()).toBe(5);
+      expect(note()).not.toContain('different');
+    });
+
+    it('no list price (found false) leaves the field empty with a quiet note, and typing goes on', async () => {
+      await open();
+
+      component().onProductPicked({ product: PRODUCT, available: null });
+      await settle();
+
+      expect(price()).toBeNull();
+      expect(note()).toBe('No list price for this product and unit. Type the price.');
+      component().lines.at(0).patchValue({ unitCost: 4 });
+      expect(price()).toBe(4);
+    });
+
+    it('a failed lookup is a quiet note, never a toast or a blocked Save', async () => {
+      lookup.mockReturnValue(throwError(() => new Error('down')));
+      await open();
+      jest.spyOn(spectator.inject(Router), 'navigate').mockResolvedValue(true);
+
+      component().onProductPicked({ product: PRODUCT, available: null });
+      await settle();
+      component().lines.at(0).patchValue({ unitCost: 4 });
+      spectator.detectChanges();
+
+      expect(note()).toBe('List price unavailable. Type the price.');
+      expect(saveButton().disabled).toBe(false);
+      spectator.click(saveButton());
+      expect(save.run).toHaveBeenCalled();
+    });
+
+    it('a change of customer asks again for EVERY line, and a typed price is kept', async () => {
+      lookup.mockReturnValue(of(found(5)));
+      await open();
+      component().onProductPicked({ product: PRODUCT, available: null });
+      component().onProductPicked({
+        product: { ...PRODUCT, id: 'p2', sku: 'SKU-2' } as ProductDto,
+        available: null
+      });
+      await settle();
+      component().lines.at(1).patchValue({ unitCost: 8 });
+      lookup.mockClear();
+      lookup.mockReturnValue(of(found(6)));
+
+      component().form.patchValue({ customerId: 'c-other' });
+      await settle();
+
+      expect(lookup.mock.calls.map(call => call.join('|'))).toEqual([
+        'c-other|p1|pcs',
+        'c-other|p2|pcs'
+      ]);
+      expect(price()).toBe(6);
+      expect(component().lines.at(1).controls.unitCost.value).toBe(8);
+    });
+
+    it('a change of unit asks again; the price this page put there is replaced, or cleared when the new unit has none', async () => {
+      lookup.mockReturnValue(of(found(5)));
+      await open();
+      const packed = {
+        ...PRODUCT,
+        conversions: [{ fromUomId: 'ctn', toUomId: 'pcs', factor: 12 }]
+      } as unknown as ProductDto;
+      component().onProductPicked({ product: packed, available: null });
+      await settle();
+      expect(price()).toBe(5);
+
+      lookup.mockReturnValue(of(found(55)));
+      component().lines.at(0).controls.uomId.setValue('ctn');
+      await settle();
+      expect(lookup).toHaveBeenLastCalledWith(CUSTOMER, 'p1', 'ctn');
+      expect(price()).toBe(55);
+
+      lookup.mockReturnValue(of({ found: false, price: undefined, source: undefined }));
+      component().lines.at(0).controls.uomId.setValue('pcs');
+      await settle();
+      expect(price()).toBeNull();
+    });
+
+    it('the answer that arrives last is not always the answer that counts: an older answer for a line is ignored', async () => {
+      const slow = new Subject<PriceLookupDto>();
+      lookup.mockReturnValueOnce(slow).mockReturnValueOnce(of(found(9)));
+      await open();
+      component().onProductPicked({ product: PRODUCT, available: null });
+      await settle();
+
+      component().form.patchValue({ customerId: 'c-other' });
+      await settle();
+      slow.next(found(1));
+      slow.complete();
+      await settle();
+
+      expect(price()).toBe(9);
+    });
+
+    it('after a Reload every line asks again, so the field agrees with what the server will decide at save', async () => {
+      lookup.mockReturnValue(of(found(5)));
+      detail.$data.set(draft());
+      jest.useFakeTimers();
+      await render({ id: ID });
+      await settle();
+      lookup.mockClear();
+
+      detail.$data.set(draft({ concurrencyToken: 'BBBB' }));
+      spectator.detectChanges();
+      await settle();
+
+      expect(lookup).toHaveBeenCalledWith(CUSTOMER, 'p1', 'pcs');
+      // The saved price is the person's: it stays, and the list price is shown beside it.
+      expect(price()).toBe(5);
+    });
+
+    it('a saved price different from the list price shows the list price beside it, and is not overwritten', async () => {
+      lookup.mockReturnValue(of(found(4.5)));
+      detail.$data.set(draft());
+      jest.useFakeTimers();
+      await render({ id: ID });
+      await settle();
+
+      expect(price()).toBe(5);
+      expect(note()).toContain(
+        "List price 4.50, from the customer's list. This price is different."
+      );
+    });
+
+    it("what was asked for order A never shows on order B, and a former user's refusal of the lookup is gone", async () => {
+      const slow = new Subject<PriceLookupDto>();
+      lookup.mockReturnValueOnce(throwError(() => apiError(403, API_ERROR_KIND.Forbidden)));
+      lookup.mockReturnValueOnce(slow);
+      detail.$data.set(draft({ lines: [{ ...draft().lines[0], unitPrice: null as never }] }));
+      jest.useFakeTimers();
+      await render({ id: ID });
+      await settle();
+      expect(note()).toBe('List price unavailable. Type the price.');
+
+      // Order B opens while a second answer for A is on its way.
+      component().form.patchValue({ customerId: 'c-other' });
+      await settle();
+      detail.$data.set(
+        draft({
+          id: OTHER_ID,
+          no: 'SO-B',
+          lines: [{ ...draft().lines[0], unitPrice: null as never }]
+        })
+      );
+      spectator.setInput('id', OTHER_ID);
+      spectator.detectChanges();
+      slow.next(found(1));
+      slow.complete();
+      await settle();
+
+      expect(note()).not.toContain('unavailable');
+      expect(price()).not.toBe(1);
     });
   });
 

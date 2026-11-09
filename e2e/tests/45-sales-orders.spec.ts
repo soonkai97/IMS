@@ -4,6 +4,8 @@ import { apiAs, unique, type PublicId } from '../src/api';
 import { SLOW } from '../src/purchasing';
 import {
   CUSTOMER_PREFIX,
+  createPriceList,
+  deletePriceLists,
   NEEDS_APPROVAL,
   NO_APPROVAL,
   SKU_PREFIX,
@@ -329,6 +331,57 @@ test.describe('Sales orders, real API', () => {
     await expect(page.getByRole('columnheader', { name: /price|amount/i })).toHaveCount(0);
     expect(await barButtons(page)).toEqual([]);
     await salesCommand('clerk', order.id, 'cancel');
+  });
+
+  test('given a price list of a customer, when a Clerk (no pricelist.manage) makes an order for that customer, then the list price is offered, a changed price is said in words, and the audit log shows sales-order.price-changed', async ({
+    page,
+    signIn,
+    shell,
+    browser
+  }) => {
+    const customer = await admin().createPartner('Customer', {
+      name: `${CUSTOMER_PREFIX}L${token}`
+    });
+    await createPriceList({
+      name: `E2E PL ${token} prefill`,
+      customerId: customer.id,
+      items: [{ productId: data.productId, price: 12.34 }]
+    });
+
+    await signIn('clerk');
+    await goTo(page, '/sales-orders/new');
+    const editor = new DocumentEditor(page);
+    await editor.partner.selectOption({ label: customer.name });
+    await editor.addItem({ sku: data.sku, name: data.productName });
+    const price = page.getByRole('spinbutton', { name: `Unit price of ${data.sku}` });
+    await expect(price).toHaveValue('12.34');
+    await expect(page.locator('.so-editor-listprice')).toContainText(
+      "List price 12.34, from the customer's list."
+    );
+
+    await price.fill('15');
+    await expect(page.locator('.so-editor-listprice')).toContainText('This price is different.');
+    await page.getByRole('button', { name: 'Save draft' }).click();
+    await expect(page).toHaveURL(/\/sales-orders\/[0-9a-f-]{36}$/);
+    const id = page.url().split('/').pop()!;
+    const saved = await getSalesOrder(id, 'clerk');
+    expect(saved.lines[0]?.unitPrice).toBe(15);
+
+    // The deviation is the server's record: it shows in the audit log screen of an Admin.
+    const admin1 = await openSession(browser, 'admin');
+    try {
+      await goTo(admin1.page, '/audit-log');
+      await admin1.page
+        .getByRole('combobox', { name: 'Action' })
+        .selectOption({ label: 'sales-order.price-changed' });
+      await expect(row(admin1.page, saved.no)).toBeVisible();
+      await expect(row(admin1.page, saved.no)).toContainText('sales-order.price-changed');
+    } finally {
+      await admin1.context.close();
+    }
+    await salesCommand('clerk', id, 'cancel');
+    await deletePriceLists();
+    expect(shell).toBeDefined();
   });
 
   test('given a Clerk, when an order is created in the editor, changed, submitted, and approved by a Supervisor, then each step shows its result and the whole order is saved every time', async ({

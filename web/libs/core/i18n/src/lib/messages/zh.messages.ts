@@ -855,6 +855,14 @@ export const ZH_MESSAGES: Messages = {
   'line.salesOrder': '订单第 {lineNo} 行：订购 {ordered}，已发 {delivered}，剩余 {remaining} {uom}',
   'line.salesOrder.over': '此订单行只剩 {remaining} {uom} 可发货。',
   'sales.deliver': '发货',
+  // TODO-review: machine draft (PL3.14 list price).
+  'sales.listPrice.sourceCustomer': '客户的价格表',
+  'sales.listPrice.sourceDefault': '默认价格表',
+  'sales.listPrice.same': '价格表价格 {price}，来自{source}。',
+  'sales.listPrice.changed': '价格表价格 {price}，来自{source}。此价格不同。',
+  'sales.listPrice.use': '使用价格表价格',
+  'sales.listPrice.none': '此产品和单位没有价格表价格。请输入价格。',
+  'sales.listPrice.unavailable': '无法获取价格表价格。请输入价格。',
   // TODO-review: machine draft (PL3.13 price lists).
   'nav.priceLists': '价格表',
   'perm.pricelist.manage': '管理价格表',
