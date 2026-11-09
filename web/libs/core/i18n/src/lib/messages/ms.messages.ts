@@ -923,6 +923,51 @@ export const MS_MESSAGES: Messages = {
     'Baris pesanan {lineNo}: dipesan {ordered}, dihantar {delivered}, baki {remaining} {uom}',
   'line.salesOrder.over': 'Hanya {remaining} {uom} baris pesanan ini tinggal untuk dihantar.',
   'sales.deliver': 'Hantar barang',
+  // TODO-review: machine draft (PL3.13 price lists).
+  'nav.priceLists': 'Senarai harga',
+  'perm.pricelist.manage': 'Urus senarai harga',
+  'perm.pricelist.manage.help':
+    'Lihat dan ubah senarai harga: harga jualan setiap produk dan unit, senarai lalai dan senarai setiap pelanggan.',
+  'pricelist.title': 'Senarai harga',
+  'pricelist.searchLabel': 'Cari senarai harga',
+  'pricelist.searchPlaceholder': 'Nama senarai',
+  'pricelist.empty': 'Belum ada senarai harga.',
+  'pricelist.noMatch': 'Tiada senarai harga sepadan dengan carian ini.',
+  'pricelist.default': 'Lalai',
+  'pricelist.allCustomers': 'Setiap pelanggan tanpa senarai sendiri',
+  'pricelist.col.count': 'Harga',
+  'pricelist.itemCount': '{count, plural, one {1 harga} other {# harga}}',
+  'pricelist.new': 'Senarai harga baharu',
+  'pricelist.name': 'Nama',
+  'pricelist.isDefault': 'Senarai lalai untuk setiap pelanggan tanpa senarai sendiri',
+  'pricelist.customer': 'Pelanggan',
+  'pricelist.noCustomer': 'Tiada pelanggan',
+  'pricelist.findCustomer': 'Cari pelanggan',
+  'pricelist.customersTruncated':
+    'Hanya pelanggan pertama disenaraikan. Taip untuk mencari yang lain.',
+  'pricelist.items': '{count, plural, one {Harga (1)} other {Harga (#)}}',
+  'pricelist.price': 'Harga ({currency})',
+  'pricelist.priceFor': 'Harga {sku}',
+  'pricelist.unitFor': 'Unit {sku}',
+  'pricelist.duplicate':
+    '{sku} dalam {unit} sudah ada harga dalam senarai ini (pertama pada baris {row}). Buang salah satu.',
+  'pricelist.itemExists': '{sku} sudah ada harga dalam setiap unit yang boleh dibuat harga.',
+  'pricelist.itemAdded': '{sku} ditambah.',
+  'pricelist.itemRemoved': '{sku} dibuang.',
+  'pricelist.itemsFull':
+    'Satu senarai harga memuatkan sehingga {max} harga. Buang satu untuk menambah yang lain.',
+  'pricelist.priceHint':
+    'Harga adalah untuk satu unit yang ditunjukkan, melebihi 0, dengan sehingga 2 perpuluhan.',
+  'pricelist.staleSaveBody':
+    'Orang lain telah mengubah senarai ini. Muat semula untuk melihat versi terkini. Perubahan anda tidak disimpan.',
+  'pricelist.delete': 'Padam senarai',
+  'pricelist.delete.title': 'Padam {name}?',
+  'pricelist.delete.body':
+    'Pesanan yang sudah disimpan mengekalkan harganya. Ini tidak boleh dibatalkan.',
+  'pricelist.delete.keep': 'Kekalkan senarai',
+  'pricelist.toast.saved': 'Senarai harga disimpan.',
+  'pricelist.toast.deleted': 'Senarai harga dipadam.',
+  'pricelist.defaultNoCustomer': 'Senarai lalai tiada pelanggan.',
   // TODO-review: machine draft (PL3.10 review fixes).
   'doc.salesOrder.notOpen':
     'Pesanan {order} tidak lagi terbuka untuk penghantaran. Batalkan penghantaran ini.',

@@ -161,3 +161,75 @@ export async function submitDelivery(
   }
   return current as unknown as ApiDelivery;
 }
+
+/** Prefix of the throw-away price lists, so a run that stopped half way can be found again. */
+export const PRICE_LIST_PREFIX = 'E2E PL ';
+
+export interface ApiPriceList {
+  id: PublicId;
+  name: string;
+  isDefault: boolean;
+  customerId: PublicId | null;
+  concurrencyToken: string;
+  items: { productId: PublicId; uomId: PublicId; price: number }[];
+}
+
+export function createPriceList(body: {
+  name: string;
+  isDefault?: boolean;
+  customerId?: PublicId | null;
+  items?: { productId: PublicId; price: number }[];
+}): Promise<ApiPriceList> {
+  return admin().call<ApiPriceList>('POST', '/api/price-lists', {
+    name: body.name,
+    isDefault: body.isDefault ?? false,
+    customerId: body.customerId ?? null,
+    items: (body.items ?? []).map(item => ({ ...item, uomId: null }))
+  });
+}
+
+export function getPriceList(id: PublicId): Promise<ApiPriceList> {
+  return admin().call<ApiPriceList>('GET', `/api/price-lists/${id}`);
+}
+
+/** The whole list again with another name: a change made behind a screen's back (its token moves). */
+export function renamePriceList(list: ApiPriceList, name: string): Promise<ApiPriceList> {
+  return admin().call<ApiPriceList>(
+    'PUT',
+    `/api/price-lists/${list.id}`,
+    {
+      name,
+      isDefault: list.isDefault,
+      customerId: list.customerId,
+      items: list.items.map(item => ({
+        productId: item.productId,
+        uomId: item.uomId,
+        price: item.price
+      }))
+    },
+    ifMatch(list.concurrencyToken)
+  );
+}
+
+export async function defaultPriceListExists(): Promise<boolean> {
+  const page = await admin().call<{ items: { isDefault: boolean }[] }>(
+    'GET',
+    '/api/price-lists?PageSize=100'
+  );
+  return page.items.some(item => item.isDefault);
+}
+
+/** Every price list of these scenarios is deleted again (found by its name prefix). */
+export async function deletePriceLists(): Promise<void> {
+  const page = await admin().call<{
+    items: { id: PublicId; name: string; concurrencyToken: string }[];
+  }>('GET', `/api/price-lists?Search=${encodeURIComponent(PRICE_LIST_PREFIX.trim())}&PageSize=100`);
+  for (const item of page.items.filter(row => row.name.startsWith(PRICE_LIST_PREFIX))) {
+    await admin().raw(
+      'DELETE',
+      `/api/price-lists/${item.id}`,
+      undefined,
+      ifMatch(item.concurrencyToken)
+    );
+  }
+}
