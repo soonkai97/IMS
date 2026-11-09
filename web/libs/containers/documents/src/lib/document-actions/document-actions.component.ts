@@ -37,6 +37,8 @@ export class DocumentActionsComponent {
   });
   /** Disables Submit (e.g. lines short on stock); the page shows the reason next to the buttons. */
   $submitDisabled = input(false, { alias: 'submitDisabled', transform: booleanAttribute });
+  /** Offers "Return": the document is a Posted original that can be returned (see canReturn). */
+  $canReturn = input(false, { alias: 'canReturn', transform: booleanAttribute });
   /** Disables Save draft (a delivery this person cannot edit); the page says why. */
   $saveDisabled = input(false, { alias: 'saveDisabled', transform: booleanAttribute });
   /** Disables Post (the order of a delivery is no longer open, or its quantities are not known); the page says why. */

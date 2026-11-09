@@ -923,6 +923,26 @@ export const MS_MESSAGES: Messages = {
     'Baris pesanan {lineNo}: dipesan {ordered}, dihantar {delivered}, baki {remaining} {uom}',
   'line.salesOrder.over': 'Hanya {remaining} {uom} baris pesanan ini tinggal untuk dihantar.',
   'sales.deliver': 'Hantar barang',
+  // TODO-review: machine draft (PL3.18 returns).
+  'doc.action.return': 'Pulangkan',
+  'purpose.Return': 'Pemulangan',
+  'doc.return.from':
+    'Ini pemulangan bagi {order}. Rakan, gudang dan baris datang daripadanya. Kos ialah kos asal dan tidak boleh diubah di sini.',
+  'doc.return.editHint':
+    'Kurangkan kuantiti atau buang baris yang tidak dipulangkan. Kuantiti tidak boleh melebihi yang masih boleh dipulangkan.',
+  'doc.return.open': 'Buka dokumen asal.',
+  'doc.return.approval':
+    'Pemulangan sentiasa memerlukan kelulusan, oleh Penyelia atau Pentadbir selain orang yang menghantarnya. Jika hanya ada seorang Penyelia, Pentadbir yang meluluskan.',
+  'line.return':
+    'Baris asal {lineNo}: {ordered}, sudah dipulangkan {returned}, boleh dipulangkan {remaining} {uom}',
+  'line.return.over': 'Hanya {remaining} {uom} baris ini yang masih boleh dipulangkan.',
+  'doc.line.returned': 'Dipulangkan {returned} {uom}, boleh dipulangkan {returnable} {uom}',
+  'module.returns.name': 'Pemulangan',
+  'module.returns.description':
+    'Pemulangan pelanggan dan pembekal, dipautkan kepada dokumen yang dipulangkan.',
+  'perm.returns.create': 'Cipta pemulangan',
+  'perm.returns.create.help':
+    'Mulakan pemulangan jualan atau terimaan yang telah disiarkan dan ubah sebagai draf. Pemulangan sentiasa diluluskan oleh orang lain.',
   // TODO-review: machine draft (PL3.14 list price).
   'sales.listPrice.sourceCustomer': 'senarai pelanggan',
   'sales.listPrice.sourceDefault': 'senarai lalai',

@@ -41,6 +41,7 @@ import {
 import {
   AuthService,
   CanDirective,
+  ModulesStore,
   PermissionService,
   SessionDraftService
 } from '@ims/core/identity';
@@ -57,8 +58,12 @@ import {
   LineValue,
   NEW_DOCUMENT_ID,
   STATUS_TONE,
+  canReturn,
   isOverDeliveryError,
   isOverReceiptError,
+  isOverReturnError,
+  ReturnsStore,
+  routeForDocumentNo,
   isReversalBlockedError,
   isStaleDocumentError,
   isStockConflictError,
@@ -80,6 +85,7 @@ import {
   DocumentAction,
   HTTP_STATUS,
   MIN_REASON_LENGTH,
+  MODULE_CODE,
   PERMISSION,
   PublicId,
   toDocumentActions
@@ -119,6 +125,7 @@ import {
   lineRefusals,
   orderLineContexts,
   orderProgress,
+  returnLineContexts,
   salesOrderLineContexts,
   salesOrderProgress
 } from './document-editor.linked-order';
@@ -213,6 +220,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   private readonly page = inject(DOCUMENT);
   private readonly orders = inject(PurchaseOrdersStore);
   private readonly salesOrders = inject(SalesOrdersStore);
+  private readonly returns = inject(ReturnsStore);
+  private readonly modules = inject(ModulesStore);
   private readonly pageTitle = inject(PageTitleService);
   private readonly partners = inject(PartnersStore);
   private readonly permissions = inject(PermissionService);
@@ -283,20 +292,58 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
     }
     // A delivery names its sales order the same way (omitted for a caller who may not read sales orders).
     const sales = document?.salesOrder;
-    return isDefined(sales) ? { ...sales, kind: 'sales' } : undefined;
+    if (isDefined(sales)) {
+      return { ...sales, kind: 'sales' };
+    }
+    // A return names its original the same way (omitted for a caller who may not create returns).
+    const original = document?.returnOf;
+    return isDefined(original) ? { ...original, kind: 'return' } : undefined;
   });
   readonly $isSalesOrder = computed(() => this.$linkedOrder()?.kind === 'sales');
-  readonly $orderRoute = computed(() =>
-    this.$isSalesOrder() ? SALES_ORDER_ROUTE : PURCHASE_ORDER_ROUTE
-  );
+  readonly $isReturn = computed(() => this.$linkedOrder()?.kind === 'return');
+  /** The first segment of the page of the linked order, or of the original a return belongs to. */
+  readonly $orderRoute = computed(() => {
+    const linked = this.$linkedOrder();
+    if (linked?.kind === 'return') {
+      return routeForDocumentNo(linked.no);
+    }
+    return linked?.kind === 'sales' ? SALES_ORDER_ROUTE : PURCHASE_ORDER_ROUTE;
+  });
+  /** The words of the banner, by what the document is linked to. */
+  readonly $linkedFromKey = computed<MessageKey>(() => {
+    const kind = this.$linkedOrder()?.kind;
+    if (kind === 'return') {
+      return 'doc.return.from';
+    }
+    return kind === 'sales' ? 'doc.salesOrder.from' : 'doc.order.from';
+  });
+  readonly $linkedHintKey = computed<MessageKey>(() => {
+    const kind = this.$linkedOrder()?.kind;
+    if (kind === 'return') {
+      return 'doc.return.editHint';
+    }
+    return kind === 'sales' ? 'doc.salesOrder.editHint' : 'doc.order.editHint';
+  });
+  /** A customer return is a receipt (the partner is the customer); a supplier return is an issue (the supplier). */
+  readonly $linkedPartnerLabel = computed<MessageKey>(() => {
+    const kind = this.$linkedOrder()?.kind;
+    if (kind === 'return') {
+      return this.$isIssue() ? 'doc.supplier' : 'doc.customer';
+    }
+    return kind === 'sales' ? 'doc.customer' : 'doc.supplier';
+  });
   /** Only the id: a save brings a new document object, and the order is not read again for that. */
   private readonly $linkedOrderId = computed(() => this.$linkedOrder()?.id);
   /** The order's own figures per line, once they have arrived (the API stays the authority; they only make the advice readable). */
-  readonly $orderLines = computed(() =>
-    this.$isSalesOrder()
+  readonly $orderLines = computed(() => {
+    const kind = this.$linkedOrder()?.kind;
+    if (kind === 'return') {
+      return returnLineContexts(this.returns.original.$data(), this.$linkedOrderId());
+    }
+    return kind === 'sales'
       ? salesOrderLineContexts(this.salesOrders.detail.$data(), this.$linkedOrderId())
-      : orderLineContexts(this.orders.detail.$data(), this.$linkedOrderId())
-  );
+      : orderLineContexts(this.orders.detail.$data(), this.$linkedOrderId());
+  });
   /** A quantity above what the order has left: advisory here, refused by the API at save and at posting. */
   readonly $overOrder = computed(
     () =>
@@ -405,8 +452,30 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   );
   readonly $canPost = computed(() => this.permissions.has(PERMISSION.DocumentPost));
   /** The order opens for a holder of po.read (a purchase order) or so.read (a sales order): the API shows the link to nobody else. */
-  readonly $canReadOrders = computed(() =>
-    this.permissions.has(this.$isSalesOrder() ? PERMISSION.SoRead : PERMISSION.PoRead)
+  readonly $canReadOrders = computed(
+    () =>
+      // The original of a return is a document of the caller's own scope; the link exists only for a holder of returns.create.
+      this.$isReturn() ||
+      this.permissions.has(this.$isSalesOrder() ? PERMISSION.SoRead : PERMISSION.PoRead)
+  );
+  /** "Return" is offered on a Posted sale issue or receipt with something left to return, to a holder of returns.create. */
+  readonly $canReturn = computed(() =>
+    canReturn(
+      this.$document(),
+      // The right AND the module: the API may still send the figures of a document while Returns is off.
+      this.permissions.has(PERMISSION.ReturnsCreate) && this.modules.isEnabled(MODULE_CODE.Returns)
+    )
+  );
+  /** A refusal of Return (nothing left, no longer posted, Returns off): the API's own sentence. */
+  readonly $returnRefusal = computed(
+    () =>
+      this.returns.start.$operation().error?.detail ??
+      this.returns.start.$operation().error?.message
+  );
+  /** A return always needs approval; the banner says so, and by whom, while it can still be submitted or is waiting. */
+  readonly $returnNeedsApproval = computed(
+    () =>
+      this.$isReturn() && [DocumentStatus.Draft, DocumentStatus.Submitted].includes(this.$status())
   );
   /** The button that was tapped shows the spinner, not whichever button is primary (NV-21). */
   private readonly $activeAction = signal<DocumentAction | undefined>(undefined);
@@ -420,7 +489,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       this.documents.cancel.$isRunning() ||
       this.documents.recall.$isRunning() ||
       this.documents.post.$isRunning() ||
-      this.documents.reverse.$isRunning()
+      this.documents.reverse.$isRunning() ||
+      this.returns.start.$isRunning()
   );
   readonly $selfApprovalBlocked = computed(() => {
     const document = this.$document();
@@ -809,7 +879,11 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   });
   /** The action bar is only worth its space when it has something to show. */
   readonly $showBar = computed(
-    () => this.$editable() || this.$barActions().length > 0 || this.$selfApprovalBlocked()
+    () =>
+      this.$editable() ||
+      this.$barActions().length > 0 ||
+      this.$selfApprovalBlocked() ||
+      this.$canReturn()
   );
   readonly $saveGeneralErrors = computed(() => {
     const error = this.documents.save.$operation().error;
@@ -837,6 +911,8 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       // document this editor just created is the same one, so its commands keep their outcome.
       if (id === undefined || id !== this.justCreatedId) {
         this.documents.resetCommands();
+        // A refusal of Return, or the original of the return before, is nobody's now.
+        this.returns.resetAll();
       }
       if (unusable) {
         this.documents.detail.reset();
@@ -860,8 +936,15 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
   private readonly loadLinkedOrder = effect(() => {
     const orderId = this.$linkedOrderId();
     const sales = this.$isSalesOrder();
+    const isReturn = this.$isReturn();
     if (orderId !== undefined) {
       untracked(() => {
+        if (isReturn) {
+          // The original of a return: its figures (returned, returnable) are read again every time a return opens.
+          this.returns.original.reset();
+          this.returns.original.load(orderId, handledInline());
+          return;
+        }
         const store = sales ? this.salesOrders : this.orders;
         // Nothing of the last order, or of a command that failed on it, is this order's.
         store.detail.reset();
@@ -1192,7 +1275,26 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
       case DOCUMENT_ACTION.Reverse:
         this.reverse();
         break;
+      case DOCUMENT_ACTION.Return:
+        this.startReturn();
+        break;
     }
+  }
+
+  /** Makes the Draft return of this Posted document and opens it in this editor (a customer return is a receipt, a supplier return an issue). */
+  private startReturn(): void {
+    const document = this.$document();
+    if (!document) {
+      return;
+    }
+    this.returns.start
+      .run(document.id)
+      .pipe(
+        tap(draft => void this.router.navigate(['/', DOCUMENT_ROUTE[draft.type], draft.id])),
+        finalize(() => this.settleFocus()),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe();
   }
 
   /** "DEMO-001 (-3 PCS)" for each product a refused reversal would leave negative. */
@@ -1512,7 +1614,7 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
         tap(() => this.afterChange(true)),
         finalize(() => {
           // Refused for more than the order has left: its figures may have moved since this page opened.
-          if (this.$overReceipt() !== undefined) {
+          if (this.$overReceipt() !== undefined || this.$postingErrors().some(isOverReturnError)) {
             this.reloadLinkedOrder();
           }
           // The submit worked and the post did not: one sentence says so, with the reason, and the document stays Submitted.
@@ -1693,6 +1795,10 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
 
   /** Reads the order of this document again (a purchase order or a sales order): its figures moved. */
   private reloadLinkedOrder(): void {
+    if (this.$isReturn()) {
+      this.returns.original.reload();
+      return;
+    }
     (this.$isSalesOrder() ? this.salesOrders : this.orders).detail.reload();
   }
 }

@@ -8,7 +8,9 @@ export const DOCUMENT_ACTION = {
   /** The submitter takes a Submitted document back to Draft; the button reads "Edit". */
   Recall: 'recall',
   Post: 'post',
-  Reverse: 'reverse'
+  Reverse: 'reverse',
+  /** Start a return of a Posted document. The API lists no such action; the web offers it from the document itself (see canReturn). */
+  Return: 'return'
 } as const;
 
 /** Smallest accepted length of a reject / reverse / override reason (docs/design/mvp-ux.md 6.4). */

@@ -34,6 +34,7 @@ function line(overrides: Partial<LineValue> = {}): LineValue {
     uomOptions: [PCS, CARTON],
     purchaseOrderLineNo: null,
     salesOrderLineNo: null,
+    returnOfLineNo: null,
     ...overrides
   };
 }
@@ -330,10 +331,63 @@ describe('delivery lines of a sales order', () => {
   });
 
   it('names the order line of either kind, and flags a delivery line above what remains', () => {
-    expect(orderLineNoOf({ purchaseOrderLineNo: 2, salesOrderLineNo: null })).toBe(2);
-    expect(orderLineNoOf({ purchaseOrderLineNo: null, salesOrderLineNo: 5 })).toBe(5);
-    expect(orderLineNoOf({ purchaseOrderLineNo: null, salesOrderLineNo: null })).toBeNull();
+    expect(
+      orderLineNoOf({ purchaseOrderLineNo: 2, salesOrderLineNo: null, returnOfLineNo: null })
+    ).toBe(2);
+    expect(
+      orderLineNoOf({ purchaseOrderLineNo: null, salesOrderLineNo: 5, returnOfLineNo: null })
+    ).toBe(5);
+    expect(
+      orderLineNoOf({ purchaseOrderLineNo: null, salesOrderLineNo: null, returnOfLineNo: null })
+    ).toBeNull();
     expect(overRemainingLines([of(1, 3), of(1, 1.5)], contexts)).toEqual(new Set([1]));
     expect(overRemainingLines([of(1, 4)], contexts)).toEqual(new Set());
+  });
+});
+
+describe('return lines', () => {
+  const DOCUMENT_LINE: DocumentLineDto = {
+    productId: id(1),
+    sku: 'WIDGET-A',
+    productName: 'Widget A',
+    qty: 2,
+    uomId: id(2),
+    uomCode: 'CTN',
+    baseQty: 24,
+    unitCost: undefined,
+    baseUnitCost: undefined,
+    amount: undefined,
+    costFromAverage: false,
+    remark: undefined,
+    available: 18
+  };
+  const of = (returnOfLineNo: number | null): LineValue =>
+    line({ returnOfLineNo, unitCost: 4, qty: 2 });
+
+  it('ALWAYS sends the original line a return line returns, and NEVER a cost (the server takes the original cost)', () => {
+    const inputs = toLineInputs([of(3), of(null)], DocumentType.Receipt);
+
+    expect(inputs.map(input => input.returnOfLineNo)).toEqual([3, undefined]);
+    expect(inputs.map(input => input.unitCost)).toEqual([undefined, 4]);
+  });
+
+  it('keeps the position of the original line of a saved return, and null when the API leaves it out', () => {
+    const dto = { ...DOCUMENT_LINE, returnOfLineNo: 2 };
+
+    expect(lineFromDocument(dto).returnOfLineNo).toBe(2);
+    expect(lineFromDocument({ ...dto, returnOfLineNo: undefined }).returnOfLineNo).toBeNull();
+  });
+
+  it('names the original line like an order line, and flags a return line above what is returnable', () => {
+    expect(
+      orderLineNoOf({ purchaseOrderLineNo: null, salesOrderLineNo: null, returnOfLineNo: 4 })
+    ).toBe(4);
+    const contexts = new Map([[1, { ordered: 10, received: 6, remaining: 4, uomCode: 'PCS' }]]);
+    expect(
+      overRemainingLines(
+        [of(1), of(1)].map(v => ({ ...v, qty: 3 })),
+        contexts
+      )
+    ).toEqual(new Set([1]));
   });
 });

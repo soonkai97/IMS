@@ -38,6 +38,12 @@
     {{ 'doc.action.reverse' | t }}
   </app-button>
 }
+@if ($canReturn()) {
+  <app-button variant="secondary" [disabled]="$inactive()" (clicked)="onTrigger(action.Return)">
+    <app-icon name="undo" />
+    {{ 'doc.action.return' | t }}
+  </app-button>
+}
 @if ($canRecall()) {
   <app-button
     [variant]="$recallIsPrimary() ? 'primary' : 'secondary'"

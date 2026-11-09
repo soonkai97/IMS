@@ -916,6 +916,25 @@ export const EN_MESSAGES = {
     'Order line {lineNo}: ordered {ordered}, delivered {delivered}, remaining {remaining} {uom}',
   'line.salesOrder.over': 'Only {remaining} {uom} of this order line is left to deliver.',
   'sales.deliver': 'Deliver',
+  'doc.action.return': 'Return',
+  'purpose.Return': 'Return',
+  'doc.return.from':
+    "This is a return of {order}. The partner, the warehouse and the lines come from it. The cost is the original's and cannot be changed here.",
+  'doc.return.editHint':
+    'Lower a quantity or remove a line you do not return. A quantity cannot be above what can still be returned.',
+  'doc.return.open': 'Open the original.',
+  'doc.return.approval':
+    'A return always needs approval, by a Supervisor or an Administrator other than the person who submits it. Where there is only one Supervisor, an Administrator approves.',
+  'line.return':
+    'Original line {lineNo}: {ordered}, already returned {returned}, returnable {remaining} {uom}',
+  'line.return.over': 'Only {remaining} {uom} of this line can still be returned.',
+  'doc.line.returned': 'Returned {returned} {uom}, returnable {returnable} {uom}',
+  'module.returns.name': 'Returns',
+  'module.returns.description':
+    'Customer returns and supplier returns, linked to the document they return.',
+  'perm.returns.create': 'Create returns',
+  'perm.returns.create.help':
+    'Start a return of a posted sale or receipt and change it as a draft. A return is always approved by someone else.',
   'sales.listPrice.sourceCustomer': "the customer's list",
   'sales.listPrice.sourceDefault': 'the default list',
   'sales.listPrice.same': 'List price {price}, from {source}.',

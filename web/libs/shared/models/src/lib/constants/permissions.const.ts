@@ -35,5 +35,7 @@ export const PERMISSION = {
   /** Module sales: create, change, submit, recall, cancel and close sales orders; sees selling prices. */
   SoManage: 'so.manage',
   /** Module sales: see and change price lists (every price in them). */
-  PriceListManage: 'pricelist.manage'
+  PriceListManage: 'pricelist.manage',
+  /** Module returns: start a return of a posted sale issue or receipt, and edit it. */
+  ReturnsCreate: 'returns.create'
 } as const;
