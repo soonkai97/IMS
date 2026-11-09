@@ -2,7 +2,7 @@ import { HttpContext } from '@angular/common/http';
 import { createServiceFactory, mockProvider, SpectatorService } from '@ngneat/spectator/jest';
 import { firstValueFrom, of, throwError } from 'rxjs';
 import { PriceListDto, PriceListsClient } from '@ims/api';
-import { HANDLED_INLINE, IF_MATCH } from '@ims/core/http';
+import { HANDLED_INLINE, IF_MATCH, isHandledInline } from '@ims/core/http';
 import { HTTP_STATUS } from '@ims/models';
 import { PriceListsStore, toPriceListRef } from './price-lists.store';
 
@@ -28,6 +28,17 @@ describe('PriceListsStore', () => {
     client().create.mockReturnValue(of(FRESH));
     client().update.mockReturnValue(of(FRESH));
     client().delete.mockReturnValue(of(undefined));
+  });
+
+  it('asks the lookup for the customer, product and unit, and a failure is not a toast', async () => {
+    client().lookup.mockReturnValue(of({ found: true, price: 5, source: undefined }));
+
+    const answer = await firstValueFrom(spectator.service.lookup('c1', 'p1', 'u1'));
+
+    expect(answer.price).toBe(5);
+    expect(client().lookup.mock.calls[0].slice(0, 3)).toEqual(['c1', 'p1', 'u1']);
+    expect(isHandledInline(client().lookup.mock.calls[0][3] as HttpContext, 500)).toBe(true);
+    expect(isHandledInline(client().lookup.mock.calls[0][3] as HttpContext, 403)).toBe(true);
   });
 
   it('lists with the search, the page and the page size in the order of the generated client', async () => {

@@ -923,6 +923,22 @@ export const MS_MESSAGES: Messages = {
     'Baris pesanan {lineNo}: dipesan {ordered}, dihantar {delivered}, baki {remaining} {uom}',
   'line.salesOrder.over': 'Hanya {remaining} {uom} baris pesanan ini tinggal untuk dihantar.',
   'sales.deliver': 'Hantar barang',
+  // TODO-review: machine draft (PL3.14 list price).
+  'sales.listPrice.sourceCustomer': 'senarai pelanggan',
+  'sales.listPrice.sourceDefault': 'senarai lalai',
+  'sales.listPrice.same': 'Harga senarai {price}, daripada {source}.',
+  'sales.listPrice.changed':
+    'Harga senarai {price}, daripada {source}. Harga ini berbeza. Harga anda dikekalkan.',
+  'sales.listPrice.use': 'Guna harga senarai',
+  'sales.listPrice.none': 'Tiada harga senarai untuk produk dan unit ini. Taip harganya.',
+  'sales.listPrice.unavailable': 'Harga senarai tidak tersedia. Taip harganya.',
+  'sales.listPrice.checking': 'Menyemak harga senarai…',
+  'sales.listPrice.replaced': 'Harga ditukar kepada harga senarai {price}, daripada {source}.',
+  'sales.listPrice.cleared':
+    'Harga dikosongkan: tiada harga senarai untuk produk dan unit ini. Taip harganya.',
+  'sales.listPrice.useFor': 'Guna harga senarai untuk {sku}',
+  'sales.listPrice.filled':
+    '{count, plural, one {1 harga senarai diisi} other {# harga senarai diisi}}',
   // TODO-review: machine draft (PL3.13 price lists).
   'nav.priceLists': 'Senarai harga',
   'perm.pricelist.manage': 'Urus senarai harga',
