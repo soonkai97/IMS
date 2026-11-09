@@ -72,6 +72,15 @@ export class PartnersPage {
     return this.page.getByRole('row').filter({ hasText: name });
   }
 
+  /**
+   * The row of a partner found through the search box. The list is paged and sorted by name, so on a database that holds the
+   * partners of earlier runs a new one is not on page 1: search first, then look for the row.
+   */
+  async find(name: string): Promise<Locator> {
+    await this.page.getByRole('searchbox', { name: 'Search partners' }).fill(name);
+    return this.row(name);
+  }
+
   /** Fills the partner dialog and saves; returns the dialog so a test can read server errors from it. */
   async create(type: 'Supplier' | 'Customer', name: string): Promise<Locator> {
     await this.newButton.click();
