@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
 public class UpdateSalesOrderHandler(IRepository<SalesOrder> orders, IReadRepository<Partner> partners, ISalesOrderLineBuilder lineBuilder,
-    ISalesOrderAccess access, ISalesOrderReader reader, IDocumentVersion version, IIdMap<Warehouse> warehouseIds, IUnitOfWork uow, IAuditTrail audit)
+    ISalesOrderAccess access, ISalesOrderReader reader, IDocumentVersion version, IIdMap<Warehouse> warehouseIds, IUnitOfWork uow, IAuditTrail audit, ISalesOrderPriceAudit prices)
     : ICommandHandler<UpdateSalesOrderCommand, SalesOrderDto>
 {
     public async Task<SalesOrderDto> HandleAsync(UpdateSalesOrderCommand cmd, CancellationToken ct)
@@ -17,10 +17,13 @@ public class UpdateSalesOrderHandler(IRepository<SalesOrder> orders, IReadReposi
 
         var customer = await partners.FirstOrDefaultAsync(new ByPublicIdSpec<Partner>(cmd.Data.CustomerId), ct) ?? throw new ValidationException(Messages.PartnerMissing);
         var before = CreateSalesOrderHandler.Summary(order);
+        var savedLines = SalesOrderPriceAudit.Snapshot(order);
+        var savedCustomer = order.CustomerId;
         order.UpdateHeader(customer, cmd.Data.Remark);
         order.ReplaceLines(await lineBuilder.BuildAsync(cmd.Data.Lines, ct));
 
         audit.Record(AuditActions.SalesOrderUpdated, AuditEntities.SalesOrder, order.No, before, CreateSalesOrderHandler.Summary(order));
+        await prices.RecordAsync(order, savedLines, savedCustomer, ct);
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);
     }

@@ -113,6 +113,22 @@ public partial class CostVisibilityCoverageTests
     [GeneratedRegex(@"Audit(Actions|Entities)\.\w+")]
     private static partial Regex EventNamesRemoved();
 
+    [Fact]
+    public void AnAuditPayloadBuiltInAHelper_NamesMoneyOnlyWithAuditFields()
+    {
+        // The call test above reads only the audit.Record(...) text. A payload built elsewhere (ListAudit.Summary, Summary(order)) is a dictionary of keys: a key that looks like cost or value is an AuditFields constant.
+        var offenders = SourceFiles.In("Ims.Application")
+            .Where(f => File.ReadAllText(f.FullPath).Contains("Dictionary<string, object?>", StringComparison.Ordinal))
+            .SelectMany(f => PayloadKeys().Matches(File.ReadAllText(f.FullPath)).Select(m => (file: f, key: m.Groups[1].Value)))
+            .Where(x => CostLike().IsMatch(x.key) && !x.key.Contains(nameof(AuditFields) + ".", StringComparison.Ordinal))
+            .Select(x => $"{x.file.RelativePath}: [{x.key}]");
+
+        Verify.NoOffenders(offenders, "A key of an audit payload dictionary that looks like cost or value must be a constant of AuditFields (tagged [VisibleWith]):");
+    }
+
+    [GeneratedRegex(@"\[([^\]\r\n]+)\]\s*=(?!=)")]
+    private static partial Regex PayloadKeys();
+
     [GeneratedRegex(@"audit\.Record\([^;]*;")]
     private static partial Regex AuditRecordCalls();
 

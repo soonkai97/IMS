@@ -5,7 +5,7 @@ namespace Ims.Application.Features.Sales;
 /// <summary>Loads the products and units a price list save names (public ids, one query each for the whole list); the items themselves (usable product, convertible unit, price limits) are built by the domain.</summary>
 public class PriceListItemBuilder(IReadRepository<Product> products, IReadRepository<Uom> uoms, IIdMap<Uom> uomIds) : IPriceListItemBuilder, IAppService
 {
-    public async Task<BuiltPriceListItems> BuildAsync(IReadOnlyList<PriceListItemInput> inputs, CancellationToken ct)
+    public async Task<BuiltPriceListItems> BuildAsync(IReadOnlyList<PriceListItemInput> inputs, IReadOnlySet<(int ProductId, int UomId)>? existing, CancellationToken ct)
     {
         var byId = (await products.ListAsync(new ProductsForLinesSpec(inputs.Select(i => i.ProductId).Distinct().ToList()), ct)).ToDictionary(p => p.PublicId);
 
@@ -24,7 +24,8 @@ public class PriceListItemBuilder(IReadRepository<Product> products, IReadReposi
             {
                 if (!byId.TryGetValue(input.ProductId, out var product)) throw new DomainException(Messages.ProductMissing(input.ProductId));
                 int? uomId = input.UomId is { } unit ? named.GetValueOrDefault(unit, IdMapExtensions.NoRow) : null;
-                var item = PriceListItem.Create(product, uomId, input.Price);
+                var kept = existing is not null && existing.Contains((product.Id, uomId ?? product.BaseUomId));
+                var item = PriceListItem.Create(product, uomId, input.Price, requireUsable: !kept);
                 if (!seen.Add((item.ProductId, item.UomId))) throw new DomainException(Messages.PriceListDuplicateItem(product.Sku, codes.GetValueOrDefault(item.UomId, "")));
                 items.Add(item);
             }

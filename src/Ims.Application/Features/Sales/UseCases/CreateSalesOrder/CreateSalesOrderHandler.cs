@@ -5,7 +5,7 @@ namespace Ims.Application.Features.Sales;
 
 public class CreateSalesOrderHandler(IRepository<SalesOrder> orders, IReadRepository<Warehouse> warehouses, IReadRepository<Partner> partners,
     IDocumentNumbering numbering, ISalesOrderLineBuilder lineBuilder, ISalesOrderAccess access, ISalesOrderReader reader,
-    ICurrentUser current, IClock clock, ITransactionLocker locker, IModuleSwitches switches, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreateSalesOrderCommand, SalesOrderDto>
+    ICurrentUser current, IClock clock, ITransactionLocker locker, IModuleSwitches switches, IUnitOfWork uow, IAuditTrail audit, ISalesOrderPriceAudit prices) : ICommandHandler<CreateSalesOrderCommand, SalesOrderDto>
 {
     public async Task<SalesOrderDto> HandleAsync(CreateSalesOrderCommand cmd, CancellationToken ct)
     {
@@ -26,6 +26,7 @@ public class CreateSalesOrderHandler(IRepository<SalesOrder> orders, IReadReposi
 
             orders.Add(order);
             audit.Record(AuditActions.SalesOrderCreated, AuditEntities.SalesOrder, order.No, after: Summary(order));
+            await prices.RecordAsync(order, [], null, ct);
             await uow.SaveChangesAsync(ct);
             return order.PublicId;
         }, ct);
