@@ -33,6 +33,16 @@
     </app-form-field>
     <app-checkbox formControlName="isDefault">{{ 'pricelist.isDefault' | t }}</app-checkbox>
     <div class="price-list-editor-customer">
+      @if (($customersTruncated() || $customerSearch() !== '') && !form.controls.isDefault.value) {
+        <app-search-input
+          [(value)]="$customerSearch"
+          [label]="'pricelist.findCustomer' | t"
+          [placeholder]="'pricelist.findCustomer' | t"
+        />
+        @if ($customersTruncated()) {
+          <p class="price-list-editor-hint">{{ 'pricelist.customersTruncated' | t }}</p>
+        }
+      }
       <app-form-field
         [label]="'pricelist.customer' | t"
         [control]="form.controls.customerId"
@@ -44,24 +54,11 @@
           [placeholder]="'pricelist.noCustomer' | t"
         />
       </app-form-field>
-      @if (($customersTruncated() || $customerSearch() !== '') && !form.controls.isDefault.value) {
-        <app-search-input
-          [(value)]="$customerSearch"
-          [label]="'pricelist.findCustomer' | t"
-          [placeholder]="'pricelist.findCustomer' | t"
-        />
-        @if ($customersTruncated()) {
-          <p class="price-list-editor-hint">{{ 'pricelist.customersTruncated' | t }}</p>
-        }
-      }
     </div>
 
-    <section
-      class="price-list-editor-items"
-      [attr.aria-label]="'pricelist.items' | t: { count: 0 }"
-    >
+    <section class="price-list-editor-items" aria-labelledby="price-list-items-heading">
       <div class="price-list-editor-items-header">
-        <h2>{{ 'pricelist.items' | t: { count: $rows().length } }}</h2>
+        <h2 id="price-list-items-heading">{{ 'pricelist.items' | t: { count: $count() } }}</h2>
         <app-button [disabled]="!$canAddItem()" (clicked)="onOpenAddItem()">
           <app-icon name="plus" />
           {{ 'doc.addItem' | t }}
@@ -77,15 +74,15 @@
         @for (row of $rows(); track row.group) {
           <li class="price-list-editor-item" [formGroup]="row.group">
             <div class="price-list-editor-product">
-              <strong>{{ row.value.sku }}</strong>
-              <span>{{ row.value.productName }}</span>
+              <strong>{{ row.sku }}</strong>
+              <span>{{ row.productName }}</span>
             </div>
             @if (row.units.length > 1) {
               <app-form-field [label]="'doc.unit' | t">
                 <app-select
                   formControlName="uomId"
                   [options]="row.units"
-                  [ariaLabel]="'pricelist.unitFor' | t: { sku: row.value.sku }"
+                  [ariaLabel]="'pricelist.unitFor' | t: { sku: row.sku }"
                 />
               </app-form-field>
             } @else {
@@ -96,34 +93,44 @@
               [label]="'pricelist.price' | t"
               [required]="true"
               [control]="row.group.controls.price"
-              [messages]="{ min: 'pricelist.priceHint' | t }"
+              [messages]="{ min: 'pricelist.priceHint' | t, max: 'pricelist.priceHint' | t }"
             >
               <app-input
                 type="number"
                 formControlName="price"
                 inputMode="decimal"
                 min="0"
+                [max]="maxPrice"
                 [step]="priceStep"
-                [ariaLabel]="'pricelist.priceFor' | t: { sku: row.value.sku }"
+                (wheel)="onWheel($event)"
+                [ariaLabel]="'pricelist.priceFor' | t: { sku: row.sku }"
               />
             </app-form-field>
             <app-button
               class="price-list-editor-remove"
               variant="ghost"
-              [ariaLabel]="'line.removeFor' | t: { sku: row.value.sku }"
+              [ariaLabel]="'line.removeFor' | t: { sku: row.sku }"
               (clicked)="onRemove(row.index)"
             >
               <app-icon name="trash" />
               {{ 'common.remove' | t }}
             </app-button>
-            @if (row.duplicate) {
-              <p class="price-list-editor-duplicate" role="alert" tabindex="-1">
-                {{ 'pricelist.duplicate' | t: { sku: row.value.sku, unit: row.unitCode } }}
+            @if ($repeatOf().get(row.index); as first) {
+              <p class="price-list-editor-duplicate" role="status" tabindex="-1">
+                {{ 'pricelist.duplicate' | t: { sku: row.sku, unit: row.unitCode, row: first } }}
               </p>
             }
           </li>
         }
       </ul>
+      @if ($pageCount() > 1) {
+        <app-pager
+          [page]="$currentPage()"
+          [pageSize]="perPage"
+          [total]="$count()"
+          (pageChange)="onPageChange($event)"
+        />
+      }
       <p class="sr-only" role="status">{{ $removedNote() }}</p>
     </section>
 
@@ -134,7 +141,11 @@
       [attr.aria-busy]="$isBusy()"
     >
       @if ($isEdit()) {
-        <app-button variant="ghost" [disabled]="$isBusy() || $isStale()" (clicked)="onDelete()">
+        <app-button
+          variant="ghost"
+          [disabled]="$isBusy() || $isStale() || $saved()"
+          (clicked)="onDelete()"
+        >
           <app-icon name="trash" />
           {{ 'pricelist.delete' | t }}
         </app-button>

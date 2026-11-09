@@ -25,7 +25,13 @@
   (retried)="onRetry()"
 >
   <ng-template appCell="customer" let-row>
-    {{ row.customerName || (row.isDefault ? ('pricelist.allCustomers' | t) : '-') }}
+    @if (row.customerName) {
+      {{ row.customerName }}
+    } @else if (row.isDefault) {
+      {{ 'pricelist.allCustomers' | t }}
+    } @else {
+      <span class="sr-only">{{ 'pricelist.noCustomer' | t }}</span>
+    }
   </ng-template>
   <ng-template appCell="count" let-row>{{
     'pricelist.itemCount' | t: { count: row.itemCount }

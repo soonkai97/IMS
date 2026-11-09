@@ -12,10 +12,10 @@ import {
   signal,
   untracked
 } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { map, startWith, switchMap, tap } from 'rxjs';
+import { finalize, switchMap, tap } from 'rxjs';
 import { PartnerType } from '@ims/api';
 import { PickedProduct, ProductPickerComponent } from '@ims/containers/catalog-shared';
 import { handledInline } from '@ims/core/http';
@@ -42,7 +42,7 @@ import {
   toPriceListSaveRequest
 } from '@ims/features/sales';
 import { PartnersStore } from '@ims/features/warehousing';
-import { API_ERROR_KIND, ApiError } from '@ims/models';
+import { API_ERROR_KIND, ApiError, MAX_UNIT_COST } from '@ims/models';
 import {
   SelectOption,
   UiBannerComponent,
@@ -55,18 +55,20 @@ import {
   UiIconComponent,
   UiInputComponent,
   UiPageHeaderComponent,
+  UiPagerComponent,
   UiPublishHeightDirective,
   UiSearchInputComponent,
   UiSelectComponent,
   UiSkeletonComponent
 } from '@ims/ui';
 import {
+  MONEY_DECIMALS,
+  SERVER_ERROR_KEY,
   applyFieldErrors,
   controlSignal,
   debouncedSignal,
   focusFirstInvalid,
   isDefined,
-  MONEY_DECIMALS,
   isStaleOrderError,
   normalizePublicId
 } from '@ims/utils';
@@ -78,12 +80,22 @@ type PriceListForm = FormGroup<{
   items: PriceItemsArray;
 }>;
 
+/** One message of the API about a field of a price: its position, the field's path in the price, the sentence. */
+interface ItemError {
+  readonly index: number;
+  readonly path: string;
+  readonly message: string;
+}
+
+/** How many prices are on screen at once: 2000 rows of inputs would be about 10,000 components, and every key would redraw them. */
+export const PRICES_PER_PAGE = 50;
+
 /**
  * New or changed price list. One screen for `/price-lists/new` and `/price-lists/:id`: name, default flag, the customer it is for,
- * and the prices (a product from the shared picker, the unit, the price). Every save sends the whole list with the version the
- * person opened; a stale 409 locks the form behind a Reload banner; the API's own sentence (a deactivated customer or product, a
- * second default, a customer who already has a list) is shown as it is. Opening the page forgets what the store holds of another
- * list or another user.
+ * and the prices (a product from the shared picker, the unit, the price), shown 50 at a time. Every save sends the whole list with
+ * the version the person opened; a stale 409 locks the form behind a Reload banner; the API's own sentence (a deactivated customer
+ * or product, a second default, a customer who already has a list) is shown as it is. Opening the page forgets what the store holds
+ * of another list or another user.
  */
 @Component({
   selector: 'app-price-list-editor-page',
@@ -102,6 +114,7 @@ type PriceListForm = FormGroup<{
     UiIconComponent,
     UiInputComponent,
     UiPageHeaderComponent,
+    UiPagerComponent,
     UiPublishHeightDirective,
     UiSearchInputComponent,
     UiSelectComponent,
@@ -136,50 +149,80 @@ export class PriceListEditorPageComponent implements HasUnsavedChanges {
   readonly items = this.form.controls.items;
   readonly maxName = MAX_PRICE_LIST_NAME;
   readonly maxItems = MAX_PRICE_LIST_ITEMS;
+  readonly maxPrice = MAX_UNIT_COST;
+  readonly perPage = PRICES_PER_PAGE;
   readonly priceStep = 10 ** -MONEY_DECIMALS;
 
   $addItemOpen = signal(false);
   $lastAdded = signal<string | undefined>(undefined);
   /** "SKU removed", for the screen reader (the row is gone and so is its text). */
   readonly $removedNote = signal('');
-  /** A save went through: the page is on its way to the list, and a second tap must not create another. */
+  /** A save or a delete went through (or is on its way): the page is leaving, and a second tap must not repeat it. */
   $saved = signal(false);
+  /** The delete dialog is open: a second tap on the button opens no second one. */
+  private readonly $asking = signal(false);
 
-  readonly $values = toSignal(
-    this.items.valueChanges.pipe(
-      startWith(null),
-      map(() => this.items.getRawValue() as PriceItemValue[])
-    ),
-    { initialValue: [] as PriceItemValue[] }
+  /** Bumped by every change of the items; what reads it is cheap (a count, the product and unit keys, the 50 rows on screen). */
+  private readonly $changes = signal(0);
+  private readonly watchItems = this.items.valueChanges
+    .pipe(takeUntilDestroyed())
+    .subscribe(() => this.$changes.update(count => count + 1));
+  readonly $count = computed(() => {
+    this.$changes();
+    return this.items.length;
+  });
+  readonly $canAddItem = computed(() => this.$count() < MAX_PRICE_LIST_ITEMS);
+  /** Positions of items that repeat a product and unit above them, with the position of the first. */
+  readonly $duplicates = computed(() => {
+    this.$changes();
+    return duplicateItemIndexes(
+      this.items.controls.map(group => ({
+        productId: group.controls.productId.value,
+        uomId: group.controls.uomId.value
+      }))
+    );
+  });
+
+  /** The row number (from 1) of the first price a repeated one repeats, by the position of the repeat. */
+  readonly $repeatOf = computed(
+    () => new Map([...this.$duplicates()].map(([repeat, first]) => [repeat, first + 1] as const))
   );
-  readonly $canAddItem = computed(() => this.$values().length < MAX_PRICE_LIST_ITEMS);
-  readonly $duplicates = computed(() => duplicateItemIndexes(this.$values()));
+
+  readonly $pageNumber = signal(1);
+  readonly $pageCount = computed(() => Math.max(1, Math.ceil(this.$count() / PRICES_PER_PAGE)));
+  /** The page on screen, never past the last one (items were removed). */
+  readonly $currentPage = computed(() => Math.min(this.$pageNumber(), this.$pageCount()));
+
   /** A unit's choices, built once per row (the form keeps the same array while the person types). */
   private readonly unitChoices = new WeakMap<
     PriceItemValue['uomOptions'],
     readonly SelectOption[]
   >();
-  private unitsOf(value: PriceItemValue): readonly SelectOption[] {
-    let units = this.unitChoices.get(value.uomOptions);
+  private unitsOf(options: PriceItemValue['uomOptions']): readonly SelectOption[] {
+    let units = this.unitChoices.get(options);
     if (!units) {
-      units = value.uomOptions.map((option): SelectOption => ({
-        value: option.uomId,
-        label: option.code
-      }));
-      this.unitChoices.set(value.uomOptions, units);
+      units = options.map((option): SelectOption => ({ value: option.uomId, label: option.code }));
+      this.unitChoices.set(options, units);
     }
     return units;
   }
-  readonly $rows = computed(() =>
-    this.$values().map((value, index) => ({
-      index,
-      group: this.items.at(index),
-      value,
-      units: this.unitsOf(value),
-      unitCode: value.uomOptions.find(option => option.uomId === value.uomId)?.code ?? value.uomId,
-      duplicate: this.$duplicates().has(index)
-    }))
-  );
+  /** Only the rows of the page on screen are built (50 at most): typing in a price touches them, not all 2000. */
+  readonly $rows = computed(() => {
+    this.$changes();
+    const start = (this.$currentPage() - 1) * PRICES_PER_PAGE;
+    return this.items.controls.slice(start, start + PRICES_PER_PAGE).map((group, offset) => {
+      const options = group.controls.uomOptions.value;
+      const uomId = group.controls.uomId.value;
+      return {
+        index: start + offset,
+        group,
+        sku: group.controls.sku.value,
+        productName: group.controls.productName.value,
+        units: this.unitsOf(options),
+        unitCode: options.find(option => option.uomId === uomId)?.code ?? uomId
+      };
+    });
+  });
 
   private readonly $listId = computed(() => normalizePublicId(this.$id()));
   readonly $isEdit = computed(() => this.$id() !== undefined);
@@ -218,22 +261,27 @@ export class PriceListEditorPageComponent implements HasUnsavedChanges {
   private readonly $customerTyped = debouncedSignal(this.$customerSearch);
   private lastCustomerSearch = '';
   /** Every customer seen so far, so the one already chosen stays in the select when a search narrows the list. */
-  private readonly knownCustomers = new Map<string, string>();
+  private readonly $knownCustomers = signal<ReadonlyMap<string, string>>(new Map());
+  private readonly rememberCustomers = effect(() => {
+    const seen = this.partners.$partners().map(partner => [partner.id, partner.name] as const);
+    const list = this.$list();
+    untracked(() => {
+      const known = new Map(this.$knownCustomers());
+      seen.forEach(([id, name]) => known.set(id, name));
+      if (list?.customerId && list.customerName) {
+        known.set(list.customerId, list.customerName);
+      }
+      this.$knownCustomers.set(known);
+    });
+  });
   private readonly $customerId = controlSignal(this.form.controls.customerId);
   readonly $customerOptions = computed<readonly SelectOption[]>(() => {
     const options = this.partners
       .$partners()
       .map(partner => ({ value: partner.id, label: partner.name }));
-    for (const option of options) {
-      this.knownCustomers.set(option.value, option.label);
-    }
-    const list = this.$list();
-    if (list?.customerId && list.customerName) {
-      this.knownCustomers.set(list.customerId, list.customerName);
-    }
     // A customer switched off since the list was made, or one chosen before a search, is still the chosen one.
     const chosen = this.$customerId();
-    const chosenName = chosen === null ? undefined : this.knownCustomers.get(chosen);
+    const chosenName = chosen === null ? undefined : this.$knownCustomers().get(chosen);
     return chosen !== null && chosenName !== undefined && !options.some(o => o.value === chosen)
       ? [...options, { value: chosen, label: chosenName }]
       : options;
@@ -255,7 +303,9 @@ export class PriceListEditorPageComponent implements HasUnsavedChanges {
   );
   readonly $messages = signal<readonly string[]>([]);
   readonly $isSaving = this.store.save.$isRunning;
-  readonly $isBusy = computed(() => this.store.save.$isRunning() || this.store.delete.$isRunning());
+  readonly $isBusy = computed(
+    () => this.store.save.$isRunning() || this.store.delete.$isRunning() || this.$asking()
+  );
 
   private readonly openPage = effect(() => {
     const id = this.$listId();
@@ -266,6 +316,7 @@ export class PriceListEditorPageComponent implements HasUnsavedChanges {
       this.store.detail.reset();
       this.$messages.set([]);
       this.$saved.set(false);
+      this.$pageNumber.set(1);
       // List A's form is not list B's (also when B is not found).
       this.resetForm();
       if (edit && id !== undefined) {
@@ -280,6 +331,10 @@ export class PriceListEditorPageComponent implements HasUnsavedChanges {
       return;
     }
     untracked(() => {
+      // A save in flight brings the saved list back as the opened one: the page is leaving, so its rows are not built again.
+      if (this.$saved()) {
+        return;
+      }
       this.form.reset({ ...headerFromList(list), items: [] });
       this.items.clear();
       for (const item of list.items) {
@@ -310,8 +365,24 @@ export class PriceListEditorPageComponent implements HasUnsavedChanges {
         this.$messages.set([]);
         return;
       }
-      this.$messages.set(this.messagesOf(error));
-      afterNextRender(() => focusFirstInvalid(this.page), { injector: this.injector });
+      const { messages, firstRow, itemErrors } = this.messagesOf(error);
+      this.$messages.set(messages);
+      if (firstRow !== undefined) {
+        const before = this.$currentPage();
+        this.showRow(firstRow);
+        if (this.$currentPage() !== before) {
+          // The rows of another page are built by the next render; their fields learn of the errors only when told again.
+          afterNextRender(
+            () => {
+              this.markItemErrors(itemErrors);
+              afterNextRender(() => this.focusFirstProblem(), { injector: this.injector });
+            },
+            { injector: this.injector }
+          );
+          return;
+        }
+      }
+      afterNextRender(() => this.focusFirstProblem(), { injector: this.injector });
     });
   });
 
@@ -342,16 +413,21 @@ export class PriceListEditorPageComponent implements HasUnsavedChanges {
     this.$addItemOpen.set(true);
   }
 
-  /** Adds the product in its base unit, or says it is already on the list. */
+  /**
+   * Adds the product in the first of its units that has no price yet (its base unit first), or says it is priced in every unit.
+   * The new price is on the last page, where the person finds it.
+   */
   onProductPicked(picked: PickedProduct): void {
     this.$removedNote.set('');
     const product = picked.product;
-    const exists = this.items.controls.some(
-      group =>
-        group.controls.productId.value === product.id &&
-        group.controls.uomId.value === product.baseUomId
+    const options = buildUomOptions(product, this.catalog.$unitCodes());
+    const used = new Set(
+      this.items.controls
+        .filter(group => group.controls.productId.value === product.id)
+        .map(group => group.controls.uomId.value)
     );
-    if (exists) {
+    const unit = options.find(option => !used.has(option.uomId));
+    if (unit === undefined) {
       this.$lastAdded.set(this.i18n.t('pricelist.itemExists', { sku: product.sku }));
       return;
     }
@@ -364,12 +440,13 @@ export class PriceListEditorPageComponent implements HasUnsavedChanges {
         productId: product.id,
         sku: product.sku,
         productName: product.name,
-        uomId: product.baseUomId,
-        uomOptions: buildUomOptions(product, this.catalog.$unitCodes()),
+        uomId: unit.uomId,
+        uomOptions: options,
         price: null
       })
     );
     this.items.markAsDirty();
+    this.showRow(this.items.length - 1);
     this.$lastAdded.set(this.i18n.t('pricelist.itemAdded', { sku: product.sku }));
   }
 
@@ -390,6 +467,17 @@ export class PriceListEditorPageComponent implements HasUnsavedChanges {
     );
   }
 
+  onPageChange(page: number): void {
+    this.$pageNumber.set(page);
+  }
+
+  /** Stops the mouse wheel from changing the price under the pointer. */
+  onWheel(event: Event): void {
+    if (event.target instanceof HTMLInputElement && this.page.activeElement === event.target) {
+      event.target.blur();
+    }
+  }
+
   onReload(): void {
     this.store.resetCommands();
     this.store.detail.reload();
@@ -401,11 +489,20 @@ export class PriceListEditorPageComponent implements HasUnsavedChanges {
 
   onSave(): void {
     this.form.markAllAsTouched();
-    if (this.$saved() || this.form.invalid || this.$duplicates().size > 0) {
+    const duplicates = this.$duplicates();
+    if (this.$saved() || this.form.invalid || duplicates.size > 0) {
+      // The header first; else the page of the first price in trouble, so its field or sentence is on screen to take the focus.
+      const header = this.form.controls.name.invalid || this.form.controls.customerId.invalid;
+      const problem = this.firstProblemRow();
+      if (!header && problem !== undefined) {
+        this.showRow(problem);
+      }
       afterNextRender(() => this.focusFirstProblem(), { injector: this.injector });
       return;
     }
     const list = this.$list();
+    let succeeded = false;
+    this.$saved.set(true);
     this.store.save
       .run({
         ref: list ? toPriceListRef(list) : undefined,
@@ -416,22 +513,28 @@ export class PriceListEditorPageComponent implements HasUnsavedChanges {
       })
       .pipe(
         tap(() => {
+          succeeded = true;
           this.markPristine();
-          this.$saved.set(true);
           this.toast.success(this.i18n.t('pricelist.toast.saved'));
           void this.router.navigate(['/', PRICE_LIST_ROUTE], { replaceUrl: true });
+        }),
+        finalize(() => {
+          if (!succeeded) {
+            this.$saved.set(false);
+          }
         }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();
   }
 
-  /** Delete asks first, then sends the version the person opened; the list page follows. */
+  /** Delete asks first (once, however often the button is tapped), then sends the version the person opened; the list page follows. */
   onDelete(): void {
     const list = this.$list();
-    if (!list) {
+    if (!list || this.$asking() || this.$saved()) {
       return;
     }
+    this.$asking.set(true);
     this.confirm
       .ask({
         heading: this.i18n.t('pricelist.delete.title', { name: list.name }),
@@ -448,41 +551,88 @@ export class PriceListEditorPageComponent implements HasUnsavedChanges {
           this.toast.success(this.i18n.t('pricelist.toast.deleted'));
           void this.router.navigate(['/', PRICE_LIST_ROUTE], { replaceUrl: true });
         }),
+        finalize(() => this.$asking.set(false)),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();
   }
 
   /**
-   * The API's field messages go to their fields (`items[0].price`); a message about a whole item (`items[0]`: a product switched
-   * off, a unit that no longer converts) has no field and is shown with the item's code; a refusal (403, 409) is the API's own
-   * sentence (a deactivated customer, a second default list, a customer who already has one), not the interceptor's general one.
+   * What the API said, in words. A message about a price (`items[3].price`, or a whole item `items[3]`: a product switched off, a
+   * unit that no longer converts) goes on that row's field when there is one and is also listed with the product's code, so it is
+   * found whichever page is on screen; the other field messages go to their fields; a refusal (403, 409) is the API's own sentence
+   * (a deactivated customer, a second default list, a customer who already has one), not the interceptor's general one.
    */
-  private messagesOf(error: ApiError): string[] {
+  private messagesOf(error: ApiError): {
+    messages: string[];
+    firstRow: number | undefined;
+    itemErrors: ItemError[];
+  } {
     const itemMessages: string[] = [];
+    const itemErrors: ItemError[] = [];
     const fieldErrors: Record<string, readonly string[]> = {};
+    let firstRow: number | undefined;
     for (const [field, messages] of Object.entries(error.fieldErrors)) {
-      const item = /^items\[(\d+)\]$/.exec(field);
-      if (item) {
-        const sku = this.items.at(Number(item[1]))?.controls.sku.value ?? '';
-        itemMessages.push(...messages.map(message => `${sku}: ${message}`));
-      } else {
+      const item = /^items\[(\d+)\](?:\.(.+))?$/.exec(field);
+      if (!item) {
         fieldErrors[field] = messages;
+        continue;
       }
+      const index = Number(item[1]);
+      const group = this.items.at(index);
+      if (item[2]) {
+        itemErrors.push({ index, path: item[2], message: messages[0] });
+      }
+      const sku = group?.controls.sku.value ?? '';
+      itemMessages.push(...messages.map(message => `${sku}: ${message}`));
+      firstRow = firstRow === undefined ? index : Math.min(firstRow, index);
     }
     const unmatched = applyFieldErrors(this.form, { ...error, fieldErrors });
     const refusal =
       error.kind === API_ERROR_KIND.Conflict || error.kind === API_ERROR_KIND.Forbidden
         ? [error.detail || error.message].filter(isDefined)
         : [];
-    return [...itemMessages, ...unmatched, ...refusal];
+    this.markItemErrors(itemErrors);
+    return { messages: [...itemMessages, ...unmatched, ...refusal], firstRow, itemErrors };
   }
 
-  /** The first field in error, else the first repeated price (its sentence takes the focus). */
-  private focusFirstProblem(): void {
-    if (!focusFirstInvalid(this.page)) {
-      this.page.querySelector<HTMLElement>('.price-list-editor-duplicate')?.focus();
+  /** Puts the API's message on the field of each price it named (the field exists only while its page is on screen). */
+  private markItemErrors(errors: readonly ItemError[]): void {
+    for (const { index, path, message } of errors) {
+      const control = this.items.at(index)?.get(path);
+      if (control) {
+        control.setErrors({ [SERVER_ERROR_KEY]: message });
+        control.markAsTouched();
+      }
     }
+  }
+
+  /** The first price that is wrong (a field the form refuses, or a repeat), by position. */
+  private firstProblemRow(): number | undefined {
+    const invalid = this.items.controls.findIndex(group => group.invalid);
+    const repeated = Math.min(...this.$duplicates().keys());
+    const found = [invalid, repeated].filter(index => index >= 0 && Number.isFinite(index));
+    return found.length > 0 ? Math.min(...found) : undefined;
+  }
+
+  /** Puts the page that holds the price on screen. */
+  private showRow(index: number): void {
+    this.$pageNumber.set(Math.floor(index / PRICES_PER_PAGE) + 1);
+  }
+
+  /**
+   * The first field in error takes the focus; else the first repeated price (its sentence); else the first alert, which tells
+   * what the API refused (a refusal names no field, and the focus would otherwise stay on Save in the bar below).
+   */
+  private focusFirstProblem(): void {
+    if (focusFirstInvalid(this.page)) {
+      return;
+    }
+    const target =
+      this.page.querySelector<HTMLElement>('.price-list-editor-duplicate') ??
+      this.page.querySelector<HTMLElement>('app-banner[role="alert"]');
+    target?.focus();
+    target?.scrollIntoView?.({ block: 'center' });
   }
 
   private markPristine(): void {

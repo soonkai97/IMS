@@ -156,7 +156,7 @@ test.describe('Price lists, real API', () => {
     const sheet = await editor.openAddItem();
     await sheet.getByRole('searchbox', { name: 'Find a product' }).fill(data.sku);
     await sheet.getByRole('button', { name: `${data.sku}, ${data.productName}` }).click();
-    await expect(sheet.getByText(`${data.sku} is already on the list.`)).toBeVisible();
+    await expect(sheet.getByText(`${data.sku} already has a price in every unit`)).toBeVisible();
     await sheet.getByRole('button', { name: 'Done' }).click();
     await expect(page.getByRole('spinbutton', { name: `Price of ${data.sku}` })).toHaveCount(1);
 
@@ -192,11 +192,14 @@ test.describe('Price lists, real API', () => {
     await expect(banner).toHaveCount(0);
   });
 
-  test('given a default list, then a second default is refused in the API sentence, and a default list has no customer', async ({
+  test('given a default list, then a second default is refused in the API sentence that takes the focus, and a default list has no customer', async ({
     page,
     signIn
   }) => {
-    const hadDefault = await defaultPriceListExists();
+    // A default list exists before the screen asks for a second one, so the refusal always runs (one of ours when the database had none).
+    if (!(await defaultPriceListExists())) {
+      await createPriceList({ name: nameOf('First default'), isDefault: true });
+    }
     await signIn('supervisor');
     await goTo(page, '/price-lists/new');
     await page.getByRole('textbox', { name: /^Name/ }).fill(nameOf('Default'));
@@ -207,13 +210,10 @@ test.describe('Price lists, real API', () => {
     await expect(page.getByRole('combobox', { name: /^Customer/ })).toBeDisabled();
     await button(page, 'Save').click();
 
-    if (hadDefault) {
-      await expect(page.locator('app-banner[role="alert"]')).toHaveCount(1);
-      await expect(page).toHaveURL(/\/price-lists\/new$/);
-    } else {
-      await expect(page).toHaveURL(/\/price-lists$/);
-      await expect(row(page, nameOf('Default'))).toContainText('Default');
-    }
+    const alert = page.locator('app-banner[role="alert"]');
+    await expect(alert).toHaveCount(1);
+    await expect(alert).toBeFocused();
+    await expect(page).toHaveURL(/\/price-lists\/new$/);
   });
 
   test('given a list, when it is deleted after a confirm, then it is gone from the list and the API', async ({

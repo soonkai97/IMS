@@ -949,8 +949,9 @@ export const MS_MESSAGES: Messages = {
   'pricelist.price': 'Harga ({currency})',
   'pricelist.priceFor': 'Harga {sku}',
   'pricelist.unitFor': 'Unit {sku}',
-  'pricelist.duplicate': '{sku} dalam {unit} sudah ada harga dalam senarai ini. Buang salah satu.',
-  'pricelist.itemExists': '{sku} sudah ada dalam senarai. Ubah harganya di bawah.',
+  'pricelist.duplicate':
+    '{sku} dalam {unit} sudah ada harga dalam senarai ini (pertama pada baris {row}). Buang salah satu.',
+  'pricelist.itemExists': '{sku} sudah ada harga dalam setiap unit yang boleh dibuat harga.',
   'pricelist.itemAdded': '{sku} ditambah.',
   'pricelist.itemRemoved': '{sku} dibuang.',
   'pricelist.itemsFull':

@@ -941,8 +941,9 @@ export const EN_MESSAGES = {
   'pricelist.price': 'Price ({currency})',
   'pricelist.priceFor': 'Price of {sku}',
   'pricelist.unitFor': 'Unit of {sku}',
-  'pricelist.duplicate': '{sku} in {unit} already has a price on this list. Remove one of them.',
-  'pricelist.itemExists': '{sku} is already on the list. Change its price below.',
+  'pricelist.duplicate':
+    '{sku} in {unit} already has a price on this list (first on row {row}). Remove one of them.',
+  'pricelist.itemExists': '{sku} already has a price in every unit it can be priced in.',
   'pricelist.itemAdded': '{sku} added.',
   'pricelist.itemRemoved': '{sku} removed.',
   'pricelist.itemsFull': 'A price list holds up to {max} prices. Remove one to add another.',

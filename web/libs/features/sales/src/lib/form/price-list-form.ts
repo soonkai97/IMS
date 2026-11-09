@@ -1,7 +1,7 @@
 import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import { PriceListDto, PriceListItemDto, PriceListSaveRequest } from '@ims/api';
 import { UomOption } from '@ims/features/documents';
-import { PublicId } from '@ims/models';
+import { MAX_UNIT_COST, PublicId } from '@ims/models';
 import { MONEY_DECIMALS, maxDecimals, toNumber } from '@ims/utils';
 import { MAX_PRICE_LIST_NAME } from '../constants/price-list.const';
 
@@ -56,6 +56,7 @@ export function createPriceItemGroup(value: PriceItemValue): PriceItemGroup {
     price: new FormControl<number | null>(value.price, [
       Validators.required,
       Validators.min(10 ** -MONEY_DECIMALS),
+      Validators.max(MAX_UNIT_COST),
       maxDecimals(MONEY_DECIMALS)
     ])
   });
@@ -97,16 +98,23 @@ export function toPriceListSaveRequest(
   };
 }
 
-/** The positions of items that repeat a product and unit already above them: a price is for exactly one of each. */
-export function duplicateItemIndexes(items: readonly PriceItemValue[]): ReadonlySet<number> {
-  const seen = new Set<string>();
-  const repeated = new Set<number>();
+/**
+ * Items that repeat a product and unit already above them, by position, each with the position of the first one: a price is for
+ * exactly one of each.
+ */
+export function duplicateItemIndexes(
+  items: readonly Pick<PriceItemValue, 'productId' | 'uomId'>[]
+): ReadonlyMap<number, number> {
+  const firstOf = new Map<string, number>();
+  const repeated = new Map<number, number>();
   items.forEach((item, index) => {
     const key = `${item.productId}|${item.uomId}`;
-    if (seen.has(key)) {
-      repeated.add(index);
+    const first = firstOf.get(key);
+    if (first === undefined) {
+      firstOf.set(key, index);
+    } else {
+      repeated.set(index, first);
     }
-    seen.add(key);
   });
   return repeated;
 }

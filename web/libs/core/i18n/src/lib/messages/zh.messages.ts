@@ -880,8 +880,9 @@ export const ZH_MESSAGES: Messages = {
   'pricelist.price': '价格（{currency}）',
   'pricelist.priceFor': '{sku} 的价格',
   'pricelist.unitFor': '{sku} 的单位',
-  'pricelist.duplicate': '{sku}（{unit}）在此价格表中已有价格。请移除其中一个。',
-  'pricelist.itemExists': '{sku} 已在价格表中。请在下方修改其价格。',
+  'pricelist.duplicate':
+    '{sku}（{unit}）在此价格表中已有价格（第一次出现在第 {row} 行）。请移除其中一个。',
+  'pricelist.itemExists': '{sku} 在每个可定价的单位上都已有价格。',
   'pricelist.itemAdded': '已添加 {sku}。',
   'pricelist.itemRemoved': '已移除 {sku}。',
   'pricelist.itemsFull': '一个价格表最多 {max} 个价格。请先移除一个再添加。',

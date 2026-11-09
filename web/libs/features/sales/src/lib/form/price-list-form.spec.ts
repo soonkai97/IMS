@@ -59,7 +59,7 @@ describe('price list form', () => {
 
     expect(
       duplicateItemIndexes([item('a', 'u'), item('a', 'v'), item('b', 'u'), item('a', 'u')])
-    ).toEqual(new Set([3]));
+    ).toEqual(new Map([[3, 0]]));
   });
 
   it('asks for a name, and for a price above 0 with at most 2 decimals', () => {
@@ -72,7 +72,8 @@ describe('price list form', () => {
       [0.005, false],
       [0.01, true],
       [12.5, true],
-      [12.345, false]
+      [12.345, false],
+      [1_000_000_001, false]
     ] as [number | null, boolean][]) {
       price.setValue(value);
       expect(price.valid).toBe(valid);

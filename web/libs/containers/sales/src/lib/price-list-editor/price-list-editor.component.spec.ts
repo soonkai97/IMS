@@ -239,7 +239,7 @@ describe('PriceListEditorPageComponent', () => {
       component().items.controls.forEach(group => group.patchValue({ price: 5 }));
       spectator.detectChanges();
 
-      expect(text()).toContain('SKU-1 in PCS already has a price on this list.');
+      expect(text()).toContain('SKU-1 in PCS already has a price on this list (first on row 1).');
       spectator.click(saveButton());
       await spectator.fixture.whenStable();
       expect(save.run).not.toHaveBeenCalled();
@@ -253,7 +253,7 @@ describe('PriceListEditorPageComponent', () => {
 
       expect(component().items.length).toBe(1);
       expect(component().$lastAdded()).toBe(
-        'SKU-1 is already on the list. Change its price below.'
+        'SKU-1 already has a price in every unit it can be priced in.'
       );
 
       for (let n = 1; n < 2000; n++) {
@@ -373,6 +373,7 @@ describe('PriceListEditorPageComponent', () => {
       expect(del.run).not.toHaveBeenCalled();
       confirm.cancel();
       expect(del.run).not.toHaveBeenCalled();
+      spectator.detectChanges();
 
       spectator.click(deleteButton() as HTMLElement);
       confirm.confirm('');
@@ -456,6 +457,141 @@ describe('PriceListEditorPageComponent', () => {
 
       expect(component().items.length).toBe(0);
       expect(component().form.controls.name.value).toBe('');
+    });
+  });
+
+  describe('a long list and the refusals of the API', () => {
+    const many = (count: number): PriceListDto =>
+      list({
+        items: Array.from({ length: count }, (_, n) => ({
+          productId: `p${n}`,
+          sku: `SKU-${n}`,
+          productName: `Product ${n}`,
+          uomId: 'pcs',
+          uomCode: 'PCS',
+          price: 5
+        }))
+      } as unknown as Partial<PriceListDto>);
+
+    it('2000 prices put 50 rows on screen, the rest behind the pager; the rows of the next page are the next 50', async () => {
+      detail.$data.set(many(2000));
+      await render({ id: ID });
+
+      expect(component().items.length).toBe(2000);
+      expect(spectator.queryAll('li.price-list-editor-item')).toHaveLength(50);
+      expect(spectator.queryAll('li.price-list-editor-item strong')[0].textContent).toBe('SKU-0');
+      expect(text()).toContain('Prices (2000)');
+
+      component().onPageChange(2);
+      spectator.detectChanges();
+      expect(spectator.queryAll('li.price-list-editor-item')).toHaveLength(50);
+      expect(spectator.queryAll('li.price-list-editor-item strong')[0].textContent).toBe('SKU-50');
+    });
+
+    it('typing a price builds the rows of the page again (50), never all 2000', async () => {
+      detail.$data.set(many(2000));
+      await render({ id: ID });
+      const before = component().$rows();
+
+      component().items.at(3).controls.price.setValue(9);
+
+      expect(component().$rows()).toHaveLength(50);
+      expect(component().$rows()[0].group).toBe(before[0].group);
+    });
+
+    it('an error on a price of another page takes the page with the price, the field has the message and the banner names the product', async () => {
+      detail.$data.set(many(120));
+      await render({ id: ID });
+      saveOperation.set(
+        failureOperation(
+          apiError(400, API_ERROR_KIND.Validation, {
+            fieldErrors: { 'items[103].price': ['The price has too many decimals.'] }
+          })
+        )
+      );
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(component().$currentPage()).toBe(3);
+      expect(text()).toContain('SKU-103: The price has too many decimals.');
+      expect(document.activeElement?.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('a refusal that names no field (a deactivated customer) is the alert, and it takes the focus away from Save', async () => {
+      detail.$data.set(list());
+      await render({ id: ID });
+      saveButton().focus();
+      saveOperation.set(
+        failureOperation(
+          apiError(409, API_ERROR_KIND.Conflict, { detail: 'The customer is not active.' })
+        )
+      );
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      expect(document.activeElement?.tagName).toBe('APP-BANNER');
+      expect(document.activeElement?.textContent).toContain('The customer is not active.');
+    });
+
+    it('a product priced in its base unit gets its next unit when picked again, and is refused only when every unit has a price', async () => {
+      await render();
+      const packed = {
+        ...PRODUCT,
+        conversions: [{ fromUomId: 'ctn', toUomId: 'pcs', factor: 12 }]
+      } as unknown as ProductDto;
+
+      component().onProductPicked({ product: packed, available: null });
+      component().onProductPicked({ product: packed, available: null });
+      expect(component().items.controls.map(group => group.controls.uomId.value)).toEqual([
+        'pcs',
+        'ctn'
+      ]);
+      expect(component().$duplicates().size).toBe(0);
+
+      component().onProductPicked({ product: packed, available: null });
+      expect(component().items.length).toBe(2);
+      expect(component().$lastAdded()).toBe(
+        'SKU-1 already has a price in every unit it can be priced in.'
+      );
+    });
+
+    it('a save in flight does not build the rows again from the answer, and Delete is off meanwhile', async () => {
+      detail.$data.set(list());
+      await render({ id: ID });
+      jest.spyOn(spectator.inject(Router), 'navigate').mockResolvedValue(true);
+      const rows = component().$rows()[0].group;
+
+      spectator.click(saveButton());
+      detail.$data.set(list({ concurrencyToken: 'BBBB' }));
+      spectator.detectChanges();
+
+      expect(component().$rows()[0].group).toBe(rows);
+      expect(deleteButton()?.disabled).toBe(true);
+    });
+
+    it('a second tap on Delete while the dialog is open asks nothing more', async () => {
+      detail.$data.set(list());
+      await render({ id: ID });
+      const confirm = TestBed.inject(ConfirmService);
+      const ask = jest.spyOn(confirm, 'ask');
+
+      spectator.click(deleteButton() as HTMLElement);
+      spectator.click(deleteButton() as HTMLElement);
+
+      expect(ask).toHaveBeenCalledTimes(1);
+      confirm.cancel();
+    });
+
+    it('the price field has a top, and the section is named by its heading', async () => {
+      detail.$data.set(list());
+      await render({ id: ID });
+
+      expect(spectator.query('app-input[formcontrolname="price"] input')?.getAttribute('max')).toBe(
+        '1000000000'
+      );
+      expect(spectator.query('section')?.getAttribute('aria-labelledby')).toBe(
+        'price-list-items-heading'
+      );
     });
   });
 
