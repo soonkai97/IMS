@@ -40,6 +40,10 @@ export const APP_ROUTES: Routes = [
           import('@ims/containers/sales').then(module => module.SALES_ORDER_ROUTES)
       },
       {
+        path: 'price-lists',
+        loadChildren: () => import('@ims/containers/sales').then(module => module.PRICE_LIST_ROUTES)
+      },
+      {
         path: 'approvals',
         loadChildren: () =>
           import('@ims/containers/approvals').then(module => module.APPROVAL_ROUTES)

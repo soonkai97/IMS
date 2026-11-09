@@ -33,5 +33,7 @@ export const PERMISSION = {
   /** Module sales: see sales orders (prices and amounts need so.manage). */
   SoRead: 'so.read',
   /** Module sales: create, change, submit, recall, cancel and close sales orders; sees selling prices. */
-  SoManage: 'so.manage'
+  SoManage: 'so.manage',
+  /** Module sales: see and change price lists (every price in them). */
+  PriceListManage: 'pricelist.manage'
 } as const;

@@ -187,6 +187,27 @@ describe('NavigationService (menus follow the permissions)', () => {
       expect(order.indexOf('approvals')).toBe(order.indexOf('sales-orders') + 1);
     });
   });
+
+  describe('Price lists (module sales + permission pricelist.manage)', () => {
+    it.each([
+      ['module on, permission held', ['sales'], [PERMISSION.PriceListManage], true],
+      ['module on, so.manage is not enough', ['sales'], [PERMISSION.SoManage], false],
+      ['module off, permission held', [], [PERMISSION.PriceListManage], false]
+    ])('%s', (_label, on, permissions, shown) => {
+      modulesOn.set(on);
+      granted.set(permissions);
+
+      expect(ids().includes('price-lists')).toBe(shown);
+    });
+
+    it('sits in Master data and is tied to the sales module', () => {
+      const item = MENU_ITEMS.find(entry => entry.id === 'price-lists');
+
+      expect(item?.group).toBe('master');
+      expect(item?.route).toBe('/price-lists');
+      expect(item?.module).toBe('sales');
+    });
+  });
 });
 
 describe('NavigationService (an item tied to a module: module x permission)', () => {

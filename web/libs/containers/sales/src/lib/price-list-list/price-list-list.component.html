@@ -1,0 +1,50 @@
+<app-page-header [heading]="'pricelist.title' | t">
+  <div actions>
+    <a class="ui-link-button --primary" [routerLink]="['/', route, 'new']">{{
+      'pricelist.new' | t
+    }}</a>
+  </div>
+</app-page-header>
+
+<div class="price-list-list-toolbar">
+  <app-search-input
+    [(value)]="$searchInput"
+    [label]="'pricelist.searchLabel' | t"
+    [placeholder]="'pricelist.searchPlaceholder' | t"
+  />
+</div>
+
+<app-table
+  columnMenu
+  [columns]="$columns()"
+  [rows]="$page()?.items ?? []"
+  [caption]="'pricelist.title' | t"
+  [loading]="$isLoading()"
+  [failed]="$failed()"
+  [rowLink]="rowLink"
+  (retried)="onRetry()"
+>
+  <ng-template appCell="customer" let-row>
+    {{ row.customerName || (row.isDefault ? ('pricelist.allCustomers' | t) : '-') }}
+  </ng-template>
+  <ng-template appCell="count" let-row>{{
+    'pricelist.itemCount' | t: { count: row.itemCount }
+  }}</ng-template>
+  <ng-template appCell="flags" let-row>
+    @if (row.isDefault) {
+      <app-status-chip flag="info" [label]="'pricelist.default' | t" />
+    }
+  </ng-template>
+  <app-empty-state empty icon="tag" [message]="$emptyKey() | t" />
+</app-table>
+
+@if ($page(); as page) {
+  <app-pager
+    [pageSizes]="pageSizes"
+    (pageSizeChange)="onPageSizeChange($event)"
+    [page]="page.page"
+    [pageSize]="page.pageSize"
+    [total]="page.total"
+    (pageChange)="onPageChange($event)"
+  />
+}
