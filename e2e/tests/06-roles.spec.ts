@@ -86,7 +86,7 @@ test.describe('AUTH-02 Role matrix smoke', () => {
     const name = `E2E Supplier ${unique()}`;
     const dialog = await partners.create('Supplier', name);
     await expect(dialog).toBeHidden();
-    await expect(partners.row(name)).toBeVisible();
+    await expect(await partners.find(name)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Edit' })).toHaveCount(0);
 
     // A second partner of the same name and type answers 409; the sentence is shown on the form and the dialog stays open.
@@ -108,14 +108,16 @@ test.describe('AUTH-02 Role matrix smoke', () => {
     await signIn('staff');
     const partners = new PartnersPage(page);
     await partners.open();
-    await expect(partners.row(partner.name)).toBeVisible();
+    await expect(await partners.find(partner.name)).toBeVisible();
     await expect(partners.newButton).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Edit' })).toHaveCount(0);
     await shell.signOut();
 
     await signIn('supervisor');
     await partners.open();
-    await expect(partners.row(partner.name).getByRole('button', { name: 'Edit' })).toBeVisible();
+    await expect(
+      (await partners.find(partner.name)).getByRole('button', { name: 'Edit' })
+    ).toBeVisible();
     await expect(partners.newButton).toBeVisible();
   });
 });
