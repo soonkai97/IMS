@@ -35,6 +35,7 @@ public class PostingStatementCountTests(ApiFixture fixture)
     /// (commands, writes) per operation for a document of one product and of three. Posting and reversing take one application lock per product (two more commands for three
     /// products); the writes grow by one per product (its balance) and nothing else does. A submit is 8 commands for a receipt and 10 for an issue (it also reads the balances).
     /// </summary>
+    /// <remarks>PL3.17: reversing a Posted receipt or sale issue takes the ret lock and asks whether a Posted return of it exists (+2 commands, 0 writes: reversing an original under its returns is refused). Every other operation, and the reversal of any other document, is unchanged.</remarks>
     private static readonly Dictionary<(string Operation, int Products), (int Commands, int Writes)> Frozen = new()
     {
         [(SubmitReceipt, OneProduct)] = (8, 2),
@@ -42,15 +43,15 @@ public class PostingStatementCountTests(ApiFixture fixture)
         [(ReadPosted, OneProduct)] = (3, 0),
         [(SubmitIssue, OneProduct)] = (10, 2),
         [(PostIssue, OneProduct)] = (8, 4),
-        [(ReverseIssue, OneProduct)] = (8, 4),
-        [(ReverseReceipt, OneProduct)] = (8, 4),
+        [(ReverseIssue, OneProduct)] = (10, 4),
+        [(ReverseReceipt, OneProduct)] = (10, 4),
         [(SubmitReceipt, ThreeProducts)] = (8, 2),
         [(PostReceipt, ThreeProducts)] = (10, 7),
         [(ReadPosted, ThreeProducts)] = (3, 0),
         [(SubmitIssue, ThreeProducts)] = (10, 2),
         [(PostIssue, ThreeProducts)] = (10, 6),
-        [(ReverseIssue, ThreeProducts)] = (10, 6),
-        [(ReverseReceipt, ThreeProducts)] = (10, 6),
+        [(ReverseIssue, ThreeProducts)] = (12, 6),
+        [(ReverseReceipt, ThreeProducts)] = (12, 6),
     };
 
     private Guid Warehouse => fixture.Reference.DefaultWarehouseId;

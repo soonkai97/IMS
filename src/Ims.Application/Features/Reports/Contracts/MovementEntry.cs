@@ -25,7 +25,8 @@ public sealed class MovementEntry
     public decimal UnitCost { get; init; }
     public decimal Amount { get; init; }
     public bool IsReversal { get; init; }
+    public bool IsReturn { get; init; }
 
     public MovementRow ToRow() => new(At, DocNo, Type, Status, WarehouseCode, Partner, Sku, ProductName, Qty, UomCode, BaseQty, StockEffect,
-        UnitCost, Amount, IsReversal);
+        UnitCost, Amount, IsReversal, IsReturn);
 }
