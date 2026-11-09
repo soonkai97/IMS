@@ -48,6 +48,121 @@ public class SalesOrderPriceAuditTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Contains("Customer", body);
     }
 
+    // ----- the edges of "new or repriced since the previous save" (PL3.15 bundle) -----
+    private async Task<SalesOrderDto> SaveAsync(SalesOrderDto order, SalesOrderBuilder lines) => (await _s.Admin.SalesOrders.UpdateAsync(order.Id, lines.Build())).Data<SalesOrderDto>();
+
+    [Fact]
+    public async Task Reordering_the_lines_of_a_saved_order_repeats_nothing()
+    {
+        var customer = await _s.NewPartnerAsync();
+        var a = await _s.NewProductAsync();
+        var b = await _s.NewProductAsync();
+        await _s.NewListAsync(_s.List().Default().WithItem(a.Id, 10m).WithItem(b.Id, 10m));
+        var order = await CreateAsync(Order(customer.Id, (a.Id, 9m), (b.Id, 8m)));
+        Assert.Equal(2, await EventsAsync(order.No));
+
+        await SaveAsync(order, Order(customer.Id, (b.Id, 8m), (a.Id, 9m)));
+
+        Assert.Equal(2, await EventsAsync(order.No)); // the lines are matched by product, unit and price, not by line number
+    }
+
+    [Fact]
+    public async Task Two_lines_for_the_same_product_and_unit_each_count_once_and_only_a_third_equal_line_is_new()
+    {
+        var customer = await _s.NewPartnerAsync();
+        var a = await _s.NewProductAsync();
+        await _s.NewListAsync(_s.List().Default().WithItem(a.Id, 10m));
+        var order = await CreateAsync(Order(customer.Id, (a.Id, 9m), (a.Id, 8m)));
+        Assert.Equal(2, await EventsAsync(order.No));
+
+        await SaveAsync(order, Order(customer.Id, (a.Id, 9m), (a.Id, 8m)));   // saved again
+        await SaveAsync(order, Order(customer.Id, (a.Id, 9m)));               // one removed
+        Assert.Equal(2, await EventsAsync(order.No));
+
+        await SaveAsync(order, Order(customer.Id, (a.Id, 9m), (a.Id, 9m)));   // a second line at 9: one earlier line at 9 is matched, the other is new
+        Assert.Equal(3, await EventsAsync(order.No));
+    }
+
+    [Fact]
+    public async Task Switching_the_unit_of_a_line_makes_it_a_new_line_and_the_price_is_compared_with_the_price_of_that_unit()
+    {
+        var customer = await _s.NewPartnerAsync();
+        var product = await _s.NewProductAsync(b => b.WithConversion(fixture.Reference.CartonUnitId, 12m));
+        await _s.NewListAsync(_s.List().Default().WithItem(product.Id, 10m).WithItem(product.Id, 120m, fixture.Reference.CartonUnitId));
+        var order = await CreateAsync(Order(customer.Id, (product.Id, 9m)));
+        Assert.Equal(1, await EventsAsync(order.No));
+
+        await SaveAsync(order, new SalesOrderBuilder(_s.Warehouse, customer.Id).WithLine(product.Id, 1m, 120m, fixture.Reference.CartonUnitId));
+        Assert.Equal(1, await EventsAsync(order.No));                         // 120.00 per carton is the carton price: no difference, no event
+
+        await SaveAsync(order, new SalesOrderBuilder(_s.Warehouse, customer.Id).WithLine(product.Id, 1m, 100m, fixture.Reference.CartonUnitId));
+        Assert.Equal(2, await EventsAsync(order.No));
+    }
+
+    [Fact]
+    public async Task A_line_saved_at_0_00_and_priced_later_writes_its_event_when_it_is_priced()
+    {
+        var customer = await _s.NewPartnerAsync();
+        var a = await _s.NewProductAsync();
+        await _s.NewListAsync(_s.List().Default().WithItem(a.Id, 10m));
+        var order = await CreateAsync(Order(customer.Id, (a.Id, 0m)));
+        Assert.Equal(0, await EventsAsync(order.No));
+
+        await SaveAsync(order, Order(customer.Id, (a.Id, 9m)));
+
+        Assert.Equal(1, await EventsAsync(order.No));
+    }
+
+    [Fact]
+    public async Task A_line_removed_and_added_back_at_the_same_price_is_new_again_and_writes_a_second_event()
+    {
+        var customer = await _s.NewPartnerAsync();
+        var a = await _s.NewProductAsync();
+        var b = await _s.NewProductAsync();
+        await _s.NewListAsync(_s.List().Default().WithItem(a.Id, 10m).WithItem(b.Id, 10m));
+        var order = await CreateAsync(Order(customer.Id, (a.Id, 9m), (b.Id, 9m)));
+        await SaveAsync(order, Order(customer.Id, (a.Id, 9m)));
+        Assert.Equal(2, await EventsAsync(order.No));
+
+        await SaveAsync(order, Order(customer.Id, (a.Id, 9m), (b.Id, 9m)));
+
+        Assert.Equal(3, await EventsAsync(order.No)); // pinned: the comparison is with the PREVIOUS save only, so a line that was not in it is new
+    }
+
+    [Fact]
+    public async Task Saves_with_the_same_token_let_one_through_and_write_one_set_of_events_and_saves_without_a_token_write_nothing()
+    {
+        var customer = await _s.NewPartnerAsync();
+        var a = await _s.NewProductAsync();
+        await _s.NewListAsync(_s.List().Default().WithItem(a.Id, 10m));
+        var order = await CreateAsync(Order(customer.Id, (a.Id, 10m)));
+        Assert.Equal(0, await EventsAsync(order.No));
+
+        var results = await Task.WhenAll(Enumerable.Range(1, 6).Select(i => _s.Admin.SalesOrders.UpdateAsync(order.Id, Order(customer.Id, (a.Id, 9m - i / 10m)).Build(), order.ConcurrencyToken)));
+
+        Assert.Single(results, r => r.Status == System.Net.HttpStatusCode.OK);
+        Assert.All(results.Where(r => r.Status != System.Net.HttpStatusCode.OK), r => r.ShouldBeProblem(System.Net.HttpStatusCode.Conflict));
+        Assert.Equal(1, await EventsAsync(order.No));                         // the losers' events rolled back with their saves
+
+        var tokenless = await Task.WhenAll(Enumerable.Range(1, 4).Select(i => _s.Admin.SalesOrders.UpdateWithoutIfMatchAsync(order.Id, Order(customer.Id, (a.Id, 5m + i)).Build())));
+        Assert.All(tokenless, r => r.ShouldBeProblem(System.Net.HttpStatusCode.PreconditionRequired));
+        Assert.Equal(1, await EventsAsync(order.No));
+    }
+
+    [Fact]
+    public async Task A_prefilled_price_that_the_list_no_longer_has_is_one_event_when_it_is_saved()
+    {
+        var customer = await _s.NewPartnerAsync();
+        var a = await _s.NewProductAsync();
+        var list = await _s.NewListAsync(_s.List().Default().WithItem(a.Id, 10m));
+        var prefill = (await _s.Admin.PriceLists.LookupAsync(customer.Id, a.Id)).Data<PriceLookupDto>().Price!.Value;   // the editor asked: 10.00
+        _ = (await _s.Admin.PriceLists.UpdateAsync(list.Id, _s.List(list.Name).Default().WithItem(a.Id, 12m).Build())).ShouldBeOk();   // somebody edits the list meanwhile
+
+        var order = await CreateAsync(Order(customer.Id, (a.Id, prefill)));
+
+        Assert.Equal(1, await EventsAsync(order.No)); // saved at 10.00 against a list that now says 12.00
+    }
+
     [Fact]
     public async Task The_default_list_counts_when_the_customer_has_none_and_a_line_priced_like_the_list_writes_nothing()
     {

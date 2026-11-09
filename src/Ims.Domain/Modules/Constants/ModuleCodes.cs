@@ -11,4 +11,7 @@ public static class ModuleCodes
 
     /// <summary>Sales orders, delivery against them and price lists (pilot slice 3).</summary>
     public const string Sales = "sales";
+
+    /// <summary>Customer and supplier returns linked to the original document (pilot slice 3). Requires <see cref="Sales"/> and <see cref="Purchasing"/>.</summary>
+    public const string Returns = "returns";
 }

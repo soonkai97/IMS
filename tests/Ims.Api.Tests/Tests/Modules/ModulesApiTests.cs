@@ -70,12 +70,12 @@ public class ModulesApiTests(ApiFixture fixture) : IAsyncLifetime
     {
         var list = (await (await fixture.AsAsync(role)).Modules.ListAsync()).Data<List<ModuleDto>>();
 
-        Assert.Equal([Purchasing, Sales], list.Select(m => m.Code));
+        Assert.Equal([Purchasing, Sales, ModuleCodes.Returns], list.Select(m => m.Code));
         Assert.All(list, module =>
         {
             Assert.False(module.Enabled);
             Assert.False(string.IsNullOrWhiteSpace(module.Name));
-            Assert.Empty(module.Requires);
+            Assert.Equal(module.Code == ModuleCodes.Returns ? new[] { Sales, Purchasing } : [], module.Requires); // returns is the one module with prerequisites
         });
         Assert.Equal(0, await ModuleRowsAsync()); // listing writes nothing
     }

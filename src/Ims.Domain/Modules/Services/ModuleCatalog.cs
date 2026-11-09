@@ -9,7 +9,8 @@ public static class ModuleCatalog
     public static readonly IReadOnlyList<ModuleDefinition> All =
     [
         new(ModuleCodes.Purchasing, "Purchasing", "Purchase orders, receiving against them, and a reorder list."),
-        new(ModuleCodes.Sales, "Sales", "Sales orders, delivery against them and price lists.")
+        new(ModuleCodes.Sales, "Sales", "Sales orders, delivery against them and price lists."),
+        new(ModuleCodes.Returns, "Returns", "Customer and supplier returns linked to the original document.") { Requires = [ModuleCodes.Sales, ModuleCodes.Purchasing] }
     ];
 
     /// <summary>The codes in catalog order.</summary>

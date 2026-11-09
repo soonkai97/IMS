@@ -29,6 +29,8 @@ public static class Permissions
     public const string SoManage = "so.manage";
     /// <summary>See and edit price lists: the default list, the list of a customer and the selling price of each item. Belongs to the <see cref="ModuleCodes.Sales"/> module; requires <see cref="MasterDataRead"/> (the product and customer lookups). A selling price is not cost: <see cref="CostView"/> is not involved, and a holder of <see cref="SoManage"/> alone does not see the lists.</summary>
     public const string PricelistManage = "pricelist.manage";
+    /// <summary>Create the draft return of a posted document (a customer return or a supplier return). Belongs to the <see cref="ModuleCodes.Returns"/> module; requires <see cref="DocumentCreate"/> and <see cref="StockRead"/> (a return is a stock document and the original is read first). Submitting, approving and posting it use the document permissions.</summary>
+    public const string ReturnsCreate = "returns.create";
 
     /// <summary>
     /// See the cost of the documents one works on: unit cost, line cost, document totals and estimates, and the approval amounts and thresholds.

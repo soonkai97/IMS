@@ -139,7 +139,7 @@ public class RoleContainmentTests(ApiFixture fixture)
         try
         {
             var everything = await NewDelegateAsync([.. PermissionCatalog.Codes], allWarehouses: true);
-            foreach (var module in ModuleCatalog.Codes) (await admin0.Modules.SwitchAsync(module, false, "Containment test setup")).ShouldBeOk();
+            foreach (var module in ModuleCatalog.Codes.Reverse()) (await admin0.Modules.SwitchAsync(module, false, "Containment test setup")).ShouldBeOk(); // a module that others require goes off after them
             var admin = (await everything.Client.GetAsync("/api/roles")).Data<List<RoleDto>>().Single(r => r.Code == Roles.Admin);
 
             Assert.Equal(Messages.SystemRoleProtected, (await everything.Client.UpdateRoleAsync(admin, name: Unique.Name("Not admin"))).ShouldBeProblem(HttpStatusCode.Conflict).Detail);

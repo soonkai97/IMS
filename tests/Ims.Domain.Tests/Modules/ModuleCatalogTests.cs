@@ -14,9 +14,9 @@ public partial class ModuleCatalogTests
         .Select(f => (string)f.GetRawConstantValue()!).ToList();
 
     [Fact]
-    public void TheCatalogListsThePurchasingAndSalesModules_AndNoOtherYet()
+    public void TheCatalogListsThePurchasingSalesAndReturnsModules()
     {
-        Assert.Equal([ModuleCodes.Purchasing, ModuleCodes.Sales], ModuleCatalog.Codes);
+        Assert.Equal([ModuleCodes.Purchasing, ModuleCodes.Sales, ModuleCodes.Returns], ModuleCatalog.Codes);
     }
 
     [Fact]
@@ -65,9 +65,32 @@ public partial class ModuleCatalogTests
     }
 
     [Fact]
-    public void NoModuleRequiresAnotherYet_SoTheSwitchDoesNotNeedToEnforceIt()
+    public void ReturnsIsTheOnlyModuleWithPrerequisites_SalesAndPurchasing_AndNothingRequiresItself()
     {
-        Assert.All(ModuleCatalog.All, m => Assert.True(m.Requires.Count == 0, $"{m.Code}: enforce Requires in SwitchModuleHandler first (PL3: returns is the first module with a prerequisite), and add its test."));
+        Assert.Equal([ModuleCodes.Returns], ModuleCatalog.All.Where(m => m.Requires.Count > 0).Select(m => m.Code));
+        Assert.Equal([ModuleCodes.Sales, ModuleCodes.Purchasing], ModuleCatalog.Find(ModuleCodes.Returns)!.Requires);
+        Assert.Equal("Customer and supplier returns linked to the original document.", ModuleCatalog.Find(ModuleCodes.Returns)!.Description);
+    }
+
+    [Fact]
+    public void MissingPrerequisites_NamesTheModulesThatAreOff_InTheOrderTheyAreRequired()
+    {
+        Assert.Equal([ModuleCodes.Sales, ModuleCodes.Purchasing], ModuleDependencies.MissingPrerequisites(ModuleCodes.Returns, new HashSet<string>()).Select(m => m.Code));
+        Assert.Equal([ModuleCodes.Purchasing], ModuleDependencies.MissingPrerequisites(ModuleCodes.Returns, new HashSet<string> { ModuleCodes.Sales }).Select(m => m.Code));
+        Assert.Empty(ModuleDependencies.MissingPrerequisites(ModuleCodes.Returns, new HashSet<string> { ModuleCodes.Sales, ModuleCodes.Purchasing }));
+        Assert.Empty(ModuleDependencies.MissingPrerequisites(ModuleCodes.Sales, new HashSet<string>()));   // a module without a prerequisite is never refused
+        Assert.Empty(ModuleDependencies.MissingPrerequisites("batch", new HashSet<string>()));            // nor a code the catalog does not know
+    }
+
+    [Fact]
+    public void EnabledDependents_NamesTheModulesThatAreOnAndNeedIt()
+    {
+        var all = new HashSet<string> { ModuleCodes.Sales, ModuleCodes.Purchasing, ModuleCodes.Returns };
+
+        Assert.Equal([ModuleCodes.Returns], ModuleDependencies.EnabledDependents(ModuleCodes.Sales, all).Select(m => m.Code));
+        Assert.Equal([ModuleCodes.Returns], ModuleDependencies.EnabledDependents(ModuleCodes.Purchasing, all).Select(m => m.Code));
+        Assert.Empty(ModuleDependencies.EnabledDependents(ModuleCodes.Sales, new HashSet<string> { ModuleCodes.Sales, ModuleCodes.Purchasing })); // returns is off
+        Assert.Empty(ModuleDependencies.EnabledDependents(ModuleCodes.Returns, all));
     }
 
     [Fact]

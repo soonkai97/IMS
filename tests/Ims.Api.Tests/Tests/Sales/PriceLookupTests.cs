@@ -82,6 +82,22 @@ public class PriceLookupTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_supplier_and_an_inactive_customer_are_a_400_with_the_sentence_the_order_save_gives()
+    {
+        var product = await _s.NewProductAsync();
+        var supplier = await _s.NewPartnerAsync(PartnerType.Supplier);
+        var inactive = await _s.NewPartnerAsync(isActive: false);
+        await _s.NewListAsync(_s.List().Default().WithItem(product.Id, 4m));
+
+        var forSupplier = (await _s.Admin.PriceLists.LookupAsync(supplier.Id, product.Id)).ShouldBeProblem(HttpStatusCode.BadRequest);
+        var forInactive = (await _s.Admin.PriceLists.LookupAsync(inactive.Id, product.Id)).ShouldBeProblem(HttpStatusCode.BadRequest);
+
+        var saveSupplier = (await _s.Admin.SalesOrders.CreateAsync(_s.Request(_s.Warehouse, product.Id, supplier.Id).Build())).ShouldBeProblem(HttpStatusCode.BadRequest);
+        var saveInactive = (await _s.Admin.SalesOrders.CreateAsync(_s.Request(_s.Warehouse, product.Id, inactive.Id).Build())).ShouldBeProblem(HttpStatusCode.BadRequest);
+        Assert.Equal((saveSupplier.Detail, saveInactive.Detail), (forSupplier.Detail, forInactive.Detail));
+    }
+
+    [Fact]
     public async Task A_customer_or_product_that_does_not_exist_is_a_400()
     {
         var customer = await _s.NewPartnerAsync();

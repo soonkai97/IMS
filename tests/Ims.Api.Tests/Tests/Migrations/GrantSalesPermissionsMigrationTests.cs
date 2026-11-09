@@ -84,9 +84,9 @@ public class GrantSalesPermissionsMigrationTests
         Assert.Equal(9, expected); // 4 x 2 + 1 x 1
         Assert.Equal(expected, await GrantsOfAsync(database));
         Assert.Equal(grantsBefore + expected, await TotalGrantsAsync(database));
-        Assert.True((await PermissionsOfAsync(database, Roles.Admin)).SetEquals(PermissionCatalog.Codes.Except([Permissions.PricelistManage])), "Admin must hold every permission of the catalog of that day.");
+        Assert.True((await PermissionsOfAsync(database, Roles.Admin)).SetEquals(PermissionCatalog.Codes.Except([Permissions.PricelistManage, Permissions.ReturnsCreate])), "Admin must hold every permission of the catalog of that day.");
         foreach (var role in Roles.All.Where(r => r != Roles.Admin))
-            Assert.True((await PermissionsOfAsync(database, role)).SetEquals(SystemRoleDefaults.For(role).Except([Permissions.PricelistManage])), $"{role} must hold what the defaults of that day say, and nothing more.");
+            Assert.True((await PermissionsOfAsync(database, role)).SetEquals(SystemRoleDefaults.For(role).Except([Permissions.PricelistManage, Permissions.ReturnsCreate])), $"{role} must hold what the defaults of that day say, and nothing more.");
         foreach (var role in Managers)
             Assert.True((await PermissionsOfAsync(database, role)).IsSupersetOf(Codes), role);
         foreach (var role in Readers)
