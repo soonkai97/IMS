@@ -1,0 +1,18 @@
+@use 'libs' as *;
+
+:host {
+  display: block;
+}
+
+.price-list-list-toolbar {
+  display: flex;
+  margin-bottom: space(1);
+
+  app-search-input {
+    flex: 1;
+  }
+
+  @include media-tablet {
+    max-width: width('form-max');
+  }
+}

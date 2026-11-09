@@ -104,6 +104,15 @@ export const MENU_ITEMS: readonly MenuItem[] = [
     group: 'master'
   },
   {
+    id: 'price-lists',
+    labelKey: 'nav.priceLists',
+    icon: 'tag',
+    route: '/price-lists',
+    permissions: [PERMISSION.PriceListManage],
+    group: 'master',
+    module: MODULE_CODE.Sales
+  },
+  {
     id: 'reports',
     labelKey: 'nav.reports',
     icon: 'reports',
