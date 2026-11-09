@@ -159,7 +159,8 @@ public class PurchaseOrderRuleGuardTests(ApiFixture fixture) : IAsyncLifetime
 
         (await _p.Supervisor.PurchaseOrders.CancelAsync(draft.Id, null, draft.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Forbidden);
         Assert.Contains(DocumentActions.Cancel, (await _p.ReadAsync(draft.Id)).AllowedActions); // the Administrator is offered it
-        var cancelled = (await _p.Admin.PurchaseOrders.CancelAsync(draft.Id, null, draft.ConcurrencyToken)).Data<PurchaseOrderDto>();
+        (await _p.Admin.PurchaseOrders.CancelAsync(draft.Id, null, draft.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.BadRequest); // somebody else draft: a reason is asked
+        var cancelled = (await _p.Admin.PurchaseOrders.CancelAsync(draft.Id, "creator has left", draft.ConcurrencyToken)).Data<PurchaseOrderDto>();
 
         Assert.Equal(PurchaseOrderStatus.Cancelled, cancelled.Status);
         (await _p.Admin.Modules.SwitchAsync(ModuleCodes.Purchasing, false, Why())).ShouldBeOk();
@@ -185,7 +186,8 @@ public class PurchaseOrderRuleGuardTests(ApiFixture fixture) : IAsyncLifetime
         var token = fixture.CreateClient(ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Admin, permissions: [Permissions.ModulesManage, Permissions.PoRead]));
 
         (await token.PurchaseOrders.CancelAsync(submitted.Id, null, submitted.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Forbidden); // a Submitted order stays its submitter's
-        var cancelled = (await token.PurchaseOrders.CancelAsync(draft.Id, null, draft.ConcurrencyToken)).Data<PurchaseOrderDto>();
+        (await token.PurchaseOrders.CancelAsync(draft.Id, null, draft.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.BadRequest); // clearing somebody else draft says why
+        var cancelled = (await token.PurchaseOrders.CancelAsync(draft.Id, "creator has left", draft.ConcurrencyToken)).Data<PurchaseOrderDto>();
 
         Assert.Equal(PurchaseOrderStatus.Cancelled, cancelled.Status);
         var another = await _p.DraftWorthAsync(10m);

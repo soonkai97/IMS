@@ -159,7 +159,8 @@ public class SalesOrderRuleGuardTests(ApiFixture fixture) : IAsyncLifetime
 
         (await _p.Supervisor.SalesOrders.CancelAsync(draft.Id, null, draft.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Forbidden);
         Assert.Contains(DocumentActions.Cancel, (await _p.ReadAsync(draft.Id)).AllowedActions); // the Administrator is offered it
-        var cancelled = (await _p.Admin.SalesOrders.CancelAsync(draft.Id, null, draft.ConcurrencyToken)).Data<SalesOrderDto>();
+        (await _p.Admin.SalesOrders.CancelAsync(draft.Id, null, draft.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.BadRequest); // somebody else draft: a reason is asked
+        var cancelled = (await _p.Admin.SalesOrders.CancelAsync(draft.Id, "creator has left", draft.ConcurrencyToken)).Data<SalesOrderDto>();
 
         Assert.Equal(SalesOrderStatus.Cancelled, cancelled.Status);
         (await _p.Admin.Modules.SwitchAsync(ModuleCodes.Sales, false, Why())).ShouldBeOk();
@@ -185,7 +186,8 @@ public class SalesOrderRuleGuardTests(ApiFixture fixture) : IAsyncLifetime
         var token = fixture.CreateClient(ForgedTokens.Create(fixture.Settings.JwtKey, Roles.Admin, permissions: [Permissions.ModulesManage, Permissions.SoRead]));
 
         (await token.SalesOrders.CancelAsync(submitted.Id, null, submitted.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.Forbidden); // a Submitted order stays its submitter's
-        var cancelled = (await token.SalesOrders.CancelAsync(draft.Id, null, draft.ConcurrencyToken)).Data<SalesOrderDto>();
+        (await token.SalesOrders.CancelAsync(draft.Id, null, draft.ConcurrencyToken)).ShouldBeProblem(HttpStatusCode.BadRequest); // clearing somebody else draft says why
+        var cancelled = (await token.SalesOrders.CancelAsync(draft.Id, "creator has left", draft.ConcurrencyToken)).Data<SalesOrderDto>();
 
         Assert.Equal(SalesOrderStatus.Cancelled, cancelled.Status);
     }

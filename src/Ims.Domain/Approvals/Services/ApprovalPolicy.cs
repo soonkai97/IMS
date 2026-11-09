@@ -19,6 +19,12 @@ public static class ApprovalPolicy
     public static bool MayReviewUnderRulesInForce(ActorRights actor, bool isLarge, IEnumerable<ApprovalRule> rulesInForce, DocumentType type, decimal totalQty, decimal totalAmount) =>
         MayReview(actor, isLarge) && (!IsLarge(rulesInForce, type, totalQty, totalAmount) || MayReview(actor, isLarge: true));
 
+    /// <summary>
+    /// A return (plan D12) is always held for approval and always at the standard tier, whatever the rules say and whatever it is worth: the one place that decides it. It is not a seeded rule, because rules are
+    /// per document type and would hit every receipt and issue. The Owner, who holds only the large tier, is not a reviewer of a return; a Supervisor or an Administrator is.
+    /// </summary>
+    public static (bool Required, bool IsLarge) ForReturn => (true, false);
+
     public static bool RequiresApproval(IEnumerable<ApprovalRule> rules, DocumentType type, decimal totalQty, decimal totalAmount) =>
         rules.Any(r => r.Matches(type, totalQty, totalAmount));
 

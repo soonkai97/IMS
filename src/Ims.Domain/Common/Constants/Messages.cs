@@ -251,6 +251,28 @@ public static class Messages
     public static string PriceListDuplicateItem(string sku, string uomCode) => $"{sku} is on the list more than once in {uomCode}. Keep one price for each product and unit.";
     public const string PriceListDuplicateItemAny = "A product can be on a price list only once in each unit.";
 
+    // ----- Returns (module returns, PL3.16) -----
+    public const string ReturnOriginalMissing = "The document to return does not exist.";
+    public const string CancelOthersDraftReasonRequired = "Cancelling a draft that someone else created needs a reason of at least 5 characters.";
+    public static string ReturnOriginalNotPosted(string no, DocumentStatus status) => $"{no} is {status}. Only a Posted document can be returned.";
+    public static string ReturnOfAReturn(string no) => $"{no} is itself a return and cannot be returned.";
+    public static string ReturnOriginalNotReturnable(string no) => $"{no} cannot be returned: only a posted sale (an issue with purpose Sale) or a posted receipt can.";
+    public static string ReturnNothingToReturn(string no) => $"Everything of {no} has already been returned.";
+    public const string ReturnHeaderLocked = "The partner and the purpose of a return are those of the document it returns and cannot be changed.";
+    public const string PurposeReturnReserved = "The purpose Return is set only by a supplier return created from a posted receipt.";
+    public const string ReturnNotLinked = "This document is not a return, so a line cannot name a line to return. Create the return from the document instead.";
+    public const string ReturnLineNeedsOriginalLine = "Name the line of the document this line returns (returnOfLineNo).";
+    public static string ReturnLineUnknownOriginalLine(int lineNo, string no) => $"{no} has no line {lineNo}.";
+    public static string ReturnLineWrongProduct(int lineNo, string sku) => $"Line {lineNo} of the document is for {sku}, not for this product.";
+    public static string ReturnLineWrongUnit(int lineNo, string uomCode) => $"Line {lineNo} of the document is in {uomCode}; return it in {uomCode}.";
+    public static string ReturnLineOverReturn(OverReturn over, string sku, string uomCode) =>
+        $"Line {over.LineNo} ({sku}): {Quantity(over.Requested)} {uomCode} is more than can be returned. Returnable {Quantity(over.Remaining)} {uomCode} (original {Quantity(over.Original)}, already returned {Quantity(over.Returned)}).";
+    public const string ReturnModuleOff = "Returns are switched off, so this return cannot be edited, submitted or posted. Cancel it, or ask an administrator to turn the Returns module on.";
+    public const string ReturnCannotPostModuleOff = "Returns are switched off, so this return cannot be posted. Cancel it, or ask an administrator to turn the Returns module on.";
+    public const string ReturnNeedsReturnsCreate = "Editing a return needs the permission to create returns.";
+    public const string ReturnOriginalNotOpen = "The document this return is for can no longer be returned.";
+    public const string ReturnOverRemaining = "This return asks for more than can still be returned.";
+
     // ----- Delivering against a sales order (PL3.5) -----
     public static string SalesOrderNotDeliverable(string no, SalesOrderStatus status) => $"Sales order {no} is {status}. Only an Approved sales order can be delivered.";
     public static string SalesOrderNothingToDeliver(string no) => $"Sales order {no} has nothing left to deliver.";

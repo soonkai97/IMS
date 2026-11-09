@@ -152,9 +152,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.No).HasMaxLength(Limits.DocumentNoMaxLength);
             e.Property(x => x.Remark).HasMaxLength(Limits.RemarkMaxLength);
             e.Property(x => x.RowVersion).IsRowVersion();
-            e.Ignore(x => x.TotalQty).Ignore(x => x.TotalAmount).Ignore(x => x.CanPost).Ignore(x => x.IsReturned).Ignore(x => x.ActionContext).Ignore(x => x.IsLinked).Ignore(x => x.Link);
-            // A document carries at most one link (plan D8): the domain sets each key only in its own factory, and the database says it too.
-            e.ToTable(table => table.HasCheckConstraint("CK_StockDocument_OneLink", "[PurchaseOrderId] IS NULL OR [SalesOrderId] IS NULL"));
+            e.Ignore(x => x.TotalQty).Ignore(x => x.TotalAmount).Ignore(x => x.CanPost).Ignore(x => x.IsReturned).Ignore(x => x.ActionContext).Ignore(x => x.IsLinked).Ignore(x => x.Link).Ignore(x => x.IsReturn);
+            // A document carries at most one link (plan D8, three kinds since PL3.16): the domain sets each key only in its own factory, and the database says it too.
+            e.ToTable(table => table.HasCheckConstraint("CK_StockDocument_OneLink", OneLinkRule));
             e.HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Partner).WithMany().HasForeignKey(x => x.PartnerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedBy).OnDelete(DeleteBehavior.Restrict);
@@ -172,6 +172,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             // The same for deliveries created from a sales order (NULL on every other document): the filtered foreign-key index serves "the deliveries of this order" and the delivered-quantity sum, and costs nothing on an unlinked document.
             e.HasIndex(x => x.SalesOrderId).HasFilter("[SalesOrderId] IS NOT NULL");
             e.HasOne(x => x.SalesOrder).WithMany().HasForeignKey(x => x.SalesOrderId).OnDelete(DeleteBehavior.Restrict);
+            // The same for returns (NULL on every other document): the filtered foreign-key index serves "the returns of this document" and the returned-quantity sum. The original is another StockDocument.
+            e.HasIndex(x => x.ReturnOfDocumentId).HasFilter("[ReturnOfDocumentId] IS NOT NULL");
+            e.HasOne(x => x.ReturnOf).WithMany(x => x.Returns).HasForeignKey(x => x.ReturnOfDocumentId).OnDelete(DeleteBehavior.Restrict);
+            e.Navigation(x => x.Returns).UsePropertyAccessMode(PropertyAccessMode.Field);
             e.HasMany(x => x.Lines).WithOne(x => x.Document).HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
@@ -365,6 +369,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
 
     /// <summary>Filter of every index that only needs live rows: the global query filter adds this predicate to every query, so the index answers it for free.</summary>
     private const string LiveRows = "[REC_DELETED] = 0";
+
+    /// <summary>At most one of the three links of a document is set (a purchase order, a sales order, a document it returns).</summary>
+    public const string OneLinkRule = "(CASE WHEN [PurchaseOrderId] IS NULL THEN 0 ELSE 1 END + CASE WHEN [SalesOrderId] IS NULL THEN 0 ELSE 1 END + CASE WHEN [ReturnOfDocumentId] IS NULL THEN 0 ELSE 1 END) <= 1";
 
     /// <summary>The ledger and the audit log: they carry the audit columns but are never updated or deleted (triggers enforce it).</summary>
     private static readonly HashSet<Type> AppendOnly = [typeof(StockLedgerEntry), typeof(AuditLog)];

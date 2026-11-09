@@ -129,6 +129,7 @@ public static class EndpointCatalog
         new("POST sales-orders/{id}/close", Post, Permissions.SoManage, _ => $"/api/sales-orders/{MissingPublicId}/close", _ => new { reason = "x" }, OkWhenAllowed: false),
         new("POST sales-orders/{id}/delivery", Post, Permissions.DocumentCreate, _ => $"/api/sales-orders/{MissingPublicId}/delivery", OkWhenAllowed: false),
         new("POST sales-orders/{id}/cancel", Post, AuthPolicies.SalesOrderCancel, _ => $"/api/sales-orders/{MissingPublicId}/cancel", _ => new { reason = "x" }, OkWhenAllowed: false),
+        new("POST returns", Post, Permissions.ReturnsCreate, _ => "/api/returns", _ => new Ims.Application.Features.Returns.CreateReturnRequest(MissingPublicId), OkWhenAllowed: false),
         new("GET price-lists", Get, Permissions.PricelistManage, _ => "/api/price-lists"),
         new("GET price-lists/lookup", Get, Permissions.SoManage, r => $"/api/price-lists/lookup?customerId={r.CustomerId}&productId={r.DemoProductId}"),
         new("GET price-lists/{id}", Get, Permissions.PricelistManage, _ => $"/api/price-lists/{MissingPublicId}", OkWhenAllowed: false),

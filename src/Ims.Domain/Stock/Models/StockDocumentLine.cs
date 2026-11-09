@@ -28,6 +28,12 @@ public class StockDocumentLine : Entity
 
     /// <summary>The line of the sales order (<see cref="StockDocument.SalesOrderId"/>) that this delivery line delivers: its <c>LineNo</c>, 1 to n inside the order. Not a foreign key, as <see cref="PurchaseOrderLineNo"/>. Null on every line of an unlinked document. The delivery carries no price: it is valued at the average cost like every issue.</summary>
     public int? SalesOrderLineNo { get; private set; }
+    /// <summary>
+    /// The line of the document this one returns (<see cref="StockDocument.ReturnOfDocumentId"/>) that this line returns: its position, 1 to n over the original's lines in key order
+    /// (<see cref="DocumentLinePositions"/>). Not a foreign key and not a row id: an original is Posted and its lines never change. Null on every line of a document that is not a return.
+    /// </summary>
+    public int? ReturnOfLineNo { get; private set; }
+
 
     /// <summary>The average cost of the product just before this receipt line posted. Set at posting, only on receipt lines; null before that and for lines posted before it was recorded.</summary>
     [VisibleWith(Permissions.ValuationView)]
@@ -78,7 +84,7 @@ public class StockDocumentLine : Entity
     /// <param name="purchaseOrderLineNo">The line of the purchase order this receipt line receives; the cost is then the order's price (typed by the caller of this method, never from the average).</param>
     /// <param name="salesOrderLineNo">The line of the sales order this delivery line delivers; an issue is valued at the average whatever the order says.</param>
     public static StockDocumentLine Create(Product product, DocumentType documentType, decimal qty, int? uomId, decimal? unitCost, string? remark, bool costFromAverage = false,
-        int? purchaseOrderLineNo = null, int? salesOrderLineNo = null)
+        int? purchaseOrderLineNo = null, int? salesOrderLineNo = null, int? returnOfLineNo = null)
     {
         product.EnsureUsableOnDocuments();
         if (qty <= 0) throw new DomainException(Messages.QtyPositive);
@@ -98,8 +104,22 @@ public class StockDocumentLine : Entity
             // Only the key is stored: the product may be a detached read copy, and assigning it as a navigation would make EF insert it again.
             ProductId = product.Id, Qty = qty, UomId = uom, BaseQty = baseQty,
             UnitCost = CostingPolicy.BaseUnitCost(documentType, typed, qty, baseQty), Remark = remark,
-            EnteredUnitCost = enteredCost, Amount = EnsureAmountFits(Money.Amount(qty, enteredCost)), CostFromAverage = fromAverage, PurchaseOrderLineNo = purchaseOrderLineNo, SalesOrderLineNo = salesOrderLineNo
+            EnteredUnitCost = enteredCost, Amount = EnsureAmountFits(Money.Amount(qty, enteredCost)), CostFromAverage = fromAverage, PurchaseOrderLineNo = purchaseOrderLineNo, SalesOrderLineNo = salesOrderLineNo, ReturnOfLineNo = returnOfLineNo
         };
+    }
+
+    /// <summary>
+    /// Builds a line of a return, in the unit of the original line (so the quantity is exact). A SUPPLIER return is an issue like any other: valued at the average when it posts. A CUSTOMER return is a receipt
+    /// that takes back the goods at the cost they left at: the cost per base unit of the original issue line, whoever saves it; <c>CostFromAverage</c> is false, so nothing re-prices it (a staff save, a typed
+    /// cost, the known-cost defaults). The entered cost and the amount follow the average rules (capped at the line limit), so a full return gives back exactly the original amount.
+    /// </summary>
+    public static StockDocumentLine CreateReturn(Product product, DocumentType documentType, decimal qty, int? uomId, string? remark, int returnOfLineNo, decimal originalUnitCost)
+    {
+        var line = Create(product, documentType, qty, uomId, unitCost: null, remark, costFromAverage: true, returnOfLineNo: returnOfLineNo);
+        if (documentType != DocumentType.Receipt) return line;
+        line.ValueAtAverage(originalUnitCost);
+        line.CostFromAverage = false;
+        return line;
     }
 
     /// <summary>The current average cost, kept on an unposted issue so its value can be shown and tested against approval rules. Posting replaces it.</summary>

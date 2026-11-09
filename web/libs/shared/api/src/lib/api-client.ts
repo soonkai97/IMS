@@ -3644,6 +3644,79 @@ export class RolesClient {
 @Injectable({
     providedIn: 'root'
 })
+export class ReturnsClient {
+    private http: HttpClient;
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
+        this.http = http;
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+    }
+
+    /**
+     * Creates the Draft return of a Posted document: a customer return (a Receipt, partner the customer) of an issue with purpose Sale, or a supplier return (an Issue with purpose Return, partner the supplier) of a receipt.
+    One line for every original line that still has something to return, in the original unit, with the quantity that can still be returned. A customer return takes the goods back at the cost they left at; a supplier
+    return is valued at the average like every issue. 409 when the document is not Posted (or was reversed), is itself a return, is not a sale or a receipt, or has nothing left to return. The number comes from the
+    normal sequence of its type. Needs `returns.create`; the document must be in a warehouse the caller may read (404 otherwise).
+     * @return OK
+     */
+    create(body: CreateReturnRequest, httpContext?: HttpContext): Observable<DocumentDto> {
+        let url_ = this.baseUrl + "/api/returns";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processCreate(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processCreate(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<DocumentDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<DocumentDto>;
+        }));
+    }
+
+    protected processCreate(response: HttpResponseBase): Observable<DocumentDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as DocumentDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+}
+
+@Injectable({
+    providedIn: 'root'
+})
 export class PurchaseOrdersClient {
     private http: HttpClient;
     private baseUrl: string;
@@ -6672,6 +6745,11 @@ export interface CloseSalesOrderRequest {
     reason: string | undefined;
 }
 
+export interface CreateReturnRequest {
+    /** The Posted document to return: an issue with purpose Sale (a customer return, which becomes a receipt) or a receipt (a supplier return, which becomes an issue). It must not itself be a return, nor Reversed or Cancelled. */
+    originalDocumentId: string;
+}
+
 /** The numbers behind the Home tiles and menu badges, for the signed-in user, within the warehouses they may see. */
 export interface DocumentCounts {
     /** Drafts I created that a reviewer sent back. */
@@ -6740,6 +6818,7 @@ export interface DocumentDto {
     approvalTriggers: ApprovalTriggerDto[];
     purchaseOrder?: LinkedPurchaseOrder | undefined;
     salesOrder?: LinkedSalesOrder | undefined;
+    returnOf?: LinkedReturnOf | undefined;
     /** True for an issue that has not posted yet: its lines carry the average cost seen when it was last saved or submitted, and posting books the real cost. Label the amount "estimated". */
     amountIsEstimate: boolean;
     /** Changes whenever the document (header, status or lines) changes; opaque (a keyed hash bound to this document, not a counter): compare it only for equality. Also sent as the ETag header; send it back as If-Match to refuse a stale save. */
@@ -6769,6 +6848,12 @@ export interface DocumentLineDto {
     purchaseOrderLineNo?: number | undefined;
     /** On a delivery created from a sales order: the order line this line delivers (its `lineNo`); null otherwise, and omitted while the Sales module is off or for a caller who may not read sales orders. Send it back unchanged when saving the draft. */
     salesOrderLineNo?: number | undefined;
+    /** On a return: the position of the original line this line returns; null otherwise, and omitted while the Returns module is off or for a caller who may not create returns. Send it back unchanged when saving the draft. */
+    returnOfLineNo?: number | undefined;
+    /** On a Posted original (a sale issue or a receipt) for a caller who may create returns, while Returns is on: what Posted returns have taken back of this line, in `uomCode`. The lines of a document are listed in position order (1 to n), which is the number a return names. Computed on every read. */
+    returnedQty?: number | undefined;
+    /** The same lines: what can still be returned, `qty` less `returnedQty`, never below zero. */
+    returnableQty?: number | undefined;
 }
 
 export interface DocumentLineInput {
@@ -6781,6 +6866,8 @@ export interface DocumentLineInput {
     purchaseOrderLineNo?: number | undefined;
     /** Only on a delivery created from a sales order (`POST /api/sales-orders/{id}/delivery`): the `lineNo` of the sales order line this line delivers. Every line of such a delivery must name one (a save without it is a 400 and the link is kept), the line's product and unit must be the order line's, and the quantities named for one order line must not exceed what remains of it. On any other document it must be left out (a 400 otherwise), and it is a 400 "not available" while the Sales module is off. The link itself is never sent and never changes. A delivery carries no price. */
     salesOrderLineNo?: number | undefined;
+    /** Only on a return created from a posted document (`POST /api/returns`): the position (1 to n, in the order the original lines are listed) of the original line this line returns. Every line of such a return must name one (a save without it is a 400 and the link is kept); the line product and unit must be the original line, and the quantities per original line must stay within what can still be returned. Accepted only while the Returns module is on. The cost is never typed: a customer return takes the cost the goods left at, a supplier return the average. */
+    returnOfLineNo?: number | undefined;
 }
 
 export interface DocumentListItem {
@@ -6881,6 +6968,7 @@ export enum IssuePurpose {
     Sale = "Sale",
     Use = "Use",
     Scrap = "Scrap",
+    Return = "Return",
 }
 
 export enum LedgerReason {
@@ -6912,6 +7000,12 @@ export interface LedgerRow {
 
 /** The purchase order a receipt was created from: its id and number. Omitted while the Purchasing module is off. */
 export interface LinkedPurchaseOrder {
+    id: string;
+    no: string;
+}
+
+/** The document a return was created from: its id and number. Omitted while the Returns module is off, and for a caller who may not create returns. */
+export interface LinkedReturnOf {
     id: string;
     no: string;
 }

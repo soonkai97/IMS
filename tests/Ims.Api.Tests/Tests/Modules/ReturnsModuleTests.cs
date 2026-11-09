@@ -1,6 +1,7 @@
 using System.Net;
 using Ims.Api.Tests.Clients;
 using Ims.Api.Tests.Harness;
+using Ims.Api.Tests.Support;
 using Ims.Application.Features.Modules;
 using Ims.Application.Features.Roles;
 using Ims.Domain;
@@ -136,6 +137,33 @@ public class ReturnsModuleTests(ApiFixture fixture) : IAsyncLifetime
 
         Assert.Equal(Returns, entry.Module);
         Assert.Equal([Permissions.DocumentCreate, Permissions.StockRead], entry.Requires);
+    }
+
+    [Fact]
+    public async Task A_role_cannot_keep_returns_create_without_document_create_and_stock_read_whether_the_module_is_on_or_off()
+    {
+        (await SwitchAsync(ModuleCodes.Sales, true)).ShouldBeOk();
+        (await SwitchAsync(ModuleCodes.Purchasing, true)).ShouldBeOk();
+        (await SwitchAsync(Returns, true)).ShouldBeOk();
+        var role = (await _admin.CreateAsync(Unique.Name("Returner"), Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.StockRead, Permissions.ReturnsCreate)).Data<RoleDto>();
+        try
+        {
+            // The role editor refuses to take away what returns.create requires.
+            (await _admin.ReplaceAsync(role, [Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.ReturnsCreate])).ShouldBeProblem(HttpStatusCode.BadRequest);
+            (await _admin.ReplaceAsync(role, [Permissions.MasterDataRead, Permissions.StockRead, Permissions.ReturnsCreate])).ShouldBeProblem(HttpStatusCode.BadRequest);
+            // Naming it without them is refused on create too.
+            (await _admin.CreateAsync(Unique.Name("Bad"), Permissions.MasterDataRead, Permissions.ReturnsCreate)).ShouldBeProblem(HttpStatusCode.BadRequest);
+
+            // With the module off the grant is hidden but still protects what it needs: dropping stock.read is refused here as well.
+            (await SwitchAsync(Returns, false)).ShouldBeOk();
+            var seen = (await _admin.GetAsync($"/api/roles/{role.Id}")).Data<RoleDto>();
+            Assert.DoesNotContain(Permissions.ReturnsCreate, seen.Permissions);
+            (await _admin.ReplaceAsync(seen, [Permissions.MasterDataRead, Permissions.DocumentCreate])).ShouldBeProblem(HttpStatusCode.BadRequest);
+        }
+        finally
+        {
+            await _admin.DeleteRoleAsync(role);
+        }
     }
 
     [Fact]
