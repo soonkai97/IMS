@@ -324,13 +324,14 @@ public class ReturnPostingTests(ApiFixture fixture) : IAsyncLifetime
     {
         var (_, _, sale) = await SoldAsync();
         await _s.Admin.Settings.UpdateAsync(new SettingsDto(false, true, Limits.DefaultLowStockCooldownHours));
+        var waitingBefore = (await _s.Supervisor.Documents.CountsAsync()).Data<DocumentCounts>().ApprovalsWaiting; // the shared database holds other tests' submitted documents
         var draft = await DraftReturnAsync(sale);
         var submitted = (await _s.Supervisor.Documents.SubmitAsync(draft.Id)).Data<DocumentDto>();
 
         Assert.DoesNotContain(DocumentActions.Approve, (await _s.Supervisor.Documents.GetAsync(submitted.Id)).Data<DocumentDto>().AllowedActions);
         (await _s.Supervisor.Documents.ApproveAsync(submitted.Id)).ShouldBeProblem(HttpStatusCode.BadRequest); // the self-approval rule of the domain
         (await _s.Supervisor.Documents.RejectAsync(submitted.Id, "not this one")).ShouldBeProblem(HttpStatusCode.BadRequest);
-        Assert.Equal(0, (await _s.Supervisor.Documents.CountsAsync()).Data<DocumentCounts>().ApprovalsWaiting);       // it is not in its own submitter's inbox
+        Assert.Equal(waitingBefore, (await _s.Supervisor.Documents.CountsAsync()).Data<DocumentCounts>().ApprovalsWaiting); // the return is not in its own submitter's inbox: his count did not move
         (await _s.Admin.Documents.ApproveAsync(submitted.Id)).ShouldBeOk();                                          // somebody else approves it
 
         var ordinary = await _s.DraftIssueAsync(_s.Supervisor, Warehouse, new Line((await _s.NewProductAsync()).Id, 1m));
