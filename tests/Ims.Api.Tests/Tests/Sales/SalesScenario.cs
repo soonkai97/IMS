@@ -41,6 +41,8 @@ public sealed class SalesScenario
     {
         await fixture.Database.ExecuteAsync("UPDATE SalesOrder SET Status = 4 WHERE Status <= 2"); // Cancelled
         await fixture.Database.ExecuteAsync("UPDATE PurchaseOrder SET Status = 4 WHERE Status <= 2");
+        await fixture.Database.ExecuteAsync("DELETE FROM PriceListItem"); // the price lists keep one default and one list per customer: a test starts with none
+        await fixture.Database.ExecuteAsync("DELETE FROM PriceList");
         await fixture.Database.ExecuteAsync("DELETE FROM SystemSetting WHERE [Key] LIKE N'Module.%'");
     }
 
@@ -59,6 +61,11 @@ public sealed class SalesScenario
     }
 
     public Task TurnOffAsync() => TurnOffAsync(Fixture);
+
+    /// <summary>A price-list request with a name of the test's own.</summary>
+    public PriceListBuilder List(string? name = null) => new(name ?? Support.Unique.Name("List"));
+
+    public async Task<PriceListDto> NewListAsync(PriceListBuilder list, ApiClient? by = null) => (await (by ?? Admin).PriceLists.CreateAsync(list.Build())).Data<PriceListDto>();
 
     public Task<WarehouseDto> NewWarehouseAsync(bool isActive = true) => Stock.NewWarehouseAsync(isActive);
 

@@ -24,6 +24,7 @@ public sealed class ApiClient
         Documents = new DocumentsClient(this);
         PurchaseOrders = new PurchaseOrdersClient(this);
         SalesOrders = new SalesOrdersClient(this);
+        PriceLists = new PriceListsClient(this);
         Stock = new StockClient(this);
         Reports = new ReportsClient(this);
         Settings = new SettingsClient(this);
@@ -45,6 +46,7 @@ public sealed class ApiClient
     public DocumentsClient Documents { get; }
     public PurchaseOrdersClient PurchaseOrders { get; }
     public SalesOrdersClient SalesOrders { get; }
+    public PriceListsClient PriceLists { get; }
     public StockClient Stock { get; }
     public ReportsClient Reports { get; }
     public SettingsClient Settings { get; }

@@ -51,6 +51,8 @@ public static class PermissionCatalog
             { Module = ModuleCodes.Sales, Requires = [Permissions.MasterDataRead] },
         new(Permissions.SoManage, PermissionGroup.Documents, "Create, edit, submit, cancel and close sales orders; approving one uses the document approval permissions.")
             { Module = ModuleCodes.Sales, Requires = [Permissions.SoRead] },
+        new(Permissions.PricelistManage, PermissionGroup.Documents, "See and edit the price lists: the default list, a customer's own list and the selling price of each item.")
+            { Module = ModuleCodes.Sales, Requires = [Permissions.MasterDataRead] },
 
         // ----- Stock and reports -----
         new(Permissions.StockRead, PermissionGroup.StockAndReports, "See stock levels, the ledger and the low-stock list."),

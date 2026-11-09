@@ -20,6 +20,7 @@ public static class RouteSegments
     public const string Reverse = ApiRoutes.PublicId + "/reverse";
     public const string Receipt = ApiRoutes.PublicId + "/receipt";
     public const string Delivery = ApiRoutes.PublicId + "/delivery";
+    public const string Customer = ApiRoutes.PublicId + "/customer";
     public const string Suggestions = "suggestions";
     public const string Lookup = "lookup";
     public const string Counts = "counts";

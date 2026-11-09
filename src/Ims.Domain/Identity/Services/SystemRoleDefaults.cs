@@ -14,14 +14,14 @@ public static class SystemRoleDefaults
         [SystemRoleCodes.Owner] =
         [
             Permissions.MasterDataRead, Permissions.DocumentApproveLarge, Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead,
-            Permissions.CostView, Permissions.ValuationView, Permissions.PoRead, Permissions.SoRead, Permissions.SoManage
+            Permissions.CostView, Permissions.ValuationView, Permissions.PoRead, Permissions.SoRead, Permissions.SoManage, Permissions.PricelistManage
         ],
         [SystemRoleCodes.Supervisor] =
         [
             Permissions.MasterDataManage, Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.DocumentEditAny,
             Permissions.DocumentApprove, Permissions.DocumentPost, Permissions.DocumentPostApproved, Permissions.DocumentReverse,
             Permissions.StockNegativeOverride, Permissions.StockRead, Permissions.ReportsRead, Permissions.CostView, Permissions.ValuationView,
-            Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage
+            Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage, Permissions.PricelistManage
         ],
         [SystemRoleCodes.WarehouseStaff] = [Permissions.MasterDataRead, Permissions.DocumentCreate, Permissions.DocumentPost, Permissions.StockRead, Permissions.PoRead, Permissions.SoRead],
         [SystemRoleCodes.Clerk] =

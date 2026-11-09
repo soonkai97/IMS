@@ -25,6 +25,8 @@ public partial class CostVisibilityCoverageTests
         ["ApprovalRuleDto.QtyThreshold"] = "a quantity",
         ["ApprovalRule.QtyThreshold"] = "a quantity",
         ["SystemSetting.Value"] = "the text of a setting (negative stock on or off, a number of hours), not money",
+        ["PriceListItem.PriceList"] = "the price list an item belongs to (a link); it carries no value",
+        ["PriceListItem.PriceListId"] = "the key of the price list an item belongs to; it carries no value",
     };
 
     // ----- responses -----
@@ -101,11 +103,15 @@ public partial class CostVisibilityCoverageTests
     {
         var offenders = SourceFiles.In("Ims.Application")
             .SelectMany(f => AuditRecordCalls().Matches(File.ReadAllText(f.FullPath)).Select(m => (file: f, call: m.Value)))
-            .Where(x => CostLike().IsMatch(x.call) && !x.call.Contains(nameof(AuditFields) + "."))
+            .Where(x => CostLike().IsMatch(EventNamesRemoved().Replace(x.call, "")) && !x.call.Contains(nameof(AuditFields) + "."))
             .Select(x => $"{x.file.RelativePath}: {x.call.ReplaceLineEndings(" ")[..Math.Min(120, x.call.Length)]}");
 
         Verify.NoOffenders(offenders, "An audit payload with a cost or value must name its key with a constant of AuditFields (tagged [VisibleWith]):");
     }
+
+    /// <summary>The name of the event and of the entity (AuditActions.PriceListCreated, AuditEntities.PriceList) say what happened; they are not the payload, so a word in them is not a value in the payload.</summary>
+    [GeneratedRegex(@"Audit(Actions|Entities)\.\w+")]
+    private static partial Regex EventNamesRemoved();
 
     [GeneratedRegex(@"audit\.Record\([^;]*;")]
     private static partial Regex AuditRecordCalls();

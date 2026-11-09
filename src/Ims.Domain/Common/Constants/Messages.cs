@@ -235,6 +235,20 @@ public static class Messages
     public const string SalesOrderLastRule = "This is the last active approval rule for sales orders. While sales is on, at least one must stay active, or every priced order would be released with no approver.";
     public const string SalesOrderRuleTypeFixed = "An approval rule cannot be moved to or from sales orders. Add a new rule for the other type instead.";
 
+    // ----- Price lists (PL3.11) -----
+    public const string PriceListNotFound = "Price list not found.";
+    public const string PriceListNameRequired = "A price list needs a name.";
+    public const string PriceListNameTooLong = "A price list name can have at most 200 characters.";
+    public static string PriceListNameTaken(string name) => $"A price list named \"{name}\" already exists.";
+    public static string PriceListDefaultExists(string name) => $"The default price list is \"{name}\". Only one list can be the default: take the default off that list first.";
+    public static string PriceListCustomerHasList(string customer, string name) => $"{customer} already has a price list (\"{name}\"). A customer has at most one.";
+    public const string PriceListDefaultHasNoCustomer = "The default price list is for every customer, so it cannot belong to one customer.";
+    public const string PriceListCustomerRequiredType = "A price list belongs to a customer, not a supplier.";
+    public static string PriceListTooManyItems(int max) => $"A price list can have at most {max} items.";
+    public const string PriceListItemPricePositive = "A list price must be above 0.";
+    public static string PriceListDuplicateItem(string sku, string uomCode) => $"{sku} is on the list more than once in {uomCode}. Keep one price for each product and unit.";
+    public const string PriceListDuplicateItemAny = "A product can be on a price list only once in each unit.";
+
     // ----- Delivering against a sales order (PL3.5) -----
     public static string SalesOrderNotDeliverable(string no, SalesOrderStatus status) => $"Sales order {no} is {status}. Only an Approved sales order can be delivered.";
     public static string SalesOrderNothingToDeliver(string no) => $"Sales order {no} has nothing left to deliver.";

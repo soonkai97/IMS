@@ -1806,6 +1806,298 @@
         }
       }
     },
+    "/api/price-lists": {
+      "get": {
+        "tags": [
+          "PriceLists"
+        ],
+        "summary": "The price lists, the default first and then by name, one page at a time. Each carries its token so a list can be deleted without opening it.",
+        "operationId": "PriceLists_list",
+        "parameters": [
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "Lists whose name starts with the text (case-insensitive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfPriceListListItem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfPriceListListItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfPriceListListItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PriceLists"
+        ],
+        "summary": "Creates a list with its items. 409 when the name is taken, when it asks to be the default and another list is, or when its customer already has a list. The default list has no customer (400), a customer is an\r\nactive partner of type Customer, and a product is priced once in each unit.",
+        "operationId": "PriceLists_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriceListSaveRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriceListSaveRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriceListSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceListDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceListDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceListDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/price-lists/{id}": {
+      "get": {
+        "tags": [
+          "PriceLists"
+        ],
+        "operationId": "PriceLists_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceListDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceListDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceListDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PriceLists"
+        ],
+        "summary": "Replaces the name, the default flag, the customer and all items of a list. Items the list already has keep their row; `If-Match` is required (428 without, 409 when stale).",
+        "operationId": "PriceLists_update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriceListSaveRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriceListSaveRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriceListSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceListDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceListDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceListDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PriceLists"
+        ],
+        "summary": "Deletes a list and its items. A saved order keeps the price it was saved with. `If-Match` is required.",
+        "operationId": "PriceLists_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/price-lists/{id}/customer": {
+      "put": {
+        "tags": [
+          "PriceLists"
+        ],
+        "summary": "Gives the list to a customer, or takes it off its customer (`customerId` null), without sending the items again. `If-Match` is required. 409 when the customer already has a list; 400 for the default list.",
+        "operationId": "PriceLists_setCustomer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriceListCustomerRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriceListCustomerRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriceListCustomerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceListDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceListDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceListDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sales-orders": {
       "get": {
         "tags": [
@@ -6969,6 +7261,43 @@
         "description": "One page of a server-side paged list.",
         "additionalProperties": false
       },
+      "PagedResultOfPriceListListItem": {
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceListListItem"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "description": "Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count.",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it.",
+            "nullable": true
+          }
+        },
+        "description": "One page of a server-side paged list.",
+        "additionalProperties": false
+      },
       "PagedResultOfProductDto": {
         "required": [
           "items",
@@ -7308,6 +7637,207 @@
         ],
         "type": "string",
         "description": "The sections of the permission catalog, in the order the role editor lists them."
+      },
+      "PriceListCustomerRequest": {
+        "required": [
+          "customerId"
+        ],
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "description": "The customer who gets the list, or null to take the list off its customer. An active partner of type Customer; a customer has at most one list (409 otherwise); the default list has none (400).",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceListDto": {
+        "required": [
+          "id",
+          "name",
+          "isDefault",
+          "customerId",
+          "customerName",
+          "items",
+          "concurrencyToken"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "customerId": {
+            "type": "string",
+            "description": "The customer this list is for; null for the default list and for a list not yet assigned.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceListItemDto"
+            },
+            "description": "Ordered by product name, then unit."
+          },
+          "concurrencyToken": {
+            "type": "string",
+            "description": "Changes whenever the list (name, default, customer or items) changes; opaque: compare it only for equality. Also sent as the ETag header; send it back as If-Match to refuse a stale save or delete."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceListItemDto": {
+        "required": [
+          "productId",
+          "sku",
+          "productName",
+          "uomId",
+          "uomCode",
+          "price"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "uomId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uomCode": {
+            "type": "string",
+            "description": "The code of the unit the price is for."
+          },
+          "price": {
+            "type": "number",
+            "description": "The selling price per ONE of the unit, in money. Absent for a caller without `pricelist.manage`; every price-list endpoint needs it, so the field is always present there.",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceListItemInput": {
+        "required": [
+          "productId",
+          "uomId",
+          "price"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uomId": {
+            "type": "string",
+            "description": "The unit the price is for: the product's base unit or any unit it converts to; null means the base unit. A price is for exactly this unit and is never converted to another.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "price": {
+            "type": "number",
+            "description": "The selling price per ONE of the unit, in money: above 0, at most 2 decimal places.",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceListListItem": {
+        "required": [
+          "id",
+          "name",
+          "isDefault",
+          "customerId",
+          "customerName",
+          "itemCount",
+          "concurrencyToken"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemCount": {
+            "type": "integer",
+            "description": "How many items the list holds.",
+            "format": "int32"
+          },
+          "concurrencyToken": {
+            "type": "string",
+            "description": "The token of the list, as in string PriceListDto.ConcurrencyToken: send it as If-Match to delete the list without opening it."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceListSaveRequest": {
+        "required": [
+          "name",
+          "isDefault",
+          "customerId",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Unique among the price lists (case-insensitive), at most 200 characters."
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "True for the one list that prices every customer without a list of their own. Only one list can be the default (409 otherwise), and it has no customer."
+          },
+          "customerId": {
+            "type": "string",
+            "description": "An active partner of type Customer, who then has this list; a customer has at most one (409 otherwise). Null for the default list and for a list not yet assigned.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceListItemInput"
+            }
+          }
+        },
+        "description": "A whole price list: every field is sent on every save (there is no \"absent = unchanged\"), and the items replace the old ones.",
+        "additionalProperties": false
       },
       "ProductDto": {
         "required": [
@@ -9155,6 +9685,9 @@
     },
     {
       "name": "Settings"
+    },
+    {
+      "name": "PriceLists"
     },
     {
       "name": "SalesOrders"
