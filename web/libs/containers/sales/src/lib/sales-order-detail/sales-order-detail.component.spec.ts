@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import {
   ApprovalMetric,
@@ -10,7 +10,7 @@ import {
   SalesOrderDto,
   SalesOrderStatus
 } from '@ims/api';
-import { Observable, of } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { PermissionService } from '@ims/core/identity';
 import { ConfirmService } from '@ims/core/notification';
 import { SalesOrdersStore } from '@ims/features/sales';
@@ -25,7 +25,7 @@ import {
 import { SalesOrderDetailPageComponent } from './sales-order-detail.component';
 
 const ID = '00000000-0000-4000-8000-000000000001';
-const DELIVERY_ID = '00000000-0000-4000-8000-0000000000aa';
+const POSTED_DELIVERY_ID = '00000000-0000-4000-8000-0000000000aa';
 
 function command() {
   return {
@@ -88,7 +88,7 @@ function order(overrides: Partial<SalesOrderDto> = {}): SalesOrderDto {
     approvalTriggers: [],
     deliveries: [
       {
-        id: DELIVERY_ID,
+        id: POSTED_DELIVERY_ID,
         no: 'ISS-MAIN-2611-0007',
         status: DocumentStatus.Posted,
         createdAt: '2026-11-10T01:00:00Z',
@@ -108,7 +108,8 @@ function withoutMoney(source: SalesOrderDto): SalesOrderDto {
   } as SalesOrderDto;
 }
 
-const COMMANDS = ['submit', 'recall', 'approve', 'reject', 'cancel', 'close'] as const;
+const COMMANDS = ['submit', 'recall', 'approve', 'reject', 'cancel', 'close', 'deliver'] as const;
+const DELIVERY_ID = '00000000-0000-4000-8000-0000000000dd';
 const OTHER_ID = '00000000-0000-4000-8000-000000000002';
 
 function apiError(
@@ -149,6 +150,7 @@ describe('SalesOrderDetailPageComponent', () => {
     reject: command(),
     cancel: command(),
     close: command(),
+    deliver: command(),
     // Like the real store: forgetting a command empties its outcome.
     resetCommands: jest.fn(() => {
       for (const name of COMMANDS) {
@@ -200,7 +202,7 @@ describe('SalesOrderDetailPageComponent', () => {
     store.resetCommands.mockClear();
     for (const name of COMMANDS) {
       store[name].run.mockReset();
-      store[name].run.mockReturnValue(of(order()));
+      store[name].run.mockReturnValue(of(name === 'deliver' ? { id: DELIVERY_ID } : order()));
       store[name].$operation.set(IDLE_OPERATION);
       store[name].$isRunning.set(false);
     }
@@ -232,12 +234,37 @@ describe('SalesOrderDetailPageComponent', () => {
       expect(buttons()).toEqual(expected);
     });
 
-    it('renders Edit as a link to the editor, but not Deliver yet: its screen is PL3.10', async () => {
+    it('renders Edit as a link to the editor and Deliver as a button, both only because the API lists them', async () => {
       await render(order({ allowedActions: ['edit', 'deliver', 'cancel'] }));
 
-      expect(buttons()).toEqual(['Cancel order', 'Edit']);
+      expect(buttons()).toEqual(['Cancel order', 'Edit', 'Deliver']);
       expect(spectator.query('.so-detail-bar a')?.getAttribute('href')).toBe(
         `/sales-orders/${ID}/edit`
+      );
+
+      await render(order({ allowedActions: ['cancel'] }));
+      expect(buttons()).toEqual(['Cancel order']);
+    });
+
+    it('Deliver starts the draft delivery and opens it in the document editor; a 409 is the alert and the order is read again', async () => {
+      const navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      await render(order({ allowedActions: ['deliver'] }));
+
+      spectator.click(button('Deliver'));
+
+      expect(store.deliver.run).toHaveBeenCalledWith(ID);
+      expect(navigate).toHaveBeenCalledWith(['/', 'issues', DELIVERY_ID]);
+
+      store.deliver.run.mockReturnValue(throwError(() => new Error('refused')));
+      store.deliver.$operation.set(
+        failureOperation(apiError(API_ERROR_KIND.Conflict, 409, 'Nothing is left to deliver.'))
+      );
+      spectator.click(button('Deliver'));
+      spectator.detectChanges();
+
+      expect(detail.reload).toHaveBeenCalled();
+      expect(spectator.query('app-banner[role="alert"]')?.textContent).toContain(
+        'Nothing is left to deliver.'
       );
     });
 
@@ -284,7 +311,7 @@ describe('SalesOrderDetailPageComponent', () => {
     });
 
     it('opens a delivery for a person who reads stock and only names it for anybody else', async () => {
-      const link = `a[href="/issues/${DELIVERY_ID}"]`;
+      const link = `a[href="/issues/${POSTED_DELIVERY_ID}"]`;
       await render(order());
       expect(spectator.query(link)).toBeNull();
 

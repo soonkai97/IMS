@@ -108,3 +108,56 @@ export async function cancelOpenSalesOrders(): Promise<void> {
     }
   }
 }
+
+/** A delivery draft made from an Approved order (`POST /api/sales-orders/{id}/delivery`), as the web's Deliver button makes it. */
+export interface ApiDelivery {
+  id: PublicId;
+  no: string;
+  status: string;
+  concurrencyToken: string;
+  requiresApproval: boolean;
+  warehouseId: PublicId;
+  partnerId: PublicId | null;
+  lines: { productId: PublicId; uomId: PublicId; qty: number; salesOrderLineNo: number }[];
+}
+
+export function startDelivery(
+  order: Pick<ApiSalesOrder, 'id'>,
+  role: Role = 'supervisor'
+): Promise<ApiDelivery> {
+  return apiAs(role).call<ApiDelivery>('POST', `/api/sales-orders/${order.id}/delivery`);
+}
+
+/** Saves the delivery with `qty` on its first line, every field and the order line named again (as the editor does). */
+export function saveDelivery(
+  draft: ApiDelivery,
+  qty: number,
+  role: Role = 'supervisor'
+): Promise<ApiDelivery> {
+  return apiAs(role).call<ApiDelivery>('PUT', `/api/documents/${draft.id}`, {
+    warehouseId: draft.warehouseId,
+    partnerId: draft.partnerId,
+    purpose: 'Sale',
+    remark: null,
+    lines: draft.lines.map(line => ({
+      productId: line.productId,
+      qty,
+      uomId: line.uomId,
+      remark: null,
+      salesOrderLineNo: line.salesOrderLineNo
+    }))
+  });
+}
+
+/** Submits (and approves, when a rule holds it) a saved delivery; returns it ready to post. */
+export async function submitDelivery(
+  draft: ApiDelivery,
+  role: Role = 'supervisor'
+): Promise<ApiDelivery> {
+  const api = apiAs(role);
+  let current = await api.command(draft.id, 'submit', {}, draft.concurrencyToken);
+  if (current.requiresApproval) {
+    current = await apiAs('owner').command(draft.id, 'approve', {}, current.concurrencyToken);
+  }
+  return current as unknown as ApiDelivery;
+}

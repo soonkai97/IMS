@@ -17,6 +17,7 @@ import {
   OrderLineContext,
   lineShortfall,
   maxCoveredQuantity,
+  orderLineNoOf,
   overRemainingLines
 } from '@ims/features/documents';
 import {
@@ -45,6 +46,10 @@ export interface LineRow {
   readonly order: OrderLineContext | undefined;
   /** The quantities received against this order line add up to more than the order has left. */
   readonly overRemaining: boolean;
+  /** The line belongs to a sales order (a delivery): the words say delivered, not received. */
+  readonly forSalesOrder: boolean;
+  /** The line of the order this line belongs to (purchase or sales); null for a line of no order. */
+  readonly orderLineNo: number | null;
 }
 
 /**
@@ -91,6 +96,7 @@ export class DocumentLineEditorComponent {
     const orderLines = this.$orderLines();
     const over = overRemainingLines(this.$values(), orderLines);
     return this.$values().map((value, index) => {
+      const orderLineNo = orderLineNoOf(value);
       const shortfall = this.$isIssue() ? lineShortfall(value) : 0;
       return {
         index,
@@ -104,11 +110,10 @@ export class DocumentLineEditorComponent {
           value.uomOptions.find(option => option.uomId === value.uomId)?.code ?? value.baseUomCode,
         blocked: shortfall > 0 && !allowNegative,
         needsOverride: shortfall > 0 && allowNegative,
-        order:
-          value.purchaseOrderLineNo === null
-            ? undefined
-            : orderLines.get(value.purchaseOrderLineNo),
-        overRemaining: value.purchaseOrderLineNo !== null && over.has(value.purchaseOrderLineNo)
+        order: orderLineNo === null ? undefined : orderLines.get(orderLineNo),
+        overRemaining: orderLineNo !== null && over.has(orderLineNo),
+        forSalesOrder: value.salesOrderLineNo !== null,
+        orderLineNo
       };
     });
   });
