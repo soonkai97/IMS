@@ -8,7 +8,7 @@ namespace Ims.Api.Features.Sales;
 
 /// <summary>
 /// Price lists of the sales module (pilot slice PL3.11): the default list and at most one list per customer, each with the selling price of its items. While the module is off every signed-in caller gets the
-/// 404 of an unknown route (<see cref="RequiresModuleAttribute"/>), before the permission is asked. Every endpoint needs <c>pricelist.manage</c>: a selling price is not cost, so <c>cost.view</c> is not involved,
+/// 404 of an unknown route (<see cref="RequiresModuleAttribute"/>), before the permission is asked. Every endpoint but the lookup needs <c>pricelist.manage</c>: a selling price is not cost, so <c>cost.view</c> is not involved,
 /// and a holder of <c>so.manage</c> alone does not see the lists. Every response that carries a list also carries its <c>ETag</c>; a change or a delete must send it back as <c>If-Match</c> and is refused with
 /// 409 when someone else changed the list in the meantime. A list never changes a saved order.
 /// </summary>
@@ -19,6 +19,15 @@ public class PriceListsController(IDispatcher dispatcher) : ApiControllerBase(di
     [HttpGet, Authorize(Policy = Permissions.PricelistManage)]
     [ProducesResponseType<PagedResult<PriceListListItem>>(StatusCodes.Status200OK)]
     public Task<IActionResult> List([FromQuery] PriceListFilter filter) => SendOk(new ListPriceListsQuery(filter));
+
+    /// <summary>
+    /// The price an order line is prefilled with (pilot slice PL3.12): the customer's own list item for the product and unit, else the default list's item for that product and unit, else nothing
+    /// (<c>found</c> false: the person types the price). Per item, not per list. The unit is exact and nothing is converted; a unit with no item has no price. Asked by an order editor, so it needs
+    /// <c>so.manage</c> and NOT <c>pricelist.manage</c> (the rest of this controller): a seller who cannot open the lists still sees the price they are offered. Read only; it audits nothing.
+    /// </summary>
+    [HttpGet(RouteSegments.Lookup), Authorize(Policy = Permissions.SoManage)]
+    [ProducesResponseType<PriceLookupDto>(StatusCodes.Status200OK)]
+    public Task<IActionResult> Lookup([FromQuery] PriceLookupFilter filter) => SendOk(new LookupPriceQuery(filter));
 
     [HttpGet(ApiRoutes.PublicId), Authorize(Policy = Permissions.PricelistManage)]
     [ProducesResponseType<PriceListDto>(StatusCodes.Status200OK)]

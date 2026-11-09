@@ -28,6 +28,18 @@ internal static class ListAudit
         return summary;
     }
 
+    /// <summary>
+    /// The summary of a list that is being deleted, with its prices in words (the first 50, then a count). The prices are not lost with the audit's cap: a deleted list and its items are soft-deleted, so every
+    /// price stays in the database, and a restore is a data fix, not a reconstruction from the audit log.
+    /// </summary>
+    public static Dictionary<string, object?> Deleted(PriceList list)
+    {
+        var summary = Summary(list);
+        var words = Changes(Snapshot(list), []);
+        if (words.Count > 0) summary[AuditFields.ListPriceChanges] = words;
+        return summary;
+    }
+
     private static List<string> Changes(IReadOnlyCollection<Priced> before, IReadOnlyCollection<Priced> after)
     {
         var was = before.ToDictionary(i => (i.ProductId, i.UomId));

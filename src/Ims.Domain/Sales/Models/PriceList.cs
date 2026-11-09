@@ -52,7 +52,7 @@ public class PriceList : PublicEntity
             return;
         }
         if (IsDefault) throw new DomainException(Messages.PriceListDefaultHasNoCustomer);
-        if (!customer.IsActive) throw new DomainException(Messages.PartnerInactive);
+        if (customer.Id != CustomerId && !customer.IsActive) throw new DomainException(Messages.PartnerInactive); // a customer who has the list and was deactivated since does not make the list unsavable
         if (customer.Type != PartnerType.Customer) throw new DomainException(Messages.PriceListCustomerRequiredType);
         Customer = customer;
         CustomerId = customer.Id;
