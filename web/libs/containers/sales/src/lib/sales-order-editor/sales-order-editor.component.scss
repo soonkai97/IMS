@@ -138,3 +138,17 @@
   font-size: font-size(2);
   color: color('text-muted');
 }
+
+// What the price lists say about this line, quietly, under its price.
+.so-editor-listprice {
+  // A row of its own with the height of a tap: the line does not jump when the answer comes, and the button does not move under a finger.
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  align-items: center;
+  grid-column: 1 / -1;
+  min-height: height('touch');
+  margin: 0;
+  font-size: font-size(2);
+  color: color('text-muted');
+}

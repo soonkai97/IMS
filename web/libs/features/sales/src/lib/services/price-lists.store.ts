@@ -3,11 +3,12 @@ import { Injectable, Signal, inject } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import {
   PagedResultOfPriceListListItem,
+  PriceLookupDto,
   PriceListDto,
   PriceListSaveRequest,
   PriceListsClient
 } from '@ims/api';
-import { HANDLED_INLINE, withIfMatch } from '@ims/core/http';
+import { HANDLED_INLINE, handledInline, withIfMatch } from '@ims/core/http';
 import { ApiOperation, HTTP_STATUS, PagedQuery, PublicId } from '@ims/models';
 import { ApiCommand, QueryLoader } from '@ims/utils';
 
@@ -71,6 +72,15 @@ export class PriceListsStore {
       ),
     true
   );
+
+  /**
+   * The list price an order line is offered (the customer's list, else the default list; found false when there is none). Asked by
+   * the order editor, so it needs so.manage and NOT pricelist.manage. The answer is the caller's own, never kept here, and a
+   * failure raises no toast: the editor says "unavailable" beside the price and goes on.
+   */
+  lookup(customerId: PublicId, productId: PublicId, uomId: PublicId): Observable<PriceLookupDto> {
+    return this.client.lookup(customerId, productId, uomId, handledInline());
+  }
 
   /** Forgets the outcome of every command (their errors drive banners such as "changed by someone else"). */
   resetCommands(): void {
