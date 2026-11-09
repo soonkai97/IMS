@@ -66,6 +66,13 @@ public class StockDocument : PublicEntity
     /// </summary>
     public int? SalesOrderId { get; private set; }
 
+    /// <summary>
+    /// The document this one returns (module returns): a customer return is a Receipt of the goods of a Posted sale issue, a supplier return an Issue of the goods of a Posted receipt. Null for every other
+    /// document. Set once, when the return is created (<see cref="CreateReturn"/>), and never changed. A document carries at most one link, and a return is never itself returned. Its lines then name the
+    /// original's lines by <see cref="StockDocumentLine.ReturnOfLineNo"/>, a position 1 to n over the original's lines in key order (<see cref="DocumentLinePositions"/>).
+    /// </summary>
+    public int? ReturnOfDocumentId { get; private set; }
+
     /// <summary>Why the approver allowed stock to go below zero. Entered when approving (BR-03), required when <see cref="RequiresOverride"/> is set, and read by the posting run.</summary>
     public string? NegativeStockOverrideReason { get; private set; }
 
@@ -85,14 +92,24 @@ public class StockDocument : PublicEntity
     public User? ReversedByUser { get; private set; }
     public PurchaseOrder? PurchaseOrder { get; private set; }
     public SalesOrder? SalesOrder { get; private set; }
+    public StockDocument? ReturnOf { get; private set; }
+
+    private readonly List<StockDocument> _returns = [];
+
+    /// <summary>The documents created to return this one (the other side of <see cref="ReturnOf"/>). Never loaded to be changed: it exists so the document query can ask whether a Posted return exists in the same statement.</summary>
+    public IReadOnlyCollection<StockDocument> Returns => _returns;
 
     /// <summary>The order this document was created from, if any: its kind and key. At most one (see <see cref="SalesOrderId"/>).</summary>
     /// <exception cref="InvalidOperationException">Both keys are set: no code path does that, so the stored row is corrupt and nothing should act on it.</exception>
     public DocumentLink Link =>
-        PurchaseOrderId is not null && SalesOrderId is not null ? throw new InvalidOperationException($"Document {No} is linked to both a purchase order and a sales order.")
+        (PurchaseOrderId is null ? 0 : 1) + (SalesOrderId is null ? 0 : 1) + (ReturnOfDocumentId is null ? 0 : 1) > 1 ? throw new InvalidOperationException($"Document {No} carries more than one link.")
         : PurchaseOrderId is { } purchase ? new DocumentLink(DocumentLinkKind.PurchaseOrder, purchase)
         : SalesOrderId is { } sales ? new DocumentLink(DocumentLinkKind.SalesOrder, sales)
+        : ReturnOfDocumentId is { } original ? new DocumentLink(DocumentLinkKind.Return, original)
         : DocumentLink.None;
+
+    /// <summary>True for a customer return or a supplier return (see <see cref="ReturnOfDocumentId"/>). Not to be confused with <see cref="IsReturned"/>, a Draft a reviewer sent back.</summary>
+    public bool IsReturn => ReturnOfDocumentId is not null;
 
     /// <summary>True for a receipt created from a purchase order or a delivery created from a sales order: its lines must name the order's lines, and its partner and warehouse are the order's.</summary>
     public bool IsLinked => Link.IsLinked;
@@ -114,6 +131,7 @@ public class StockDocument : PublicEntity
         if (type is not (DocumentType.Receipt or DocumentType.Issue)) throw new DomainException(Messages.OnlyReceiptAndIssue);
         warehouse.EnsureUsable();
         partner?.EnsureUsableFor(type);
+        if (purpose == IssuePurpose.Return) throw new DomainException(Messages.PurposeReturnReserved); // only a return created from a document has it
 
         return new StockDocument
         {
@@ -141,6 +159,28 @@ public class StockDocument : PublicEntity
         return delivery;
     }
 
+    /// <summary>
+    /// Opens the Draft return of a Posted document: a customer return (a Receipt, partner the customer) of a Posted Issue with purpose Sale, or a supplier return (an Issue with purpose Return, partner the
+    /// supplier) of a Posted Receipt. The warehouse and the partner are the original's and never change; the original must be Posted (not Cancelled, not Reversed) and not itself a return. The lines are added
+    /// separately, naming the original's lines. The partner is the original's whatever its type: <see cref="Partner.EnsureUsableFor"/> would refuse a customer on a Receipt, so it is not asked.
+    /// </summary>
+    public static StockDocument CreateReturn(StockDocument original, int createdBy, DateTime now)
+    {
+        if (original.Status != DocumentStatus.Posted) throw new DomainException(Messages.ReturnOriginalNotPosted(original.No, original.Status));
+        if (original.IsReturn) throw new DomainException(Messages.ReturnOfAReturn(original.No));
+        var customerReturn = original.Type == DocumentType.Issue && original.Purpose == IssuePurpose.Sale;
+        var supplierReturn = original.Type == DocumentType.Receipt;
+        if (!customerReturn && !supplierReturn) throw new DomainException(Messages.ReturnOriginalNotReturnable(original.No));
+        original.Warehouse.EnsureUsable();
+
+        return new StockDocument
+        {
+            Type = customerReturn ? DocumentType.Receipt : DocumentType.Issue, Warehouse = original.Warehouse, WarehouseId = original.WarehouseId,
+            Partner = original.Partner, PartnerId = original.PartnerId, Purpose = customerReturn ? null : IssuePurpose.Return,
+            CreatedBy = createdBy, CreatedAt = now, ReturnOfDocumentId = original.Id
+        };
+    }
+
     /// <summary>The number is allocated once (BR-11) and never changes afterwards.</summary>
     public void AssignNumber(string no)
     {
@@ -151,6 +191,14 @@ public class StockDocument : PublicEntity
     public void UpdateHeader(Partner? partner, IssuePurpose? purpose, string? remark)
     {
         EnsureEditable();
+        // A return keeps the original's partner (a customer on a receipt, a supplier on an issue, which EnsureUsableFor would refuse) and its purpose: nothing in a save can change them.
+        if (ReturnOfDocumentId is not null)
+        {
+            if (partner?.Id != PartnerId || purpose != Purpose) throw new DomainException(Messages.ReturnHeaderLocked);
+            Remark = remark;
+            return;
+        }
+        if (purpose == IssuePurpose.Return) throw new DomainException(Messages.PurposeReturnReserved);
         partner?.EnsureUsableFor(Type);
         // A delivery against a sales order keeps the order's customer and the purpose Sale: nothing in a save can change them.
         if (SalesOrderId is not null && (partner?.Id != PartnerId || purpose != IssuePurpose.Sale)) throw new DomainException(Messages.DeliveryHeaderLocked);

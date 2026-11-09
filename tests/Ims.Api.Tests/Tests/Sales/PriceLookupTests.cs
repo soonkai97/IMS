@@ -82,7 +82,7 @@ public class PriceLookupTests(ApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_supplier_and_an_inactive_customer_are_a_400_with_the_sentence_the_order_save_gives()
+    public async Task A_supplier_and_an_inactive_customer_are_a_400_with_the_generic_partner_sentence()
     {
         var product = await _s.NewProductAsync();
         var supplier = await _s.NewPartnerAsync(PartnerType.Supplier);
@@ -91,10 +91,8 @@ public class PriceLookupTests(ApiFixture fixture) : IAsyncLifetime
 
         var forSupplier = (await _s.Admin.PriceLists.LookupAsync(supplier.Id, product.Id)).ShouldBeProblem(HttpStatusCode.BadRequest);
         var forInactive = (await _s.Admin.PriceLists.LookupAsync(inactive.Id, product.Id)).ShouldBeProblem(HttpStatusCode.BadRequest);
-
-        var saveSupplier = (await _s.Admin.SalesOrders.CreateAsync(_s.Request(_s.Warehouse, product.Id, supplier.Id).Build())).ShouldBeProblem(HttpStatusCode.BadRequest);
-        var saveInactive = (await _s.Admin.SalesOrders.CreateAsync(_s.Request(_s.Warehouse, product.Id, inactive.Id).Build())).ShouldBeProblem(HttpStatusCode.BadRequest);
-        Assert.Equal((saveSupplier.Detail, saveInactive.Detail), (forSupplier.Detail, forInactive.Detail));
+        Assert.Equal((Messages.PartnerMissing, Messages.PartnerMissing), (forSupplier.Detail, forInactive.Detail)); // the generic sentence: the lookup says nothing about partners
+        (await _s.Admin.SalesOrders.CreateAsync(_s.Request(_s.Warehouse, product.Id, supplier.Id).Build())).ShouldBeProblem(HttpStatusCode.BadRequest); // while the save still refuses them in its own words
     }
 
     [Fact]

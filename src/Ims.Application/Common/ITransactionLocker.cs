@@ -43,4 +43,12 @@ public interface ITransactionLocker
     /// </summary>
     /// <exception cref="ConcurrencyException">The lock could not be obtained in time; the whole transaction is retried.</exception>
     Task LockSalesOrderAsync(int orderId, CancellationToken ct);
+
+    /// <summary>
+    /// The same for a document that is being returned (resource <c>ret:{originalDocumentId}</c>): serialises creating a return of it, posting a return of it and reversing one, which decide how much can still be
+    /// returned (PL3.16). Taken after the shared <c>modules</c> lock when a return is created (<c>ModuleLocks.HoldOnAsync</c>), and FIRST when one is posted or reversed, before any stock lock and before the document-sequence
+    /// lock; never together with the roles, purchase-order or sales-order locks (no path touches two). The global order is <c>modules</c> -> <c>so</c> / <c>ret</c> / <c>po</c> -> document sequence -> document -> stock ascending.
+    /// </summary>
+    /// <exception cref="ConcurrencyException">The lock could not be obtained in time; the whole transaction is retried.</exception>
+    Task LockReturnOriginAsync(int documentId, CancellationToken ct);
 }

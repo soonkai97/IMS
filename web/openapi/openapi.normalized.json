@@ -3103,6 +3103,57 @@
         }
       }
     },
+    "/api/returns": {
+      "post": {
+        "tags": [
+          "Returns"
+        ],
+        "summary": "Creates the Draft return of a Posted document: a customer return (a Receipt, partner the customer) of an issue with purpose Sale, or a supplier return (an Issue with purpose Return, partner the supplier) of a receipt.\r\nOne line for every original line that still has something to return, in the original unit, with the quantity that can still be returned. A customer return takes the goods back at the cost they left at; a supplier\r\nreturn is valued at the average like every issue. 409 when the document is not Posted (or was reversed), is itself a return, is not a sale or a receipt, or has nothing left to return. The number comes from the\r\nnormal sequence of its type. Needs `returns.create`; the document must be in a warehouse the caller may read (404 otherwise).",
+        "operationId": "Returns_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReturnRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReturnRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReturnRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/purchase-orders": {
       "get": {
         "tags": [
@@ -6003,6 +6054,20 @@
         },
         "additionalProperties": false
       },
+      "CreateReturnRequest": {
+        "required": [
+          "originalDocumentId"
+        ],
+        "type": "object",
+        "properties": {
+          "originalDocumentId": {
+            "type": "string",
+            "description": "The Posted document to return: an issue with purpose Sale (a customer return, which becomes a receipt) or a receipt (a supplier return, which becomes an issue). It must not itself be a return, nor Reversed or Cancelled.",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
       "DocumentCounts": {
         "required": [
           "returnedToMe",
@@ -6298,6 +6363,15 @@
               }
             ]
           },
+          "returnOf": {
+            "nullable": true,
+            "allOf": [
+              {
+                "description": "The document this return was created from (id and number); null for every other document, and omitted while the Returns module is off or for a caller who may not create returns. Set when the return is created and never changed.",
+                "$ref": "#/components/schemas/LinkedReturnOf"
+              }
+            ]
+          },
           "amountIsEstimate": {
             "type": "boolean",
             "description": "True for an issue that has not posted yet: its lines carry the average cost seen when it was last saved or submitted, and posting books the real cost. Label the amount \"estimated\"."
@@ -6394,6 +6468,24 @@
             "description": "On a delivery created from a sales order: the order line this line delivers (its `lineNo`); null otherwise, and omitted while the Sales module is off or for a caller who may not read sales orders. Send it back unchanged when saving the draft.",
             "format": "int32",
             "nullable": true
+          },
+          "returnOfLineNo": {
+            "type": "integer",
+            "description": "On a return: the position of the original line this line returns; null otherwise, and omitted while the Returns module is off or for a caller who may not create returns. Send it back unchanged when saving the draft.",
+            "format": "int32",
+            "nullable": true
+          },
+          "returnedQty": {
+            "type": "number",
+            "description": "On a Posted original (a sale issue or a receipt) for a caller who may create returns, while Returns is on: what Posted returns have taken back of this line, in `uomCode`. The lines of a document are listed in position order (1 to n), which is the number a return names. Computed on every read.",
+            "format": "double",
+            "nullable": true
+          },
+          "returnableQty": {
+            "type": "number",
+            "description": "The same lines: what can still be returned, `qty` less `returnedQty`, never below zero.",
+            "format": "double",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -6439,6 +6531,12 @@
           "salesOrderLineNo": {
             "type": "integer",
             "description": "Only on a delivery created from a sales order (`POST /api/sales-orders/{id}/delivery`): the `lineNo` of the sales order line this line delivers. Every line of such a delivery must name one (a save without it is a 400 and the link is kept), the line's product and unit must be the order line's, and the quantities named for one order line must not exceed what remains of it. On any other document it must be left out (a 400 otherwise), and it is a 400 \"not available\" while the Sales module is off. The link itself is never sent and never changes. A delivery carries no price.",
+            "format": "int32",
+            "nullable": true
+          },
+          "returnOfLineNo": {
+            "type": "integer",
+            "description": "Only on a return created from a posted document (`POST /api/returns`): the position (1 to n, in the order the original lines are listed) of the original line this line returns. Every line of such a return must name one (a save without it is a 400 and the link is kept); the line product and unit must be the original line, and the quantities per original line must stay within what can still be returned. Accepted only while the Returns module is on. The cost is never typed: a customer return takes the cost the goods left at, a supplier return the average.",
             "format": "int32",
             "nullable": true
           }
@@ -6734,7 +6832,8 @@
         "enum": [
           "Sale",
           "Use",
-          "Scrap"
+          "Scrap",
+          "Return"
         ],
         "type": "string"
       },
@@ -6830,6 +6929,24 @@
           }
         },
         "description": "The purchase order a receipt was created from: its id and number. Omitted while the Purchasing module is off.",
+        "additionalProperties": false
+      },
+      "LinkedReturnOf": {
+        "required": [
+          "id",
+          "no"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "no": {
+            "type": "string"
+          }
+        },
+        "description": "The document a return was created from: its id and number. Omitted while the Returns module is off, and for a caller who may not create returns.",
         "additionalProperties": false
       },
       "LinkedSalesOrder": {
@@ -9795,6 +9912,9 @@
     },
     {
       "name": "Roles"
+    },
+    {
+      "name": "Returns"
     },
     {
       "name": "PurchaseOrders"

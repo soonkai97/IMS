@@ -11,7 +11,7 @@ public class ApproveDocumentHandler(IRepository<StockDocument> documents, IAppro
         access.EnsureDocumentInScope(doc.WarehouseId);
         version.EnsureCurrent(doc, cmd.IfMatch);
 
-        if (await approvals.ReviewRefusalAsync(doc.Type, doc.IsLarge, doc.TotalQty, doc.TotalAmount, ct) is { } refusal)
+        if (await approvals.ReviewRefusalAsync(doc.Type, doc.IsLarge, doc.TotalQty, doc.TotalAmount, ct, doc.IsReturn) is { } refusal)
             throw new ForbiddenException(refusal);
 
         doc.Approve(current.UserId, (await settings.GetAsync(ct)).AllowSelfApproval, clock.UtcNow, cmd.Data.NegativeStockOverrideReason);

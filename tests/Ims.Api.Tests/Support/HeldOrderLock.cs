@@ -20,6 +20,9 @@ public sealed class HeldOrderLock : IAsyncDisposable
     /// <summary>The same for a sales order (<c>so:{id}</c>).</summary>
     public static Task<HeldOrderLock> TakeSalesAsync(ApiFixture fixture, Guid orderId) => TakeAsync(fixture, orderId, "SalesOrder", "so");
 
+    /// <summary>The same for a document that is being returned (<c>ret:{id}</c>).</summary>
+    public static Task<HeldOrderLock> TakeReturnOriginAsync(ApiFixture fixture, Guid documentId) => TakeAsync(fixture, documentId, "StockDocument", "ret");
+
     private static async Task<HeldOrderLock> TakeAsync(ApiFixture fixture, Guid orderId, string table, string prefix)
     {
         var key = await fixture.Database.ScalarAsync<int>($"SELECT Id FROM {table} WHERE PublicId = @id", ("@id", orderId));

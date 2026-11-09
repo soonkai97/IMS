@@ -20,6 +20,7 @@ public static class ApiRoutes
     public const string PurchaseOrders = Prefix + "/purchase-orders";
     public const string SalesOrders = Prefix + "/sales-orders";
     public const string PriceLists = Prefix + "/price-lists";
+    public const string Returns = Prefix + "/returns";
     public const string Stock = Prefix + "/stock";
     public const string Reports = Prefix + "/reports";
     public const string Import = Prefix + "/import";
