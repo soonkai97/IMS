@@ -919,10 +919,18 @@ export const EN_MESSAGES = {
   'sales.listPrice.sourceCustomer': "the customer's list",
   'sales.listPrice.sourceDefault': 'the default list',
   'sales.listPrice.same': 'List price {price}, from {source}.',
-  'sales.listPrice.changed': 'List price {price}, from {source}. This price is different.',
+  'sales.listPrice.changed':
+    'List price {price}, from {source}. This price is different. Your price is kept.',
   'sales.listPrice.use': 'Use list price',
   'sales.listPrice.none': 'No list price for this product and unit. Type the price.',
   'sales.listPrice.unavailable': 'List price unavailable. Type the price.',
+  'sales.listPrice.checking': 'Checking list price…',
+  'sales.listPrice.replaced': 'Price changed to the list price {price}, from {source}.',
+  'sales.listPrice.cleared':
+    'Price cleared: no list price for this product and unit. Type the price.',
+  'sales.listPrice.useFor': 'Use list price for {sku}',
+  'sales.listPrice.filled':
+    '{count, plural, one {1 list price filled} other {# list prices filled}}',
   'nav.priceLists': 'Price lists',
   'perm.pricelist.manage': 'Manage price lists',
   'perm.pricelist.manage.help':

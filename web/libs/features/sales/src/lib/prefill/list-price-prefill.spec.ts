@@ -4,7 +4,8 @@ import {
   ListPricePrefill,
   PREFILL_CONCURRENCY,
   PREFILL_DEBOUNCE_MS,
-  PrefillLine
+  PrefillLine,
+  samePrice
 } from './list-price-prefill';
 
 /** A line with a product, a unit and a price field the tests can read. */
@@ -216,6 +217,67 @@ describe('ListPricePrefill', () => {
 
     expect(row.value).toBeNull();
     expect(prefill.$states().size).toBe(0);
+  });
+
+  it('0.00 is no price yet: it takes the list price, like an empty field', async () => {
+    const row = line(0);
+
+    prefill.ask(row, 'c1');
+    await settle();
+
+    expect(row.value).toBe(5);
+  });
+
+  it('says what it did to a price of its own: replaced by the new answer, or cleared when there is none', async () => {
+    const row = line();
+    prefill.ask(row, 'c1');
+    await settle();
+    expect(prefill.$states().get(row)?.change).toBeUndefined();
+
+    lookup.mockReturnValue(of(found(9)));
+    prefill.ask(row, 'c2');
+    await settle();
+    expect(prefill.$states().get(row)).toMatchObject({ change: 'replaced', price: 9 });
+
+    lookup.mockReturnValue(of(nothing));
+    prefill.ask(row, 'c3');
+    await settle();
+    expect(prefill.$states().get(row)).toMatchObject({ status: 'none', change: 'cleared' });
+    expect(row.value).toBeNull();
+
+    prefill.ask(row, 'c3');
+    expect(prefill.$states().get(row)?.change).toBeUndefined();
+  });
+
+  it('cancelPending stops what waits and what is on its way: nothing lands afterwards, and what was known stays', async () => {
+    const known = line();
+    prefill.ask(known, 'c1');
+    await settle();
+    const waiting = line();
+    const slow = new Subject<PriceLookupDto>();
+    lookup.mockReturnValue(slow);
+    prefill.ask(waiting, 'c1');
+    await settle();
+    const timed = line();
+    prefill.ask(timed, 'c1');
+
+    prefill.cancelPending();
+    slow.next(found(1));
+    slow.complete();
+    await settle();
+
+    expect(waiting.value).toBeNull();
+    expect(timed.value).toBeNull();
+    expect(known.value).toBe(5);
+    expect(prefill.$states().get(known)?.status).toBe('found');
+    expect(prefill.$states().has(waiting)).toBe(false);
+    expect(prefill.$states().has(timed)).toBe(false);
+  });
+
+  it('two prices are the same when they are the same in money', () => {
+    expect(samePrice(5, 5.004)).toBe(true);
+    expect(samePrice(5, 5.01)).toBe(false);
+    expect(samePrice(12.345, 12.35)).toBe(true);
   });
 
   it('a removed line is forgotten and a timer still waiting never asks', async () => {

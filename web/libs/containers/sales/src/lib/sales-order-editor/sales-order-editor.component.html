@@ -113,6 +113,7 @@
               class="so-editor-price"
               [label]="'sales.col.price' | t"
               [control]="row.group.controls.unitCost"
+              [extraDescription]="row.listState ? 'so-listprice-' + row.index : null"
             >
               <app-input
                 type="number"
@@ -123,26 +124,43 @@
                 [ariaLabel]="'sales.priceFor' | t: { sku: row.value.sku }"
               />
             </app-form-field>
-            @switch (row.listState) {
-              @case ('found') {
-                <p class="so-editor-listprice">
-                  {{
-                    (row.listChanged ? 'sales.listPrice.changed' : 'sales.listPrice.same')
-                      | t: { price: (row.listPrice | appMoney), source: (row.listSourceKey | t) }
-                  }}
-                  @if (row.listChanged) {
-                    <app-button variant="ghost" (clicked)="onUseListPrice(row.group)">{{
-                      'sales.listPrice.use' | t
-                    }}</app-button>
+            @if (row.listState) {
+              <p class="so-editor-listprice" [id]="'so-listprice-' + row.index">
+                @switch (row.listState) {
+                  @case ('loading') {
+                    {{ 'sales.listPrice.checking' | t }}
                   }
-                </p>
-              }
-              @case ('none') {
-                <p class="so-editor-listprice">{{ 'sales.listPrice.none' | t }}</p>
-              }
-              @case ('unavailable') {
-                <p class="so-editor-listprice">{{ 'sales.listPrice.unavailable' | t }}</p>
-              }
+                  @case ('found') {
+                    {{
+                      (row.listChange === 'replaced'
+                        ? 'sales.listPrice.replaced'
+                        : row.listChanged
+                          ? 'sales.listPrice.changed'
+                          : 'sales.listPrice.same'
+                      ) | t: { price: (row.listPrice | appMoney), source: (row.listSourceKey | t) }
+                    }}
+                    @if (row.listChanged || row.listFieldEmpty) {
+                      <app-button
+                        variant="ghost"
+                        [ariaLabel]="'sales.listPrice.useFor' | t: { sku: row.value.sku }"
+                        (clicked)="onUseListPrice(row.group)"
+                        >{{ 'sales.listPrice.use' | t }}</app-button
+                      >
+                    }
+                  }
+                  @case ('none') {
+                    {{
+                      (row.listChange === 'cleared'
+                        ? 'sales.listPrice.cleared'
+                        : 'sales.listPrice.none'
+                      ) | t
+                    }}
+                  }
+                  @case ('unavailable') {
+                    {{ 'sales.listPrice.unavailable' | t }}
+                  }
+                }
+              </p>
             }
             <p class="so-editor-amount">
               <span>{{ 'doc.amount' | t }}</span>
@@ -183,6 +201,7 @@
         · {{ $totals().totalAmount | appMoney }}
       </p>
       <p class="sr-only" role="status">{{ $totalsAnnounced() }}</p>
+      <p class="sr-only" role="status">{{ $filledAnnounced() }}</p>
       <app-button
         variant="primary"
         [disabled]="$isSaving() || $isStale() || $saved()"

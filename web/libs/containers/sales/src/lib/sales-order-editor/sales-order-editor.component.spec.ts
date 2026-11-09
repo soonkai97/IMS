@@ -1,7 +1,7 @@
 import { Component, input, output, signal } from '@angular/core';
 import { Router, provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
-import { Subject, of, throwError } from 'rxjs';
+import { EMPTY, Subject, of, throwError } from 'rxjs';
 import { PriceLookupDto, PriceSource, ProductDto, SalesOrderDto, SalesOrderStatus } from '@ims/api';
 import { PermissionService } from '@ims/core/identity';
 import { PickedProduct, ProductPickerComponent } from '@ims/containers/catalog-shared';
@@ -674,6 +674,149 @@ describe('SalesOrderEditorPageComponent', () => {
       expect(note()).toContain(
         "List price 4.50, from the customer's list. This price is different."
       );
+    });
+
+    it('a unit changed on an order opened for edit asks again, like a new line', async () => {
+      lookup.mockReturnValue(of(found(5)));
+      detail.$data.set(draft());
+      jest.useFakeTimers();
+      await render({ id: ID });
+      await settle();
+      lookup.mockClear();
+      lookup.mockReturnValue(of(found(55)));
+
+      component().lines.at(0).controls.uomId.setValue('ctn');
+      await settle();
+
+      expect(lookup).toHaveBeenCalledWith(CUSTOMER, 'p1', 'ctn');
+    });
+
+    it('a pending lookup is a visible note in the same element, Save stays usable, and an answer after Save never fills the field', async () => {
+      const slow = new Subject<PriceLookupDto>();
+      lookup.mockReturnValue(slow);
+      await open();
+      jest.spyOn(spectator.inject(Router), 'navigate').mockResolvedValue(true);
+      component().onProductPicked({ product: PRODUCT, available: null });
+      component().lines.at(0).patchValue({ unitCost: null });
+      await jest.advanceTimersByTimeAsync(300);
+      spectator.detectChanges();
+
+      expect(note()).toBe('Checking list price…');
+      expect(spectator.query('.so-editor-listprice')?.id).toMatch(/^so-listprice-/);
+      expect(saveButton().disabled).toBe(false);
+
+      spectator.click(saveButton());
+      slow.next(found(1));
+      slow.complete();
+      await settle();
+
+      expect(save.run).toHaveBeenCalledTimes(1);
+      expect(price()).toBeNull();
+    });
+
+    it('a refused save asks the prices again', async () => {
+      lookup.mockReturnValue(of(found(5)));
+      await open();
+      component().onProductPicked({ product: PRODUCT, available: null });
+      await settle();
+      save.run.mockReturnValueOnce(EMPTY as never);
+      lookup.mockClear();
+
+      spectator.click(saveButton());
+      await settle();
+
+      expect(lookup).toHaveBeenCalledWith(CUSTOMER, 'p1', 'pcs');
+    });
+
+    it('the note is tied to the price field, the button names the product, and ONE debounced status says how many were filled', async () => {
+      lookup.mockReturnValue(of(found(5)));
+      await open();
+      component().onProductPicked({ product: PRODUCT, available: null });
+      await settle();
+      await jest.advanceTimersByTimeAsync(2000);
+      spectator.detectChanges();
+
+      const id = spectator.query('.so-editor-listprice')?.id ?? '';
+      expect(
+        spectator.query('input[aria-label="Unit price of SKU-1"]')?.getAttribute('aria-describedby')
+      ).toContain(id);
+      expect(spectator.query('.so-editor-bar')?.textContent).toContain('1 list price filled');
+      expect(spectator.queryAll('.so-editor-listprice[aria-live]')).toHaveLength(0);
+
+      component().lines.at(0).patchValue({ unitCost: 7 });
+      spectator.detectChanges();
+      expect(spectator.query('.so-editor-listprice button')?.getAttribute('aria-label')).toBe(
+        'Use list price for SKU-1'
+      );
+    });
+
+    it('an emptied price shows the list price with "Use list price"; a price of 0.00 is filled; identical money is never called different', async () => {
+      lookup.mockReturnValue(of(found(5)));
+      await open();
+      component().onProductPicked({ product: PRODUCT, available: null });
+      await settle();
+
+      component().lines.at(0).patchValue({ unitCost: null });
+      spectator.detectChanges();
+      expect(note()).toContain('List price 5.00');
+      expect(spectator.query('.so-editor-listprice button')).not.toBeNull();
+      spectator.click(spectator.query('.so-editor-listprice button') as HTMLElement);
+      expect(price()).toBe(5);
+
+      component().lines.at(0).patchValue({ unitCost: 5.004 });
+      spectator.detectChanges();
+      expect(note()).not.toContain('different');
+      expect(spectator.query('.so-editor-listprice button')).toBeNull();
+    });
+
+    it('a saved price of 0.00 is no price: the list price fills it', async () => {
+      lookup.mockReturnValue(of(found(5)));
+      detail.$data.set(draft({ lines: [{ ...draft().lines[0], unitPrice: 0 }] }));
+      jest.useFakeTimers();
+      await render({ id: ID });
+      await settle();
+
+      expect(price()).toBe(5);
+    });
+
+    it('says in words when it replaced or cleared a price of its own after a new unit', async () => {
+      lookup.mockReturnValue(of(found(5)));
+      await open();
+      component().onProductPicked({ product: PRODUCT, available: null });
+      await settle();
+
+      lookup.mockReturnValue(of(found(9)));
+      component().lines.at(0).controls.uomId.setValue('ctn');
+      await settle();
+      expect(note()).toContain('Price changed to the list price 9.00');
+
+      lookup.mockReturnValue(of({ found: false, price: undefined, source: undefined }));
+      component().lines.at(0).controls.uomId.setValue('pcs');
+      await settle();
+      expect(note()).toContain('Price cleared: no list price for this product and unit.');
+    });
+
+    it('a Reload forgets what was waiting for the old lines before the new ones are built', async () => {
+      const slow = new Subject<PriceLookupDto>();
+      lookup.mockReturnValueOnce(slow).mockReturnValue(of(found(4)));
+      detail.$data.set(draft({ lines: [{ ...draft().lines[0], unitPrice: null as never }] }));
+      jest.useFakeTimers();
+      await render({ id: ID });
+      await settle();
+
+      detail.$data.set(
+        draft({
+          concurrencyToken: 'BBBB',
+          lines: [{ ...draft().lines[0], unitPrice: null as never }]
+        })
+      );
+      spectator.detectChanges();
+      await settle();
+      slow.next(found(1));
+      slow.complete();
+      await settle();
+
+      expect(price()).toBe(4);
     });
 
     it("what was asked for order A never shows on order B, and a former user's refusal of the lookup is gone", async () => {

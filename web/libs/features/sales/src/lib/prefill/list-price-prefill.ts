@@ -21,7 +21,13 @@ export interface ListPriceState {
   readonly source?: PriceSource;
   /** The list price this class itself put in the field and the person has not changed since; undefined when none. */
   readonly applied?: number;
+  /** What this answer did to a price this class had put in earlier (another unit, another customer): replaced it, or cleared it. */
+  readonly change?: 'replaced' | 'cleared';
 }
+
+/** Two prices are the same when they are the same in money (2 decimals): the words never say "different" about identical text. */
+export const samePrice = (a: number, b: number): boolean =>
+  Math.round(a * 100) === Math.round(b * 100);
 
 export type PriceLookup = (
   customerId: PublicId,
@@ -80,7 +86,7 @@ export class ListPricePrefill {
       this.drop(line);
       return;
     }
-    this.set(line, { ...this.states().get(line), status: 'loading' });
+    this.set(line, { ...this.states().get(line), status: 'loading', change: undefined });
     this.timers.set(
       line,
       setTimeout(() => {
@@ -114,6 +120,29 @@ export class ListPricePrefill {
     this.timers.delete(line);
     this.tickets.delete(line);
     this.drop(line);
+  }
+
+  /**
+   * Nothing waiting or on its way may land any more (a save has sent the price as it is). What is already known stays; a line that
+   * was only waiting for its first answer shows nothing. Ask again afterwards if the screen goes on.
+   */
+  cancelPending(): void {
+    this.timers.forEach(timer => clearTimeout(timer));
+    this.timers.clear();
+    for (const line of [...this.tickets.keys()]) {
+      this.tickets.set(line, (this.tickets.get(line) ?? 0) + 1);
+    }
+    this.states.update(all => {
+      const next = new Map<PrefillLine, ListPriceState>();
+      all.forEach((state, line) => {
+        if (state.status !== 'loading') {
+          next.set(line, state);
+        } else if (state.price !== undefined) {
+          next.set(line, { ...state, status: 'found', change: undefined });
+        }
+      });
+      return next;
+    });
   }
 
   /** Everything is forgotten, and no answer on its way can land afterwards. */
@@ -160,10 +189,17 @@ export class ListPricePrefill {
     const current = line.price();
     // The price in the field is ours while it is still what we put there.
     const ours = previous?.applied !== undefined && current === previous.applied;
+    // An empty field takes the list price, and so does 0.00: a zero price cannot be submitted, so it is no price yet.
+    const empty = current === null || current === 0;
     if (answer.status === 'found' && answer.price !== undefined) {
-      if (current === null || ours) {
+      if (empty || ours) {
         line.setPrice(answer.price);
-        this.set(line, { ...answer, applied: answer.price });
+        const replaced = ours && previous?.applied !== answer.price;
+        this.set(line, {
+          ...answer,
+          applied: answer.price,
+          ...(replaced && { change: 'replaced' as const })
+        });
       } else {
         this.set(line, answer);
       }
@@ -172,6 +208,8 @@ export class ListPricePrefill {
     if (answer.status === 'none' && ours) {
       // The price was the list price of what the line used to be (another unit, another customer): it no longer stands.
       line.setPrice(null);
+      this.set(line, { ...answer, change: 'cleared' });
+      return;
     }
     this.set(
       line,

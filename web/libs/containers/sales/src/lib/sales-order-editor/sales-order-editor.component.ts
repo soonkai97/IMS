@@ -15,7 +15,7 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { distinctUntilChanged, map, startWith, tap } from 'rxjs';
+import { distinctUntilChanged, finalize, map, startWith, tap } from 'rxjs';
 import { DocumentType, PartnerType, PriceSource } from '@ims/api';
 import { PickedProduct, ProductPickerComponent } from '@ims/containers/catalog-shared';
 import { handledInline } from '@ims/core/http';
@@ -45,6 +45,7 @@ import {
   toSalesOrderRef,
   toSaveRequest,
   ListPricePrefill,
+  samePrice,
   PrefillLine,
   PriceListsStore
 } from '@ims/features/sales';
@@ -189,6 +190,14 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
       `${this.i18n.t('doc.totals', { lines: this.$totals().lineCount, qty: this.$totals().totalQty })} · ${this.money.transform(this.$totals().totalAmount)}`
   );
   readonly $totalsAnnounced = debouncedSignal(this.$totalsSentence, TOTALS_ANNOUNCE_MS);
+  /** "N list prices filled", said once after the answers stopped coming (no live region per line). */
+  private readonly $filledSentence = computed(() => {
+    const count = [...this.prefill.$states().values()].filter(
+      state => state.applied !== undefined
+    ).length;
+    return count > 0 ? this.i18n.t('sales.listPrice.filled', { count }) : '';
+  });
+  readonly $filledAnnounced = debouncedSignal(this.$filledSentence, TOTALS_ANNOUNCE_MS);
   /** "Line removed", for the screen reader (the row is gone and so is its text). */
   readonly $removedNote = signal('');
   /** A blank or zero price is saved as 0.00; submitting refuses it, so say so while it is there. */
@@ -205,11 +214,15 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
         value,
         listState: list?.status,
         listPrice,
-        /** A price in the field that is not the list price: said in words beside it. */
+        /** A price in the field that is not the list price (in money, 2 decimals): said in words beside it. */
         listChanged:
           listPrice !== undefined &&
           value.unitCost !== null &&
-          toNumber(value.unitCost) !== listPrice,
+          toNumber(value.unitCost) !== 0 &&
+          !samePrice(toNumber(value.unitCost), listPrice),
+        /** The field holds no price (empty or 0.00, which cannot be submitted): "Use list price" is offered. */
+        listFieldEmpty: value.unitCost === null || toNumber(value.unitCost) === 0,
+        listChange: list?.change,
         listSourceKey:
           list?.source === PriceSource.Customer
             ? ('sales.listPrice.sourceCustomer' as const)
@@ -336,9 +349,13 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
     untracked(() => {
       this.form.controls.warehouseId.disable();
       this.form.reset({ ...headerFromOrder(order), lines: [] });
+      // Lines read again: what was waiting or on its way for the old lines must not land on the new ones.
+      this.prefill.reset();
       this.lines.clear();
       for (const line of order.lines) {
-        this.lines.push(createLineGroup(lineFromOrderLine(line)));
+        const group = createLineGroup(lineFromOrderLine(line));
+        this.lines.push(group);
+        this.attachLine(group);
       }
       this.markPristine();
       // Also after a Reload: the prices offered now are what the server will decide at save.
@@ -482,6 +499,9 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
       return;
     }
     const order = this.$order();
+    // Save is not held back by a lookup, so the price as it is now is what goes: nothing waiting may fill a field afterwards.
+    this.prefill.cancelPending();
+    let succeeded = false;
     this.store.save
       .run({
         ref: order ? toSalesOrderRef(order) : undefined,
@@ -489,10 +509,17 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
       })
       .pipe(
         tap(saved => {
+          succeeded = true;
           this.markPristine();
           this.$saved.set(true);
           this.toast.success(this.i18n.t('doc.toast.draftSaved'));
           void this.router.navigate(['/', SALES_ORDER_ROUTE, saved.id], { replaceUrl: true });
+        }),
+        finalize(() => {
+          // A refused save leaves the screen open: the prices are asked again.
+          if (!succeeded) {
+            this.askAll();
+          }
         }),
         takeUntilDestroyed(this.destroyRef)
       )
@@ -529,10 +556,7 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
     );
     this.lines.markAsDirty();
     const added = this.lines.at(this.lines.length - 1);
-    // A new unit of the line is a new question.
-    added.controls.uomId.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.askLine(added));
+    this.attachLine(added);
     this.askLine(added);
     return { increased: false, qty };
   }
@@ -553,6 +577,13 @@ export class SalesOrderEditorPageComponent implements HasUnsavedChanges {
       this.adapters.set(group, line);
     }
     return line;
+  }
+
+  /** A new unit of a line is a new question, whether the line is new or was loaded with the order. */
+  private attachLine(group: LineGroup): void {
+    group.controls.uomId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.askLine(group));
   }
 
   private askLine(group: LineGroup): void {
