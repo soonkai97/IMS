@@ -49,13 +49,14 @@ const barButtons = async (page: Page): Promise<string[]> =>
     text.replace(/\s+/g, ' ').trim()
   );
 
-/** What the API lists, in the order of the bar. Edit and Deliver are left out on purpose: their screens are PL3.9 and PL3.10. */
+/** What the API lists, in the order of the bar. Edit is a link, not a button, so it is left out; Deliver (PL3.10) is a button on an Approved order. */
 const offered: [string, string][] = [
   ['cancel', 'Cancel order'],
   ['reject', 'Reject'],
   ['close', 'Close short'],
   ['recall', 'Back to draft'],
   ['submit', 'Submit'],
+  ['deliver', 'Deliver'],
   ['approve', 'Approve']
 ];
 async function expectedButtons(
@@ -182,8 +183,8 @@ test.describe('Sales orders, real API', () => {
     await expect(row(page, released.no)).toBeVisible();
     await expect(row(page, waiting.no)).toHaveCount(0);
 
-    await page.getByRole('searchbox', { name: 'Search sales orders' }).fill('');
-    await page.getByRole('textbox', { name: /^From/ }).fill('01/01/2099');
+    // The sales list has no date filter (status, customer, search only), so a search that matches nothing shows the sentence.
+    await page.getByRole('searchbox', { name: 'Search sales orders' }).fill(`${released.no}-none`);
     await expect(page.getByText('No sales orders match these filters.')).toBeVisible();
 
     // The submitter is not the reviewer: the Clerk sees the order without the mark.
@@ -236,7 +237,10 @@ test.describe('Sales orders, real API', () => {
     await expect(line.getByRole('cell').nth(4)).toHaveText('10 PCS');
     await expect(line).toContainText('600.00');
     await expect(main).toContainText('6,000.00');
-    await expect(page.getByRole('heading', { name: 'Why this needs approval' })).toBeVisible();
+    // The banner's heading is a paragraph, not a heading role.
+    await expect(
+      page.locator('app-banner').filter({ hasText: 'Why this needs approval' })
+    ).toContainText('The value 6,000.00 reaches the 5,000.00 limit. Approver: Supervisor.');
     await expect(page.getByRole('listitem').filter({ hasText: 'Submitted' })).toBeVisible();
     expect(await barButtons(page)).toEqual(await expectedButtons(order, 'supervisor'));
 
@@ -378,7 +382,7 @@ test.describe('Sales orders, real API', () => {
     try {
       await goTo(supervisor.page, `/sales-orders/${id}`);
       await bar(supervisor.page, 'Approve').click();
-      await shell
+      await supervisor.shell
         .dialog(`Approve ${saved.no}?`)
         .getByRole('button', { name: 'Approve', exact: true })
         .click();

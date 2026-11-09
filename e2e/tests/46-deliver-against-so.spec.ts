@@ -183,7 +183,7 @@ test.describe('Deliver against a sales order, real API', () => {
     const alert = page.locator('app-banner[role="alert"]');
     await expect(alert).toHaveCount(1);
     await expect(alert).toContainText(
-      `Line 1 (${data.sku}): ordered 10, delivered 6, remaining 4, this delivery 6.`
+      `Line 1 (${data.sku}): ordered 10 PCS, delivered 6 PCS, remaining 4 PCS, this delivery 6 PCS.`
     );
     await expect(page.locator('app-toast')).toHaveCount(0);
     expect((await admin().getDocument(b.id)).status).not.toBe('Posted');

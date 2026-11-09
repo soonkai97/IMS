@@ -165,7 +165,7 @@ test.describe('FR-06 Required fields show an asterisk, say "required" once and n
     const name = `E2E Supplier ${unique()}`;
     await dialog.getByRole("textbox", { name: "Name", exact: true }).fill(name);
     await dialog.getByRole("button", { name: "Save" }).click();
-    await expect(partners.row(name)).toBeVisible();
+    await expect(await partners.find(name)).toBeVisible();
   });
 
   test("given a list page, then no legend and no asterisk are shown", async ({
