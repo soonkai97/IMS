@@ -33,7 +33,7 @@ public class DeactivateOnlyTests(ApiFixture fixture)
         response.ShouldBeOk();
         using var document = response.Json();
         var deletes = document.RootElement.GetProperty("paths").EnumerateObject()
-            .Where(path => !path.Name.StartsWith("/api/attachments") && !path.Name.StartsWith("/api/roles") && path.Value.TryGetProperty("delete", out _)) // attachments are files; a custom role is configuration, soft-deleted when no user holds it (RP-5)
+            .Where(path => !path.Name.StartsWith("/api/attachments") && !path.Name.StartsWith("/api/roles") && !path.Name.StartsWith("/api/price-lists") && path.Value.TryGetProperty("delete", out _)) // attachments are files; a custom role is configuration, soft-deleted when no user holds it (RP-5); a price list is configuration, soft-deleted with its items (PL3.11)
             .Select(path => path.Name).ToList();
         Assert.Empty(deletes);
     }

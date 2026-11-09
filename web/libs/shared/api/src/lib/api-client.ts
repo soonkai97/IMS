@@ -2109,6 +2109,368 @@ export class SettingsClient {
 @Injectable({
     providedIn: 'root'
 })
+export class PriceListsClient {
+    private http: HttpClient;
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
+        this.http = http;
+        this.baseUrl = baseUrl ?? "http://localhost:5277/";
+    }
+
+    /**
+     * The price lists, the default first and then by name, one page at a time. Each carries its token so a list can be deleted without opening it.
+     * @param search (optional) Lists whose name starts with the text (case-insensitive).
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     * @return OK
+     */
+    list(search?: string | undefined, page?: number | undefined, pageSize?: number | undefined, httpContext?: HttpContext): Observable<PagedResultOfPriceListListItem> {
+        let url_ = this.baseUrl + "/api/price-lists?";
+        if (search === null)
+            throw new globalThis.Error("The parameter 'search' cannot be null.");
+        else if (search !== undefined)
+            url_ += "Search=" + encodeURIComponent("" + search) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processList(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processList(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PagedResultOfPriceListListItem>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PagedResultOfPriceListListItem>;
+        }));
+    }
+
+    protected processList(response: HttpResponseBase): Observable<PagedResultOfPriceListListItem> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PagedResultOfPriceListListItem;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * Creates a list with its items. 409 when the name is taken, when it asks to be the default and another list is, or when its customer already has a list. The default list has no customer (400), a customer is an
+    active partner of type Customer, and a product is priced once in each unit.
+     * @return OK
+     */
+    create(body: PriceListSaveRequest, httpContext?: HttpContext): Observable<PriceListDto> {
+        let url_ = this.baseUrl + "/api/price-lists";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processCreate(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processCreate(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PriceListDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PriceListDto>;
+        }));
+    }
+
+    protected processCreate(response: HttpResponseBase): Observable<PriceListDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PriceListDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    get(id: string, httpContext?: HttpContext): Observable<PriceListDto> {
+        let url_ = this.baseUrl + "/api/price-lists/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGet(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGet(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PriceListDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PriceListDto>;
+        }));
+    }
+
+    protected processGet(response: HttpResponseBase): Observable<PriceListDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PriceListDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * Replaces the name, the default flag, the customer and all items of a list. Items the list already has keep their row; `If-Match` is required (428 without, 409 when stale).
+     * @return OK
+     */
+    update(id: string, body: PriceListSaveRequest, httpContext?: HttpContext): Observable<PriceListDto> {
+        let url_ = this.baseUrl + "/api/price-lists/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("put", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processUpdate(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processUpdate(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PriceListDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PriceListDto>;
+        }));
+    }
+
+    protected processUpdate(response: HttpResponseBase): Observable<PriceListDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PriceListDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * Deletes a list and its items. A saved order keeps the price it was saved with. `If-Match` is required.
+     * @return No Content
+     */
+    delete(id: string, httpContext?: HttpContext): Observable<void> {
+        let url_ = this.baseUrl + "/api/price-lists/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+            })
+        };
+
+        return this.http.request("delete", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processDelete(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processDelete(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<void>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<void>;
+        }));
+    }
+
+    protected processDelete(response: HttpResponseBase): Observable<void> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return _observableOf(null as any);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * Gives the list to a customer, or takes it off its customer (`customerId` null), without sending the items again. `If-Match` is required. 409 when the customer already has a list; 400 for the default list.
+     * @return OK
+     */
+    setCustomer(id: string, body: PriceListCustomerRequest, httpContext?: HttpContext): Observable<PriceListDto> {
+        let url_ = this.baseUrl + "/api/price-lists/{id}/customer";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            context: httpContext,
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            })
+        };
+
+        return this.http.request("put", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processSetCustomer(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processSetCustomer(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PriceListDto>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PriceListDto>;
+        }));
+    }
+
+    protected processSetCustomer(response: HttpResponseBase): Observable<PriceListDto> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PriceListDto;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+}
+
+@Injectable({
+    providedIn: 'root'
+})
 export class SalesOrdersClient {
     private http: HttpClient;
     private baseUrl: string;
@@ -6632,6 +6994,17 @@ export interface PagedResultOfPartnerDto {
 }
 
 /** One page of a server-side paged list. */
+export interface PagedResultOfPriceListListItem {
+    items: PriceListListItem[];
+    /** Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count. */
+    total: number;
+    page: number;
+    pageSize: number;
+    /** Opaque cursor to pass as `cursor` for the next page of a seek-paged list; null when there is no further page or the list is not seek-paged. Clients never parse it. */
+    nextCursor?: string | undefined;
+}
+
+/** One page of a server-side paged list. */
 export interface PagedResultOfProductDto {
     items: ProductDto[];
     /** Rows matching the filter, or int Paging.TotalNotCounted when the caller asked to skip the (expensive) count. */
@@ -6739,6 +7112,66 @@ export enum PermissionGroup {
     Documents = "Documents",
     StockAndReports = "StockAndReports",
     CostAndValue = "CostAndValue",
+}
+
+export interface PriceListCustomerRequest {
+    /** The customer who gets the list, or null to take the list off its customer. An active partner of type Customer; a customer has at most one list (409 otherwise); the default list has none (400). */
+    customerId: string | undefined;
+}
+
+export interface PriceListDto {
+    id: string;
+    name: string;
+    isDefault: boolean;
+    /** The customer this list is for; null for the default list and for a list not yet assigned. */
+    customerId: string | undefined;
+    customerName: string | undefined;
+    /** Ordered by product name, then unit. */
+    items: PriceListItemDto[];
+    /** Changes whenever the list (name, default, customer or items) changes; opaque: compare it only for equality. Also sent as the ETag header; send it back as If-Match to refuse a stale save or delete. */
+    concurrencyToken: string;
+}
+
+export interface PriceListItemDto {
+    productId: string;
+    sku: string;
+    productName: string;
+    uomId: string;
+    /** The code of the unit the price is for. */
+    uomCode: string;
+    /** The selling price per ONE of the unit, in money. Absent for a caller without `pricelist.manage`; every price-list endpoint needs it, so the field is always present there. */
+    price: number | undefined;
+}
+
+export interface PriceListItemInput {
+    productId: string;
+    /** The unit the price is for: the product's base unit or any unit it converts to; null means the base unit. A price is for exactly this unit and is never converted to another. */
+    uomId: string | undefined;
+    /** The selling price per ONE of the unit, in money: above 0, at most 2 decimal places. */
+    price: number;
+}
+
+export interface PriceListListItem {
+    id: string;
+    name: string;
+    isDefault: boolean;
+    customerId: string | undefined;
+    customerName: string | undefined;
+    /** How many items the list holds. */
+    itemCount: number;
+    /** The token of the list, as in string PriceListDto.ConcurrencyToken: send it as If-Match to delete the list without opening it. */
+    concurrencyToken: string;
+}
+
+/** A whole price list: every field is sent on every save (there is no "absent = unchanged"), and the items replace the old ones. */
+export interface PriceListSaveRequest {
+    /** Unique among the price lists (case-insensitive), at most 200 characters. */
+    name: string;
+    /** True for the one list that prices every customer without a list of their own. Only one list can be the default (409 otherwise), and it has no customer. */
+    isDefault: boolean;
+    /** An active partner of type Customer, who then has this list; a customer has at most one (409 otherwise). Null for the default list and for a list not yet assigned. */
+    customerId: string | undefined;
+    items: PriceListItemInput[];
 }
 
 export interface ProductDto {

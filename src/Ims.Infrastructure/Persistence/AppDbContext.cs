@@ -284,6 +284,28 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Uom).WithMany().HasForeignKey(x => x.UomId).OnDelete(DeleteBehavior.Restrict);
         });
+        // Price lists (module sales, PL3.11): their own tables. The database enforces what a race could break: one default list, one list per customer, one item per product and unit, one name (live rows only).
+        b.Entity<PriceList>(e =>
+        {
+            e.Property(x => x.Name).HasMaxLength(Limits.ShortNameMaxLength);
+            e.HasIndex(x => x.Name).IsUnique();
+            e.HasIndex(x => x.IsDefault).IsUnique().HasFilter("[IsDefault] = 1");
+            e.HasIndex(x => x.CustomerId).IsUnique().HasFilter("[CustomerId] IS NOT NULL");
+            // The domain refuses this too; the database says it as well, so no write path can give the list for everybody to one customer.
+            e.ToTable(t => t.HasCheckConstraint("CK_PriceList_DefaultHasNoCustomer", "[IsDefault] = 0 OR [CustomerId] IS NULL"));
+            e.HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(x => x.Items).WithOne(x => x.PriceList).HasForeignKey(x => x.PriceListId).OnDelete(DeleteBehavior.Cascade);
+            e.Navigation(x => x.Items).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+        b.Entity<PriceListItem>(e =>
+        {
+            e.Property(x => x.ListPrice).HasColumnType(SqlTypes.Money);
+            // One price per product and unit in a list. It is also the index of the price lookup (a list, a product, a unit), which reads the price from the index alone.
+            e.HasIndex(x => new { x.PriceListId, x.ProductId, x.UomId }).IsUnique().IncludeProperties(x => x.ListPrice);
+            e.ToTable(t => t.HasCheckConstraint("CK_PriceListItem_ListPrice", "[ListPrice] > 0"));
+            e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Uom).WithMany().HasForeignKey(x => x.UomId).OnDelete(DeleteBehavior.Restrict);
+        });
         b.Entity<StockLedgerEntry>(e =>
         {
             e.Property(x => x.QtyDelta).HasColumnType(SqlTypes.Quantity);
@@ -440,6 +462,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
         TouchDocumentsWithChangedLines();
         TouchPurchaseOrdersWithChangedLines();
         TouchSalesOrdersWithChangedLines();
+        TouchPriceListsWithChangedItems();
         TouchRolesWithChangedGrants();
 
         foreach (var e in ChangeTracker.Entries<AuditableEntity>().ToList())
@@ -512,6 +535,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
 
         foreach (var order in ChangeTracker.Entries<SalesOrder>().Where(o => o.State == EntityState.Unchanged && orderIds.Contains(o.Entity.Id)))
             order.Property(nameof(AuditableEntity.RecRevDate)).IsModified = true;
+    }
+
+    /// <summary>The same for a price list and its items: a save that only reprices, adds or removes items must still move the list's ROW_VERSION, or its concurrency token would not notice it.</summary>
+    private void TouchPriceListsWithChangedItems()
+    {
+        var listIds = ChangeTracker.Entries<PriceListItem>()
+            .Where(i => i.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .Select(i => i.Property(x => x.PriceListId).CurrentValue)
+            .ToHashSet();
+        if (listIds.Count == 0) return;
+
+        foreach (var list in ChangeTracker.Entries<PriceList>().Where(l => l.State == EntityState.Unchanged && listIds.Contains(l.Entity.Id)))
+            list.Property(nameof(AuditableEntity.RecRevDate)).IsModified = true;
     }
 
     /// <summary>

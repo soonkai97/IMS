@@ -3,7 +3,7 @@ namespace Ims.Api.Tests.Tests.Schema;
 /// <summary>
 /// The shape of the database as the migrations build it today (<see cref="SchemaShape"/> writes the same lines). Change it in the pull request
 /// that changes a key, a foreign key or a unique index, never to make a red test green. Order does not matter.
-/// 25 tables, 51 foreign keys, 31 unique indexes besides the primary keys, 2 append-only triggers. The thirteen <c>UX_&lt;Table&gt;_PublicId</c> indexes carry no
+/// 27 tables, 55 foreign keys, 36 unique indexes besides the primary keys, 2 append-only triggers. The fourteen <c>UX_&lt;Table&gt;_PublicId</c> indexes carry no
 /// filter on purpose: a soft-deleted row keeps its public id, so an id is never handed out twice.
 /// </summary>
 public static class SchemaPin
@@ -15,6 +15,8 @@ public static class SchemaPin
         TABLE Category PK(Id:int identity) clustered
         TABLE DocumentSequence PK(Prefix:nvarchar, YearMonth:int, WarehouseId:int) clustered
         TABLE Partner PK(Id:int identity) clustered
+        TABLE PriceList PK(Id:int identity) clustered
+        TABLE PriceListItem PK(Id:int identity) clustered
         TABLE Product PK(Id:int identity) clustered
         TABLE PurchaseOrder PK(Id:int identity) clustered
         TABLE PurchaseOrderLine PK(Id:int identity) clustered
@@ -35,6 +37,10 @@ public static class SchemaPin
         TABLE UserWarehouse PK(Id:int identity) clustered
         TABLE Warehouse PK(Id:int identity) clustered
         FK Attachment(UploadedBy) -> User(Id) on delete no_action
+        FK PriceList(CustomerId) -> Partner(Id) on delete no_action
+        FK PriceListItem(PriceListId) -> PriceList(Id) on delete cascade
+        FK PriceListItem(ProductId) -> Product(Id) on delete no_action
+        FK PriceListItem(UomId) -> Uom(Id) on delete no_action
         FK Product(BaseUomId) -> Uom(Id) on delete no_action
         FK Product(CategoryId) -> Category(Id) on delete no_action
         FK ProductBarcode(ProductId) -> Product(Id) on delete cascade
@@ -92,6 +98,11 @@ public static class SchemaPin
         UNIQUE Category.UX_Category_PublicId (PublicId)
         UNIQUE Partner.IX_Partner_Type_Name (Type, Name) where ([REC_DELETED]=(0))
         UNIQUE Partner.UX_Partner_PublicId (PublicId)
+        UNIQUE PriceList.IX_PriceList_CustomerId (CustomerId) where ([CustomerId] IS NOT NULL AND [REC_DELETED]=(0))
+        UNIQUE PriceList.IX_PriceList_IsDefault (IsDefault) where ([IsDefault]=(1) AND [REC_DELETED]=(0))
+        UNIQUE PriceList.IX_PriceList_Name (Name) where ([REC_DELETED]=(0))
+        UNIQUE PriceList.UX_PriceList_PublicId (PublicId)
+        UNIQUE PriceListItem.IX_PriceListItem_PriceListId_ProductId_UomId (PriceListId, ProductId, UomId) where ([REC_DELETED]=(0))
         UNIQUE Product.IX_Product_Sku (Sku) where ([REC_DELETED]=(0))
         UNIQUE Product.UX_Product_PublicId (PublicId)
         UNIQUE ProductBarcode.IX_ProductBarcode_Barcode (Barcode) where ([REC_DELETED]=(0))

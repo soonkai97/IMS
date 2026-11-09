@@ -14,9 +14,9 @@ public partial class PermissionCatalogTests
         .Select(f => (string)f.GetRawConstantValue()!).ToList();
 
     [Fact]
-    public void TheCatalogHasTheTwentySixPermissions_TheTwentyOneOfTheAdr_ModulesManage_AndThePurchasingAndSalesPairs()
+    public void TheCatalogHasTheTwentySevenPermissions_TheTwentyOneOfTheAdr_ModulesManage_ThePurchasingAndSalesPairs_AndPricelistManage()
     {
-        Assert.Equal(26, PermissionCatalog.All.Count);
+        Assert.Equal(27, PermissionCatalog.All.Count);
     }
 
     [Fact]
@@ -198,7 +198,7 @@ public partial class PermissionCatalogTests
     {
         foreach (var entry in PermissionCatalog.All.Where(p => p.Module is not null))
             Assert.True(ModuleCatalog.IsKnown(entry.Module!), $"{entry.Code} names unknown module {entry.Module}");
-        Assert.Equal([Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage], PermissionCatalog.All.Where(p => p.Module is not null).Select(p => p.Code)); // pinned: adding one is a visible diff
+        Assert.Equal([Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage, Permissions.PricelistManage], PermissionCatalog.All.Where(p => p.Module is not null).Select(p => p.Code)); // pinned: adding one is a visible diff
     }
 
     // ----- the defaults of the system roles -----
@@ -234,14 +234,14 @@ public partial class PermissionCatalogTests
     public void TheDefaultsOfTheOtherFourRoles_AreExactlyThoseOfTheAdr()
     {
         Assert.Equal(
-            new[] { Permissions.MasterDataRead, Permissions.DocumentApproveLarge, Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead, Permissions.CostView, Permissions.ValuationView, Permissions.PoRead, Permissions.SoRead, Permissions.SoManage }.Order(StringComparer.Ordinal),
+            new[] { Permissions.MasterDataRead, Permissions.DocumentApproveLarge, Permissions.StockRead, Permissions.ReportsRead, Permissions.AuditRead, Permissions.CostView, Permissions.ValuationView, Permissions.PoRead, Permissions.SoRead, Permissions.SoManage, Permissions.PricelistManage }.Order(StringComparer.Ordinal),
             SystemRoleDefaults.For(Roles.Owner).Order(StringComparer.Ordinal));
         Assert.Equal(
             new[]
             {
                 Permissions.MasterDataManage, Permissions.MasterDataRead, Permissions.PartnersCreate, Permissions.DocumentCreate, Permissions.DocumentEditAny, Permissions.DocumentApprove,
                 Permissions.DocumentPost, Permissions.DocumentPostApproved, Permissions.DocumentReverse, Permissions.StockNegativeOverride, Permissions.StockRead,
-                Permissions.ReportsRead, Permissions.CostView, Permissions.ValuationView, Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage
+                Permissions.ReportsRead, Permissions.CostView, Permissions.ValuationView, Permissions.PoRead, Permissions.PoManage, Permissions.SoRead, Permissions.SoManage, Permissions.PricelistManage
             }.Order(StringComparer.Ordinal),
             SystemRoleDefaults.For(Roles.Supervisor).Order(StringComparer.Ordinal));
         Assert.Equal(

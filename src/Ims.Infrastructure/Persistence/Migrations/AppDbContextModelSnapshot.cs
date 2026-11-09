@@ -17,7 +17,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -468,6 +468,156 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .HasFilter("[REC_DELETED] = 0");
 
                     b.ToTable("Partner");
+                });
+
+            modelBuilder.Entity("Ims.Domain.PriceList", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<DateTime>("RecCreDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("REC_CREDATE")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int?>("RecCreator")
+                        .HasColumnType("int")
+                        .HasColumnName("REC_CREATOR");
+
+                    b.Property<bool>("RecDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("REC_DELETED");
+
+                    b.Property<DateTime?>("RecRevDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("REC_REVDATE");
+
+                    b.Property<int?>("RecRevisor")
+                        .HasColumnType("int")
+                        .HasColumnName("REC_REVISOR");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("ROW_VERSION");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId")
+                        .IsUnique()
+                        .HasFilter("([CustomerId] IS NOT NULL) AND [REC_DELETED] = 0");
+
+                    b.HasIndex("IsDefault")
+                        .IsUnique()
+                        .HasFilter("([IsDefault] = 1) AND [REC_DELETED] = 0");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasFilter("[REC_DELETED] = 0");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_PriceList_PublicId");
+
+                    SqlServerIndexBuilderExtensions.HasFillFactor(b.HasIndex("PublicId"), 90);
+
+                    b.ToTable("PriceList", t =>
+                        {
+                            t.HasCheckConstraint("CK_PriceList_DefaultHasNoCustomer", "[IsDefault] = 0 OR [CustomerId] IS NULL");
+                        });
+                });
+
+            modelBuilder.Entity("Ims.Domain.PriceListItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("ListPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("PriceListId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("RecCreDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("REC_CREDATE")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int?>("RecCreator")
+                        .HasColumnType("int")
+                        .HasColumnName("REC_CREATOR");
+
+                    b.Property<bool>("RecDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("REC_DELETED");
+
+                    b.Property<DateTime?>("RecRevDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("REC_REVDATE");
+
+                    b.Property<int?>("RecRevisor")
+                        .HasColumnType("int")
+                        .HasColumnName("REC_REVISOR");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("ROW_VERSION");
+
+                    b.Property<int>("UomId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UomId");
+
+                    b.HasIndex("PriceListId", "ProductId", "UomId")
+                        .IsUnique()
+                        .HasFilter("[REC_DELETED] = 0");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("PriceListId", "ProductId", "UomId"), new[] { "ListPrice" });
+
+                    b.ToTable("PriceListItem", t =>
+                        {
+                            t.HasCheckConstraint("CK_PriceListItem_ListPrice", "[ListPrice] > 0");
+                        });
                 });
 
             modelBuilder.Entity("Ims.Domain.Product", b =>
@@ -2153,6 +2303,43 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Ims.Domain.PriceList", b =>
+                {
+                    b.HasOne("Ims.Domain.Partner", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("Ims.Domain.PriceListItem", b =>
+                {
+                    b.HasOne("Ims.Domain.PriceList", "PriceList")
+                        .WithMany("Items")
+                        .HasForeignKey("PriceListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Ims.Domain.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ims.Domain.Uom", "Uom")
+                        .WithMany()
+                        .HasForeignKey("UomId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PriceList");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Uom");
+                });
+
             modelBuilder.Entity("Ims.Domain.Product", b =>
                 {
                     b.HasOne("Ims.Domain.Uom", "BaseUom")
@@ -2553,6 +2740,11 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("Ims.Domain.PriceList", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Ims.Domain.Product", b =>

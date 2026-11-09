@@ -129,6 +129,12 @@ public static class EndpointCatalog
         new("POST sales-orders/{id}/close", Post, Permissions.SoManage, _ => $"/api/sales-orders/{MissingPublicId}/close", _ => new { reason = "x" }, OkWhenAllowed: false),
         new("POST sales-orders/{id}/delivery", Post, Permissions.DocumentCreate, _ => $"/api/sales-orders/{MissingPublicId}/delivery", OkWhenAllowed: false),
         new("POST sales-orders/{id}/cancel", Post, AuthPolicies.SalesOrderCancel, _ => $"/api/sales-orders/{MissingPublicId}/cancel", _ => new { reason = "x" }, OkWhenAllowed: false),
+        new("GET price-lists", Get, Permissions.PricelistManage, _ => "/api/price-lists"),
+        new("GET price-lists/{id}", Get, Permissions.PricelistManage, _ => $"/api/price-lists/{MissingPublicId}", OkWhenAllowed: false),
+        new("POST price-lists", Post, Permissions.PricelistManage, _ => "/api/price-lists", OkWhenAllowed: false),
+        new("PUT price-lists/{id}", Put, Permissions.PricelistManage, _ => $"/api/price-lists/{MissingPublicId}", OkWhenAllowed: false),
+        new("PUT price-lists/{id}/customer", Put, Permissions.PricelistManage, _ => $"/api/price-lists/{MissingPublicId}/customer", _ => new { customerId = (Guid?)null }, OkWhenAllowed: false),
+        new("DELETE price-lists/{id}", Delete, Permissions.PricelistManage, _ => $"/api/price-lists/{MissingPublicId}", OkWhenAllowed: false),
     ];
 
     public static EndpointCase Named(string name) => All.Single(c => c.Name == name);
