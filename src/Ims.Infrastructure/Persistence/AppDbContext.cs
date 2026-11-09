@@ -154,7 +154,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, 
             e.Property(x => x.RowVersion).IsRowVersion();
             e.Ignore(x => x.TotalQty).Ignore(x => x.TotalAmount).Ignore(x => x.CanPost).Ignore(x => x.IsReturned).Ignore(x => x.ActionContext).Ignore(x => x.IsLinked).Ignore(x => x.Link).Ignore(x => x.IsReturn);
             // A document carries at most one link (plan D8, three kinds since PL3.16): the domain sets each key only in its own factory, and the database says it too.
-            e.ToTable(table => table.HasCheckConstraint("CK_StockDocument_OneLink", OneLinkRule));
+            e.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_StockDocument_OneLink", OneLinkRule);
+                table.HasCheckConstraint("CK_StockDocument_ReturnNotSelf", "[ReturnOfDocumentId] IS NULL OR [ReturnOfDocumentId] <> [Id]"); // a document is never its own return
+            });
             e.HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Partner).WithMany().HasForeignKey(x => x.PartnerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedBy).OnDelete(DeleteBehavior.Restrict);

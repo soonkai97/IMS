@@ -1704,6 +1704,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
                     b.ToTable("StockDocument", t =>
                         {
                             t.HasCheckConstraint("CK_StockDocument_OneLink", "(CASE WHEN [PurchaseOrderId] IS NULL THEN 0 ELSE 1 END + CASE WHEN [SalesOrderId] IS NULL THEN 0 ELSE 1 END + CASE WHEN [ReturnOfDocumentId] IS NULL THEN 0 ELSE 1 END) <= 1");
+
+                            t.HasCheckConstraint("CK_StockDocument_ReturnNotSelf", "[ReturnOfDocumentId] IS NULL OR [ReturnOfDocumentId] <> [Id]");
                         });
                 });
 
@@ -2595,7 +2597,7 @@ namespace Ims.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Ims.Domain.StockDocument", "ReturnOf")
-                        .WithMany()
+                        .WithMany("Returns")
                         .HasForeignKey("ReturnOfDocumentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
@@ -2788,6 +2790,8 @@ namespace Ims.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Ims.Domain.StockDocument", b =>
                 {
                     b.Navigation("Lines");
+
+                    b.Navigation("Returns");
                 });
 
             modelBuilder.Entity("Ims.Domain.User", b =>

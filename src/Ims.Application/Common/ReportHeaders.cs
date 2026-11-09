@@ -11,7 +11,7 @@ public static class ReportHeaders
     public static readonly ReportColumn[] MovementColumns =
     [
         new("Posted (MYT)"), new("Document"), new("Type"), new("Status"), new("Warehouse"), new("Partner"), new("SKU"), new("Product"), new("Qty"),
-        new("Unit"), new("Base qty"), new("Stock effect"), new("Unit cost", Permissions.CostView, UnitPrice: true), new("Amount", Permissions.CostView), new("Reversal")
+        new("Unit"), new("Base qty"), new("Stock effect"), new("Unit cost", Permissions.CostView, UnitPrice: true), new("Amount", Permissions.CostView), new("Reversal"), new("Return")
     ];
     public static readonly ReportColumn[] LedgerColumns =
     [
@@ -27,6 +27,8 @@ public static class ReportHeaders
     public static readonly string[] Ledger = Names(LedgerColumns);
     public static readonly string[] LowStock = Names(LowStockColumns);
     public const string LowFlag = "LOW";
+    /// <summary>In the "Return" column of the movements export: the row belongs to a return (blank on any other row).</summary>
+    public const string ReturnFlag = "RETURN";
     /// <summary>In the "Reversal" column of the movements export: the row is the reversal of the posting shown in the row for the same document and line (blank on a posting row).</summary>
     public const string ReversalFlag = "Yes";
 
