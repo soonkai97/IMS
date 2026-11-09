@@ -13,7 +13,7 @@ public static class AuthPolicies
     /// <summary>Cancel a document: whoever may create one (cancels a Draft or Submitted document) or review one (cancels an Approved document). <c>DocumentActionPolicy.MayCancel</c> decides which.</summary>
     public const string DocumentCancel = "DocumentCancel";
 
-    /// <summary>Cancel a purchase order: whoever may manage them (cancels a Draft or Submitted order) or review one (cancels an Approved order). <c>PurchaseOrderActionPolicy.MayCancel</c> decides which.</summary>
+    /// <summary>Cancel a purchase order: whoever may manage them (cancels a Draft or Submitted order), review one (cancels an Approved order) or switch modules (cancels any Draft). <c>PurchaseOrderActionPolicy.MayCancel</c> decides which.</summary>
     public const string PurchaseOrderCancel = "PurchaseOrderCancel";
 
     /// <summary>Cancel a sales order: whoever may manage them (cancels a Draft or Submitted order), review one (cancels an Approved order) or switch modules (cancels any Draft). <c>SalesOrderActionPolicy.MayCancel</c> decides which.</summary>
@@ -24,7 +24,7 @@ public static class AuthPolicies
     {
         [DocumentReview] = [Permissions.DocumentApprove, Permissions.DocumentApproveLarge],
         [DocumentCancel] = [Permissions.DocumentCreate, Permissions.DocumentApprove, Permissions.DocumentApproveLarge],
-        [PurchaseOrderCancel] = [Permissions.PoManage, Permissions.DocumentApprove, Permissions.DocumentApproveLarge],
+        [PurchaseOrderCancel] = [Permissions.PoManage, Permissions.DocumentApprove, Permissions.DocumentApproveLarge, Permissions.ModulesManage],
         [SalesOrderCancel] = [Permissions.SoManage, Permissions.DocumentApprove, Permissions.DocumentApproveLarge, Permissions.ModulesManage],
     };
 }

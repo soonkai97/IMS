@@ -13,6 +13,6 @@ public sealed class ModuleDefinition(string Code, string Name, string Descriptio
     public string Name { get; } = Name;
     public string Description { get; } = Description;
 
-    /// <summary>Modules that must be on before this one can be turned on. Listed in the contract now; the first module with a dependency makes the switch enforce it.</summary>
+    /// <summary>Modules that must be on before this one can be turned on. Enforced by the switch (<see cref="ModuleDependencies"/>): turning the module on is refused while one of them is off, and turning one of them off is refused while this module is on. The graph is acyclic and names only modules of the catalog (a catalog test pins it).</summary>
     public IReadOnlyList<string> Requires { get; init; } = [];
 }

@@ -5,7 +5,7 @@ namespace Ims.Application.Features.Modules;
 /// Turns a module on or off for the installation. The flip is a settings row (<c>Module.&lt;code&gt;</c>), written under the <c>modules</c> lock so two flips never interleave, and it
 /// writes its own audit event (the settings table is not audited row by row): who, why, the state before and after, and, when a module is turned on, how many roles get the module's
 /// permissions back (roles keep them, hidden, while it is off). A module that is already in the requested state is a 200 that changes nothing and writes nothing. A switch only hides or
-/// shows the surface; it never touches stock, so no posting reads it. A module that holds data (open orders) may refuse to be turned off through its <see cref="IModuleDisableCheck"/>: a 409 with the count, nothing written.
+/// shows the surface; it never touches stock, so no posting reads it. A module may not be turned on while a module it requires is off, nor a module off while one that requires it is on (409 naming the other, <see cref="ModuleDependencies"/>). A module that holds data (open orders) may refuse to be turned off through its <see cref="IModuleDisableCheck"/>: a 409 with the count, nothing written.
 /// </summary>
 public class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepository<Role> roles, IModuleSwitches switches, IEnumerable<IModuleDisableCheck> disableChecks, IEnumerable<IModuleEnableCheck> enableChecks,
     ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit)
@@ -24,12 +24,18 @@ public class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepos
         if (before != wanted)
         {
             BusinessRules.Ensure(new ReasonRequiredRule(cmd.Data.Reason, Messages.ModuleReasonRequired, Limits.ReasonMinLength));
+            var on = await EnabledModulesAsync(ct);
             if (wanted)
             {
+                EnsurePrerequisitesAreOn(module, on);
                 await EnsureReadyAsync(module, ct);
                 regaining = await RolesRegainingGrantsAsync(module.Code, ct);
             }
-            else await EnsureNothingWouldBeOrphanedAsync(module, ct);
+            else
+            {
+                EnsureNoDependentIsOn(module, on);
+                await EnsureNothingWouldBeOrphanedAsync(module, ct);
+            }
             if (row is null) settings.Add(SystemSetting.Create(key, SettingValues.From(wanted)));
             else row.ChangeValue(SettingValues.From(wanted));
             audit.Record(wanted ? AuditActions.ModuleEnabled : AuditActions.ModuleDisabled, AuditEntities.SystemSetting, key,
@@ -39,6 +45,22 @@ public class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepos
         switches.Invalidate();
         return ModuleSwitchResult.From(ModuleDto.From(module, wanted), regaining);
     }, ct);
+
+    /// <summary>The modules that are on, read from the stored rows now (under the modules lock), not from the cached switches, which can be stale after another flip in the same instant.</summary>
+    private async Task<IReadOnlySet<string>> EnabledModulesAsync(CancellationToken ct) =>
+        (await settings.ListAsync(new ModuleSettingsSpec(), ct)).Where(s => SettingValues.IsTrue(s.Value)).Select(s => s.Key[SettingKeys.ModulePrefix.Length..]).ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>A module cannot be turned on while a module it requires is off (409 naming it); nothing is written and no audit row is made.</summary>
+    private static void EnsurePrerequisitesAreOn(ModuleDefinition module, IReadOnlySet<string> on)
+    {
+        if (ModuleDependencies.MissingPrerequisites(module.Code, on) is { Count: > 0 } missing) throw new ConflictException(Messages.ModuleNeedsOthers(module.Name, missing.Select(m => m.Name)));
+    }
+
+    /// <summary>A module cannot be turned off while a module that requires it is on (409 naming it).</summary>
+    private static void EnsureNoDependentIsOn(ModuleDefinition module, IReadOnlySet<string> on)
+    {
+        if (ModuleDependencies.EnabledDependents(module.Code, on) is { Count: > 0 } dependents) throw new ConflictException(Messages.ModuleIsNeededBy(module.Name, dependents.Select(m => m.Name)));
+    }
 
     /// <summary>The live roles that hold a permission of the module: their grants, kept while it was off, are in force again from the next request.</summary>
     private async Task<int> RolesRegainingGrantsAsync(string moduleCode, CancellationToken ct)
