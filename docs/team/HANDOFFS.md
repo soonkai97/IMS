@@ -1781,3 +1781,6 @@
 
 ### 2026-11-13 be-framework -> orchestrator (modernisation PR 2: seal Application, architecture test)
 - Application classes and records sealed (451 files); `SealedClassesTests` in Ims.Architecture.Tests fails any new unsealed public or internal class or record outside the allow-list (Program, ConcurrencyException, ConflictException, DomainException, UnauthorizedException). A new base class needs an allow-list entry with a reason. Contract zero diff, no migration.
+
+### 2026-11-13 be-framework -> orchestrator (modernisation PR 3: editorconfig ratchet and two micro fixes)
+- Rules at warning in `[src/**.cs]`: IDE0330, IDE0028, IDE0301, IDE0300, IDE0041, IDE0083, IDE0079, CA1872 (the Api builds clean with -warnaserror). Two empty-collection initialisers became `[]`; the attachment hash uses `Convert.ToHexStringLower` (same lower-case output); Ims.Api no longer references FluentValidation (nothing there used it; Application still brings it).

@@ -52,7 +52,7 @@ public sealed class LocalFileStorage(IOptions<StorageOptions> options, IClock cl
             TryDelete(temp);
             throw;
         }
-        return new StoredFile(relative, total, Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant());
+        return new StoredFile(relative, total, Convert.ToHexStringLower(hash.GetHashAndReset()));
     }
 
     public Task<Stream> OpenReadAsync(string storagePath, CancellationToken ct)
