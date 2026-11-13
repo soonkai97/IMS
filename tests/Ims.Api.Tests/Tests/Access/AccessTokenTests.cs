@@ -68,7 +68,7 @@ public class AccessTokenTests(ApiFixture fixture)
         Assert.Equal(Shape(signedIn.User), Shape(me));
         Assert.Equal(role, me.Role);
         Assert.False(string.IsNullOrWhiteSpace(me.RoleName));
-        Assert.Equal(PermissionCatalog.Codes.Where(SystemRoleDefaults.For(role).Contains), me.Permissions); // the list the web reads: the codes of the token, in catalog order
+        Assert.Equal(PermissionCatalog.Codes.Where(SystemRoleDefaults.For(role).Contains).Where(c => me.Modules.Contains(ModuleCodes.Returns) || c != Permissions.ReturnsCreate), me.Permissions); // (returns.create only while Returns is on) the list the web reads: the codes of the token, in catalog order
         var token = Read(refreshed.AccessToken);
         Assert.Equal(me.SeesAllWarehouses, bool.Parse(One(token, ClaimNames.AllWarehouses)));
         Assert.Equal(me.WarehouseIds.Count, All(token, ClaimNames.Warehouse).Count);

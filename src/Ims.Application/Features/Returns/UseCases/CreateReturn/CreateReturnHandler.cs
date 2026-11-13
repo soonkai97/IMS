@@ -27,7 +27,7 @@ public class CreateReturnHandler(IReadRepository<StockDocument> documents, IRepo
 
             // What can still be returned of each line, in the original unit: the quantity of the line less what Posted returns took back. A line with nothing left is not copied.
             var done = await returned.PostedByLineAsync(key, ct);
-            var open = DocumentLinePositions.Of(original.Lines).Where(p => ReturnQuantities.Remaining(p.Line.Qty, done.GetValueOrDefault(p.LineNo).Qty) > 0).ToList();
+            var open = DocumentLinePositions.Of(original.Lines).Where(p => ReturnQuantities.Remaining(p.Line.Qty, done.GetValueOrDefault(p.LineNo).Qty) > 0 && p.Line.BaseQty - done.GetValueOrDefault(p.LineNo).BaseQty > 0m).ToList(); // a line whose base quantity is all back (tiny factor) cannot be returned: it is left out
             StockDocument draft;
             try
             {

@@ -272,6 +272,7 @@ public static class Messages
     public const string ReturnNeedsReturnsCreate = "Editing a return needs the permission to create returns.";
     public const string ReturnOriginalNotOpen = "The document this return is for can no longer be returned.";
     public const string ReturnOverRemaining = "This return asks for more than can still be returned.";
+    public static string ReturnLineBaseExhausted(int lineNo, string sku) => $"Line {lineNo} ({sku}): nothing is left to return in the unit of stock, because earlier returns have already taken all of it. Leave this line out.";
     public static string ReverseHasReturns(string no) => $"{no} has posted returns, so it cannot be reversed. Reverse the returns first.";
 
     // ----- Delivering against a sales order (PL3.5) -----

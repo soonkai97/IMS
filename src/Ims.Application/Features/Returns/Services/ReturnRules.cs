@@ -35,7 +35,14 @@ public class ReturnRules(IReadRepository<StockDocument> documents, IReturnedQuan
             lines.Where(l => l.ReturnOfLineNo is not null).Select(l => new ReturnQuantity(l.ReturnOfLineNo!.Value, l.Qty)));
         if (over.Count == 0)
         {
-            ReturnBaseAlignment.Apply(positions, done, lines); // the draft shows the base quantity it will post with
+            var exhausted = ReturnBaseAlignment.Apply(positions, done, lines); // the draft shows the base quantity it will post with
+            if (exhausted.Count > 0)
+            {
+                var all = lines.ToList();
+                var problems = exhausted.ToDictionary(e => ErrorKeys.Normalize($"Data.Lines[{all.IndexOf(e.Line)}].Qty"),
+                    e => new[] { Messages.ReturnLineBaseExhausted(e.LineNo, positions.First(p => p.LineNo == e.LineNo).Line.Product.Sku) });
+                throw new ValidationException(problems.First().Value[0], problems);
+            }
             return;
         }
         var errors = new Dictionary<string, string[]>();

@@ -11,6 +11,8 @@ public sealed record ProblemBody
     public Guid? ProductId { get; init; }
     public decimal? Available { get; init; }
     public decimal? Requested { get; init; }
+    public string? Code { get; init; }
+    public System.Text.Json.JsonElement? Lines { get; init; }
 
     /// <summary>Messages of every field error whose property path ends with <paramref name="field"/> (e.g. "Sku" for "Data.Sku").</summary>
     public string[] ErrorsFor(string field) =>
