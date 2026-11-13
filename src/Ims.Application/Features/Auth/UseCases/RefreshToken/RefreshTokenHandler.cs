@@ -5,7 +5,7 @@ namespace Ims.Application.Features.Auth;
 /// Rotates the refresh token: the presented one is revoked and a new pair is issued, with the rights read now (this is where a demotion or a changed scope reaches the token).
 /// A user with no live role gets a 401 before anything is revoked or written.
 /// </summary>
-public class RefreshTokenHandler(IRepository<RefreshToken> tokensRepo, IReadRepository<User> users, ITokenService tokens, IAuthTokenIssuer issuer, IAccessSnapshotLoader snapshots, IClock clock)
+public sealed class RefreshTokenHandler(IRepository<RefreshToken> tokensRepo, IReadRepository<User> users, ITokenService tokens, IAuthTokenIssuer issuer, IAccessSnapshotLoader snapshots, IClock clock)
     : ICommandHandler<RefreshTokenCommand, AuthResult>
 {
     public async Task<AuthResult> HandleAsync(RefreshTokenCommand cmd, CancellationToken ct)

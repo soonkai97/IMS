@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
 /// <summary>Loads the products and units a price list save names (public ids, one query each for the whole list); the items themselves (usable product, convertible unit, price limits) are built by the domain.</summary>
-public class PriceListItemBuilder(IReadRepository<Product> products, IReadRepository<Uom> uoms, IIdMap<Uom> uomIds) : IPriceListItemBuilder, IAppService
+public sealed class PriceListItemBuilder(IReadRepository<Product> products, IReadRepository<Uom> uoms, IIdMap<Uom> uomIds) : IPriceListItemBuilder, IAppService
 {
     public async Task<BuiltPriceListItems> BuildAsync(IReadOnlyList<PriceListItemInput> inputs, IReadOnlySet<(int ProductId, int UomId)>? existing, CancellationToken ct)
     {

@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Catalog;
 
-public class ListProductsHandler(IReadRepository<Product> products, IReadRepository<ProductBarcode> barcodes, IIdMap<Category> categories) : IQueryHandler<ListProductsQuery, PagedResult<ProductDto>>
+public sealed class ListProductsHandler(IReadRepository<Product> products, IReadRepository<ProductBarcode> barcodes, IIdMap<Category> categories) : IQueryHandler<ListProductsQuery, PagedResult<ProductDto>>
 {
     public async Task<PagedResult<ProductDto>> HandleAsync(ListProductsQuery q, CancellationToken ct)
     {

@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class RecallDocumentHandler(IRepository<StockDocument> documents, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version, IUnitOfWork uow, IAuditTrail audit)
+public sealed class RecallDocumentHandler(IRepository<StockDocument> documents, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<RecallDocumentCommand, DocumentDto>
 {
     public async Task<DocumentDto> HandleAsync(RecallDocumentCommand cmd, CancellationToken ct)

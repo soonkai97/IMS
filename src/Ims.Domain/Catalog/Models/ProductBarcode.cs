@@ -1,6 +1,6 @@
 namespace Ims.Domain;
 
-public class ProductBarcode : Entity
+public sealed class ProductBarcode : Entity
 {
     private ProductBarcode() { }
 

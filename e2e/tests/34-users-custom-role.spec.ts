@@ -17,9 +17,8 @@ async function signInAsUser(
     timezoneId: 'Asia/Kuala_Lumpur',
     serviceWorkers: 'block'
   });
-  await context.route(
-    /\/assets\/config\.json/,
-    route => route.fulfill({ json: { apiBaseUrl: API_URL } })
+  await context.route(/\/assets\/config\.json/, route =>
+    route.fulfill({ json: { apiBaseUrl: API_URL } })
   );
   const page = await context.newPage();
   const login = new LoginPage(page);

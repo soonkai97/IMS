@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Stock;
 
-public class QueryLedgerHandler(IReadRepository<StockLedgerEntry> ledger, IWarehouseScope scope, ICursorProtector cursors, IIdMap<Warehouse> warehouseIds,
+public sealed class QueryLedgerHandler(IReadRepository<StockLedgerEntry> ledger, IWarehouseScope scope, ICursorProtector cursors, IIdMap<Warehouse> warehouseIds,
     IIdMap<Product> productIds, IIdMap<StockDocument> documentIds) : IQueryHandler<QueryLedgerQuery, PagedResult<LedgerRow>>
 {
     public async Task<PagedResult<LedgerRow>> HandleAsync(QueryLedgerQuery q, CancellationToken ct)

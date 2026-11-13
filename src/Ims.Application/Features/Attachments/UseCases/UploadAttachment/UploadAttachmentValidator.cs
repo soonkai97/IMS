@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Attachments;
 
-public class UploadAttachmentValidator : AbstractValidator<UploadAttachmentCommand>
+public sealed class UploadAttachmentValidator : AbstractValidator<UploadAttachmentCommand>
 {
     public UploadAttachmentValidator()
     {

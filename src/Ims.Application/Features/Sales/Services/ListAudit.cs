@@ -9,7 +9,7 @@ internal static class ListAudit
     private const int MaxChangesInWords = 50;
 
     /// <summary>An item as it was before a save: a kept item is repriced in place, so what it was has to be read first.</summary>
-    internal record Priced(int ProductId, int UomId, decimal Price, string Sku, string UomCode);
+    internal sealed record Priced(int ProductId, int UomId, decimal Price, string Sku, string UomCode);
 
     public static Dictionary<string, object?> Summary(PriceList list) => new()
     {

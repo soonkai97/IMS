@@ -4,7 +4,7 @@ using Ims.Application.Features.Sales;
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class SubmitDocumentHandler(IRepository<StockDocument> documents, IApprovalEvaluator approvals, IIssueValuation valuation,
+public sealed class SubmitDocumentHandler(IRepository<StockDocument> documents, IApprovalEvaluator approvals, IIssueValuation valuation,
     IStockAvailability availability, IReceiptLinkRules links, ISalesDeliveryRules deliveries, IReturnRules returns, ISystemSettings settings, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version,
     ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<SubmitDocumentCommand, DocumentDto>
 {

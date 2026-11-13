@@ -2,7 +2,7 @@ using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
-public class ReceiptLinkRules(IReadRepository<PurchaseOrder> orders, IPurchaseOrderReceiving receiving, IModuleSwitches modules, ICallerPermissions caller) : IReceiptLinkRules, IAppService
+public sealed class ReceiptLinkRules(IReadRepository<PurchaseOrder> orders, IPurchaseOrderReceiving receiving, IModuleSwitches modules, ICallerPermissions caller) : IReceiptLinkRules, IAppService
 {
     public async Task<PurchaseOrder> OrderForSaveAsync(StockDocument draft, Partner? supplier, CancellationToken ct)
     {

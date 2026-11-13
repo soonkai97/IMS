@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class DocumentSaveRequestValidator : AbstractValidator<DocumentSaveRequest>
+public sealed class DocumentSaveRequestValidator : AbstractValidator<DocumentSaveRequest>
 {
     public DocumentSaveRequestValidator()
     {

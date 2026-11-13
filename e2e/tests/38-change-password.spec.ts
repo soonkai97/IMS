@@ -180,7 +180,10 @@ test.describe('Change password', () => {
 
     // Nothing typed.
     await submit(page).click();
-    await expect(messages(page)).toHaveText(['Enter your current password.', 'Enter a new password.']);
+    await expect(messages(page)).toHaveText([
+      'Enter your current password.',
+      'Enter a new password.'
+    ]);
     await expect(currentBox(page)).toBeFocused();
     await expect(page.getByRole('alert')).toHaveCount(0);
 
@@ -290,8 +293,8 @@ test.describe('Change password', () => {
           expect(right).toBeLessThanOrEqual(320);
         }
         // The text of the two sentences is not cut by its box.
-        const cut = await messages(page).evaluateAll(items =>
-          items.filter(item => item.scrollWidth > item.clientWidth + 1).length
+        const cut = await messages(page).evaluateAll(
+          items => items.filter(item => item.scrollWidth > item.clientWidth + 1).length
         );
         expect(cut).toBe(0);
         await page.evaluate(() => (document.documentElement.style.fontSize = ''));
@@ -320,9 +323,9 @@ test.describe('Change password', () => {
           .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
           .analyze();
         const serious = violations.filter(v => v.impact === 'serious' || v.impact === 'critical');
-        expect(serious.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(' ')).join(' | ')}`)).toEqual(
-          []
-        );
+        expect(
+          serious.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(' ')).join(' | ')}`)
+        ).toEqual([]);
       });
     });
   }

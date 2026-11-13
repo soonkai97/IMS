@@ -5,7 +5,7 @@ namespace Ims.Application.Features.Modules;
 /// Reads the <c>Module.&lt;code&gt;</c> rows of the settings table (at most a handful) once per request; the service is scoped. It reads its own rows rather than sharing the
 /// settings read, so asking for a switch costs one tiny query and touches nothing else. Other features depend on <see cref="IModuleSwitches"/>.
 /// </summary>
-public class ModuleSwitches(IReadRepository<SystemSetting> settings) : IModuleSwitches, IAppService
+public sealed class ModuleSwitches(IReadRepository<SystemSetting> settings) : IModuleSwitches, IAppService
 {
     private IReadOnlyList<string>? _enabled;
 

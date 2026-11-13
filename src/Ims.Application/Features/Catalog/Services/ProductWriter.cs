@@ -6,7 +6,7 @@ namespace Ims.Application.Features.Catalog;
 /// Orchestrates saving a product: looks up what must come from the database (unit, category, uniqueness, stock history),
 /// then lets the <see cref="Product"/> aggregate apply and guard the change.
 /// </summary>
-public class ProductWriter(IRepository<Product> products, IReadRepository<Uom> uoms, IReadRepository<Category> categories,
+public sealed class ProductWriter(IRepository<Product> products, IReadRepository<Uom> uoms, IReadRepository<Category> categories,
     IReadRepository<ProductBarcode> barcodes, IReadRepository<StockLedgerEntry> ledger, IProductConversionUsage conversionUsage, IIdMap<Uom> uomIds, IUnitOfWork uow) : IProductWriter, IAppService
 {
     public async Task<int> SaveAsync(Guid? id, ProductSaveRequest r, CancellationToken ct)

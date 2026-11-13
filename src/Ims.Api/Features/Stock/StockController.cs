@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ims.Api.Features.Stock;
 
 [Route(ApiRoutes.Stock)]
-public class StockController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class StockController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet, Authorize(Policy = Permissions.StockRead)]
     [ProducesResponseType<PagedResult<StockRow>>(StatusCodes.Status200OK)]

@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class LookupPriceValidator : AbstractValidator<LookupPriceQuery>
+public sealed class LookupPriceValidator : AbstractValidator<LookupPriceQuery>
 {
     public LookupPriceValidator()
     {

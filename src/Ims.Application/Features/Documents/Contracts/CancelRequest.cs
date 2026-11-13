@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Documents;
 
-public record CancelRequest(string? Reason);
+public sealed record CancelRequest(string? Reason);

@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Roles;
 
-public class UpdateRoleValidator : AbstractValidator<UpdateRoleCommand>
+public sealed class UpdateRoleValidator : AbstractValidator<UpdateRoleCommand>
 {
     public UpdateRoleValidator()
     {

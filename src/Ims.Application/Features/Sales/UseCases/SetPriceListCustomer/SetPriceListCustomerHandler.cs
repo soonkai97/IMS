@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class SetPriceListCustomerHandler(IRepository<PriceList> lists, IReadRepository<Partner> partners, IPriceListUniqueness uniqueness, IPriceListReader reader, IDocumentVersion version,
+public sealed class SetPriceListCustomerHandler(IRepository<PriceList> lists, IReadRepository<Partner> partners, IPriceListUniqueness uniqueness, IPriceListReader reader, IDocumentVersion version,
     IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<SetPriceListCustomerCommand, PriceListDto>
 {
     public async Task<PriceListDto> HandleAsync(SetPriceListCustomerCommand cmd, CancellationToken ct)

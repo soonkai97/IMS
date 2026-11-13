@@ -111,28 +111,39 @@ export class DocumentLineEditorComponent {
     const allowNegative = this.$allowNegativeStock();
     const orderLines = this.$orderLines();
     const over = overRemainingLines(this.$values(), orderLines);
-    return this.$values().map((value, index) => {
+    return this.$values().flatMap((value, index) => {
+      // A value without its control group (the two lists are one line each) has no row to draw.
+      const group = groups[index];
+      if (group === undefined) {
+        return [];
+      }
       const orderLineNo = orderLineNoOf(value);
       const shortfall = this.$isIssue() ? lineShortfall(value) : 0;
-      return {
-        index,
-        group: groups[index],
-        value,
-        shortfall,
-        maxCovered: maxCoveredQuantity(value),
-        unitOptions: value.uomOptions.map(option => ({ value: option.uomId, label: option.code })),
-        hasUnitChoice: value.uomOptions.length > 1,
-        unitCode:
-          value.uomOptions.find(option => option.uomId === value.uomId)?.code ?? value.baseUomCode,
-        blocked: shortfall > 0 && !allowNegative,
-        needsOverride: shortfall > 0 && allowNegative,
-        order: orderLineNo === null ? undefined : orderLines.get(orderLineNo),
-        overRemaining: orderLineNo !== null && over.has(orderLineNo),
-        forSalesOrder: value.salesOrderLineNo !== null,
-        orderKey: orderWords(value).key,
-        orderOverKey: orderWords(value).over,
-        orderLineNo
-      };
+      return [
+        {
+          index,
+          group,
+          value,
+          shortfall,
+          maxCovered: maxCoveredQuantity(value),
+          unitOptions: value.uomOptions.map(option => ({
+            value: option.uomId,
+            label: option.code
+          })),
+          hasUnitChoice: value.uomOptions.length > 1,
+          unitCode:
+            value.uomOptions.find(option => option.uomId === value.uomId)?.code ??
+            value.baseUomCode,
+          blocked: shortfall > 0 && !allowNegative,
+          needsOverride: shortfall > 0 && allowNegative,
+          order: orderLineNo === null ? undefined : orderLines.get(orderLineNo),
+          overRemaining: orderLineNo !== null && over.has(orderLineNo),
+          forSalesOrder: value.salesOrderLineNo !== null,
+          orderKey: orderWords(value).key,
+          orderOverKey: orderWords(value).over,
+          orderLineNo
+        }
+      ];
     });
   });
 

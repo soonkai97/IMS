@@ -3,7 +3,7 @@ using Ims.Application.Features.Returns;
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentAccess access, ISystemSettings settings, IStockAvailability availability,
+public sealed class DocumentReader(IReadRepository<StockDocument> documents, IDocumentAccess access, ISystemSettings settings, IStockAvailability availability,
     IApprovalEvaluator approvals, IDocumentVersion version, IModuleSwitches modules, ICallerPermissions caller, IReturnedQuantityReader returned) : IDocumentReader, IAppService
 {
     public async Task<DocumentDto> GetAsync(Guid publicId, CancellationToken ct)

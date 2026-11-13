@@ -13,6 +13,6 @@ namespace Ims.Application.Features.Documents;
 /// <param name="ReturnOfLineNo">On a return: the position of the original line this line returns; null otherwise, and omitted while the Returns module is off or for a caller who may not create returns. Send it back unchanged when saving the draft.</param>
 /// <param name="ReturnedQty">On a Posted original (a sale issue or a receipt) for a caller who may create returns, while Returns is on: what Posted returns have taken back of this line, in <c>uomCode</c>. The lines of a document are listed in position order (1 to n), which is the number a return names. Computed on every read.</param>
 /// <param name="ReturnableQty">The same lines: what can still be returned, <c>qty</c> less <c>returnedQty</c>, never below zero.</param>
-public record DocumentLineDto(Guid ProductId, string Sku, string ProductName, decimal Qty, Guid UomId, string UomCode,
+public sealed record DocumentLineDto(Guid ProductId, string Sku, string ProductName, decimal Qty, Guid UomId, string UomCode,
     decimal BaseQty, [property: VisibleWith(Permissions.CostView)] decimal? UnitCost, [property: VisibleWith(Permissions.CostView, UnitPrice = true)] decimal? BaseUnitCost,
     [property: VisibleWith(Permissions.CostView)] decimal? Amount, bool CostFromAverage, string? Remark, [property: JsonIgnore] int ProductKey, decimal? Available = null, int? PurchaseOrderLineNo = null, int? SalesOrderLineNo = null, int? ReturnOfLineNo = null, decimal? ReturnedQty = null, decimal? ReturnableQty = null);

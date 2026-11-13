@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Sales;
 
-public record SubmitSalesOrderCommand(Guid Id, string? IfMatch = null) : ICommand<SalesOrderDto>;
+public sealed record SubmitSalesOrderCommand(Guid Id, string? IfMatch = null) : ICommand<SalesOrderDto>;

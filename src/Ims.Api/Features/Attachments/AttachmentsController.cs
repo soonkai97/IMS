@@ -12,7 +12,7 @@ namespace Ims.Api.Features.Attachments;
 /// can reach these routes, the policy answers 403/404.
 /// </summary>
 [Route(ApiRoutes.Attachments)]
-public class AttachmentsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class AttachmentsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<AttachmentDto>>(StatusCodes.Status200OK)]

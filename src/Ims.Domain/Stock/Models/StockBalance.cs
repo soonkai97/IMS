@@ -5,7 +5,7 @@ namespace Ims.Domain;
 /// quantity x average cost: nothing else is stored, so a value can never disagree with the pieces it is made of.
 /// The average is an INTERNAL number (<see cref="Limits.CostDecimals"/> places, rounded half away from zero); an amount that reaches a person is money and follows the money rule.
 /// </summary>
-public class StockBalance : AuditableEntity
+public sealed class StockBalance : AuditableEntity
 {
     private StockBalance() { }
 

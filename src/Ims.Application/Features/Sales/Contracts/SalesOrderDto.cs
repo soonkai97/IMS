@@ -22,7 +22,7 @@ namespace Ims.Application.Features.Sales;
 /// <param name="SubmittedByKey">Same for the submitter, for the self-approval rule; not part of the JSON.</param>
 /// <param name="ApprovedByKey">The integer key of the approver, to look their name up; not part of the JSON.</param>
 /// <param name="ReturnedByKey">The integer key of the reviewer who sent it back, to look their name up; not part of the JSON.</param>
-public record SalesOrderDto(Guid Id, string No, SalesOrderStatus Status, Guid WarehouseId, string WarehouseName, Guid CustomerId, string CustomerName, string? Remark,
+public sealed record SalesOrderDto(Guid Id, string No, SalesOrderStatus Status, Guid WarehouseId, string WarehouseName, Guid CustomerId, string CustomerName, string? Remark,
     Guid CreatedById, string CreatedBy, string CreatedByName, DateTime CreatedAt,
     bool RequiresApproval, bool IsLarge, bool IsReturned, string? RejectionReason, string? CancelReason,
     DateTime? SubmittedAt, DateTime? ApprovedAt, DateTime? ReturnedAt, DateTime? ClosedAt, SalesOrderCloseKind? CloseKind, string? CloseReason,

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ims.Api.Features.Warehouses;
 
 [Route(ApiRoutes.Partners)]
-public class PartnersController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class PartnersController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet, Authorize(Policy = Permissions.MasterDataRead)]
     [ProducesResponseType<PagedResult<PartnerDto>>(StatusCodes.Status200OK)]

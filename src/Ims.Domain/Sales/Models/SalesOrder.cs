@@ -5,7 +5,7 @@ namespace Ims.Domain;
 /// movements report. PL3.2 built the Draft (create, replace header and lines, read); PL3.3 adds the workflow of the two approval tiers: Draft -> Submitted -> Approved (or straight to
 /// Approved when no rule fires), Submitted -> Draft by a rejection or a recall, and Draft, Submitted or Approved -> Cancelled. Closing and the deliveries come with PL3.5 to PL3.7. Totals are computed from the lines, never stored.
 /// </summary>
-public class SalesOrder : PublicEntity
+public sealed class SalesOrder : PublicEntity
 {
     private SalesOrder() { }
 

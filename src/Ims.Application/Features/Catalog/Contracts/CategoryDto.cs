@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Catalog;
 
-public record CategoryDto(Guid Id, string Name);
+public sealed record CategoryDto(Guid Id, string Name);

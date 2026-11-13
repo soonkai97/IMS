@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Users;
 
-public class ListUsersHandler(IReadRepository<User> users) : IQueryHandler<ListUsersQuery, PagedResult<UserDto>>
+public sealed class ListUsersHandler(IReadRepository<User> users) : IQueryHandler<ListUsersQuery, PagedResult<UserDto>>
 {
     public async Task<PagedResult<UserDto>> HandleAsync(ListUsersQuery q, CancellationToken ct)
     {

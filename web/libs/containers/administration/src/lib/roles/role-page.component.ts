@@ -599,8 +599,9 @@ export class RolePageComponent implements HasUnsavedChanges {
         this.form.controls.name.markAsTouched();
       } else if (failure.kind === 'invalid' && Object.keys(error.fieldErrors).length > 0) {
         const unmatched = applyFieldErrors(this.form, error);
-        if (unmatched.length > 0) {
-          this.$failure.set({ ...failure, message: unmatched[0] });
+        const [firstUnmatched] = unmatched;
+        if (firstUnmatched !== undefined) {
+          this.$failure.set({ ...failure, message: firstUnmatched });
         }
       } else {
         this.$failure.set({ ...failure, textSaved: options.textSaved });

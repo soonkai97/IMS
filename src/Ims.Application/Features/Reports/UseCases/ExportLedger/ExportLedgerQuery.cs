@@ -1,4 +1,4 @@
 using Ims.Application.Features.Stock;
 namespace Ims.Application.Features.Reports;
 
-public record ExportLedgerQuery(LedgerFilter Filter) : IQuery<ExportFile>;
+public sealed record ExportLedgerQuery(LedgerFilter Filter) : IQuery<ExportFile>;

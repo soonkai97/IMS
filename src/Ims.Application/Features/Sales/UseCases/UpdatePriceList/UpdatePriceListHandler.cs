@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class UpdatePriceListHandler(IRepository<PriceList> lists, IReadRepository<Partner> partners, IPriceListItemBuilder builder, IPriceListUniqueness uniqueness, IPriceListReader reader,
+public sealed class UpdatePriceListHandler(IRepository<PriceList> lists, IReadRepository<Partner> partners, IPriceListItemBuilder builder, IPriceListUniqueness uniqueness, IPriceListReader reader,
     IDocumentVersion version, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<UpdatePriceListCommand, PriceListDto>
 {
     public async Task<PriceListDto> HandleAsync(UpdatePriceListCommand cmd, CancellationToken ct)

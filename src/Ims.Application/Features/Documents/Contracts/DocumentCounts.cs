@@ -5,4 +5,4 @@ namespace Ims.Application.Features.Documents;
 /// <param name="MyDrafts">All my Drafts (returned ones included).</param>
 /// <param name="PostedToday">Documents posted since local midnight (Asia/Kuala_Lumpur, BR-10), whoever posted them, that are still Posted: a document reversed since is not counted, so this equals the Posted list filtered to today.</param>
 /// <param name="ApprovalsWaiting">Submitted documents held for approval that I could act on: not mine to approve when self-approval is off, only large ones for the Owner, none large for a Supervisor, zero for roles that cannot approve.</param>
-public record DocumentCounts(int ReturnedToMe, int MyDrafts, int PostedToday, int ApprovalsWaiting);
+public sealed record DocumentCounts(int ReturnedToMe, int MyDrafts, int PostedToday, int ApprovalsWaiting);

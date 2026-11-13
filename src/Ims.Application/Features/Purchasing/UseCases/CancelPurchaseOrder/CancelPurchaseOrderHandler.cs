@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
-public class CancelPurchaseOrderHandler(IRepository<PurchaseOrder> orders, IPurchaseOrderReceiving receiving, IPurchaseOrderAccess access, IPurchaseOrderReader reader, IDocumentVersion version,
+public sealed class CancelPurchaseOrderHandler(IRepository<PurchaseOrder> orders, IPurchaseOrderReceiving receiving, IPurchaseOrderAccess access, IPurchaseOrderReader reader, IDocumentVersion version,
     ITransactionLocker locker, ICurrentUser current, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CancelPurchaseOrderCommand, PurchaseOrderDto>
 {
     public async Task<PurchaseOrderDto> HandleAsync(CancelPurchaseOrderCommand cmd, CancellationToken ct)

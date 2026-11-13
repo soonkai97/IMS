@@ -1,7 +1,7 @@
 namespace Ims.Domain;
 
 /// <summary>Append-only (AUTH-03). Enforced by the DbContext and a database trigger; there is no way to change a row once written.</summary>
-public class AuditLog : AuditableEntity
+public sealed class AuditLog : AuditableEntity
 {
     private AuditLog() { }
 

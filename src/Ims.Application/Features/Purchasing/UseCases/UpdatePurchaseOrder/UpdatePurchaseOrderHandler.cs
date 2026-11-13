@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
-public class UpdatePurchaseOrderHandler(IRepository<PurchaseOrder> orders, IReadRepository<Partner> partners, IPurchaseOrderLineBuilder lineBuilder,
+public sealed class UpdatePurchaseOrderHandler(IRepository<PurchaseOrder> orders, IReadRepository<Partner> partners, IPurchaseOrderLineBuilder lineBuilder,
     IPurchaseOrderAccess access, IPurchaseOrderReader reader, ICallerPermissions caller, IDocumentVersion version, IIdMap<Warehouse> warehouseIds, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<UpdatePurchaseOrderCommand, PurchaseOrderDto>
 {

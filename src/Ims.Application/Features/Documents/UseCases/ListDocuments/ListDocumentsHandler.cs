@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class ListDocumentsHandler(IReadRepository<StockDocument> documents, IDocumentTextMatcher matcher, IDocumentAccess access, ICurrentUser current, ISystemSettings settings, ICursorProtector cursors, IIdMap<Warehouse> warehouseIds, IDocumentVersion version)
+public sealed class ListDocumentsHandler(IReadRepository<StockDocument> documents, IDocumentTextMatcher matcher, IDocumentAccess access, ICurrentUser current, ISystemSettings settings, ICursorProtector cursors, IIdMap<Warehouse> warehouseIds, IDocumentVersion version)
     : IQueryHandler<ListDocumentsQuery, PagedResult<DocumentListItem>>
 {
     public async Task<PagedResult<DocumentListItem>> HandleAsync(ListDocumentsQuery q, CancellationToken ct)

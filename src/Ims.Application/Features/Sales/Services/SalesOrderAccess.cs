@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class SalesOrderAccess(ICurrentUser current) : ISalesOrderAccess, IAppService
+public sealed class SalesOrderAccess(ICurrentUser current) : ISalesOrderAccess, IAppService
 {
     public void EnsureWarehouse(int warehouseId)
     {

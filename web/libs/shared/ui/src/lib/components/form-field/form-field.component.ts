@@ -72,7 +72,11 @@ export class UiFormFieldComponent implements FormFieldContext {
     if (!control?.touched || !control.errors) {
       return null;
     }
-    const [key, value] = Object.entries(control.errors)[0];
+    const firstError = Object.entries(control.errors)[0];
+    if (firstError === undefined) {
+      return null;
+    }
+    const [key, value] = firstError;
     return this.$messages()[key] ?? this.$text().validationMessage(key, value);
   });
   readonly describedBy = computed(() => {

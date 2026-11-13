@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Attachments;
 
 /// <summary>Product images and datasheets: read with master-data read, add and remove with master-data manage.</summary>
-public class ProductAttachmentPolicy(IReadRepository<Product> products, IIdMap<Product> productIds, ICurrentUser current) : IAttachmentOwnerPolicy, IAppService
+public sealed class ProductAttachmentPolicy(IReadRepository<Product> products, IIdMap<Product> productIds, ICurrentUser current) : IAttachmentOwnerPolicy, IAppService
 {
     public AttachmentOwnerType OwnerType => AttachmentOwnerType.Product;
 

@@ -7,7 +7,7 @@ namespace Ims.Application.Features.Import;
 /// a commit with any invalid row is refused, and a valid commit is one transaction. A category or unit that does not exist is a row error: the
 /// import never creates master data on the side (one typo must not add a category), an admin adds them first.
 /// </summary>
-public class ImportProductsHandler(IExcelReader excel, IRepository<Product> products, IRepository<Category> categories, IRepository<Uom> uoms,
+public sealed class ImportProductsHandler(IExcelReader excel, IRepository<Product> products, IRepository<Category> categories, IRepository<Uom> uoms,
     IReadRepository<ProductBarcode> barcodes, IReadRepository<StockBalance> balances, IProductConversionUsage conversionUsage, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<ImportProductsCommand, ImportResult>
 {
@@ -34,14 +34,14 @@ public class ImportProductsHandler(IExcelReader excel, IRepository<Product> prod
         var fileCodes = sheet.Rows.SelectMany(r => Split(r.Get(ImportColumns.Barcodes))).Distinct().ToList();
         var owners = fileCodes.Count == 0 ? [] : await barcodes.ListAsync(new BarcodeOwnersSpec(fileCodes), ct);
         var ownerSkus = owners.Count == 0
-            ? new Dictionary<int, string>()
+            ? []
             : (await products.ListAsync(new ProductSkusByIdsSpec(owners.Select(o => o.ProductId).Distinct().ToList()), ct)).ToDictionary(p => p.Id, p => p.Sku);
         var codeOwner = owners.ToDictionary(o => o.Barcode, o => ownerSkus.GetValueOrDefault(o.ProductId, ""));
 
         // One query for the SKUs in the file tells which rows update an existing product and which create a new one.
         var fileSkus = sheet.Rows.Select(r => r.Get(ImportColumns.Sku)).Where(s => s.Length > 0).Distinct().ToList();
         var existingSkus = fileSkus.Count == 0
-            ? new HashSet<string>()
+            ? []
             : (await products.ListAsync(new ProductSkusBySkusSpec(fileSkus), ct)).Select(p => p.Sku).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         // Categories and units are small lookup lists (hard cap 1,000): read once, matched in memory. A unit matches by code or by name.

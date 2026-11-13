@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
 /// <summary>Shape and limit rules of a draft: every failure is reported with the field it belongs to, all lines at once. Rules that need the database (does the product exist, is the customer active) are the handler's.</summary>
-public class SalesOrderSaveRequestValidator : AbstractValidator<SalesOrderSaveRequest>
+public sealed class SalesOrderSaveRequestValidator : AbstractValidator<SalesOrderSaveRequest>
 {
     public SalesOrderSaveRequestValidator()
     {

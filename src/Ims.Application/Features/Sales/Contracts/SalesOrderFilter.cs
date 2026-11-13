@@ -8,5 +8,5 @@ namespace Ims.Application.Features.Sales;
 /// <param name="Search">Orders whose number contains the text (case-insensitive; a partial number such as 0100 works).</param>
 /// <param name="Cursor">Seek paging: the <c>nextCursor</c> of the previous page, unchanged; returns the orders after it.</param>
 /// <param name="IncludeTotal">False skips the row count.</param>
-public record SalesOrderFilter(SalesOrderStatus? Status, Guid? CustomerId, Guid? WarehouseId, DateOnly? From, DateOnly? To, string? Search,
+public sealed record SalesOrderFilter(SalesOrderStatus? Status, Guid? CustomerId, Guid? WarehouseId, DateOnly? From, DateOnly? To, string? Search,
     int Page = 1, int PageSize = Limits.DefaultPageSize, string? Cursor = null, bool IncludeTotal = true);

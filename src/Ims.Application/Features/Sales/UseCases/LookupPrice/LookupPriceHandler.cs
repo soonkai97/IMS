@@ -5,7 +5,7 @@ namespace Ims.Application.Features.Sales;
 /// The price an order line would be prefilled with. Read only: it writes nothing and audits nothing (the audit is written when the order is saved). The customer must be one an order can be saved for
 /// (an active partner of type Customer, the rule of <see cref="SalesOrder.Create"/>), so the prefill never offers a price for an order the save would refuse; any other partner is the generic "Partner does not exist" (400).
 /// </summary>
-public class LookupPriceHandler(IReadRepository<Product> products, IReadRepository<Partner> partners, IIdMap<Uom> uomIds, IPriceLookup lookup) : IQueryHandler<LookupPriceQuery, PriceLookupDto>
+public sealed class LookupPriceHandler(IReadRepository<Product> products, IReadRepository<Partner> partners, IIdMap<Uom> uomIds, IPriceLookup lookup) : IQueryHandler<LookupPriceQuery, PriceLookupDto>
 {
     public async Task<PriceLookupDto> HandleAsync(LookupPriceQuery q, CancellationToken ct)
     {

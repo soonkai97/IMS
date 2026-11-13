@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Sales;
 
-public record GetSalesOrderQuery(Guid Id) : IQuery<SalesOrderDto>;
+public sealed record GetSalesOrderQuery(Guid Id) : IQuery<SalesOrderDto>;

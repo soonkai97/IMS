@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class CreateDocumentHandler(IRepository<StockDocument> documents, IReadRepository<Warehouse> warehouses, IReadRepository<Partner> partners,
+public sealed class CreateDocumentHandler(IRepository<StockDocument> documents, IReadRepository<Warehouse> warehouses, IReadRepository<Partner> partners,
     IDocumentNumbering numbering, IDocumentLineBuilder lineBuilder, IIssueValuation valuation, IReceiptCostDefaults receiptCosts, IDocumentAccess access, IDocumentReader reader,
     ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreateDocumentCommand, DocumentDto>
 {

@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
-public class CreateReceiptFromPurchaseOrderHandler(IReadRepository<PurchaseOrder> orders, IRepository<StockDocument> documents, IPurchaseOrderReceiving receiving, IPurchaseOrderAccess orderAccess,
+public sealed class CreateReceiptFromPurchaseOrderHandler(IReadRepository<PurchaseOrder> orders, IRepository<StockDocument> documents, IPurchaseOrderReceiving receiving, IPurchaseOrderAccess orderAccess,
     IDocumentNumbering numbering, IDocumentReader reader, ICurrentUser current, IClock clock, ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<CreateReceiptFromPurchaseOrderCommand, DocumentDto>
 {

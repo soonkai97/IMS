@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Auth;
 
-public record ChangePasswordCommand(ChangePasswordRequest Body) : ICommand<Unit>;
+public sealed record ChangePasswordCommand(ChangePasswordRequest Body) : ICommand<Unit>;

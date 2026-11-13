@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class RejectDocumentHandler(IRepository<StockDocument> documents, IApprovalEvaluator approvals, ISystemSettings settings, IDocumentAccess access,
+public sealed class RejectDocumentHandler(IRepository<StockDocument> documents, IApprovalEvaluator approvals, ISystemSettings settings, IDocumentAccess access,
     IDocumentReader reader, IDocumentVersion version, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<RejectDocumentCommand, DocumentDto>
 {
     public async Task<DocumentDto> HandleAsync(RejectDocumentCommand cmd, CancellationToken ct)

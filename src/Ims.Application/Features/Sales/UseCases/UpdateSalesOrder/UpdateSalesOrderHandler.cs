@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class UpdateSalesOrderHandler(IRepository<SalesOrder> orders, IReadRepository<Partner> partners, ISalesOrderLineBuilder lineBuilder,
+public sealed class UpdateSalesOrderHandler(IRepository<SalesOrder> orders, IReadRepository<Partner> partners, ISalesOrderLineBuilder lineBuilder,
     ISalesOrderAccess access, ISalesOrderReader reader, IDocumentVersion version, IIdMap<Warehouse> warehouseIds, IUnitOfWork uow, IAuditTrail audit, ISalesOrderPriceAudit prices)
     : ICommandHandler<UpdateSalesOrderCommand, SalesOrderDto>
 {

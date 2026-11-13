@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
 /// <summary>Deletes a price list with its items. A saved order is not touched: it keeps the price it was saved with (plan D10).</summary>
-public class DeletePriceListHandler(IRepository<PriceList> lists, IDocumentVersion version, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<DeletePriceListCommand, Unit>
+public sealed class DeletePriceListHandler(IRepository<PriceList> lists, IDocumentVersion version, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<DeletePriceListCommand, Unit>
 {
     public async Task<Unit> HandleAsync(DeletePriceListCommand cmd, CancellationToken ct)
     {
