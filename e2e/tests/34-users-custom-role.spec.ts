@@ -102,8 +102,8 @@ test.describe('Users: custom roles and the warehouse scope', () => {
       items: { role: string; displayName: string }[];
     }>('GET', `/api/users?search=${username}`);
     expect(saved.items).toHaveLength(1);
-    expect(saved.items[0].role).toBe(role.code);
-    expect(saved.items[0].displayName).toBe(`QA renamed ${token}`);
+    expect(saved.items[0]?.role).toBe(role.code);
+    expect(saved.items[0]?.displayName).toBe(`QA renamed ${token}`);
     await expect(page.getByRole('row', { name: new RegExp(username) })).toContainText(role.name);
   });
 
