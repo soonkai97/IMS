@@ -22,7 +22,7 @@ public class LoginTests(ApiFixture fixture)
         Assert.True(auth.ExpiresAt > DateTime.UtcNow);
         Assert.Equal("admin", auth.User.Username);
         Assert.Equal(Roles.Admin, auth.User.Role);
-        Assert.Equal(PermissionCatalog.Codes, auth.User.Permissions);
+        Assert.Equal(PermissionCatalog.Codes.Where(c => auth.User.Modules.Contains(ModuleCodes.Returns) || c != Permissions.ReturnsCreate), auth.User.Permissions); // returns.create is listed only while the Returns module is on
     }
 
     [Theory]

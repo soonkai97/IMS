@@ -60,7 +60,7 @@ public class DocumentReader(IReadRepository<StockDocument> documents, IDocumentA
     private async Task<DocumentDto> WithReturnedQuantitiesAsync(DocumentDto dto, bool isReturn, CancellationToken ct)
     {
         var eligible = dto.Status == DocumentStatus.Posted && !isReturn && (dto.Type == DocumentType.Receipt || dto.Purpose == IssuePurpose.Sale);
-        if (!eligible || !caller.Has(Permissions.ReturnsCreate)) return dto; // returns.create is in the token only while the module is on (a stale token shows the figures for at most its lifetime), so no switch is read here
+        if (!eligible || !caller.Has(Permissions.ReturnsCreate) || !(await settings.GetAsync(ct)).IsModuleOn(ModuleCodes.Returns)) return dto; // the module state comes with the settings rows the reader reads anyway: no query of its own (IModuleSwitches would add one to every Posted receipt or issue read, which the statement pins forbid). DbSystemSettings compares the Module.* keys without case, like ModuleSwitches. Off: the figures are omitted
         var done = dto.HasReturns ? await returned.PostedByLineAsync(dto.Key, ct) : new Dictionary<int, ReturnedQuantity>(); // nothing has been returned: nothing to sum
         var lines = dto.Lines.Select((l, index) =>
         {

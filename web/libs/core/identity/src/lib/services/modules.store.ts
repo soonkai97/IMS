@@ -1,5 +1,16 @@
 import { Injectable, inject, linkedSignal } from '@angular/core';
-import { Observable, catchError, defer, finalize, map, of, shareReplay, tap } from 'rxjs';
+import {
+  Observable,
+  catchError,
+  defaultIfEmpty,
+  defer,
+  finalize,
+  map,
+  of,
+  shareReplay,
+  switchMap,
+  tap
+} from 'rxjs';
 import { ModuleDto, ModuleSwitchResult, ModulesClient, UserInfo } from '@ims/api';
 import { handledInline } from '@ims/core/http';
 import { ApiCommand, QueryLoader } from '@ims/utils';
@@ -39,13 +50,23 @@ export class ModulesStore {
 
   /**
    * Exclusive: a double tap sends one request. The screen shows every failure of the call in place, so none raises a toast. A
-   * success reloads the list, so the screen and the menu show what the server holds now.
+   * success reloads the list, so the screen and the menu show what the server holds now, and reads the user's info again: the API
+   * hides the permissions of a module that is off (returns.create), so the rights shown and checked right after turning a module
+   * on would otherwise stay as they were until the next token refresh. A failure changes nothing and refreshes nothing.
    */
   readonly switchModule = new ApiCommand<SwitchModuleArgs, ModuleSwitchResult>(
     args =>
       this.client
         .switch(args.code, { enabled: args.enabled, reason: args.reason }, handledInline())
-        .pipe(tap(() => this.list.load(undefined, handledInline()))),
+        .pipe(
+          tap(() => this.list.load(undefined, handledInline())),
+          switchMap(result =>
+            this.auth.reloadUser().pipe(
+              map(() => result),
+              defaultIfEmpty(result)
+            )
+          )
+        ),
     true
   );
 

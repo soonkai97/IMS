@@ -48,6 +48,9 @@ export interface LineRow {
   readonly overRemaining: boolean;
   /** The line belongs to a sales order (a delivery): the words say delivered, not received. */
   readonly forSalesOrder: boolean;
+  /** The words of the figures under the product, and of the message when the quantity is over what remains. */
+  readonly orderKey: 'line.order' | 'line.salesOrder' | 'line.return';
+  readonly orderOverKey: 'line.order.over' | 'line.salesOrder.over' | 'line.return.over';
   /** The line of the order this line belongs to (purchase or sales); null for a line of no order. */
   readonly orderLineNo: number | null;
 }
@@ -56,6 +59,19 @@ export interface LineRow {
  * Editable list of document lines: quantity with +/- steppers, unit, cost (receipts), remark. For issues it shows
  * the on-hand quantity and the shortfall messages E1 / E2 (docs/design/mvp-ux.md 3.2). Rows are cards on phones.
  */
+/** The words of the figures under a line and of its over-quantity message: a return line, a delivery line, or a receipt line. */
+function orderWords(value: LineValue): {
+  key: LineRow['orderKey'];
+  over: LineRow['orderOverKey'];
+} {
+  if (value.returnOfLineNo !== null) {
+    return { key: 'line.return', over: 'line.return.over' };
+  }
+  return value.salesOrderLineNo !== null
+    ? { key: 'line.salesOrder', over: 'line.salesOrder.over' }
+    : { key: 'line.order', over: 'line.order.over' };
+}
+
 @Component({
   selector: 'app-document-line-editor',
   imports: [
@@ -113,6 +129,8 @@ export class DocumentLineEditorComponent {
         order: orderLineNo === null ? undefined : orderLines.get(orderLineNo),
         overRemaining: orderLineNo !== null && over.has(orderLineNo),
         forSalesOrder: value.salesOrderLineNo !== null,
+        orderKey: orderWords(value).key,
+        orderOverKey: orderWords(value).over,
         orderLineNo
       };
     });

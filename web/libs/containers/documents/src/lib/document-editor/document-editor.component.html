@@ -30,14 +30,29 @@
 
 @if ($linkedOrder(); as linked) {
   <p class="document-editor-hint">
-    {{ ($isSalesOrder() ? 'doc.salesOrder.from' : 'doc.order.from') | t: { order: linked.no } }}
+    {{ $linkedFromKey() | t: { order: linked.no } }}
     @if ($canReadOrders()) {
-      <a [routerLink]="['/', $orderRoute(), linked.id]">{{ 'doc.order.open' | t }}</a>
+      <a [routerLink]="['/', $orderRoute(), linked.id]">{{
+        ($isReturn() ? 'doc.return.open' : 'doc.order.open') | t
+      }}</a>
     }
     @if ($editable()) {
-      {{ ($isSalesOrder() ? 'doc.salesOrder.editHint' : 'doc.order.editHint') | t }}
+      {{ $linkedHintKey() | t }}
     }
   </p>
+  @if ($returnApproval(); as approval) {
+    <p class="document-editor-hint" role="status">
+      {{ approval.key | t: { name: approval.name } }}
+    </p>
+  }
+  @if ($originalUnreadable()) {
+    <p class="document-editor-hint" role="status">
+      {{ 'doc.return.originalFailed' | t }}
+      <app-button variant="secondary" (clicked)="onRetryLinkedOrder()">{{
+        'ui.retry' | t
+      }}</app-button>
+    </p>
+  }
   @if ($orderProgress(); as progress) {
     <p class="document-editor-hint" role="status">
       {{ progress.key | t: { order: linked.no, count: progress.open } }}
@@ -62,6 +77,9 @@
 }
 @if ($deliveryUnreadable()) {
   <app-banner kind="danger" alert>{{ 'doc.delivery.unreadable' | t }}</app-banner>
+}
+@if ($returnUnreadable()) {
+  <p class="document-editor-hint" role="status">{{ 'doc.return.unreadable' | t }}</p>
 }
 
 @if ($isLoading()) {
@@ -147,6 +165,9 @@
       }}
     </app-banner>
   }
+  @if ($returnRefusal(); as refusal) {
+    <app-banner kind="danger" alert>{{ refusal }}</app-banner>
+  }
   @for (message of $saveGeneralErrors(); track message) {
     <app-banner kind="danger">{{ message }}</app-banner>
   }
@@ -198,6 +219,46 @@
       }
     </app-banner>
   }
+  @if ($overReturn(); as over) {
+    <app-banner
+      class="document-editor-over-return"
+      kind="danger"
+      [heading]="'doc.overReturn.title' | t"
+    >
+      @if (over.lines.length > 0) {
+        <ul class="document-editor-order-lines">
+          @for (line of over.lines; track line.lineNo) {
+            <li>
+              {{
+                'doc.overReturn.line'
+                  | t
+                    : {
+                        lineNo: line.lineNo,
+                        sku: line.sku,
+                        uom: line.uomCode,
+                        original: (line.original | appQty),
+                        returned: (line.returned | appQty),
+                        remaining: (line.remaining | appQty),
+                        requested: (line.requested | appQty)
+                      }
+              }}
+            </li>
+          }
+        </ul>
+      } @else {
+        {{ over.message }}
+      }
+      {{ ($editable() || $canRecall() ? 'doc.overReturn.fix' : 'doc.overReturn.ask') | t }}
+      @if ($canRecall()) {
+        <app-button
+          bannerActions
+          [disabled]="$isBusy() || $isStale()"
+          (clicked)="onAction(recallAction)"
+          >{{ 'dialog.post.edit' | t }}</app-button
+        >
+      }
+    </app-banner>
+  }
   @if ($conflictRefusal(); as refusal) {
     <app-banner kind="danger">{{ refusal }}</app-banner>
   }
@@ -225,7 +286,7 @@
             <dd>{{ order.warehouseName }}</dd>
           </div>
           <div>
-            <dt>{{ ($isSalesOrder() ? 'doc.customer' : 'doc.supplier') | t }}</dt>
+            <dt>{{ $linkedPartnerLabel() | t }}</dt>
             <dd>{{ order.partnerName || '-' }}</dd>
           </div>
         </dl>
@@ -254,7 +315,12 @@
           </app-form-field>
         </div>
       }
-      @if ($isIssue()) {
+      @if ($isIssue() && $isReturn()) {
+        <!-- A supplier return: the purpose is Return, set by the system and shown, not chosen. -->
+        <p class="document-editor-hint">
+          {{ 'doc.purpose' | t }}: <strong>{{ 'purpose.Return' | t }}</strong>
+        </p>
+      } @else if ($isIssue()) {
         @let purposeInvalid =
           view.header.controls.purpose.touched && view.header.controls.purpose.invalid;
         <app-radio-group
@@ -386,6 +452,18 @@
                     · {{ line.unitCost | appMoney }}
                   }
                 </ng-container>
+                @if ((line.returnedQty ?? 0) > 0) {
+                  ·
+                  <span class="document-editor-muted">{{
+                    'doc.line.returned'
+                      | t
+                        : {
+                            returned: (line.returnedQty | appQty),
+                            returnable: (line.returnableQty ?? 0 | appQty),
+                            uom: line.uomCode
+                          }
+                  }}</span>
+                }
                 @if ($isIssue() && line.available !== undefined && line.available !== null) {
                   ·
                   @if (line.baseQty > line.available) {
@@ -483,11 +561,16 @@
         [canPost]="$canPost()"
         [busy]="$isBusy()"
         [selfApprovalBlocked]="$selfApprovalBlocked()"
+        [canReturn]="$canReturn()"
         [submitDisabled]="
-          $linesBlocked() || $overOrder() || $orderBlocksSubmit() || $deliveryUnreadable()
+          $linesBlocked() ||
+          $overOrder() ||
+          $orderBlocksSubmit() ||
+          $deliveryUnreadable() ||
+          $returnUnreadable()
         "
-        [saveDisabled]="$deliveryUnreadable()"
-        [postDisabled]="$orderBlocksSubmit() || $deliveryUnreadable()"
+        [saveDisabled]="$deliveryUnreadable() || $returnUnreadable()"
+        [postDisabled]="$orderBlocksSubmit() || $deliveryUnreadable() || $returnUnreadable()"
         [locked]="$isStale()"
         [busyAction]="$busyAction()"
         (triggered)="onAction($event)"

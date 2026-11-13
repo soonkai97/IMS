@@ -855,6 +855,32 @@ export const ZH_MESSAGES: Messages = {
   'line.salesOrder': '订单第 {lineNo} 行：订购 {ordered}，已发 {delivered}，剩余 {remaining} {uom}',
   'line.salesOrder.over': '此订单行只剩 {remaining} {uom} 可发货。',
   'sales.deliver': '发货',
+  // TODO-review: machine draft (PL3.18 returns).
+  'doc.action.return': '退货',
+  'purpose.Return': '退货',
+  'doc.return.from':
+    '这是 {order} 的退货。往来方、仓库和明细均来自原单据。成本为原单据的成本，无法在此修改。',
+  'doc.return.editHint': '请减少数量，或移除不退的明细。数量不能超过仍可退的数量。',
+  'doc.return.open': '打开原单据。',
+  'doc.return.approval':
+    '退货一律需要审批，由提交人以外的主管或管理员审批。所有者不能审批。只有一位主管时，由管理员审批。',
+  'doc.return.approval.other':
+    '由 {name} 提交。退货一律需要审批，由 {name} 以外的主管或管理员审批。所有者不能审批。',
+  'doc.return.originalFailed': '无法读取原单据的数量。仍可编辑；保存时会检查数量。',
+  'doc.return.unreadable':
+    '这是一张退货单，而你无权创建退货，因此无法在此编辑。请让有权限的人处理，或将其取消。',
+  'doc.overReturn.title': '未接受：超过仍可退的数量',
+  'doc.overReturn.line':
+    '第 {lineNo} 行（{sku}）：原数量 {original} {uom}，已退 {returned} {uom}，仍可退 {remaining} {uom}，本退货单 {requested} {uom}。',
+  'doc.overReturn.fix': '退货单未改动。请减少数量后重试。',
+  'doc.overReturn.ask': '退货单未改动。请让制单人减少数量，或将其取消。',
+  'line.return': '原第 {lineNo} 行：{ordered} {uom}，已退 {returned} {uom}，可退 {remaining} {uom}',
+  'line.return.over': '此行只剩 {remaining} {uom} 可退。',
+  'doc.line.returned': '已退 {returned} {uom}，可退 {returnable} {uom}',
+  'module.returns.name': '退货',
+  'module.returns.description': '客户退货和供应商退货，关联到所退的单据。',
+  'perm.returns.create': '创建退货',
+  'perm.returns.create.help': '对已过账的销售或收货发起退货，并以草稿修改。退货一律由他人审批。',
   // TODO-review: machine draft (PL3.14 list price).
   'sales.listPrice.sourceCustomer': '客户的价格表',
   'sales.listPrice.sourceDefault': '默认价格表',

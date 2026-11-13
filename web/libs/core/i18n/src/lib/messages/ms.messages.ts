@@ -923,6 +923,38 @@ export const MS_MESSAGES: Messages = {
     'Baris pesanan {lineNo}: dipesan {ordered}, dihantar {delivered}, baki {remaining} {uom}',
   'line.salesOrder.over': 'Hanya {remaining} {uom} baris pesanan ini tinggal untuk dihantar.',
   'sales.deliver': 'Hantar barang',
+  // TODO-review: machine draft (PL3.18 returns).
+  'doc.action.return': 'Pulangkan',
+  'purpose.Return': 'Pemulangan',
+  'doc.return.from':
+    'Ini pemulangan bagi {order}. Rakan, gudang dan baris datang daripadanya. Kos ialah kos asal dan tidak boleh diubah di sini.',
+  'doc.return.editHint':
+    'Kurangkan kuantiti atau buang baris yang tidak dipulangkan. Kuantiti tidak boleh melebihi yang masih boleh dipulangkan.',
+  'doc.return.open': 'Buka dokumen asal.',
+  'doc.return.approval':
+    'Pemulangan sentiasa memerlukan kelulusan, oleh Penyelia atau Pentadbir selain orang yang menghantarnya. Pemilik tidak boleh meluluskannya. Jika hanya ada seorang Penyelia, Pentadbir yang meluluskan.',
+  'doc.return.approval.other':
+    'Dihantar oleh {name}. Pemulangan sentiasa memerlukan kelulusan, oleh Penyelia atau Pentadbir selain {name}. Pemilik tidak boleh meluluskannya.',
+  'doc.return.originalFailed':
+    'Kuantiti dokumen asal tidak dapat dibaca. Anda masih boleh menyunting; kuantiti disemak apabila anda menyimpan.',
+  'doc.return.unreadable':
+    'Ini pemulangan dan anda tidak boleh membuat pemulangan, jadi ia tidak boleh disunting di sini. Minta orang yang boleh, atau batalkannya.',
+  'doc.overReturn.title': 'Tidak diterima: melebihi yang masih boleh dipulangkan',
+  'doc.overReturn.line':
+    'Baris {lineNo} ({sku}): asal {original} {uom}, sudah dipulangkan {returned} {uom}, masih boleh dipulangkan {remaining} {uom}, pemulangan ini {requested} {uom}.',
+  'doc.overReturn.fix': 'Pemulangan tidak berubah. Kurangkan kuantiti dan cuba lagi.',
+  'doc.overReturn.ask':
+    'Pemulangan tidak berubah. Minta pembuatnya mengurangkan kuantiti, atau batalkannya.',
+  'line.return':
+    'Baris asal {lineNo}: {ordered} {uom}, sudah dipulangkan {returned} {uom}, boleh dipulangkan {remaining} {uom}',
+  'line.return.over': 'Hanya {remaining} {uom} baris ini yang masih boleh dipulangkan.',
+  'doc.line.returned': 'Dipulangkan {returned} {uom}, boleh dipulangkan {returnable} {uom}',
+  'module.returns.name': 'Pemulangan',
+  'module.returns.description':
+    'Pemulangan pelanggan dan pembekal, dipautkan kepada dokumen yang dipulangkan.',
+  'perm.returns.create': 'Cipta pemulangan',
+  'perm.returns.create.help':
+    'Mulakan pemulangan jualan atau terimaan yang telah disiarkan dan ubah sebagai draf. Pemulangan sentiasa diluluskan oleh orang lain.',
   // TODO-review: machine draft (PL3.14 list price).
   'sales.listPrice.sourceCustomer': 'senarai pelanggan',
   'sales.listPrice.sourceDefault': 'senarai lalai',
