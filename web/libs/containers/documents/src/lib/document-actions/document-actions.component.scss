@@ -19,7 +19,7 @@ app-button:not(.document-actions-more) {
   @include media-phone {
     flex: 1 1 auto;
     min-width: 7rem;
-    white-space: nowrap;
+    @include keep-whole;
   }
 }
 

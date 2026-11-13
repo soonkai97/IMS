@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { DestroyRef, Injectable, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { filter, tap } from 'rxjs';
@@ -23,6 +23,7 @@ export class PwaService {
   private readonly i18n = inject(I18nService);
   private readonly toast = inject(ToastService);
   private readonly update = inject(SwUpdate);
+  private readonly destroyRef = inject(DestroyRef);
 
   start(): void {
     if (this.update.isEnabled) {
@@ -35,7 +36,7 @@ export class PwaService {
               run: () => document.location.reload()
             })
           ),
-          takeUntilDestroyed()
+          takeUntilDestroyed(this.destroyRef)
         )
         .subscribe();
     }
@@ -43,7 +44,7 @@ export class PwaService {
     this.auth.sessionEnded$
       .pipe(
         tap(() => void this.clearDataCaches()),
-        takeUntilDestroyed()
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe();
   }

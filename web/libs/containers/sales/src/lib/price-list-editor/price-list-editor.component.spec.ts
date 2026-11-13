@@ -25,8 +25,8 @@ const CUSTOMER = '00000000-0000-4000-8000-0000000000a1';
 @Component({ selector: 'app-product-picker', template: '' })
 class StubProductPickerComponent {
   $notice = input<string | undefined>(undefined, { alias: 'notice' });
-  $picked = output<PickedProduct>({ alias: 'picked' });
-  $termChanged = output<string>({ alias: 'termChanged' });
+  readonly $picked = output<PickedProduct>({ alias: 'picked' });
+  readonly $termChanged = output<string>({ alias: 'termChanged' });
 }
 
 const PRODUCT = {

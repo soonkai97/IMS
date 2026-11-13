@@ -113,6 +113,8 @@ for (const l of LIBS) {
     json({
       extends: './tsconfig.json',
       compilerOptions: {
+        // The base turns isolatedModules on; ts-jest then stops type-checking specs, which are checked only here.
+        isolatedModules: false,
         outDir: `${UP}dist/out-tsc`,
         module: 'preserve',
         moduleResolution: 'bundler',

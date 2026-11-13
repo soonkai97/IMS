@@ -37,7 +37,7 @@ export class UiSearchInputComponent {
   /** A pasted wall of text must not reach the API (EA-16). */
   $maxLength = input(MAX_SEARCH_LENGTH, { alias: 'maxLength' });
 
-  $submitted = output<string>({ alias: 'submitted' });
+  readonly $submitted = output<string>({ alias: 'submitted' });
 
   private readonly $control = viewChild.required<ElementRef<HTMLInputElement>>('control');
 

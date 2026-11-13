@@ -46,7 +46,7 @@ export class DocumentActionsComponent {
   /** Disables Post (the order of a delivery is no longer open, or its quantities are not known); the page says why. */
   $postDisabled = input(false, { alias: 'postDisabled', transform: booleanAttribute });
 
-  $triggered = output<DocumentAction>({ alias: 'triggered' });
+  readonly $triggered = output<DocumentAction>({ alias: 'triggered' });
 
   readonly action = DOCUMENT_ACTION;
 

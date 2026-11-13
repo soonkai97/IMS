@@ -28,8 +28,8 @@ export class UiToastComponent {
   $message = input.required<string>({ alias: 'message' });
   $actionLabel = input<string | undefined>(undefined, { alias: 'actionLabel' });
 
-  $dismissed = output<void>({ alias: 'dismissed' });
-  $actioned = output<void>({ alias: 'actioned' });
+  readonly $dismissed = output<void>({ alias: 'dismissed' });
+  readonly $actioned = output<void>({ alias: 'actioned' });
 
   $icon = computed(() => TOAST_ICONS[this.$kind()]);
   $role = computed(() => (this.$kind() === 'error' ? 'alert' : null));
