@@ -5,13 +5,16 @@
 #   SMOKE_BASE_URL=http://127.0.0.1 deploy/scripts/smoke.sh         (IP-address test over http: the HSTS check is skipped)
 #
 # Optional: SMOKE_USER and SMOKE_PASSWORD (a real account) add a login, an authenticated read and a refresh-cookie check.
-# Exit 0 = all checks passed, 1 = at least one failed. Nothing is written; the password is never printed.
+# Exit 0 = all checks passed, 1 = at least one failed. The password is never printed. The login's response headers (they hold the refresh cookie)
+# go to a private temporary file (mktemp, mode 600) that is removed when the script ends, whatever the outcome.
 set -euo pipefail
 
 base="${SMOKE_BASE_URL:-}"
 [ -n "$base" ] || { echo "set SMOKE_BASE_URL" >&2; exit 2; }
 base="${base%/}"
 failed=0
+headers_file=""
+trap '[ -z "$headers_file" ] || rm -f "$headers_file"' EXIT
 pass() { printf 'ok    %s\n' "$1"; }
 fail() { printf 'FAIL  %s\n' "$1" >&2; failed=1; }
 
@@ -55,17 +58,17 @@ esac
 # 5. optional: a real login, an authenticated read, the refresh cookie flags
 if [ -n "${SMOKE_USER:-}" ] && [ -n "${SMOKE_PASSWORD:-}" ]; then
   body=$(printf '{"username":"%s","password":"%s"}' "$SMOKE_USER" "$SMOKE_PASSWORD")
-  resp=$(printf '%s' "$body" | curl -sS --max-time 20 -D "${TMPDIR:-/tmp}/smoke-headers.$$" -H 'Content-Type: application/json' --data-binary @- "$base/api/auth/login" || true)
+  headers_file=$(mktemp "${TMPDIR:-/tmp}/smoke-headers.XXXXXX")
+  resp=$(printf '%s' "$body" | curl -sS --max-time 20 -D "$headers_file" -H 'Content-Type: application/json' --data-binary @- "$base/api/auth/login" || true)
   token=$(printf '%s' "$resp" | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p')
   if [ -n "$token" ]; then
     pass "login"
     code=$(status_of -H "Authorization: Bearer $token" "$base/api/auth/me")
     if [ "$code" = 200 ]; then pass "authenticated read 200"; else fail "authenticated read answered $code"; fi
-    if tr -d '\r' < "${TMPDIR:-/tmp}/smoke-headers.$$" | grep -i '^set-cookie:' | grep -qi 'httponly' ; then pass "refresh cookie is HttpOnly"; else fail "refresh cookie is not HttpOnly"; fi
+    if tr -d '\r' < "$headers_file" | grep -i '^set-cookie:' | grep -qi 'httponly' ; then pass "refresh cookie is HttpOnly"; else fail "refresh cookie is not HttpOnly"; fi
   else
     fail "login did not return a token"
   fi
-  rm -f "${TMPDIR:-/tmp}/smoke-headers.$$"
 fi
 
 if [ "$failed" -eq 0 ]; then echo "smoke: all checks passed"; else echo "smoke: FAILED" >&2; fi

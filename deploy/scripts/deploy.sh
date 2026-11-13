@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Deploy a released image tag to this VM (docker compose). Run on the VM, from any directory; the deploy workflow calls it over SSH.
 #
-#   deploy.sh --tag sha-1a2b3c4 [--migrated] [--env-file PATH]
-#   deploy.sh --db-only                       first deploy: start only the database, so the DBA script can create the schema
+#   deploy.sh --tag sha-1a2b3c4 [--migrated] [--first-migration] [--env-file PATH]
+#   deploy.sh --db-only [--first-migration]   first deploy: start only the database, so the DBA script can create the schema
 #
+# IMS_DB_USER (the API's database login) is mandatory in the env file: ims_app. sa is refused unless --first-migration is given, and that flag is for
+# the very first run only (schema and first administrator); put ims_app in the env file straight after (docs/architecture/deployment.md section 3).
 # Migrations are NEVER run here (docs/dba/README.md section 17). Without --migrated the script pulls the images, prints how to run the
 # migration script, and stops before anything is restarted (exit 3). With --migrated it starts the stack, waits for health and runs smoke.sh.
 set -euo pipefail
@@ -17,9 +19,10 @@ state_dir="${IMS_STATE_DIR:-$deploy_dir/.state}"
 tag=""
 migrated=0
 db_only=0
+first_migration=0
 
 usage() {
-  sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
   exit 2
 }
 
@@ -28,6 +31,7 @@ while [ $# -gt 0 ]; do
     --tag) [ $# -ge 2 ] || usage; tag=$2; shift 2 ;;
     --migrated) migrated=1; shift ;;
     --db-only) db_only=1; shift ;;
+    --first-migration) first_migration=1; shift ;;
     --env-file) [ $# -ge 2 ] || usage; env_file=$2; shift 2 ;;
     -h|--help) usage ;;
     *) echo "unknown argument: $1" >&2; usage ;;
@@ -58,10 +62,30 @@ for name in IMS_GITHUB_OWNER IMS_DB_PASSWORD IMS_JWT_KEY IMS_CORS_ORIGINS MSSQL_
   [ -n "$(env_value "$name")" ] || { echo "$name is empty in $env_file" >&2; exit 1; }
 done
 
-# The API should not connect as sa on a production host: say so loudly on every deploy until ims_app is in use (docs/architecture/deployment.md section 6, gate 1).
+# The API must not connect as sa. IMS_DB_USER is mandatory (compose has no default either): ims_app, or sa for the very first migration run only, and only
+# when --first-migration says so on the command line (a deliberate act, never what the deploy workflow sends).
 db_user=$(env_value IMS_DB_USER)
-if [ -z "$db_user" ] || [ "$db_user" = sa ]; then
-  echo "WARNING: the API connects to the database as sa. That is not acceptable for real data: create the ims_app login (deploy/scripts/create-app-login.sql) and set IMS_DB_USER=ims_app." >&2
+if [ -z "$db_user" ]; then
+  if [ "$db_only" -eq 1 ]; then
+    # No API container is started by --db-only; compose only needs a value to read the file.
+    export IMS_DB_USER=unused
+  else
+    echo "IMS_DB_USER is empty in $env_file: set IMS_DB_USER=ims_app (deploy/scripts/create-app-login.sql). sa is for the first migration run only (--first-migration)." >&2
+    exit 1
+  fi
+elif [ "$db_user" = sa ]; then
+  if [ "$first_migration" -ne 1 ]; then
+    echo "IMS_DB_USER=sa is refused: the API must not connect as sa. Create the ims_app login (deploy/scripts/create-app-login.sql) and set IMS_DB_USER=ims_app and IMS_APP_DB_PASSWORD. For the very first migration run only, pass --first-migration." >&2
+    exit 1
+  fi
+  echo "WARNING: --first-migration: the API will connect as sa for THIS run only. Next: create ims_app, set IMS_DB_USER=ims_app and IMS_APP_DB_PASSWORD, empty IMS_ADMIN_PASSWORD, set IMS_MIGRATE_ON_STARTUP=false, and deploy again without the flag." >&2
+else
+  # A non-sa login needs its own password: compose falls back to the sa password when it is empty, which would fail to log in (or tempt someone to reuse sa's).
+  [ -n "$(env_value IMS_APP_DB_PASSWORD)" ] || { echo "IMS_APP_DB_PASSWORD is empty in $env_file (the password of $db_user)" >&2; exit 1; }
+  if [ "$first_migration" -eq 1 ]; then
+    echo "--first-migration is only for IMS_DB_USER=sa; $db_user is already set. Run without the flag." >&2
+    exit 1
+  fi
 fi
 
 mkdir -p "$state_dir"
@@ -70,7 +94,7 @@ if [ "$db_only" -eq 1 ]; then
   [ -n "$(env_value IMS_API_REF)" ] || set_env IMS_API_REF :none
   [ -n "$(env_value IMS_WEB_REF)" ] || set_env IMS_WEB_REF :none
   compose up -d db
-  echo "database started. Run the migration script now (see docs/architecture/deployment.md, first deploy), then: deploy.sh --tag <tag> --migrated"
+  echo "database started. Run the migration script now (see docs/architecture/deployment.md, first deploy), then: deploy.sh --tag <tag> --migrated --first-migration (IMS_DB_USER=sa), and afterwards switch to ims_app"
   exit 0
 fi
 
