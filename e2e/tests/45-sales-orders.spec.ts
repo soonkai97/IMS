@@ -374,7 +374,9 @@ test.describe('Sales orders, real API', () => {
       await admin1.page
         .getByRole('combobox', { name: 'Action' })
         .selectOption({ label: 'sales-order.price-changed' });
-      await expect(row(admin1.page, saved.no)).toBeVisible();
+      // The list shows every action of the order (created, price-changed) until the filter has been applied: wait for the one row
+      // the filter leaves, so the check is of the filtered list and never of the one before it (two rows matched once).
+      await expect(row(admin1.page, saved.no)).toHaveCount(1);
       await expect(row(admin1.page, saved.no)).toContainText('sales-order.price-changed');
     } finally {
       await admin1.context.close();

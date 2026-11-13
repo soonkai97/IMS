@@ -110,6 +110,6 @@ test.describe('PWA service worker never answers an API call (QA round S1 and def
     const again = await editor.openAddItem();
     await searchBox(again).fill(sku);
 
-    await expect(again.getByRole('button', { name: `${sku}, ${product.name}` })).toBeVisible();
+    await expect(again.getByRole('button', { name: `${sku} ${product.name}` })).toBeVisible();
   });
 });
