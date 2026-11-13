@@ -155,7 +155,7 @@ test.describe('Price lists, real API', () => {
     // The picker does not add a product that is already priced in its unit: it says so instead.
     const sheet = await editor.openAddItem();
     await sheet.getByRole('searchbox', { name: 'Find a product' }).fill(data.sku);
-    await sheet.getByRole('button', { name: `${data.sku}, ${data.productName}` }).click();
+    await sheet.getByRole('button', { name: `${data.sku} ${data.productName}` }).click();
     await expect(sheet.getByText(`${data.sku} already has a price in every unit`)).toBeVisible();
     await sheet.getByRole('button', { name: 'Done' }).click();
     await expect(page.getByRole('spinbutton', { name: `Price of ${data.sku}` })).toHaveCount(1);

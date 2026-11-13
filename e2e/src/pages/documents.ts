@@ -80,7 +80,7 @@ export class DocumentEditor {
   async addItem(product: Pick<ApiProduct, 'sku' | 'name'>, term = product.sku): Promise<void> {
     const sheet = await this.openAddItem();
     await sheet.getByRole('searchbox', { name: 'Find a product' }).fill(term);
-    await sheet.getByRole('button', { name: `${product.sku}, ${product.name}` }).click();
+    await sheet.getByRole('button', { name: `${product.sku} ${product.name}` }).click();
     await expect(sheet.getByText(`${product.sku} added.`)).toBeVisible();
     await sheet.getByRole('button', { name: 'Done' }).click();
     await expect(sheet).toBeHidden();

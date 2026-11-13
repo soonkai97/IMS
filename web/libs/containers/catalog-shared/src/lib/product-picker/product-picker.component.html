@@ -20,16 +20,14 @@
   <ul class="product-picker-list">
     @for (item of $results(); track item.product.id) {
       <li>
-        <button
-          type="button"
-          class="product-picker-item"
-          [attr.aria-label]="item.product.sku + ', ' + item.product.name"
-          (click)="onPick(item)"
-        >
-          <span class="product-picker-sku">{{ item.product.sku }}</span>
-          <span class="product-picker-name">{{ item.product.name }}</span>
+        <button type="button" class="product-picker-item" (click)="onPick(item)">
+          <!-- The words between the parts keep the name of the button what it shows (WCAG 2.5.3), also where the parts are not laid out as blocks. -->
+          <span class="product-picker-sku">{{ item.product.sku }}</span>&ngsp;<span
+            class="product-picker-name"
+            >{{ item.product.name }}</span
+          >
           @if ($showAvailable()) {
-            <span class="product-picker-available" [class.--empty]="item.available === 0">
+            &ngsp;<span class="product-picker-available" [class.--empty]="item.available === 0">
               {{
                 'picker.available'
                   | t: { qty: (item.available | appQty), uom: item.product.baseUomCode }

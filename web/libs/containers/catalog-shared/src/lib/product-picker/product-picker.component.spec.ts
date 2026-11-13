@@ -128,3 +128,26 @@ describe('ProductPickerComponent keyboard and scanner path (NV-03, NV-04, NV-15)
     expect(document.activeElement).toBe(input);
   });
 });
+
+describe('ProductPickerComponent result buttons (WCAG 2.5.3 Label in Name)', () => {
+  let spectator: Spectator<ProductPickerComponent>;
+  const createComponent = createComponentFactory({
+    component: ProductPickerComponent,
+    providers: [mockProvider(ProductsStore), mockProvider(StockAvailabilityService)]
+  });
+
+  beforeEach(() => {
+    spectator = createComponent({
+      props: { warehouseId: '00000000-0000-4000-8000-000000000001' } as never
+    });
+    spectator.component.$results.set([{ product: WIDGET, available: 3 }]);
+    spectator.detectChanges();
+  });
+
+  it('is named by what it shows (the SKU, the name and the stock line): no label that differs from the text', () => {
+    const button = spectator.query('.product-picker-item') as HTMLElement;
+
+    expect(button.hasAttribute('aria-label')).toBe(false);
+    expect(button.textContent?.replace(/\s+/g, ' ').trim()).toBe('W-1 Widget 3 PCS available');
+  });
+});
