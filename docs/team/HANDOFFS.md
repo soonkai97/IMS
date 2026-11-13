@@ -1761,6 +1761,12 @@
 - Minors: M1 `ship` takes only files older than 10 minutes; M2 no credential in BACKUP_SHIP_COMMAND (mode-600 config file, write-only or object-locked remote key, documented); M3 `prune` deletes only shipped files and keeps the newest BACKUP_KEEP_FULLS fulls; M4 `-P` removed from rollback.md; M5 `docker compose cp` for the migration script; M6 `docker logout` on exit; M7 the environment input moved to env and the resolved commit must start with the tag digits; M8 a loud sa warning in deploy.sh, and DENY UPDATE, DELETE on dbo.AuditLogs and dbo.StockLedgerEntry for ims_app (table names checked in the initial migration).
 - Validated: `docker compose config`, `bash -n`. Not run: shellcheck, actionlint, any container. Open conflicts: none.
 
+### 2026-11-13 be-framework -> orchestrator, be-architect (backend modernisation PR 1: seal Domain, Infrastructure, Api)
+- Produced: the concrete classes and records of Ims.Domain, Ims.Infrastructure and Ims.Api are `sealed` (71 files, one line each; `Program`, the exception base classes and the EF migrations are untouched). No mocking or proxy library is used, so nothing depends on subclassing. Behaviour-neutral: contract test zero diff, no migration, no snapshot change.
+- Decisions others must respect: from PR 2 on an architecture test fails any new unsealed concrete class (allow-list: Program and the four exception bases), so a new class needs `sealed` from the start.
+- Next: PR 2 (Application, 451 files, plus the architecture test).
+- Open conflicts: none.
+
 ### 2026-11-13 project-manager -> orchestrator, be-framework, security-engineer
 - Produced: branch `docs/roadmap-owner-questions`: `docs/pm/ROADMAP.md` section 8.2 now lists the open owner decisions O12 to O22 raised by the deployment build and PL3 (VM ownership, domain and SQL licence; `ims_app` login; GitHub `production` environment; off-machine backup target, age key, retention and recovery objective; `Seed__AdminPassword` removal; secrets on the VM versus GitHub; returns approval; price lookup; .NET 11 / SQL Server 2025 timing; real approval amounts; pilot scope), each with a default and a needed-by owner. O3 (hosting) moved to section 8.1 as item 18. `TASKS.md` "Still open" points at 8.2.
 - Needs from the owner: answers or confirmation of O12 to O22; the four go-live gates (O13, O14, O15, O21) must be done before real data. Needs from be-framework: nothing new.

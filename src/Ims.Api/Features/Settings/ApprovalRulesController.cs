@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ims.Api.Features.Settings;
 
 [Route(ApiRoutes.ApprovalRules)]
-public class ApprovalRulesController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class ApprovalRulesController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet, Authorize(Policy = Permissions.MasterDataRead)]
     [ProducesResponseType<IReadOnlyList<ApprovalRuleDto>>(StatusCodes.Status200OK)]

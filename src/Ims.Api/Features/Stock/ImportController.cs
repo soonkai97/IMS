@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ims.Api.Features.Stock;
 
 [Route(ApiRoutes.Import)]
-public class ImportController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class ImportController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [ProducesFile(ContentTypes.Xlsx)]
     [HttpGet(RouteSegments.Templates), Authorize(Policy = Permissions.MasterDataManage)]

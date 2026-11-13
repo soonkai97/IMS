@@ -13,7 +13,7 @@ namespace Ims.Api.Features.Returns;
 /// <c>returnOfLineNo</c>, and a return always needs one approval from a Supervisor (or an Administrator), whatever it is worth.
 /// </summary>
 [Route(ApiRoutes.Returns), RequiresModule(ModuleCodes.Returns)]
-public class ReturnsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class ReturnsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     /// <summary>
     /// Creates the Draft return of a Posted document: a customer return (a Receipt, partner the customer) of an issue with purpose Sale, or a supplier return (an Issue with purpose Return, partner the supplier) of a receipt.

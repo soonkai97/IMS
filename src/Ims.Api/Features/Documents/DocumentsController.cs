@@ -12,7 +12,7 @@ namespace Ims.Api.Features.Documents;
 /// someone else changed the document in the meantime, before anything is changed.
 /// </summary>
 [Route(ApiRoutes.Documents)]
-public class DocumentsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class DocumentsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet, Authorize(Policy = Permissions.StockRead)]
     [ProducesResponseType<PagedResult<DocumentListItem>>(StatusCodes.Status200OK)]

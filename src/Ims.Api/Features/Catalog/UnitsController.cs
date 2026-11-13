@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ims.Api.Features.Catalog;
 
 [Route(ApiRoutes.Units)]
-public class UnitsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class UnitsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet, Authorize(Policy = Permissions.MasterDataRead)]
     [ProducesResponseType<IReadOnlyList<UomDto>>(StatusCodes.Status200OK)]

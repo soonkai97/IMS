@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ims.Api.Features.Warehouses;
 
 [Route(ApiRoutes.Warehouses)]
-public class WarehousesController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class WarehousesController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet, Authorize(Policy = Permissions.MasterDataRead)]
     [ProducesResponseType<IReadOnlyList<WarehouseDto>>(StatusCodes.Status200OK)]

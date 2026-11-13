@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ims.Api.Features.Catalog;
 
 [Route(ApiRoutes.Products)]
-public class ProductsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class ProductsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet, Authorize(Policy = Permissions.MasterDataRead)]
     [ProducesResponseType<PagedResult<ProductDto>>(StatusCodes.Status200OK)]

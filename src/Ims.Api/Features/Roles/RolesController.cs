@@ -11,7 +11,7 @@ namespace Ims.Api.Features.Roles;
 /// as <c>If-Match</c> (428 without it, 409 when it is stale).
 /// </summary>
 [Route(ApiRoutes.Roles)]
-public class RolesController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class RolesController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet, Authorize(Policy = Permissions.RolesRead)]
     [ProducesResponseType<IReadOnlyList<RoleDto>>(StatusCodes.Status200OK)]

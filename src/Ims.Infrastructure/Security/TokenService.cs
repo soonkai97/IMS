@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 namespace Ims.Infrastructure.Security;
 
-public class TokenService(IOptions<JwtOptions> options, IClock clock) : ITokenService
+public sealed class TokenService(IOptions<JwtOptions> options, IClock clock) : ITokenService
 {
     private readonly JwtOptions _o = options.Value;
 

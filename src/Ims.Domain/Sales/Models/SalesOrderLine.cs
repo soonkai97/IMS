@@ -4,7 +4,7 @@ namespace Ims.Domain;
 /// One line of a sales order: a product, a quantity in any unit the product converts, and the price asked of the customer per ENTERED unit. The base quantity (BR-04) is converted once when
 /// the line is built; the amount is <c>round(entered quantity x entered price, 2)</c> with no division in between. A selling price is not cost: it is gated by <c>so.manage</c>. The properties have names of their own (SellingPrice, SellingAmount) because the audit scrubber withholds a tagged NAME unless the caller holds every permission that tags it, and UnitPrice and Amount are already the cost-gated names of the purchase order and document lines.
 /// </summary>
-public class SalesOrderLine : Entity
+public sealed class SalesOrderLine : Entity
 {
     private SalesOrderLine() { }
 

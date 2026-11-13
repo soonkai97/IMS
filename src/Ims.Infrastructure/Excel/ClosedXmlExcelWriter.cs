@@ -3,7 +3,7 @@ using Ims.Application;
 using Ims.Domain;
 namespace Ims.Infrastructure.Excel;
 
-public class ClosedXmlExcelWriter : IExcelWriter
+public sealed class ClosedXmlExcelWriter : IExcelWriter
 {
     // dd/MM/yyyy everywhere (owner decision, same as the web). The cells stay real Excel dates, so sort and filter keep working.
     private const string DateFormat = "dd/mm/yyyy";

@@ -13,7 +13,7 @@ namespace Ims.Infrastructure.Persistence;
 ///  2. Recover: if SQL Server still picks this session as a deadlock victim (error 1205) or a lock times out (1222), the whole
 ///     transaction is rolled back and re-run, after a short randomised back-off.
 /// </summary>
-public class UnitOfWork(AppDbContext db) : IUnitOfWork
+public sealed class UnitOfWork(AppDbContext db) : IUnitOfWork
 {
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {

@@ -7,7 +7,7 @@ namespace Ims.Api.Features.Roles;
 
 /// <summary>The permission catalog: what a role can hold.</summary>
 [Route(ApiRoutes.Permissions)]
-public class PermissionsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class PermissionsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet, Authorize(Policy = Permissions.RolesRead)]
     [ProducesResponseType<IReadOnlyList<PermissionDto>>(StatusCodes.Status200OK)]

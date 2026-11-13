@@ -3,7 +3,7 @@ using Ims.Application;
 using Ims.Domain;
 namespace Ims.Api;
 
-public class CurrentUser(IHttpContextAccessor accessor) : ICurrentUser
+public sealed class CurrentUser(IHttpContextAccessor accessor) : ICurrentUser
 {
     private ClaimsPrincipal? Principal => accessor.HttpContext?.User;
     private ActorRights? _rights; // one request, one token: the claims are read once

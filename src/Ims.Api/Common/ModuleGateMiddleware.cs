@@ -8,7 +8,7 @@ namespace Ims.Api;
 /// (401, as ever); a signed-in caller of an endpoint of an off module gets the 404 of an unknown route, whatever they may do; an endpoint of an enabled module goes on to the policy
 /// (403 or 200). Endpoints without <see cref="RequiresModuleAttribute"/> are never touched and cost nothing.
 /// </summary>
-public class ModuleGateMiddleware(RequestDelegate next)
+public sealed class ModuleGateMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext http, IModuleSwitches switches)
     {

@@ -1,7 +1,7 @@
 namespace Ims.Domain;
 
 /// <summary>Quantity in FromUom x Factor = quantity in ToUom (BR-04: stock itself is always held in the base unit).</summary>
-public class UomConversion : Entity
+public sealed class UomConversion : Entity
 {
     private UomConversion() { }
 

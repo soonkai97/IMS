@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ims.Api.Features.Settings;
 
 [Route(ApiRoutes.Settings)]
-public class SettingsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class SettingsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet, Authorize(Policy = Permissions.MasterDataRead)]
     [ProducesResponseType<SettingsDto>(StatusCodes.Status200OK)]

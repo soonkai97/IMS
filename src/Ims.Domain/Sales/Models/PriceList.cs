@@ -5,7 +5,7 @@ namespace Ims.Domain;
 /// list first, then in the default list (plan D10, built in PL3.12); a price list never changes a saved order. Its items are replaced as a whole by a save, like the lines of an order. The database enforces
 /// what a race could break: one default, one list per customer, one item per product and unit, one name.
 /// </summary>
-public class PriceList : PublicEntity
+public sealed class PriceList : PublicEntity
 {
     private PriceList() { }
 
