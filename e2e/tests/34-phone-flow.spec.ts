@@ -21,7 +21,8 @@ async function watchScreen(page: Page): Promise<void> {
     (window as unknown as { __seen: typeof seen }).__seen = seen;
     new MutationObserver(() => {
       for (const dialog of Array.from(document.querySelectorAll('dialog[open]'))) {
-        const name = dialog.getAttribute('aria-label') ?? dialog.querySelector('h2')?.textContent ?? '';
+        const name =
+          dialog.getAttribute('aria-label') ?? dialog.querySelector('h2')?.textContent ?? '';
         if (name && !seen.dialogs.includes(name.trim())) {
           seen.dialogs.push(name.trim());
         }
@@ -29,7 +30,12 @@ async function watchScreen(page: Page): Promise<void> {
       if (document.body.innerText.includes('Ready to post')) {
         seen.readyToPost++;
       }
-    }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true });
+    }).observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true
+    });
   });
 }
 
@@ -170,7 +176,9 @@ test.describe('Phone QA: scroll, Submit & post, Edit and the empty-lines message
 
     await expect(shell.toast('Submitted. Waiting for a warehouse user to post.')).toBeVisible();
     await expect(editor.status).toHaveText('Submitted');
-    await expect(page.getByText('Waiting for a warehouse user to post.', { exact: true })).toBeVisible();
+    await expect(
+      page.getByText('Waiting for a warehouse user to post.', { exact: true })
+    ).toBeVisible();
     await expect(editor.action('Post')).toHaveCount(0);
     expect(await screenLog(page)).toEqual({ dialogs: [], readyToPost: 0 });
   });
@@ -294,10 +302,7 @@ test.describe('Phone QA: scroll, Submit & post, Edit and the empty-lines message
     expect(before).toBeGreaterThan(400);
 
     await editor.action('Submit & post').click();
-    await shell
-      .dialog('Submit & post?')
-      .getByRole('button', { name: 'Back', exact: true })
-      .click();
+    await shell.dialog('Submit & post?').getByRole('button', { name: 'Back', exact: true }).click();
     await expect(shell.dialog('Submit & post?')).toBeHidden();
 
     await expect(editor.action('Submit & post')).toBeFocused();

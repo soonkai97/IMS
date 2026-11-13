@@ -13,7 +13,12 @@ const WRONG = 'Email, username or password is wrong.';
 const NOT_A_PASSWORD = 'not-a-real-password-1';
 
 /** Answers POST /api/auth/login with a problem response after `delayMs`; returns how many calls it got. */
-async function stubLogin(page: Page, status: number, body = {}, delayMs = 0): Promise<() => number> {
+async function stubLogin(
+  page: Page,
+  status: number,
+  body = {},
+  delayMs = 0
+): Promise<() => number> {
   let calls = 0;
   await page.route(LOGIN, async route => {
     if (route.request().method() !== 'POST') {
@@ -24,7 +29,12 @@ async function stubLogin(page: Page, status: number, body = {}, delayMs = 0): Pr
     return route.fulfill({
       status,
       contentType: 'application/problem+json',
-      body: JSON.stringify({ title: 'Stub', status, detail: 'The API sentence, in English.', ...body })
+      body: JSON.stringify({
+        title: 'Stub',
+        status,
+        detail: 'The API sentence, in English.',
+        ...body
+      })
     });
   });
   return () => calls;
@@ -113,7 +123,9 @@ test.describe('R25 The sign-in page', () => {
       await expect(login.error).toHaveText(WRONG);
       await expect.poll(() => animations(page)).toBe(0);
       // The shake is still declared, but it lasts a hundredth of a millisecond and moves nothing.
-      const seconds = await login.form.evaluate(f => parseFloat(getComputedStyle(f).animationDuration));
+      const seconds = await login.form.evaluate(f =>
+        parseFloat(getComputedStyle(f).animationDuration)
+      );
       expect(seconds).toBeLessThan(0.001);
     });
   }
@@ -130,14 +142,19 @@ test.describe('R25 The sign-in page', () => {
     await expect(login.error).toHaveCount(1);
     await expect(login.error).toHaveText(WRONG);
     await expect(login.form).toHaveClass(/--shake/);
-    expect(await login.form.evaluate(f => getComputedStyle(f).animationName)).toContain('login-shake');
+    expect(await login.form.evaluate(f => getComputedStyle(f).animationName)).toContain(
+      'login-shake'
+    );
     expect(await announcedBy(page, WRONG)).toBe(1);
     await expect(page.locator('app-toast')).toHaveCount(0);
     await expect(page).toHaveURL(/\/login$/);
     await expect(login.username).toHaveValue('staff');
     // The focus did not move (that would cut the announcement short) and the password is selected: typing replaces it.
     await expect(login.passwordBox).toBeFocused();
-    const selection = await login.passwordBox.evaluate((i: HTMLInputElement) => [i.selectionStart, i.selectionEnd]);
+    const selection = await login.passwordBox.evaluate((i: HTMLInputElement) => [
+      i.selectionStart,
+      i.selectionEnd
+    ]);
     expect(selection).toEqual([0, NOT_A_PASSWORD.length]);
 
     await page.keyboard.press('x');
@@ -156,7 +173,9 @@ test.describe('R25 The sign-in page', () => {
     await expect(login.notice).toHaveText(/You're offline\. Connect to the internet to sign in\./);
     await login.submit.click();
 
-    await expect(login.error).toHaveText("Can't reach the server. Check your connection and try again.");
+    await expect(login.error).toHaveText(
+      "Can't reach the server. Check your connection and try again."
+    );
     await expect(login.notice).toHaveCount(0);
     await context.setOffline(false);
   });
@@ -188,11 +207,20 @@ test.describe('R25 The sign-in page', () => {
       };
     });
     expect(info.username).toEqual(['username', 'username', 'none', 'off', 'false', 'text']);
-    expect(info.password).toEqual(['password', 'current-password', 'none', 'off', 'false', 'password']);
+    expect(info.password).toEqual([
+      'password',
+      'current-password',
+      'none',
+      'off',
+      'false',
+      'password'
+    ]);
     expect([info.forms, info.autocompleteOff, info.session]).toEqual([1, 0, []]);
     expect(info.local.filter(key => !['ims.language', 'ims.theme'].includes(key))).toEqual([]);
     // Compared as booleans, so a failure never prints a value.
-    expect(info.text.includes(passwordFor('admin')) || info.text.includes(NOT_A_PASSWORD)).toBe(false);
+    expect(info.text.includes(passwordFor('admin')) || info.text.includes(NOT_A_PASSWORD)).toBe(
+      false
+    );
   });
 
   test('given a desktop window, then the page is two regions with the right landmarks, and the panel is gone below 1024px', async ({
@@ -229,7 +257,13 @@ test.describe('R25 The sign-in page', () => {
     await page.setViewportSize({ width: 360, height: 640 });
     await openLogin(login);
 
-    const controls = [login.username, login.passwordBox, login.showPassword, login.submit, ...(await login.language.locator('label').all())];
+    const controls = [
+      login.username,
+      login.passwordBox,
+      login.showPassword,
+      login.submit,
+      ...(await login.language.locator('label').all())
+    ];
     for (const control of controls) {
       const box = await control.boundingBox();
       expect([box?.height, box?.width].every(size => (size ?? 0) >= 44)).toBe(true);
