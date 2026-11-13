@@ -24,7 +24,7 @@ export class UiSwitchComponent {
   $busy = input(false, { alias: 'busy', transform: booleanAttribute });
 
   /** The state the user asks for (the opposite of `checked`). */
-  $toggled = output<boolean>({ alias: 'toggled' });
+  readonly $toggled = output<boolean>({ alias: 'toggled' });
 
   onClick(): void {
     if (this.$disabled() || this.$busy()) {

@@ -19,6 +19,16 @@ const ROLE_NAME_ALLOWED_FILES = [
   '**/settings.component.ts'
 ];
 
+// Decorator inputs, outputs, queries and host members: use input(), output(), model(), viewChild() and the host metadata.
+const LEGACY_DECORATOR_SELECTORS = [
+  {
+    selector:
+      'Decorator[expression.callee.name=/^(Input|Output|ViewChild|ViewChildren|ContentChild|ContentChildren|HostBinding|HostListener)$/]',
+    message:
+      'Use the signal API: input(), output(), model(), viewChild(), contentChild() or the host metadata.'
+  }
+];
+
 export default [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/typescript'],
@@ -89,7 +99,19 @@ export default [
       ],
       '@angular-eslint/no-input-rename': 'off',
       '@angular-eslint/no-output-rename': 'off',
-      '@angular-eslint/prefer-on-push-component-change-detection': 'error'
+      '@angular-eslint/prefer-on-push-component-change-detection': 'error',
+      // Signal-era guards: every one has zero hits today and keeps it so. None needs type information (the type-aware ones,
+      // no-uncalled-signals, prefer-signals and prefer-signal-model, are left out on purpose: lint stays syntax-only).
+      '@angular-eslint/computed-must-return': 'error',
+      '@angular-eslint/prefer-output-readonly': 'error',
+      '@angular-eslint/no-implicit-take-until-destroyed': 'error',
+      '@angular-eslint/no-attribute-decorator': 'error',
+      '@angular-eslint/no-lifecycle-call': 'error',
+      '@angular-eslint/no-duplicates-in-metadata-arrays': 'error',
+      eqeqeq: 'error',
+      'no-console': ['error', { allow: ['warn', 'error'] }],
+      // The decorator members are gone (input(), output(), model(), viewChild(), host: {}); this keeps them gone without type information.
+      'no-restricted-syntax': ['error', ...LEGACY_DECORATOR_SELECTORS]
     }
   },
   {
@@ -101,6 +123,7 @@ export default [
     rules: {
       'no-restricted-syntax': [
         'error',
+        ...LEGACY_DECORATOR_SELECTORS,
         {
           selector: 'Identifier[name=/^(ROLE|ALL_ROLES|ALL_WAREHOUSE_ROLES)$/]',
           message:
@@ -124,7 +147,11 @@ export default [
   {
     files: ['**/*.html'],
     rules: {
-      '@angular-eslint/template/prefer-control-flow': 'error'
+      '@angular-eslint/template/prefer-control-flow': 'error',
+      '@angular-eslint/template/prefer-contextual-for-variables': 'error',
+      '@angular-eslint/template/no-empty-control-flow': 'error',
+      '@angular-eslint/template/prefer-class-binding': 'error',
+      '@angular-eslint/template/prefer-style-binding': 'error'
     }
   },
   prettier

@@ -31,7 +31,7 @@ export interface PermissionToggle {
 export class PermissionChecklistComponent extends PermissionListComponent {
   /** What the signed-in person holds: they can give only these. */
   $held = input.required<ReadonlySet<string>>({ alias: 'held' });
-  $toggled = output<PermissionToggle>({ alias: 'toggled' });
+  readonly $toggled = output<PermissionToggle>({ alias: 'toggled' });
 
   descriptionId(permission: PermissionDto): string {
     return `permission-details-${permission.code}`;

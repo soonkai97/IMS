@@ -64,7 +64,7 @@ export class UiButtonComponent {
   $ariaDisabled = input(false, { alias: 'ariaDisabled', transform: booleanAttribute });
   $describedBy = input<string | undefined>(undefined, { alias: 'describedBy' });
 
-  $clicked = output<MouseEvent>({ alias: 'clicked' });
+  readonly $clicked = output<MouseEvent>({ alias: 'clicked' });
 
   /**
    * A button that is busy keeps the focus (a natively disabled one drops it, and a keyboard user is thrown back to the

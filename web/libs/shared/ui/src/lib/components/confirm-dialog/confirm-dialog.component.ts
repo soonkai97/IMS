@@ -70,9 +70,9 @@ export class UiConfirmDialogComponent {
   $reasonRequired = input(false, { alias: 'reasonRequired', transform: booleanAttribute });
   $minReasonLength = input(0, { alias: 'minReasonLength', transform: numberAttribute });
 
-  $confirmed = output<string>({ alias: 'confirmed' });
-  $cancelled = output<void>({ alias: 'cancelled' });
-  $alternated = output<void>({ alias: 'alternated' });
+  readonly $confirmed = output<string>({ alias: 'confirmed' });
+  readonly $cancelled = output<void>({ alias: 'cancelled' });
+  readonly $alternated = output<void>({ alias: 'alternated' });
 
   readonly reason = new FormControl('', { nonNullable: true });
 

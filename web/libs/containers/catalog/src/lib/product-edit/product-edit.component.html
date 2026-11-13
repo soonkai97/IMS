@@ -90,11 +90,7 @@
 
     <app-card [heading]="'product.conversions' | t">
       <p class="product-edit-page-muted">{{ 'product.conversionsHint' | t }}</p>
-      @for (
-        conversion of form.controls.conversions.controls;
-        track conversion;
-        let index = $index
-      ) {
+      @for (conversion of form.controls.conversions.controls; track conversion) {
         <div class="product-edit-page-row" [formGroup]="conversion">
           <app-form-field
             class="product-edit-page-grow"
@@ -116,7 +112,7 @@
             <app-button
               variant="ghost"
               [ariaLabel]="'common.remove' | t"
-              (clicked)="onRemoveConversion(index)"
+              (clicked)="onRemoveConversion($index)"
             >
               <app-icon name="trash" />
             </app-button>

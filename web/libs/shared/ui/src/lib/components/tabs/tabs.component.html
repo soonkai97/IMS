@@ -1,5 +1,5 @@
 <div class="ui-tabs-list" role="tablist" [attr.aria-label]="$label()">
-  @for (tab of $tabs(); track tab.id; let index = $index) {
+  @for (tab of $tabs(); track tab.id) {
     <button
       type="button"
       role="tab"
@@ -10,7 +10,7 @@
       [attr.aria-controls]="$panel()"
       [attr.tabindex]="tab.id === $active() ? 0 : -1"
       (click)="onSelect(tab.id)"
-      (keydown)="onKeydown($event, index)"
+      (keydown)="onKeydown($event, $index)"
     >
       {{ tab.label }}
       @if (tab.badge !== undefined) {
