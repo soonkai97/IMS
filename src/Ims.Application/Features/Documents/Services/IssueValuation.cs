@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class IssueValuation(IReadRepository<StockBalance> balances) : IIssueValuation, IAppService
+public sealed class IssueValuation(IReadRepository<StockBalance> balances) : IIssueValuation, IAppService
 {
     public async Task EstimateAsync(StockDocument document, CancellationToken ct)
     {

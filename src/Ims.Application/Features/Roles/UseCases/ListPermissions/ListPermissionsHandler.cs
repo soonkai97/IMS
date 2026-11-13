@@ -6,7 +6,7 @@ namespace Ims.Application.Features.Roles;
 /// The catalog, in the order of the role editor, without the permissions of modules that are off: they cannot be granted now, and a role that already holds one keeps it unseen
 /// (see <see cref="ModulePermissions"/>). The catalog is code; only the switches are read.
 /// </summary>
-public class ListPermissionsHandler(IModuleSwitches modules) : IQueryHandler<ListPermissionsQuery, IReadOnlyList<PermissionDto>>
+public sealed class ListPermissionsHandler(IModuleSwitches modules) : IQueryHandler<ListPermissionsQuery, IReadOnlyList<PermissionDto>>
 {
     public async Task<IReadOnlyList<PermissionDto>> HandleAsync(ListPermissionsQuery q, CancellationToken ct)
     {

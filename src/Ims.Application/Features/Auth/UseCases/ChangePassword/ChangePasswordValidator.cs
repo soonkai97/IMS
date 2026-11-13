@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Auth;
 
-public class ChangePasswordValidator : AbstractValidator<ChangePasswordCommand>
+public sealed class ChangePasswordValidator : AbstractValidator<ChangePasswordCommand>
 {
     public ChangePasswordValidator()
     {

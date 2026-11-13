@@ -6,7 +6,7 @@ namespace Ims.Application.Features.Roles;
 /// Creates a role from a list of permissions or as a copy of another. A list that names a permission of a module that is off is refused (400); a copy takes what the source shows,
 /// that is the permissions offered now, so a role never starts with a grant the editor cannot see (the source keeps its own hidden grants).
 /// </summary>
-public class CreateRoleHandler(IRepository<Role> roles, IRoleReader reader, ICurrentUser current, IModuleSwitches modules, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreateRoleCommand, RoleDto>
+public sealed class CreateRoleHandler(IRepository<Role> roles, IRoleReader reader, ICurrentUser current, IModuleSwitches modules, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreateRoleCommand, RoleDto>
 {
     public async Task<RoleDto> HandleAsync(CreateRoleCommand cmd, CancellationToken ct)
     {

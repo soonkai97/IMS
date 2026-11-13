@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Reports;
 
-public class ListMovementsHandler(IMovementReader movements, IWarehouseScope scope, IIdMap<Warehouse> warehouseIds, IIdMap<Product> productIds)
+public sealed class ListMovementsHandler(IMovementReader movements, IWarehouseScope scope, IIdMap<Warehouse> warehouseIds, IIdMap<Product> productIds)
     : IQueryHandler<ListMovementsQuery, PagedResult<MovementRow>>
 {
     public async Task<PagedResult<MovementRow>> HandleAsync(ListMovementsQuery q, CancellationToken ct)

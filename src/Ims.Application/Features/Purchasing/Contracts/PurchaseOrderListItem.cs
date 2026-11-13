@@ -10,7 +10,7 @@ namespace Ims.Application.Features.Purchasing;
 /// <param name="CreatedByKey">The integer key of the creator, for the ownership rules; not part of the JSON.</param>
 /// <param name="SubmittedByKey">Same for the submitter, for the self-approval rule; not part of the JSON.</param>
 /// <param name="Key">The integer key of the order: the position the seek cursor of the list is made from; not part of the JSON.</param>
-public record PurchaseOrderListItem(Guid Id, string No, PurchaseOrderStatus Status, string WarehouseName, string SupplierName, DateTime CreatedAt, string CreatedBy,
+public sealed record PurchaseOrderListItem(Guid Id, string No, PurchaseOrderStatus Status, string WarehouseName, string SupplierName, DateTime CreatedAt, string CreatedBy,
     int LineCount, [property: VisibleWith(Permissions.CostView)] decimal? TotalAmount, bool RequiresApproval, bool IsLarge,
     [property: JsonIgnore] byte[] RowVersion, [property: JsonIgnore] int CreatedByKey, [property: JsonIgnore] int? SubmittedByKey, [property: JsonIgnore] int Key)
 {

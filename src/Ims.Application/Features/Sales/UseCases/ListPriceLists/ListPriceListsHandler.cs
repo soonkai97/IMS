@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class ListPriceListsHandler(IReadRepository<PriceList> lists, IDocumentVersion version) : IQueryHandler<ListPriceListsQuery, PagedResult<PriceListListItem>>
+public sealed class ListPriceListsHandler(IReadRepository<PriceList> lists, IDocumentVersion version) : IQueryHandler<ListPriceListsQuery, PagedResult<PriceListListItem>>
 {
     public async Task<PagedResult<PriceListListItem>> HandleAsync(ListPriceListsQuery q, CancellationToken ct)
     {

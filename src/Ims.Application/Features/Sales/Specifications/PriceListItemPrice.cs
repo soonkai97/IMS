@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Sales;
 
-public record PriceListItemPrice(int ProductId, int UomId, decimal ListPrice);
+public sealed record PriceListItemPrice(int ProductId, int UomId, decimal ListPrice);

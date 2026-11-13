@@ -2,7 +2,7 @@ using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Auth;
 
-public class AuthTokenIssuer(IRepository<RefreshToken> tokensRepo, ITokenService tokens, IClock clock, IIdMap<Warehouse> warehouseIds, IModuleSwitches modules, IUnitOfWork uow) : IAuthTokenIssuer, IAppService
+public sealed class AuthTokenIssuer(IRepository<RefreshToken> tokensRepo, ITokenService tokens, IClock clock, IIdMap<Warehouse> warehouseIds, IModuleSwitches modules, IUnitOfWork uow) : IAuthTokenIssuer, IAppService
 {
     /// <summary>The caller loaded <paramref name="access"/> before anything was written, so a user with no live role never gets a refresh-token row.</summary>
     public async Task<AuthResult> IssueAsync(User user, AccessSnapshot access, CancellationToken ct)

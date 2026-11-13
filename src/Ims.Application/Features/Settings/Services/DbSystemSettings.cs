@@ -5,7 +5,7 @@ namespace Ims.Application.Features.Settings;
 /// Reads settings from the key/value table, once per request (the service is scoped): a use case that asks several times
 /// (submit, post, the document reader) costs one query, not three. Other features depend on <see cref="ISystemSettings"/>, not on this class.
 /// </summary>
-public class DbSystemSettings(IReadRepository<SystemSetting> settings) : ISystemSettings
+public sealed class DbSystemSettings(IReadRepository<SystemSetting> settings) : ISystemSettings
 {
     private SystemSettings? _cached;
 

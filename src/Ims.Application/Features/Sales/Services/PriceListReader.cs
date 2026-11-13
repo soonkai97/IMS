@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class PriceListReader(IReadRepository<PriceList> lists, IDocumentVersion version) : IPriceListReader, IAppService
+public sealed class PriceListReader(IReadRepository<PriceList> lists, IDocumentVersion version) : IPriceListReader, IAppService
 {
     public async Task<PriceListDto> GetAsync(Guid publicId, CancellationToken ct)
     {

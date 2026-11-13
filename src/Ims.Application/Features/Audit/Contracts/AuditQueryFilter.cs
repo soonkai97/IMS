@@ -12,6 +12,6 @@ namespace Ims.Application.Features.Audit;
 /// <param name="Action">Action starts with: "document." for every document event, "login" for sign-ins, "document.posted" for one.</param>
 /// <param name="HideSignIns">Leave out the sign-in events (login.success, login.failed, login.locked, login.lockout, logout), which are most of a busy log: "everything except sign-ins". Combines with the other filters.</param>
 /// <param name="Search">One box for a person: matches an entity name fragment OR an entity id prefix, so a document number and "Document" both work.</param>
-public record AuditQueryFilter(string? EntityType, string? Actor, DateOnly? From, DateOnly? To, int Page = 1,
+public sealed record AuditQueryFilter(string? EntityType, string? Actor, DateOnly? From, DateOnly? To, int Page = 1,
     int PageSize = Limits.DefaultListPageSize, string? Cursor = null, bool IncludeTotal = true,
     string? EntityId = null, string? Action = null, string? Search = null, bool HideSignIns = false);

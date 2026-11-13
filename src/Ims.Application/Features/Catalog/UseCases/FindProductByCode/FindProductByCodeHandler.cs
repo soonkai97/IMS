@@ -7,7 +7,7 @@ namespace Ims.Application.Features.Catalog;
 /// One predicate over both columns ("Sku = code OR a barcode = code", TOP 1) made SQL Server walk the Product table until the first match, so the cost grew
 /// with the position of the product (docs/dba/README.md 4d). A code that is one product's SKU and another's barcode belongs to the SKU's product.
 /// </summary>
-public class FindProductByCodeHandler(IReadRepository<Product> products, IReadRepository<ProductBarcode> barcodes) : IQueryHandler<FindProductByCodeQuery, ProductLookupResult>
+public sealed class FindProductByCodeHandler(IReadRepository<Product> products, IReadRepository<ProductBarcode> barcodes) : IQueryHandler<FindProductByCodeQuery, ProductLookupResult>
 {
     public async Task<ProductLookupResult> HandleAsync(FindProductByCodeQuery q, CancellationToken ct)
     {

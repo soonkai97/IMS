@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
 /// <summary>Closes an Approved order short: what is still to come will not come (plan D5). Only once something was received: with nothing received the order is cancelled instead (cancel keeps its own authority). Same lock as posting a receipt and cancelling, so it cannot interleave with either.</summary>
-public class ClosePurchaseOrderHandler(IRepository<PurchaseOrder> orders, IPurchaseOrderReceiving receiving, IPurchaseOrderAccess access, IPurchaseOrderReader reader, IDocumentVersion version,
+public sealed class ClosePurchaseOrderHandler(IRepository<PurchaseOrder> orders, IPurchaseOrderReceiving receiving, IPurchaseOrderAccess access, IPurchaseOrderReader reader, IDocumentVersion version,
     ITransactionLocker locker, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<ClosePurchaseOrderCommand, PurchaseOrderDto>
 {
     public async Task<PurchaseOrderDto> HandleAsync(ClosePurchaseOrderCommand cmd, CancellationToken ct)

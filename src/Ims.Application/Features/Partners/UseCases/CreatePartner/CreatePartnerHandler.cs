@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Partners;
 
-public class CreatePartnerHandler(IRepository<Partner> partners, IUnitOfWork uow) : ICommandHandler<CreatePartnerCommand, PartnerDto>
+public sealed class CreatePartnerHandler(IRepository<Partner> partners, IUnitOfWork uow) : ICommandHandler<CreatePartnerCommand, PartnerDto>
 {
     public async Task<PartnerDto> HandleAsync(CreatePartnerCommand cmd, CancellationToken ct)
     {

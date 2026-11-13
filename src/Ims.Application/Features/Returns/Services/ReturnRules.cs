@@ -2,7 +2,7 @@ using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Returns;
 
-public class ReturnRules(IReadRepository<StockDocument> documents, IReturnedQuantityReader returned, IModuleSwitches modules, ICallerPermissions caller) : IReturnRules, IAppService
+public sealed class ReturnRules(IReadRepository<StockDocument> documents, IReturnedQuantityReader returned, IModuleSwitches modules, ICallerPermissions caller) : IReturnRules, IAppService
 {
     public async Task<StockDocument> OriginalForSaveAsync(StockDocument draft, Partner? partner, IssuePurpose? purpose, CancellationToken ct)
     {

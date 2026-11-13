@@ -5,7 +5,7 @@ namespace Ims.Application.Features.Purchasing;
 /// AI-02 in its simplest form (pilot slice PL2.6): what to order for one warehouse. Read-only; turning rows into an order is the existing create-order endpoint. A warehouse that does not exist or that the caller
 /// may not read is a 404, like an order there.
 /// </summary>
-public class ListReorderSuggestionsHandler(IReorderReader reorder, IPurchaseOrderAccess access, IIdMap<Warehouse> warehouseIds) : IQueryHandler<ListReorderSuggestionsQuery, PagedResult<ReorderSuggestion>>
+public sealed class ListReorderSuggestionsHandler(IReorderReader reorder, IPurchaseOrderAccess access, IIdMap<Warehouse> warehouseIds) : IQueryHandler<ListReorderSuggestionsQuery, PagedResult<ReorderSuggestion>>
 {
     public async Task<PagedResult<ReorderSuggestion>> HandleAsync(ListReorderSuggestionsQuery q, CancellationToken ct)
     {

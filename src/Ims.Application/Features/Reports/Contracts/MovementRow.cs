@@ -10,7 +10,7 @@ namespace Ims.Application.Features.Reports;
 /// <param name="IsReturn">The row belongs to a return (a customer return receipt or a supplier return issue), so a report can tell a customer return from a purchase and a supplier return from a sale. A return reversed since posting has two rows, both flagged.</param>
 /// <param name="UnitCost">Per base unit. Null for a caller without <c>cost.view</c>.</param>
 /// <param name="Amount">Base quantity times unit cost. Null for a caller without <c>cost.view</c>.</param>
-public record MovementRow(DateTime PostedAt, string DocNo, DocumentType Type, DocumentStatus Status, string WarehouseCode, string? Partner,
+public sealed record MovementRow(DateTime PostedAt, string DocNo, DocumentType Type, DocumentStatus Status, string WarehouseCode, string? Partner,
     string Sku, string ProductName, decimal Qty, string UomCode, decimal BaseQty, decimal StockEffect,
     [property: VisibleWith(Permissions.CostView, UnitPrice = true)] decimal? UnitCost, [property: VisibleWith(Permissions.CostView)] decimal? Amount,
     bool IsReversal, bool IsReturn = false);

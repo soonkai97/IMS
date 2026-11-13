@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Warehouses;
 
-public class UpdateWarehouseHandler(IRepository<Warehouse> warehouses, ICurrentUser current, IUnitOfWork uow) : ICommandHandler<UpdateWarehouseCommand, WarehouseDto>
+public sealed class UpdateWarehouseHandler(IRepository<Warehouse> warehouses, ICurrentUser current, IUnitOfWork uow) : ICommandHandler<UpdateWarehouseCommand, WarehouseDto>
 {
     public async Task<WarehouseDto> HandleAsync(UpdateWarehouseCommand cmd, CancellationToken ct)
     {

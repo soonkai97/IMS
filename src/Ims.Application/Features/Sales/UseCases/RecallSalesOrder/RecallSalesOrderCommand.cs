@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Sales;
 
-public record RecallSalesOrderCommand(Guid Id, string? IfMatch = null) : ICommand<SalesOrderDto>;
+public sealed record RecallSalesOrderCommand(Guid Id, string? IfMatch = null) : ICommand<SalesOrderDto>;

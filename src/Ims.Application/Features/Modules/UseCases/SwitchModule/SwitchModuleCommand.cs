@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Modules;
 
-public record SwitchModuleCommand(string Code, ModuleSwitchRequest Data) : ICommand<ModuleSwitchResult>;
+public sealed record SwitchModuleCommand(string Code, ModuleSwitchRequest Data) : ICommand<ModuleSwitchResult>;

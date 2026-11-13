@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Purchasing;
 
-public record ListReorderSuggestionsQuery(ReorderFilter Filter) : IQuery<PagedResult<ReorderSuggestion>>;
+public sealed record ListReorderSuggestionsQuery(ReorderFilter Filter) : IQuery<PagedResult<ReorderSuggestion>>;

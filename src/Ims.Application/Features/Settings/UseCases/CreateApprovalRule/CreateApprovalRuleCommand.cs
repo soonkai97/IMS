@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Settings;
 
-public record CreateApprovalRuleCommand(ApprovalRuleSaveRequest Data) : ICommand<ApprovalRuleDto>;
+public sealed record CreateApprovalRuleCommand(ApprovalRuleSaveRequest Data) : ICommand<ApprovalRuleDto>;

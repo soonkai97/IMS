@@ -7,7 +7,7 @@ namespace Ims.Application.Features.Import;
 /// a commit with any invalid row is refused, and a valid commit is one transaction. A category or unit that does not exist is a row error: the
 /// import never creates master data on the side (one typo must not add a category), an admin adds them first.
 /// </summary>
-public class ImportProductsHandler(IExcelReader excel, IRepository<Product> products, IRepository<Category> categories, IRepository<Uom> uoms,
+public sealed class ImportProductsHandler(IExcelReader excel, IRepository<Product> products, IRepository<Category> categories, IRepository<Uom> uoms,
     IReadRepository<ProductBarcode> barcodes, IReadRepository<StockBalance> balances, IProductConversionUsage conversionUsage, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<ImportProductsCommand, ImportResult>
 {

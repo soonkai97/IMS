@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class CreateDocumentValidator : AbstractValidator<CreateDocumentCommand>
+public sealed class CreateDocumentValidator : AbstractValidator<CreateDocumentCommand>
 {
     public CreateDocumentValidator()
     {

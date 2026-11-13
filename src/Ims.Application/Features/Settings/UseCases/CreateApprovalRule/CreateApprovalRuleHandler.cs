@@ -2,7 +2,7 @@ using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Settings;
 
-public class CreateApprovalRuleHandler(IRepository<ApprovalRule> rules, IModuleSwitches modules, IUnitOfWork uow) : ICommandHandler<CreateApprovalRuleCommand, ApprovalRuleDto>
+public sealed class CreateApprovalRuleHandler(IRepository<ApprovalRule> rules, IModuleSwitches modules, IUnitOfWork uow) : ICommandHandler<CreateApprovalRuleCommand, ApprovalRuleDto>
 {
     public async Task<ApprovalRuleDto> HandleAsync(CreateApprovalRuleCommand cmd, CancellationToken ct)
     {

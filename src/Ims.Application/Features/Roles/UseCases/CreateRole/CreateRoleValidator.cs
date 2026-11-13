@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Roles;
 
-public class CreateRoleValidator : AbstractValidator<CreateRoleCommand>
+public sealed class CreateRoleValidator : AbstractValidator<CreateRoleCommand>
 {
     public CreateRoleValidator()
     {

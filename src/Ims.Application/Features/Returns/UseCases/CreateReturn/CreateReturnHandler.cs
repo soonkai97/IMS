@@ -9,7 +9,7 @@ namespace Ims.Application.Features.Returns;
 /// <c>modules</c> lock first (the module is held on, as a purchase order create does), then the original <c>ret</c> lock, then the document-sequence lock, and the original is read after its lock, so the quantities
 /// and the status seen are the truth for this transaction.
 /// </summary>
-public class CreateReturnHandler(IReadRepository<StockDocument> documents, IRepository<StockDocument> writes, IReturnedQuantityReader returned, IDocumentAccess access, IDocumentNumbering numbering,
+public sealed class CreateReturnHandler(IReadRepository<StockDocument> documents, IRepository<StockDocument> writes, IReturnedQuantityReader returned, IDocumentAccess access, IDocumentNumbering numbering,
     IDocumentReader reader, ICurrentUser current, IClock clock, ITransactionLocker locker, IModuleSwitches switches, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreateReturnCommand, DocumentDto>
 {
     public async Task<DocumentDto> HandleAsync(CreateReturnCommand cmd, CancellationToken ct)

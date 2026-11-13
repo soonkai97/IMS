@@ -8,7 +8,7 @@ namespace Ims.Application.Features.Attachments;
 /// appended after the image), PDFs with active content are refused, and the upload scanner gets the last word before anything touches
 /// storage. The stored name is generated, and if the database write fails the file is removed again (no orphans).
 /// </summary>
-public class UploadAttachmentHandler(IAttachmentOwners owners, IFileStorage storage, IUploadScanner scanner, IRepository<Attachment> attachments,
+public sealed class UploadAttachmentHandler(IAttachmentOwners owners, IFileStorage storage, IUploadScanner scanner, IRepository<Attachment> attachments,
     ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit, ILogger<UploadAttachmentHandler> log)
     : ICommandHandler<UploadAttachmentCommand, AttachmentDto>
 {

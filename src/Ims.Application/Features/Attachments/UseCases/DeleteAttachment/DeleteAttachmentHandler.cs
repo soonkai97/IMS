@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 namespace Ims.Application.Features.Attachments;
 
 /// <summary>Soft-deletes the metadata (kept for the audit trail), then removes the physical file. A failed file removal is logged, not fatal.</summary>
-public class DeleteAttachmentHandler(IRepository<Attachment> attachments, IAttachmentOwners owners, IFileStorage storage,
+public sealed class DeleteAttachmentHandler(IRepository<Attachment> attachments, IAttachmentOwners owners, IFileStorage storage,
     IUnitOfWork uow, IAuditTrail audit, ILogger<DeleteAttachmentHandler> log) : ICommandHandler<DeleteAttachmentCommand, Unit>
 {
     public async Task<Unit> HandleAsync(DeleteAttachmentCommand cmd, CancellationToken ct)

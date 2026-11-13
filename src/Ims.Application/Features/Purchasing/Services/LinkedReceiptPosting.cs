@@ -3,7 +3,7 @@ using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
-public class LinkedReceiptPosting(IReadRepository<PurchaseOrder> orders, IPurchaseOrderReceiving receiving, IModuleSwitches modules, ITransactionLocker locker, ICurrentUser current,
+public sealed class LinkedReceiptPosting(IReadRepository<PurchaseOrder> orders, IPurchaseOrderReceiving receiving, IModuleSwitches modules, ITransactionLocker locker, ICurrentUser current,
     IClock clock, IAuditTrail audit, ICallerPermissions caller) : IDocumentLinkPosting, IAppService
 {
     public DocumentLinkKind Kind => DocumentLinkKind.PurchaseOrder;

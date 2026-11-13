@@ -8,7 +8,7 @@ namespace Ims.Application.Features.Sales;
 /// Lock order: the order's lock FIRST (nothing has locked stock yet; the balance loader does it after this returns), then the order and the posted quantities are read fresh (the lock is what makes them the
 /// truth), then the checks. This is the AUTHORITATIVE over-delivery check: the ones at save and submit are advice, they hold nothing.
 /// </summary>
-public class SalesDeliveryPosting(IReadRepository<SalesOrder> orders, IReadRepository<StockDocument> documents, IDeliveredQuantityReader delivered, IModuleSwitches modules, ITransactionLocker locker, ICurrentUser current, IClock clock,
+public sealed class SalesDeliveryPosting(IReadRepository<SalesOrder> orders, IReadRepository<StockDocument> documents, IDeliveredQuantityReader delivered, IModuleSwitches modules, ITransactionLocker locker, ICurrentUser current, IClock clock,
     IAuditTrail audit, ICallerPermissions caller) : IDocumentLinkPosting, IAppService
 {
     public DocumentLinkKind Kind => DocumentLinkKind.SalesOrder;

@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 /// <summary>BR-02: a reversal writes opposite ledger entries linked to the original document; nothing is edited or deleted.</summary>
-public class ReverseDocumentHandler(IRepository<StockDocument> documents, IRepository<StockLedgerEntry> ledger, IReadRepository<Product> products,
+public sealed class ReverseDocumentHandler(IRepository<StockDocument> documents, IRepository<StockLedgerEntry> ledger, IReadRepository<Product> products,
     IBalanceLoader balances, IPostingEngine engine, ISystemSettings settings, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version,
     ITransactionLocker locker, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<ReverseDocumentCommand, DocumentDto>
 {

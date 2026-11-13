@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Documents;
 
-public record ReverseRequest(string Reason);
+public sealed record ReverseRequest(string Reason);

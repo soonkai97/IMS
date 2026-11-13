@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
 /// <summary>Shape and limit rules of a price list: every failure is reported with the field it belongs to, all items at once. Rules that need the database (does the product exist, is the customer active, is the name taken) are the handler's.</summary>
-public class PriceListSaveRequestValidator : AbstractValidator<PriceListSaveRequest>
+public sealed class PriceListSaveRequestValidator : AbstractValidator<PriceListSaveRequest>
 {
     public PriceListSaveRequestValidator()
     {

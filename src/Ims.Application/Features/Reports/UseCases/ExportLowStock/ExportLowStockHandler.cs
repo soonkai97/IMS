@@ -2,7 +2,7 @@ using Ims.Application.Features.Stock;
 using Ims.Domain;
 namespace Ims.Application.Features.Reports;
 
-public class ExportLowStockHandler(ILowStockReader lowStock, IWarehouseScope scope, IReportWriter report)
+public sealed class ExportLowStockHandler(ILowStockReader lowStock, IWarehouseScope scope, IReportWriter report)
     : IQueryHandler<ExportLowStockQuery, ExportFile>
 {
     public async Task<ExportFile> HandleAsync(ExportLowStockQuery q, CancellationToken ct)

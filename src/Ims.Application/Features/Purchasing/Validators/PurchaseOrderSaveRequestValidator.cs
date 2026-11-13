@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
 /// <summary>Shape and limit rules of a draft: every failure is reported with the field it belongs to, all lines at once. Rules that need the database (does the product exist, is the supplier active) are the handler's.</summary>
-public class PurchaseOrderSaveRequestValidator : AbstractValidator<PurchaseOrderSaveRequest>
+public sealed class PurchaseOrderSaveRequestValidator : AbstractValidator<PurchaseOrderSaveRequest>
 {
     public PurchaseOrderSaveRequestValidator()
     {

@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
-public class PurchaseOrderAccess(ICurrentUser current) : IPurchaseOrderAccess, IAppService
+public sealed class PurchaseOrderAccess(ICurrentUser current) : IPurchaseOrderAccess, IAppService
 {
     public void EnsureWarehouse(int warehouseId)
     {

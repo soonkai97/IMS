@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 /// <summary>Warehouse data scope for the current caller. What they may do with a document is decided by <see cref="DocumentActionPolicy"/>.</summary>
-public class DocumentAccess(ICurrentUser current) : IDocumentAccess, IAppService
+public sealed class DocumentAccess(ICurrentUser current) : IDocumentAccess, IAppService
 {
     public void EnsureWarehouse(int warehouseId)
     {

@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
 /// <summary>Loads the products and units a draft's lines name (public ids, one query each for the whole order); the lines themselves (unit conversion, limits) are built by the domain.</summary>
-public class SalesOrderLineBuilder(IReadRepository<Product> products, IIdMap<Uom> uomIds) : ISalesOrderLineBuilder, IAppService
+public sealed class SalesOrderLineBuilder(IReadRepository<Product> products, IIdMap<Uom> uomIds) : ISalesOrderLineBuilder, IAppService
 {
     public async Task<List<SalesOrderLine>> BuildAsync(IReadOnlyList<SalesOrderLineInput> inputs, CancellationToken ct)
     {

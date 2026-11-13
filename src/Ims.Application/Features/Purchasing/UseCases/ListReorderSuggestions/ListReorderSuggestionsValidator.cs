@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
-public class ListReorderSuggestionsValidator : AbstractValidator<ListReorderSuggestionsQuery>
+public sealed class ListReorderSuggestionsValidator : AbstractValidator<ListReorderSuggestionsQuery>
 {
     public ListReorderSuggestionsValidator()
     {

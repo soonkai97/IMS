@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class SalesOrderReader(IReadRepository<SalesOrder> orders, IReadRepository<User> users, IReadRepository<StockDocument> documents, IDeliveredQuantityReader delivered, ISalesOrderAccess access, IApprovalEvaluator approvals, ISystemSettings settings,
+public sealed class SalesOrderReader(IReadRepository<SalesOrder> orders, IReadRepository<User> users, IReadRepository<StockDocument> documents, IDeliveredQuantityReader delivered, ISalesOrderAccess access, IApprovalEvaluator approvals, ISystemSettings settings,
     IDocumentVersion version) : ISalesOrderReader, IAppService
 {
     public async Task<SalesOrderDto> GetAsync(Guid publicId, CancellationToken ct)

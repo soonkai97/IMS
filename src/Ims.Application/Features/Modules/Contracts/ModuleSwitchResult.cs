@@ -6,7 +6,7 @@ namespace Ims.Application.Features.Modules;
 /// has no permissions.
 /// </summary>
 /// <param name="RolesRegainingGrants">Live roles that hold at least one permission of the module and so have it in force again.</param>
-public record ModuleSwitchResult(string Code, string Name, string Description, bool Enabled, IReadOnlyList<string> Requires, int RolesRegainingGrants)
+public sealed record ModuleSwitchResult(string Code, string Name, string Description, bool Enabled, IReadOnlyList<string> Requires, int RolesRegainingGrants)
 {
     public static ModuleSwitchResult From(ModuleDto module, int rolesRegainingGrants) =>
         new(module.Code, module.Name, module.Description, module.Enabled, module.Requires, rolesRegainingGrants);

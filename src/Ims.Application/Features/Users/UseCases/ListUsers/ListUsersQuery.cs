@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Users;
 
-public record ListUsersQuery(UserFilter Filter) : IQuery<PagedResult<UserDto>>;
+public sealed record ListUsersQuery(UserFilter Filter) : IQuery<PagedResult<UserDto>>;

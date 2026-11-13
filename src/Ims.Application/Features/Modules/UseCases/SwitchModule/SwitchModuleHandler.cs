@@ -7,7 +7,7 @@ namespace Ims.Application.Features.Modules;
 /// permissions back (roles keep them, hidden, while it is off). A module that is already in the requested state is a 200 that changes nothing and writes nothing. A switch only hides or
 /// shows the surface; it never touches stock, so no posting reads it. A module may not be turned on while a module it requires is off, nor a module off while one that requires it is on (409 naming the other, <see cref="ModuleDependencies"/>). A module that holds data (open orders) may refuse to be turned off through its <see cref="IModuleDisableCheck"/>: a 409 with the count, nothing written.
 /// </summary>
-public class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepository<Role> roles, IModuleSwitches switches, IEnumerable<IModuleDisableCheck> disableChecks, IEnumerable<IModuleEnableCheck> enableChecks,
+public sealed class SwitchModuleHandler(IRepository<SystemSetting> settings, IReadRepository<Role> roles, IModuleSwitches switches, IEnumerable<IModuleDisableCheck> disableChecks, IEnumerable<IModuleEnableCheck> enableChecks,
     ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<SwitchModuleCommand, ModuleSwitchResult>
 {

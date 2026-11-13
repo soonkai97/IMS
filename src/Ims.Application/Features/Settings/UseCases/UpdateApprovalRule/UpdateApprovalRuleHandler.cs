@@ -3,7 +3,7 @@ using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Settings;
 
-public class UpdateApprovalRuleHandler(IRepository<ApprovalRule> rules, IModuleSwitches modules, ITransactionLocker locker, IUnitOfWork uow) : ICommandHandler<UpdateApprovalRuleCommand, ApprovalRuleDto>
+public sealed class UpdateApprovalRuleHandler(IRepository<ApprovalRule> rules, IModuleSwitches modules, ITransactionLocker locker, IUnitOfWork uow) : ICommandHandler<UpdateApprovalRuleCommand, ApprovalRuleDto>
 {
     public Task<ApprovalRuleDto> HandleAsync(UpdateApprovalRuleCommand cmd, CancellationToken ct) => uow.ExecuteAsync(async () =>
     {

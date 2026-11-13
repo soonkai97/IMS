@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Users;
 
-public class UpdateUserHandler(IRepository<User> users, IReadRepository<Role> roles, IIdMap<Warehouse> warehouseIds, IRepository<RefreshToken> tokens, IPasswordHasher hasher,
+public sealed class UpdateUserHandler(IRepository<User> users, IReadRepository<Role> roles, IIdMap<Warehouse> warehouseIds, IRepository<RefreshToken> tokens, IPasswordHasher hasher,
     ICurrentUser current, IClock clock, ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<UpdateUserCommand, UserDto>
 {
     public Task<UserDto> HandleAsync(UpdateUserCommand cmd, CancellationToken ct)

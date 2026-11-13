@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Catalog;
 
-public class UomSaveValidator : AbstractValidator<UomSaveRequest>
+public sealed class UomSaveValidator : AbstractValidator<UomSaveRequest>
 {
     public UomSaveValidator()
     {

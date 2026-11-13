@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Documents;
 
-public record RejectRequest(string Reason);
+public sealed record RejectRequest(string Reason);
