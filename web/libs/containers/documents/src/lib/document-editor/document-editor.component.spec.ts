@@ -2,7 +2,7 @@ import { computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
-import { Subject, of, tap, throwError } from 'rxjs';
+import { EMPTY, Subject, of, tap, throwError } from 'rxjs';
 import {
   ApprovalMetric,
   ApproverTier,
@@ -160,6 +160,7 @@ describe('DocumentEditorPageComponent', () => {
   const originalLoad = jest.fn();
   const originalReload = jest.fn();
   const originalReset = jest.fn();
+  const originalFailed = signal(false);
   const startOperation = signal<ApiOperation>(IDLE_OPERATION);
   const startRun = jest.fn();
   const startReset = jest.fn(() => startOperation.set(IDLE_OPERATION));
@@ -246,7 +247,7 @@ describe('DocumentEditorPageComponent', () => {
           original: {
             $data: originalData,
             $isLoading: signal(false),
-            $isFailed: signal(false),
+            $isFailed: originalFailed,
             load: originalLoad,
             reload: originalReload,
             reset: originalReset
@@ -364,6 +365,7 @@ describe('DocumentEditorPageComponent', () => {
     originalLoad.mockClear();
     originalReload.mockClear();
     originalReset.mockClear();
+    originalFailed.set(false);
     startRun.mockReset();
     startOperation.set(IDLE_OPERATION);
     salesLoad.mockClear();
@@ -2118,7 +2120,7 @@ describe('DocumentEditorPageComponent', () => {
 
       expect(originalReset).toHaveBeenCalled();
       expect(originalLoad).toHaveBeenCalledWith(ORIGINAL_ID, expect.anything());
-      expect(text()).toContain('Original line 1: 10, already returned 6, returnable 4 PCS');
+      expect(text()).toContain('Original line 1: 10 PCS, already returned 6 PCS, returnable 4 PCS');
       const qty = spectator.component.view.lines.at(0).controls.qty;
       qty.setValue(5);
       spectator.detectChanges();
@@ -2162,6 +2164,217 @@ describe('DocumentEditorPageComponent', () => {
       expect(alerts()[0]).toContain('Returnable 4 PCS (original 10, already returned 6)');
       expect(text()).not.toContain('changed by someone else');
       expect(originalReload).toHaveBeenCalled();
+    });
+
+    it('the over-return 409 is its own alert with a heading, every line with its unit, a fix sentence and the focus, and the original is read again', async () => {
+      await open(
+        customerReturn({
+          status: DocumentStatus.Approved,
+          allowedActions: [DOCUMENT_ACTION.Post, DOCUMENT_ACTION.Cancel]
+        }),
+        DocumentType.Receipt
+      );
+      failing.set('post', {
+        ...overReturn(),
+        extensions: {
+          code: 'over_return',
+          lines: [
+            {
+              lineNo: 1,
+              sku: 'DEMO-001',
+              uom: 'PCS',
+              original: 10,
+              returned: 6,
+              remaining: 4,
+              requested: 5
+            }
+          ]
+        }
+      });
+
+      spectator.component.onAction(DOCUMENT_ACTION.Post);
+      confirm().confirm('');
+      spectator.detectChanges();
+      await spectator.fixture.whenStable();
+
+      const banner = spectator.query('app-banner.document-editor-over-return') as HTMLElement;
+      expect(banner.getAttribute('role')).toBe('alert');
+      expect(banner.textContent).toContain('Not accepted: more than can still be returned');
+      expect(banner.textContent).toContain(
+        'Line 1 (DEMO-001): original 10 PCS, already returned 6 PCS, can still be returned 4 PCS, this return 5 PCS.'
+      );
+      expect(banner.textContent).toContain('Ask the person who made it to lower the quantities');
+      expect(globalThis.document.activeElement).toBe(banner);
+      expect(alerts()).toHaveLength(1);
+      expect(originalReload).toHaveBeenCalled();
+    });
+
+    it('a Submitted return refused as over-return offers Edit items to whoever can recall it, and the button recalls', async () => {
+      await open(
+        customerReturn({
+          status: DocumentStatus.Submitted,
+          allowedActions: [DOCUMENT_ACTION.Recall, DOCUMENT_ACTION.Cancel]
+        }),
+        DocumentType.Receipt
+      );
+      commands['post'].$operation.set(failureOperation(overReturn()));
+      spectator.detectChanges();
+
+      const banner = spectator.query('app-banner.document-editor-over-return') as HTMLElement;
+      expect(banner.textContent).toContain('Lower the quantities and try again');
+      const edit = Array.from(banner.querySelectorAll('button')).find(candidate =>
+        candidate.textContent?.includes('Edit items')
+      );
+      expect(edit).toBeDefined();
+
+      spectator.click(edit as HTMLElement);
+
+      expect(confirm().$pending()?.request.heading).toBe('Take RCV-WH01-2610-0009 back to draft?');
+    });
+
+    it('an over-return refusal of a save is the same alert and reads the original again', async () => {
+      await open(customerReturn(), DocumentType.Receipt);
+      commands['save'].$operation.set(failureOperation(overReturn()));
+      spectator.detectChanges();
+
+      expect(spectator.query('app-banner.document-editor-over-return')).not.toBeNull();
+      expect(alerts()).toHaveLength(1);
+      expect(originalReload).toHaveBeenCalled();
+    });
+
+    it('a 409 of Return reads the document again so the button goes, and the sentence stays until the page changes', async () => {
+      granted.add(PERMISSION.ReturnsCreate);
+      startRun.mockImplementation(() => {
+        startOperation.set(failureOperation({ ...STALE, detail: 'Nothing left to return.' }));
+        return EMPTY;
+      });
+      await open(original(), DocumentType.Issue);
+      detailReload.mockClear();
+
+      spectator.click(button('Return') as HTMLElement);
+      opened.set(
+        document({
+          id: ORIGINAL_ID,
+          status: DocumentStatus.Posted,
+          lines: [{ ...document().lines[0], returnedQty: 10, returnableQty: 0 }]
+        })
+      );
+      spectator.detectChanges();
+
+      expect(detailReload).toHaveBeenCalledTimes(1);
+      expect(button('Return')).toBeUndefined();
+      expect(alerts()).toEqual(['Nothing left to return.']);
+    });
+
+    it('a failure of Return that is not a refusal (a 500) gets no banner: its toast says it', async () => {
+      granted.add(PERMISSION.ReturnsCreate);
+      await open(original(), DocumentType.Issue);
+      startOperation.set(
+        failureOperation({
+          ...STALE,
+          kind: API_ERROR_KIND.Server,
+          status: 500,
+          detail: 'Boom',
+          message: 'Something went wrong.'
+        })
+      );
+      spectator.detectChanges();
+
+      expect(alerts()).toEqual([]);
+    });
+
+    it('tells a viewer who did not submit the return who can approve it, by name, and that the Owner cannot', async () => {
+      await open(
+        customerReturn({
+          status: DocumentStatus.Submitted,
+          requiresApproval: true,
+          submittedById: guid(77),
+          submittedByName: 'Sam Clerk',
+          allowedActions: [DOCUMENT_ACTION.Cancel]
+        }),
+        DocumentType.Receipt
+      );
+
+      expect(text()).toContain(
+        'Submitted by Sam Clerk. A return always needs approval, by a Supervisor or an Administrator other than Sam Clerk. The Owner cannot approve it.'
+      );
+    });
+
+    it('tells the submitter the general rule (other than the person who submits it)', async () => {
+      await open(
+        customerReturn({ status: DocumentStatus.Submitted, submittedById: guid(9) }),
+        DocumentType.Receipt
+      );
+
+      expect(text()).toContain(
+        'other than the person who submits it. The Owner cannot approve it.'
+      );
+      expect(text()).not.toContain('Submitted by');
+    });
+
+    it('says quietly that the original could not be read, and retrying reads it again', async () => {
+      originalFailed.set(true);
+      await open(customerReturn(), DocumentType.Receipt);
+
+      expect(text()).toContain('The quantities of the original could not be read.');
+      expect(alerts()).toEqual([]);
+      const retry = Array.from(spectator.queryAll<HTMLElement>('button')).find(candidate =>
+        candidate.textContent?.includes('Retry')
+      );
+
+      spectator.click(retry as HTMLElement);
+
+      expect(originalReload).toHaveBeenCalled();
+    });
+
+    it('guesses no figure when the API sent none for the original: no line says what remains', async () => {
+      await open(customerReturn(), DocumentType.Receipt);
+      originalData.set(
+        document({
+          id: ORIGINAL_ID,
+          status: DocumentStatus.Posted,
+          lines: [{ ...document().lines[0], qty: 10, returnableQty: undefined }]
+        })
+      );
+      spectator.detectChanges();
+
+      expect(text()).not.toContain('Original line 1');
+      const qty = spectator.component.view.lines.at(0).controls.qty;
+      qty.setValue(50);
+      spectator.detectChanges();
+      expect(text()).not.toContain('of this line can still be returned');
+      expect(button('Submit')?.disabled).toBe(false);
+    });
+
+    it('a supplier return opened by someone without returns.create is read only, with the reason (the API hides the link from them)', async () => {
+      granted.delete(PERMISSION.ReturnsCreate);
+      const supplier = supplierReturn();
+      await open(
+        {
+          ...supplier,
+          returnOf: undefined,
+          lines: [{ ...supplier.lines[0], returnOfLineNo: undefined }]
+        },
+        DocumentType.Issue
+      );
+
+      expect(text()).toContain('This is a return and you cannot create returns');
+      expect(button('Submit')?.disabled).toBe(true);
+      expect(button('Save draft')?.disabled).toBe(true);
+    });
+
+    it('shows no cost or amount of a return to someone without cost.view', async () => {
+      granted.delete(PERMISSION.CostView);
+      await open(
+        customerReturn({ status: DocumentStatus.Posted, allowedActions: [] }),
+        DocumentType.Receipt
+      );
+      originalData.set(original());
+      spectator.detectChanges();
+
+      expect(spectator.queryAll('app-input[formcontrolname="unitCost"]')).toHaveLength(0);
+      expect(spectator.queryAll('[appcan], app-money')).toHaveLength(0);
+      expect(text()).not.toContain('4.00');
     });
 
     it('a Posted sale issue with something left to return offers Return to a holder of returns.create, and the button starts the return and opens it', async () => {

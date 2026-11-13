@@ -924,9 +924,21 @@ export const EN_MESSAGES = {
     'Lower a quantity or remove a line you do not return. A quantity cannot be above what can still be returned.',
   'doc.return.open': 'Open the original.',
   'doc.return.approval':
-    'A return always needs approval, by a Supervisor or an Administrator other than the person who submits it. Where there is only one Supervisor, an Administrator approves.',
+    'A return always needs approval, by a Supervisor or an Administrator other than the person who submits it. The Owner cannot approve it. Where there is only one Supervisor, an Administrator approves.',
+  'doc.return.approval.other':
+    'Submitted by {name}. A return always needs approval, by a Supervisor or an Administrator other than {name}. The Owner cannot approve it.',
+  'doc.return.originalFailed':
+    'The quantities of the original could not be read. You can still edit; the quantities are checked when you save.',
+  'doc.return.unreadable':
+    'This is a return and you cannot create returns, so it cannot be edited here. Ask someone who can, or cancel it.',
+  'doc.overReturn.title': 'Not accepted: more than can still be returned',
+  'doc.overReturn.line':
+    'Line {lineNo} ({sku}): original {original} {uom}, already returned {returned} {uom}, can still be returned {remaining} {uom}, this return {requested} {uom}.',
+  'doc.overReturn.fix': 'The return is unchanged. Lower the quantities and try again.',
+  'doc.overReturn.ask':
+    'The return is unchanged. Ask the person who made it to lower the quantities, or cancel it.',
   'line.return':
-    'Original line {lineNo}: {ordered}, already returned {returned}, returnable {remaining} {uom}',
+    'Original line {lineNo}: {ordered} {uom}, already returned {returned} {uom}, returnable {remaining} {uom}',
   'line.return.over': 'Only {remaining} {uom} of this line can still be returned.',
   'doc.line.returned': 'Returned {returned} {uom}, returnable {returnable} {uom}',
   'module.returns.name': 'Returns',

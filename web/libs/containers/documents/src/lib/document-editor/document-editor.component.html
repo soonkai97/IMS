@@ -40,8 +40,18 @@
       {{ $linkedHintKey() | t }}
     }
   </p>
-  @if ($returnNeedsApproval()) {
-    <p class="document-editor-hint" role="status">{{ 'doc.return.approval' | t }}</p>
+  @if ($returnApproval(); as approval) {
+    <p class="document-editor-hint" role="status">
+      {{ approval.key | t: { name: approval.name } }}
+    </p>
+  }
+  @if ($originalUnreadable()) {
+    <p class="document-editor-hint" role="status">
+      {{ 'doc.return.originalFailed' | t }}
+      <app-button variant="secondary" (clicked)="onRetryLinkedOrder()">{{
+        'ui.retry' | t
+      }}</app-button>
+    </p>
   }
   @if ($orderProgress(); as progress) {
     <p class="document-editor-hint" role="status">
@@ -67,6 +77,9 @@
 }
 @if ($deliveryUnreadable()) {
   <app-banner kind="danger" alert>{{ 'doc.delivery.unreadable' | t }}</app-banner>
+}
+@if ($returnUnreadable()) {
+  <p class="document-editor-hint" role="status">{{ 'doc.return.unreadable' | t }}</p>
 }
 
 @if ($isLoading()) {
@@ -196,6 +209,46 @@
             : 'doc.overReceipt.ask'
         ) | t
       }}
+      @if ($canRecall()) {
+        <app-button
+          bannerActions
+          [disabled]="$isBusy() || $isStale()"
+          (clicked)="onAction(recallAction)"
+          >{{ 'dialog.post.edit' | t }}</app-button
+        >
+      }
+    </app-banner>
+  }
+  @if ($overReturn(); as over) {
+    <app-banner
+      class="document-editor-over-return"
+      kind="danger"
+      [heading]="'doc.overReturn.title' | t"
+    >
+      @if (over.lines.length > 0) {
+        <ul class="document-editor-order-lines">
+          @for (line of over.lines; track line.lineNo) {
+            <li>
+              {{
+                'doc.overReturn.line'
+                  | t
+                    : {
+                        lineNo: line.lineNo,
+                        sku: line.sku,
+                        uom: line.uomCode,
+                        original: (line.original | appQty),
+                        returned: (line.returned | appQty),
+                        remaining: (line.remaining | appQty),
+                        requested: (line.requested | appQty)
+                      }
+              }}
+            </li>
+          }
+        </ul>
+      } @else {
+        {{ over.message }}
+      }
+      {{ ($editable() || $canRecall() ? 'doc.overReturn.fix' : 'doc.overReturn.ask') | t }}
       @if ($canRecall()) {
         <app-button
           bannerActions
@@ -510,10 +563,14 @@
         [selfApprovalBlocked]="$selfApprovalBlocked()"
         [canReturn]="$canReturn()"
         [submitDisabled]="
-          $linesBlocked() || $overOrder() || $orderBlocksSubmit() || $deliveryUnreadable()
+          $linesBlocked() ||
+          $overOrder() ||
+          $orderBlocksSubmit() ||
+          $deliveryUnreadable() ||
+          $returnUnreadable()
         "
-        [saveDisabled]="$deliveryUnreadable()"
-        [postDisabled]="$orderBlocksSubmit() || $deliveryUnreadable()"
+        [saveDisabled]="$deliveryUnreadable() || $returnUnreadable()"
+        [postDisabled]="$orderBlocksSubmit() || $deliveryUnreadable() || $returnUnreadable()"
         [locked]="$isStale()"
         [busyAction]="$busyAction()"
         (triggered)="onAction($event)"

@@ -238,12 +238,13 @@ test.describe('Settings > Modules, a stubbed /api/modules with a made-up second 
   });
 
   for (const [status, detail, sentence] of [
-    [409, 'Busy.', 'Another change to the modules is in progress.'],
+    [409, '', 'Another change to the modules is in progress.'],
+    [409, 'Turn off Sales first: Returns needs it.', 'Turn off Sales first: Returns needs it.'],
     [403, 'Forbidden.', 'You are not allowed to turn modules on or off.'],
     [404, 'Module not found.', 'That module is not available any more. The list was refreshed.'],
     [400, API_REASON_SENTENCE, API_REASON_SENTENCE]
   ] as const) {
-    test(`given the API answers ${status}, then one alert says it in words, no toast is raised and the switch keeps its state`, async ({
+    test(`given the API answers ${status} with "${detail}", then one alert says it in words, no toast is raised and the switch keeps its state`, async ({
       page,
       signIn
     }) => {

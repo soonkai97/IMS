@@ -165,7 +165,7 @@ test.describe('Returns, real API', () => {
     await expect(page.getByRole('button', { name: 'Add item' })).toHaveCount(0);
     await expect(page.getByRole('combobox', { name: /^(Customer|Warehouse)/ })).toHaveCount(0);
     await expect(page.getByRole('main')).toContainText('A return always needs approval');
-    await expect(page.getByRole('main')).toContainText('already returned 0, returnable 5 PCS');
+    await expect(page.getByRole('main')).toContainText('already returned 0 PCS, returnable 5 PCS');
     await expect(page.getByRole('textbox', { name: /Unit cost/ })).toHaveCount(0);
     await expect(page.getByRole('spinbutton', { name: /Unit cost|Cost of/ })).toHaveCount(0);
 
@@ -228,8 +228,8 @@ test.describe('Returns, real API', () => {
 
     const alert = page.locator('app-banner[role="alert"]');
     await expect(alert).toHaveCount(1);
-    await expect(alert).toContainText('more than can be returned');
-    await expect(alert).toContainText('Returnable');
+    await expect(alert).toContainText(/more than can (still )?be returned/);
+    await expect(alert).toContainText(/returnable|can still be returned/i);
     await expect(page.locator('app-toast')).toHaveCount(0);
     expect((await admin().getDocument(b.id)).status).not.toBe('Posted');
   });

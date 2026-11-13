@@ -932,9 +932,21 @@ export const MS_MESSAGES: Messages = {
     'Kurangkan kuantiti atau buang baris yang tidak dipulangkan. Kuantiti tidak boleh melebihi yang masih boleh dipulangkan.',
   'doc.return.open': 'Buka dokumen asal.',
   'doc.return.approval':
-    'Pemulangan sentiasa memerlukan kelulusan, oleh Penyelia atau Pentadbir selain orang yang menghantarnya. Jika hanya ada seorang Penyelia, Pentadbir yang meluluskan.',
+    'Pemulangan sentiasa memerlukan kelulusan, oleh Penyelia atau Pentadbir selain orang yang menghantarnya. Pemilik tidak boleh meluluskannya. Jika hanya ada seorang Penyelia, Pentadbir yang meluluskan.',
+  'doc.return.approval.other':
+    'Dihantar oleh {name}. Pemulangan sentiasa memerlukan kelulusan, oleh Penyelia atau Pentadbir selain {name}. Pemilik tidak boleh meluluskannya.',
+  'doc.return.originalFailed':
+    'Kuantiti dokumen asal tidak dapat dibaca. Anda masih boleh menyunting; kuantiti disemak apabila anda menyimpan.',
+  'doc.return.unreadable':
+    'Ini pemulangan dan anda tidak boleh membuat pemulangan, jadi ia tidak boleh disunting di sini. Minta orang yang boleh, atau batalkannya.',
+  'doc.overReturn.title': 'Tidak diterima: melebihi yang masih boleh dipulangkan',
+  'doc.overReturn.line':
+    'Baris {lineNo} ({sku}): asal {original} {uom}, sudah dipulangkan {returned} {uom}, masih boleh dipulangkan {remaining} {uom}, pemulangan ini {requested} {uom}.',
+  'doc.overReturn.fix': 'Pemulangan tidak berubah. Kurangkan kuantiti dan cuba lagi.',
+  'doc.overReturn.ask':
+    'Pemulangan tidak berubah. Minta pembuatnya mengurangkan kuantiti, atau batalkannya.',
   'line.return':
-    'Baris asal {lineNo}: {ordered}, sudah dipulangkan {returned}, boleh dipulangkan {remaining} {uom}',
+    'Baris asal {lineNo}: {ordered} {uom}, sudah dipulangkan {returned} {uom}, boleh dipulangkan {remaining} {uom}',
   'line.return.over': 'Hanya {remaining} {uom} baris ini yang masih boleh dipulangkan.',
   'doc.line.returned': 'Dipulangkan {returned} {uom}, boleh dipulangkan {returnable} {uom}',
   'module.returns.name': 'Pemulangan',

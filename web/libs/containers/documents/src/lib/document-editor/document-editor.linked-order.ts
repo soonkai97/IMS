@@ -140,15 +140,23 @@ export function returnLineContexts(
   if (!original || original.id !== originalId) {
     return new Map();
   }
+  // A line without the figures (the API omits them while Returns is off or for a caller who may not create returns) says nothing:
+  // "everything is returnable" would be a guess, and the API stays the authority at save and at posting.
   return new Map(
-    original.lines.map((line, index) => [
-      index + 1,
-      {
-        ordered: line.qty,
-        received: line.returnedQty ?? 0,
-        remaining: line.returnableQty ?? line.qty,
-        uomCode: line.uomCode
-      }
-    ])
+    original.lines.flatMap((line, index): [number, OrderLineContext][] =>
+      isDefined(line.returnableQty)
+        ? [
+            [
+              index + 1,
+              {
+                ordered: line.qty,
+                received: line.returnedQty ?? 0,
+                remaining: line.returnableQty,
+                uomCode: line.uomCode
+              }
+            ]
+          ]
+        : []
+    )
   );
 }

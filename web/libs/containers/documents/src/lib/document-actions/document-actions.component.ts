@@ -12,8 +12,10 @@ import { DOCUMENT_ACTION, DocumentAction, toDocumentActions } from '@ims/models'
 import { UiButtonComponent, UiDialogComponent, UiIconComponent } from '@ims/ui';
 
 /**
- * The buttons of a document, taken ONLY from the server's `allowedActions`: a button that is not listed is not
- * rendered. The one exception is Approve, shown disabled with a reason when self-approval is the only blocker (E3).
+ * The buttons of a document, taken from the server's `allowedActions` AND, for Return only, from `canReturn`: the API has no
+ * `return` action, so the page decides it (a Posted sale issue or receipt with something left, for a holder of returns.create
+ * while the module is on). A button that is not listed is not rendered. The one other exception is Approve, shown disabled
+ * with a reason when self-approval is the only blocker (E3).
  */
 @Component({
   selector: 'app-document-actions',

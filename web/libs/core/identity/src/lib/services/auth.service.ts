@@ -157,6 +157,24 @@ export class AuthService {
     return this.refreshSession(true).pipe(map(result => result.accessToken));
   }
 
+  /**
+   * Reads the signed-in user's info again (`GET /api/auth/me`: permissions and modules as the server holds them now). The info
+   * otherwise changes only with a sign-in or a token refresh, about 5 minutes apart, and a module switch changes what the API lists
+   * for the caller (a permission of a module that is off is hidden). Never fails: the old info stays when the call does, and an
+   * answer that comes after the session ended or changed is dropped.
+   */
+  reloadUser(): Observable<UserInfo | undefined> {
+    return defer(() => this.authClient.me(handledInline())).pipe(
+      takeUntil(this.sessionChanged),
+      tap(user => {
+        if (this.accessToken !== undefined) {
+          this.$currentUser.set(user);
+        }
+      }),
+      catchError(() => of(undefined))
+    );
+  }
+
   logout(): Observable<void> {
     return this.authClient.logout(COOKIE_ONLY_BODY).pipe(
       catchError(() => EMPTY),

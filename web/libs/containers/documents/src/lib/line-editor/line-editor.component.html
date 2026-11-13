@@ -24,6 +24,7 @@
         ) {
           <span class="line-editor-available">
             @if (row.order; as order) {
+              <!-- `delivered`, `returned` and `received` are ONE figure (the context keeps it in `received`); each message names its own. -->
               {{
                 row.orderKey
                   | t
