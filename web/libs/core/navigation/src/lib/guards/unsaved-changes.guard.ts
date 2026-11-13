@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanDeactivateFn } from '@angular/router';
-import { defaultIfEmpty, map, of } from 'rxjs';
+import { defaultIfEmpty, map } from 'rxjs';
 import { I18nService } from '@ims/core/i18n';
 import { AuthService } from '@ims/core/identity';
 import { ConfirmService } from '@ims/core/notification';
@@ -33,5 +33,3 @@ export const unsavedChangesGuard: CanDeactivateFn<HasUnsavedChanges> = component
       defaultIfEmpty(false)
     );
 };
-
-export const ALLOW_LEAVING = of(true);

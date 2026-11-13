@@ -1789,3 +1789,8 @@
 
 ### 2026-11-13 be-framework -> orchestrator (modernisation PR 3: editorconfig ratchet and two micro fixes)
 - Rules at warning in `[src/**.cs]`: IDE0330, IDE0028, IDE0301, IDE0300, IDE0041, IDE0083, IDE0079, CA1872 (the Api builds clean with -warnaserror). Two empty-collection initialisers became `[]`; the attachment hash uses `Convert.ToHexStringLower` (same lower-case output); Ims.Api no longer references FluentValidation (nothing there used it; Application still brings it).
+
+### 2026-11-14 orchestrator -> all (remove unused code, tests, dependencies and docs)
+- Produced: branch `chore/remove-unused` (see T29 in TASKS.md). Each removal was re-checked with `git grep` on current `main`. Kept on purpose: `@angular/platform-browser-dynamic` (the Spectator test entry imports it), `System.Security.Cryptography.Pkcs` (security pin), `libs/shared/assets` (its files are copied by the app build; the barrel is now a comment and `export {}`).
+- Decisions others must respect: hooks come only from `.githooks` (`node scripts/setup-git-hooks.mjs`); `web/.husky` and the `husky` package are gone. `web/package-lock.json` was edited by removing the two packages only, because npm on Windows drops the `libc` fields. Test code that needs every low-stock row calls `LowStockPages.ReadAsync`.
+- Open conflicts: none. Earlier log entries still name the deleted `docs/qa/fix-status-backend-2.md`, `docs/reviews/pr-106/` and `docs/reviews/pr-121/`; `git log` has them.

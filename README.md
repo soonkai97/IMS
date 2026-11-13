@@ -30,7 +30,7 @@ ASPNETCORE_ENVIRONMENT=Development dotnet run     # http://localhost:5109, Swagg
 # 2. Web
 cd web
 npm install
-npm start                                          # http://localhost:4200
+npm run dev                                          # http://localhost:4200
 ```
 
 Development settings (LocalDB connection, demo users and their dev-only passwords) are in
