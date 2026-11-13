@@ -11,7 +11,7 @@ namespace Ims.Api.Features.Modules;
 /// carries no <see cref="RequiresModuleAttribute"/>: a module that is off can always be turned on.
 /// </summary>
 [Route(ApiRoutes.Modules)]
-public class ModulesController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class ModulesController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<ModuleDto>>(StatusCodes.Status200OK)]

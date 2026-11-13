@@ -6,7 +6,7 @@ namespace Ims.Domain;
 /// the permissions of <see cref="SystemRoleDefaults"/>; the code is the stable text a role is known by and never
 /// changes. The permissions are code strings of <see cref="PermissionCatalog"/>, not rows of a permission table.
 /// </summary>
-public class Role : PublicEntity
+public sealed class Role : PublicEntity
 {
     private Role() { }
 

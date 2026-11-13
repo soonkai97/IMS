@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 namespace Ims.Api.Features.Auth;
 
 [Route(ApiRoutes.Auth)]
-public class AuthController(IDispatcher dispatcher, IRefreshTokenCookie refreshCookie, ICsrfGuard csrf, IOptions<AuthOptions> options)
+public sealed class AuthController(IDispatcher dispatcher, IRefreshTokenCookie refreshCookie, ICsrfGuard csrf, IOptions<AuthOptions> options)
     : ApiControllerBase(dispatcher)
 {
     [HttpPost(RouteSegments.Login), AllowAnonymous, EnableRateLimiting(RateLimitPolicies.Login)]

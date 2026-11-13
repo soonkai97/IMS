@@ -1,6 +1,6 @@
 namespace Ims.Domain;
 
-public class Warehouse : PublicEntity
+public sealed class Warehouse : PublicEntity
 {
     private Warehouse() { }
 

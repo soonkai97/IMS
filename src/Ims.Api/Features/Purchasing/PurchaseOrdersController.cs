@@ -14,7 +14,7 @@ namespace Ims.Api.Features.Purchasing;
 /// Every response that carries an order also carries its <c>ETag</c>; a write must send it back as <c>If-Match</c> and is refused with 409 when someone else changed the order in the meantime.
 /// </summary>
 [Route(ApiRoutes.PurchaseOrders), RequiresModule(ModuleCodes.Purchasing)]
-public class PurchaseOrdersController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class PurchaseOrdersController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     /// <summary>Purchase orders, newest first, in the warehouses the caller may read. Prices and totals are null for a caller without <c>cost.view</c>. With <c>status=Submitted</c> these are the orders waiting for approval.</summary>
     [HttpGet, Authorize(Policy = Permissions.PoRead)]

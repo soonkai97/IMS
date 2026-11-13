@@ -5,7 +5,7 @@ namespace Ims.Domain;
 /// so no rounding between units happens (plan D10). A selling price is not cost: it is gated by <c>pricelist.manage</c>. The property has a name of its own (ListPrice) because the audit scrubber withholds a
 /// tagged NAME unless the caller holds every permission that tags it, and the other price names are already tagged by other permissions.
 /// </summary>
-public class PriceListItem : Entity
+public sealed class PriceListItem : Entity
 {
     private PriceListItem() { }
 

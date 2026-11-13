@@ -11,7 +11,7 @@ namespace Ims.Infrastructure.Persistence;
 /// EF Core mapping for the whole model. Application code never sees this type: it works through
 /// <see cref="IRepository{T}"/> and <see cref="IUnitOfWork"/>.
 /// </summary>
-public class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, ICurrentUser? current = null) : DbContext(options)
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IClock clock, ICurrentUser? current = null) : DbContext(options)
 {
     /// <summary>All instants are UTC: every DateTime (and DateTime?) property is read back with Kind = Utc.</summary>
     protected override void ConfigureConventions(ModelConfigurationBuilder configuration) =>

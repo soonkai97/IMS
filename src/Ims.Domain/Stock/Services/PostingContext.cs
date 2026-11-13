@@ -1,7 +1,7 @@
 namespace Ims.Domain;
 
 /// <summary>Inputs and outputs of one posting or reversal run.</summary>
-public class PostingContext(StockDocument document, SystemSettings settings, int userId, bool canOverrideNegative, DateTime now)
+public sealed class PostingContext(StockDocument document, SystemSettings settings, int userId, bool canOverrideNegative, DateTime now)
 {
     public StockDocument Document { get; } = document;
     public SystemSettings Settings { get; } = settings;

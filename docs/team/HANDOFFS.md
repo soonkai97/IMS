@@ -1766,3 +1766,15 @@
 - Decisions others must respect: (1) `e2e/.prettierrc` is a copy of `web/.prettierrc`: change both together. (2) `format:check` in `web/` now also checks `../e2e/{src,tests,scripts}` and the root `.ts` and `.json` files of `e2e/` (not `package-lock.json`). (3) A new library's `tsconfig.json` holds only extends, files, include and references; strictness and `angularCompilerOptions` are in the base.
 - e2e: the whole suite passed on a throw-away database (see the PR for the counts).
 - Open conflicts: none.
+
+### 2026-11-13 be-framework -> orchestrator, be-architect (backend modernisation PR 1: seal Domain, Infrastructure, Api)
+- Produced: the concrete classes and records of Ims.Domain, Ims.Infrastructure and Ims.Api are `sealed` (71 files, one line each; `Program`, the exception base classes and the EF migrations are untouched). No mocking or proxy library is used, so nothing depends on subclassing. Behaviour-neutral: contract test zero diff, no migration, no snapshot change.
+- Decisions others must respect: from PR 2 on an architecture test fails any new unsealed concrete class (allow-list: Program and the four exception bases), so a new class needs `sealed` from the start.
+- Next: PR 2 (Application, 451 files, plus the architecture test).
+- Open conflicts: none.
+
+### 2026-11-13 project-manager -> orchestrator, be-framework, security-engineer
+- Produced: branch `docs/roadmap-owner-questions`: `docs/pm/ROADMAP.md` section 8.2 now lists the open owner decisions O12 to O22 raised by the deployment build and PL3 (VM ownership, domain and SQL licence; `ims_app` login; GitHub `production` environment; off-machine backup target, age key, retention and recovery objective; `Seed__AdminPassword` removal; secrets on the VM versus GitHub; returns approval; price lookup; .NET 11 / SQL Server 2025 timing; real approval amounts; pilot scope), each with a default and a needed-by owner. O3 (hosting) moved to section 8.1 as item 18. `TASKS.md` "Still open" points at 8.2.
+- Needs from the owner: answers or confirmation of O12 to O22; the four go-live gates (O13, O14, O15, O21) must be done before real data. Needs from be-framework: nothing new.
+- Decisions others must respect: the defaults in 8.2 stand until the owner answers. The recovery objective in O15 (15 minutes, 4 hours) is a proposal by the project-manager, not an agreed figure. The private requirements document is not quoted.
+- Open conflicts: none. Noted: `docs/dba/README.md` section 17 names `Seed__AdminPassword` while the deploy kit and `deployment.md` use `IMS_ADMIN_PASSWORD` (the same setting through `compose.prod.yml`); no change made.

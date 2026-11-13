@@ -1,7 +1,7 @@
 namespace Ims.Domain;
 
 /// <summary>One stock movement. Append-only (BR-01): enforced in the DbContext and by a database trigger.</summary>
-public class StockLedgerEntry : AuditableEntity
+public sealed class StockLedgerEntry : AuditableEntity
 {
     private StockLedgerEntry() { }
 

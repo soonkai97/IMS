@@ -1,7 +1,7 @@
 namespace Ims.Domain;
 
 /// <summary>Unit of measure (piece, carton, kg ...). Codes are stored upper-case.</summary>
-public class Uom : PublicEntity
+public sealed class Uom : PublicEntity
 {
     private Uom() { }
 

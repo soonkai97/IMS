@@ -3,7 +3,7 @@ using Ims.Application;
 using Ims.Domain;
 namespace Ims.Infrastructure.Excel;
 
-public class ClosedXmlExcelReader : IExcelReader
+public sealed class ClosedXmlExcelReader : IExcelReader
 {
     private const int HeaderRow = 1;
 

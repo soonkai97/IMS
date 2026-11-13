@@ -14,7 +14,7 @@ namespace Ims.Api.Features.Sales;
 /// carries its <c>ETag</c>; a write must send it back as <c>If-Match</c> and is refused with 409 when someone else changed the order in the meantime.
 /// </summary>
 [Route(ApiRoutes.SalesOrders), RequiresModule(ModuleCodes.Sales)]
-public class SalesOrdersController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class SalesOrdersController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     /// <summary>Sales orders, newest first, in the warehouses the caller may read. Prices and totals are absent for a caller without <c>so.manage</c>.</summary>
     [HttpGet, Authorize(Policy = Permissions.SoRead)]

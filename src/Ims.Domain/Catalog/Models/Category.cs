@@ -1,6 +1,6 @@
 namespace Ims.Domain;
 
-public class Category : PublicEntity
+public sealed class Category : PublicEntity
 {
     private Category() { }
 

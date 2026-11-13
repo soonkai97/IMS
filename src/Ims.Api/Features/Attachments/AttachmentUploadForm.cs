@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ims.Api.Features.Attachments;
 
 /// <summary>Multipart form for uploading a file to an owner (a document or a product).</summary>
-public class AttachmentUploadForm
+public sealed class AttachmentUploadForm
 {
     [FromForm(Name = "ownerType")] public AttachmentOwnerType OwnerType { get; set; }
     [FromForm(Name = "ownerId")] public Guid OwnerId { get; set; }

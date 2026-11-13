@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ims.Api.Features.Catalog;
 
 [Route(ApiRoutes.Categories)]
-public class CategoriesController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class CategoriesController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet, Authorize(Policy = Permissions.MasterDataRead)]
     [ProducesResponseType<IReadOnlyList<CategoryDto>>(StatusCodes.Status200OK)]
