@@ -29,9 +29,16 @@ public class Attachment : PublicEntity
 
         return new Attachment
         {
-            OwnerType = ownerType, OwnerId = ownerId, FileName = AttachmentRules.SafeDisplayName(clientFileName, kind),
-            StoragePath = storagePath, ContentType = AttachmentRules.ContentTypeOf(kind), Kind = kind,
-            SizeBytes = sizeBytes, Sha256 = sha256, UploadedBy = uploadedBy, UploadedAt = now
+            OwnerType = ownerType,
+            OwnerId = ownerId,
+            FileName = AttachmentRules.SafeDisplayName(clientFileName, kind),
+            StoragePath = storagePath,
+            ContentType = AttachmentRules.ContentTypeOf(kind),
+            Kind = kind,
+            SizeBytes = sizeBytes,
+            Sha256 = sha256,
+            UploadedBy = uploadedBy,
+            UploadedAt = now
         };
     }
 

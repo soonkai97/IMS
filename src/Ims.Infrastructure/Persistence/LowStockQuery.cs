@@ -25,8 +25,14 @@ internal static class LowStockQuery
         var stocked = LowStockSets.LowBalances(db, scope, warehouseId)
             .Select(b => new Row
             {
-                ProductId = b.Product.PublicId, Sku = b.Product.Sku, ProductName = b.Product.Name, WarehouseId = b.Warehouse.PublicId,
-                WarehouseCode = b.Warehouse.Code, WarehouseName = b.Warehouse.Name, QtyOnHand = b.QtyOnHand, SafetyStock = b.Product.SafetyStock
+                ProductId = b.Product.PublicId,
+                Sku = b.Product.Sku,
+                ProductName = b.Product.Name,
+                WarehouseId = b.Warehouse.PublicId,
+                WarehouseCode = b.Warehouse.Code,
+                WarehouseName = b.Warehouse.Name,
+                QtyOnHand = b.QtyOnHand,
+                SafetyStock = b.Product.SafetyStock
             });
 
         // Stocked in no warehouse the caller can see: one row per product, no warehouse. They belong to no warehouse, so a filter on one leaves them out.

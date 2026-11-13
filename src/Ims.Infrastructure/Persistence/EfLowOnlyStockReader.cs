@@ -65,9 +65,18 @@ public sealed class EfLowOnlyStockReader(AppDbContext db) : ILowOnlyStockReader
                 : balances.Where(b => b.Product.Sku.Contains(s.Text) || b.Product.Name.Contains(s.Text));
         var stocked = balances.Select(b => new Row
         {
-            ProductId = b.Product.PublicId, Sku = b.Product.Sku, ProductName = b.Product.Name, CategoryName = b.Product.Category != null ? b.Product.Category.Name : null,
-            UomCode = b.Product.BaseUom.Code, WarehouseId = b.Warehouse.PublicId, WarehouseCode = b.Warehouse.Code, WarehouseName = b.Warehouse.Name,
-            QtyOnHand = b.QtyOnHand, QtyInTransit = b.QtyInTransit, AvgCost = b.AvgCost, SafetyStock = b.Product.SafetyStock
+            ProductId = b.Product.PublicId,
+            Sku = b.Product.Sku,
+            ProductName = b.Product.Name,
+            CategoryName = b.Product.Category != null ? b.Product.Category.Name : null,
+            UomCode = b.Product.BaseUom.Code,
+            WarehouseId = b.Warehouse.PublicId,
+            WarehouseCode = b.Warehouse.Code,
+            WarehouseName = b.Warehouse.Name,
+            QtyOnHand = b.QtyOnHand,
+            QtyInTransit = b.QtyInTransit,
+            AvgCost = b.AvgCost,
+            SafetyStock = b.Product.SafetyStock
         });
 
         // Products with no balance row in any active warehouse the caller can see: low, once each, with nothing on hand and no average cost. They belong to no
@@ -82,9 +91,18 @@ public sealed class EfLowOnlyStockReader(AppDbContext db) : ILowOnlyStockReader
                 : products.Where(x => x.Sku.Contains(text.Text) || x.Name.Contains(text.Text));
         var neverStocked = products.Select(x => new Row
         {
-            ProductId = x.PublicId, Sku = x.Sku, ProductName = x.Name, CategoryName = x.Category != null ? x.Category.Name : null,
-            UomCode = x.BaseUom.Code, WarehouseId = null, WarehouseCode = null, WarehouseName = null,
-            QtyOnHand = 0m, QtyInTransit = 0m, AvgCost = null, SafetyStock = x.SafetyStock
+            ProductId = x.PublicId,
+            Sku = x.Sku,
+            ProductName = x.Name,
+            CategoryName = x.Category != null ? x.Category.Name : null,
+            UomCode = x.BaseUom.Code,
+            WarehouseId = null,
+            WarehouseCode = null,
+            WarehouseName = null,
+            QtyOnHand = 0m,
+            QtyInTransit = 0m,
+            AvgCost = null,
+            SafetyStock = x.SafetyStock
         });
 
         return stocked.Concat(neverStocked);

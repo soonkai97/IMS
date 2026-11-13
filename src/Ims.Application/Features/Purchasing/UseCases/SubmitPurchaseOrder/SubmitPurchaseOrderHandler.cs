@@ -18,7 +18,10 @@ public class SubmitPurchaseOrderHandler(IRepository<PurchaseOrder> orders, IAppr
         audit.Record(AuditActions.PurchaseOrderSubmitted, AuditEntities.PurchaseOrder, order.No, new { Status = before },
             new Dictionary<string, object?>
             {
-                [nameof(order.Status)] = order.Status, [nameof(order.RequiresApproval)] = order.RequiresApproval, [nameof(order.IsLarge)] = order.IsLarge, [AuditFields.Amount] = assessment.Amount
+                [nameof(order.Status)] = order.Status,
+                [nameof(order.RequiresApproval)] = order.RequiresApproval,
+                [nameof(order.IsLarge)] = order.IsLarge,
+                [AuditFields.Amount] = assessment.Amount
             });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);

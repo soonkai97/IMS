@@ -36,8 +36,11 @@ public class SubmitDocumentHandler(IRepository<StockDocument> documents, IApprov
         audit.Record(AuditActions.DocumentSubmitted, AuditEntities.StockDocument, doc.No, new { Status = before },
             new Dictionary<string, object?>
             {
-                [nameof(doc.Status)] = doc.Status, [nameof(doc.RequiresApproval)] = doc.RequiresApproval, [nameof(doc.IsLarge)] = doc.IsLarge,
-                [nameof(doc.RequiresOverride)] = doc.RequiresOverride, [AuditFields.Amount] = assessment.Amount
+                [nameof(doc.Status)] = doc.Status,
+                [nameof(doc.RequiresApproval)] = doc.RequiresApproval,
+                [nameof(doc.IsLarge)] = doc.IsLarge,
+                [nameof(doc.RequiresOverride)] = doc.RequiresOverride,
+                [AuditFields.Amount] = assessment.Amount
             });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);

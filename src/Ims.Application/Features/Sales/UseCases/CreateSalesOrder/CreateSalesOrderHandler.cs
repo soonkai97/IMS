@@ -1,5 +1,5 @@
-using Ims.Application.Features.Modules;
 using Ims.Application.Features.Documents;
+using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
@@ -35,7 +35,10 @@ public class CreateSalesOrderHandler(IRepository<SalesOrder> orders, IReadReposi
 
     internal static Dictionary<string, object?> Summary(SalesOrder order) => new()
     {
-        [nameof(order.Status)] = order.Status, [nameof(order.WarehouseId)] = order.WarehouseId, [nameof(order.CustomerId)] = order.CustomerId,
-        [nameof(order.Lines)] = order.Lines.Count, [AuditFields.SellingAmount] = order.TotalSellingAmount
+        [nameof(order.Status)] = order.Status,
+        [nameof(order.WarehouseId)] = order.WarehouseId,
+        [nameof(order.CustomerId)] = order.CustomerId,
+        [nameof(order.Lines)] = order.Lines.Count,
+        [AuditFields.SellingAmount] = order.TotalSellingAmount
     };
 }

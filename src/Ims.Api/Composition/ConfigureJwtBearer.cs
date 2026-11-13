@@ -14,11 +14,16 @@ public sealed class ConfigureJwtBearer(ITokenValidationSettings settings) : ICon
     {
         o.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = true, ValidIssuer = settings.Issuer,
-            ValidateAudience = true, ValidAudience = settings.Audience,
-            ValidateIssuerSigningKey = true, IssuerSigningKey = new SymmetricSecurityKey(settings.SigningKey),
-            ValidateLifetime = true, ClockSkew = TimeSpan.FromSeconds(Limits.ClockSkewSeconds),
-            RoleClaimType = ClaimTypes.Role, NameClaimType = ClaimTypes.Name
+            ValidateIssuer = true,
+            ValidIssuer = settings.Issuer,
+            ValidateAudience = true,
+            ValidAudience = settings.Audience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(settings.SigningKey),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromSeconds(Limits.ClockSkewSeconds),
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.Name
         };
         o.Events = new JwtBearerEvents { OnTokenValidated = RequireCurrentClaimsVersion };
     }

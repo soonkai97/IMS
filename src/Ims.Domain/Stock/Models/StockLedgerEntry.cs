@@ -30,7 +30,14 @@ public class StockLedgerEntry : AuditableEntity
     public static StockLedgerEntry Create(StockDocument source, int productId, decimal qtyDelta, decimal balanceAfter, decimal unitCost, LedgerReason reason, int createdBy, DateTime at) =>
         new()
         {
-            ProductId = productId, WarehouseId = source.WarehouseId, QtyDelta = qtyDelta, BalanceAfter = balanceAfter, UnitCost = unitCost,
-            SourceDocId = source.Id, Reason = reason, OccurredAt = at, CreatedBy = createdBy
+            ProductId = productId,
+            WarehouseId = source.WarehouseId,
+            QtyDelta = qtyDelta,
+            BalanceAfter = balanceAfter,
+            UnitCost = unitCost,
+            SourceDocId = source.Id,
+            Reason = reason,
+            OccurredAt = at,
+            CreatedBy = createdBy
         };
 }

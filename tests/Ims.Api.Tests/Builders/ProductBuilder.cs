@@ -25,8 +25,13 @@ public sealed class ProductBuilder
 
     public static ProductBuilder From(ReferenceData reference, ProductDto existing) => new(reference)
     {
-        _sku = existing.Sku, _name = existing.Name, _categoryId = existing.CategoryId, _baseUomId = existing.BaseUomId,
-        _safetyStock = existing.SafetyStock, _isActive = existing.IsActive, _barcodes = [.. existing.Barcodes],
+        _sku = existing.Sku,
+        _name = existing.Name,
+        _categoryId = existing.CategoryId,
+        _baseUomId = existing.BaseUomId,
+        _safetyStock = existing.SafetyStock,
+        _isActive = existing.IsActive,
+        _barcodes = [.. existing.Barcodes],
         _conversions = [.. existing.Conversions]
     };
 

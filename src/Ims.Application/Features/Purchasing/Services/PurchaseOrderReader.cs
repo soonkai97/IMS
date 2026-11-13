@@ -1,5 +1,5 @@
-using Ims.Domain;
 using Ims.Application.Features.Documents;
+using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
 public class PurchaseOrderReader(IReadRepository<PurchaseOrder> orders, IReadRepository<User> users, IPurchaseOrderAccess access, IPurchaseOrderReceiving receiving, IApprovalEvaluator approvals, ISystemSettings settings,
@@ -36,8 +36,10 @@ public class PurchaseOrderReader(IReadRepository<PurchaseOrder> orders, IReadRep
             var done = received.GetValueOrDefault(l.LineNo);
             return l with
             {
-                ReceivedQty = done.Qty, RemainingQty = PurchaseOrderQuantities.Remaining(l.Qty, done.Qty),
-                ReceivedBaseQty = done.BaseQty, RemainingBaseQty = PurchaseOrderQuantities.Remaining(l.BaseQty, done.BaseQty)
+                ReceivedQty = done.Qty,
+                RemainingQty = PurchaseOrderQuantities.Remaining(l.Qty, done.Qty),
+                ReceivedBaseQty = done.BaseQty,
+                RemainingBaseQty = PurchaseOrderQuantities.Remaining(l.BaseQty, done.BaseQty)
             };
         }).ToList();
         return dto with { Lines = lines, Receipts = await receiving.ReceiptsAsync(dto.Key, ct) };
@@ -52,9 +54,14 @@ public class PurchaseOrderReader(IReadRepository<PurchaseOrder> orders, IReadRep
         UserLabel? Find(int? key) => key is { } k ? people.GetValueOrDefault(k) : null;
         return dto with
         {
-            SubmittedById = Find(dto.SubmittedByKey)?.PublicId, SubmittedBy = Find(dto.SubmittedByKey)?.Username, SubmittedByName = Find(dto.SubmittedByKey)?.DisplayName,
-            ApprovedBy = Find(dto.ApprovedByKey)?.Username, ApprovedByName = Find(dto.ApprovedByKey)?.DisplayName,
-            ReturnedById = Find(dto.ReturnedByKey)?.PublicId, ReturnedBy = Find(dto.ReturnedByKey)?.Username, ReturnedByName = Find(dto.ReturnedByKey)?.DisplayName
+            SubmittedById = Find(dto.SubmittedByKey)?.PublicId,
+            SubmittedBy = Find(dto.SubmittedByKey)?.Username,
+            SubmittedByName = Find(dto.SubmittedByKey)?.DisplayName,
+            ApprovedBy = Find(dto.ApprovedByKey)?.Username,
+            ApprovedByName = Find(dto.ApprovedByKey)?.DisplayName,
+            ReturnedById = Find(dto.ReturnedByKey)?.PublicId,
+            ReturnedBy = Find(dto.ReturnedByKey)?.Username,
+            ReturnedByName = Find(dto.ReturnedByKey)?.DisplayName
         };
     }
 }

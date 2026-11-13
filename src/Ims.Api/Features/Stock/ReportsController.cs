@@ -1,9 +1,9 @@
-using Microsoft.AspNetCore.Http.Timeouts;
 using Ims.Application;
 using Ims.Application.Features.Reports;
 using Ims.Application.Features.Stock;
 using Ims.Domain;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 namespace Ims.Api.Features.Stock;
 

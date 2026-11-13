@@ -68,9 +68,17 @@ internal static class ReorderQuery
             .Where(x => ReorderRule.TargetMultiple * x.Balance.Product.SafetyStock - x.Balance.QtyOnHand - x.OnOrder > 0m)
             .Select(x => new Row
             {
-                ProductId = x.Balance.Product.PublicId, Sku = x.Balance.Product.Sku, ProductName = x.Balance.Product.Name, UomCode = x.Balance.Product.BaseUom.Code,
-                WarehouseId = x.Balance.Warehouse.PublicId, WarehouseCode = x.Balance.Warehouse.Code, WarehouseName = x.Balance.Warehouse.Name,
-                QtyOnHand = x.Balance.QtyOnHand, SafetyStock = x.Balance.Product.SafetyStock, OnOrderQty = x.OnOrder, AvgCost = x.Balance.AvgCost
+                ProductId = x.Balance.Product.PublicId,
+                Sku = x.Balance.Product.Sku,
+                ProductName = x.Balance.Product.Name,
+                UomCode = x.Balance.Product.BaseUom.Code,
+                WarehouseId = x.Balance.Warehouse.PublicId,
+                WarehouseCode = x.Balance.Warehouse.Code,
+                WarehouseName = x.Balance.Warehouse.Name,
+                QtyOnHand = x.Balance.QtyOnHand,
+                SafetyStock = x.Balance.Product.SafetyStock,
+                OnOrderQty = x.OnOrder,
+                AvgCost = x.Balance.AvgCost
             });
 
         // Never stocked in a warehouse the caller can see: on hand zero in the chosen (active) warehouse. A closed warehouse has no such row, like it raises no alert.
@@ -83,9 +91,17 @@ internal static class ReorderQuery
             .Where(x => ReorderRule.TargetMultiple * x.Product.SafetyStock - x.OnOrder > 0m)
             .SelectMany(_ => chosen, (x, w) => new Row
             {
-                ProductId = x.Product.PublicId, Sku = x.Product.Sku, ProductName = x.Product.Name, UomCode = x.Product.BaseUom.Code,
-                WarehouseId = w.PublicId, WarehouseCode = w.Code, WarehouseName = w.Name,
-                QtyOnHand = 0m, SafetyStock = x.Product.SafetyStock, OnOrderQty = x.OnOrder, AvgCost = null
+                ProductId = x.Product.PublicId,
+                Sku = x.Product.Sku,
+                ProductName = x.Product.Name,
+                UomCode = x.Product.BaseUom.Code,
+                WarehouseId = w.PublicId,
+                WarehouseCode = w.Code,
+                WarehouseName = w.Name,
+                QtyOnHand = 0m,
+                SafetyStock = x.Product.SafetyStock,
+                OnOrderQty = x.OnOrder,
+                AvgCost = null
             });
 
         return stocked.Concat(neverStocked);

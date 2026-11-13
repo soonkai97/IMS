@@ -36,8 +36,10 @@ public class SalesOrderReader(IReadRepository<SalesOrder> orders, IReadRepositor
             var d = done.GetValueOrDefault(l.LineNo);
             return l with
             {
-                DeliveredQty = d.Qty, RemainingQty = SalesOrderQuantities.Remaining(l.Qty, d.Qty),
-                DeliveredBaseQty = d.BaseQty, RemainingBaseQty = SalesOrderQuantities.Remaining(l.BaseQty, d.BaseQty)
+                DeliveredQty = d.Qty,
+                RemainingQty = SalesOrderQuantities.Remaining(l.Qty, d.Qty),
+                DeliveredBaseQty = d.BaseQty,
+                RemainingBaseQty = SalesOrderQuantities.Remaining(l.BaseQty, d.BaseQty)
             };
         }).ToList();
         return dto with { Lines = lines, Deliveries = await documents.ListAsync(new DeliveriesOfOrderSpec(dto.Key), ct) };
@@ -59,9 +61,14 @@ public class SalesOrderReader(IReadRepository<SalesOrder> orders, IReadRepositor
         UserLabel? Find(int? key) => key is { } k ? people.GetValueOrDefault(k) : null;
         return dto with
         {
-            SubmittedById = Find(dto.SubmittedByKey)?.PublicId, SubmittedBy = Find(dto.SubmittedByKey)?.Username, SubmittedByName = Find(dto.SubmittedByKey)?.DisplayName,
-            ApprovedBy = Find(dto.ApprovedByKey)?.Username, ApprovedByName = Find(dto.ApprovedByKey)?.DisplayName,
-            ReturnedById = Find(dto.ReturnedByKey)?.PublicId, ReturnedBy = Find(dto.ReturnedByKey)?.Username, ReturnedByName = Find(dto.ReturnedByKey)?.DisplayName
+            SubmittedById = Find(dto.SubmittedByKey)?.PublicId,
+            SubmittedBy = Find(dto.SubmittedByKey)?.Username,
+            SubmittedByName = Find(dto.SubmittedByKey)?.DisplayName,
+            ApprovedBy = Find(dto.ApprovedByKey)?.Username,
+            ApprovedByName = Find(dto.ApprovedByKey)?.DisplayName,
+            ReturnedById = Find(dto.ReturnedByKey)?.PublicId,
+            ReturnedBy = Find(dto.ReturnedByKey)?.Username,
+            ReturnedByName = Find(dto.ReturnedByKey)?.DisplayName
         };
     }
 }
