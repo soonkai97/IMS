@@ -122,6 +122,25 @@ export class ImsApi {
     throw new Error('unreachable');
   }
 
+  /** A file answer (an Excel export): the bytes, signed in as this role. A non-2xx answer fails the test. */
+  async download(path: string): Promise<Buffer> {
+    for (const attempt of [0, 1]) {
+      const token = tokens.get(this.role) ?? (await signIn(this.role));
+      const response = await fetch(`${API_URL}${path}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.status === 401 && attempt === 0) {
+        tokens.delete(this.role);
+        continue;
+      }
+      if (!response.ok) {
+        throw new Error(`GET ${path} as ${this.role}: HTTP ${response.status}`);
+      }
+      return Buffer.from(await response.arrayBuffer());
+    }
+    throw new Error('unreachable');
+  }
+
   /**
    * The concurrency token of the document or order a command path names, read as this role and, when this role may not read it,
    * as the Admin. When nobody can read it (no such id) a placeholder goes out, so the API answers 404 or 403 and not 428.
