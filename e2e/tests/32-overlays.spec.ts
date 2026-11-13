@@ -9,7 +9,9 @@ const NO_MOVE = ['none', 'matrix(1, 0, 0, 1, 0, 0)'];
 
 /** Waits until the entrance transition has ended, so a measurement does not catch the dialog half way in. */
 async function settled(dialog: import('@playwright/test').Locator): Promise<void> {
-  await dialog.evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)));
+  await dialog.evaluate(element =>
+    Promise.all(element.getAnimations().map(animation => animation.finished))
+  );
 }
 
 /** The tokens and the dialog's own transition, as the browser resolved them. */
@@ -88,7 +90,9 @@ test.describe('R13 Dialog on a 1280px desktop', () => {
       await signIn('staff');
       const dialog = await shell.openAccount();
 
-      const scrim = await dialog.evaluate(element => getComputedStyle(element, '::backdrop').backgroundColor);
+      const scrim = await dialog.evaluate(
+        element => getComputedStyle(element, '::backdrop').backgroundColor
+      );
       expect(scrim).toContain(`/ ${alpha})`);
     });
   }

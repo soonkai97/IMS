@@ -16,6 +16,11 @@
     "useDefineForClassFields": false,
     "lib": ["esnext", "dom"],
     "skipLibCheck": true,
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
     "paths": {
       "@ims/api": ["./libs/shared/api/src/index.ts"],
       "@ims/assets": ["./libs/shared/assets/src/index.ts"],
@@ -56,6 +61,11 @@
       "@ims/ui": ["./libs/shared/ui/src/index.ts"],
       "@ims/utils": ["./libs/shared/utils/src/index.ts"]
     }
+  },
+  "angularCompilerOptions": {
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
   },
   "exclude": ["node_modules", "dist", "tmp"]
 }

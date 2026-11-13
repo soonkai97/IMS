@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '../src/fixtures';
+import { afterRender } from '../src/feedback';
 import { goTo } from '../src/pages/shell';
 
 // R10 (docs/design/2026-refresh-plan.md): the app shell. Phone tab bar and the sticky action bar above it, the skip link, the thin
@@ -100,16 +101,27 @@ test.describe('R10 Action bar at 320x560', () => {
       }, index);
       await page.keyboard.press('Tab');
       await expect(page.getByRole('button', { name: /^Remove / }).nth(index)).toBeFocused();
-      await page.waitForTimeout(300); // the scroll that brings a focused control into view may be smooth
 
+      // The scroll that brings a focused control into view may be smooth: read the bottom of the focused control until it stops moving.
       const barTop = (await bar.boundingBox())?.y ?? 0;
-      const bottom = await page.evaluate(() => {
-        const box = document.activeElement?.getBoundingClientRect();
-        return (box?.y ?? 0) + (box?.height ?? 0);
-      });
-      expect(bottom, `Remove button ${index + 1} is under the action bar`).toBeLessThanOrEqual(
-        barTop
-      );
+      const focusedBottom = () =>
+        page.evaluate(() => {
+          const box = document.activeElement?.getBoundingClientRect();
+          return (box?.y ?? 0) + (box?.height ?? 0);
+        });
+      let previous = Number.NaN;
+      await expect
+        .poll(async () => {
+          const current = await focusedBottom();
+          const still = current === previous;
+          previous = current;
+          return still;
+        })
+        .toBe(true);
+      expect(
+        await focusedBottom(),
+        `Remove button ${index + 1} is under the action bar`
+      ).toBeLessThanOrEqual(barTop);
     }
   });
 });
@@ -157,9 +169,12 @@ test.describe('R10 Top progress bar', () => {
         }
       }).observe(document.body, { childList: true, subtree: true });
     });
+    const answered = page.waitForResponse(/\/api\/documents(\?|$)/);
     await goTo(page, '/receipts');
     await expect(page.getByRole('heading', { level: 1, name: 'Receipts' })).toBeVisible();
-    await page.waitForTimeout(800);
+    // The answer came at once and was drawn: the bar (which waits 300ms before it shows) was never there.
+    await answered;
+    await afterRender(page);
     expect(await page.evaluate(() => (window as unknown as { __shown: number }).__shown)).toBe(0);
 
     await answerDocuments(page, 2500);

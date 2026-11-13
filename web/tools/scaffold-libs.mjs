@@ -76,21 +76,8 @@ for (const l of LIBS) {
       extends: `${UP}tsconfig.base.json`,
       files: [],
       include: [],
-      references: [{ path: './tsconfig.lib.json' }, { path: './tsconfig.spec.json' }],
-      compilerOptions: {
-        forceConsistentCasingInFileNames: true,
-        strict: true,
-        noImplicitOverride: true,
-        noPropertyAccessFromIndexSignature: true,
-        noImplicitReturns: true,
-        noFallthroughCasesInSwitch: true,
-        moduleResolution: 'bundler'
-      },
-      angularCompilerOptions: {
-        strictInjectionParameters: true,
-        strictInputAccessModifiers: true,
-        strictTemplates: true
-      }
+      // The strictness and the Angular compiler options live in tsconfig.base.json.
+      references: [{ path: './tsconfig.lib.json' }, { path: './tsconfig.spec.json' }]
     })
   );
   write(
