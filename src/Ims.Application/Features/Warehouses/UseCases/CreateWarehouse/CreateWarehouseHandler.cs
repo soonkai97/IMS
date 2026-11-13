@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Warehouses;
 
-public class CreateWarehouseHandler(IRepository<Warehouse> warehouses, IUnitOfWork uow) : ICommandHandler<CreateWarehouseCommand, WarehouseDto>
+public sealed class CreateWarehouseHandler(IRepository<Warehouse> warehouses, IUnitOfWork uow) : ICommandHandler<CreateWarehouseCommand, WarehouseDto>
 {
     public async Task<WarehouseDto> HandleAsync(CreateWarehouseCommand cmd, CancellationToken ct)
     {

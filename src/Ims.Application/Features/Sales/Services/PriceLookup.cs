@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class PriceLookup(IReadRepository<PriceList> lists, IReadRepository<PriceListItem> items) : IPriceLookup, IAppService
+public sealed class PriceLookup(IReadRepository<PriceList> lists, IReadRepository<PriceListItem> items) : IPriceLookup, IAppService
 {
     public async Task<IReadOnlyDictionary<(int ProductId, int UomId), ListedPrice>> FindAsync(int customerId, IReadOnlyCollection<(int ProductId, int UomId)> keys, CancellationToken ct)
     {

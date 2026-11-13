@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Catalog;
 
-public record UomSaveRequest(string Code, string Name);
+public sealed record UomSaveRequest(string Code, string Name);

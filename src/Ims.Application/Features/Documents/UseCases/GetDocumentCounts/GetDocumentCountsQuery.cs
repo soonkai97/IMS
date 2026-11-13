@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Documents;
 
-public record GetDocumentCountsQuery : IQuery<DocumentCounts>;
+public sealed record GetDocumentCountsQuery : IQuery<DocumentCounts>;

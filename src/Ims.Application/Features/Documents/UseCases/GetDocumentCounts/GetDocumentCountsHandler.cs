@@ -5,7 +5,7 @@ namespace Ims.Application.Features.Documents;
 /// The Home tiles and menu badges in one call. A fixed number of COUNT queries (at most four), each answered by an index on the
 /// status or the posting time, so the cost does not depend on how many documents exist.
 /// </summary>
-public class GetDocumentCountsHandler(IReadRepository<StockDocument> documents, IDocumentAccess access, ICurrentUser current,
+public sealed class GetDocumentCountsHandler(IReadRepository<StockDocument> documents, IDocumentAccess access, ICurrentUser current,
     ISystemSettings settings, IClock clock) : IQueryHandler<GetDocumentCountsQuery, DocumentCounts>
 {
     public async Task<DocumentCounts> HandleAsync(GetDocumentCountsQuery q, CancellationToken ct)

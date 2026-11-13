@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 /// <summary>Posting: writes the ledger and updates balances in one transaction, retried on concurrent changes (BR-01, BR-12).</summary>
-public class PostDocumentHandler(IRepository<StockDocument> documents, IRepository<StockLedgerEntry> ledger, IBalanceLoader balances,
+public sealed class PostDocumentHandler(IRepository<StockDocument> documents, IRepository<StockLedgerEntry> ledger, IBalanceLoader balances,
     IPostingEngine engine, IEnumerable<IDocumentLinkPosting> linkPostings, ISystemSettings settings, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version,
     ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<PostDocumentCommand, DocumentDto>
 {

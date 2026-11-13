@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Auth;
 
-public class LoginValidator : AbstractValidator<LoginCommand>
+public sealed class LoginValidator : AbstractValidator<LoginCommand>
 {
     public LoginValidator()
     {

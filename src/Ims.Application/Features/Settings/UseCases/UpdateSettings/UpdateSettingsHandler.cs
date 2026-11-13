@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Settings;
 
-public class UpdateSettingsHandler(IRepository<SystemSetting> settings, ISystemSettings current, IUnitOfWork uow, IAuditTrail audit)
+public sealed class UpdateSettingsHandler(IRepository<SystemSetting> settings, ISystemSettings current, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<UpdateSettingsCommand, SettingsDto>
 {
     public async Task<SettingsDto> HandleAsync(UpdateSettingsCommand cmd, CancellationToken ct)

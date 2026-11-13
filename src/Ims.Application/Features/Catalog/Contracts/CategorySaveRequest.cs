@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Catalog;
 
-public record CategorySaveRequest(string Name);
+public sealed record CategorySaveRequest(string Name);

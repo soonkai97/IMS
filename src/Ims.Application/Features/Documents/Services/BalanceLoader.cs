@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class BalanceLoader(IRepository<StockBalance> balances, ITransactionLocker locker) : IBalanceLoader, IAppService
+public sealed class BalanceLoader(IRepository<StockBalance> balances, ITransactionLocker locker) : IBalanceLoader, IAppService
 {
     public async Task<Dictionary<int, StockBalance>> LoadForUpdateAsync(StockDocument document, CancellationToken ct)
     {

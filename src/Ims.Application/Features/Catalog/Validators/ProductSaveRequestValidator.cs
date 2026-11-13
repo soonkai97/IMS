@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Catalog;
 
-public class ProductSaveRequestValidator : AbstractValidator<ProductSaveRequest>
+public sealed class ProductSaveRequestValidator : AbstractValidator<ProductSaveRequest>
 {
     public ProductSaveRequestValidator()
     {

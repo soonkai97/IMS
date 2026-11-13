@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Catalog;
 
-public record ListCategoriesQuery : IQuery<IReadOnlyList<CategoryDto>>;
+public sealed record ListCategoriesQuery : IQuery<IReadOnlyList<CategoryDto>>;

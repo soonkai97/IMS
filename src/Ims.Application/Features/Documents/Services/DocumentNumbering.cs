@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class DocumentNumbering(IRepository<DocumentSequence> sequences, ITransactionLocker locker, IClock clock) : IDocumentNumbering, IAppService
+public sealed class DocumentNumbering(IRepository<DocumentSequence> sequences, ITransactionLocker locker, IClock clock) : IDocumentNumbering, IAppService
 {
     public Task<string> NextAsync(DocumentType type, Warehouse warehouse, CancellationToken ct) => NextAsync(DocumentNumber.PrefixFor(type), warehouse, ct);
 

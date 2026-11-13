@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class CreateDeliveryFromSalesOrderHandler(IReadRepository<SalesOrder> orders, IRepository<StockDocument> documents, IDeliveredQuantityReader delivered, ISalesOrderAccess orderAccess,
+public sealed class CreateDeliveryFromSalesOrderHandler(IReadRepository<SalesOrder> orders, IRepository<StockDocument> documents, IDeliveredQuantityReader delivered, ISalesOrderAccess orderAccess,
     IDocumentNumbering numbering, IDocumentReader reader, ICurrentUser current, IClock clock, ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<CreateDeliveryFromSalesOrderCommand, DocumentDto>
 {

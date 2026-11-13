@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class ReceiptCostDefaults(IReadRepository<StockBalance> balances) : IReceiptCostDefaults, IAppService
+public sealed class ReceiptCostDefaults(IReadRepository<StockBalance> balances) : IReceiptCostDefaults, IAppService
 {
     public async Task ApplyAsync(StockDocument document, CancellationToken ct)
     {

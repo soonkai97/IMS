@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Attachments;
 
-public class DownloadAttachmentHandler(IReadRepository<Attachment> attachments, IAttachmentOwners owners, IFileStorage storage)
+public sealed class DownloadAttachmentHandler(IReadRepository<Attachment> attachments, IAttachmentOwners owners, IFileStorage storage)
     : IQueryHandler<DownloadAttachmentQuery, AttachmentDownload>
 {
     public async Task<AttachmentDownload> HandleAsync(DownloadAttachmentQuery q, CancellationToken ct)

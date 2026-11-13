@@ -6,7 +6,7 @@ namespace Ims.Application.Features.Roles;
 /// between and be left with a role that is gone (a user of a deleted role would vanish from the user list and could not sign in). The refusal says how many users hold the role, not who.
 /// The grants stay as rows, hidden with the role: nothing reads a grant without its role.
 /// </summary>
-public class DeleteRoleHandler(IRepository<Role> roles, IReadRepository<User> users, IRoleUsageReader usage, ICurrentUser current, ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit)
+public sealed class DeleteRoleHandler(IRepository<Role> roles, IReadRepository<User> users, IRoleUsageReader usage, ICurrentUser current, ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<DeleteRoleCommand, Unit>
 {
     public Task<Unit> HandleAsync(DeleteRoleCommand cmd, CancellationToken ct) => uow.ExecuteAsync(async () =>

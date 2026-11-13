@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Audit;
 
-public class QueryAuditLogHandler(IReadRepository<AuditLog> logs, ICursorProtector cursors) : IQueryHandler<QueryAuditLogQuery, PagedResult<AuditLogDto>>
+public sealed class QueryAuditLogHandler(IReadRepository<AuditLog> logs, ICursorProtector cursors) : IQueryHandler<QueryAuditLogQuery, PagedResult<AuditLogDto>>
 {
     public async Task<PagedResult<AuditLogDto>> HandleAsync(QueryAuditLogQuery q, CancellationToken ct)
     {

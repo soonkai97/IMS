@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class PriceListUniqueness(IReadRepository<PriceList> lists) : IPriceListUniqueness, IAppService
+public sealed class PriceListUniqueness(IReadRepository<PriceList> lists) : IPriceListUniqueness, IAppService
 {
     public async Task EnsureAsync(PriceList list, CancellationToken ct)
     {

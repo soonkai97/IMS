@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Auth;
 
-public record GetCurrentUserQuery : IQuery<UserInfo>;
+public sealed record GetCurrentUserQuery : IQuery<UserInfo>;

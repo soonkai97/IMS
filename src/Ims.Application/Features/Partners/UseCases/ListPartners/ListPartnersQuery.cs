@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Partners;
 
-public record ListPartnersQuery(PartnerFilter Filter) : IQuery<PagedResult<PartnerDto>>;
+public sealed record ListPartnersQuery(PartnerFilter Filter) : IQuery<PagedResult<PartnerDto>>;

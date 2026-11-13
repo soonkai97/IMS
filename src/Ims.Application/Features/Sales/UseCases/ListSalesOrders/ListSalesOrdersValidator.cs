@@ -1,7 +1,7 @@
 using FluentValidation;
 namespace Ims.Application.Features.Sales;
 
-public class ListSalesOrdersValidator : AbstractValidator<ListSalesOrdersQuery>
+public sealed class ListSalesOrdersValidator : AbstractValidator<ListSalesOrdersQuery>
 {
     public ListSalesOrdersValidator()
     {

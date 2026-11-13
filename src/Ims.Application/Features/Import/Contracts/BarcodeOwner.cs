@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Import;
 
-public record BarcodeOwner(string Barcode, int ProductId);
+public sealed record BarcodeOwner(string Barcode, int ProductId);

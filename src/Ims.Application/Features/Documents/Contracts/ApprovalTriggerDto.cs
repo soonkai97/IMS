@@ -8,7 +8,7 @@ namespace Ims.Application.Features.Documents;
 /// the document needs approval and which kind of rule fired (<paramref name="Metric"/>), not the amount. A quantity rule is not hidden.
 /// <paramref name="RoleRequired"/> is deprecated: the system role that holds the tier by default (Supervisor for Standard, Owner for Large).
 /// </summary>
-public record ApprovalTriggerDto(ApprovalMetric Metric,
+public sealed record ApprovalTriggerDto(ApprovalMetric Metric,
     [property: VisibleWith(Permissions.CostView, OnlyWhen = nameof(ApprovalTriggerDto.IsAmount))] decimal? Threshold,
     [property: VisibleWith(Permissions.CostView, OnlyWhen = nameof(ApprovalTriggerDto.IsAmount))] decimal? Actual,
     ApproverTier ApproverTier,

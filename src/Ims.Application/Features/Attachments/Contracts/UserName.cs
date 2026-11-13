@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Attachments;
 
-public record UserName(int Id, string Username);
+public sealed record UserName(int Id, string Username);

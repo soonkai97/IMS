@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class ApproveDocumentValidator : AbstractValidator<ApproveDocumentCommand>
+public sealed class ApproveDocumentValidator : AbstractValidator<ApproveDocumentCommand>
 {
     /// <summary>The override reason is optional here (only a document that requires an override needs one, which the domain enforces), but a reason that is given must be a real one.</summary>
     public ApproveDocumentValidator()

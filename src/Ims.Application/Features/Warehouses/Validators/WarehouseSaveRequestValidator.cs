@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Warehouses;
 
-public class WarehouseSaveRequestValidator : AbstractValidator<WarehouseSaveRequest>
+public sealed class WarehouseSaveRequestValidator : AbstractValidator<WarehouseSaveRequest>
 {
     public WarehouseSaveRequestValidator()
     {

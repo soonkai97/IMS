@@ -1,7 +1,7 @@
 using Ims.Application.Features.Reports;
 namespace Ims.Application.Features.Import;
 
-public class GetImportTemplateHandler(IReportWriter report) : IQueryHandler<GetImportTemplateQuery, ExportFile>
+public sealed class GetImportTemplateHandler(IReportWriter report) : IQueryHandler<GetImportTemplateQuery, ExportFile>
 {
     public Task<ExportFile> HandleAsync(GetImportTemplateQuery q, CancellationToken ct)
     {

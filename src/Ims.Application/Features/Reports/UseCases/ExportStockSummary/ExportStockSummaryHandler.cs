@@ -3,7 +3,7 @@ using Ims.Application.Features.Stock;
 using Ims.Domain;
 namespace Ims.Application.Features.Reports;
 
-public class ExportStockSummaryHandler(IReadRepository<StockBalance> balances, IReadRepository<ProductBarcode> barcodes, ILowOnlyStockReader lowOnly, IWarehouseScope scope, IReportWriter report,
+public sealed class ExportStockSummaryHandler(IReadRepository<StockBalance> balances, IReadRepository<ProductBarcode> barcodes, ILowOnlyStockReader lowOnly, IWarehouseScope scope, IReportWriter report,
     IIdMap<Warehouse> warehouseIds, IIdMap<Product> productIds, IIdMap<Category> categoryIds) : IQueryHandler<ExportStockSummaryQuery, ExportFile>
 {
     public async Task<ExportFile> HandleAsync(ExportStockSummaryQuery q, CancellationToken ct)

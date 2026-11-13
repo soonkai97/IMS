@@ -5,7 +5,7 @@ namespace Ims.Application.Features.Auth;
 /// A signed-in user changes their own password. A wrong current password counts as a failed login (so a stolen token cannot be used
 /// to guess it), and a successful change ends every session of the user.
 /// </summary>
-public class ChangePasswordHandler(IRepository<User> users, IRepository<RefreshToken> tokens, IPasswordHasher hasher, ICurrentUser current,
+public sealed class ChangePasswordHandler(IRepository<User> users, IRepository<RefreshToken> tokens, IPasswordHasher hasher, ICurrentUser current,
     IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<ChangePasswordCommand, Unit>
 {
     public async Task<Unit> HandleAsync(ChangePasswordCommand cmd, CancellationToken ct)

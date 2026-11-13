@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Auth;
 
-public record RefreshTokenCommand(RefreshRequest Body) : ICommand<AuthResult>;
+public sealed record RefreshTokenCommand(RefreshRequest Body) : ICommand<AuthResult>;

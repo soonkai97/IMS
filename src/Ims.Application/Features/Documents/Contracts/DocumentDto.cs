@@ -23,7 +23,7 @@ namespace Ims.Application.Features.Documents;
 /// <param name="ReturnOf">The document this return was created from (id and number); null for every other document, and omitted while the Returns module is off or for a caller who may not create returns. Set when the return is created and never changed.</param>
 /// <param name="Key">The integer key of the document; not part of the JSON.</param>
 /// <param name="HasReturns">A Posted return of this document exists; answered by the same statement as the document, so the returned quantities are summed only when there is something to sum; not part of the JSON.</param>
-public record DocumentDto(Guid Id, DocumentType Type, string No, DocumentStatus Status, Guid WarehouseId, string WarehouseName,
+public sealed record DocumentDto(Guid Id, DocumentType Type, string No, DocumentStatus Status, Guid WarehouseId, string WarehouseName,
     Guid? PartnerId, string? PartnerName, IssuePurpose? Purpose, string? Remark,
     bool RequiresApproval, bool RequiresOverride, bool IsLarge, bool IsReturned,
     string? RejectionReason, string? CancelReason, string? ReversalReason, string? NegativeStockOverrideReason,

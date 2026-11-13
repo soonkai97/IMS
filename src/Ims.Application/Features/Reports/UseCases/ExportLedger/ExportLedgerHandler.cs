@@ -3,7 +3,7 @@ using Ims.Application.Features.Stock;
 using Ims.Domain;
 namespace Ims.Application.Features.Reports;
 
-public class ExportLedgerHandler(IReadRepository<StockLedgerEntry> ledger, IWarehouseScope scope, IReportWriter report, IIdMap<Warehouse> warehouseIds,
+public sealed class ExportLedgerHandler(IReadRepository<StockLedgerEntry> ledger, IWarehouseScope scope, IReportWriter report, IIdMap<Warehouse> warehouseIds,
     IIdMap<Product> productIds, IIdMap<StockDocument> documentIds) : IQueryHandler<ExportLedgerQuery, ExportFile>
 {
     public async Task<ExportFile> HandleAsync(ExportLedgerQuery q, CancellationToken ct)

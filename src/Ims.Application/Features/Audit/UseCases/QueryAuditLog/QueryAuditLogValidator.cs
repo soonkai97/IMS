@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Audit;
 
-public class QueryAuditLogValidator : AbstractValidator<QueryAuditLogQuery>
+public sealed class QueryAuditLogValidator : AbstractValidator<QueryAuditLogQuery>
 {
     /// <summary>No audit text column is longer than <see cref="Limits.AuditTextMaxLength"/>, so a longer filter cannot match anything.</summary>
     public QueryAuditLogValidator()

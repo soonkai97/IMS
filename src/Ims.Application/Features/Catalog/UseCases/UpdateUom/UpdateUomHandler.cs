@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Catalog;
 
-public class UpdateUomHandler(IRepository<Uom> uoms, IUnitOfWork uow) : ICommandHandler<UpdateUomCommand, UomDto>
+public sealed class UpdateUomHandler(IRepository<Uom> uoms, IUnitOfWork uow) : ICommandHandler<UpdateUomCommand, UomDto>
 {
     public async Task<UomDto> HandleAsync(UpdateUomCommand cmd, CancellationToken ct)
     {

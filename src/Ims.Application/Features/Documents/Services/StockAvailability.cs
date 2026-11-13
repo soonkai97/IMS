@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 /// <summary>Reads the on-hand quantities; the rule itself lives in <see cref="StockAvailabilityPolicy"/>.</summary>
-public class StockAvailability(IReadRepository<StockBalance> balances) : IStockAvailability, IAppService
+public sealed class StockAvailability(IReadRepository<StockBalance> balances) : IStockAvailability, IAppService
 {
     public async Task EnsureAvailableAsync(StockDocument document, CancellationToken ct) =>
         StockAvailabilityPolicy.EnsureAvailable(document, await OnHandOfAsync(document, ct));

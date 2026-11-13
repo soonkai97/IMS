@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
-public class PurchaseOrderReader(IReadRepository<PurchaseOrder> orders, IReadRepository<User> users, IPurchaseOrderAccess access, IPurchaseOrderReceiving receiving, IApprovalEvaluator approvals, ISystemSettings settings,
+public sealed class PurchaseOrderReader(IReadRepository<PurchaseOrder> orders, IReadRepository<User> users, IPurchaseOrderAccess access, IPurchaseOrderReceiving receiving, IApprovalEvaluator approvals, ISystemSettings settings,
     IDocumentVersion version) : IPurchaseOrderReader, IAppService
 {
     public async Task<PurchaseOrderDto> GetAsync(Guid publicId, CancellationToken ct)

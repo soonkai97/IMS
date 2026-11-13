@@ -3,7 +3,7 @@ using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class CreateSalesOrderHandler(IRepository<SalesOrder> orders, IReadRepository<Warehouse> warehouses, IReadRepository<Partner> partners,
+public sealed class CreateSalesOrderHandler(IRepository<SalesOrder> orders, IReadRepository<Warehouse> warehouses, IReadRepository<Partner> partners,
     IDocumentNumbering numbering, ISalesOrderLineBuilder lineBuilder, ISalesOrderAccess access, ISalesOrderReader reader,
     ICurrentUser current, IClock clock, ITransactionLocker locker, IModuleSwitches switches, IUnitOfWork uow, IAuditTrail audit, ISalesOrderPriceAudit prices) : ICommandHandler<CreateSalesOrderCommand, SalesOrderDto>
 {

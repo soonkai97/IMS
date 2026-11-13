@@ -8,7 +8,7 @@ namespace Ims.Application.Features.Auth;
 /// A user whose role is gone or inactive cannot sign in: the rights are read before anything is written, so there is no success audit row, no reset of the failed-login count and no refresh token.
 /// Unknown users leave no audit row (that table is permanent and the text is attacker-chosen): they are logged with a short hash only.
 /// </summary>
-public class LoginHandler(IRepository<User> users, IPasswordHasher hasher, IAuthTokenIssuer issuer, IAccessSnapshotLoader snapshots, ITokenService tokens, IUnitOfWork uow,
+public sealed class LoginHandler(IRepository<User> users, IPasswordHasher hasher, IAuthTokenIssuer issuer, IAccessSnapshotLoader snapshots, ITokenService tokens, IUnitOfWork uow,
     IClock clock, IAuditTrail audit, ILogger<LoginHandler> log) : ICommandHandler<LoginCommand, AuthResult>
 {
     // Verified against when the account does not exist, so response time does not reveal which usernames are real.

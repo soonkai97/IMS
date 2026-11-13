@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Catalog;
 
-public record ListUomsQuery : IQuery<IReadOnlyList<UomDto>>;
+public sealed record ListUomsQuery : IQuery<IReadOnlyList<UomDto>>;

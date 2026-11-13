@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class CancelSalesOrderHandler(IRepository<SalesOrder> orders, IReadRepository<StockDocument> documents, ISalesOrderAccess access, ISalesOrderReader reader, IDocumentVersion version,
+public sealed class CancelSalesOrderHandler(IRepository<SalesOrder> orders, IReadRepository<StockDocument> documents, ISalesOrderAccess access, ISalesOrderReader reader, IDocumentVersion version,
     ITransactionLocker locker, ICurrentUser current, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CancelSalesOrderCommand, SalesOrderDto>
 {
     public async Task<SalesOrderDto> HandleAsync(CancelSalesOrderCommand cmd, CancellationToken ct)
