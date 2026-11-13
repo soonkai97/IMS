@@ -451,3 +451,51 @@ Kept from the go-live checklist, which was removed on 2026-11-13 (it is in git h
 2. **`RemoveAccountingModule` must run with the build that removed the module.** It deletes the `Module.accounting` switch row and every `accounting.export` grant (hard delete, no audit row). Until it has run, the Owner role and any custom role still hold `accounting.export` in the database, and an administrator who edits such a role gets 403 `RoleEditBeyondYourAccess`.
 3. **Rollback order.** (a) The `Down` of `RemoveAccountingModule` does nothing: the deleted grants and the switch row stay deleted, which an older build treats as "off". (b) To go back to a build older than part B of RA1 (the tax fields), run `Down` of `RemoveTaxReadyFields` first (`dotnet ef database update 20261022122230_RemoveAccountingModule`, or the script), then redeploy the older binary; the older binary against a database without `Product.HsCode` and `Partner.Tin` fails every product and partner read with a 500, and `Down` re-adds the four columns empty. (c) Do not roll the schema back after real use: the `Down` of `AddPurchaseOrders`, `AddReceiptPurchaseOrderLinks` and the later link migrations refuse while any order or link exists; return to an older build by restoring the backup taken in step 1.
 4. **STOP: the placeholder approval amounts are not facts.** The migrations `AddPurchaseOrderApprovalRules` and `AddSalesOrderApprovalRules` write RM 5,000 (Supervisor) and RM 20,000 (Owner) where no rule of that type exists, so that the purchasing and sales switches work. They are placeholders. Before purchasing goes live, and again before sales does, the owner gives the real amounts. The amounts are editable in Settings > Approval rules only once the module is on, and the module is live for Supervisor and Clerk the moment it is on: switch it on at a quiet time, open Approval rules at once, set the real amounts, and only then tell the users. Orders submitted before that are routed by the placeholders.
+
+## 18. PL3 timings at the 1M-document tier: what is measured and what is not (PL3.19)
+
+PL3.19 asked for numbers at the 1,000,000-document tier for the PL3 migrations and the order-total query. **They were not taken in PL3.19.** The only machine used for the slice has no room for a throw-away database of that size (about half a gigabyte of documents and lines), and nothing here is estimated or filled in. The table is the honest state; the commands below take the numbers on a machine with the space. A figure goes into the table only with the date, the machine and the raw output (`results-pl3-<date>.txt` in this folder).
+
+| Item | Migration / query | Status | What exists today |
+|---|---|---|---|
+| PL3-M4 | `AddDeliverySalesOrderLinks` (`20261108061359`) | **not measured in PL3.19** | Section 14 quotes Up 403 ms and Down 262 ms on a throw-away 1,000,000-document database from the PL3.5 review; that run is not repeated or reproduced here, so treat it as unverified until step 2 below is run again. |
+| PL3-M5 | `AddPriceLists` (`20261108132822`) | **not measured** | Two new tables and seven indexes on empty tables; nothing depends on the size of the big tables (section 15). |
+| PL3-M7 | `AddReturnLinks` (`20261109044255`) | **not measured** | Section 16: reasoned from the statements (filtered index over an all-NULL column, `WITH CHECK` rules); `Down` is a full scan of `StockDocumentLine` on a database with no return (seconds, not milliseconds). |
+| PL3-M8 | `AddReturnSelfLinkCheck` (`20261109054504`) | **not measured** | Section 16 quotes 173 ms for the previous rule (`CK_StockDocument_OneLink`) at 1,000,000 documents, "not re-measured"; the self-link rule reads `StockDocument` once. |
+| Order total | `GET /api/sales-orders` (list, per-order total) and `GET /api/sales-orders/{id}` | **not measured** | `IX_SalesOrderLine_SalesOrderId` includes `BaseQty` and `SellingAmount` (section 14); no P95 at volume. |
+| Delivered and returned sums | `EfDeliveredQuantityReader`, `EfReturnedQuantityReader` at 1,000,000 documents | **not measured** | Plan shapes are reasoned in sections 14 and 16 (a seek on the filtered link index, then the few linked documents' lines). |
+
+**Commands, on a machine with about 5 GB free on the data drive** (PowerShell from the repository root; every step is on a throw-away `Ims_Perf` database, never a database somebody uses; sections 9 and 12 explain the scripts):
+
+1. Create the schema at the migration before the first one measured and seed the tier:
+   ```powershell
+   $env:ASPNETCORE_ENVIRONMENT = 'Development'
+   $env:ConnectionStrings__Default = 'Server=(localdb)\ImsDev;Database=Ims_Perf;Trusted_Connection=True;TrustServerCertificate=True'
+   dotnet ef database update 20261023110329_AddSalesOrderApprovalRules --project src/Ims.Infrastructure --startup-project src/Ims.Api
+   sqlcmd -S "(localdb)\ImsDev" -E -d Ims_Perf -b -W -v Products=50000 Docs=161500 Days=1080 Warehouses=5 -i docs/dba/01-seed-perf.sql
+   sqlcmd -S "(localdb)\ImsDev" -E -d Ims_Perf -Q "SELECT (SELECT COUNT(*) FROM StockDocument) AS Documents, (SELECT COUNT(*) FROM StockDocumentLine) AS Lines"
+   ```
+   This is the 1M ledger-row tier of section 3 (about 161,500 documents and 1,050,000 lines). Section 14 inserted 1,000,000 documents and 1,000,000 lines set-based; do the same if that exact tier is wanted, and write the counts in the result file.
+2. PL3-M4 up and down, with a stopwatch (the EF migrator measures the whole migration, not each statement):
+   ```powershell
+   Measure-Command { dotnet ef database update 20261108061359_AddDeliverySalesOrderLinks --project src/Ims.Infrastructure --startup-project src/Ims.Api }
+   Measure-Command { dotnet ef database update 20261023110329_AddSalesOrderApprovalRules --project src/Ims.Infrastructure --startup-project src/Ims.Api }
+   dotnet ef database update 20261108061359_AddDeliverySalesOrderLinks --project src/Ims.Infrastructure --startup-project src/Ims.Api
+   ```
+3. PL3-M5, then PL3-M7 and PL3-M8, each up and down (the `Down` of M7 is the scan of section 16):
+   ```powershell
+   Measure-Command { dotnet ef database update 20261108132822_AddPriceLists --project src/Ims.Infrastructure --startup-project src/Ims.Api }
+   Measure-Command { dotnet ef database update 20261109035255_GrantReturnsPermissions --project src/Ims.Infrastructure --startup-project src/Ims.Api }
+   Measure-Command { dotnet ef database update 20261109044255_AddReturnLinks --project src/Ims.Infrastructure --startup-project src/Ims.Api }
+   Measure-Command { dotnet ef database update 20261109054504_AddReturnSelfLinkCheck --project src/Ims.Infrastructure --startup-project src/Ims.Api }
+   Measure-Command { dotnet ef database update 20261109044255_AddReturnLinks --project src/Ims.Infrastructure --startup-project src/Ims.Api }
+   Measure-Command { dotnet ef database update 20261109035255_GrantReturnsPermissions --project src/Ims.Infrastructure --startup-project src/Ims.Api }
+   dotnet ef database update --project src/Ims.Infrastructure --startup-project src/Ims.Api
+   ```
+   Run `docs/dba/07-maintenance.sql` right after (section 6 explains why a baseline taken before it is not comparable).
+4. The order-total query and the two sums, through the API, after step 3: start the API on `Ims_Perf` (section 9, step 2, with `RateLimit__PerMinute` raised), switch Sales and Returns on, create 20,000 sales orders of 10 lines through `POST /api/sales-orders` (or set-based in SQL as the other tiers do) and time:
+   ```powershell
+   powershell -File docs/dba/02-measure-api.ps1 -Label pl3 -BaseUrl http://localhost:5187 -Only 'sales-orders'
+   ```
+   If the probe has no `sales-orders` rows yet, add `GET /api/sales-orders?PageSize=50` and `GET /api/sales-orders/{id}` of the largest order to its list first. Statement-level reads and CPU: Query Store (`04-query-store-top.sql`), filtered on `SalesOrderLine`, `StockDocument` and `ReturnOfDocumentId`.
+5. Fill the table above with the figure, the date, the machine, the row counts and the file; a figure above 1 s for an up or down migration means the foreign key of that migration is dropped and only the index and the code check are kept (plan risk 6). Then drop the database: `sqlcmd -S "(localdb)\ImsDev" -E -Q "ALTER DATABASE Ims_Perf SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE Ims_Perf"`.
