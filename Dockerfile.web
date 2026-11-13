@@ -1,6 +1,11 @@
 # Web image: the Angular PWA baked into Caddy. Build context = repository root.
 #   docker build -f Dockerfile.web -t ims-web .
 # The production stack mounts deploy/Caddyfile over /etc/caddy/Caddyfile; this image only carries the files in /srv/ims-web.
+#
+# TODO (supply chain): pin both base images by digest (FROM image:tag@sha256:...). The digests could not be looked up here (no registry access from the
+# machine this was written on); Dependabot's docker ecosystem (.github/dependabot.yml, directory /) proposes the updates once they are pinned.
+# TODO: `npm ci --ignore-scripts` would stop install scripts of dependencies from running in the build. It was not tried (the web build was not run here):
+# try it in CI first, since some build tools fetch their binary in a postinstall step.
 FROM node:22-alpine AS build
 WORKDIR /web
 COPY web/package.json web/package-lock.json ./

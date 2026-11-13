@@ -4,7 +4,10 @@ name: Deploy
 # It SSHes to the VM and runs deploy/scripts/deploy.sh there. Migrations are never run by this workflow: deploy.sh stops and prints the DBA script command
 # unless the run says the schema is already migrated (input "migrated").
 #
-# Needs the GitHub environment "production" with required reviewers (Settings > Environments), and these in that environment:
+# MANDATORY setup (Settings > Environments > production), see deploy/README.md:
+#   - Required reviewers: the people who approve each deploy.
+#   - Deployment branches and tags: "Selected branches and tags", add only `main`. Without it a branch that carries a changed workflow or script could run
+#     with the environment's secrets. This workflow also refuses to run from any ref but main, and refuses an image whose commit is not on main.
 #   secrets:   DEPLOY_HOST (VM address), DEPLOY_USER (login that owns the compose directory and can run docker),
 #              DEPLOY_SSH_KEY (private key of a key pair used only for this), DEPLOY_KNOWN_HOSTS (the output of `ssh-keyscan -t ed25519 <host>`, checked against the fingerprint the owner reads on the VM)
 #   variables: DOMAIN (optional: the public name; when set the runner runs the smoke check against https://DOMAIN after the deploy),
@@ -21,7 +24,7 @@ on:
         options: [production]
         default: production
       image_tag:
-        description: Image tag to deploy (for example sha-1a2b3c4)
+        description: Image tag to deploy, sha-<7 to 40 hex digits> of a commit on main (for example sha-1a2b3c4)
         required: true
       migrated:
         description: The schema is already migrated for this tag (the DBA script has been run); leave off to pull and print the migration command only
@@ -46,6 +49,13 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag }}
       MIGRATED: ${{ inputs.migrated }}
     steps:
+      - name: Only from main
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error title=Not main::Deploy runs only from main (this run is on $GITHUB_REF): the scripts that reach the VM must be reviewed ones."
+            exit 1
+          fi
+
       - name: Check the deploy secrets are configured
         # Secrets go through env, never interpolated into the script text. A missing secret is an empty string.
         env:
@@ -67,10 +77,30 @@ jobs:
       - name: Check the image tag
         run: |
           case "$IMAGE_TAG" in
-            ''|*[!A-Za-z0-9_.-]*|-*|.*) echo "::error::The image tag has characters a tag cannot have: '$IMAGE_TAG'"; exit 1 ;;
+            sha-*[!0-9a-f]*|sha-) echo "::error::The image tag must be sha- followed by 7 to 40 lower-case hex digits: '$IMAGE_TAG'"; exit 1 ;;
+            sha-*) ;;
+            *) echo "::error::The image tag must be sha- followed by 7 to 40 lower-case hex digits: '$IMAGE_TAG'"; exit 1 ;;
           esac
+          hex=${IMAGE_TAG#sha-}
+          if [ "${#hex}" -lt 7 ] || [ "${#hex}" -gt 40 ]; then
+            echo "::error::The image tag must be sha- followed by 7 to 40 lower-case hex digits: '$IMAGE_TAG'"; exit 1
+          fi
 
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: The image's commit must be on main
+        id: commit
+        run: |
+          hex=${IMAGE_TAG#sha-}
+          full=$(git rev-parse --verify --quiet "${hex}^{commit}") || { echo "::error::No commit $hex in this repository."; exit 1; }
+          git fetch --quiet origin main
+          if ! git merge-base --is-ancestor "$full" origin/main; then
+            echo "::error title=Not on main::Commit $full is not an ancestor of main: only reviewed, merged commits are deployed."
+            exit 1
+          fi
+          echo "sha=$full" >> "$GITHUB_OUTPUT"
 
       - name: Verify both images exist
         env:
@@ -96,15 +126,17 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/ims' }}
+          IMAGE_SHA: ${{ steps.commit.outputs.sha }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.actor }}
         run: |
           flags="--tag $IMAGE_TAG"
           [ "$MIGRATED" = "true" ] && flags="$flags --migrated"
+          # The VM runs the scripts of the image's own commit, which is on main (checked above), never an unreviewed one.
           # The registry token goes over the SSH connection's stdin, not into the command line or a file.
           set +e
-          printf '%s' "$GHCR_TOKEN" | ssh -i "$RUNNER_TEMP/ssh/id" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
-            "$DEPLOY_USER@$DEPLOY_HOST" "export GHCR_TOKEN=\$(cat) GHCR_USER='$GHCR_USER'; cd '$DEPLOY_PATH' && git fetch --quiet origin && git checkout --quiet '${GITHUB_SHA}' && deploy/scripts/deploy.sh $flags"
+          printf '%s' "$GHCR_TOKEN" | ssh -i "$RUNNER_TEMP/ssh/id" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
+            "$DEPLOY_USER@$DEPLOY_HOST" "export GHCR_TOKEN=\$(cat) GHCR_USER='$GHCR_USER'; cd '$DEPLOY_PATH' && git fetch --quiet origin main && git checkout --quiet --detach '$IMAGE_SHA' && deploy/scripts/deploy.sh $flags"
           code=$?
           set -e
           if [ "$code" -eq 3 ]; then

@@ -1,0 +1,15 @@
+# NOT FOR REAL DATA. A throw-away test of the stack by IP address, over plain http on port 80, before a domain exists.
+#
+#   DOMAIN=iptest docker compose --env-file deploy/.env.prod -f deploy/compose.prod.yml -f deploy/compose.iptest.yml up -d
+#
+# (DOMAIN only has to be non-empty: the base file requires it, this override replaces what the proxy does with it.)
+#
+# Limits you must know:
+# - There is no TLS: passwords and tokens cross the network in clear text. Use a test database with test passwords, never the real ones.
+# - The refresh cookie is Secure outside Development, so a browser never sends it back over http: a login works only until the first page reload and
+#   the silent refresh fails. This file is for checking that the containers start, /health answers and the web app loads; it is not a way to use the system.
+# - No HSTS is sent over http (the Caddyfile only sends it over https).
+services:
+  proxy:
+    environment:
+      SITE_ADDRESS: "http://:80"

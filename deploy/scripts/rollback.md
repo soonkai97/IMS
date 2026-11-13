@@ -8,7 +8,7 @@ Read `docs/dba/README.md` section 17 first: the schema is rolled back by hand an
 deploy/scripts/deploy.sh --tag <previous-tag> --migrated
 ```
 
-`deploy.sh` printed the previous tag at the end of the last deploy and keeps it in `deploy/.state/previous-tag`. `--migrated` is right here because no migration is run.
+`deploy.sh` printed the previous tag at the end of the last deploy and keeps it in `deploy/.state/previous-tag` (a redeploy of the same tag does not overwrite it). `--migrated` is right here because no migration is run.
 Check with `deploy/scripts/smoke.sh` (it runs at the end of `deploy.sh`). Users reload the page; the service worker serves the old bundle on the next load.
 
 ## 2. The release added a migration
@@ -37,3 +37,14 @@ Order, no step is skipped:
 ## 4. What a restore test is
 
 Once before go-live and after every change of the backup setup: restore the newest full backup under another name (`RESTORE DATABASE [Ims_Restore] ... WITH MOVE`), run `DBCC CHECKDB` on it, compare the document and ledger row counts with `Ims`, drop it. `docs/dba/05-backup-restore.sql` is the timed script for it.
+
+## 5. When the VM or its disk is gone (restore from the shipped copies)
+
+The copies `backup.sh ship` and `backup.sh offsite` put off the machine are encrypted with age. The PRIVATE key is not on the VM: fetch it from where the owner keeps it, on the machine you restore from.
+
+1. Fetch the newest `Ims_full_*.bak.age`, the `Ims_log_*.trn.age` files after it, the newest `ims_files_*.tar.gz.age`, `ims_keys_*.tar.gz.age` and `env_prod_*.age`.
+2. Decrypt each: `age -d -i key.txt -o <name without .age> <name>.age`.
+3. On the new VM: set up the stack as in `docs/architecture/deployment.md` section 3 (the decrypted env file becomes `deploy/.env.prod`, mode 600), put the `.bak` and `.trn` files in `IMS_BACKUP_DIR`, restore them as in section 3 above, untar `ims_files` and `ims_keys` into the volumes (a throw-away container: `docker run --rm -i -v ims_files:/data <image> tar -xz -C /data < ims_files_*.tar.gz`), then deploy.
+4. The key ring in `ims_keys` matters only for open page cursors; losing it breaks those and nothing else. The JWT key is in the env file: without it every user signs in again.
+
+A restore that has never been done is not a backup: no real data goes in before an off-host copy has been restored once (go-live gate, `docs/architecture/deployment.md` section 6).

@@ -1,0 +1,10 @@
+[Unit]
+Description=Encrypt and ship the IMS files, keys and env file off the machine
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+Unit=ims-backup@offsite.service
+
+[Install]
+WantedBy=timers.target

@@ -1,6 +1,6 @@
-# Runs deploy/scripts/backup.sh with the instance name as its argument: ims-backup@full, ims-backup@log, ims-backup@prune.
+# Runs deploy/scripts/backup.sh with the instance name as its argument: ims-backup@full, ims-backup@log, ims-backup@prune, ims-backup@ship, ims-backup@offsite.
 # Install: copy the .service and .timer files to /etc/systemd/system/, adjust the paths and User below, then
-#   systemctl daemon-reload && systemctl enable --now ims-backup-full.timer ims-backup-log.timer ims-backup-prune.timer
+#   systemctl daemon-reload && systemctl enable --now ims-backup-full.timer ims-backup-log.timer ims-backup-prune.timer ims-backup-ship.timer ims-backup-offsite.timer
 [Unit]
 Description=IMS database backup (%i)
 After=docker.service

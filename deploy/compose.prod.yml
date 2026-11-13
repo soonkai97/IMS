@@ -2,11 +2,16 @@
 #
 #   docker compose --env-file deploy/.env.prod -f deploy/compose.prod.yml up -d      (normally run by deploy/scripts/deploy.sh)
 #
-# Only Caddy publishes ports (80 and 443). The API and the database are reachable on the internal network "ims" only.
-# No secret value is stored here: every secret comes from the env file (deploy/.env.prod, never committed; names in deploy/prod.env.example).
-# See docs/architecture/deployment.md for the topology, the backups and the first-deploy runbook.
+# Only Caddy publishes ports (80 and 443). The API and the database sit on the "back" network, which is internal (no route to the internet),
+# and only the proxy is on both networks. No secret value is stored here: every secret comes from the env file (deploy/.env.prod on the VM,
+# never committed; the names are in deploy/prod.env.example). See docs/architecture/deployment.md for the topology, the backups and the first-deploy runbook.
+# An http-only test by IP address is NOT part of this file: see deploy/compose.iptest.yml (not for real data).
 
 name: ims
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }
 
 services:
   db:
@@ -17,39 +22,43 @@ services:
       # The edition decides the licence: Express (free, 10 GB per database) or the edition the owner has licensed. Never leave the image default (Developer) on a production host.
       MSSQL_PID: ${MSSQL_PID:?set MSSQL_PID (Express, Standard, ...)}
       MSSQL_SA_PASSWORD: ${IMS_DB_PASSWORD:?set IMS_DB_PASSWORD}
-    # No "ports": the database is not published. The backup folder (a host directory, see BACKUP_DIR) is where backup.sh writes its .bak and .trn files.
+      # sqlcmd inside this container reads the password from here, so no command line (ps, shell history, the healthcheck) carries it.
+      SQLCMDPASSWORD: ${IMS_DB_PASSWORD}
+    # No "ports": the database is not published. The backup folder (a host directory, see IMS_BACKUP_DIR) is where backup.sh writes its .bak and .trn files.
     volumes:
       - dbdata:/var/opt/mssql
       - ${IMS_BACKUP_DIR:-/srv/ims/backups}:/var/opt/mssql/backup
-    networks: [ims]
+    networks: [back]
     security_opt: ["no-new-privileges:true"]
     # No cap_drop here: the capabilities the SQL Server image needs at start were not verified without a host. Add "cap_drop: [ALL]" plus the needed cap_add once a test run on the VM shows which.
     mem_limit: ${IMS_DB_MEM_LIMIT:-2g}
     cpus: ${IMS_DB_CPUS:-2}
+    pids_limit: 2048
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -Q 'SELECT 1' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
       start_period: 30s
-    logging: &logging
-      driver: json-file
-      options: { max-size: "10m", max-file: "5" }
+    logging: *logging
 
   api:
-    image: ghcr.io/${IMS_GITHUB_OWNER:?set IMS_GITHUB_OWNER}/ims-api:${IMS_API_TAG:?set IMS_API_TAG (a sha-... tag or a digest like sha256:...)}
+    # IMS_API_REF is ":sha-1a2b3c4" (a tag, what deploy.sh writes) or "@sha256:..." (a digest, written by hand to pin exactly one image).
+    image: ghcr.io/${IMS_GITHUB_OWNER:?set IMS_GITHUB_OWNER}/ims-api${IMS_API_REF:?set IMS_API_REF (:sha-... or @sha256:...)}
     restart: unless-stopped
     depends_on:
       db: { condition: service_healthy }
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Default: "Server=db;Database=Ims;User Id=sa;Password=${IMS_DB_PASSWORD};TrustServerCertificate=True"
+      # The login is sa until the least-privilege login ims_app exists (docs/architecture/deployment.md section 6: a gate before real data). Then IMS_DB_USER=ims_app and IMS_APP_DB_PASSWORD are set.
+      ConnectionStrings__Default: "Server=db;Database=Ims;User Id=${IMS_DB_USER:-sa};Password=${IMS_APP_DB_PASSWORD:-${IMS_DB_PASSWORD}};TrustServerCertificate=True"
       Jwt__Key: ${IMS_JWT_KEY:?set IMS_JWT_KEY (32+ characters)}
-      Seed__AdminPassword: ${IMS_ADMIN_PASSWORD:?set IMS_ADMIN_PASSWORD}
+      # Only the very first start needs this (it creates the first administrator). Remove the value from the env file afterwards: with it empty the API only logs a warning when no administrator exists.
+      Seed__AdminPassword: ${IMS_ADMIN_PASSWORD:-}
       Cors__Origins: ${IMS_CORS_ORIGINS:?set IMS_CORS_ORIGINS}
-      # Migrations are run by the DBA script, never automatically (docs/dba/README.md section 17). Turn this on for ONE start only: the first deploy, to create the schema and the first administrator.
+      # Migrations are run by the DBA script, never automatically (docs/dba/README.md section 17). Turn this on for ONE start only: the first deploy, to create the schema and the first administrator (it needs a login that may change the schema: sa).
       Database__MigrateOnStartup: ${IMS_MIGRATE_ON_STARTUP:-false}
-      # The proxy below has a fixed address on the internal network, and it is the only way in: the real client address reaches the rate limits and the logs.
+      # The proxy has a fixed address on the "back" network and it is the only way in: the real client address reaches the rate limits and the logs.
       ForwardedHeaders__Enabled: "true"
       ForwardedHeaders__KnownProxies: 172.30.0.10
       Storage__RootPath: /app/storage
@@ -58,11 +67,12 @@ services:
     volumes: [files:/app/storage, applogs:/app/logs, keys:/app/keys]
     tmpfs: ["/tmp"]
     read_only: true
-    networks: [ims]
+    networks: [back]
     security_opt: ["no-new-privileges:true"]
     cap_drop: ["ALL"]
     mem_limit: ${IMS_API_MEM_LIMIT:-1g}
     cpus: ${IMS_API_CPUS:-1}
+    pids_limit: 512
     healthcheck:
       # The runtime image has no curl; bash is there. GET /health answers 200 while the database check passes.
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && head -n 1 <&3 | grep -q ' 200 '"]
@@ -74,14 +84,13 @@ services:
 
   proxy:
     # Caddy with the web app baked in at /srv/ims-web (Dockerfile.web, published by the Release workflow). The configuration is the mounted Caddyfile.
-    image: ghcr.io/${IMS_GITHUB_OWNER}/ims-web:${IMS_WEB_TAG:?set IMS_WEB_TAG (the same sha- tag as the API)}
+    image: ghcr.io/${IMS_GITHUB_OWNER}/ims-web${IMS_WEB_REF:?set IMS_WEB_REF (:sha-... or @sha256:..., the same commit as the API)}
     restart: unless-stopped
     depends_on:
       api: { condition: service_healthy }
     environment:
-      # DOMAIN set: automatic TLS for it. DOMAIN empty: plain http on port 80 for a test by IP address (no certificate, no HSTS).
-      SITE_ADDRESS: ${DOMAIN:-http://:80}
-      ACME_EMAIL: ${ACME_EMAIL:-}
+      # The public name: automatic TLS for it. There is no plain-http fallback here (a refresh cookie that is Secure never works over http, and a login would fail).
+      SITE_ADDRESS: ${DOMAIN:?set DOMAIN (the public name, for example ims.example.com)}
     command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
     ports:
       - "80:80"
@@ -94,13 +103,15 @@ services:
     tmpfs: ["/tmp"]
     read_only: true
     networks:
-      ims:
+      front: {}
+      back:
         ipv4_address: 172.30.0.10
     security_opt: ["no-new-privileges:true"]
     cap_drop: ["ALL"]
     cap_add: ["NET_BIND_SERVICE"]
     mem_limit: ${IMS_PROXY_MEM_LIMIT:-256m}
     cpus: ${IMS_PROXY_CPUS:-0.5}
+    pids_limit: 256
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:2019/config/ || exit 1"]
       interval: 30s
@@ -109,8 +120,13 @@ services:
     logging: *logging
 
 networks:
-  ims:
+  # front: the proxy only, with the route to the internet (certificates, published ports).
+  front:
     driver: bridge
+  # back: the API and the database (and the proxy's way to the API). internal: no route out, so a compromised container cannot call home.
+  back:
+    driver: bridge
+    internal: true
     ipam:
       config:
         - subnet: 172.30.0.0/24

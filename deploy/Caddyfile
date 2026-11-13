@@ -2,14 +2,21 @@
 # and forwards /api/* and /health to the API. One host, so the browser never leaves its own origin: no CORS, a same-site refresh cookie, and
 # connect-src 'self' in the web CSP (docs/security/web-headers.md, which this file follows).
 #
-# SITE_ADDRESS comes from the environment: the domain (automatic TLS, http redirects to https) or "http://:80" (test by IP address, no TLS).
+# SITE_ADDRESS comes from the environment: the public domain (automatic TLS, http redirects to https). There is no plain-http fallback; the IP-address test is deploy/compose.iptest.yml.
 
 {
-	# Optional contact for the certificate authority (ACME_EMAIL); an empty value is ignored.
-	email {$ACME_EMAIL:}
+	# Slow clients cannot hold a connection open for ever (slowloris): the header and the body must arrive in time.
+	servers {
+		timeouts {
+			read_header 10s
+			read_body 30s
+			write 60s
+			idle 2m
+		}
+	}
 }
 
-{$SITE_ADDRESS:http://:80} {
+{$SITE_ADDRESS} {
 	encode zstd gzip
 
 	# Access log to stdout as JSON (docker keeps and rotates it). The Authorization header and cookies are never logged.
