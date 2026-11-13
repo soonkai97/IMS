@@ -14,7 +14,7 @@ The production kit for ONE small VM (Docker Compose + Caddy). The full descripti
 ## Mandatory GitHub settings (without them the Deploy workflow must not be used)
 
 1. Settings > Environments > `production` > **Deployment branches and tags: Selected branches and tags, add `main` only.** Otherwise any branch that changes `deploy.yml` or the scripts can run with the environment's secrets. (The workflow also stops itself unless it runs from `main` and unless the image's commit is on `main`.)
-2. The same environment: **Required reviewers** (the people who approve each deploy).
+2. The same environment: **Required reviewers** (the people who approve each deploy), **Prevent self-review** on, and a second human among the reviewers.
 3. The four environment secrets `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`, and optionally the variables `DOMAIN` and `DEPLOY_PATH`.
 
 Nothing in this folder was run on a host: there is no VM yet. `docs/architecture/deployment.md` section 7 lists what could not be verified.

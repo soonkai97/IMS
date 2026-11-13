@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Build exactly the commit CI validated, not whatever main moved to since.
           ref: ${{ github.event.workflow_run.head_sha || inputs.ref }}
@@ -53,23 +53,22 @@ jobs:
           echo "full=$full" >> "$GITHUB_OUTPUT"
           echo "short=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ env.IMAGE }}
           tags: |
             type=raw,value=sha-${{ steps.rev.outputs.short }}
-            type=raw,value=latest,enable=${{ github.event_name == 'workflow_run' }}
 
-      - uses: docker/build-push-action@v7
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           push: true
@@ -92,7 +91,7 @@ jobs:
     env:
       WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/ims-web
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_sha || inputs.ref }}
           fetch-depth: 0
@@ -109,23 +108,22 @@ jobs:
           echo "full=$full" >> "$GITHUB_OUTPUT"
           echo "short=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ env.WEB_IMAGE }}
           tags: |
             type=raw,value=sha-${{ steps.rev.outputs.short }}
-            type=raw,value=latest,enable=${{ github.event_name == 'workflow_run' }}
 
-      - uses: docker/build-push-action@v7
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: Dockerfile.web

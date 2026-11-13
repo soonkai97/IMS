@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly check of backup disk usage and unshipped backups
+
+[Timer]
+OnCalendar=*-*-* *:20:00
+Persistent=false
+Unit=ims-backup@check.service
+
+[Install]
+WantedBy=timers.target

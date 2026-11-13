@@ -24,6 +24,9 @@ appsettings.Production.json
 .env.*
 !.env.example
 
+# Deploy state on the VM (current and previous image tag written by deploy.sh)
+deploy/.state/
+
 # Tool state
 .claude/settings.local.json
 .idea/
