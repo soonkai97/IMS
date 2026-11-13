@@ -1,0 +1,74 @@
+# Caddy for the production stack (deploy/compose.prod.yml). The proxy serves the web app (static files in /srv/ims-web, baked into the ims-web image)
+# and forwards /api/* and /health to the API. One host, so the browser never leaves its own origin: no CORS, a same-site refresh cookie, and
+# connect-src 'self' in the web CSP (docs/security/web-headers.md, which this file follows).
+#
+# SITE_ADDRESS comes from the environment: the public domain (automatic TLS, http redirects to https). There is no plain-http fallback; the IP-address test is deploy/compose.iptest.yml.
+
+{
+	# Slow clients cannot hold a connection open for ever (slowloris): the header and the body must arrive in time.
+	servers {
+		timeouts {
+			read_header 10s
+			read_body 30s
+			write 60s
+			idle 2m
+		}
+	}
+}
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	# Access log to stdout as JSON (docker keeps and rotates it). The Authorization header and cookies are never logged.
+	log {
+		output stdout
+		format json
+	}
+
+	# --- security headers on every response, static files and API alike ---
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=(), interest-cohort=()"
+		X-Frame-Options "DENY"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		-Server
+	}
+
+	# HSTS only over https: a browser ignores it on http, and the IP-address test must not teach anything.
+	@https protocol https
+	header @https Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+	# --- the API: forwarded as is. It sets its own, stricter headers and CSP (default-src 'none'), so none is added here. ---
+	@api path /api/* /health
+	handle @api {
+		# 12 MB is the API's own limit for uploads and imports; a bigger body is refused here before it reaches the API.
+		request_body {
+			max_size 12MB
+		}
+		reverse_proxy api:8080 {
+			header_up X-Forwarded-Proto {scheme}
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 60s
+			}
+		}
+	}
+
+	# --- the web app (a PWA with a service worker) ---
+	handle {
+		root * /srv/ims-web
+		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+
+		# The entry files and the service worker are never cached (a release must reach users: the worker checks ngsw.json), hashed build output for a year.
+		@entry path / /index.html /ngsw.json /ngsw-worker.js /safety-worker.js /manifest.webmanifest /config.json
+		header @entry Cache-Control "no-cache"
+		@hashed path_regexp hashed -[A-Za-z0-9_]{8}\.(js|css|woff2?|svg|png|webp)$
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+
+		# Deep links fall back to the single page.
+		try_files {path} /index.html
+		file_server
+	}
+}

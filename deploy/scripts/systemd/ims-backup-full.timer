@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly full backup of the IMS database
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+Unit=ims-backup@full.service
+
+[Install]
+WantedBy=timers.target

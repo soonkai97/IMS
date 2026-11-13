@@ -1,0 +1,10 @@
+[Unit]
+Description=Encrypt and ship new IMS database backups off the machine
+
+[Timer]
+OnCalendar=*-*-* *:05/15:00
+Persistent=false
+Unit=ims-backup@ship.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,74 @@
+# Deployment
+
+Owner decision 2026-11-13 (O3): ONE small VM, Docker Compose, Caddy as the TLS proxy, nightly full backups plus a log backup every 15 minutes. No Kubernetes. There is no VM and no domain yet: everything below is built and checked without a host, and has not been run on one (section 7 lists what is unverified). The kit is in `deploy/` (see `deploy/README.md`).
+
+## 1. Topology
+
+```
+ Internet
+    |  80, 443 (tcp), 443 (udp, HTTP/3)          the ONLY published ports
+    v
+ +- network "front" (route to the internet) -+
+ |  proxy  (Caddy + the web app in /srv/ims-web, image ghcr.io/<owner>/ims-web:<tag>)
+ +--------------------|----------------------+
+                      | network "back" (internal: NO route out), 172.30.0.0/24, proxy = 172.30.0.10
+ +--------------------v-----------------------------------------------------------------------------+
+ |  api    (ghcr.io/<owner>/ims-api:<tag>, port 8080 inside only)       /api/*, /health from the proxy |
+ |     |  Server=db  (login sa today, ims_app before real data: section 6)                              |
+ |  db     (SQL Server 2022, port 1433 inside only)                                                     |
+ +------------------------------------------------------------------------------------------------------+
+ volumes: dbdata (database files), files (attachments), keys (Data Protection key ring), applogs, caddy_data (certificates), caddy_config
+ host directory: IMS_BACKUP_DIR (default /srv/ims/backups): .bak and .trn files; BACKUP_OUTBOX (default /srv/ims/outbox): encrypted copies on their way off the machine
+```
+
+The web app is static files, not served by the API, so a second image is built by the Release workflow (`Dockerfile.web`: the Angular build on top of `caddy:2-alpine`). The proxy serves it and forwards `/api/*`; one host means no CORS, a same-site refresh cookie and `connect-src 'self'`. The header set follows `docs/security/web-headers.md`. The API keeps its own stricter headers.
+
+Files: `deploy/compose.prod.yml`, `deploy/compose.iptest.yml`, `deploy/Caddyfile`, `deploy/prod.env.example` (names only), `deploy/scripts/` (`deploy.sh`, `smoke.sh`, `backup.sh`, `create-app-login.sql`, `rollback.md`, `systemd/` timers, `cron.example`), `Dockerfile.web`, `.github/workflows/deploy.yml`.
+
+## 2. What the owner must provide
+
+1. A VM (Linux, 2 vCPU and 4 GB RAM are enough for the pilot; about US$6 to 24 a month, `ROADMAP.md` O3) with Docker Engine and the compose plugin, `git`, `age` (for backups), a deploy user in the `docker` group, SSH key login only. **Firewall:** use the cloud provider's firewall (security group) in front of the VM, or rules in the `DOCKER-USER` chain. A host firewall such as `ufw` does NOT filter published Docker ports (Docker writes its own rules first), so "ufw allows only 22, 80, 443" is not true for a published port. Open 22 (ideally from known addresses), 80, 443/tcp and **443/udp** (HTTP/3), nothing else.
+2. A domain name with an A record to the VM. **Before publishing an AAAA record**, test from an IPv6 client that the API sees the real client address in the logs and the rate-limit buckets (Docker's userland proxy can replace an IPv6 client address with the bridge address, which would put every IPv6 user into one bucket); until checked, publish A only. There is no plain-http mode in production: `DOMAIN` is required. HSTS is sent with `includeSubDomains`: every subdomain of that name must also speak https for a year, so use a name whose subdomains the owner controls (or remove `includeSubDomains` in the Caddyfile).
+3. The SQL Server edition and licence: `MSSQL_PID` (Express is free and limited to 10 GB per database; Standard needs a licence). Never Developer on a production host.
+4. An off-machine backup target and an age key pair (section 6, gate 2): the public key goes to the VM, the private key stays with the owner and never on the VM.
+5. The real approval amounts for purchase and sales orders before those modules go live (`docs/dba/README.md` section 17, STOP).
+6. **MANDATORY GitHub settings**, in the repository: Settings > Environments > `production`: (a) **Deployment branches and tags: Selected branches and tags: `main` only**, so that no other branch can run the workflow with the environment's secrets; (b) **Required reviewers** (the people who approve each deploy). In that environment add the secrets `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` and optionally the variables `DOMAIN` (runs the smoke check against the public name after a deploy) and `DEPLOY_PATH` (default `/opt/ims`). The application secrets are NOT GitHub secrets: they live only in `deploy/.env.prod` on the VM. Until the four secrets exist the Deploy workflow stops at its first step with "Secrets not configured". The workflow also refuses to run from any ref but `main`, and refuses an image whose commit is not an ancestor of `main`; the VM then runs the scripts of that commit, never an unreviewed one.
+7. SSH: a key pair used only for deployments (`ssh-keygen -t ed25519`). In the deploy user's `~/.ssh/authorized_keys` give that key the option `restrict` at least; a forced command (`command="..."`) that only allows `git fetch`, `git checkout` and `deploy.sh` with validated arguments is the stricter form and is a later hardening (the workflow sends one compound command today). The runners' addresses are not fixed, so pinning the source address is not possible. The workflow uses `BatchMode=yes` and strict host key checking against `DEPLOY_KNOWN_HOSTS` (take the fingerprint from the VM console, not from the network). A user in the `docker` group is root on the machine: treat the deploy key as a root key.
+
+## 3. First deploy (runbook)
+
+1. On the VM: `git clone https://github.com/<owner>/IMS.git /opt/ims` (or the `DEPLOY_PATH`), `cd /opt/ims`.
+2. `cp deploy/prod.env.example deploy/.env.prod && chmod 600 deploy/.env.prod`, then fill in every name (secrets: letters and digits only, see the file; `MSSQL_PID`, `DOMAIN`, `IMS_CORS_ORIGINS=https://<DOMAIN>`, `IMS_GITHUB_OWNER`). `deploy.sh` refuses to run when the file is not mode 600. `mkdir -p /srv/ims/backups /srv/ims/outbox && chown 10001:0 /srv/ims/backups && chmod 750 /srv/ims/backups` (`/srv/ims/outbox` belongs to the deploy user).
+3. Pick a released commit: the Release workflow publishes `sha-<7 hex>` for the API and the web image of the same commit on `main`. Log in to the registry if the packages are private (`docker login ghcr.io` with a token that has `read:packages`).
+4. `deploy/scripts/deploy.sh --db-only` starts the database only.
+5. Create the schema: either run the DBA script by hand (`docs/dba/README.md` sections 12 to 17, `sqlcmd -I -b`), or, for the very first deploy only, set `IMS_MIGRATE_ON_STARTUP=true` in the env file (with `IMS_DB_USER` unset: it needs sa), run step 6, check the log, and set it back to `false`. The start with it on also creates the first administrator from `IMS_ADMIN_PASSWORD`; a script-only deploy creates none, so do one start with it on.
+6. `deploy/scripts/deploy.sh --tag sha-1a2b3c4 --migrated`: pulls the images, starts the stack, waits for health and runs `smoke.sh`.
+7. **Empty `IMS_ADMIN_PASSWORD` in the env file** (it is only needed for the first start; with it empty the API logs a warning only while no administrator exists), and redeploy the same tag.
+8. Create the least-privilege login (section 6, gate 1), run `deploy/scripts/backup.sh init` (sets the FULL recovery model and takes the first full backup), then install the timers: copy `deploy/scripts/systemd/*` to `/etc/systemd/system/`, adjust `User` and the paths, `systemctl enable --now ims-backup-full.timer ims-backup-log.timer ims-backup-prune.timer ims-backup-ship.timer ims-backup-offsite.timer` (or use `cron.example`).
+9. Do the restore test of section 6, gate 2.
+10. Sign in as `admin`, change the password, then follow the owner checks of `docs/dba/README.md` section 17 before switching any module on.
+
+An IP-address test before a domain exists: `deploy/compose.iptest.yml` (plain http, throw-away data only; a Secure refresh cookie never works over http, so a login does not survive a page reload).
+
+## 4. Every later deploy
+
+Run the Deploy workflow (Actions > Deploy > Run workflow, from `main`) with the image tag. Without `migrated` it pulls and stops, printing the migration command; run the script by hand when the release has a migration, then run the workflow again with `migrated` ticked. Reviewers on the `production` environment approve each run. Rollback: `deploy/scripts/rollback.md`.
+
+## 5. Security notes (for the security review)
+
+- Only Caddy is published; the database and the API are on the internal `back` network (no route to the internet). The API trusts forwarded headers from the proxy address only (`ForwardedHeaders__KnownProxies=172.30.0.10`).
+- Containers run with `no-new-privileges` and a PID limit; the API and the proxy drop all capabilities (the proxy adds `NET_BIND_SERVICE`) and have a read-only root file system; the database does not drop capabilities because that was not verified without a host. The proxy runs as root inside its container (with only that one capability); running it as an unprivileged user needs `sysctls: net.ipv4.ip_unprivileged_port_start=0` and writable data volumes for that user, and was not tried.
+- Secrets exist in one place, `deploy/.env.prod` on the VM, mode 600 (checked by `deploy.sh`, which runs with `umask 077`). The workflow holds SSH access only, pinned by `DEPLOY_KNOWN_HOSTS`. The registry token reaches the VM over the SSH stdin. The sa password reaches `sqlcmd` through `SQLCMDPASSWORD` inside the container, never on a command line.
+- The published API image carries `appsettings.Development.json`; it is inert in Production (`ASPNETCORE_ENVIRONMENT=Production` is set), noted here only.
+- The Release workflow tags images `sha-<7 hex>` from the commit it actually checked out, builds only commits that are ancestors of `main` (a manual run must start from `main` and its ref must be on `main`), and sets the revision label from that commit. Image references are `:sha-...` tags written by `deploy.sh`; a digest (`@sha256:...`) can be written by hand into `IMS_API_REF` and `IMS_WEB_REF` to pin one exact image. `deploy.sh` validates the tag itself, as the workflow does, logs out of the registry when it ends (the token is not left in `~/.docker/config.json`) and prints a warning on every deploy while the API still connects as `sa`.
+
+## 6. Go-live gates (no real data until each is done)
+
+1. **Least-privilege database login.** The API connects as `sa` until this is done (accepted for the first deployment and the merge, NOT for real data). After the first migration run `deploy/scripts/create-app-login.sql` (creates `ims_app` with `db_datareader`, `db_datawriter` and `EXECUTE` on `Ims`; the password comes from an environment variable, never from the file or a command line), then set `IMS_DB_USER=ims_app` and `IMS_APP_DB_PASSWORD` in the env file and redeploy. Keep `sa` for the DBA script, migrations and the backups only. Not verified: that the application works with exactly these rights (application locks, the append-only ledger trigger, the seeder): run `smoke.sh` and a posting with that login before real data.
+2. **Off-host backups, restored once.** `backup.sh ship` and `backup.sh offsite` encrypt with `age` to a public key and hand each file to `BACKUP_SHIP_COMMAND` (a command that takes one path, for example `rclone copyto` with a remote); the private key is kept off the VM. They cover the database (full and log), the `files` and `keys` volumes and `deploy/.env.prod`. Retention (`BACKUP_RETENTION_DAYS`, `BACKUP_KEEP_FULLS`, `prune`) runs inside the database container, because the files belong to the SQL Server user and the deploy user cannot delete them; it deletes only files already shipped and always keeps the newest fulls, and `ship` skips files younger than 10 minutes (a backup still being written). The remote credentials belong in a mode-600 config file, not in `BACKUP_SHIP_COMMAND` (which shows in `ps`), and the remote key must be write-only (or the bucket object-locked) so a compromised VM cannot delete the off-site copies. **No real data until a shipped copy has been fetched, decrypted and restored on another machine once** (`deploy/scripts/rollback.md` sections 3 to 5), and the time it took has been written down.
+3. The approval amounts are real (`docs/dba/README.md` section 17, STOP).
+4. The Caddy CSP is run as Report-Only for a week first, as `docs/security/web-headers.md` advises, or deliberately accepted as it is (the Caddyfile enforces it).
+
+## 7. What cannot be verified without a host
+
+No image was built or started, no certificate was requested, no SSH connection was made. Unverified: `Dockerfile.web` and the `web-image` job of the Release workflow (first run on `main`); the Caddyfile (`caddy validate` was not run: the Docker daemon is not available where this was written), including the `servers { timeouts }` block; the healthchecks of the API (bash `/dev/tcp`) and of the proxy (`wget` against Caddy's admin endpoint); that the internal `back` network breaks nothing the containers need; SQL Server running with the default capabilities, and with `ims_app`; that the `age` streams work as written in `backup.sh`; the SSH commands and quoting of the Deploy workflow. shellcheck and actionlint were not run (not installed); only `bash -n`, `docker compose config` with dummy values, and review by eye were done.
