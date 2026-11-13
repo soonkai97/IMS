@@ -42,7 +42,8 @@ export const DOCUMENT_TYPE_LABELS: LabelMap = {
 export const ISSUE_PURPOSE_LABELS: LabelMap = {
   Sale: 'purpose.Sale',
   Use: 'purpose.Use',
-  Scrap: 'purpose.Scrap'
+  Scrap: 'purpose.Scrap',
+  Return: 'purpose.Return'
 };
 
 export const PARTNER_TYPE_LABELS: LabelMap = {

@@ -1,5 +1,6 @@
 /** Module codes as returned by GET /api/modules (see Ims.Domain ModuleCodes). The core has no code and is always on. */
 export const MODULE_CODE = {
   Purchasing: 'purchasing',
-  Sales: 'sales'
+  Sales: 'sales',
+  Returns: 'returns'
 } as const;

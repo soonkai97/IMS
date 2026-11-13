@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { createServiceFactory, mockProvider, SpectatorService } from '@ngneat/spectator/jest';
-import { Subject, firstValueFrom, of, throwError } from 'rxjs';
+import { EMPTY, Subject, firstValueFrom, of, throwError } from 'rxjs';
 import { ModuleDto, ModulesClient, UserInfo } from '@ims/api';
 import { RECHECK_QUIET_MS } from '../constants/identity.const';
 import { AuthService } from './auth.service';
@@ -35,15 +35,20 @@ describe('ModulesStore', () => {
     service: ModulesStore,
     providers: [
       mockProvider(ModulesClient),
-      { provide: AuthService, useValue: { $user: user.asReadonly() } }
+      {
+        provide: AuthService,
+        useValue: { $user: user.asReadonly(), reloadUser: jest.fn(() => of(undefined)) }
+      }
     ]
   });
+  const auth = () => spectator.inject(AuthService) as unknown as { reloadUser: jest.Mock };
   const client = () => spectator.inject(ModulesClient);
 
   beforeEach(() => {
     jest.restoreAllMocks();
     user.set(userWith(['purchasing']));
     spectator = createService();
+    auth().reloadUser.mockReset().mockReturnValue(of(undefined));
   });
 
   describe('isEnabled', () => {
@@ -99,6 +104,56 @@ describe('ModulesStore', () => {
       expect(result.rolesRegainingGrants).toBe(0);
       expect(client().list).toHaveBeenCalledTimes(1);
       expect(spectator.service.isEnabled('purchasing')).toBe(false);
+    });
+
+    it('reads the user info again after a success: a permission of the module is there at once, with no token refresh', async () => {
+      user.set({ ...userWith(['purchasing']), permissions: ['stock.read'] });
+      client().switch.mockReturnValue(
+        of({ ...moduleDto('returns', true), rolesRegainingGrants: 0 })
+      );
+      client().list.mockReturnValue(of([moduleDto('returns', true)]));
+      auth().reloadUser.mockImplementation(() => {
+        user.set({ ...userWith(['purchasing', 'returns']), permissions: ['returns.create'] });
+        return of(user());
+      });
+
+      await firstValueFrom(
+        spectator.service.switchModule.run({
+          code: 'returns',
+          enabled: true,
+          reason: 'Customers bring goods back'
+        })
+      );
+
+      expect(auth().reloadUser).toHaveBeenCalledTimes(1);
+      expect(user()?.permissions).toContain('returns.create');
+      expect(spectator.service.isEnabled('returns')).toBe(true);
+    });
+
+    it('still answers when the user info cannot be read again (the old info stays)', async () => {
+      client().switch.mockReturnValue(
+        of({ ...moduleDto('returns', true), rolesRegainingGrants: 0 })
+      );
+      client().list.mockReturnValue(of([moduleDto('returns', true)]));
+      auth().reloadUser.mockReturnValue(EMPTY);
+
+      const result = await firstValueFrom(
+        spectator.service.switchModule.run({ code: 'returns', enabled: true, reason: 'abcde' })
+      );
+
+      expect(result.code).toBe('returns');
+      expect(spectator.service.switchModule.$isFailed()).toBe(false);
+    });
+
+    it('reads nothing again when the switch is refused', async () => {
+      client().switch.mockReturnValue(throwError(() => ({ status: 409 })));
+
+      await firstValueFrom(
+        spectator.service.switchModule.run({ code: 'returns', enabled: true, reason: 'abcde' }),
+        { defaultValue: undefined }
+      );
+
+      expect(auth().reloadUser).not.toHaveBeenCalled();
     });
 
     it('shows no toast for its failures (the screen does) and keeps the old state', async () => {

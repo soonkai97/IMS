@@ -228,6 +228,20 @@ describe('ModulesPageComponent (Settings > Modules)', () => {
       expect(load).toHaveBeenCalledTimes(2);
     });
 
+    it('409 with a sentence of its own (a module it needs is off) shows that sentence, naming the other module', () => {
+      operation.set({
+        error: {
+          status: HTTP_STATUS.Conflict,
+          message: 'x',
+          detail: 'Returns needs Sales: turn Sales on first.'
+        }
+      });
+      spectator.detectChanges();
+
+      expect(banner()).toContain('Returns needs Sales: turn Sales on first.');
+      expect(banner()).not.toContain('in progress');
+    });
+
     it('the banner goes away when the next switch starts', () => {
       data.set([moduleOf('purchasing', true)]);
       fail(HTTP_STATUS.Forbidden);

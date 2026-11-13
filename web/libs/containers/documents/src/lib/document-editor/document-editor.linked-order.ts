@@ -1,4 +1,5 @@
 import {
+  DocumentDto,
   PurchaseOrderCloseKind,
   PurchaseOrderDto,
   PurchaseOrderStatus,
@@ -82,7 +83,7 @@ export function lineRefusals(
 }
 
 /** Which order a document belongs to: a receipt to a purchase order, a delivery to a sales order. */
-export type LinkedOrderKind = 'purchase' | 'sales';
+export type LinkedOrderKind = 'purchase' | 'sales' | 'return';
 
 export interface LinkedOrderRef {
   readonly id: PublicId;
@@ -125,4 +126,37 @@ export function salesOrderProgress(
         open: order.lines.filter(line => line.remainingQty > 0).length
       }
     : undefined;
+}
+
+/**
+ * What the ORIGINAL of a return says about each of its lines, by position (1 to n, the order its lines are listed): the quantity it
+ * had, what Posted returns took back and what can still be returned. Quantities only. Empty until the original of THIS return has
+ * arrived. `received` holds what was returned.
+ */
+export function returnLineContexts(
+  original: DocumentDto | undefined,
+  originalId: PublicId | undefined
+): ReadonlyMap<number, OrderLineContext> {
+  if (!original || original.id !== originalId) {
+    return new Map();
+  }
+  // A line without the figures (the API omits them while Returns is off or for a caller who may not create returns) says nothing:
+  // "everything is returnable" would be a guess, and the API stays the authority at save and at posting.
+  return new Map(
+    original.lines.flatMap((line, index): [number, OrderLineContext][] =>
+      isDefined(line.returnableQty)
+        ? [
+            [
+              index + 1,
+              {
+                ordered: line.qty,
+                received: line.returnedQty ?? 0,
+                remaining: line.returnableQty,
+                uomCode: line.uomCode
+              }
+            ]
+          ]
+        : []
+    )
+  );
 }

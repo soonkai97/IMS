@@ -420,6 +420,45 @@ describe('AuthService', () => {
     expect(spectator.service.$user()?.username).toBe('staff');
   });
 
+  describe('reloadUser (after a module switch)', () => {
+    const FRESH: UserInfo = { ...USER, permissions: ['stock.read', 'returns.create'] };
+
+    beforeEach(async () => {
+      client().refresh.mockReturnValue(of(authResult('a2')));
+      await firstValueFrom(spectator.service.restoreSession());
+    });
+
+    it('takes the permissions the server holds now, without a token refresh', async () => {
+      client().me.mockReturnValue(of(FRESH));
+
+      await firstValueFrom(spectator.service.reloadUser());
+
+      expect(spectator.service.$user()?.permissions).toContain('returns.create');
+      expect(client().refresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the old info, and does not fail, when the call fails', async () => {
+      client().me.mockReturnValue(throwError(() => ({ status: 500 })));
+
+      await expect(firstValueFrom(spectator.service.reloadUser())).resolves.toBeUndefined();
+
+      expect(spectator.service.$user()?.permissions).toEqual(['stock.read']);
+    });
+
+    it('drops an answer that arrives after the session ended', async () => {
+      const answer = new Subject<UserInfo>();
+      client().me.mockReturnValue(answer);
+      client().logout.mockReturnValue(of(undefined));
+
+      const pending = firstValueFrom(spectator.service.reloadUser(), { defaultValue: undefined });
+      spectator.service.endSession(false);
+      answer.next(FRESH);
+      await pending;
+
+      expect(spectator.service.$user()).toBeUndefined();
+    });
+  });
+
   it('restoreSession treats a 401 as signed out, without a redirect or notice', async () => {
     client().refresh.mockReturnValue(throwError(() => ({ status: 401 })));
 

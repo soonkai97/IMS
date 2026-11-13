@@ -11,7 +11,8 @@ export const CONFLICT_CODE = {
   InsufficientStock: 'insufficient_stock',
   ReversalBlocked: 'reversal_blocked',
   OverReceipt: 'over_receipt',
-  OverDelivery: 'over_delivery'
+  OverDelivery: 'over_delivery',
+  OverReturn: 'over_return'
 } as const;
 
 function codeOf(error: ApiError): unknown {

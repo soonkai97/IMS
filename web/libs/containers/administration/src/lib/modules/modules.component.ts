@@ -181,7 +181,9 @@ export class ModulesPageComponent implements OnInit {
         this.onLoad();
         break;
       case HTTP_STATUS.Conflict:
-        this.$problem.set(this.i18n.t('modules.error.busy'));
+        // A switch refused for a reason of its own (a module it needs is off, a module that needs it is on, open orders) is told in
+        // the API's own words, naming the other module; without such a sentence it is the lock another change holds.
+        this.$problem.set(error.detail?.trim() || this.i18n.t('modules.error.busy'));
         this.onLoad();
         break;
       default:
