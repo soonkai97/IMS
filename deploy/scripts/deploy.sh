@@ -47,7 +47,7 @@ set_env() {
   fi
 }
 
-[ -r "$env_file" ] || { echo "env file not found: $env_file (copy deploy/.env.prod.example and fill it in on this VM)" >&2; exit 1; }
+[ -r "$env_file" ] || { echo "env file not found: $env_file (copy deploy/prod.env.example and fill it in on this VM)" >&2; exit 1; }
 
 for name in IMS_GITHUB_OWNER IMS_DB_PASSWORD IMS_JWT_KEY IMS_ADMIN_PASSWORD IMS_CORS_ORIGINS MSSQL_PID; do
   [ -n "$(env_value "$name")" ] || { echo "$name is empty in $env_file" >&2; exit 1; }

@@ -23,7 +23,7 @@ Owner decision 2026-11-13 (O3): ONE small VM, Docker Compose, Caddy as the TLS p
 
 The web app is static files, not served by the API, so a second image is built by the Release workflow (`Dockerfile.web`: the Angular build on top of `caddy:2-alpine`). The proxy serves it and forwards `/api/*`; one host means no CORS, a same-site refresh cookie and `connect-src 'self'`. The header set follows `docs/security/web-headers.md`. The API keeps its own stricter headers.
 
-Files: `deploy/compose.prod.yml`, `deploy/Caddyfile`, `deploy/.env.prod.example` (names only), `deploy/scripts/` (`deploy.sh`, `smoke.sh`, `backup.sh`, `rollback.md`, `systemd/` timers, `cron.example`), `Dockerfile.web`, `.github/workflows/deploy.yml`.
+Files: `deploy/compose.prod.yml`, `deploy/Caddyfile`, `deploy/prod.env.example` (names only), `deploy/scripts/` (`deploy.sh`, `smoke.sh`, `backup.sh`, `rollback.md`, `systemd/` timers, `cron.example`), `Dockerfile.web`, `.github/workflows/deploy.yml`.
 
 ## 2. What the owner must provide
 
@@ -37,7 +37,7 @@ Files: `deploy/compose.prod.yml`, `deploy/Caddyfile`, `deploy/.env.prod.example`
 ## 3. First deploy (runbook)
 
 1. On the VM: `git clone https://github.com/<owner>/IMS.git /opt/ims` (or the `DEPLOY_PATH`), `cd /opt/ims`.
-2. `cp deploy/.env.prod.example deploy/.env.prod && chmod 600 deploy/.env.prod`, then fill in every name (generate `IMS_JWT_KEY` and the passwords; set `MSSQL_PID`, `DOMAIN`, `IMS_CORS_ORIGINS=https://<DOMAIN>`, `IMS_GITHUB_OWNER`). `mkdir -p /srv/ims/backups && chown 10001:0 /srv/ims/backups`.
+2. `cp deploy/prod.env.example deploy/.env.prod && chmod 600 deploy/.env.prod`, then fill in every name (generate `IMS_JWT_KEY` and the passwords; set `MSSQL_PID`, `DOMAIN`, `IMS_CORS_ORIGINS=https://<DOMAIN>`, `IMS_GITHUB_OWNER`). `mkdir -p /srv/ims/backups && chown 10001:0 /srv/ims/backups`.
 3. Pick a released tag (the Release workflow publishes `sha-<7 hex>` for the API and the web image of the same commit). Log in to the registry if the packages are private (`docker login ghcr.io` with a token that has `read:packages`).
 4. `deploy/scripts/deploy.sh --db-only` starts the database only.
 5. Create the schema: either run the DBA script by hand (`docs/dba/README.md` sections 12 to 17, `sqlcmd -I -b`), or, for the very first deploy only, set `IMS_MIGRATE_ON_STARTUP=true` in the env file, run step 6, check the log, and set it back to `false` (the start with it on also creates the first administrator from `IMS_ADMIN_PASSWORD`; a script-only deploy creates none, so do one start with it on).

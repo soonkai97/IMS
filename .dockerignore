@@ -8,6 +8,5 @@ web/.angular
 e2e
 tests
 deploy/.env*
-!deploy/.env.prod.example
 .env
 .env.*

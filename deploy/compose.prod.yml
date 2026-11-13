@@ -3,7 +3,7 @@
 #   docker compose --env-file deploy/.env.prod -f deploy/compose.prod.yml up -d      (normally run by deploy/scripts/deploy.sh)
 #
 # Only Caddy publishes ports (80 and 443). The API and the database are reachable on the internal network "ims" only.
-# No secret value is stored here: every secret comes from the env file (deploy/.env.prod, never committed; names in deploy/.env.prod.example).
+# No secret value is stored here: every secret comes from the env file (deploy/.env.prod, never committed; names in deploy/prod.env.example).
 # See docs/architecture/deployment.md for the topology, the backups and the first-deploy runbook.
 
 name: ims
