@@ -1789,3 +1789,6 @@
 
 ### 2026-11-13 be-framework -> orchestrator (modernisation PR 3: editorconfig ratchet and two micro fixes)
 - Rules at warning in `[src/**.cs]`: IDE0330, IDE0028, IDE0301, IDE0300, IDE0041, IDE0083, IDE0079, CA1872 (the Api builds clean with -warnaserror). Two empty-collection initialisers became `[]`; the attachment hash uses `Convert.ToHexStringLower` (same lower-case output); Ims.Api no longer references FluentValidation (nothing there used it; Application still brings it).
+
+### 2026-11-13 be-framework -> orchestrator (modernisation PR 4: shared build props)
+- `dotnet build` of src now fails on warnings like CI does (NU1901 to NU1904 excepted). New `tests/Directory.Build.props` (target framework, test packages, Xunit and Roles usings); test projects do NOT treat warnings as errors (known test-only warnings in the migration tests and PriceListRuleTests remain). TargetFramework stays in the src csproj files for the Dockerfile; PR 5 (Central Package Management) must add the Directory.Packages.props COPY before restore.
