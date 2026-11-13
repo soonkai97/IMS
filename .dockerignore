@@ -1,0 +1,13 @@
+.git
+**/node_modules
+**/bin
+**/obj
+web/dist
+web/.nx
+web/.angular
+e2e
+tests
+deploy/.env*
+!deploy/.env.prod.example
+.env
+.env.*

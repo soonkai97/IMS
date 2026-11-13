@@ -1,24 +1,32 @@
 name: Deploy
 
-# Manual, environment-gated deployment of an image built by the Release workflow.
+# Manual deployment of an image built by the Release workflow to the one small VM (Docker Compose + Caddy; owner decision 2026-11-13, docs/architecture/deployment.md).
+# It SSHes to the VM and runs deploy/scripts/deploy.sh there. Migrations are never run by this workflow: deploy.sh stops and prints the DBA script command
+# unless the run says the schema is already migrated (input "migrated").
 #
-# STATUS: skeleton. The hosting model is an open question in the PRD (14.3: customer-owned servers, our cloud, or hybrid),
-# so the final step is deliberately a clearly-marked placeholder. Everything around it (approval gate, image selection,
-# smoke check, concurrency) is ready; fill in the deploy command for the chosen target.
-#
-# To require a human approval: GitHub -> Settings -> Environments -> staging / production -> "Required reviewers".
+# Needs the GitHub environment "production" with required reviewers (Settings > Environments), and these in that environment:
+#   secrets:   DEPLOY_HOST (VM address), DEPLOY_USER (login that owns the compose directory and can run docker),
+#              DEPLOY_SSH_KEY (private key of a key pair used only for this), DEPLOY_KNOWN_HOSTS (the output of `ssh-keyscan -t ed25519 <host>`, checked against the fingerprint the owner reads on the VM)
+#   variables: DOMAIN (optional: the public name; when set the runner runs the smoke check against https://DOMAIN after the deploy),
+#              DEPLOY_PATH (optional, default /opt/ims: the repository checkout on the VM)
+# The application secrets (database password, JWT key, admin password) are NOT GitHub secrets: they live in deploy/.env.prod on the VM (chmod 600).
+# While the secrets are absent the run stops at the first step with the list of what is missing.
 
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: Target environment
+        description: Target environment (one VM, so production)
         type: choice
-        options: [staging, production]
-        default: staging
+        options: [production]
+        default: production
       image_tag:
-        description: Image tag to deploy (for example sha-1a2b3c4 or v1.0.0)
+        description: Image tag to deploy (for example sha-1a2b3c4)
         required: true
+      migrated:
+        description: The schema is already migrated for this tag (the DBA script has been run); leave off to pull and print the migration command only
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -32,25 +40,85 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
-      IMAGE: ghcr.io/${{ github.repository_owner }}/ims-api:${{ inputs.image_tag }}
+      OWNER: ${{ github.repository_owner }}
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      MIGRATED: ${{ inputs.migrated }}
     steps:
+      - name: Check the deploy secrets are configured
+        # Secrets go through env, never interpolated into the script text. A missing secret is an empty string.
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          missing=""
+          [ -n "$DEPLOY_HOST" ] || missing="$missing DEPLOY_HOST"
+          [ -n "$DEPLOY_USER" ] || missing="$missing DEPLOY_USER"
+          [ -n "$DEPLOY_SSH_KEY" ] || missing="$missing DEPLOY_SSH_KEY"
+          [ -n "$DEPLOY_KNOWN_HOSTS" ] || missing="$missing DEPLOY_KNOWN_HOSTS"
+          if [ -n "$missing" ]; then
+            echo "::error title=Secrets not configured::Secrets not configured in the '${{ inputs.environment }}' environment:$missing. See docs/architecture/deployment.md (what the owner must provide)."
+            exit 1
+          fi
+
+      - name: Check the image tag
+        run: |
+          case "$IMAGE_TAG" in
+            ''|*[!A-Za-z0-9_.-]*|-*|.*) echo "::error::The image tag has characters a tag cannot have: '$IMAGE_TAG'"; exit 1 ;;
+          esac
+
       - uses: actions/checkout@v7
 
-      - name: Verify the image exists
-        # Secrets and context values go through env, never interpolated into the script text.
+      - name: Verify both images exist
         env:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REGISTRY_USER: ${{ github.actor }}
         run: |
           echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
-          docker manifest inspect "$IMAGE" > /dev/null
+          docker manifest inspect "ghcr.io/$OWNER/ims-api:$IMAGE_TAG" > /dev/null
+          docker manifest inspect "ghcr.io/$OWNER/ims-web:$IMAGE_TAG" > /dev/null
 
-      - name: Deploy (PLACEHOLDER - choose a target)
+      - name: Prepare SSH (pinned host key, no trust on first use)
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
-          echo "Would deploy $IMAGE to ${{ inputs.environment }}."
-          echo "Add the target here, for example: ssh + docker compose pull/up, Azure Container Apps, or Kubernetes."
-          echo "Required environment secrets/variables (set in the GitHub environment, never in the repo):"
-          echo "  IMS_DB_PASSWORD, IMS_JWT_KEY, IMS_ADMIN_PASSWORD, IMS_CORS_ORIGINS"
-          exit 1  # fail loudly until a real deploy command replaces this step
+          install -d -m 700 "$RUNNER_TEMP/ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$RUNNER_TEMP/ssh/id"
+          chmod 600 "$RUNNER_TEMP/ssh/id"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/ssh/known_hosts"
+
+      - name: Deploy on the VM
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/ims' }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          flags="--tag $IMAGE_TAG"
+          [ "$MIGRATED" = "true" ] && flags="$flags --migrated"
+          # The registry token goes over the SSH connection's stdin, not into the command line or a file.
+          set +e
+          printf '%s' "$GHCR_TOKEN" | ssh -i "$RUNNER_TEMP/ssh/id" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
+            "$DEPLOY_USER@$DEPLOY_HOST" "export GHCR_TOKEN=\$(cat) GHCR_USER='$GHCR_USER'; cd '$DEPLOY_PATH' && git fetch --quiet origin && git checkout --quiet '${GITHUB_SHA}' && deploy/scripts/deploy.sh $flags"
+          code=$?
+          set -e
+          if [ "$code" -eq 3 ]; then
+            echo "::warning title=Migration needed::Images pulled, nothing restarted. Run the migration script on the VM, then run this workflow again with 'migrated' ticked."
+            exit 0
+          fi
+          exit "$code"
+
+      - name: Smoke check from outside (public name)
+        if: ${{ vars.DOMAIN != '' && inputs.migrated }}
+        env:
+          SMOKE_BASE_URL: https://${{ vars.DOMAIN }}
+        run: deploy/scripts/smoke.sh
+
+      - name: Clean up the SSH material
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/ssh"

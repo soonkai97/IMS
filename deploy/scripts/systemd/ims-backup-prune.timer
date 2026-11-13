@@ -1,0 +1,10 @@
+[Unit]
+Description=Delete IMS database backups past the retention period
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+Unit=ims-backup@prune.service
+
+[Install]
+WantedBy=timers.target

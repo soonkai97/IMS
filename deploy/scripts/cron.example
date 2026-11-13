@@ -1,0 +1,5 @@
+# The same schedule with cron, for a host without systemd timers. Install with `crontab -e` as the deploy user (adjust /opt/ims).
+# Nightly full backup at 02:00, a log backup every 15 minutes, old files pruned at 03:30.
+0 2 * * *      /opt/ims/deploy/scripts/backup.sh full  >> /var/log/ims-backup.log 2>&1
+*/15 * * * *   /opt/ims/deploy/scripts/backup.sh log   >> /var/log/ims-backup.log 2>&1
+30 3 * * *     /opt/ims/deploy/scripts/backup.sh prune >> /var/log/ims-backup.log 2>&1

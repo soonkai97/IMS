@@ -1,0 +1,10 @@
+[Unit]
+Description=Transaction-log backup of the IMS database every 15 minutes
+
+[Timer]
+OnCalendar=*-*-* *:00/15:00
+Persistent=false
+Unit=ims-backup@log.service
+
+[Install]
+WantedBy=timers.target
