@@ -2,16 +2,17 @@
 #   docker build -f Dockerfile.web -t ims-web .
 # The production stack mounts deploy/Caddyfile over /etc/caddy/Caddyfile; this image only carries the files in /srv/ims-web.
 #
-# TODO (supply chain): pin both base images by digest (FROM image:tag@sha256:...). The digests could not be looked up here (no registry access from the
-# machine this was written on); Dependabot's docker ecosystem (.github/dependabot.yml, directory /) proposes the updates once they are pinned.
-# TODO: `npm ci --ignore-scripts` would stop install scripts of dependencies from running in the build. It was not tried (the web build was not run here):
-# try it in CI first, since some build tools fetch their binary in a postinstall step.
-FROM node:22-alpine AS build
+# Base images are pinned by digest (the multi-architecture index of the tag, read from the registry on 2026-11-14). Dependabot's docker ecosystem
+# (.github/dependabot.yml, directory /) should propose the new digest for each FROM line; check that its first run lists this file.
+# TODO: `npm ci --ignore-scripts` is NOT used yet. web/package-lock.json lists install scripts for @parcel/watcher, @swc/core, esbuild, lmdb, msgpackr-extract,
+# nx and unrs-resolver (all dev dependencies that the Nx build uses; most fetch or verify a native binary). Whether the build still works without them could not
+# be tested here (no Docker build). Try it in a pull request (the e2e or a local `docker build -f Dockerfile.web .`) and add `--ignore-scripts` only if it builds.
+FROM node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a AS build
 WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
 RUN npm run build:prod
 
-FROM caddy:2-alpine AS runtime
+FROM caddy:2-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0 AS runtime
 COPY --from=build /web/dist/main/browser /srv/ims-web

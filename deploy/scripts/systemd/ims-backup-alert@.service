@@ -1,0 +1,11 @@
+# Started by OnFailure= of ims-backup@.service with the failed job's name (ims-backup-alert@ship.service): calls BACKUP_ALERT_COMMAND from the env file
+# (a command on the VM that takes one argument, the message). Without that setting the message only reaches the journal. No secret belongs in this file.
+# Install next to ims-backup@.service (copy to /etc/systemd/system/, adjust User and the paths).
+[Unit]
+Description=IMS backup failure alert (%i)
+
+[Service]
+Type=oneshot
+User=deploy
+WorkingDirectory=/opt/ims
+ExecStart=/opt/ims/deploy/scripts/backup.sh alert %i

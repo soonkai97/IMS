@@ -50,8 +50,9 @@ services:
       db: { condition: service_healthy }
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      # The login is sa until the least-privilege login ims_app exists (docs/architecture/deployment.md section 6: a gate before real data). Then IMS_DB_USER=ims_app and IMS_APP_DB_PASSWORD are set.
-      ConnectionStrings__Default: "Server=db;Database=Ims;User Id=${IMS_DB_USER:-sa};Password=${IMS_APP_DB_PASSWORD:-${IMS_DB_PASSWORD}};TrustServerCertificate=True"
+      # IMS_DB_USER is mandatory and there is no default: the API must never fall back to sa. It is ims_app (created by deploy/scripts/create-app-login.sql, with IMS_APP_DB_PASSWORD).
+      # sa is allowed for ONE start only, the first migration run (deploy.sh --first-migration), and is replaced by ims_app straight after (docs/architecture/deployment.md section 3).
+      ConnectionStrings__Default: "Server=db;Database=Ims;User Id=${IMS_DB_USER:?set IMS_DB_USER (ims_app after create-app-login.sql; sa only for the very first migration run)};Password=${IMS_APP_DB_PASSWORD:-${IMS_DB_PASSWORD}};TrustServerCertificate=True"
       Jwt__Key: ${IMS_JWT_KEY:?set IMS_JWT_KEY (32+ characters)}
       # Only the very first start needs this (it creates the first administrator). Remove the value from the env file afterwards: with it empty the API only logs a warning when no administrator exists.
       Seed__AdminPassword: ${IMS_ADMIN_PASSWORD:-}
