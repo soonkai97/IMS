@@ -296,12 +296,14 @@ export class PurchaseOrderEditorPageComponent implements HasUnsavedChanges {
 
   private readonly preselectWarehouse = effect(() => {
     const warehouses = this.warehouses.$activeWarehouses();
+    const [onlyWarehouse] = warehouses;
     if (
       !this.$isEdit() &&
       warehouses.length === 1 &&
+      onlyWarehouse !== undefined &&
       this.form.controls.warehouseId.value === null
     ) {
-      untracked(() => this.form.controls.warehouseId.setValue(warehouses[0].id));
+      untracked(() => this.form.controls.warehouseId.setValue(onlyWarehouse.id));
     }
   });
 

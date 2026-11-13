@@ -151,7 +151,10 @@ export default [
       '@angular-eslint/template/prefer-contextual-for-variables': 'error',
       '@angular-eslint/template/no-empty-control-flow': 'error',
       '@angular-eslint/template/prefer-class-binding': 'error',
-      '@angular-eslint/template/prefer-style-binding': 'error'
+      '@angular-eslint/template/prefer-style-binding': 'error',
+      // Every raw <button> already names its type (a bare one inside a form would submit it), and no @for guards its list with length === 0.
+      '@angular-eslint/template/button-has-type': 'error',
+      '@angular-eslint/template/prefer-at-empty': 'error'
     }
   },
   prettier

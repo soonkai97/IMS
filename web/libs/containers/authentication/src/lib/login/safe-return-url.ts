@@ -17,6 +17,6 @@ export function safeReturnUrl(url: string | undefined): string {
   if (!url?.startsWith('/') || /^\/[/\\]/.test(decoded(url))) {
     return HOME_ROUTE;
   }
-  const path = url.split(/[?#]/)[0];
+  const [path = url] = url.split(/[?#]/);
   return path === LOGIN_ROUTE || path.startsWith(`${LOGIN_ROUTE}/`) ? HOME_ROUTE : url;
 }

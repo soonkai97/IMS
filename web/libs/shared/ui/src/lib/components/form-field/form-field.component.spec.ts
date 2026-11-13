@@ -200,3 +200,20 @@ describe('UiInputComponent outside a form field', () => {
     expect(spectator.query('input')?.hasAttribute('required')).toBe(false);
   });
 });
+
+describe('UiFormFieldComponent with an empty error object', () => {
+  const createComponent = createComponentFactory({
+    component: UiFormFieldComponent,
+    detectChanges: false
+  });
+
+  it('shows no message when the control is flagged with errors but holds none', () => {
+    const control = new FormControl('x');
+    const spectator = createComponent({ props: { label: 'Name', control } as never });
+    control.setErrors({});
+    control.markAsTouched();
+    spectator.detectChanges();
+
+    expect(spectator.component.$errorText()).toBeNull();
+  });
+});
