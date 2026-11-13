@@ -346,6 +346,7 @@ test.describe('RP02 Role page', () => {
         `/api/users?search=${users[users.length - 1]}`
       )
     ).items;
+    if (!found) throw new Error('throw-away user not found');
     await admin.call('PUT', `/api/users/${found.id}`, {
       username: found.username,
       email: `${found.username}@example.test`,

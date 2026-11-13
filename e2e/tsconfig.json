@@ -13,7 +13,6 @@
     "noEmit": true,
     "types": ["node"],
     "experimentalDecorators": true,
-    "baseUrl": ".",
     "paths": {
       "@angular/*": ["../web/node_modules/@angular/*"],
       "rxjs": ["../web/node_modules/rxjs"],
