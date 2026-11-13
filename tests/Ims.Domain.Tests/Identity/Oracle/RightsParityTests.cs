@@ -83,16 +83,16 @@ public class RightsParityTests
             var amount = decimal.Parse(key[1], System.Globalization.CultureInfo.InvariantCulture);
             var adminRuleFired = parts.Any(p => p.Role == Roles.Admin && amount >= p.Threshold);
             foreach (var storedLarge in new[] { false, true })
-            foreach (var role in SystemRoles)
-            {
-                var rights = SystemRoleDefaults.RightsFor(role, Me);
-                var before = LegacyBehaviour.MayReview(role, storedLarge) && LegacyBehaviour.CanApprove(role, parts, amount);
-                var now = ApprovalPolicy.MayReviewUnderRulesInForce(rights, storedLarge, rules, DocumentType.Receipt, 1m, amount);
-                var documented = role == Roles.Owner && storedLarge && adminRuleFired;
+                foreach (var role in SystemRoles)
+                {
+                    var rights = SystemRoleDefaults.RightsFor(role, Me);
+                    var before = LegacyBehaviour.MayReview(role, storedLarge) && LegacyBehaviour.CanApprove(role, parts, amount);
+                    var now = ApprovalPolicy.MayReviewUnderRulesInForce(rights, storedLarge, rules, DocumentType.Receipt, 1m, amount);
+                    var documented = role == Roles.Owner && storedLarge && adminRuleFired;
 
-                if (documented) Assert.True(!before && now, $"the Owner on an Admin rule: was {before}, now {now} ({key[0]}, amount {key[1]})");
-                else if (before != now) differences.Add($"{role}, stored {(storedLarge ? "large" : "standard")}, rules {key[0]}, amount {key[1]}: was {before}, now {now}");
-            }
+                    if (documented) Assert.True(!before && now, $"the Owner on an Admin rule: was {before}, now {now} ({key[0]}, amount {key[1]})");
+                    else if (before != now) differences.Add($"{role}, stored {(storedLarge ? "large" : "standard")}, rules {key[0]}, amount {key[1]}: was {before}, now {now}");
+                }
         }
 
         Assert.True(differences.Count == 0, $"{differences.Count} difference(s):" + Environment.NewLine + string.Join(Environment.NewLine, differences.Take(15)));

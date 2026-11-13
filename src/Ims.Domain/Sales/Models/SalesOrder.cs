@@ -60,8 +60,13 @@ public class SalesOrder : PublicEntity
 
         return new SalesOrder
         {
-            Warehouse = warehouse, WarehouseId = warehouse.Id, Customer = customer, CustomerId = customer.Id,
-            Remark = remark, CreatedBy = createdBy, CreatedAt = now
+            Warehouse = warehouse,
+            WarehouseId = warehouse.Id,
+            Customer = customer,
+            CustomerId = customer.Id,
+            Remark = remark,
+            CreatedBy = createdBy,
+            CreatedAt = now
         };
     }
 

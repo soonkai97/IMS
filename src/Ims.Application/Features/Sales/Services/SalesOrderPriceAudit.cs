@@ -23,8 +23,12 @@ public class SalesOrderPriceAudit(IPriceLookup lookup, IAuditTrail audit) : ISal
 
             audit.Record(AuditActions.SalesOrderPriceChanged, AuditEntities.SalesOrder, order.No, after: new Dictionary<string, object?>
             {
-                ["Line"] = line.LineNo, [nameof(line.ProductId)] = line.ProductId, [nameof(line.UomId)] = line.UomId, ["Source"] = price.Source,
-                [AuditFields.ListedPrice] = price.Price, [AuditFields.EnteredPrice] = line.SellingPrice
+                ["Line"] = line.LineNo,
+                [nameof(line.ProductId)] = line.ProductId,
+                [nameof(line.UomId)] = line.UomId,
+                ["Source"] = price.Source,
+                [AuditFields.ListedPrice] = price.Price,
+                [AuditFields.EnteredPrice] = line.SellingPrice
             });
         }
     }

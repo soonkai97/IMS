@@ -135,9 +135,15 @@ public class StockDocument : PublicEntity
 
         return new StockDocument
         {
-            Type = type, Warehouse = warehouse, WarehouseId = warehouse.Id, Partner = partner, PartnerId = partner?.Id,
+            Type = type,
+            Warehouse = warehouse,
+            WarehouseId = warehouse.Id,
+            Partner = partner,
+            PartnerId = partner?.Id,
             Purpose = type == DocumentType.Issue ? purpose ?? throw new DomainException(Messages.PurposeRequired) : null,
-            Remark = remark, CreatedBy = createdBy, CreatedAt = now
+            Remark = remark,
+            CreatedBy = createdBy,
+            CreatedAt = now
         };
     }
 
@@ -175,9 +181,15 @@ public class StockDocument : PublicEntity
 
         return new StockDocument
         {
-            Type = customerReturn ? DocumentType.Receipt : DocumentType.Issue, Warehouse = original.Warehouse, WarehouseId = original.WarehouseId,
-            Partner = original.Partner, PartnerId = original.PartnerId, Purpose = customerReturn ? null : IssuePurpose.Return,
-            CreatedBy = createdBy, CreatedAt = now, ReturnOfDocumentId = original.Id
+            Type = customerReturn ? DocumentType.Receipt : DocumentType.Issue,
+            Warehouse = original.Warehouse,
+            WarehouseId = original.WarehouseId,
+            Partner = original.Partner,
+            PartnerId = original.PartnerId,
+            Purpose = customerReturn ? null : IssuePurpose.Return,
+            CreatedBy = createdBy,
+            CreatedAt = now,
+            ReturnOfDocumentId = original.Id
         };
     }
 

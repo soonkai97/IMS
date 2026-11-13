@@ -13,7 +13,10 @@ internal static class ListAudit
 
     public static Dictionary<string, object?> Summary(PriceList list) => new()
     {
-        [nameof(list.Name)] = list.Name, [nameof(list.IsDefault)] = list.IsDefault, [nameof(list.CustomerId)] = list.CustomerId, ["Items"] = list.Items.Count
+        [nameof(list.Name)] = list.Name,
+        [nameof(list.IsDefault)] = list.IsDefault,
+        [nameof(list.CustomerId)] = list.CustomerId,
+        ["Items"] = list.Items.Count
     };
 
     /// <summary>The items of a list that has been read with each item's product and unit.</summary>
