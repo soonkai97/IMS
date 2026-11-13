@@ -10,7 +10,7 @@ namespace Ims.Api;
 /// are translated by the <see cref="IExceptionMapper"/>s the infrastructure registers. Unexpected errors are logged with their stack and
 /// returned as an opaque 500 with a reference. A client that disconnects is not an error.
 /// </summary>
-public class ApiExceptionHandler(ILogger<ApiExceptionHandler> log, IProblemDetailsService problems, IEnumerable<IExceptionMapper> mappers) : IExceptionHandler
+public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> log, IProblemDetailsService problems, IEnumerable<IExceptionMapper> mappers) : IExceptionHandler
 {
     private const int ClientClosedRequest = 499;
 

@@ -1,6 +1,6 @@
 namespace Ims.Domain;
 
-public class RefreshToken : Entity
+public sealed class RefreshToken : Entity
 {
     private RefreshToken() { }
 

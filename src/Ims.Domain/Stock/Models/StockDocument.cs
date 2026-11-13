@@ -5,7 +5,7 @@ namespace Ims.Domain;
 /// document can also be recalled to Draft by its submitter. Posting is the irreversible step: a posted document is never edited, only reversed.
 /// All state changes go through the methods below, so an illegal transition cannot happen.
 /// </summary>
-public class StockDocument : PublicEntity
+public sealed class StockDocument : PublicEntity
 {
     private StockDocument() { }
 

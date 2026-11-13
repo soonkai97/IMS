@@ -6,7 +6,7 @@ namespace Ims.Domain;
 /// (or straight to Approved when no rule fires), Submitted -> Draft by a rejection or a recall, and Draft, Submitted or Approved -> Cancelled. Closing (automatic and short) comes with the
 /// receipts (PL2.5). Totals are computed from the lines, never stored.
 /// </summary>
-public class PurchaseOrder : PublicEntity
+public sealed class PurchaseOrder : PublicEntity
 {
     private PurchaseOrder() { }
 

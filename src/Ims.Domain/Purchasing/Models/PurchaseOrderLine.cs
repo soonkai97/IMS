@@ -4,7 +4,7 @@ namespace Ims.Domain;
 /// One line of a purchase order: a product, a quantity in any unit the product converts, and the price the supplier asked per ENTERED unit. The base quantity (BR-04) is
 /// converted once when the line is built; the amount is <c>round(entered quantity x entered price, 2)</c> with no division in between, as on a receipt line.
 /// </summary>
-public class PurchaseOrderLine : Entity
+public sealed class PurchaseOrderLine : Entity
 {
     private PurchaseOrderLine() { }
 

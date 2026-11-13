@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ims.Api.Features.Users;
 
 [Route(ApiRoutes.Users)]
-public class UsersController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class UsersController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet, Authorize(Policy = Permissions.UsersRead)]
     [ProducesResponseType<PagedResult<UserDto>>(StatusCodes.Status200OK)]

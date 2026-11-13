@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ims.Api.Features.Stock;
 
 [Route(ApiRoutes.Reports)]
-public class ReportsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class ReportsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     [HttpGet(RouteSegments.Movements), Authorize(Policy = Permissions.ReportsRead)]
     [ProducesResponseType<PagedResult<MovementRow>>(StatusCodes.Status200OK)]

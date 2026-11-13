@@ -1,7 +1,7 @@
 namespace Ims.Domain;
 
 /// <summary>BR-11: running number per document type, warehouse and month. Concurrent allocation is guarded by the row version.</summary>
-public class DocumentSequence : AuditableEntity
+public sealed class DocumentSequence : AuditableEntity
 {
     private DocumentSequence() { }
 

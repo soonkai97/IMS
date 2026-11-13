@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Ims.Api.Features.Settings;
 
 [Route(ApiRoutes.Audit)]
-public class AuditController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class AuditController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     /// <summary>
     /// The audit log, newest first. Text filters are partial or prefix matches that the indexes answer (no table scan): <c>entityType</c> is a fragment of

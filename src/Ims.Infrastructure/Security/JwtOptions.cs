@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Infrastructure.Security;
 
 /// <summary>Bound from the "Jwt" section and validated at startup, so a bad configuration stops the app instead of failing on first login.</summary>
-public class JwtOptions
+public sealed class JwtOptions
 {
     [Required, MinLength(Limits.JwtKeyMinLength)] public string Key { get; set; } = "";
     [Required] public string Issuer { get; set; } = "";

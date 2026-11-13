@@ -1,6 +1,6 @@
 namespace Ims.Domain;
 
-public class StockDocumentLine : Entity
+public sealed class StockDocumentLine : Entity
 {
     private StockDocumentLine() { }
 

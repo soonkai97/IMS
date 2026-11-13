@@ -13,7 +13,7 @@ namespace Ims.Api.Features.Sales;
 /// 409 when someone else changed the list in the meantime. A list never changes a saved order.
 /// </summary>
 [Route(ApiRoutes.PriceLists), RequiresModule(ModuleCodes.Sales)]
-public class PriceListsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
+public sealed class PriceListsController(IDispatcher dispatcher) : ApiControllerBase(dispatcher)
 {
     /// <summary>The price lists, the default first and then by name, one page at a time. Each carries its token so a list can be deleted without opening it.</summary>
     [HttpGet, Authorize(Policy = Permissions.PricelistManage)]

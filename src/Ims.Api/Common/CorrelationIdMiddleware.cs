@@ -2,7 +2,7 @@ using Serilog.Context;
 namespace Ims.Api;
 
 /// <summary>Accepts or creates X-Correlation-Id, echoes it on the response and attaches it to every log line of the request.</summary>
-public class CorrelationIdMiddleware(RequestDelegate next)
+public sealed class CorrelationIdMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext ctx)
     {

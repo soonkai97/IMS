@@ -1,6 +1,6 @@
 namespace Ims.Domain;
 
-public class InsufficientStockException : DomainException
+public sealed class InsufficientStockException : DomainException
 {
     public InsufficientStockException(int productId, int warehouseId, decimal available, decimal requested)
         : base(Messages.InsufficientStock(productId, warehouseId, available, requested))

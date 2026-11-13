@@ -1,6 +1,6 @@
 namespace Ims.Domain;
 
-public class SystemSetting : AuditableEntity
+public sealed class SystemSetting : AuditableEntity
 {
     private SystemSetting() { }
 
