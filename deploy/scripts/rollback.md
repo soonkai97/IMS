@@ -28,7 +28,7 @@ Order, no step is skipped:
 2. Restore the newest full backup taken BEFORE the migration, then the log backups up to the moment you want (point in time), in a database named `Ims`:
    ```sh
    docker compose --env-file deploy/.env.prod -f deploy/compose.prod.yml exec -T db sh -c \
-     '/opt/mssql-tools18/bin/sqlcmd -C -b -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -Q "RESTORE DATABASE [Ims] FROM DISK = N'"'"'/var/opt/mssql/backup/<full>.bak'"'"' WITH REPLACE, NORECOVERY;"'
+     '/opt/mssql-tools18/bin/sqlcmd -C -b -S localhost -U sa -Q "RESTORE DATABASE [Ims] FROM DISK = N'"'"'/var/opt/mssql/backup/<full>.bak'"'"' WITH REPLACE, NORECOVERY;"'
    # repeat RESTORE LOG ... WITH NORECOVERY for each .trn in order, then:  RESTORE DATABASE [Ims] WITH RECOVERY;
    ```
 3. The attachment files are not in the SQL backup: restore the `files` volume from its own copy if the incident touched it.

@@ -59,6 +59,7 @@ jobs:
       - name: Check the deploy secrets are configured
         # Secrets go through env, never interpolated into the script text. A missing secret is an empty string.
         env:
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -70,7 +71,7 @@ jobs:
           [ -n "$DEPLOY_SSH_KEY" ] || missing="$missing DEPLOY_SSH_KEY"
           [ -n "$DEPLOY_KNOWN_HOSTS" ] || missing="$missing DEPLOY_KNOWN_HOSTS"
           if [ -n "$missing" ]; then
-            echo "::error title=Secrets not configured::Secrets not configured in the '${{ inputs.environment }}' environment:$missing. See docs/architecture/deployment.md (what the owner must provide)."
+            echo "::error title=Secrets not configured::Secrets not configured in the '$DEPLOY_ENVIRONMENT' environment:$missing. See docs/architecture/deployment.md (what the owner must provide)."
             exit 1
           fi
 
@@ -95,6 +96,8 @@ jobs:
         run: |
           hex=${IMAGE_TAG#sha-}
           full=$(git rev-parse --verify --quiet "${hex}^{commit}") || { echo "::error::No commit $hex in this repository."; exit 1; }
+          # The resolved commit must really start with the tag digits (a tag is not an invitation to resolve to something else).
+          case "$full" in "$hex"*) ;; *) echo "::error::Commit $full does not match the tag $IMAGE_TAG."; exit 1 ;; esac
           git fetch --quiet origin main
           if ! git merge-base --is-ancestor "$full" origin/main; then
             echo "::error title=Not on main::Commit $full is not an ancestor of main: only reviewed, merged commits are deployed."

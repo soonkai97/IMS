@@ -58,6 +58,12 @@ for name in IMS_GITHUB_OWNER IMS_DB_PASSWORD IMS_JWT_KEY IMS_CORS_ORIGINS MSSQL_
   [ -n "$(env_value "$name")" ] || { echo "$name is empty in $env_file" >&2; exit 1; }
 done
 
+# The API should not connect as sa on a production host: say so loudly on every deploy until ims_app is in use (docs/architecture/deployment.md section 6, gate 1).
+db_user=$(env_value IMS_DB_USER)
+if [ -z "$db_user" ] || [ "$db_user" = sa ]; then
+  echo "WARNING: the API connects to the database as sa. That is not acceptable for real data: create the ims_app login (deploy/scripts/create-app-login.sql) and set IMS_DB_USER=ims_app." >&2
+fi
+
 mkdir -p "$state_dir"
 
 if [ "$db_only" -eq 1 ]; then
@@ -80,8 +86,9 @@ owner=$(env_value IMS_GITHUB_OWNER)
 previous_ref=$(env_value IMS_API_REF)
 previous=${previous_ref#:}
 
-# A private package needs a login; the workflow passes a short-lived token in GHCR_TOKEN (never written to disk by this script).
+# A private package needs a login; the workflow passes a short-lived token in GHCR_TOKEN. docker login stores the credential in ~/.docker/config.json, so the script logs out again when it ends (also on an error).
 if [ -n "${GHCR_TOKEN:-}" ]; then
+  trap 'docker logout ghcr.io > /dev/null 2>&1 || true' EXIT
   printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "${GHCR_USER:-$owner}" --password-stdin
 fi
 
@@ -95,7 +102,9 @@ Nothing has been restarted. Migrations are not run automatically.
 1. Produce the script for the schema change between the running build and $tag (on a development machine, from the commit of $tag):
      dotnet ef migrations script <from-migration> <to-migration> --project src/Ims.Infrastructure --startup-project src/Ims.Api --output ims-migrate.sql
 2. Back up first:  $here/backup.sh full
-3. Copy ims-migrate.sql into the backup directory ($(env_value IMS_BACKUP_DIR)), stop the API when the migration needs a schema lock, and run it by hand
+3. Put ims-migrate.sql into the database container (the backup directory is owned by the SQL Server user, so the deploy user cannot write to it):
+     docker compose --env-file $env_file -f $compose_file cp ims-migrate.sql db:/var/opt/mssql/backup/ims-migrate.sql
+   Stop the API when the migration needs a schema lock, and run it by hand
    (docs/dba/README.md sections 12, 15, 16, 17). The sa password is read inside the container from SQLCMDPASSWORD, so it is on no command line:
      docker compose --env-file $env_file -f $compose_file exec -T db /opt/mssql-tools18/bin/sqlcmd -C -I -b -S localhost -U sa -d Ims -i /var/opt/mssql/backup/ims-migrate.sql
 4. Then run:  $here/deploy.sh --tag $tag --migrated

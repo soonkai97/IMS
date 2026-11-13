@@ -25,5 +25,8 @@ CREATE USER [ims_app] FOR LOGIN [ims_app];
 ALTER ROLE db_datareader ADD MEMBER [ims_app];
 ALTER ROLE db_datawriter ADD MEMBER [ims_app];
 GRANT EXECUTE TO [ims_app];
+-- The audit trail and the stock ledger are append-only: the application may add rows, never change or remove them (the ledger also has an append-only trigger; this is the second wall).
+DENY UPDATE, DELETE ON OBJECT::dbo.AuditLogs TO [ims_app];
+DENY UPDATE, DELETE ON OBJECT::dbo.StockLedgerEntry TO [ims_app];
 GO
-SELECT N'ims_app created with db_datareader, db_datawriter and EXECUTE on Ims' AS result;
+SELECT N'ims_app created with db_datareader, db_datawriter and EXECUTE on Ims, and no UPDATE or DELETE on AuditLogs and StockLedgerEntry' AS result;

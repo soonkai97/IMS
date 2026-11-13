@@ -4,7 +4,7 @@
 #   backup.sh init      once: sets the FULL recovery model and takes the first full backup
 #   backup.sh full      a full backup (nightly)
 #   backup.sh log       a transaction-log backup (every 15 minutes; needs a full backup first and the FULL recovery model)
-#   backup.sh prune     delete .bak and .trn files older than BACKUP_RETENTION_DAYS (default 14), inside the database container (it owns the files)
+#   backup.sh prune     delete .bak and .trn files past BACKUP_RETENTION_DAYS (default 14) that are already shipped, keeping the newest BACKUP_KEEP_FULLS (default 3) fulls; runs in the db container
 #   backup.sh verify    RESTORE VERIFYONLY on the newest full backup (a quick check; the real restore test is in deploy/scripts/rollback.md)
 #   backup.sh ship      encrypt every .bak and .trn not yet shipped with age (public key BACKUP_AGE_RECIPIENT) and hand it to BACKUP_SHIP_COMMAND
 #   backup.sh offsite   the same for the state the SQL backups do not hold: the files and keys volumes and deploy/.env.prod, then ship
@@ -69,7 +69,17 @@ case "${1:-}" in
     ;;
   prune)
     # The files belong to the SQL Server user (10001), which the deploy user cannot delete from: do it where the files are owned.
-    compose exec -T db find "$bak_dir" -maxdepth 1 -type f '(' -name "${db_name}_full_*.bak" -o -name "${db_name}_log_*.trn" ')' -mtime "+$retention" -print -delete
+    # A file is deleted only when it is older than the retention, it is already in shipped.list (an encrypted copy has left the machine), and, for full backups,
+    # it is not one of the newest BACKUP_KEEP_FULLS (default 3). Without shipping nothing is deleted: that is deliberate, watch the disk.
+    keep=$(setting BACKUP_KEEP_FULLS); keep="${keep:-3}"
+    shipped="$state_dir/shipped.list"
+    [ -s "$shipped" ] || { echo "nothing has been shipped yet: nothing is pruned" >&2; exit 0; }
+    newest=$(compose exec -T db sh -c "ls -1 $bak_dir | grep -E '^${db_name}_full_.*[.]bak\$' | sort | tail -n $keep" < /dev/null | tr -d '\r')
+    compose exec -T db find "$bak_dir" -maxdepth 1 -type f '(' -name "${db_name}_full_*.bak" -o -name "${db_name}_log_*.trn" ')' -mtime "+$retention" -printf '%f\n' < /dev/null | tr -d '\r' | while read -r name; do
+      grep -qxF "$name" "$shipped" || { echo "keep $name: not shipped"; continue; }
+      printf '%s\n' "$newest" | grep -qxF "$name" && { echo "keep $name: one of the newest $keep full backups"; continue; }
+      compose exec -T db rm -f "$bak_dir/$name" < /dev/null && echo "deleted $name"
+    done
     ;;
   verify)
     newest=$(compose exec -T db sh -c "ls -1 $bak_dir/${db_name}_full_*.bak 2>/dev/null | sort | tail -n 1" | tr -d '\r')
@@ -80,11 +90,12 @@ case "${1:-}" in
     require_age
     shipped="$state_dir/shipped.list"
     touch "$shipped"
-    compose exec -T db sh -c "ls -1 $bak_dir" | tr -d '\r' | grep -E '\.(bak|trn)$' | while read -r name; do
+    # Only files that have not changed for 10 minutes: a backup SQL Server is still writing must not be shipped (and marked shipped) half done.
+    compose exec -T db find "$bak_dir" -maxdepth 1 -type f '(' -name '*.bak' -o -name '*.trn' ')' -mmin +10 -printf '%f\n' < /dev/null | tr -d '\r' | sort | while read -r name; do
       grep -qxF "$name" "$shipped" && continue
       out="$outbox/$name.age"
       compose exec -T db cat "$bak_dir/$name" < /dev/null | age -r "$recipient" > "$out"
-      if ship_file "$out"; then printf '%s\n' "$name" >> "$shipped"; else echo "could not ship $name; it stays in the outbox and on disk" >&2; fi
+      if ship_file "$out"; then printf '%s\n' "$name" >> "$shipped"; else echo "could not ship $name; it stays on disk and is tried again" >&2; rm -f "$out"; fi
     done
     ;;
   offsite)
