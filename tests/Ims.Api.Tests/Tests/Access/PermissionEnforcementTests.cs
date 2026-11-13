@@ -87,7 +87,7 @@ public class PermissionEnforcementTests(ApiFixture fixture)
 
         foreach (var code in PermissionCatalog.Codes) Assert.Equal(defaults.Contains(code), await PassesAsync(code, user));
         foreach (var (name, codes) in AuthPolicies.AnyOf) Assert.Equal(codes.Any(defaults.Contains), await PassesAsync(name, user));
-        Assert.Equal(PermissionCatalog.Codes.Where(defaults.Contains), signedIn.User.Permissions); // and the list the web reads is the same
+        Assert.Equal(PermissionCatalog.Codes.Where(defaults.Contains).Where(c => signedIn.User.Modules.Contains(ModuleCodes.Returns) || c != Permissions.ReturnsCreate), signedIn.User.Permissions); // (returns.create only while Returns is on) and the list the web reads is the same
     }
 
     private async Task<(ClaimsPrincipal User, AuthResult Result)> SignInAsync(string role)

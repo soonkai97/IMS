@@ -53,5 +53,5 @@ public class DocumentAccess(ICurrentUser current) : IDocumentAccess, IAppService
 
     public bool CanAct(DocumentListItem item, SystemSettings settings) =>
         DocumentActionPolicy.MayReview(current.Rights(),
-            new DocumentActionContext(item.Status, item.RequiresApproval, item.IsLarge, item.CreatedByKey, item.SubmittedByKey), settings.AllowSelfApproval);
+            new DocumentActionContext(item.Status, item.RequiresApproval, item.IsLarge, item.CreatedByKey, item.SubmittedByKey), settings.AllowSelfApproval && !item.IsReturn);
 }

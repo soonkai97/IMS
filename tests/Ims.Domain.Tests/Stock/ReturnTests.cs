@@ -237,4 +237,48 @@ public class ReturnTests
         Assert.Equal((0.6667m, 0.6666m), (a.BaseQty, b.BaseQty));                                  // 1.3333 in all, the second takes the rest
         Assert.Equal(0.6667m, stray.BaseQty);
     }
+
+    [Fact]
+    public void Lines_in_shuffled_order_over_several_original_lines_give_the_same_figures_as_lines_in_position_order()
+    {
+        var original = DocumentLinePositions.Of([OriginalLine(10, 3m, 2.0000m), OriginalLine(20, 3m, 2.0000m), OriginalLine(30, 3m, 2.0000m)]);
+        var returned = new Dictionary<int, ReturnedQuantity> { [2] = new(2m, 1.3334m) };               // the second line has 1 carton left, 0.6666 of base
+
+        (decimal, decimal, decimal) Run(params int[] order)
+        {
+            var lines = order.Select(no => ReturnLine(no == 2 ? 1m : 3m, no)).ToList();
+            Assert.Empty(ReturnBaseAlignment.Apply(original, returned, lines));
+            return (lines.Single(l => l.ReturnOfLineNo == 1).BaseQty, lines.Single(l => l.ReturnOfLineNo == 2).BaseQty, lines.Single(l => l.ReturnOfLineNo == 3).BaseQty);
+        }
+
+        var inOrder = Run(1, 2, 3);
+        Assert.Equal((2.0000m, 0.6666m, 2.0000m), inOrder);                                              // each completing line takes what is left of ITS original line
+        Assert.Equal(inOrder, Run(3, 1, 2));
+        Assert.Equal(inOrder, Run(2, 3, 1));
+    }
+
+    [Fact]
+    public void A_line_whose_original_line_has_no_base_quantity_left_is_reported_and_left_untouched_even_when_entered_quantity_remains()
+    {
+        var original = DocumentLinePositions.Of([OriginalLine(1, 3m, 2.0000m), OriginalLine(2, 3m, 2.0000m)]);
+        var returned = new Dictionary<int, ReturnedQuantity> { [1] = new(2m, 2.0000m) };               // 2 of 3 cartons are back and they already took ALL the base quantity
+        var exhausted = ReturnLine(1m, 1);
+        var fine = ReturnLine(1m, 2);
+
+        var result = ReturnBaseAlignment.Apply(original, returned, [exhausted, fine]);
+
+        Assert.Equal([1], result.Select(e => e.LineNo));
+        Assert.Equal(0.6667m, exhausted.BaseQty);                                                        // untouched
+        Assert.Equal(0.6667m, fine.BaseQty);
+    }
+
+    [Fact]
+    public void A_line_that_completes_the_original_when_the_base_quantity_is_already_all_back_is_reported_exhausted()
+    {
+        var original = DocumentLinePositions.Of([OriginalLine(1, 3m, 2.0000m)]);
+        var returned = new Dictionary<int, ReturnedQuantity> { [1] = new(2m, 2.0000m) };
+        var last = ReturnLine(1m);
+
+        Assert.Equal([1], ReturnBaseAlignment.Apply(original, returned, [last]).Select(e => e.LineNo));
+    }
 }

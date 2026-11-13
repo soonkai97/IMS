@@ -12,11 +12,12 @@ public class DbSystemSettings(IReadRepository<SystemSetting> settings) : ISystem
     public async Task<SystemSettings> GetAsync(CancellationToken ct)
     {
         if (_cached is not null) return _cached;
-        var s = (await settings.ListAsync(ct)).ToDictionary(x => x.Key, x => x.Value);
+        var s = (await settings.ListAsync(ct)).ToDictionary(x => x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase) /* the table compares keys without case, so does this */;
         return _cached = new SystemSettings(
             SettingValues.IsTrue(s.GetValueOrDefault(SettingKeys.AllowNegativeStock)),
             SettingValues.IsTrue(s.GetValueOrDefault(SettingKeys.AllowSelfApproval)),
-            int.TryParse(s.GetValueOrDefault(SettingKeys.LowStockAlertCooldownHours), out var h) ? h : Limits.DefaultLowStockCooldownHours);
+            int.TryParse(s.GetValueOrDefault(SettingKeys.LowStockAlertCooldownHours), out var h) ? h : Limits.DefaultLowStockCooldownHours,
+            ModuleCatalog.Codes.Where(code => SettingValues.IsTrue(s.GetValueOrDefault(SettingKeys.ForModule(code)))).ToHashSet(StringComparer.Ordinal));
     }
 
     public void Invalidate() => _cached = null;

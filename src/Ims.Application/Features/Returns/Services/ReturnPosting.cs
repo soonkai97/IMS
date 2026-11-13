@@ -31,14 +31,17 @@ public class ReturnPosting(IReadRepository<StockDocument> documents, IReturnedQu
             document.Lines.Where(l => l.ReturnOfLineNo is not null).Select(l => new ReturnQuantity(l.ReturnOfLineNo!.Value, l.Qty)));
         if (over.Count == 0)
         {
-            ReturnBaseAlignment.Apply(positions, done, document.Lines); // under the lock: the returns before this one are final, so the last pieces of a line take the base quantity that is left
+            var exhausted = ReturnBaseAlignment.Apply(positions, done, document.Lines); // under the lock: the returns before this one are final, so the last pieces of a line take the base quantity that is left
+            if (exhausted.Count > 0) throw new ReturnLineExhaustedException(string.Join(" ", exhausted.Select(e => e.LineNo).Distinct().Select(n => Messages.ReturnLineBaseExhausted(n, positions.First(p => p.LineNo == n).Line.Product.Sku))));
             return null;
         }
-        throw new ConflictException(string.Join(" ", over.Select(o =>
+        var lines = over.Select(o =>
         {
             var line = positions.First(p => p.LineNo == o.LineNo).Line;
-            return Messages.ReturnLineOverReturn(o, line.Product.Sku, line.Uom.Code);
-        })));
+            return (Over: o, Sku: line.Product.Sku, Uom: line.Uom.Code);
+        }).ToList();
+        throw new OverReturnException(string.Join(" ", lines.Select(x => Messages.ReturnLineOverReturn(x.Over, x.Sku, x.Uom))),
+            lines.Select(x => new OverReturnLine(x.Over.LineNo, x.Sku, x.Uom, x.Over.Original, x.Over.Returned, x.Over.Remaining, x.Over.Requested)).ToList());
     }
 
     public void AfterPost(LinkedPostingState? state, StockDocument document)

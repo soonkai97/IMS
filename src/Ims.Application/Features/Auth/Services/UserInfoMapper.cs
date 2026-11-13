@@ -12,7 +12,9 @@ public static class UserInfoMapper
         IReadOnlyCollection<int> warehouseIds, IIdMap<Warehouse> warehouses, IReadOnlyList<string> modules, CancellationToken ct)
     {
         var publicIds = await warehouses.ToPublicAsync(allWarehouses ? [] : warehouseIds, ct);
-        return new(u.PublicId, u.Username, u.DisplayName, roleCode, roleName, permissions.Codes.ToList(), allWarehouses,
+        // Why only Returns: the web shows the older modules (purchasing, sales, ...) by module AND permission and PL3.15 pinned that their grants stay listed while the module is off (ModuleAwareRolesTests), so widening this to every module
+        // (RoleReader does list through ModulePermissions.Offered) is a contract decision for the architect. Returns is new and nothing reads its grant while it is off, so a client is never offered returns.create then; the grant stays on the role and in the token.
+        return new(u.PublicId, u.Username, u.DisplayName, roleCode, roleName, permissions.Codes.Where(c => PermissionCatalog.Find(c)?.Module != ModuleCodes.Returns || ModulePermissions.IsOffered(c, modules)).ToList(), allWarehouses,
             (allWarehouses ? [] : warehouseIds).Select(id => publicIds[id]).ToList(), modules);
     }
 }
