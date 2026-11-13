@@ -102,9 +102,18 @@ public class StockDocumentLine : Entity
         return new StockDocumentLine
         {
             // Only the key is stored: the product may be a detached read copy, and assigning it as a navigation would make EF insert it again.
-            ProductId = product.Id, Qty = qty, UomId = uom, BaseQty = baseQty,
-            UnitCost = CostingPolicy.BaseUnitCost(documentType, typed, qty, baseQty), Remark = remark,
-            EnteredUnitCost = enteredCost, Amount = EnsureAmountFits(Money.Amount(qty, enteredCost)), CostFromAverage = fromAverage, PurchaseOrderLineNo = purchaseOrderLineNo, SalesOrderLineNo = salesOrderLineNo, ReturnOfLineNo = returnOfLineNo
+            ProductId = product.Id,
+            Qty = qty,
+            UomId = uom,
+            BaseQty = baseQty,
+            UnitCost = CostingPolicy.BaseUnitCost(documentType, typed, qty, baseQty),
+            Remark = remark,
+            EnteredUnitCost = enteredCost,
+            Amount = EnsureAmountFits(Money.Amount(qty, enteredCost)),
+            CostFromAverage = fromAverage,
+            PurchaseOrderLineNo = purchaseOrderLineNo,
+            SalesOrderLineNo = salesOrderLineNo,
+            ReturnOfLineNo = returnOfLineNo
         };
     }
 

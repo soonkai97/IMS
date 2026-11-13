@@ -72,8 +72,13 @@ public class PurchaseOrder : PublicEntity
 
         return new PurchaseOrder
         {
-            Warehouse = warehouse, WarehouseId = warehouse.Id, Supplier = supplier, SupplierId = supplier.Id,
-            Remark = remark, CreatedBy = createdBy, CreatedAt = now
+            Warehouse = warehouse,
+            WarehouseId = warehouse.Id,
+            Supplier = supplier,
+            SupplierId = supplier.Id,
+            Remark = remark,
+            CreatedBy = createdBy,
+            CreatedAt = now
         };
     }
 

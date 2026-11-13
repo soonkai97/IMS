@@ -440,23 +440,23 @@ public class DocumentActionPolicyTests
     public void NoRoleIsOfferedAnActionTheStateMachineWouldRefuse(DocumentStatus status)
     {
         foreach (var requiresApproval in new[] { true, false })
-        foreach (var isLarge in new[] { true, false })
-        foreach (var role in Roles.All)
-        {
-            var actions = Actions(role, status, requiresApproval, isLarge, createdBy: Me, submittedBy: Me);
+            foreach (var isLarge in new[] { true, false })
+                foreach (var role in Roles.All)
+                {
+                    var actions = Actions(role, status, requiresApproval, isLarge, createdBy: Me, submittedBy: Me);
 
-            if (actions.Contains(DocumentActions.Post))
-                Assert.True(status == DocumentStatus.Approved || (status == DocumentStatus.Submitted && !requiresApproval));
-            if (actions.Contains(DocumentActions.Approve) || actions.Contains(DocumentActions.Reject))
-                Assert.True(status == DocumentStatus.Submitted && requiresApproval);
-            if (actions.Contains(DocumentActions.Cancel))
-                Assert.True(status is DocumentStatus.Draft or DocumentStatus.Submitted or DocumentStatus.Approved);
-            if (actions.Contains(DocumentActions.Recall))
-                Assert.Equal(DocumentStatus.Submitted, status);
-            if (actions.Contains(DocumentActions.Reverse))
-                Assert.Equal(DocumentStatus.Posted, status);
-            if (actions.Contains(DocumentActions.Edit) || actions.Contains(DocumentActions.Submit))
-                Assert.Equal(DocumentStatus.Draft, status);
-        }
+                    if (actions.Contains(DocumentActions.Post))
+                        Assert.True(status == DocumentStatus.Approved || (status == DocumentStatus.Submitted && !requiresApproval));
+                    if (actions.Contains(DocumentActions.Approve) || actions.Contains(DocumentActions.Reject))
+                        Assert.True(status == DocumentStatus.Submitted && requiresApproval);
+                    if (actions.Contains(DocumentActions.Cancel))
+                        Assert.True(status is DocumentStatus.Draft or DocumentStatus.Submitted or DocumentStatus.Approved);
+                    if (actions.Contains(DocumentActions.Recall))
+                        Assert.Equal(DocumentStatus.Submitted, status);
+                    if (actions.Contains(DocumentActions.Reverse))
+                        Assert.Equal(DocumentStatus.Posted, status);
+                    if (actions.Contains(DocumentActions.Edit) || actions.Contains(DocumentActions.Submit))
+                        Assert.Equal(DocumentStatus.Draft, status);
+                }
     }
 }

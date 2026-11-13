@@ -62,7 +62,7 @@ public class ProductImportTests(ApiFixture fixture)
         Assert.Contains("SKU", Assert.Single(result.Rows[5].Errors));
         Assert.False(await ExistsAsync(admin, file.GoodSku));
         Assert.Equal(productsBefore, (await admin.Products.ListAsync(pageSize: 1)).Data<PagedResult<ProductDto>>().Total);
-        
+
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class ProductImportTests(ApiFixture fixture)
         Assert.Contains("nothing was imported", problem.Detail);
         Assert.False(await ExistsAsync(admin, file.GoodSku), "The one valid row must not be written when others are invalid.");
         Assert.False(await ExistsAsync(admin, file.MissingNameSku));
-        
+
         Assert.Equal(file.OwnerSku, (await admin.Products.FindAsync(file.TakenBarcode)).Sku);
     }
 

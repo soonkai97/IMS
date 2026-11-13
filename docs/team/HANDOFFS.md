@@ -1707,3 +1707,9 @@
 - Needs: be-framework: when #235 merges, nothing in the web changes; qa-edge-accessibility: look at the over-return alert by eye (focus, 360 px).
 - Not verified: the over-return alert and the read-only reason by eye; the code match against a real API (it exists only in #235); the customer-return read-only reason, whose trigger (a field error ending in `returnOfLineNo`) is assumed from the builder's field names; ms/zh wording (machine drafts).
 - Open conflicts: none.
+
+### 2026-11-13 be-framework -> orchestrator (dotnet format check for CI: formatting-only PR first)
+- Check: on main `dotnet format Ims.sln --verify-no-changes` found DRIFT, judged on a LF clone (what Linux CI sees): 206 findings in 44 files (192 whitespace, 12 imports order, 1 final newline, 1 end-of-line). On the Windows working copy (`core.autocrlf=true`) it reports about 64,700 end-of-line findings on top, which CI never sees; do not read that count as drift.
+- Produced: a formatting-only PR (`style/dotnet-format`): 38 files, 280 added and 117 removed lines, no behaviour change. After it, `dotnet format Ims.sln --verify-no-changes` exits 0 on the LF clone; the solution builds (the Api with `-warnaserror`); Domain 1292, Architecture 113 and the Api sets (Returns, Money, Rbac, Import, Paging, Contract 804; Documents, Purchasing, Sales, Reports, StockList 889; Access, Auth, Audit, Visibility, Concurrency, Modules, PublicIds, MasterData, Schema, Composition, Attachments, Logging 718) pass. The Migrations set (217 tests, 7 minutes) was not re-run: no migration file changed.
+- Next: the CI step (`dotnet format Ims.sln --verify-no-changes --no-restore` after Restore, before the builds, in the API job) in a second PR once this one merges. Known and separate: `dotnet build tests/Ims.Api.Tests -warnaserror` fails on main (CS8669 in two Add*ApprovalRulesMigrationTests files, CS8631 in PriceListRuleTests.cs:82); the format step does not depend on it.
+- Open conflicts: none.

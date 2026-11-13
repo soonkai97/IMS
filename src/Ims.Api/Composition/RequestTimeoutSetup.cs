@@ -35,7 +35,9 @@ public static class RequestTimeoutSetup
         ctx.Response.ContentType = "application/problem+json";
         var pd = new ProblemDetails
         {
-            Status = StatusCodes.Status504GatewayTimeout, Title = Messages.RequestTimedOutTitle, Detail = Messages.RequestTimedOut
+            Status = StatusCodes.Status504GatewayTimeout,
+            Title = Messages.RequestTimedOutTitle,
+            Detail = Messages.RequestTimedOut
         };
         pd.Extensions[ProblemExtensions.CorrelationId] = ctx.TraceIdentifier;
         await ctx.Response.WriteAsJsonAsync(pd, ctx.RequestAborted);

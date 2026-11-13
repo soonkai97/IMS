@@ -112,7 +112,7 @@ public class EqualTimestampPagingTests(ApiFixture fixture)
         var added = new List<string>();
 
         var walked = await PageWalk.ReadAsync(s.Admin, $"/api/stock/ledger?productId={product.Id}&pageSize={pageSize}&includeTotal=false",
-            r => new Row(QuantityKey(r.GetProperty("qtyDelta").GetDecimal()),r.GetProperty("occurredAt").GetDateTime()),
+            r => new Row(QuantityKey(r.GetProperty("qtyDelta").GetDecimal()), r.GetProperty("occurredAt").GetDateTime()),
             async page =>
             {
                 if (page != 1) return;

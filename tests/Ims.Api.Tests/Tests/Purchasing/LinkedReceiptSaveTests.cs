@@ -181,7 +181,11 @@ public class LinkedReceiptSaveTests(ApiFixture fixture) : IAsyncLifetime
         // a body that also names another order (the contract has no such field: it is ignored) and a PUT of a plain header
         var body = new
         {
-            warehouseId = receipt.WarehouseId, partnerId = receipt.PartnerId, remark = "x", purchaseOrderId = another.Id, purchaseOrder = new { id = another.Id, no = another.No },
+            warehouseId = receipt.WarehouseId,
+            partnerId = receipt.PartnerId,
+            remark = "x",
+            purchaseOrderId = another.Id,
+            purchaseOrder = new { id = another.Id, no = another.No },
             lines = new[] { new { productId = _a.Id, qty = 2m, unitCost = (decimal?)null, purchaseOrderLineNo = (int?)1, purchaseOrderId = another.Id } }
         };
         (await _p.Clerk.SendAsync(HttpMethod.Put, $"/api/documents/{receipt.Id}", body, r => r.Headers.TryAddWithoutValidation("If-Match", $"\"{receipt.ConcurrencyToken}\""))).ShouldBeOk();

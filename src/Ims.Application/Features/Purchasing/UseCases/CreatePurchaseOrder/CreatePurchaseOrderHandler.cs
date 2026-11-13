@@ -1,5 +1,5 @@
-using Ims.Application.Features.Modules;
 using Ims.Application.Features.Documents;
+using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
@@ -36,7 +36,10 @@ public class CreatePurchaseOrderHandler(IRepository<PurchaseOrder> orders, IRead
 
     internal static Dictionary<string, object?> Summary(PurchaseOrder order) => new()
     {
-        [nameof(order.Status)] = order.Status, [nameof(order.WarehouseId)] = order.WarehouseId, [nameof(order.SupplierId)] = order.SupplierId,
-        [nameof(order.Lines)] = order.Lines.Count, [AuditFields.Amount] = order.TotalAmount
+        [nameof(order.Status)] = order.Status,
+        [nameof(order.WarehouseId)] = order.WarehouseId,
+        [nameof(order.SupplierId)] = order.SupplierId,
+        [nameof(order.Lines)] = order.Lines.Count,
+        [AuditFields.Amount] = order.TotalAmount
     };
 }
