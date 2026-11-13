@@ -17,25 +17,13 @@ public class LowStockTests(ApiFixture fixture)
 {
     private Guid Warehouse => fixture.Reference.DefaultWarehouseId;
 
-    /// <summary>Every row of the list (all pages, 500 at a time): the list is long, and a row on page 2 is still on the list.</summary>
-    private static async Task<List<LowStockAlert>> AlertsAsync(ApiClient who, Guid? warehouseId = null)
-    {
-        var rows = new List<LowStockAlert>();
-        for (var page = 1; ; page++)
-        {
-            var result = (await who.GetAsync($"/api/stock/low-stock?page={page}&pageSize=500" + (warehouseId is null ? "" : $"&warehouseId={warehouseId}"))).Data<PagedResult<LowStockAlert>>();
-            rows.AddRange(result.Items);
-            if (rows.Count >= result.Total || result.Items.Count == 0) return rows;
-        }
-    }
-
     [Fact]
     public async Task A_product_with_a_safety_level_and_no_stock_row_is_low_with_zero_on_hand()
     {
         var s = await StockScenario.CreateAsync(fixture);
         var product = await s.NewProductAsync(safetyStock: 5);
 
-        var alerts = await AlertsAsync(s.Admin);
+        var alerts = await LowStockPages.ReadAsync(s.Admin);
 
         var alert = Assert.Single(alerts, a => a.ProductId == product.Id); // once, whatever the number of warehouses
         Assert.Equal((0m, 5m, 5m, false), (alert.QtyOnHand, alert.SafetyStock, alert.Shortfall, alert.IsNegative));
@@ -50,9 +38,9 @@ public class LowStockTests(ApiFixture fixture)
         var other = await s.NewWarehouseAsync();
         var product = await s.NewProductAsync(safetyStock: 5);
 
-        var everywhere = await AlertsAsync(s.Admin);
-        var inDefault = await AlertsAsync(s.Admin, Warehouse);
-        var inOther = await AlertsAsync(s.Admin, other.Id);
+        var everywhere = await LowStockPages.ReadAsync(s.Admin);
+        var inDefault = await LowStockPages.ReadAsync(s.Admin, Warehouse);
+        var inOther = await LowStockPages.ReadAsync(s.Admin, other.Id);
 
         Assert.Single(everywhere, a => a.ProductId == product.Id);
         Assert.DoesNotContain(inDefault, a => a.ProductId == product.Id); // it belongs to no warehouse
@@ -67,8 +55,8 @@ public class LowStockTests(ApiFixture fixture)
         var other = await s.NewWarehouseAsync();
         var product = await s.NewProductAsync(safetyStock: 5);
 
-        var theirs = await AlertsAsync(s.Staff);
-        var inTheOtherOne = await AlertsAsync(s.Staff, other.Id);
+        var theirs = await LowStockPages.ReadAsync(s.Staff);
+        var inTheOtherOne = await LowStockPages.ReadAsync(s.Staff, other.Id);
 
         Assert.Single(theirs, a => a.ProductId == product.Id);
         Assert.Empty(inTheOtherOne);
@@ -82,7 +70,7 @@ public class LowStockTests(ApiFixture fixture)
         var noSafety = await s.NewProductAsync(safetyStock: 0);
         var inactive = await s.NewProductAsync(safetyStock: 5, customize: b => b.Inactive());
 
-        var alerts = await AlertsAsync(s.Admin);
+        var alerts = await LowStockPages.ReadAsync(s.Admin);
 
         Assert.DoesNotContain(alerts, a => a.ProductId == noSafety.Id || a.ProductId == inactive.Id);
     }
@@ -95,8 +83,8 @@ public class LowStockTests(ApiFixture fixture)
         var product = await s.NewProductAsync(safetyStock: 5);
         await s.ReceiveAsync(Warehouse, new Line(product.Id, 50, 1m)); // plenty here, nothing in the other warehouse
 
-        Assert.DoesNotContain(await AlertsAsync(s.Admin), a => a.ProductId == product.Id);
-        Assert.DoesNotContain(await AlertsAsync(s.Admin, other.Id), a => a.ProductId == product.Id);
+        Assert.DoesNotContain(await LowStockPages.ReadAsync(s.Admin), a => a.ProductId == product.Id);
+        Assert.DoesNotContain(await LowStockPages.ReadAsync(s.Admin, other.Id), a => a.ProductId == product.Id);
     }
 
     [Fact]
@@ -107,7 +95,7 @@ public class LowStockTests(ApiFixture fixture)
         await s.ReceiveAsync(Warehouse, new Line(product.Id, 3, 1m));
         await s.IssueAsync(Warehouse, new Line(product.Id, 3));
 
-        var alert = Assert.Single(await AlertsAsync(s.Admin, Warehouse), a => a.ProductId == product.Id);
+        var alert = Assert.Single(await LowStockPages.ReadAsync(s.Admin, Warehouse), a => a.ProductId == product.Id);
 
         Assert.Equal((0m, 5m), (alert.QtyOnHand, alert.Shortfall));
     }
@@ -124,7 +112,7 @@ public class LowStockTests(ApiFixture fixture)
             await s.CompleteAsync(submitted, "Counted by hand, delivery is late");
         }
 
-        var alert = Assert.Single(await AlertsAsync(s.Admin, Warehouse), a => a.ProductId == product.Id);
+        var alert = Assert.Single(await LowStockPages.ReadAsync(s.Admin, Warehouse), a => a.ProductId == product.Id);
         var row = (await s.Admin.Stock.QueryAsync(product.Id, Warehouse)).Data<PagedResult<StockRow>>().Items.Single();
         var lowOnly = (await s.Admin.Stock.QueryAsync(product.Id, Warehouse, lowOnly: true)).Data<PagedResult<StockRow>>().Items;
 
@@ -173,7 +161,7 @@ public class LowStockTests(ApiFixture fixture)
         await s.NewProductAsync(safetyStock: 5);
 
         // The first 30 rows in one page, and the same 30 walked in pages of 5.
-        var firstThirty = (await AlertsAsync(s.Admin)).Take(30).ToList();
+        var firstThirty = (await LowStockPages.ReadAsync(s.Admin)).Take(30).ToList();
         var walked = new List<LowStockAlert>();
         for (var page = 1; walked.Count < 30; page++)
         {
