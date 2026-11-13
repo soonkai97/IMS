@@ -40,8 +40,8 @@ export class UiPagerComponent {
   /** Hides "x-y of n" and its announcement (a list that filters a page on the client has no honest total). Previous and Next still work. */
   $hideRange = input(false, { alias: 'hideRange' });
 
-  $pageChange = output<number>({ alias: 'pageChange' });
-  $pageSizeChange = output<number>({ alias: 'pageSizeChange' });
+  readonly $pageChange = output<number>({ alias: 'pageChange' });
+  readonly $pageSizeChange = output<number>({ alias: 'pageSizeChange' });
 
   readonly sizeId = `ui-pager-size-${nextPagerId++}`;
 

@@ -29,7 +29,7 @@ export class UiFileInputComponent {
   $accept = input('', { alias: 'accept' });
   $label = input.required<string>({ alias: 'label' });
 
-  $fileSelected = output<File>({ alias: 'fileSelected' });
+  readonly $fileSelected = output<File>({ alias: 'fileSelected' });
 
   private readonly $native = viewChild.required<ElementRef<HTMLInputElement>>('native');
 

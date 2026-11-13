@@ -62,9 +62,9 @@ export class ProductPickerComponent {
   /** What the page wants to say about the last pick ("DEMO-001: now 2"); the picker shows it under the search box. */
   $notice = input<string | undefined>(undefined, { alias: 'notice' });
 
-  $picked = output<PickedProduct>({ alias: 'picked' });
+  readonly $picked = output<PickedProduct>({ alias: 'picked' });
   /** The user typed something else: a message about the previous pick is stale now. */
-  $termChanged = output<string>({ alias: 'termChanged' });
+  readonly $termChanged = output<string>({ alias: 'termChanged' });
 
   private readonly $search = viewChild.required(UiSearchInputComponent);
 

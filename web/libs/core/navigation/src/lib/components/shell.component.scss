@@ -352,7 +352,7 @@ $progress-sweep: 1.2s;
     overflow: visible;
     -webkit-line-clamp: none;
     line-clamp: none;
-    white-space: nowrap;
+    @include keep-whole;
   }
 }
 

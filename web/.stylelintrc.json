@@ -2,13 +2,11 @@
   "extends": ["stylelint-config-standard-scss"],
   "rules": {
     "declaration-no-important": true,
-    "declaration-property-value-disallowed-list": {
-      "/^(white-space|text-wrap|text-wrap-mode)$/": ["/nowrap/i"]
-    },
     "color-no-hex": true,
     "color-named": "never",
     "function-disallowed-list": ["rgb", "rgba", "hsl", "hsla"],
     "declaration-property-value-disallowed-list": {
+      "/^(white-space|text-wrap|text-wrap-mode)$/": ["/nowrap/i"],
       "/^transition(-property)?$/": [
         "/\\b(all|color|background|border|outline|box-shadow|shadow|filter|width|height|margin|padding)\\b/"
       ]

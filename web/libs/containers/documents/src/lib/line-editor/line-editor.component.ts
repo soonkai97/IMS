@@ -100,9 +100,9 @@ export class DocumentLineEditorComponent {
   /** The figures of the purchase order of a receipt from an order, by order line number. */
   $orderLines = input<ReadonlyMap<number, OrderLineContext>>(new Map(), { alias: 'orderLines' });
 
-  $stepped = output<{ group: LineGroup; delta: number }>({ alias: 'stepped' });
-  $removed = output<number>({ alias: 'removed' });
-  $setToAvailable = output<LineGroup>({ alias: 'setToAvailable' });
+  readonly $stepped = output<{ group: LineGroup; delta: number }>({ alias: 'stepped' });
+  readonly $removed = output<number>({ alias: 'removed' });
+  readonly $setToAvailable = output<LineGroup>({ alias: 'setToAvailable' });
 
   $isReceipt = computed(() => this.$type() === DocumentType.Receipt);
   $isIssue = computed(() => this.$type() === DocumentType.Issue);

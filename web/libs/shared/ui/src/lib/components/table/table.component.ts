@@ -90,8 +90,8 @@ export class UiTableComponent<Row extends object> {
   /** Current server sort, to mark the active header. */
   $sort = input<TableSort | undefined>(undefined, { alias: 'sort' });
 
-  $retried = output<void>({ alias: 'retried' });
-  $sortChange = output<TableSort>({ alias: 'sortChange' });
+  readonly $retried = output<void>({ alias: 'retried' });
+  readonly $sortChange = output<TableSort>({ alias: 'sortChange' });
 
   private readonly $templates = contentChildren(UiCellDirective);
 

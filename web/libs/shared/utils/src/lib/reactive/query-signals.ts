@@ -1,4 +1,4 @@
-import { Signal, computed, signal } from '@angular/core';
+import { DestroyRef, Signal, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl } from '@angular/forms';
 import { debounceTime, startWith, tap } from 'rxjs';
@@ -24,7 +24,9 @@ export function controlSignal<Value>(control: AbstractControl<Value>): Signal<Va
  * filter signals: the page never subscribes by hand. Injection context only (field initializer).
  */
 export function loadOnChange<Query>(query: Signal<Query>, load: (query: Query) => void): void {
-  toObservable(query).pipe(tap(load), takeUntilDestroyed()).subscribe();
+  toObservable(query)
+    .pipe(tap(load), takeUntilDestroyed(inject(DestroyRef)))
+    .subscribe();
 }
 
 export interface PageState {
