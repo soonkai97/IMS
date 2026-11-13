@@ -581,7 +581,7 @@ export class PriceListEditorPageComponent implements HasUnsavedChanges {
       const index = Number(item[1]);
       const group = this.items.at(index);
       if (item[2]) {
-        itemErrors.push({ index, path: item[2], message: messages[0] });
+        itemErrors.push({ index, path: item[2], message: messages[0] ?? '' });
       }
       const sku = group?.controls.sku.value ?? '';
       itemMessages.push(...messages.map(message => `${sku}: ${message}`));

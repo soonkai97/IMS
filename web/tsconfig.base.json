@@ -21,6 +21,7 @@
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
     "paths": {
       "@ims/api": ["./libs/shared/api/src/index.ts"],
       "@ims/assets": ["./libs/shared/assets/src/index.ts"],

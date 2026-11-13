@@ -85,7 +85,7 @@ export function parseDateText(text: string, locale: string): string | null {
     return toIso(Number(cjk[1]), Number(cjk[2]), Number(cjk[3]));
   }
   const named = NAMED_DATE.exec(trimmed);
-  const month = named ? monthFromName(named[2], locale) : null;
+  const month = named ? monthFromName(named[2] ?? '', locale) : null;
   return named && month ? toIso(Number(named[3]), month, Number(named[1])) : null;
 }
 

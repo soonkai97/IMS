@@ -1086,12 +1086,14 @@ export class DocumentEditorPageComponent implements OnInit, HasUnsavedChanges {
 
   private readonly preselectWarehouse = effect(() => {
     const warehouses = this.warehouses.$activeWarehouses();
+    const [onlyWarehouse] = warehouses;
     if (
       this.$isNew() &&
       warehouses.length === 1 &&
+      onlyWarehouse !== undefined &&
       this.view.header.controls.warehouseId.value === null
     ) {
-      untracked(() => this.view.header.controls.warehouseId.setValue(warehouses[0].id));
+      untracked(() => this.view.header.controls.warehouseId.setValue(onlyWarehouse.id));
     }
   });
 

@@ -47,11 +47,12 @@ export class UiTabsComponent {
   onKeydown(event: KeyboardEvent, index: number): void {
     const tabs = this.$tabs();
     const next = this.targetIndex(event.key, index, tabs.length);
-    if (next === undefined) {
+    const target = next === undefined ? undefined : tabs[next];
+    if (next === undefined || target === undefined) {
       return;
     }
     event.preventDefault();
-    this.$active.set(tabs[next].id);
+    this.$active.set(target.id);
     this.elementRef.nativeElement.querySelectorAll<HTMLElement>('[role="tab"]')[next]?.focus();
   }
 

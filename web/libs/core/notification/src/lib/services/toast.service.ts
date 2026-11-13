@@ -102,9 +102,10 @@ export class ToastService {
 
   private withRoomFor(toasts: Toast[], added: Toast): Toast[] {
     const replaceable = toasts.filter(toast => toast.kind !== 'error');
-    if (toasts.length >= MAX_VISIBLE_TOASTS && replaceable.length > 0) {
-      this.clearTimer(replaceable[0].id);
-      toasts.splice(toasts.indexOf(replaceable[0]), 1);
+    const [oldest] = replaceable;
+    if (toasts.length >= MAX_VISIBLE_TOASTS && oldest !== undefined) {
+      this.clearTimer(oldest.id);
+      toasts.splice(toasts.indexOf(oldest), 1);
     }
     return [...toasts, added];
   }

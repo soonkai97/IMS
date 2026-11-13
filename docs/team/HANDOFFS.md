@@ -1778,3 +1778,8 @@
 - Needs from the owner: answers or confirmation of O12 to O22; the four go-live gates (O13, O14, O15, O21) must be done before real data. Needs from be-framework: nothing new.
 - Decisions others must respect: the defaults in 8.2 stand until the owner answers. The recovery objective in O15 (15 minutes, 4 hours) is a proposal by the project-manager, not an agreed figure. The private requirements document is not quoted.
 - Open conflicts: none. Noted: `docs/dba/README.md` section 17 names `Seed__AdminPassword` while the deploy kit and `deployment.md` use `IMS_ADMIN_PASSWORD` (the same setting through `compose.prod.yml`); no change made.
+
+### 2026-11-13 fe-framework -> orchestrator, fe-architect (web strict index access, PR 3 of 3 of the modernisation)
+- Produced: branch `chore/web-strict-index` (see T28 in TASKS.md). `noUncheckedIndexedAccess` is on for the code (15 guards in 13 files, each keeps today's path) and off for specs (`tsconfig.spec.json` x39 and the scaffold). Two new zero-hit template rules, `button-has-type` and `prefer-at-empty`; no template changed because every raw `<button>` already has a type and no `@for` is guarded by `length === 0` (the audit counts were stale).
+- Decisions others must respect: (1) new code that indexes an array or a record handles the missing element (destructure with a default, `?? ...`, or an explicit check); `!` stays banned. (2) Specs are exempt on purpose. (3) `button-has-type` is enforced: a bare `<button>` is a lint error.
+- Open conflicts: none. The whole PRD-scope audit sequence (lint ratchet, tooling cleanup, strict index) is done with this PR.

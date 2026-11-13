@@ -5,7 +5,7 @@ const EXPONENT_MARK = 'e';
  * exponent is read too (a plain split on "." would call that 0 decimals and let a sub-cent amount through).
  */
 export function decimalPlaces(value: number): number {
-  const [mantissa, exponent] = String(value).toLowerCase().split(EXPONENT_MARK);
+  const [mantissa = '', exponent] = String(value).toLowerCase().split(EXPONENT_MARK);
   const fraction = (mantissa.split('.')[1] ?? '').length;
   return Math.max(0, fraction - Number(exponent ?? 0));
 }

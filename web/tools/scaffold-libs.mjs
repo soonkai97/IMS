@@ -102,6 +102,8 @@ for (const l of LIBS) {
       compilerOptions: {
         // The base turns isolatedModules on; ts-jest then stops type-checking specs, which are checked only here.
         isolatedModules: false,
+        // Specs index the arrays they just built; the flag is for the code they test.
+        noUncheckedIndexedAccess: false,
         outDir: `${UP}dist/out-tsc`,
         module: 'preserve',
         moduleResolution: 'bundler',

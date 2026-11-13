@@ -60,9 +60,9 @@ function selectBranch(branches: readonly Branch[], count: number, locale: string
 
 function formatPlaceholder(body: string, params: MessageParams, locale: string): string {
   const parts = body.split(',');
-  const name = parts[0].trim();
+  const name = (parts[0] ?? '').trim();
   const value = params[name];
-  if (parts.length < 3 || parts[1].trim() !== PLURAL_KEYWORD) {
+  if (parts.length < 3 || (parts[1] ?? '').trim() !== PLURAL_KEYWORD) {
     return value === undefined ? `{${name}}` : String(value);
   }
   const count = Number(value ?? 0);
