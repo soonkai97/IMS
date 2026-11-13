@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Reports;
 
-public record ExportLowStockQuery : IQuery<ExportFile>;
+public sealed record ExportLowStockQuery : IQuery<ExportFile>;

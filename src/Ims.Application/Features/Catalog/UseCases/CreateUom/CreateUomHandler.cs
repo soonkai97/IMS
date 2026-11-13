@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Catalog;
 
-public class CreateUomHandler(IRepository<Uom> uoms, IUnitOfWork uow) : ICommandHandler<CreateUomCommand, UomDto>
+public sealed class CreateUomHandler(IRepository<Uom> uoms, IUnitOfWork uow) : ICommandHandler<CreateUomCommand, UomDto>
 {
     public async Task<UomDto> HandleAsync(CreateUomCommand cmd, CancellationToken ct)
     {

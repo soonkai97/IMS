@@ -5,7 +5,7 @@ namespace Ims.Application.Features.Roles;
 /// Renames a role, changes its description, activates or deactivates it. A role in use is not deactivated: the count is taken under the roles lock that the user save also takes, so a
 /// user cannot be given the role between the count and the change.
 /// </summary>
-public class UpdateRoleHandler(IRepository<Role> roles, IReadRepository<User> users, IRoleUsageReader usage, IRoleReader reader, IRoleVersion version, ICurrentUser current,
+public sealed class UpdateRoleHandler(IRepository<Role> roles, IReadRepository<User> users, IRoleUsageReader usage, IRoleReader reader, IRoleVersion version, ICurrentUser current,
     ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<UpdateRoleCommand, RoleDto>
 {
     public Task<RoleDto> HandleAsync(UpdateRoleCommand cmd, CancellationToken ct) => uow.ExecuteAsync(async () =>

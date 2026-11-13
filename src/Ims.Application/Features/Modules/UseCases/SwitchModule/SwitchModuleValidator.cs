@@ -3,7 +3,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Modules;
 
-public class SwitchModuleValidator : AbstractValidator<SwitchModuleCommand>
+public sealed class SwitchModuleValidator : AbstractValidator<SwitchModuleCommand>
 {
     public SwitchModuleValidator()
     {

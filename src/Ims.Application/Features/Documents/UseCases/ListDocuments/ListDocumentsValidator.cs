@@ -1,7 +1,7 @@
 using FluentValidation;
 namespace Ims.Application.Features.Documents;
 
-public class ListDocumentsValidator : AbstractValidator<ListDocumentsQuery>
+public sealed class ListDocumentsValidator : AbstractValidator<ListDocumentsQuery>
 {
     public ListDocumentsValidator()
     {

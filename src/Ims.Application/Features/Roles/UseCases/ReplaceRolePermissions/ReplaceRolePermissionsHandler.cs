@@ -10,7 +10,7 @@ namespace Ims.Application.Features.Roles;
 /// A permission of a module that is off is refused (400); what the role already holds of such permissions is kept: the editor never saw it, so the saved set is the submitted one plus
 /// those grants (<see cref="ModulePermissions.Merge"/>), they are neither added nor removed in the reply and the audit event, and the <c>Requires</c> closure is checked on the merged set.
 /// </summary>
-public class ReplaceRolePermissionsHandler(IRepository<Role> roles, IReadRepository<User> users, IRoleReader reader, IRoleVersion version, ICurrentUser current, ITransactionLocker locker,
+public sealed class ReplaceRolePermissionsHandler(IRepository<Role> roles, IReadRepository<User> users, IRoleReader reader, IRoleVersion version, ICurrentUser current, ITransactionLocker locker,
     IModuleSwitches modules, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<ReplaceRolePermissionsCommand, RolePermissionsResult>
 {
     public Task<RolePermissionsResult> HandleAsync(ReplaceRolePermissionsCommand cmd, CancellationToken ct) => uow.ExecuteAsync(async () =>

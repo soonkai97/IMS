@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Auth;
 
-public class LogoutHandler(IRepository<RefreshToken> tokensRepo, ITokenService tokens, IUnitOfWork uow, IClock clock, IAuditTrail audit, IIdMap<User> userIds)
+public sealed class LogoutHandler(IRepository<RefreshToken> tokensRepo, ITokenService tokens, IUnitOfWork uow, IClock clock, IAuditTrail audit, IIdMap<User> userIds)
     : ICommandHandler<LogoutCommand, Unit>
 {
     public async Task<Unit> HandleAsync(LogoutCommand cmd, CancellationToken ct)

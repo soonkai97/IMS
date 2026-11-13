@@ -1,3 +1,3 @@
 namespace Ims.Application;
 
-public class NotFoundException(string message) : Exception(message);
+public sealed class NotFoundException(string message) : Exception(message);

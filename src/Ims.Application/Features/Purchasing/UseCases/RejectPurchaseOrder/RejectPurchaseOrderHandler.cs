@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
-public class RejectPurchaseOrderHandler(IRepository<PurchaseOrder> orders, IApprovalEvaluator approvals, ISystemSettings settings, IPurchaseOrderAccess access,
+public sealed class RejectPurchaseOrderHandler(IRepository<PurchaseOrder> orders, IApprovalEvaluator approvals, ISystemSettings settings, IPurchaseOrderAccess access,
     IPurchaseOrderReader reader, IDocumentVersion version, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<RejectPurchaseOrderCommand, PurchaseOrderDto>
 {
     public async Task<PurchaseOrderDto> HandleAsync(RejectPurchaseOrderCommand cmd, CancellationToken ct)

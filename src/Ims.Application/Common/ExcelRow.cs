@@ -2,7 +2,7 @@ namespace Ims.Application;
 
 /// <param name="Cells">What each cell shows: the formatted text, trimmed (right for names, codes and barcodes: a cell formatted <c>00123</c> reads 00123).</param>
 /// <param name="Numbers">For a cell that holds a NUMBER (typed, or the result of a formula), the number itself as invariant text, whatever format the cell shows.</param>
-public record ExcelRow(int Number, IReadOnlyDictionary<string, string> Cells, IReadOnlyDictionary<string, string>? Numbers = null)
+public sealed record ExcelRow(int Number, IReadOnlyDictionary<string, string> Cells, IReadOnlyDictionary<string, string>? Numbers = null)
 {
     public string Get(string key) => Cells.GetValueOrDefault(key, "");
 

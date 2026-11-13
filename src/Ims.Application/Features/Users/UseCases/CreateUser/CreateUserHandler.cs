@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Users;
 
-public class CreateUserHandler(IRepository<User> users, IReadRepository<Role> roles, IIdMap<Warehouse> warehouseIds, IPasswordHasher hasher, ICurrentUser current, ITransactionLocker locker,
+public sealed class CreateUserHandler(IRepository<User> users, IReadRepository<Role> roles, IIdMap<Warehouse> warehouseIds, IPasswordHasher hasher, ICurrentUser current, ITransactionLocker locker,
     IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreateUserCommand, UserDto>
 {
     public Task<UserDto> HandleAsync(CreateUserCommand cmd, CancellationToken ct)

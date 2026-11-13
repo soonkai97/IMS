@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class ListSalesOrdersHandler(IReadRepository<SalesOrder> orders, ISalesOrderAccess access, ICursorProtector cursors, IIdMap<Warehouse> warehouseIds, IIdMap<Partner> partnerIds, ISystemSettings settings, IDocumentVersion version)
+public sealed class ListSalesOrdersHandler(IReadRepository<SalesOrder> orders, ISalesOrderAccess access, ICursorProtector cursors, IIdMap<Warehouse> warehouseIds, IIdMap<Partner> partnerIds, ISystemSettings settings, IDocumentVersion version)
     : IQueryHandler<ListSalesOrdersQuery, PagedResult<SalesOrderListItem>>
 {
     public async Task<PagedResult<SalesOrderListItem>> HandleAsync(ListSalesOrdersQuery q, CancellationToken ct)

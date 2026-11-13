@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class SalesOrderPriceAudit(IPriceLookup lookup, IAuditTrail audit) : ISalesOrderPriceAudit, IAppService
+public sealed class SalesOrderPriceAudit(IPriceLookup lookup, IAuditTrail audit) : ISalesOrderPriceAudit, IAppService
 {
     // The Source key is not money (it says which list answered, Customer or Default), so unlike the two price keys it carries no AuditFields tag: any reader of the audit log may see it.
     public static List<SavedLine> Snapshot(SalesOrder order) => order.Lines.Select(l => new SavedLine(l.ProductId, l.UomId, l.SellingPrice)).ToList();

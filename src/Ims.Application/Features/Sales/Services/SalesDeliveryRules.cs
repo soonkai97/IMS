@@ -2,7 +2,7 @@ using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class SalesDeliveryRules(IReadRepository<SalesOrder> orders, IDeliveredQuantityReader delivered, IModuleSwitches modules, ICallerPermissions caller) : ISalesDeliveryRules, IAppService
+public sealed class SalesDeliveryRules(IReadRepository<SalesOrder> orders, IDeliveredQuantityReader delivered, IModuleSwitches modules, ICallerPermissions caller) : ISalesDeliveryRules, IAppService
 {
     public async Task<SalesOrder> OrderForSaveAsync(StockDocument draft, Partner? customer, IssuePurpose? purpose, CancellationToken ct)
     {

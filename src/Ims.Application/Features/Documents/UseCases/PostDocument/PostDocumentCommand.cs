@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Documents;
 
-public record PostDocumentCommand(Guid Id, string? IfMatch = null) : ICommand<DocumentDto>;
+public sealed record PostDocumentCommand(Guid Id, string? IfMatch = null) : ICommand<DocumentDto>;

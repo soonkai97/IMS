@@ -1,6 +1,6 @@
 namespace Ims.Application;
 
-public class ReportWriter(IExcelWriter excel, ICallerPermissions caller) : IReportWriter, IAppService
+public sealed class ReportWriter(IExcelWriter excel, ICallerPermissions caller) : IReportWriter, IAppService
 {
     public byte[] Write(string sheetName, IReadOnlyList<ReportColumn> columns, IEnumerable<object?[]> rows)
     {

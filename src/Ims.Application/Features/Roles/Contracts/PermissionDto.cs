@@ -6,4 +6,4 @@ namespace Ims.Application.Features.Roles;
 /// <param name="IsDangerous">Granting it deserves a warning.</param>
 /// <param name="AdminCore">The Administrator role always holds it.</param>
 /// <param name="Module">The module the permission belongs to, or null for a core permission. The list only holds permissions of modules that are on, so a client needs it only to label the entry.</param>
-public record PermissionDto(string Code, PermissionGroup Group, string Description, bool IsDangerous, bool AdminCore, IReadOnlyList<string> Requires, string? Module);
+public sealed record PermissionDto(string Code, PermissionGroup Group, string Description, bool IsDangerous, bool AdminCore, IReadOnlyList<string> Requires, string? Module);

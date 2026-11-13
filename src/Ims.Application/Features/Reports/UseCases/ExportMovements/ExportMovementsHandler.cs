@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Reports;
 
-public class ExportMovementsHandler(IMovementReader movements, IWarehouseScope scope, IReportWriter report, IIdMap<Warehouse> warehouseIds,
+public sealed class ExportMovementsHandler(IMovementReader movements, IWarehouseScope scope, IReportWriter report, IIdMap<Warehouse> warehouseIds,
     IIdMap<Product> productIds) : IQueryHandler<ExportMovementsQuery, ExportFile>
 {
     public async Task<ExportFile> HandleAsync(ExportMovementsQuery q, CancellationToken ct)

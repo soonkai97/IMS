@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Catalog;
 
-public class CreateCategoryHandler(IRepository<Category> categories, IUnitOfWork uow) : ICommandHandler<CreateCategoryCommand, CategoryDto>
+public sealed class CreateCategoryHandler(IRepository<Category> categories, IUnitOfWork uow) : ICommandHandler<CreateCategoryCommand, CategoryDto>
 {
     public async Task<CategoryDto> HandleAsync(CreateCategoryCommand cmd, CancellationToken ct)
     {

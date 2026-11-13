@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Stock;
 
-public record GetStockSummaryQuery : IQuery<StockSummary>;
+public sealed record GetStockSummaryQuery : IQuery<StockSummary>;

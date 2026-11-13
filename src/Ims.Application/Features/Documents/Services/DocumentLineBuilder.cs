@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
 /// <summary>Loads the products a document refers to; the lines themselves (unit conversion, costing, product checks) are built by the domain.</summary>
-public class DocumentLineBuilder(IReadRepository<Product> products, IIdMap<Uom> uomIds, ICallerPermissions caller, IModuleSwitches modules) : IDocumentLineBuilder, IAppService
+public sealed class DocumentLineBuilder(IReadRepository<Product> products, IIdMap<Uom> uomIds, ICallerPermissions caller, IModuleSwitches modules) : IDocumentLineBuilder, IAppService
 {
     public async Task<List<StockDocumentLine>> BuildAsync(DocumentType type, IReadOnlyList<DocumentLineInput> inputs, CancellationToken ct,
         IEnumerable<StockDocumentLine>? existing = null, LinkedOrder? link = null)

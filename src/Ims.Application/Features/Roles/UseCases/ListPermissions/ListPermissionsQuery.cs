@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Roles;
 
-public record ListPermissionsQuery : IQuery<IReadOnlyList<PermissionDto>>;
+public sealed record ListPermissionsQuery : IQuery<IReadOnlyList<PermissionDto>>;

@@ -7,7 +7,7 @@ namespace Ims.Application.Features.Attachments;
 /// added by people who may create documents, also after posting (the paperwork often arrives later) but not to a cancelled document;
 /// removed only while the document is a Draft.
 /// </summary>
-public class DocumentAttachmentPolicy(IReadRepository<StockDocument> documents, IIdMap<StockDocument> documentIds, IDocumentAccess access, ICurrentUser current)
+public sealed class DocumentAttachmentPolicy(IReadRepository<StockDocument> documents, IIdMap<StockDocument> documentIds, IDocumentAccess access, ICurrentUser current)
     : IAttachmentOwnerPolicy, IAppService
 {
     public AttachmentOwnerType OwnerType => AttachmentOwnerType.Document;

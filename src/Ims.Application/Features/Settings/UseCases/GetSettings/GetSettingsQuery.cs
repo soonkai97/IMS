@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Settings;
 
-public record GetSettingsQuery : IQuery<SettingsDto>;
+public sealed record GetSettingsQuery : IQuery<SettingsDto>;

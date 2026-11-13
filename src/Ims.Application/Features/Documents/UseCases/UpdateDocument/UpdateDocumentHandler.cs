@@ -4,7 +4,7 @@ using Ims.Application.Features.Sales;
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class UpdateDocumentHandler(IRepository<StockDocument> documents, IReadRepository<Partner> partners,
+public sealed class UpdateDocumentHandler(IRepository<StockDocument> documents, IReadRepository<Partner> partners,
     IDocumentLineBuilder lineBuilder, IIssueValuation valuation, IReceiptCostDefaults receiptCosts, IReceiptLinkRules links, ISalesDeliveryRules deliveries, IReturnRules returns, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version,
     IIdMap<Warehouse> warehouseIds, IUnitOfWork uow)
     : ICommandHandler<UpdateDocumentCommand, DocumentDto>

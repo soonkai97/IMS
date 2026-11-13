@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Documents;
 
-public class CancelDocumentHandler(IRepository<StockDocument> documents, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version, IUnitOfWork uow, IAuditTrail audit)
+public sealed class CancelDocumentHandler(IRepository<StockDocument> documents, IDocumentAccess access, IDocumentReader reader, IDocumentVersion version, IUnitOfWork uow, IAuditTrail audit)
     : ICommandHandler<CancelDocumentCommand, DocumentDto>
 {
     public async Task<DocumentDto> HandleAsync(CancelDocumentCommand cmd, CancellationToken ct)

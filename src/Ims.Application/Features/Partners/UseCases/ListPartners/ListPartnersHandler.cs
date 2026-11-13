@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Partners;
 
-public class ListPartnersHandler(IReadRepository<Partner> partners) : IQueryHandler<ListPartnersQuery, PagedResult<PartnerDto>>
+public sealed class ListPartnersHandler(IReadRepository<Partner> partners) : IQueryHandler<ListPartnersQuery, PagedResult<PartnerDto>>
 {
     public async Task<PagedResult<PartnerDto>> HandleAsync(ListPartnersQuery q, CancellationToken ct)
     {

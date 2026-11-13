@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Settings;
 
-public record ListApprovalRulesQuery : IQuery<IReadOnlyList<ApprovalRuleDto>>;
+public sealed record ListApprovalRulesQuery : IQuery<IReadOnlyList<ApprovalRuleDto>>;

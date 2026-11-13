@@ -1778,3 +1778,6 @@
 - Needs from the owner: answers or confirmation of O12 to O22; the four go-live gates (O13, O14, O15, O21) must be done before real data. Needs from be-framework: nothing new.
 - Decisions others must respect: the defaults in 8.2 stand until the owner answers. The recovery objective in O15 (15 minutes, 4 hours) is a proposal by the project-manager, not an agreed figure. The private requirements document is not quoted.
 - Open conflicts: none. Noted: `docs/dba/README.md` section 17 names `Seed__AdminPassword` while the deploy kit and `deployment.md` use `IMS_ADMIN_PASSWORD` (the same setting through `compose.prod.yml`); no change made.
+
+### 2026-11-13 be-framework -> orchestrator (modernisation PR 2: seal Application, architecture test)
+- Application classes and records sealed (451 files); `SealedClassesTests` in Ims.Architecture.Tests fails any new unsealed public or internal class or record outside the allow-list (Program, ConcurrencyException, ConflictException, DomainException, UnauthorizedException). A new base class needs an allow-list entry with a reason. Contract zero diff, no migration.

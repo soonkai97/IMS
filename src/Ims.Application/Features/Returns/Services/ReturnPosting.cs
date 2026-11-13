@@ -9,7 +9,7 @@ namespace Ims.Application.Features.Returns;
 /// then the checks. This is the AUTHORITATIVE over-return check: the ones at save and submit are advice, they hold nothing. A customer return takes the goods back at the cost they left at (fixed on its lines); a
 /// supplier return is an ordinary issue at the average cost, so the engine and the strategies are untouched.
 /// </summary>
-public class ReturnPosting(IReadRepository<StockDocument> documents, IReturnedQuantityReader returned, IModuleSwitches modules, ITransactionLocker locker, ICallerPermissions caller) : IDocumentLinkPosting, IAppService
+public sealed class ReturnPosting(IReadRepository<StockDocument> documents, IReturnedQuantityReader returned, IModuleSwitches modules, ITransactionLocker locker, ICallerPermissions caller) : IDocumentLinkPosting, IAppService
 {
     public DocumentLinkKind Kind => DocumentLinkKind.Return;
 

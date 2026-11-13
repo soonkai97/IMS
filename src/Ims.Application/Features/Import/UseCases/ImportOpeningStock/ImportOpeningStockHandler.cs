@@ -6,7 +6,7 @@ namespace Ims.Application.Features.Import;
 /// Creates one draft receipt per warehouse from the file; the user reviews and posts it like any receipt (UX decision D7).
 /// All-or-nothing (D6): the whole commit is one transaction, so a failure leaves nothing behind.
 /// </summary>
-public class ImportOpeningStockHandler(IExcelReader excel, IReadRepository<Product> products, IReadRepository<Warehouse> warehouses,
+public sealed class ImportOpeningStockHandler(IExcelReader excel, IReadRepository<Product> products, IReadRepository<Warehouse> warehouses,
     IWarehouseScope scope, IDispatcher dispatcher, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<ImportOpeningStockCommand, ImportResult>
 {
     private record Parsed(int Row, Guid ProductId, int WarehouseId, decimal Qty, decimal Cost);

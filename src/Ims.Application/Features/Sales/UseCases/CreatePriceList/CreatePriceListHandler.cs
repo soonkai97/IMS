@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class CreatePriceListHandler(IRepository<PriceList> lists, IReadRepository<Partner> partners, IPriceListItemBuilder builder, IPriceListUniqueness uniqueness, IPriceListReader reader,
+public sealed class CreatePriceListHandler(IRepository<PriceList> lists, IReadRepository<Partner> partners, IPriceListItemBuilder builder, IPriceListUniqueness uniqueness, IPriceListReader reader,
     IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreatePriceListCommand, PriceListDto>
 {
     public async Task<PriceListDto> HandleAsync(CreatePriceListCommand cmd, CancellationToken ct)

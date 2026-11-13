@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Partners;
 
-public class UpdatePartnerHandler(IRepository<Partner> partners, IUnitOfWork uow) : ICommandHandler<UpdatePartnerCommand, PartnerDto>
+public sealed class UpdatePartnerHandler(IRepository<Partner> partners, IUnitOfWork uow) : ICommandHandler<UpdatePartnerCommand, PartnerDto>
 {
     public async Task<PartnerDto> HandleAsync(UpdatePartnerCommand cmd, CancellationToken ct)
     {

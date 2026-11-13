@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
 /// <summary>Closes an Approved order short: what is still to go out will not go (plan D7). Only once something was delivered: with nothing delivered the order is cancelled instead (cancel keeps its own authority). Same lock as posting a delivery and cancelling, so it cannot interleave with either.</summary>
-public class CloseSalesOrderHandler(IRepository<SalesOrder> orders, IReadRepository<StockDocument> documents, IDeliveredQuantityReader delivered, ISalesOrderAccess access, ISalesOrderReader reader,
+public sealed class CloseSalesOrderHandler(IRepository<SalesOrder> orders, IReadRepository<StockDocument> documents, IDeliveredQuantityReader delivered, ISalesOrderAccess access, ISalesOrderReader reader,
     IDocumentVersion version, ITransactionLocker locker, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CloseSalesOrderCommand, SalesOrderDto>
 {
     public async Task<SalesOrderDto> HandleAsync(CloseSalesOrderCommand cmd, CancellationToken ct)

@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Catalog;
 
-public record CreateCategoryCommand(CategorySaveRequest Data) : ICommand<CategoryDto>;
+public sealed record CreateCategoryCommand(CategorySaveRequest Data) : ICommand<CategoryDto>;

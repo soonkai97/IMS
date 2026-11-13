@@ -2,7 +2,7 @@ using Ims.Application.Features.Documents;
 using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
-public class SubmitSalesOrderHandler(IRepository<SalesOrder> orders, IApprovalEvaluator approvals, ISalesOrderAccess access, ISalesOrderReader reader,
+public sealed class SubmitSalesOrderHandler(IRepository<SalesOrder> orders, IApprovalEvaluator approvals, ISalesOrderAccess access, ISalesOrderReader reader,
     IDocumentVersion version, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<SubmitSalesOrderCommand, SalesOrderDto>
 {
     public async Task<SalesOrderDto> HandleAsync(SubmitSalesOrderCommand cmd, CancellationToken ct)

@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Catalog;
 
-public class ProductConversionUsage(IReadRepository<StockLedgerEntry> ledger, IReadRepository<PurchaseOrderLine> orderLines, IReadRepository<Uom> uoms) : IProductConversionUsage, IAppService
+public sealed class ProductConversionUsage(IReadRepository<StockLedgerEntry> ledger, IReadRepository<PurchaseOrderLine> orderLines, IReadRepository<Uom> uoms) : IProductConversionUsage, IAppService
 {
     private static readonly IReadOnlyDictionary<int, string> None = new Dictionary<int, string>();
 

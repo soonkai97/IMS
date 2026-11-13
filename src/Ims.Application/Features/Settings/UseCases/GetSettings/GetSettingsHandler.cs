@@ -1,6 +1,6 @@
 namespace Ims.Application.Features.Settings;
 
-public class GetSettingsHandler(ISystemSettings settings) : IQueryHandler<GetSettingsQuery, SettingsDto>
+public sealed class GetSettingsHandler(ISystemSettings settings) : IQueryHandler<GetSettingsQuery, SettingsDto>
 {
     public async Task<SettingsDto> HandleAsync(GetSettingsQuery q, CancellationToken ct)
     {

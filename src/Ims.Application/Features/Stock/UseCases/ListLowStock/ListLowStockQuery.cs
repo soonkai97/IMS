@@ -1,3 +1,3 @@
 namespace Ims.Application.Features.Stock;
 
-public record ListLowStockQuery(LowStockFilter Filter) : IQuery<PagedResult<LowStockAlert>>;
+public sealed record ListLowStockQuery(LowStockFilter Filter) : IQuery<PagedResult<LowStockAlert>>;

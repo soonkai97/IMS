@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Stock;
 
-public class QueryStockHandler(IReadRepository<StockBalance> balances, IReadRepository<ProductBarcode> barcodes, ILowOnlyStockReader lowOnly, IWarehouseScope scope,
+public sealed class QueryStockHandler(IReadRepository<StockBalance> balances, IReadRepository<ProductBarcode> barcodes, ILowOnlyStockReader lowOnly, IWarehouseScope scope,
     IIdMap<Warehouse> warehouseIds, IIdMap<Product> productIds, IIdMap<Category> categoryIds) : IQueryHandler<QueryStockQuery, PagedResult<StockRow>>
 {
     public async Task<PagedResult<StockRow>> HandleAsync(QueryStockQuery q, CancellationToken ct)

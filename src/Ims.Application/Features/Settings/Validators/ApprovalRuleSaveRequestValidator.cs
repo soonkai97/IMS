@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Settings;
 
-public class ApprovalRuleSaveRequestValidator : AbstractValidator<ApprovalRuleSaveRequest>
+public sealed class ApprovalRuleSaveRequestValidator : AbstractValidator<ApprovalRuleSaveRequest>
 {
     public ApprovalRuleSaveRequestValidator()
     {

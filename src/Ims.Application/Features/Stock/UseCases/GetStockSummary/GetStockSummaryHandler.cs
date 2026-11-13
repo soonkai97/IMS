@@ -1,6 +1,6 @@
 namespace Ims.Application.Features.Stock;
 
-public class GetStockSummaryHandler(IStockSummaryReader summary, IWarehouseScope scope) : IQueryHandler<GetStockSummaryQuery, StockSummary>
+public sealed class GetStockSummaryHandler(IStockSummaryReader summary, IWarehouseScope scope) : IQueryHandler<GetStockSummaryQuery, StockSummary>
 {
     public async Task<StockSummary> HandleAsync(GetStockSummaryQuery q, CancellationToken ct)
     {

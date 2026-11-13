@@ -3,7 +3,7 @@ using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Settings;
 
-public class ListApprovalRulesHandler(IReadRepository<ApprovalRule> rules, IModuleSwitches modules) : IQueryHandler<ListApprovalRulesQuery, IReadOnlyList<ApprovalRuleDto>>
+public sealed class ListApprovalRulesHandler(IReadRepository<ApprovalRule> rules, IModuleSwitches modules) : IQueryHandler<ListApprovalRulesQuery, IReadOnlyList<ApprovalRuleDto>>
 {
     public async Task<IReadOnlyList<ApprovalRuleDto>> HandleAsync(ListApprovalRulesQuery q, CancellationToken ct) =>
         (await rules.ListAsync(new ApprovalRulesListSpec(await modules.HiddenTypesAsync(ct)), ct))

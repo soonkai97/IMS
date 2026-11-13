@@ -2,7 +2,7 @@ using FluentValidation;
 using Ims.Domain;
 namespace Ims.Application.Features.Partners;
 
-public class PartnerSaveRequestValidator : AbstractValidator<PartnerSaveRequest>
+public sealed class PartnerSaveRequestValidator : AbstractValidator<PartnerSaveRequest>
 {
     public PartnerSaveRequestValidator()
     {

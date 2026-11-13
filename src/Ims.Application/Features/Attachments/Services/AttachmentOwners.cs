@@ -1,7 +1,7 @@
 using Ims.Domain;
 namespace Ims.Application.Features.Attachments;
 
-public class AttachmentOwners(IEnumerable<IAttachmentOwnerPolicy> policies) : IAttachmentOwners, IAppService
+public sealed class AttachmentOwners(IEnumerable<IAttachmentOwnerPolicy> policies) : IAttachmentOwners, IAppService
 {
     private readonly Dictionary<AttachmentOwnerType, IAttachmentOwnerPolicy> _byType = policies.ToDictionary(p => p.OwnerType);
 

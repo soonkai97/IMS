@@ -3,7 +3,7 @@ using Ims.Application.Features.Modules;
 using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
-public class CreatePurchaseOrderHandler(IRepository<PurchaseOrder> orders, IReadRepository<Warehouse> warehouses, IReadRepository<Partner> partners,
+public sealed class CreatePurchaseOrderHandler(IRepository<PurchaseOrder> orders, IReadRepository<Warehouse> warehouses, IReadRepository<Partner> partners,
     IDocumentNumbering numbering, IPurchaseOrderLineBuilder lineBuilder, IPurchaseOrderAccess access, IPurchaseOrderReader reader, ICallerPermissions caller,
     ICurrentUser current, IClock clock, ITransactionLocker locker, IModuleSwitches switches, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreatePurchaseOrderCommand, PurchaseOrderDto>
 {

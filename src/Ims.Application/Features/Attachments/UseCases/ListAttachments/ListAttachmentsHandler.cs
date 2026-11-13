@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Attachments;
 
 /// <summary>At most <see cref="Limits.MaxAttachmentsPerOwner"/> files per owner, so this list is naturally bounded and needs no paging.</summary>
-public class ListAttachmentsHandler(IAttachmentOwners owners, IReadRepository<Attachment> attachments, IReadRepository<User> users)
+public sealed class ListAttachmentsHandler(IAttachmentOwners owners, IReadRepository<Attachment> attachments, IReadRepository<User> users)
     : IQueryHandler<ListAttachmentsQuery, IReadOnlyList<AttachmentDto>>
 {
     public async Task<IReadOnlyList<AttachmentDto>> HandleAsync(ListAttachmentsQuery q, CancellationToken ct)
