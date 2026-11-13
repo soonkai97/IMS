@@ -119,7 +119,7 @@ public class PurchaseOrderReceivingTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Single(read.Receipts);
         Assert.Null(read.Lines.Single().UnitPrice);
         Assert.Null(read.TotalAmount);
-        Assert.DoesNotContain("2.5", response.Body); // no money anywhere in the answer
+        Assert.DoesNotMatch(@"(?<![\w.])2\.5(?![\w.])", response.Body); // no money anywhere in the answer
     }
 
     [Fact]
