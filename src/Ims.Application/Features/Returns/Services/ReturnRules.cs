@@ -30,9 +30,14 @@ public class ReturnRules(IReadRepository<StockDocument> documents, IReturnedQuan
     public async Task EnsureWithinRemainingAsync(StockDocument original, IReadOnlyList<StockDocumentLine> lines, CancellationToken ct)
     {
         var positions = DocumentLinePositions.Of(original.Lines);
-        var over = ReturnQuantities.OverReturns(positions, await returned.PostedByLineAsync(original.Id, ct),
+        var done = await returned.PostedByLineAsync(original.Id, ct);
+        var over = ReturnQuantities.OverReturns(positions, done,
             lines.Where(l => l.ReturnOfLineNo is not null).Select(l => new ReturnQuantity(l.ReturnOfLineNo!.Value, l.Qty)));
-        if (over.Count == 0) return;
+        if (over.Count == 0)
+        {
+            ReturnBaseAlignment.Apply(positions, done, lines); // the draft shows the base quantity it will post with
+            return;
+        }
         var errors = new Dictionary<string, string[]>();
         foreach (var o in over)
         {

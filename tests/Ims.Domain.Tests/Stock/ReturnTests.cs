@@ -177,4 +177,64 @@ public class ReturnTests
         Assert.False(NewSupplier().IsUsableFor(DocumentType.Issue));
         Assert.False(NewCustomer(active: false).IsUsableFor(DocumentType.Issue));
     }
+
+    // ----- base quantity of partial returns (PL3.17) -----
+    private static StockDocumentLine OriginalLine(int id, decimal qty, decimal baseQty)
+    {
+        var line = NewLine(NewProduct(cartonFactor: 0.666667m), DocumentType.Issue, qty, uomId: CartonId, lineId: id);
+        typeof(StockDocumentLine).GetProperty(nameof(StockDocumentLine.BaseQty))!.GetSetMethod(true)!.Invoke(line, [baseQty]); // a Posted line as the database holds it
+        return line;
+    }
+
+    private static StockDocumentLine ReturnLine(decimal qty, int no = 1) =>
+        StockDocumentLine.CreateReturn(NewProduct(cartonFactor: 0.666667m), DocumentType.Receipt, qty, CartonId, null, no, originalUnitCost: 0.5m);
+
+    [Fact]
+    public void Three_returns_of_one_against_an_original_of_three_cannot_add_up_to_more_base_quantity_than_the_original_the_last_takes_the_rest()
+    {
+        var original = DocumentLinePositions.Of([OriginalLine(1, 3m, 2.0000m)]);
+        var returned = new Dictionary<int, ReturnedQuantity>();
+        var parts = new List<decimal>();
+        for (var i = 0; i < 3; i++)
+        {
+            var line = ReturnLine(1m);
+            Assert.Equal(0.6667m, line.BaseQty);                                  // 1 x 0.666667 rounded to four decimals
+            ReturnBaseAlignment.Apply(original, returned, [line]);
+            parts.Add(line.BaseQty);
+            returned[1] = new ReturnedQuantity(returned.GetValueOrDefault(1).Qty + 1m, returned.GetValueOrDefault(1).BaseQty + line.BaseQty);
+        }
+
+        Assert.Equal([0.6667m, 0.6667m, 0.6666m], parts);
+        Assert.Equal(2.0000m, parts.Sum());
+    }
+
+    [Fact]
+    public void A_line_is_never_given_more_than_is_left_and_the_value_of_a_customer_return_line_follows_the_rebased_quantity()
+    {
+        var original = DocumentLinePositions.Of([OriginalLine(1, 3m, 2.0000m)]);
+        var returned = new Dictionary<int, ReturnedQuantity> { [1] = new(2m, 1.9999m) };          // 2 of 3 are back, 1.9999 of 2.0000
+        var last = ReturnLine(1m);
+
+        ReturnBaseAlignment.Apply(original, returned, [last]);
+
+        Assert.Equal(0.0001m, last.BaseQty);
+        Assert.Equal(0.0001m * 0.5m, last.UnitCost * last.BaseQty);                                // still valued at its fixed cost per base unit
+        var partial = ReturnLine(1m);
+        ReturnBaseAlignment.Apply(original, new Dictionary<int, ReturnedQuantity> { [1] = new(1m, 1.9999m) }, [partial]); // not the last piece, but only 0.0001 is left
+        Assert.Equal(0.0001m, partial.BaseQty);
+    }
+
+    [Fact]
+    public void Lines_of_one_return_that_name_the_same_original_line_are_taken_in_order_and_a_line_that_names_no_original_line_is_left_alone()
+    {
+        var original = DocumentLinePositions.Of([OriginalLine(1, 2m, 1.3333m)]);
+        var a = ReturnLine(1m);
+        var b = ReturnLine(1m);
+        var stray = ReturnLine(1m, no: 9);
+
+        ReturnBaseAlignment.Apply(original, new Dictionary<int, ReturnedQuantity>(), [a, b, stray]);
+
+        Assert.Equal((0.6667m, 0.6666m), (a.BaseQty, b.BaseQty));                                  // 1.3333 in all, the second takes the rest
+        Assert.Equal(0.6667m, stray.BaseQty);
+    }
 }

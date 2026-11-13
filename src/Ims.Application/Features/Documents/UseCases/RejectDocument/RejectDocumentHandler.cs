@@ -16,7 +16,7 @@ public class RejectDocumentHandler(IRepository<StockDocument> documents, IApprov
             throw new ForbiddenException(refusal);
 
         var statusBefore = doc.Status;
-        doc.Reject(cmd.Data.Reason, current.UserId, (await settings.GetAsync(ct)).AllowSelfApproval, clock.UtcNow);
+        doc.Reject(cmd.Data.Reason, current.UserId, (await settings.GetAsync(ct)).AllowSelfApproval && !doc.IsReturn, clock.UtcNow); // a return is never self-approved or self-rejected
         audit.Record(AuditActions.DocumentRejected, AuditEntities.StockDocument, doc.No, new { Status = statusBefore }, new { doc.Status, Reason = doc.RejectionReason });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);

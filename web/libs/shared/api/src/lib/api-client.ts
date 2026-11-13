@@ -7088,6 +7088,8 @@ export interface MovementRow {
     amount: number | undefined;
     /** The row is the reversal of the posting shown in the row for the same document and line. */
     isReversal: boolean;
+    /** The row belongs to a return (a customer return receipt or a supplier return issue), so a report can tell a customer return from a purchase and a supplier return from a sale. A return reversed since posting has two rows, both flagged. */
+    isReturn?: boolean;
 }
 
 /** One page of a server-side paged list. */

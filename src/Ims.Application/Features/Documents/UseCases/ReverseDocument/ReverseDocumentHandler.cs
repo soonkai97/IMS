@@ -16,9 +16,16 @@ public class ReverseDocumentHandler(IRepository<StockDocument> documents, IRepos
             // A delivery created from a sales order changes what the order has delivered: the order's lock comes FIRST, before any stock lock, exactly where posting takes it, so a reversal cannot
             // slip between a posting's read of the delivered quantities and the auto-close that depends on them, nor under a close short's check that something was delivered.
             if (doc.SalesOrderId is { } orderKey) await locker.LockSalesOrderAsync(orderKey, ct);
-            // The reversal of a return changes what can still be returned of its original, so it takes the original ret lock first, exactly where posting takes it. (Reversing an ORIGINAL that has Posted returns is not
-            // refused yet: that needs a query on every reversal and the module switch may not be read here; it is the open item of PL3.17.)
+            // The reversal of a return changes what can still be returned of its original, so it takes the original ret lock first, exactly where posting takes it.
             if (doc.ReturnOfDocumentId is { } originalKey) await locker.LockReturnOriginAsync(originalKey, ct);
+            // A Posted sale issue or receipt may have been returned: the goods came back (or went out) against it, so it cannot be reversed under its Posted returns. The check runs under the document's own ret lock,
+            // which posting a return of it takes first, so a return posted at the same moment is either seen here or waits and finds the original Reversed. Only the documents that can be returned ask (a return is
+            // never returned; an issue for Use or Scrap is not returnable), and nothing here reads a module switch: the filtered index holds no row for a document nobody returned.
+            else if (doc.Status == DocumentStatus.Posted && (doc.Type == DocumentType.Receipt || doc.Purpose == IssuePurpose.Sale))
+            {
+                await locker.LockReturnOriginAsync(doc.Id, ct);
+                if (await documents.AnyAsync(new PostedReturnsOfSpec(doc.Id), ct)) throw new ConflictException(Messages.ReverseHasReturns(doc.No));
+            }
             var now = clock.UtcNow;
             doc.MarkReversed(cmd.Data.Reason, now, current.UserId);
 

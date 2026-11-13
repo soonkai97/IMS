@@ -122,6 +122,18 @@ public class StockDocumentLine : Entity
         return line;
     }
 
+    /// <summary>
+    /// A return line takes another base quantity: the last pieces of an original line, or the share the original has left. Each line converts its own quantity and rounds to four decimals, so returns of
+    /// a unit with a factor like 0.666667 can add up to a base quantity a little above the original's (three returns of 1 against an issue of 3 = 2.0001 against 2.0000); <see cref="ReturnBaseAlignment"/> gives the
+    /// line that completes the original line the remainder and never lets the sum pass it. A customer return is valued again at its fixed cost.
+    /// </summary>
+    public void RebaseTo(decimal baseQty)
+    {
+        if (ReturnOfLineNo is null || baseQty <= 0m || baseQty == BaseQty) return;
+        BaseQty = baseQty;
+        if (!CostFromAverage) ValueAtAverage(UnitCost);
+    }
+
     /// <summary>The current average cost, kept on an unposted issue so its value can be shown and tested against approval rules. Posting replaces it.</summary>
     internal void EstimateIssueCost(decimal averageCost) => ValueAtAverage(averageCost);
 

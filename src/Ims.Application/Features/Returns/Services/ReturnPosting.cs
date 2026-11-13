@@ -26,9 +26,14 @@ public class ReturnPosting(IReadRepository<StockDocument> documents, IReturnedQu
         if (original.Status != DocumentStatus.Posted) throw new ConflictException(Messages.ReturnOriginalNotPosted(original.No, original.Status));
 
         var positions = DocumentLinePositions.Of(original.Lines);
-        var over = ReturnQuantities.OverReturns(positions, await returned.PostedByLineAsync(key, ct),
+        var done = await returned.PostedByLineAsync(key, ct);
+        var over = ReturnQuantities.OverReturns(positions, done,
             document.Lines.Where(l => l.ReturnOfLineNo is not null).Select(l => new ReturnQuantity(l.ReturnOfLineNo!.Value, l.Qty)));
-        if (over.Count == 0) return null;
+        if (over.Count == 0)
+        {
+            ReturnBaseAlignment.Apply(positions, done, document.Lines); // under the lock: the returns before this one are final, so the last pieces of a line take the base quantity that is left
+            return null;
+        }
         throw new ConflictException(string.Join(" ", over.Select(o =>
         {
             var line = positions.First(p => p.LineNo == o.LineNo).Line;

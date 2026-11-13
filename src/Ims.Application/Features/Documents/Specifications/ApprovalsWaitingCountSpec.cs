@@ -10,6 +10,7 @@ public sealed class ApprovalsWaitingCountSpec : Specification<StockDocument>
         Query.AsNoTracking().Where(d => d.Status == DocumentStatus.Submitted && d.RequiresApproval);
         if (scope is not null) Query.Where(d => scope.Contains(d.WarehouseId));
         if (!allowSelfApproval) Query.Where(d => d.SubmittedBy != actor.UserId);
+        else Query.Where(d => d.ReturnOfDocumentId == null || d.SubmittedBy != actor.UserId); // a return is never self-approved, whatever the setting
         // A large document goes to the holders of the large tier, any other to the holders of the standard tier; whoever holds both sees every one.
         var standard = actor.Has(Permissions.DocumentApprove);
         var large = actor.Has(Permissions.DocumentApproveLarge);

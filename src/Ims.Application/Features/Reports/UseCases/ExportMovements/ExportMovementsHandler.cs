@@ -12,7 +12,7 @@ public class ExportMovementsHandler(IMovementReader movements, IWarehouseScope s
         var bytes = report.Write(ReportSheets.Movements, ReportHeaders.MovementColumns, rows.Select(r => new object?[]
         {
             r.PostedAt.AddHours(Limits.MalaysiaUtcOffsetHours), r.DocNo, r.Type.ToString(), r.Status.ToString(), r.WarehouseCode, r.Partner,
-            r.Sku, r.ProductName, r.Qty, r.UomCode, r.BaseQty, r.StockEffect, r.UnitCost, r.Amount, r.IsReversal ? ReportHeaders.ReversalFlag : ""
+            r.Sku, r.ProductName, r.Qty, r.UomCode, r.BaseQty, r.StockEffect, r.UnitCost, r.Amount, r.IsReversal ? ReportHeaders.ReversalFlag : "", r.IsReturn ? ReportHeaders.ReturnFlag : ""
         }));
         return new ExportFile(bytes, ReportFiles.Movements, ContentTypes.Xlsx);
     }
