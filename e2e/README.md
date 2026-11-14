@@ -44,6 +44,7 @@ through the real login form, and create their data through the public API with u
 | `43-receive-against-po` | receive against a purchase order on the real API (PL2.9), serial, module state read first and restored last (also after a failure; receipts are retired by their state, posted ones reversed, open ones cancelled, then the orders): an Approved order offers Receive (the API lists `receive`), which opens its draft receipt with the order named and linked, the supplier and warehouse read and not chosen, no Add item, the order line figures (ordered, received, remaining) and the quantity at what is left; a quantity above it is said in words and stops Submit & post; 6 of 10 post and the order stays Approved showing 6 received and 4 left with the receipt listed; Receive again starts at 4, posting it closes the order ("fully received and closed" on the receipt, Closed and Fully received on the order, no Receive button); a receipt submitted when the order had room and posted after another receipt took 7 of the 10 is refused with one alert naming the line and the figures (ordered 10, received 7, remaining 3, this receipt 10) and no toast, Edit items takes it back to Draft and 3 posts and closes the order; Warehouse staff see no price anywhere on the receipt, and the draft they save is valued at the order price; 360 px, 320 px at 200% text in en, ms and zh, axe light and dark at 360 and 1280 px on the order and its draft receipt | PL2.9, plan acceptance PL2.9 items 4 and 5 |
 | `48-returns` | returns on the real API (PL3.18), serial, the three module states read first and put back last: Return is offered on a Posted sale issue or receipt to a holder of `returns.create` while the module is on (the Owner has none) and the API answers 404 while it is off; the draft names the original with a link back, partner and warehouse are read, no Add item, no cost, "already returned 0, returnable 5", 6 is said in words; the Supervisor cannot approve what they submitted, the Admin can, posting shows "Returned 2, returnable 3" on the sale; two drafts against the last quantity: the second post is ONE alert in the API words and the draft stays; a supplier return is an issue with the purpose Return shown, not chosen, and Warehouse staff see no money on it; reversing a sale with a Posted return is refused; 360 px, axe light and dark at 360 and 1280 px | PL3.18, plan acceptance PL3.18 items 1 to 3 |
 | `49-trading-story` | the closing story of PL3 (PL3.19), one continuous business story on the real API, serial, every scenario one step of it, the three module states read first and put back last, every document reversed or cancelled and the price list deleted again: the Admin turns Sales and Returns on from Settings > Modules with a reason; a Supervisor makes a price list for a customer in the editor; a Clerk drafts a sales order (the price comes from the list, one price is changed, 6,500.00 for 10, Submit) and a Supervisor approves it; Deliver 6 of 10 posts and the order shows 6 of 10 and stays Approved, Deliver again starts at 4 and posting it closes the order by itself; the customer copy prints for the Closed order (prices, no navigation); the stock is bought in dearer, a Clerk returns 2 of the first delivery (no cost input, 7 is said in words), a Supervisor in another browser approves and posts it and the movements report shows the return at the ORIGINAL cost 3.00 and not the average 3.67; a Supervisor returns 5 of a received purchase-order receipt to the supplier (the submitter cannot approve, the Admin does); reversing the sale is refused in the API sentence while the return is Posted, reversing the return lets the sale be reversed and the Closed order is not reopened; at the end the movements export (read from the downloaded .xlsx) has exactly the three Return rows (the posting and the reversal of the customer return, the supplier return) and no other row flagged, Warehouse staff see no price or cost on any screen of the story (DOM scan of the order, both deliveries, both returns, the receipt, the order list and the stock list), and the audit log screen shows `sales-order.created`, `.price-changed`, `.submitted`, `.approved`, `.closed`, `price-list.created`, `document.posted`, `.approved`, `.reversed` and `module.enabled` for the story's own numbers | PL3.19, plan acceptance PL3.19 item 1 |
+| `screenshots` | not a scenario: with `SCREENSHOTS=1` it makes invented demo data on an EMPTY database and saves the README pictures to `docs/screenshots`; without the flag every test in it is skipped (the normal suite and CI never run it). See below | the README gallery |
 
 A scenario that finds a product bug is marked `test.fixme` with the finding id in the title and the bug is written up in
 `docs/team/HANDOFFS.md`. None are open today.
@@ -148,6 +149,27 @@ Examples use the free ports 5611 (API) and 5612 (web); any ports work.
   approval rule one finds or creates one rule and switches it off, and `api.post` approves a document that a rule holds back. Nothing is deleted through the API (posted documents are append-only by design).
 - **Page objects** live in `src/pages` (`shell`, `documents`, `screens`), API seeding in `src/api.ts`, sign-in fixtures in
   `src/fixtures.ts`. Prefer roles and accessible names; the few CSS selectors are in the page objects with a reason.
+
+## Regenerating the README screenshots
+
+The pictures in [`docs/screenshots`](../docs/screenshots) (and the gallery in the root README) come from `tests/screenshots.spec.ts`. It is skipped
+unless `SCREENSHOTS=1`, so `npm test`, `npm run test:local` and the E2E workflow never run it.
+
+1. Start the API and the web build against a **new, empty** database exactly as in "The whole suite in one sequence" above (steps 1 and 2),
+   and drop that database afterwards. The spec creates invented data (products such as `MUG-350`, customers, suppliers, price lists,
+   purchase and sales orders, a sale with a return, documents waiting for approval) and stops with a duplicate-SKU error on a database that
+   already has it. It also switches Purchasing, Sales and Returns on and leaves them on.
+2. From `e2e/`:
+
+   ```bash
+   SCREENSHOTS=1 IMS_API_URL=$API IMS_WEB_URL=$WEB npm run test:local -- tests/screenshots.spec.ts
+   ```
+
+   `SCREENSHOTS_DIR=<folder>` saves somewhere else (default `docs/screenshots`). Desktop pictures are 1280x800; the three phone pictures
+   are 360x740 at 2x. Light mode, English, the demo users of the seed (the account button shows `Supervisor`, `Clerk` and so on).
+3. Before each picture the spec reads the page text and fails on an address that is not the demo domain, an IP address, a token or a host name.
+   Still look at every picture before you commit it: nothing real belongs in them. The files are plain PNGs (about 50 to 95 KB each);
+   keep the whole folder under about 3 MB.
 
 ## CI
 
