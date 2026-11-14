@@ -73,7 +73,7 @@ public sealed class UploadAttachmentHandler(IAttachmentOwners owners, IFileStora
         while ((read = await content.ReadAsync(chunk, ct)) > 0)
         {
             if (buffer.Length + read > Limits.MaxAttachmentBytes) throw new ValidationException(Messages.FileTooLarge(Limits.MaxAttachmentBytes));
-            buffer.Write(chunk, 0, read);
+            await buffer.WriteAsync(chunk.AsMemory(0, read), ct);
         }
         return buffer.ToArray();
     }

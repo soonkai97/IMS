@@ -22,9 +22,13 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> log, IProbl
 
         var outcome = Classify(ex, ctx);
         if (outcome.Expected)
-            log.LogInformation("Request rejected with {Status}: {Reason} ({ExceptionType})", outcome.Status, LogSanitizer.Clean(outcome.Detail), ex.GetType().Name);
+        {
+            if (log.IsEnabled(LogLevel.Information)) log.LogInformation("Request rejected with {Status}: {Reason} ({ExceptionType})", outcome.Status, LogSanitizer.Clean(outcome.Detail), ex.GetType().Name);
+        }
         else
-            log.LogError(ex, "Unhandled exception on {Method} {Path}", LogSanitizer.Clean(ctx.Request.Method), LogSanitizer.Clean(ctx.Request.Path));
+        {
+            if (log.IsEnabled(LogLevel.Error)) log.LogError(ex, "Unhandled exception on {Method} {Path}", LogSanitizer.Clean(ctx.Request.Method), LogSanitizer.Clean(ctx.Request.Path));
+        }
 
         ctx.Response.StatusCode = outcome.Status;
         ProblemResponses.StampCorrelationId(ctx);
@@ -118,7 +122,7 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> log, IProbl
             ctx.Response.StatusCode = StatusCodes.Status504GatewayTimeout;
             return true;
         }
-        log.LogDebug("Request {Method} {Path} was cancelled by the client", LogSanitizer.Clean(ctx.Request.Method), LogSanitizer.Clean(ctx.Request.Path));
+        if (log.IsEnabled(LogLevel.Debug)) log.LogDebug("Request {Method} {Path} was cancelled by the client", LogSanitizer.Clean(ctx.Request.Method), LogSanitizer.Clean(ctx.Request.Path));
         ctx.Response.StatusCode = ClientClosedRequest;
         return true;
     }

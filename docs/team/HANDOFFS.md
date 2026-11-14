@@ -1821,3 +1821,6 @@
 ### 2026-11-14 be-framework -> orchestrator, be-architect (modernisation PR 5: Central Package Management)
 - One `Directory.Packages.props` at the root (versions, transitive pinning, the Pkcs pin with its reason). Dockerfile: `COPY global.json Ims.sln Directory.Packages.props` before restore (a restore-then-publish check with only the solution, the props and the four csproj files passes; `docker build` itself could not run: no Docker daemon here, CI does not build the image). Dependabot nuget now looks at `/`. Package versions are edited in the props file only; a new package needs a PackageVersion line.
 - Decision for others: Microsoft.CodeAnalysis.CSharp stays a VersionOverride in the Architecture tests, because a central entry would pin it transitively for src and break EF Core Design (NU1107).
+
+### 2026-11-14 be-framework -> orchestrator (modernisation PR 6: measured CA trial)
+- Measured on src (build with the rules at warning): CA2016 0, CA1869 0, CA1849 1, CA1873 5 sites (LoggingBehavior 2, ApiExceptionHandler 2, AuditTrail 1). Fixed the six (an `IsEnabled` guard before the log call; `WriteAsync` for the upload buffer) and ratcheted all four at warning for `[src/**.cs]`. CA1848 and CA1822 stay off as decided.
