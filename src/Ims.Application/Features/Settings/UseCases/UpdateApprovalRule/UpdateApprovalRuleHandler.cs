@@ -9,12 +9,11 @@ public sealed class UpdateApprovalRuleHandler(IRepository<ApprovalRule> rules, I
     {
         var rule = await rules.FirstOrDefaultAsync(new ByPublicIdSpec<ApprovalRule>(cmd.Id), ct) ?? throw new NotFoundException(Messages.RuleNotFound);
         // A rule of an off module is kept but hidden: it cannot be found by id either, and nothing can be moved onto such a subject.
-        var hidden = await modules.HiddenTypesAsync(ct);
-        if (hidden.Contains(rule.DocType)) throw new NotFoundException(Messages.RuleNotFound);
+        var moduleOn = !(await modules.HiddenTypesAsync(ct)).Contains(rule.DocType);
+        if (!moduleOn) throw new NotFoundException(Messages.RuleNotFound);
         await modules.EnsureTypeAvailableAsync(cmd.Data.DocType, ct);
         // The rules that span the rules of a type (ApprovalRuleSetPolicy) decide; the handler reads the facts. Two people switching off the two different rules of a type would each count two, so the
         // count is taken under the modules lock (the lock of the switch-on check too), which only a transaction can hold, and only when the policy says the answer depends on it.
-        var moduleOn = !hidden.Contains(rule.DocType);
         var activeRules = 0;
         if (ApprovalRuleSetPolicy.NeedsActiveRuleCount(rule, cmd.Data.DocType, cmd.Data.IsActive, moduleOn))
         {
