@@ -1,7 +1,8 @@
 version: 2
 updates:
   - package-ecosystem: nuget
-    directories: ["/src/*", "/tests/*"]
+    # One Directory.Packages.props at the repository root holds every version (Central Package Management), so Dependabot looks at the root.
+    directory: /
     schedule: { interval: weekly }
     commit-message: { prefix: "build(deps)" }
     groups:
