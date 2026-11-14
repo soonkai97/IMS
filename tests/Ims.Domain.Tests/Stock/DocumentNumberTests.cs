@@ -88,6 +88,167 @@ public class DocumentNumberTests
         Assert.True(no.Length <= Limits.DocumentNoMaxLength);
     }
 
+    // ----- The value: Create, ToString, FromStored (DDD-04) -----
+    [Theory]
+    [InlineData("RCV", "WH1", 2601, 1)]
+    [InlineData("ISS", "MAIN", 2612, 42)]
+    [InlineData("PO", "WH1", 2701, 9999)]
+    [InlineData("SO", "WH1", 2701, 10000)]               // a running number above 9999 is never truncated
+    [InlineData("ADJ", "WH1", 1, 7)]                      // January 2000: yyMM keeps its leading zeros
+    [InlineData("TRF", "KL-01", 2601, 3)]                 // a warehouse code may contain the separator
+    [InlineData("RCV", "A-B-C", 2601, 12345)]
+    [InlineData("RCV", "W-2601", 2601, 1)]                // the code itself looks like a yyMM part
+    [InlineData("ISS", "-X-", 2601, 5)]                   // the code starts and ends with the separator
+    [InlineData("RCV", "WWWWWWWWWWWWWWWWWWWW", 2601, 9999)] // a warehouse code at Limits.CodeMaxLength (20)
+    public void RoundTrip_CreateToStringFromStored_KeepsEveryPart(string prefix, string warehouse, int yearMonth, int running)
+    {
+        var created = DocumentNumber.Create(prefix, warehouse, yearMonth, running);
+
+        var stored = created.ToString();
+        var read = DocumentNumber.FromStored(stored);
+
+        Assert.Equal(DocumentNumber.Format(prefix, warehouse, yearMonth, running), stored); // byte-identical to today's printed number
+        Assert.Equal(created, read);
+        Assert.Equal(stored, read.Value);
+        Assert.True(read.IsWellFormed);
+        Assert.Equal(prefix, read.Prefix);
+        Assert.Equal(warehouse, read.WarehouseCode);
+        Assert.Equal(yearMonth, read.YearMonth);
+        Assert.Equal(running, read.Running);
+    }
+
+    [Fact]
+    public void RoundTrip_EveryDocumentType_AtTheMalaysiaMonthBoundary()
+    {
+        var utc = new DateTime(2026, 12, 31, 16, 30, 0, DateTimeKind.Utc);
+
+        foreach (var type in Enum.GetValues<DocumentType>())
+        {
+            var no = DocumentNumber.Create(DocumentNumber.PrefixFor(type), "WH1", DocumentNumber.YearMonthOf(utc), 3);
+
+            Assert.Equal(no, DocumentNumber.FromStored(no.ToString()));
+            Assert.Equal(DocumentNumber.PrefixFor(type), no.Prefix);
+            Assert.Equal(2701, no.YearMonth);
+        }
+    }
+
+    [Fact]
+    public void Create_ValueIsTheSameTextAsFormat()
+    {
+        Assert.Equal("RCV-WH1-2601-0001", DocumentNumber.Create("RCV", "WH1", 2601, 1).Value);
+    }
+
+    [Fact]
+    public void Create_AtTheStoredMaxLength_IsAccepted()
+    {
+        var warehouse = new string('W', Limits.DocumentNoMaxLength - "RCV-".Length - "-2601-0001".Length);
+
+        var no = DocumentNumber.Create("RCV", warehouse, 2601, 1);
+
+        Assert.Equal(Limits.DocumentNoMaxLength, no.Value.Length);
+    }
+
+    [Fact]
+    public void Create_OverTheStoredMaxLength_IsRefusedWithTheExistingSentence()
+    {
+        var warehouse = new string('W', Limits.DocumentNoMaxLength - "RCV-".Length - "-2601-0001".Length + 1); // 41 characters in all
+
+        var ex = Assert.Throws<DomainException>(() => DocumentNumber.Create("RCV", warehouse, 2601, 1));
+
+        Assert.Equal(Messages.TextTooLong("Document number", Limits.DocumentNoMaxLength), ex.Message);
+    }
+
+    [Theory]
+    [InlineData("", "WH1", 2601, 1)]       // no prefix
+    [InlineData("R-V", "WH1", 2601, 1)]    // a prefix is read from the front up to the first separator, so it cannot hold one
+    [InlineData("RCV", "", 2601, 1)]       // no warehouse
+    [InlineData("RCV", "WH1", -1, 1)]
+    [InlineData("RCV", "WH1", 2601, -1)]
+    public void Create_AnImpossiblePart_IsAProgrammerError(string prefix, string warehouse, int yearMonth, int running)
+    {
+        Assert.ThrowsAny<ArgumentException>(() => DocumentNumber.Create(prefix, warehouse, yearMonth, running));
+    }
+
+    // ----- Unassigned and FromStored never throws -----
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    public void FromStored_Nothing_IsUnassigned(string? stored)
+    {
+        Assert.Equal(DocumentNumber.Unassigned, DocumentNumber.FromStored(stored));
+    }
+
+    [Fact]
+    public void Unassigned_IsTheEmptyText_AndTheDefaultValue()
+    {
+        Assert.Equal("", DocumentNumber.Unassigned.Value);
+        Assert.Equal("", DocumentNumber.Unassigned.ToString());
+        Assert.False(DocumentNumber.Unassigned.IsAssigned);
+        Assert.False(DocumentNumber.Unassigned.IsWellFormed);
+        Assert.Equal(default, DocumentNumber.Unassigned);
+        Assert.Null(DocumentNumber.Unassigned.Prefix);
+        Assert.Null(DocumentNumber.Unassigned.Running);
+    }
+
+    [Fact]
+    public void AnAssignedNumber_IsAssigned()
+    {
+        Assert.True(DocumentNumber.Create("RCV", "WH1", 2601, 1).IsAssigned);
+    }
+
+    [Fact]
+    public void FromStored_FortyOneCharacters_IsAcceptedBecauseAStoredValueMustAlwaysLoad()
+    {
+        var stored = "RCV-" + new string('W', Limits.DocumentNoMaxLength) + "-2601-0001";
+
+        var no = DocumentNumber.FromStored(stored);
+
+        Assert.True(stored.Length > Limits.DocumentNoMaxLength);
+        Assert.Equal(stored, no.Value);
+    }
+
+    [Theory]
+    [InlineData("legacy")]
+    [InlineData("RCV-WH1")]
+    [InlineData("RCV-2601-0001")]            // no warehouse part
+    [InlineData("RCV-WH1-26AB-0001")]
+    [InlineData("RCV-WH1-2601-00x1")]
+    [InlineData("RCV-WH1-2601-")]
+    [InlineData("-WH1-2601-0001")]           // no prefix
+    [InlineData("RCV-WH1-2601-99999999999")] // a running number beyond int
+    [InlineData("  ")]
+    [InlineData("---")]
+    public void FromStored_AnythingElse_LoadsUnchanged_WithoutPartsAndWithoutThrowing(string stored)
+    {
+        var no = DocumentNumber.FromStored(stored);
+
+        Assert.Equal(stored, no.Value);
+        Assert.Equal(stored, no.ToString());
+        Assert.False(no.IsWellFormed);
+        Assert.Null(no.Prefix);
+        Assert.Null(no.WarehouseCode);
+        Assert.Null(no.YearMonth);
+        Assert.Null(no.Running);
+    }
+
+    [Fact]
+    public void Equality_IsByTheText_Ordinally()
+    {
+        var a = DocumentNumber.Create("RCV", "WH1", 2601, 1);
+
+        Assert.Equal(a, DocumentNumber.FromStored("RCV-WH1-2601-0001"));
+        Assert.True(a == DocumentNumber.FromStored("RCV-WH1-2601-0001"));
+        Assert.NotEqual(a, DocumentNumber.FromStored("rcv-wh1-2601-0001"));
+        Assert.NotEqual(a, DocumentNumber.Create("RCV", "WH1", 2601, 2));
+        Assert.Equal(a.GetHashCode(), DocumentNumber.FromStored("RCV-WH1-2601-0001").GetHashCode());
+    }
+
+    [Fact]
+    public void TheValue_IsAMarkedValueObject()
+    {
+        Assert.True(typeof(IValueObject).IsAssignableFrom(typeof(DocumentNumber)));
+    }
+
     // ----- DocumentSequence -----
     [Fact]
     public void DocumentSequence_StartsAtZeroAndCountsUp()
