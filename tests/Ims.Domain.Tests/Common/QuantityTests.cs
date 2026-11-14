@@ -36,6 +36,52 @@ public class QuantityTests
         Assert.Equal(Messages.QtyTooLarge, ex.Message);
     }
 
+    // ---- Balance: the stock on hand, over the whole decimal(18,4) column ----
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-0.0001")]
+    [InlineData("99999999999999")]             // Limits.MaxBaseQuantity
+    [InlineData("99999999999999.5")]           // above a line, inside the column
+    [InlineData("-99999999999999.5")]
+    [InlineData("99999999999999.9999")]        // Limits.MaxBalanceQuantity
+    [InlineData("-99999999999999.9999")]
+    public void Balance_AcceptsAnySignOverTheWholeColumn(string text)
+    {
+        Assert.Equal(Dec(text), Quantity.Balance(Dec(text)).Value);
+    }
+
+    [Theory]
+    [InlineData("100000000000000")]            // one above the column
+    [InlineData("-100000000000000")]
+    [InlineData("99999999999999.99995")]       // a fifth decimal, even where it would round to the top
+    [InlineData("0.00001")]
+    [InlineData("-1.23456")]
+    public void Balance_RefusesAValueBeyondTheColumnOrWithTooManyDecimals(string text)
+    {
+        Assert.Equal(Messages.QtyTooLarge, Assert.Throws<DomainException>(() => Quantity.Balance(Dec(text))).Message);
+    }
+
+    [Fact]
+    public void Balance_TheColumnRangeIsTheLineLimitPlusTheDecimals()
+    {
+        Assert.Equal(Limits.MaxBaseQuantity + 0.9999m, Limits.MaxBalanceQuantity);
+        Assert.Equal(1.5m, Quantity.Balance(1.5000000m).Value);
+    }
+
+    // The line bound is the base limit, and it stays so: the wider range of a stored BALANCE (the whole decimal(18,4) column) does not widen what a line or a delta may hold.
+    [Fact]
+    public void TheBoundOfALineQuantity_IsTheBaseLimit_AndTheBalanceRangeDoesNotWidenIt()
+    {
+        Assert.Equal(99_999_999_999_999m, Limits.MaxBaseQuantity);
+        Assert.Equal(Limits.MaxBaseQuantity, Quantity.Positive(Limits.MaxBaseQuantity).Value);
+        Assert.Equal(Messages.QtyTooLarge, Assert.Throws<DomainException>(() => Quantity.Positive(99_999_999_999_999.0001m)).Message);
+        Assert.Equal(Messages.QtyTooLarge, Assert.Throws<DomainException>(() => Quantity.Signed(99_999_999_999_999.5m)).Message);
+        Assert.Equal(Messages.QtyTooLarge, Assert.Throws<DomainException>(() => Quantity.Signed(-99_999_999_999_999.5m)).Message);
+        Assert.Equal(Messages.QtyTooLarge, Assert.Throws<DomainException>(() => Quantity.Rounded(99_999_999_999_999.5m)).Message);
+        Assert.Equal(Messages.QtyTooLarge, Assert.Throws<DomainException>(() => Quantity.Signed(Limits.MaxBaseQuantity).Plus(Quantity.Signed(0.5m))).Message);
+    }
+
     [Fact]
     public void Signed_TrailingZerosAreNotDecimals()
     {

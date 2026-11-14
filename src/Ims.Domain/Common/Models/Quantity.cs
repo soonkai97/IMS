@@ -6,8 +6,8 @@ namespace Ims.Domain;
 /// An amount of stock in one unit: at most <see cref="Limits.QuantityScale"/> (4) decimals, never beyond <see cref="Limits.MaxBaseQuantity"/> either way (the column is <c>decimal(18,4)</c>), compared by value
 /// (12.5 and 12.50 are the same quantity). A conversion that makes a fifth decimal rounds half away from zero, as SQL Server converts into the column, so the value in memory is the value that is stored and read back.
 /// <para>
-/// The sign depends on the use, so there is one factory for each: <see cref="Positive"/> for a line, <see cref="NonNegative"/> for a threshold or a safety level, <see cref="Signed"/> for a balance or a delta (negative
-/// stock is allowed, BR-03). A factory refuses with a sentence that already exists in <see cref="Messages"/>; the caller may pass its own where it has one.
+/// The sign depends on the use, so there is one factory for each: <see cref="Positive"/> for a line, <see cref="NonNegative"/> for a threshold or a safety level, <see cref="Signed"/> for a delta and <see cref="Balance"/> for the stock on hand
+/// (negative stock is allowed, BR-03; a balance may use the whole column, a line may not). A factory refuses with a sentence that already exists in <see cref="Messages"/>; the caller may pass its own where it has one.
 /// </para>
 /// </summary>
 public readonly record struct Quantity : IValueObject, IComparable<Quantity>
@@ -25,8 +25,15 @@ public readonly record struct Quantity : IValueObject, IComparable<Quantity>
 
     public bool IsNegative => Value < 0m;
 
-    /// <summary>A balance or a delta: any sign, zero included.</summary>
+    /// <summary>A delta: any sign, zero included, within the line bound (<see cref="Limits.MaxBaseQuantity"/>).</summary>
     public static Quantity Signed(decimal value) => new(Checked(value));
+
+    /// <summary>
+    /// The stock on hand of a balance: any sign, zero included, over the whole <c>decimal(18,4)</c> column (up to <see cref="Limits.MaxBalanceQuantity"/> either way, at most four decimals). That is wider than <see cref="Signed"/>,
+    /// which keeps the line bound: a balance of 99,999,999,999,999.5 is stored by two receipts that were both accepted, and it must still take stock in.
+    /// </summary>
+    public static Quantity Balance(decimal value) =>
+        Round(value) == value && Math.Abs(value) <= Limits.MaxBalanceQuantity ? new(value) : throw new DomainException(Messages.QtyTooLarge);
 
     /// <summary>A quantity on a line: above zero. <paramref name="refusal"/> is the sentence for zero or a negative (the line sentence by default).</summary>
     public static Quantity Positive(decimal value, string refusal = Messages.QtyPositive)
