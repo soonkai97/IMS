@@ -20,7 +20,7 @@ Binding for every role that writes code under `src/` or `web/`. The owner asked 
 4. **Aggregates** protect invariants and are changed only through their root: stock document with its lines, sales order with its lines, price list with its items, approval rule set. Other aggregates are referenced by id. One transaction changes one aggregate unless a locked process (posting, reversal) says otherwise.
 5. **Domain events** for facts other parts react to (document posted, order approved, return posted, module switched). Raised by the aggregate, handled after the save; audit and notifications subscribe instead of being called from handlers.
 6. **Repositories and specifications** are interfaces in Domain or Application, implemented in Infrastructure. No `DbContext` or EF type in Domain.
-7. **Anemic models are debt.** New code does not add a setter-only entity with the logic elsewhere. Existing ones move over slice by slice (the DDD roadmap lists the order).
+7. **Anemic models are debt.** New code does not add a setter-only entity with the logic elsewhere. Existing ones move over slice by slice ([the DDD roadmap](../architecture/ddd-roadmap.md) lists the order).
 
 ## Guards
 
