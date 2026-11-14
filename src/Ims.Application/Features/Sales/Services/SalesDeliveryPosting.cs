@@ -43,7 +43,7 @@ public sealed class SalesDeliveryPosting(IReadRepository<SalesOrder> orders, IRe
     {
         if (state is not SalesLinkedPosting { FullyDelivered: true, Order: var order }) return;
         var before = order.Status;
-        order.CloseDelivered(current.UserId, document.PostedAt ?? clock.UtcNow); // the same moment as the posting itself
+        order.CloseDelivered(current.UserId, document.No, document.PostedAt ?? clock.UtcNow); // the same moment as the posting itself
         audit.Record(AuditActions.SalesOrderClosed, AuditEntities.SalesOrder, order.No, new { Status = before },
             new { order.Status, order.CloseKind, Delivery = document.No });
     }

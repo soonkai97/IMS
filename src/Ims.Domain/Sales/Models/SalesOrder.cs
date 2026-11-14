@@ -5,7 +5,11 @@ namespace Ims.Domain;
 /// movements report. PL3.2 built the Draft (create, replace header and lines, read); PL3.3 adds the workflow of the two approval tiers: Draft -> Submitted -> Approved (or straight to
 /// Approved when no rule fires), Submitted -> Draft by a rejection or a recall, and Draft, Submitted or Approved -> Cancelled. Closing and the deliveries come with PL3.5 to PL3.7. Totals are computed from the lines, never stored.
 /// </summary>
-public sealed class SalesOrder : PublicEntity
+/// <remarks>
+/// It is the first aggregate root (<see cref="AggregateRoot"/>): every change that the audit trail records raises one event once the change is made, carrying what the audit row prints (<c>Sales/Events</c>);
+/// a refused change raises nothing. Nobody listens yet. The edit of a Draft is two calls (<see cref="UpdateHeader"/>, then <see cref="ReplaceLines"/>) and one audit row, so it is one event, raised by the second.
+/// </remarks>
+public sealed class SalesOrder : AggregateRoot
 {
     private SalesOrder() { }
 
@@ -37,6 +41,9 @@ public sealed class SalesOrder : PublicEntity
     public string? CloseReason { get; private set; }
 
     private readonly List<SalesOrderLine> _lines = [];
+
+    /// <summary>The summary before <see cref="UpdateHeader"/> changed the header, kept until <see cref="ReplaceLines"/> completes the edit and raises <see cref="SalesOrderUpdated"/> with it. Not a column.</summary>
+    private SalesOrderSummary? _summaryBeforeEdit;
 
     /// <summary>Read-only view: lines change only through <see cref="ReplaceLines"/>, and only while the order is a Draft.</summary>
     public IReadOnlyList<SalesOrderLine> Lines => _lines;
@@ -82,6 +89,7 @@ public sealed class SalesOrder : PublicEntity
     {
         EnsureEditable();
         customer.EnsureUsableFor(DocumentType.Issue);
+        _summaryBeforeEdit ??= Summary();
         Customer = customer;
         CustomerId = customer.Id;
         Remark = remark;
@@ -94,10 +102,17 @@ public sealed class SalesOrder : PublicEntity
         var replacement = lines.ToList();
         if (replacement.Count == 0) throw new DomainException(Messages.AddLine);
         if (replacement.Count > Limits.MaxDocumentLines) throw new DomainException(Messages.TooManyLines(Limits.MaxDocumentLines));
+        var isNew = _lines.Count == 0; // a Draft always has lines once it is created, so no lines yet means the create is being completed
+        var before = _summaryBeforeEdit ?? Summary();
         for (var i = 0; i < replacement.Count; i++) replacement[i].Number(i + 1);
         _lines.Clear();
         _lines.AddRange(replacement);
+        _summaryBeforeEdit = null;
+        Raise(isNew ? new SalesOrderCreated(No, Summary()) : new SalesOrderUpdated(No, before, Summary()));
     }
+
+    /// <summary>What the audit row of a create or an update prints about the order.</summary>
+    private SalesOrderSummary Summary() => new(Status, WarehouseId, CustomerId, _lines.Count, Money.Rounded(TotalSellingAmount));
 
     public void EnsureEditable()
     {
@@ -129,6 +144,7 @@ public sealed class SalesOrder : PublicEntity
         if (Lines.Where(l => l.SellingPrice <= 0).Select(l => l.LineNo).ToList() is { Count: > 0 } unpriced)
             throw new DomainException(Messages.SalesOrderLinesNeedPrice(unpriced));
 
+        var before = Status;
         SubmittedBy = userId;
         SubmittedAt = utcNow;
         RequiresApproval = requiresApproval;
@@ -138,6 +154,7 @@ public sealed class SalesOrder : PublicEntity
         RejectedAt = null;
         Status = requiresApproval ? SalesOrderStatus.Submitted : SalesOrderStatus.Approved;
         if (!requiresApproval) ApprovedAt = utcNow;
+        Raise(new SalesOrderSubmitted(No, before, Status, RequiresApproval, IsLarge, Money.Rounded(TotalSellingAmount)));
     }
 
     /// <summary>Approves a Submitted order; not by the person who submitted it unless self-approval is allowed (BR-07). Who may is <see cref="SalesOrderActionPolicy"/>.</summary>
@@ -147,9 +164,11 @@ public sealed class SalesOrder : PublicEntity
             throw new DomainException(Messages.SalesOrderOnlySubmittedCanApprove(Status));
         BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, allowSelfApproval, Messages.SalesOrderSelfApproval));
 
+        var before = Status;
         Status = SalesOrderStatus.Approved;
         ApprovedBy = userId;
         ApprovedAt = utcNow;
+        Raise(new SalesOrderApproved(No, before, Status, IsLarge));
     }
 
     /// <summary>Returns a Submitted order to Draft with the (trimmed) reason and who returned it. A review like approving: not by the submitter unless self-approval is allowed.</summary>
@@ -161,11 +180,14 @@ public sealed class SalesOrder : PublicEntity
         BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
         BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, allowSelfApproval, Messages.SalesOrderSelfRejection));
 
+        var before = Status;
+        var trimmed = reason.Trim();
         Status = SalesOrderStatus.Draft;
-        RejectionReason = reason.Trim();
+        RejectionReason = trimmed;
         RejectedBy = userId;
         RejectedAt = utcNow;
         ClearSubmission();
+        Raise(new SalesOrderRejected(No, before, Status, trimmed));
     }
 
     /// <summary>Takes a Submitted order back to Draft so its submitter can fix it. Nothing was approved, so there is nothing to void; it is not a rejection (no reason is kept).</summary>
@@ -174,8 +196,11 @@ public sealed class SalesOrder : PublicEntity
         if (Status != SalesOrderStatus.Submitted)
             throw new DomainException(Messages.SalesOrderOnlySubmittedCanRecall(No, Status));
 
+        var before = Status;
+        var requiredApproval = RequiresApproval;
         Status = SalesOrderStatus.Draft;
         ClearSubmission();
+        Raise(new SalesOrderRecalled(No, before, requiredApproval, Status));
     }
 
     /// <summary>
@@ -192,19 +217,21 @@ public sealed class SalesOrder : PublicEntity
             BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
         }
         if (Status == SalesOrderStatus.Draft && byAnotherUser) BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.CancelOthersDraftReasonRequired, Limits.ReasonMinLength)); // a holder of modules.manage clearing a departed creator draft says why
+        var before = Status;
         Status = SalesOrderStatus.Cancelled;
         CancelReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        Raise(new SalesOrderCancelled(No, before, Status, CancelReason));
     }
 
     /// <summary>
     /// Closes an Approved order because every line is fully delivered (plan D7): called by posting, in the same transaction as the delivery that took out the last quantity. The poster is recorded;
-    /// there is no reason to give. A reversal of a delivery later never reopens it.
+    /// there is no reason to give. A reversal of a delivery later never reopens it. The delivery is named because the audit row of this close prints it.
     /// </summary>
-    public void CloseDelivered(int userId, DateTime utcNow)
+    public void CloseDelivered(int userId, string deliveryNo, DateTime utcNow)
     {
         if (Status != SalesOrderStatus.Approved)
             throw new DomainException(Messages.SalesOrderCannotClose(Status));
-        MarkClosed(SalesOrderCloseKind.Delivered, null, userId, utcNow);
+        MarkClosed(SalesOrderCloseKind.Delivered, null, deliveryNo, userId, utcNow);
     }
 
     /// <summary>Closes an Approved order short: what is still to go out will not go. It needs a reason (at least <see cref="Limits.ReasonMinLength"/> characters once trimmed). Deliveries already posted stay; the handler refuses while one is still open.</summary>
@@ -214,16 +241,18 @@ public sealed class SalesOrder : PublicEntity
             throw new DomainException(Messages.SalesOrderCannotClose(Status));
         BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.SalesOrderCloseReasonRequired));
         BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
-        MarkClosed(SalesOrderCloseKind.Short, reason!.Trim(), userId, utcNow);
+        MarkClosed(SalesOrderCloseKind.Short, reason!.Trim(), null, userId, utcNow);
     }
 
-    private void MarkClosed(SalesOrderCloseKind kind, string? reason, int userId, DateTime utcNow)
+    private void MarkClosed(SalesOrderCloseKind kind, string? reason, string? deliveryNo, int userId, DateTime utcNow)
     {
+        var before = Status;
         Status = SalesOrderStatus.Closed;
         CloseKind = kind;
         CloseReason = reason;
         ClosedBy = userId;
         ClosedAt = utcNow;
+        Raise(new SalesOrderClosed(No, before, Status, kind, reason, deliveryNo));
     }
 
     /// <summary>The submit-time facts no longer describe a Draft; submitting again assesses the rules from scratch.</summary>
