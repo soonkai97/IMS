@@ -185,7 +185,7 @@ public class MoneyTests
         Assert.True(small < big);
         Assert.True(big > small);
         Assert.True(small <= Money.Rounded(1m));
-        Assert.True(big >= big);
+        Assert.True(big >= Money.Rounded(1.01m));
         Assert.True(small.CompareTo(big) < 0);
         Assert.Equal(0, small.CompareTo(Money.Rounded(1.0m)));
         Assert.Equal(new[] { small, big }, new[] { big, small }.Order().ToArray());

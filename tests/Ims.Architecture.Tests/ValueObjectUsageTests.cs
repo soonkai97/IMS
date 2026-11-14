@@ -17,9 +17,9 @@ public class ValueObjectUsageTests
 {
     /// <summary>
     /// The public Domain members (outside the value objects themselves) that still take or return a <c>decimal</c> named like money, quantity, cost, price, amount, threshold or factor.
-    /// Counted on the code of DDD-02. It may only fall: lower it in the slice that moves a signature to a value object, and never raise it (take the value object instead).
+    /// Counted on the code of DDD-02 (80 on main before it: the static Money.Amount and Money.RoundUnitPrice left the count when Money became a value object). It may only fall: lower it in the slice that moves a signature to a value object, and never raise it (take the value object instead).
     /// </summary>
-    private const int PrimitiveBaseline = 80;
+    private const int PrimitiveBaseline = 78;
 
     // ---- ValueObjectsStayOffTheWire, over the real source ----
 
