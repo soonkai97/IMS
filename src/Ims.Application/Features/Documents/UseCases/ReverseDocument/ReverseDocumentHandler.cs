@@ -21,7 +21,7 @@ public sealed class ReverseDocumentHandler(IRepository<StockDocument> documents,
             // A Posted sale issue or receipt may have been returned: the goods came back (or went out) against it, so it cannot be reversed under its Posted returns. The check runs under the document's own ret lock,
             // which posting a return of it takes first, so a return posted at the same moment is either seen here or waits and finds the original Reversed. Only the documents that can be returned ask (a return is
             // never returned; an issue for Use or Scrap is not returnable), and nothing here reads a module switch: the filtered index holds no row for a document nobody returned.
-            else if (doc.Status == DocumentStatus.Posted && (doc.Type == DocumentType.Receipt || doc.Purpose == IssuePurpose.Sale))
+            else if (doc.CanBeReturned)
             {
                 await locker.LockReturnOriginAsync(doc.Id, ct);
                 if (await documents.AnyAsync(new PostedReturnsOfSpec(doc.Id), ct)) throw new ConflictException(Messages.ReverseHasReturns(doc.No));
