@@ -111,6 +111,21 @@ public sealed class StockDocument : PublicEntity
     /// <summary>True for a customer return or a supplier return (see <see cref="ReturnOfDocumentId"/>). Not to be confused with <see cref="IsReturned"/>, a Draft a reviewer sent back.</summary>
     public bool IsReturn => ReturnOfDocumentId is not null;
 
+    /// <summary>
+    /// True for a Posted receipt, or a Posted issue for a sale, that is not itself a return: the goods can come back (or go back out) against it. An issue for use or scrap, a return, and a document
+    /// that is not Posted (Draft, Submitted, Approved, Reversed, Cancelled) cannot. What <see cref="CreateReturn"/> accepts, and what a reversal asks before it looks for the returns of this document.
+    /// </summary>
+    public bool CanBeReturned => Status == DocumentStatus.Posted && !IsReturn && IsOfAReturnableKind;
+
+    /// <summary>A receipt (it goes back to its supplier) or an issue for a sale (it comes back from its customer); an issue for use or scrap has nothing to give back.</summary>
+    private bool IsOfAReturnableKind => Type == DocumentType.Receipt || Purpose == IssuePurpose.Sale;
+
+    /// <summary>
+    /// BR-07 for a stock document: the person who submitted it may review it (approve or reject) only when the customer allows self-approval, and never when it is a return, whatever the setting says.
+    /// </summary>
+    /// <param name="allowSelfApproval">The setting as it is stored.</param>
+    public bool AllowsSelfReview(bool allowSelfApproval) => allowSelfApproval && !IsReturn;
+
     /// <summary>True for a receipt created from a purchase order or a delivery created from a sales order: its lines must name the order's lines, and its partner and warehouse are the order's.</summary>
     public bool IsLinked => Link.IsLinked;
 
@@ -174,9 +189,8 @@ public sealed class StockDocument : PublicEntity
     {
         if (original.Status != DocumentStatus.Posted) throw new DomainException(Messages.ReturnOriginalNotPosted(original.No, original.Status));
         if (original.IsReturn) throw new DomainException(Messages.ReturnOfAReturn(original.No));
-        var customerReturn = original.Type == DocumentType.Issue && original.Purpose == IssuePurpose.Sale;
-        var supplierReturn = original.Type == DocumentType.Receipt;
-        if (!customerReturn && !supplierReturn) throw new DomainException(Messages.ReturnOriginalNotReturnable(original.No));
+        if (!original.IsOfAReturnableKind) throw new DomainException(Messages.ReturnOriginalNotReturnable(original.No));
+        var customerReturn = original.Type == DocumentType.Issue; // a returnable issue is an issue for a sale
         original.Warehouse.EnsureUsable();
 
         return new StockDocument
@@ -292,7 +306,7 @@ public sealed class StockDocument : PublicEntity
             throw new DomainException(Messages.OnlySubmittedCanApprove(Status));
         if (!RequiresApproval)
             throw new DomainException(Messages.ApprovalNotNeeded);
-        BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, allowSelfApproval, Messages.SelfApproval));
+        BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, AllowsSelfReview(allowSelfApproval), Messages.SelfApproval));
         if (RequiresOverride)
         {
             overrideReason = Reason.Required(overrideReason, Messages.OverrideReasonRequired).Text;
@@ -313,7 +327,7 @@ public sealed class StockDocument : PublicEntity
         if (Status != DocumentStatus.Submitted)
             throw new DomainException(Messages.OnlySubmittedCanReject(Status));
         var why = Reason.Required(reason, Messages.RejectReasonRequired);
-        BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, allowSelfApproval, Messages.SelfRejection));
+        BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, AllowsSelfReview(allowSelfApproval), Messages.SelfRejection));
 
         Status = DocumentStatus.Draft;
         RejectionReason = why.Text;

@@ -14,7 +14,7 @@ public sealed class ApproveDocumentHandler(IRepository<StockDocument> documents,
         if (await approvals.ReviewRefusalAsync(doc.Type, doc.IsLarge, doc.TotalQty, doc.TotalAmount, ct, doc.IsReturn) is { } refusal)
             throw new ForbiddenException(refusal);
 
-        doc.Approve(current.UserId, (await settings.GetAsync(ct)).AllowSelfApproval && !doc.IsReturn, clock.UtcNow, cmd.Data.NegativeStockOverrideReason);
+        doc.Approve(current.UserId, (await settings.GetAsync(ct)).AllowSelfApproval, clock.UtcNow, cmd.Data.NegativeStockOverrideReason);
         audit.Record(AuditActions.DocumentApproved, AuditEntities.StockDocument, doc.No, new { Status = DocumentStatus.Submitted }, new { doc.Status, doc.NegativeStockOverrideReason });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);

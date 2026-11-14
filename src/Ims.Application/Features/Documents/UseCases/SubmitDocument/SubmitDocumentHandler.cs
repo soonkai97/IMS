@@ -20,19 +20,14 @@ public sealed class SubmitDocumentHandler(IRepository<StockDocument> documents, 
 
         // Submission is blocked up front when stock is short, unless negative stock is allowed (OUT-02); then the shortfall is flagged
         // so it is sent to an approver, who gives the override reason when approving.
-        var requiresOverride = false;
-        if (doc.Type == DocumentType.Issue)
-        {
-            if ((await settings.GetAsync(ct)).AllowNegativeStock) requiresOverride = await availability.IsShortAsync(doc, ct);
-            else await availability.EnsureAvailableAsync(doc, ct);
-        }
+        var requiresOverride = StockAvailabilityPolicy.Covers(doc) && await availability.RequiresOverrideAsync(doc, (await settings.GetAsync(ct)).AllowNegativeStock, ct);
 
         // An issue is valued at the average cost of this moment; that value is what the rules are tested against and what the approver sees.
         await valuation.EstimateAsync(doc, ct);
         var assessment = await approvals.AssessAsync(doc, ct);
         var before = doc.Status;
         // An override always goes to an approver: the approver is the one who gives the reason, whatever the value thresholds say.
-        doc.Submit(current.UserId, assessment.Required || requiresOverride, clock.UtcNow, assessment.IsLarge, requiresOverride);
+        doc.Submit(current.UserId, StockAvailabilityPolicy.RequiresApproval(assessment.Required, requiresOverride), clock.UtcNow, assessment.IsLarge, requiresOverride);
         audit.Record(AuditActions.DocumentSubmitted, AuditEntities.StockDocument, doc.No, new { Status = before },
             new Dictionary<string, object?>
             {

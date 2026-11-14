@@ -16,7 +16,7 @@ public sealed class RejectDocumentHandler(IRepository<StockDocument> documents, 
             throw new ForbiddenException(refusal);
 
         var statusBefore = doc.Status;
-        doc.Reject(cmd.Data.Reason, current.UserId, (await settings.GetAsync(ct)).AllowSelfApproval && !doc.IsReturn, clock.UtcNow); // a return is never self-approved or self-rejected
+        doc.Reject(cmd.Data.Reason, current.UserId, (await settings.GetAsync(ct)).AllowSelfApproval, clock.UtcNow); // the domain refuses self-review of a return whatever the setting says
         audit.Record(AuditActions.DocumentRejected, AuditEntities.StockDocument, doc.No, new { Status = statusBefore }, new { doc.Status, Reason = doc.RejectionReason });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);
