@@ -12,7 +12,7 @@ RUN dotnet restore src/Ims.Api/Ims.Api.csproj
 COPY src/ src/
 RUN dotnet publish src/Ims.Api/Ims.Api.csproj -c Release -o /app --no-restore
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS runtime
 WORKDIR /app
 COPY --from=build /app .
 # Non-root user. Writable folders owned by that user: logs, the physical file storage (mount a volume on /app/storage) and the
