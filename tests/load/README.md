@@ -47,8 +47,20 @@ A threshold that is crossed makes k6 exit non-zero and print `thresholds on metr
 | `post-burst.js` | 50 VUs post on the same 5 hot products at the same moment | `ITERATIONS` 3 |
 | `ramp.js` / `spike.js` | 10 to 200 VUs over about 5.5 minutes / jump to 300 VUs and recover | none |
 | `soak.js` | 50 VUs, mixed, 10 minutes (start the API with `Jwt__AccessMinutes=30`, keep `DURATION` at 25m or less) | `VUS` 50, `DURATION` 10m |
+| `sales-read.js` | PL3 reads: sales-order list (status, customer, warehouse, search, cursor), sales-order detail, price lookup `GET /api/price-lists/lookup` (40 %) | `VUS` 30, `DURATION` 2m |
+| `sales-write.js` | PL3 flow: create sales order, submit, approve (about 12 %: a rule fires from RM 5,000 for a Supervisor, RM 20,000 for the Owner), create delivery from the order, submit, approve, post | `VUS` 15, `DURATION` 2m |
+| `returns-reversal.js` | PL3: 50 % customer return (issue, post, `POST /api/returns`, submit, post), 50 % reversal (receipt, post, reverse) | `VUS` 10, `DURATION` 2m |
+| `pl3-mixed.js` | PL3 mixed: 35 % sales reads, 25 % the base reads, 20 % sales flow, 12 % return, 8 % reversal | `VUS` 40, `DURATION` 3m |
 
 Other knobs: `WAREHOUSES` (5), `HOT_PRODUCTS` (5), `DEBUG=1` prints the first failing responses.
+
+**The PL3 scenarios** (`pl3.js` holds their helpers) need the sales and returns modules ON. `setup()` switches `purchasing`, `sales` and `returns` on through
+`PUT /api/modules/{code}` as the admin (`SWITCH_MODULES=0` only checks that they are on), creates one default price list and `PRICE_LISTS` (10) customer lists of
+150 prices (skipped when lists named `k6 ...` exist) and tops the database up to `SO_SEED` (150) sales orders for the list and detail reads. That is a write to the
+database, which is why every scenario here is for the throw-away `Ims_Perf` database only. The sales-order approval rules exist from the migration `AddSalesOrderApprovalRules`.
+Flows that need an approval stay in the main warehouse (self-approval is off and the admin is the only reviewer who sees the others). The summary JSON of every scenario now
+carries `by_name` (P50/P95/P99 per request name) and, for the PL3 flows, `flows_by_kind`: k6 keeps a sub-metric per name only when a threshold lists it, so
+`scenarios.js` and `pl3.js` list every name with a threshold that cannot fail (`max>=0`).
 
 Ids are opaque public ids (GUIDs) and cursors are encrypted, so the scripts never compute one. `setup()` reads real ones from the API and
 hands them to every VU: the warehouses (the main one is the one the demo staff user is assigned to), the categories, about 450 products
