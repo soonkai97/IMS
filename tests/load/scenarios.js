@@ -48,6 +48,13 @@ export const THRESHOLDS = {
   http_504: ['count==0'],
   http_409: ['count==0'],
 };
+// k6 keeps a duration sub-metric per request name only when a threshold names it: these ones cannot fail ('max>=0') and exist so that the summary JSON
+// (summaryTo, by_name) carries P50/P95/P99 per endpoint, which is what shows WHICH endpoint is slow in a mixed run.
+for (const n of ['stock', 'stock?warehouse', 'stock?search sku', 'stock?search name', 'stock?lowOnly', 'stock?category', 'stock?product',
+  'ledger?product', 'ledger?product+wh', 'ledger?p1', 'ledger?cursor', 'documents', 'documents?type+status', 'documents?wh+type', 'documents?cursor', 'documents?draft',
+  'documents/{id}', 'products?search sku', 'products?search name', 'products/lookup', 'low-stock', 'summary', 'doc.create', 'doc.submit', 'doc.approve', 'doc.post']) {
+  THRESHOLDS[`http_req_duration{name:${n}}`] = ['max>=0'];
+}
 
 // --- setup: login once, discover ids -----------------------------------------------------------------------------
 function login(username, password) {
@@ -308,11 +315,14 @@ export function summaryTo(name) {
       c5xx: val('http_5xx', 'count') || 0, c504: val('http_504', 'count') || 0, c409: val('http_409', 'count') || 0, c401: val('http_401', 'count') || 0,
       c4xx_other: val('http_4xx_other', 'count') || 0,
       thresholds: Object.fromEntries(Object.entries(m).filter(([, v]) => v.thresholds).map(([k, v]) => [k, Object.fromEntries(Object.entries(v.thresholds).map(([t, r]) => [t, r.ok]))])),
-      by_name: {},
+      by_name: {},         // per request name: only the names that a threshold lists exist as sub-metrics (pl3.js lists its own)
+      flows_by_kind: {},
     };
     for (const [k, v] of Object.entries(m)) {
       const mt = k.match(/^http_req_duration\{name:(.+)\}$/);
-      if (mt) compact.by_name[mt[1]] = { n: v.values.count, p50: v.values.med, p95: v.values['p(95)'], max: v.values.max };
+      if (mt) compact.by_name[mt[1]] = { n: v.values.count, p50: v.values.med, p95: v.values['p(95)'], p99: v.values['p(99)'], max: v.values.max };
+      const fk = k.match(/^pl3_flow_duration\{flow:(.+)\}$/);   // the PL3 flows (tests/load/pl3.js)
+      if (fk) compact.flows_by_kind[fk[1]] = { ok: v.values.count, p50: v.values.med, p95: v.values['p(95)'], p99: v.values['p(99)'], max: v.values.max };
     }
     return { [`${dir}/${name}.json`]: JSON.stringify(compact, null, 2), stdout: textLine(compact) };
   };
