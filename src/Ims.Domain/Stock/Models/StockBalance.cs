@@ -34,13 +34,9 @@ public sealed class StockBalance : AuditableEntity
     public void Receive(decimal qty, decimal unitCost, int? sourceLineId = null)
     {
         if (qty <= 0) throw new DomainException(Messages.ReceiveQtyPositive);
-        var newQty = QtyOnHand + qty;
-        // While stock is zero or negative the old average is meaningless, so the new cost wins. Stock that comes in at the average itself
-        // (the return of an issue) leaves it exactly as it is, instead of deriving it again and drifting in the last place.
-        AvgCost = QtyOnHand <= 0 || newQty <= 0 ? unitCost
-            : unitCost == AvgCost ? AvgCost
-            : Math.Round((QtyOnHand * AvgCost + qty * unitCost) / newQty, Limits.CostDecimals, Limits.CostRounding);
-        QtyOnHand = newQty;
+        // BR-05: the moving average is the one rule of UnitCost.Blend (an empty or negative stock takes the new cost, stock coming in at the average leaves it); the balance still stores decimals.
+        AvgCost = UnitCost.Blend(Quantity.Signed(QtyOnHand), UnitCost.Of(AvgCost), Quantity.Positive(qty, Messages.ReceiveQtyPositive), UnitCost.Of(unitCost)).Value;
+        QtyOnHand += qty;
         LastReceiptLineId = sourceLineId is > 0 ? sourceLineId : null;
     }
 

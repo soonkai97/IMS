@@ -23,7 +23,6 @@ public sealed class UomConversion : Entity
 
     public void ChangeFactor(decimal factor)
     {
-        if (factor <= 0) throw new DomainException(Messages.ConversionFactorInvalid);
-        Factor = factor;
+        Factor = ConversionFactor.Of(factor).Value; // above zero, else ConversionFactorInvalid; the column still holds a decimal
     }
 }
