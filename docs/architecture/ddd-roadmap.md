@@ -224,7 +224,7 @@ Rules that make it safe:
 
 ### 2.7 How value objects reach the entities (two levels)
 
-An EF value converter alone cannot carry a value object onto a column that SQL adds up, multiplies, searches or sorts, and the stock and sales queries do that. Sites found: `d.Lines.Sum(l => l.BaseQty)` and `Sum(l => l.Amount)` (`DocumentDtoSpec.cs:24`, `DocumentsPageSpec.cs:22`, `PurchaseOrderDtoSpec.cs:16`, `PurchaseOrdersPageSpec.cs:19`, `SalesOrderDtoSpec.cs:16`, `SalesOrdersPageSpec.cs:19`), the three delivered, received and returned readers (`Ef*QuantityReader.cs:14`), `Math.Round(b.QtyOnHand * b.AvgCost, Money.Decimals)` (`EfStockSummaryReader.cs:18`), `ReorderQuery.cs:48,54`. The PL3 timings in `docs/dba/README.md` section 19 depend on those plans.
+An EF value converter alone cannot carry a value object onto a column that SQL adds up, multiplies, searches or sorts, and the stock and sales queries do that. Sites found: `d.Lines.Sum(l => l.BaseQty)` and `Sum(l => l.Amount)` (`DocumentDtoSpec.cs:24`, `DocumentsPageSpec.cs:22`, `PurchaseOrderDtoSpec.cs:16`, `PurchaseOrdersPageSpec.cs:19`, `SalesOrderDtoSpec.cs:16`, `SalesOrdersPageSpec.cs:19`), the delivered, received and returned readers (`EfDeliveredQuantityReader.cs:20`, `EfReturnedQuantityReader.cs:20`, `EfReceivedQuantityReader.cs:14`; PR 267 pinned the first two with `QuantityReaderPlanTests`, the pattern DDD-18 and DDD-20 reuse), `Math.Round(b.QtyOnHand * b.AvgCost, Money.Decimals)` (`EfStockSummaryReader.cs:18`), `ReorderQuery.cs:48,54`. The PL3 timings in `docs/dba/README.md` section 19 depend on those plans.
 
 So adoption has two levels:
 
@@ -404,5 +404,5 @@ Not a decision but a cost to plan for: DDD-11 to DDD-17, DDD-21 and DDD-22 need 
 - Every claim about code is a reading of `origin/main` at `9396d68` (file and line cited). Line numbers drift with the next merge; the slice author re-greps.
 - EF behaviour (a converter cannot translate `Sum`, member access or `Contains` on the converted property; an EF 10 complex type can; a converter leaves the snapshot unchanged) is stated from knowledge of EF Core, not proved here. DDD-18 exists to prove it before anything depends on it.
 - Slice sizes are estimates from the number of call sites and the size of the files named, not measured.
-- `docs/team/ENGINEERING-PRACTICES.md` was read from the branch of PR #268; it may change before merge.
+- `docs/team/ENGINEERING-PRACTICES.md` was read from PR #268 and again after it merged (this branch merges main).
 - Test counts are attribute counts (`[Fact]`, `[Theory]`), so they differ from the counts in `TASKS.md` T18, which were stated in PR reports.
