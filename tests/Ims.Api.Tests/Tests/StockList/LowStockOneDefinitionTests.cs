@@ -27,17 +27,6 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         }
     }
 
-    private static async Task<List<LowStockAlert>> AlertsAsync(ApiClient who, Guid? warehouseId)
-    {
-        var rows = new List<LowStockAlert>();
-        for (var page = 1; ; page++)
-        {
-            var result = (await who.GetAsync($"/api/stock/low-stock?page={page}&pageSize=500" + (warehouseId is null ? "" : $"&warehouseId={warehouseId}"))).Data<PagedResult<LowStockAlert>>();
-            rows.AddRange(result.Items);
-            if (rows.Count >= result.Total || result.Items.Count == 0) return rows;
-        }
-    }
-
     private static HashSet<(Guid Product, Guid? Warehouse)> Keys(IEnumerable<StockRow> rows) => rows.Select(r => (r.ProductId, r.WarehouseId)).ToHashSet();
     private static HashSet<(Guid Product, Guid? Warehouse)> Keys(IEnumerable<LowStockAlert> rows) => rows.Select(r => (r.ProductId, r.WarehouseId)).ToHashSet();
 
@@ -80,7 +69,7 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         var (s, k) = await SetUpAsync();
 
         var stockLow = await StockRowsAsync(s.Admin, $"lowOnly=true&warehouseId={k.Warehouse.Id}");
-        var alerts = await AlertsAsync(s.Admin, k.Warehouse.Id);
+        var alerts = await LowStockPages.ReadAsync(s.Admin, k.Warehouse.Id);
 
         Assert.Equal(Keys(alerts), Keys(stockLow));
         Assert.Equal(alerts.Count, stockLow.Count);
@@ -92,7 +81,7 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
 
         var everywhere = await StockRowsAsync(s.Admin, $"lowOnly=true&productId={k.Never}");
         Assert.Equal((k.Never, (Guid?)null), Assert.Single(Keys(everywhere))); // listed ONCE, with no warehouse
-        Assert.Contains((k.Never, (Guid?)null), Keys(await AlertsAsync(s.Admin, null)));
+        Assert.Contains((k.Never, (Guid?)null), Keys(await LowStockPages.ReadAsync(s.Admin, null)));
     }
 
     [Fact]
@@ -190,7 +179,7 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         var (s, k) = await SetUpAsync();
 
         var rows = await StockRowsAsync(s.Admin, $"warehouseId={k.Warehouse.Id}");
-        var alerts = Keys(await AlertsAsync(s.Admin, k.Warehouse.Id));
+        var alerts = Keys(await LowStockPages.ReadAsync(s.Admin, k.Warehouse.Id));
 
         Assert.All(rows, r => Assert.Equal(alerts.Contains((r.ProductId, r.WarehouseId)), r.IsLow));
         Assert.True(rows.Single(r => r.ProductId == k.Low).IsLow);
@@ -211,7 +200,7 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
 
         Assert.All(theirs, r => Assert.NotEqual(k.Warehouse.Id, r.WarehouseId));
         Assert.Empty(other);
-        Assert.Equal(Keys(await AlertsAsync(s.Staff, null)), Keys(theirs));
+        Assert.Equal(Keys(await LowStockPages.ReadAsync(s.Staff, null)), Keys(theirs));
     }
 
     // ----- PR-10: worst first, by share of the safety level -----
@@ -227,7 +216,7 @@ public class LowStockOneDefinitionTests(ApiFixture fixture)
         await s.ReceiveAsync(warehouse.Id, new Line(half.Id, 50, 1m), new Line(most.Id, 4, 1m), new Line(negative.Id, 2, 1m));
         await GoBelowZeroAsync(s, warehouse.Id, new Line(negative.Id, 5));
 
-        var order = (await AlertsAsync(s.Admin, null)).Select(a => a.ProductId).Where(id => new[] { half.Id, most.Id, never.Id, negative.Id }.Contains(id)).ToList();
+        var order = (await LowStockPages.ReadAsync(s.Admin, null)).Select(a => a.ProductId).Where(id => new[] { half.Id, most.Id, never.Id, negative.Id }.Contains(id)).ToList();
 
         Assert.Equal([negative.Id, never.Id, most.Id, half.Id], order);
     }

@@ -15,18 +15,18 @@ sizes or radii in component styles.**
 }
 ```
 
-| Function / mixin                                                                                                         | Examples                                                                                    |
-| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `color('name')`                                                                                                          | `surface`, `text`, `text-muted`, `border`, `accent`, `danger`. A CSS variable (light/dark)  |
-| `space(0..9)`                                                                                                            | 4px, 8px, 16px, 24px ... (8px grid); `space(1.5)` is 12px                                   |
-| `font-size(1..6)`, `font-weight('medium')`, `font-family('sans')`                                                        | 16px body is `font-size(3)` (inputs must stay >= 16px)                                      |
-| `border-radius('sm' \| 'md' \| 'lg' \| 'sheet' \| 'pill')`                                                               | 6, 8, 12, 16 (sheet top corners), pill                                                      |
-| `border-width('thin' \| 'thick' \| 'ring' \| 'edge')`                                                                    | 1, 2, 2 (focus ring), 3 (accent edge of banner, toast, line). `'focus'` is the old `'edge'` |
-| `shadow(1 \| 2 \| 3)`                                                                                                    | `--ims-shadow-n`, per theme: 1 sticky bars, 2 menus and toasts, 3 dialogs and sheets        |
-| `height('touch' \| 'touch-min' \| 'bar' \| 'tabbar')`                                                                    | touch = 48px, touch-min = 44px; `width('nav' \| 'dialog' ...)`, `z-index('nav' \| 'toast')` |
-| `duration('fast' \| 'base' \| 'slow')`, `easing('standard' \| 'out')`                                                    | motion tokens, see Motion below                                                             |
-| `@include media-phone / media-tablet / media-below-desktop / media-desktop`                                              | breakpoints 600px and 1024px                                                                |
-| `@include focus-ring`, `visually-hidden`, `reset-button`, `control-base`, `truncate-line`, `clamp-lines($n)`, `disabled` |                                                                                             |
+| Function / mixin                                                                                             | Examples                                                                                    |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `color('name')`                                                                                              | `surface`, `text`, `text-muted`, `border`, `accent`, `danger`. A CSS variable (light/dark)  |
+| `space(0..9)`                                                                                                | 4px, 8px, 16px, 24px ... (8px grid); `space(1.5)` is 12px                                   |
+| `font-size(1..6)`, `font-weight('medium')`, `font-family('sans')`                                            | 16px body is `font-size(3)` (inputs must stay >= 16px)                                      |
+| `border-radius('sm' \| 'md' \| 'lg' \| 'sheet' \| 'pill')`                                                   | 6, 8, 12, 16 (sheet top corners), pill                                                      |
+| `border-width('thin' \| 'thick' \| 'ring' \| 'edge')`                                                        | 1, 2, 2 (focus ring), 3 (accent edge of banner, toast, line). `'focus'` is the old `'edge'` |
+| `shadow(1 \| 2 \| 3)`                                                                                        | `--ims-shadow-n`, per theme: 1 sticky bars, 2 menus and toasts, 3 dialogs and sheets        |
+| `height('touch' \| 'touch-min' \| 'bar' \| 'tabbar')`                                                        | touch = 48px, touch-min = 44px; `width('nav' \| 'dialog' ...)`, `z-index('nav' \| 'toast')` |
+| `duration('fast' \| 'base' \| 'slow')`, `easing('standard' \| 'out')`                                        | motion tokens, see Motion below                                                             |
+| `@include media-phone / media-tablet / media-below-desktop / media-desktop`                                  | breakpoints 600px and 1024px                                                                |
+| `@include focus-ring`, `visually-hidden`, `reset-button`, `control-base`, `truncate-line`, `clamp-lines($n)` |                                                                                             |
 
 ## Icons
 

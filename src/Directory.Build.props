@@ -1,5 +1,11 @@
 <Project>
   <PropertyGroup>
+    <!-- Shared by every project under src. TargetFramework stays in each csproj on purpose: the Dockerfile restores from the csproj files alone, before this file is copied. -->
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Warnings are errors here exactly as in CI, so a local build and the CI build agree. The package advisory warnings (NU1901 to NU1904) stay warnings: the dependency audit job decides on those. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
     <!-- Required for the IDE0005 (unused using) analyzer to run in dotnet format and in CI builds. Missing-XML-comment warnings are off. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591;CS1573;CS1572;CS1574</NoWarn>

@@ -1,10 +1,12 @@
-# Runs deploy/scripts/backup.sh with the instance name as its argument: ims-backup@full, ims-backup@log, ims-backup@prune, ims-backup@ship, ims-backup@offsite.
+# Runs deploy/scripts/backup.sh with the instance name as its argument: ims-backup@full, ims-backup@log, ims-backup@prune, ims-backup@ship, ims-backup@offsite, ims-backup@check.
 # Install: copy the .service and .timer files to /etc/systemd/system/, adjust the paths and User below, then
-#   systemctl daemon-reload && systemctl enable --now ims-backup-full.timer ims-backup-log.timer ims-backup-prune.timer ims-backup-ship.timer ims-backup-offsite.timer
+#   systemctl daemon-reload && systemctl enable --now ims-backup-full.timer ims-backup-log.timer ims-backup-prune.timer ims-backup-ship.timer ims-backup-offsite.timer ims-backup-check.timer
+# Also copy ims-backup-alert@.service: OnFailure= below runs it when a job exits non-zero (set BACKUP_ALERT_COMMAND in the env file, see backup.sh).
 [Unit]
 Description=IMS database backup (%i)
 After=docker.service
 Requires=docker.service
+OnFailure=ims-backup-alert@%i.service
 
 [Service]
 Type=oneshot

@@ -6,3 +6,6 @@
 # Off the machine: encrypt and ship new backups every 15 minutes, and the files, keys and env file nightly (needs age and BACKUP_SHIP_COMMAND, see backup.sh).
 5-59/15 * * * * /opt/ims/deploy/scripts/backup.sh ship    >> /var/log/ims-backup.log 2>&1
 30 2 * * *     /opt/ims/deploy/scripts/backup.sh offsite >> /var/log/ims-backup.log 2>&1
+# Watching it (cron has no OnFailure=): hourly disk and unshipped-backup check; it calls BACKUP_ALERT_COMMAND and BACKUP_PING_COMMAND from the env file (see backup.sh).
+# A failing job above only writes to the log (or to cron's mail when MAILTO is set): add MAILTO=you@example.com at the top, or wrap a line: ... || backup.sh alert ship
+20 * * * *     /opt/ims/deploy/scripts/backup.sh check   >> /var/log/ims-backup.log 2>&1

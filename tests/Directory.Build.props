@@ -1,0 +1,21 @@
+<Project>
+  <!-- Shared by the three test projects. Warnings are NOT errors here (a few known test-only warnings exist: nullable overrides in migration tests), and the src code-style rules do not apply. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Ims.Domain.SystemRoleCodes" Alias="Roles" />
+  </ItemGroup>
+</Project>

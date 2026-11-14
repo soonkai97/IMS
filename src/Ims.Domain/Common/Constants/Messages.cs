@@ -200,7 +200,6 @@ public static class Messages
         (lineNos.Count == 1 ? $"Line {lineNos[0]} has no price." : $"Lines {string.Join(", ", lineNos)} have no price.") + " Enter a price above 0 before submitting.";
     public const string PurchaseOrderSelfApproval = "You cannot approve a purchase order you submitted.";
     public const string PurchaseOrderSelfRejection = "You cannot reject a purchase order you submitted.";
-    public const string PurchaseOrderApprovalNotNeeded = "This purchase order does not need approval.";
     public const string PurchaseOrderCancelReasonRequired = "A reason is required to cancel an approved purchase order.";
     public const string PurchaseOrderNeedsPoRead = "Reviewing or cancelling a purchase order needs the permission to read purchase orders.";
     public const string PurchaseOrderNeedsPoManage = "Closing a purchase order needs the permission to manage purchase orders.";
@@ -270,8 +269,6 @@ public static class Messages
     public const string ReturnModuleOff = "Returns are switched off, so this return cannot be edited, submitted or posted. Cancel it, or ask an administrator to turn the Returns module on.";
     public const string ReturnCannotPostModuleOff = "Returns are switched off, so this return cannot be posted. Cancel it, or ask an administrator to turn the Returns module on.";
     public const string ReturnNeedsReturnsCreate = "Editing a return needs the permission to create returns.";
-    public const string ReturnOriginalNotOpen = "The document this return is for can no longer be returned.";
-    public const string ReturnOverRemaining = "This return asks for more than can still be returned.";
     public static string ReturnLineBaseExhausted(int lineNo, string sku) => $"Line {lineNo} ({sku}): nothing is left to return in the unit of stock, because earlier returns have already taken all of it. Leave this line out.";
     public static string ReverseHasReturns(string no) => $"{no} has posted returns, so it cannot be reversed. Reverse the returns first.";
 
@@ -282,7 +279,6 @@ public static class Messages
     public const string DeliveryCustomerLocked = "The customer of a delivery against a sales order is the customer of the order and cannot be changed.";
     public const string DeliveryNotLinked = "This document is not linked to a sales order, so a line cannot name a sales order line. Create the delivery from the sales order instead.";
     public const string DeliveryLineNeedsOrderLine = "Name the sales order line this line delivers (salesOrderLineNo).";
-    public const string DeliveryNotAnIssue = "A sales order line can only be named on a delivery created from that sales order.";
     public static string DeliveryLineUnknownOrderLine(int lineNo, string orderNo) => $"Sales order {orderNo} has no line {lineNo}.";
     public static string DeliveryLineWrongProduct(int lineNo, string sku) => $"Sales order line {lineNo} is for {sku}, not for this product.";
     public static string DeliveryLineWrongUnit(int lineNo, string uomCode) => $"Sales order line {lineNo} is ordered in {uomCode}; deliver it in {uomCode}.";
@@ -351,7 +347,6 @@ public static class Messages
     public const string AttachmentDeleteOnlyDraft = "Files can only be removed while the document is a Draft.";
     public const string AttachmentOnCancelled = "Files cannot be added to a cancelled document.";
     public const string FileNameRequired = "A file name is required.";
-    public const string FileStreamNotSeekable = "The uploaded file could not be read.";
     public static string FileTooLarge(int maxBytes) => $"The file is too large (maximum {maxBytes / (1024 * 1024)} MB).";
     public static string TooManyAttachments(int max) => $"At most {max} files can be attached.";
 

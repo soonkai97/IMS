@@ -44,5 +44,3 @@ export function createChangePasswordForm() {
   );
   return form;
 }
-
-export type ChangePasswordForm = ReturnType<typeof createChangePasswordForm>;
