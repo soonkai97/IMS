@@ -97,4 +97,52 @@ public class ApprovalPolicyTests
     {
         Assert.Equal(expected, ApprovalPolicy.MayReview(With(held), isLarge));
     }
+
+    // ----- ReviewRefusal (DDD-07): the same table as the evaluator's characterization test, asked of the policy -----
+    [Fact]
+    public void ReviewRefusal_EveryCombinationOfRightsTierRulesTypeSizeAndReturn_FollowsTheTable()
+    {
+        var wrong = new List<string>();
+        var count = 0;
+        foreach (var c in ReviewRefusalTable.All())
+        {
+            count++;
+            var actual = ApprovalPolicy.ReviewRefusal(c.Caller.Rights(), c.IsLarge, c.Rules.Rules.Select(r => r.ToEntity()), c.Type, c.Qty, c.Amount, c.IsReturn);
+
+            var expected = ReviewRefusalTable.Expected(c);
+            if (actual.ToString() != expected.ToString()) wrong.Add($"{c}: expected {expected}, got {actual}");
+        }
+
+        Assert.True(count > 5000, $"the table is the whole grid ({count} cases)");
+        Assert.True(wrong.Count == 0, $"{wrong.Count} of {count} differ:{Environment.NewLine}{string.Join(Environment.NewLine, wrong.Take(15))}");
+    }
+
+    [Fact]
+    public void ReviewRefusal_TheRefusalNamesAreTheOnesTheTableUses()
+    {
+        Assert.Equal(Enum.GetNames<ReviewOutcome>(), Enum.GetNames<ReviewRefusalReason>());
+    }
+
+    [Fact]
+    public void ReviewRefusal_RulesNotAskedAbout_AreIgnored()
+    {
+        ApprovalRule[] large = [Rule(ApproverTier.Large, amount: 1m)];
+
+        // routed away: the rules in force do not matter
+        Assert.Equal(ReviewRefusalReason.AboveApprovalLimit, ApprovalPolicy.ReviewRefusal(With(), isLarge: false, large, DocumentType.Receipt, 1m, 500m, isReturn: false));
+        // a return: the rules in force do not apply to it, a standard approver reviews even when a Large rule would fire
+        Assert.Equal(ReviewRefusalReason.None, ApprovalPolicy.ReviewRefusal(With(Permissions.DocumentApprove), isLarge: false, large, DocumentType.Receipt, 1m, 500m, isReturn: true));
+    }
+
+    [Theory]
+    [InlineData(new[] { Permissions.DocumentApprove }, false, false, true)]      // may review a standard document: the rules in force can still refuse
+    [InlineData(new[] { Permissions.DocumentApprove }, false, true, false)]      // a return has no limit
+    [InlineData(new[] { Permissions.DocumentApprove }, true, false, false)]      // routed away by the stored tier
+    [InlineData(new[] { Permissions.DocumentApproveLarge }, false, false, false)]
+    [InlineData(new string[0], true, false, false)]
+    [InlineData(new[] { Permissions.DocumentApprove, Permissions.DocumentApproveLarge }, true, false, true)]
+    public void NeedsRulesInForce_OnlyWhenRoutingLetsThemThroughAndItIsNotAReturn(string[] held, bool isLarge, bool isReturn, bool expected)
+    {
+        Assert.Equal(expected, ApprovalPolicy.NeedsRulesInForce(With(held), isLarge, isReturn));
+    }
 }
