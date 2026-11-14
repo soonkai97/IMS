@@ -2,7 +2,8 @@ namespace Ims.Domain;
 
 /// <summary>
 /// Rejecting, cancelling and reversing must say why (BR-02, OUT-02). A reason is at least <paramref name="minLength"/> characters once
-/// trimmed, so "x" or spaces cannot satisfy the audit trail.
+/// trimmed, so "x" or spaces cannot satisfy the audit trail. The aggregates and the module switch ask the <see cref="Reason"/> value object, which builds on this rule; it stays for the one check that
+/// wants no minimum (<c>IssuePostingStrategy</c>).
 /// </summary>
 public sealed class ReasonRequiredRule(string? reason, string message, int minLength = 1) : IBusinessRule
 {

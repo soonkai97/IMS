@@ -23,7 +23,7 @@ public sealed class SwitchModuleHandler(IRepository<SystemSetting> settings, IRe
         var regaining = 0;
         if (before != wanted)
         {
-            BusinessRules.Ensure(new ReasonRequiredRule(cmd.Data.Reason, Messages.ModuleReasonRequired, Limits.ReasonMinLength));
+            var why = Reason.Of(cmd.Data.Reason, Messages.ModuleReasonRequired);
             var on = await EnabledModulesAsync(ct);
             if (wanted)
             {
@@ -39,7 +39,7 @@ public sealed class SwitchModuleHandler(IRepository<SystemSetting> settings, IRe
             if (row is null) settings.Add(SystemSetting.Create(key, SettingValues.From(wanted)));
             else row.ChangeValue(SettingValues.From(wanted));
             audit.Record(wanted ? AuditActions.ModuleEnabled : AuditActions.ModuleDisabled, AuditEntities.SystemSetting, key,
-                new { Module = module.Code, Enabled = before }, new { Module = module.Code, Enabled = wanted, Reason = cmd.Data.Reason.Trim(), RolesRegainingGrants = regaining });
+                new { Module = module.Code, Enabled = before }, new { Module = module.Code, Enabled = wanted, Reason = why.Text, RolesRegainingGrants = regaining });
             await uow.SaveChangesAsync(ct);
         }
         switches.Invalidate();
