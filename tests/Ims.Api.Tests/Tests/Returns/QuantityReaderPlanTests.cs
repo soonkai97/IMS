@@ -9,7 +9,7 @@ using Ims.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Ims.Api.Tests.Tests.Documents;
+namespace Ims.Api.Tests.Tests.Returns;
 
 /// <summary>
 /// The two sums that say what was already delivered against a sales order and what was already returned of a document (<c>EfDeliveredQuantityReader</c>, <c>EfReturnedQuantityReader</c>) must start from the seek on the
@@ -17,6 +17,8 @@ namespace Ims.Api.Tests.Tests.Documents;
 /// at 1,000,000 documents (docs/dba/README.md section 20). Both statements therefore ask for one plan from the average statistics (<c>DISABLE_PARAMETER_SNIFFING</c>), like the documents list. Plan quality cannot be asserted
 /// in a test without being flaky (the plan depends on the statistics of the moment); what is asserted is that each statement carries the hint, that it is still ONE command, and that the sums are the same as before
 /// (partial deliveries and returns of one original add up, a Draft or another order does not count). The requests go through the real host, so the interceptor registration in <c>AddInfrastructure</c> is what is tested.
+/// It lives with the returns tests on purpose: it leaves linked deliveries and returns in the shared database, and the migration tests (which take that database down a migration)
+/// refuse while any exists, so it clears its links when it ends (and sits with the returns tests, which run after the migration tests).
 /// </summary>
 [Collection(ApiCollection.Name)]
 public class QuantityReaderPlanTests(ApiFixture fixture) : IAsyncLifetime
@@ -33,7 +35,13 @@ public class QuantityReaderPlanTests(ApiFixture fixture) : IAsyncLifetime
         _s = await StockScenario.CreateAsync(fixture);
     }
 
-    public Task DisposeAsync() => Sales.SalesScenario.ResetAsync(fixture);
+    public async Task DisposeAsync()
+    {
+        await Sales.SalesScenario.ResetAsync(fixture);
+        // The migration tests take the shared database down past the link migrations, and those refuse while any document or line carries a link: leave none behind.
+        await fixture.Database.ExecuteAsync("UPDATE StockDocument SET ReturnOfDocumentId = NULL, SalesOrderId = NULL WHERE ReturnOfDocumentId IS NOT NULL OR SalesOrderId IS NOT NULL");
+        await fixture.Database.ExecuteAsync("UPDATE StockDocumentLine SET ReturnOfLineNo = NULL, SalesOrderLineNo = NULL WHERE ReturnOfLineNo IS NOT NULL OR SalesOrderLineNo IS NOT NULL");
+    }
 
     private static DocumentSaveRequest Resave(DocumentDto d, decimal qty) =>
         new(d.WarehouseId, d.PartnerId, d.Purpose, d.Remark, d.Lines.Select(l => new DocumentLineInput(l.ProductId, qty, l.UomId, null, l.Remark, ReturnOfLineNo: l.ReturnOfLineNo)).ToList());
