@@ -11,7 +11,6 @@ public static class UnitConversion
         if (uomId == baseUomId) return qty;
         var c = conversions.FirstOrDefault(x => x.FromUomId == uomId && x.ToUomId == baseUomId)
                 ?? throw new DomainException(Messages.ConversionMissing);
-        if (c.Factor <= 0) throw new DomainException(Messages.ConversionFactorInvalid);
-        return Math.Round(qty * c.Factor, Limits.QuantityScale, MidpointRounding.AwayFromZero);
+        return Quantity.Converted(qty, c.Factor).Value; // the factor must be above zero and the result within the limit: the rules of Quantity
     }
 }
