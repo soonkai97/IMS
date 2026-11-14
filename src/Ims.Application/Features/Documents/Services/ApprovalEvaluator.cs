@@ -23,15 +23,16 @@ public sealed class ApprovalEvaluator(IReadRepository<ApprovalRule> rules, ICurr
 
     public async Task<string?> ReviewRefusalAsync(DocumentType type, bool isLarge, decimal totalQty, decimal totalAmount, CancellationToken ct, bool isReturn = false)
     {
-        // Routing first, by the approval tier the token holds: a large document goes to the large tier, any other to the standard tier (PRD 3.1).
+        // The decision is the Domain's (ApprovalPolicy.ReviewRefusal); this reads the rules in force only when they can change the answer, then maps the reason to its sentence.
         var rights = current.Rights();
-        if (!ApprovalPolicy.MayReview(rights, isLarge))
-            return rights.Has(Permissions.DocumentApproveLarge) && !rights.Has(Permissions.DocumentApprove) ? Messages.OwnerReviewsLargeOnly : Messages.AboveApprovalLimit;
-        if (isReturn) return null; // a return has no limit: the rules in force do not apply to it
-
-        // Then the limit by the rules in force now, which can be stricter than when the document was stored: a rule of the Large tier in force needs the large tier.
-        var active = await rules.ListAsync(new ActiveRulesForTypeSpec(type), ct);
-        return ApprovalPolicy.MayReviewUnderRulesInForce(rights, isLarge, active, type, totalQty, totalAmount) ? null : Messages.AboveApprovalLimit;
+        IReadOnlyList<ApprovalRule> active = ApprovalPolicy.NeedsRulesInForce(rights, isLarge, isReturn) ? await rules.ListAsync(new ActiveRulesForTypeSpec(type), ct) : [];
+        return ApprovalPolicy.ReviewRefusal(rights, isLarge, active, type, totalQty, totalAmount, isReturn) switch
+        {
+            ReviewRefusalReason.None => null,
+            ReviewRefusalReason.OwnerReviewsLargeOnly => Messages.OwnerReviewsLargeOnly,
+            ReviewRefusalReason.AboveApprovalLimit => Messages.AboveApprovalLimit,
+            var unknown => throw new ArgumentOutOfRangeException(nameof(unknown), unknown, null),
+        };
     }
 
     public async Task<IReadOnlyList<ApprovalTrigger>> TriggersAsync(DocumentType type, decimal totalQty, decimal totalAmount, CancellationToken ct, bool isReturn = false) =>
