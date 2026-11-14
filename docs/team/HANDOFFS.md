@@ -1824,3 +1824,6 @@
 
 ### 2026-11-14 be-framework -> orchestrator (modernisation PR 6: measured CA trial)
 - Measured on src (build with the rules at warning): CA2016 0, CA1869 0, CA1849 1, CA1873 5 sites (LoggingBehavior 2, ApiExceptionHandler 2, AuditTrail 1). Fixed the six (an `IsEnabled` guard before the log call; `WriteAsync` for the upload buffer) and ratcheted all four at warning for `[src/**.cs]`. CA1848 and CA1822 stay off as decided.
+
+### 2026-11-14 be-framework -> orchestrator (modernisation PR 7: clock-read architecture test; series complete)
+- `ClockUsageTests` bans direct DateTime/DateTimeOffset clock reads outside `Ims.Infrastructure/Security/SystemClock.cs` (Roslyn over src; the allowed file must exist). Series done: seal Domain/Infrastructure/Api, seal Application plus `SealedClassesTests`, editorconfig ratchet, shared props, Central Package Management, CA ratchet, clock test. Left for later decisions: xunit v3, the AppDbContext split.
