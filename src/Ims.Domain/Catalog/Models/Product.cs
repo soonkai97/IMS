@@ -71,11 +71,9 @@ public sealed class Product : PublicEntity
     {
         var wanted = definitions.ToList();
         return _conversions
-            .Where(c => !wanted.Any(d => d.FromUomId == c.FromUomId && d.ToUomId == c.ToUomId && Scaled(d.Factor) == Scaled(c.Factor)))
+            .Where(c => !wanted.Any(d => d.FromUomId == c.FromUomId && d.ToUomId == c.ToUomId && ConversionFactor.Scaled(d.Factor) == ConversionFactor.Scaled(c.Factor)))
             .Select(c => c.FromUomId).ToList();
     }
-
-    private static decimal Scaled(decimal factor) => Math.Round(factor, Limits.FactorScale, MidpointRounding.AwayFromZero);
 
     /// <summary>
     /// Makes the product's unit conversions exactly <paramref name="definitions"/>. Every conversion must lead into the base unit. A conversion that exists cannot get another factor or be removed while
@@ -94,7 +92,7 @@ public sealed class Product : PublicEntity
         {
             var existing = _conversions.FirstOrDefault(c => c.FromUomId == d.FromUomId && c.ToUomId == d.ToUomId);
             if (existing is null) _conversions.Add(UomConversion.Create(d.FromUomId, d.ToUomId, d.Factor));
-            else if (Scaled(d.Factor) != Scaled(existing.Factor)) existing.ChangeFactor(d.Factor); // the same factor at the stored scale is left alone: no update, no audit row
+            else if (ConversionFactor.Scaled(d.Factor) != ConversionFactor.Scaled(existing.Factor)) existing.ChangeFactor(d.Factor); // the same factor at the stored scale is left alone: no update, no audit row
         }
     }
 
