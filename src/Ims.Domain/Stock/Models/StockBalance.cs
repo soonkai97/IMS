@@ -35,7 +35,7 @@ public sealed class StockBalance : AuditableEntity
     {
         if (qty <= 0) throw new DomainException(Messages.ReceiveQtyPositive);
         // BR-05: the moving average is the one rule of UnitCost.Blend (an empty or negative stock takes the new cost, stock coming in at the average leaves it); the balance still stores decimals.
-        AvgCost = UnitCost.Blend(Quantity.Signed(QtyOnHand), UnitCost.Of(AvgCost), Quantity.Positive(qty, Messages.ReceiveQtyPositive), UnitCost.Of(unitCost)).Value;
+        AvgCost = UnitCost.Blend(Quantity.Balance(QtyOnHand), UnitCost.Of(AvgCost), Quantity.Positive(qty, Messages.ReceiveQtyPositive), UnitCost.Of(unitCost)).Value;
         QtyOnHand += qty;
         LastReceiptLineId = sourceLineId is > 0 ? sourceLineId : null;
     }
