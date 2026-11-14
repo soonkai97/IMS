@@ -1,6 +1,6 @@
 # API image. Build context = repository root.
 #   docker build -t ims-api .
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 WORKDIR /src
 # Directory.Packages.props (Central Package Management) must be here before the restore: it holds every package version.
 COPY global.json Ims.sln Directory.Packages.props ./
