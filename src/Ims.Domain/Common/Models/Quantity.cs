@@ -58,6 +58,9 @@ public readonly record struct Quantity : IValueObject, IComparable<Quantity>
     /// <summary>This quantity in a base unit that holds <paramref name="factor"/> of it (above zero), at four decimals.</summary>
     public Quantity Times(decimal factor) => Converted(Value, factor);
 
+    /// <summary>This quantity in a base unit that holds <paramref name="factor"/> of it, at four decimals: the same as <see cref="Times(decimal)"/>, and a default factor (zero) is refused as a factor of zero is.</summary>
+    public Quantity Times(ConversionFactor factor) => Converted(Value, factor.Value);
+
     public Quantity Plus(Quantity other) => new(Limited(Value + other.Value));
 
     public Quantity Minus(Quantity other) => new(Limited(Value - other.Value));
