@@ -176,12 +176,11 @@ public sealed class SalesOrder : AggregateRoot
     {
         if (Status != SalesOrderStatus.Submitted)
             throw new DomainException(Messages.SalesOrderOnlySubmittedCanReject(Status));
-        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.RejectReasonRequired));
-        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
+        var why = Reason.Required(reason, Messages.RejectReasonRequired);
         BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, allowSelfApproval, Messages.SalesOrderSelfRejection));
 
         var before = Status;
-        var trimmed = reason.Trim();
+        var trimmed = why.Text;
         Status = SalesOrderStatus.Draft;
         RejectionReason = trimmed;
         RejectedBy = userId;
@@ -213,10 +212,9 @@ public sealed class SalesOrder : AggregateRoot
             throw new DomainException(Messages.SalesOrderCannotCancel(Status));
         if (Status == SalesOrderStatus.Approved)
         {
-            BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.SalesOrderCancelReasonRequired));
-            BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
+            reason = Reason.Required(reason, Messages.SalesOrderCancelReasonRequired).Text;
         }
-        if (Status == SalesOrderStatus.Draft && byAnotherUser) BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.CancelOthersDraftReasonRequired, Limits.ReasonMinLength)); // a holder of modules.manage clearing a departed creator draft says why
+        if (Status == SalesOrderStatus.Draft && byAnotherUser) reason = Reason.Of(reason, Messages.CancelOthersDraftReasonRequired).Text; // a holder of modules.manage clearing a departed creator draft says why
         var before = Status;
         Status = SalesOrderStatus.Cancelled;
         CancelReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
@@ -239,9 +237,8 @@ public sealed class SalesOrder : AggregateRoot
     {
         if (Status != SalesOrderStatus.Approved)
             throw new DomainException(Messages.SalesOrderCannotClose(Status));
-        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.SalesOrderCloseReasonRequired));
-        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
-        MarkClosed(SalesOrderCloseKind.Short, reason!.Trim(), null, userId, utcNow);
+        var why = Reason.Required(reason, Messages.SalesOrderCloseReasonRequired);
+        MarkClosed(SalesOrderCloseKind.Short, why.Text, null, userId, utcNow);
     }
 
     private void MarkClosed(SalesOrderCloseKind kind, string? reason, string? deliveryNo, int userId, DateTime utcNow)

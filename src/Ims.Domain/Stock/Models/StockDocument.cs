@@ -295,14 +295,13 @@ public sealed class StockDocument : PublicEntity
         BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, allowSelfApproval, Messages.SelfApproval));
         if (RequiresOverride)
         {
-            BusinessRules.Ensure(new ReasonRequiredRule(overrideReason, Messages.OverrideReasonRequired));
-            BusinessRules.Ensure(new ReasonRequiredRule(overrideReason, Messages.ReasonTooShort, Limits.ReasonMinLength));
+            overrideReason = Reason.Required(overrideReason, Messages.OverrideReasonRequired).Text;
         }
 
         Status = DocumentStatus.Approved;
         ApprovedBy = userId;
         ApprovedAt = utcNow;
-        NegativeStockOverrideReason = RequiresOverride ? overrideReason!.Trim() : null;
+        NegativeStockOverrideReason = RequiresOverride ? overrideReason : null;
     }
 
     /// <summary>
@@ -313,12 +312,11 @@ public sealed class StockDocument : PublicEntity
     {
         if (Status != DocumentStatus.Submitted)
             throw new DomainException(Messages.OnlySubmittedCanReject(Status));
-        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.RejectReasonRequired));
-        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
+        var why = Reason.Required(reason, Messages.RejectReasonRequired);
         BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, allowSelfApproval, Messages.SelfRejection));
 
         Status = DocumentStatus.Draft;
-        RejectionReason = reason.Trim();
+        RejectionReason = why.Text;
         RejectedBy = userId;
         RejectedAt = utcNow;
         SubmittedBy = null;
@@ -357,9 +355,7 @@ public sealed class StockDocument : PublicEntity
             throw new DomainException(Messages.OnlyDraftSubmittedOrApprovedCanCancel(Status));
         if (Status == DocumentStatus.Approved)
         {
-            BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.CancelApprovedReasonRequired));
-            BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
-            reason = reason!.Trim();
+            reason = Reason.Required(reason, Messages.CancelApprovedReasonRequired).Text;
         }
         Status = DocumentStatus.Cancelled;
         CancelReason = reason;
@@ -387,11 +383,10 @@ public sealed class StockDocument : PublicEntity
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(reversedBy, 0);
         if (Status != DocumentStatus.Posted)
             throw new DomainException(Messages.OnlyPostedCanReverse);
-        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReverseReasonRequired));
-        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
+        var why = Reason.Required(reason, Messages.ReverseReasonRequired);
 
         Status = DocumentStatus.Reversed;
-        ReversalReason = reason.Trim();
+        ReversalReason = why.Text;
         ReversedAt = utcNow;
         ReversedBy = reversedBy;
     }
