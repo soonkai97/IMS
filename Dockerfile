@@ -2,7 +2,8 @@
 #   docker build -t ims-api .
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY global.json Ims.sln ./
+# Directory.Packages.props (Central Package Management) must be here before the restore: it holds every package version.
+COPY global.json Ims.sln Directory.Packages.props ./
 COPY src/Ims.Domain/Ims.Domain.csproj src/Ims.Domain/
 COPY src/Ims.Application/Ims.Application.csproj src/Ims.Application/
 COPY src/Ims.Infrastructure/Ims.Infrastructure.csproj src/Ims.Infrastructure/

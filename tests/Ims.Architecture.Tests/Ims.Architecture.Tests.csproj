@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <!-- A version override, not a central version: a central entry would also pin it for the src projects, where EF Core Design needs the 5.0.0 line. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="5.9.0" />
   </ItemGroup>
 
   <!-- Assemblies are inspected through reflection, so the layers under test must be built and copied next to the tests. -->
