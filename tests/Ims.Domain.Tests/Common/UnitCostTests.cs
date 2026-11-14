@@ -124,17 +124,17 @@ public class UnitCostTests
     {
         var mismatches = new List<string>();
         foreach (var cost in new[] { 0m, 0.01m, 1m, 2.5m, 3.33m, 10m, 99.99m, 120m, 1_000_000_000m })
-        foreach (var entered in new[] { 0.5m, 1m, 2m, 3m, 7m, 12.5m, 100_000m })
-        foreach (var baseQty in new[] { 0.0001m, 1m, 3m, 7m, 14m, 36m, 1000m, 1_200_000m })
-        {
-            var expected = Math.Round(cost * entered / baseQty, Limits.CostDecimals, Limits.CostRounding);
-            if (expected > Limits.MaxCostPerBaseUnit)
-            {
-                Assert.Throws<DomainException>(() => UnitCost.PerBaseUnit(cost, entered, baseQty));
-                continue;
-            }
-            if (!SameBits(expected, UnitCost.PerBaseUnit(cost, entered, baseQty).Value)) mismatches.Add($"{cost} x {entered} / {baseQty}");
-        }
+            foreach (var entered in new[] { 0.5m, 1m, 2m, 3m, 7m, 12.5m, 100_000m })
+                foreach (var baseQty in new[] { 0.0001m, 1m, 3m, 7m, 14m, 36m, 1000m, 1_200_000m })
+                {
+                    var expected = Math.Round(cost * entered / baseQty, Limits.CostDecimals, Limits.CostRounding);
+                    if (expected > Limits.MaxCostPerBaseUnit)
+                    {
+                        Assert.Throws<DomainException>(() => UnitCost.PerBaseUnit(cost, entered, baseQty));
+                        continue;
+                    }
+                    if (!SameBits(expected, UnitCost.PerBaseUnit(cost, entered, baseQty).Value)) mismatches.Add($"{cost} x {entered} / {baseQty}");
+                }
 
         Assert.Empty(mismatches);
     }

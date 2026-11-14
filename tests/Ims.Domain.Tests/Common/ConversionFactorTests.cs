@@ -135,20 +135,20 @@ public class ConversionFactorTests
     {
         var wrong = new List<string>();
         foreach (var qty in new[] { 0m, 0.0001m, 1m, 2.5m, 3m, 7.3333m, 100m, 123456.7891m, -4m, -0.0001m })
-        foreach (var factor in Factors().Where(f => f > 0m))
-        {
-            decimal? expected = null;
-            try { expected = Quantity.Signed(qty).Times(factor).Value; } catch (DomainException) { /* too large: the factor overload must refuse too */ }
+            foreach (var factor in Factors().Where(f => f > 0m))
+            {
+                decimal? expected = null;
+                try { expected = Quantity.Signed(qty).Times(factor).Value; } catch (DomainException) { /* too large: the factor overload must refuse too */ }
 
-            if (expected is null)
-            {
-                Assert.Throws<DomainException>(() => Quantity.Signed(qty).Times(ConversionFactor.Of(factor)));
+                if (expected is null)
+                {
+                    Assert.Throws<DomainException>(() => Quantity.Signed(qty).Times(ConversionFactor.Of(factor)));
+                }
+                else if (!SameBits(expected.Value, Quantity.Signed(qty).Times(ConversionFactor.Of(factor)).Value))
+                {
+                    wrong.Add($"{qty} x {factor}");
+                }
             }
-            else if (!SameBits(expected.Value, Quantity.Signed(qty).Times(ConversionFactor.Of(factor)).Value))
-            {
-                wrong.Add($"{qty} x {factor}");
-            }
-        }
 
         Assert.Empty(wrong);
     }
