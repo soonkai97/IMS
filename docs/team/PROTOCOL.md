@@ -51,6 +51,7 @@ Append one entry per finished piece of work to `docs/team/HANDOFFS.md` (newest a
 1. Output is in a file, not only in chat.
 2. Anything buildable was built (`-c Release -warnaserror --no-incremental`) and the tests for what changed were run; the result is stated plainly.
 3. A HANDOFFS.md entry exists naming the next role.
+4. Code under `src/` or `web/` followed `ENGINEERING-PRACTICES.md`: the test was written first and the rules sit in the domain.
 
 ## Test runs (lean)
 CI (`.github/workflows/ci.yml`) runs the full suites on every pull request and is the merge gate. So:
