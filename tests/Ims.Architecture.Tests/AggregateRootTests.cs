@@ -72,7 +72,7 @@ public class AggregateRootTests
     {
         var members = typeof(IAggregateRoot).GetMembers().Select(m => m.Name).Order().ToList();
 
-        Assert.Equal(["ClearDomainEvents", "get_DomainEvents", "DomainEvents"].Order(), members);
+        Assert.Equal(new[] { "ClearDomainEvents", "DomainEvents", "get_DomainEvents" }, members);
     }
 
     // ---- The classification ----
