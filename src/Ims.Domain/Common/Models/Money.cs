@@ -68,7 +68,7 @@ public readonly record struct Money : IValueObject, IComparable<Money>
 
     public int CompareTo(Money other) => Value.CompareTo(other.Value);
 
-    /// <summary>True when the amount fits a line: not above <see cref="Limits.MaxLineAmount"/>, the largest amount of the <c>decimal(18,2)</c> columns that the code keeps clear of.</summary>
+    /// <summary>True when the amount fits a line: not above <see cref="Limits.MaxLineAmount"/>.</summary>
     public bool IsWithinLineLimit => Value <= Limits.MaxLineAmount;
 
     /// <summary>The same amount, or a <see cref="DomainException"/> (<see cref="Messages.LineAmountTooLarge"/>) when it is above <see cref="Limits.MaxLineAmount"/>: a 400 with a sentence, never a database overflow.</summary>
