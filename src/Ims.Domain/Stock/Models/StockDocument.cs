@@ -115,7 +115,10 @@ public sealed class StockDocument : PublicEntity
     /// True for a Posted receipt, or a Posted issue for a sale, that is not itself a return: the goods can come back (or go back out) against it. An issue for use or scrap, a return, and a document
     /// that is not Posted (Draft, Submitted, Approved, Reversed, Cancelled) cannot. What <see cref="CreateReturn"/> accepts, and what a reversal asks before it looks for the returns of this document.
     /// </summary>
-    public bool CanBeReturned => Status == DocumentStatus.Posted && !IsReturn && (Type == DocumentType.Receipt || Purpose == IssuePurpose.Sale);
+    public bool CanBeReturned => Status == DocumentStatus.Posted && !IsReturn && IsOfAReturnableKind;
+
+    /// <summary>A receipt (it goes back to its supplier) or an issue for a sale (it comes back from its customer); an issue for use or scrap has nothing to give back.</summary>
+    private bool IsOfAReturnableKind => Type == DocumentType.Receipt || Purpose == IssuePurpose.Sale;
 
     /// <summary>
     /// BR-07 for a stock document: the person who submitted it may review it (approve or reject) only when the customer allows self-approval, and never when it is a return, whatever the setting says.
@@ -186,9 +189,8 @@ public sealed class StockDocument : PublicEntity
     {
         if (original.Status != DocumentStatus.Posted) throw new DomainException(Messages.ReturnOriginalNotPosted(original.No, original.Status));
         if (original.IsReturn) throw new DomainException(Messages.ReturnOfAReturn(original.No));
-        var customerReturn = original.Type == DocumentType.Issue && original.Purpose == IssuePurpose.Sale;
-        var supplierReturn = original.Type == DocumentType.Receipt;
-        if (!customerReturn && !supplierReturn) throw new DomainException(Messages.ReturnOriginalNotReturnable(original.No));
+        if (!original.IsOfAReturnableKind) throw new DomainException(Messages.ReturnOriginalNotReturnable(original.No));
+        var customerReturn = original.Type == DocumentType.Issue; // a returnable issue is an issue for a sale
         original.Warehouse.EnsureUsable();
 
         return new StockDocument

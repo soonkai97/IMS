@@ -5,7 +5,7 @@ public sealed class IssueValuation(IReadRepository<StockBalance> balances) : IIs
 {
     public async Task EstimateAsync(StockDocument document, CancellationToken ct)
     {
-        if (document.Type != DocumentType.Issue || document.Lines.Count == 0) return;
+        if (document.Type != DocumentType.Issue || document.Lines.Count == 0) return; // not a repeat of the domain's own test: it saves the balance query below (CostQueryGuardTests)
         var ids = document.Lines.Select(l => l.ProductId).Distinct().ToList();
         var averageCosts = (await balances.ListAsync(new BalancesSpec(document.WarehouseId, ids, tracked: false), ct)).ToDictionary(b => b.ProductId, b => b.AvgCost);
         document.EstimateIssueCosts(averageCosts);
