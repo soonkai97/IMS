@@ -81,7 +81,7 @@ public class ConversionFactorTests
     {
         foreach (var f in Factors().Where(f => f > 0m))
         {
-            Assert.True(SameBits(ConversionFactor.Scaled(f), ConversionFactor.Of(f).Scaled), f.ToString(CultureInfo.InvariantCulture));
+            Assert.True(SameBits(ConversionFactor.Scaled(f), ConversionFactor.Of(f).Stored), f.ToString(CultureInfo.InvariantCulture));
         }
     }
 
