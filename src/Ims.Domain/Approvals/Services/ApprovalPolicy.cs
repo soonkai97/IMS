@@ -14,7 +14,7 @@ public static class ApprovalPolicy
     /// <summary>
     /// The routing as it is asked when someone approves or rejects: by the tier the document was stored with, and by the rules in force now, which can be stricter than when it
     /// was stored (a rule changed to Large since): a Large rule in force needs the large tier, so a standard approver is refused on such a document. This is the approval limit
-    /// (BR-06); there is no rank of role names to compare.
+    /// (BR-06); there is no rank of role names to compare. Internal: <see cref="ReviewRefusal"/> is the question callers ask, this is its last step.
     /// </summary>
     internal static bool MayReviewUnderRulesInForce(ActorRights actor, bool isLarge, IEnumerable<ApprovalRule> rulesInForce, DocumentType type, decimal totalQty, decimal totalAmount) =>
         MayReview(actor, isLarge) && (!IsLarge(rulesInForce, type, totalQty, totalAmount) || MayReview(actor, isLarge: true));
@@ -26,11 +26,14 @@ public static class ApprovalPolicy
     /// </summary>
     public static ReviewRefusalReason ReviewRefusal(ActorRights actor, bool isLarge, IEnumerable<ApprovalRule> rulesInForce, DocumentType type, decimal totalQty, decimal totalAmount, bool isReturn)
     {
-        if (!MayReview(actor, isLarge))
-            return actor.Has(Permissions.DocumentApproveLarge) && !actor.Has(Permissions.DocumentApprove) ? ReviewRefusalReason.OwnerReviewsLargeOnly : ReviewRefusalReason.AboveApprovalLimit;
+        if (!MayReview(actor, isLarge)) return RoutedElsewhere(actor);
         if (isReturn) return ReviewRefusalReason.None;
         return MayReviewUnderRulesInForce(actor, isLarge, rulesInForce, type, totalQty, totalAmount) ? ReviewRefusalReason.None : ReviewRefusalReason.AboveApprovalLimit;
     }
+
+    /// <summary>The document is routed to the other tier. Someone who holds only the large tier is told so in particular: they would never review a standard document, however small.</summary>
+    private static ReviewRefusalReason RoutedElsewhere(ActorRights actor) =>
+        actor.Has(Permissions.DocumentApproveLarge) && !actor.Has(Permissions.DocumentApprove) ? ReviewRefusalReason.OwnerReviewsLargeOnly : ReviewRefusalReason.AboveApprovalLimit;
 
     /// <summary>
     /// Whether the rules in force can change the answer of <see cref="ReviewRefusal"/>: not when the routing already refuses and not for a return. A caller that has to read the rules
