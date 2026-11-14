@@ -7,7 +7,7 @@ namespace Ims.Architecture.Tests;
 public class SourceLayoutTests
 {
     private static readonly string[] FeatureFolders = ["Contracts", "Services", "Specifications", "UseCases", "Validators"];
-    private static readonly string[] DomainFolders = ["Models", "Rules", "Services", "Exceptions", "Constants"];
+    private static readonly string[] DomainFolders = ["Models", "Rules", "Services", "Events", "Exceptions", "Constants"];
 
     [Fact]
     public void SourceFiles_AreDiscovered()
@@ -85,7 +85,7 @@ public class SourceLayoutTests
         Verify.NoOffenders(foldersWithoutRequest, "Every use-case folder needs a <UseCase>Command or <UseCase>Query:");
     }
 
-    // ----- Domain: <Area>/<Models|Rules|Services|Exceptions|Constants>/ -----
+    // ----- Domain: <Area>/<Models|Rules|Services|Events|Exceptions|Constants>/ -----
     [Fact]
     public void Domain_FollowsAreaThenKindLayout()
     {
