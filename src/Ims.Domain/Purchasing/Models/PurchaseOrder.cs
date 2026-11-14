@@ -156,12 +156,11 @@ public sealed class PurchaseOrder : PublicEntity
     {
         if (Status != PurchaseOrderStatus.Submitted)
             throw new DomainException(Messages.PurchaseOrderOnlySubmittedCanReject(Status));
-        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.RejectReasonRequired));
-        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
+        var why = Reason.Required(reason, Messages.RejectReasonRequired);
         BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, allowSelfApproval, Messages.PurchaseOrderSelfRejection));
 
         Status = PurchaseOrderStatus.Draft;
-        RejectionReason = reason.Trim();
+        RejectionReason = why.Text;
         RejectedBy = userId;
         RejectedAt = utcNow;
         ClearSubmission();
@@ -187,10 +186,9 @@ public sealed class PurchaseOrder : PublicEntity
             throw new DomainException(Messages.PurchaseOrderCannotCancel(Status));
         if (Status == PurchaseOrderStatus.Approved)
         {
-            BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.PurchaseOrderCancelReasonRequired));
-            BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
+            reason = Reason.Required(reason, Messages.PurchaseOrderCancelReasonRequired).Text;
         }
-        if (Status == PurchaseOrderStatus.Draft && byAnotherUser) BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.CancelOthersDraftReasonRequired, Limits.ReasonMinLength)); // a holder of modules.manage clearing a departed creator draft says why
+        if (Status == PurchaseOrderStatus.Draft && byAnotherUser) reason = Reason.Of(reason, Messages.CancelOthersDraftReasonRequired).Text; // a holder of modules.manage clearing a departed creator draft says why
         Status = PurchaseOrderStatus.Cancelled;
         CancelReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
     }
@@ -211,9 +209,8 @@ public sealed class PurchaseOrder : PublicEntity
     {
         if (Status != PurchaseOrderStatus.Approved)
             throw new DomainException(Messages.PurchaseOrderCannotClose(Status));
-        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.PurchaseOrderCloseReasonRequired));
-        BusinessRules.Ensure(new ReasonRequiredRule(reason, Messages.ReasonTooShort, Limits.ReasonMinLength));
-        MarkClosed(PurchaseOrderCloseKind.Short, reason!.Trim(), userId, utcNow);
+        var why = Reason.Required(reason, Messages.PurchaseOrderCloseReasonRequired);
+        MarkClosed(PurchaseOrderCloseKind.Short, why.Text, userId, utcNow);
     }
 
     private void MarkClosed(PurchaseOrderCloseKind kind, string? reason, int userId, DateTime utcNow)

@@ -38,7 +38,7 @@ public class ReasonTests
     public void Required_AnswersNothingGivenBeforeTooShort()
     {
         // blank is also "shorter than the minimum", so only the order tells the two sentences apart
-        Assert.NotEqual(Messages.ReasonTooShort, Missing);
+        Assert.NotEqual(Missing, Messages.ReasonTooShort);
         Assert.Equal(Missing, Assert.Throws<DomainException>(() => Reason.Required("     ", Missing)).Message);
         Assert.Equal(Messages.ReasonTooShort, Assert.Throws<DomainException>(() => Reason.Required("  x  ", Missing)).Message);
     }
