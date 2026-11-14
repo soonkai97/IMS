@@ -9,21 +9,31 @@ public sealed class UpdateApprovalRuleHandler(IRepository<ApprovalRule> rules, I
     {
         var rule = await rules.FirstOrDefaultAsync(new ByPublicIdSpec<ApprovalRule>(cmd.Id), ct) ?? throw new NotFoundException(Messages.RuleNotFound);
         // A rule of an off module is kept but hidden: it cannot be found by id either, and nothing can be moved onto such a subject.
-        if ((await modules.HiddenTypesAsync(ct)).Contains(rule.DocType)) throw new NotFoundException(Messages.RuleNotFound);
+        var moduleOn = !(await modules.HiddenTypesAsync(ct)).Contains(rule.DocType);
+        if (!moduleOn) throw new NotFoundException(Messages.RuleNotFound);
         await modules.EnsureTypeAvailableAsync(cmd.Data.DocType, ct);
-        // An order rule (purchase order, sales order) keeps its type, and no other rule becomes one: the tiers for orders are set up on purpose, not by editing a rule of another type.
-        if (rule.DocType != cmd.Data.DocType && (ApprovalRuleModules.IsOrderType(rule.DocType) || ApprovalRuleModules.IsOrderType(cmd.Data.DocType)))
-            throw new ValidationException(rule.DocType == DocumentType.SalesOrder || cmd.Data.DocType == DocumentType.SalesOrder ? Messages.SalesOrderRuleTypeFixed : Messages.PurchaseOrderRuleTypeFixed);
-        // While the module is on, the last active rule of an order type cannot be switched off: with none every priced order is released with no approver. Two people switching off the two different rules
-        // would each count two, so the count is taken under the modules lock (the lock of the switch-on check too), which only a transaction can hold.
-        if (ApprovalRuleModules.IsOrderType(rule.DocType) && rule.IsActive && !cmd.Data.IsActive)
+        // The rules that span the rules of a type (ApprovalRuleSetPolicy) decide; the handler reads the facts. Two people switching off the two different rules of a type would each count two, so the
+        // count is taken under the modules lock (the lock of the switch-on check too), which only a transaction can hold, and only when the policy says the answer depends on it.
+        var activeRules = 0;
+        if (ApprovalRuleSetPolicy.NeedsActiveRuleCount(rule, cmd.Data.DocType, cmd.Data.IsActive, moduleOn))
         {
             await locker.LockModulesAsync(ct);
-            if (await rules.CountAsync(new ActiveRulesForTypeSpec(rule.DocType), ct) <= 1)
-                throw new ConflictException(rule.DocType == DocumentType.SalesOrder ? Messages.SalesOrderLastRule : Messages.PurchaseOrderLastRule);
+            activeRules = await rules.CountAsync(new ActiveRulesForTypeSpec(rule.DocType), ct);
         }
+        var refusal = ApprovalRuleSetPolicy.Refusal(rule, cmd.Data.DocType, cmd.Data.IsActive, moduleOn, activeRules);
+        if (refusal != ApprovalRuleRefusalReason.None) throw RefusalOf(refusal);
         rule.Update(cmd.Data.DocType, cmd.Data.AmountThreshold, cmd.Data.QtyThreshold, cmd.Data.ApproverTier!.Value, cmd.Data.IsActive);
         await uow.SaveChangesAsync(ct);
         return CreateApprovalRuleHandler.ToDto(rule);
     }, ct);
+
+    /// <summary>The sentence and the status of each refusal: a rule that keeps its type is a 400, the last active rule a 409.</summary>
+    private static Exception RefusalOf(ApprovalRuleRefusalReason refusal) => refusal switch
+    {
+        ApprovalRuleRefusalReason.PurchaseOrderRuleTypeFixed => new ValidationException(Messages.PurchaseOrderRuleTypeFixed),
+        ApprovalRuleRefusalReason.SalesOrderRuleTypeFixed => new ValidationException(Messages.SalesOrderRuleTypeFixed),
+        ApprovalRuleRefusalReason.LastPurchaseOrderRule => new ConflictException(Messages.PurchaseOrderLastRule),
+        ApprovalRuleRefusalReason.LastSalesOrderRule => new ConflictException(Messages.SalesOrderLastRule),
+        _ => throw new ArgumentOutOfRangeException(nameof(refusal), refusal, "No refusal to map."),
+    };
 }
