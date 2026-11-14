@@ -36,6 +36,19 @@ public class QuantityTests
         Assert.Equal(Messages.QtyTooLarge, ex.Message);
     }
 
+    // The line bound is the base limit, and it stays so: the wider range of a stored BALANCE (the whole decimal(18,4) column) does not widen what a line or a delta may hold.
+    [Fact]
+    public void TheBoundOfALineQuantity_IsTheBaseLimit_AndTheBalanceRangeDoesNotWidenIt()
+    {
+        Assert.Equal(99_999_999_999_999m, Limits.MaxBaseQuantity);
+        Assert.Equal(Limits.MaxBaseQuantity, Quantity.Positive(Limits.MaxBaseQuantity).Value);
+        Assert.Equal(Messages.QtyTooLarge, Assert.Throws<DomainException>(() => Quantity.Positive(99_999_999_999_999.0001m)).Message);
+        Assert.Equal(Messages.QtyTooLarge, Assert.Throws<DomainException>(() => Quantity.Signed(99_999_999_999_999.5m)).Message);
+        Assert.Equal(Messages.QtyTooLarge, Assert.Throws<DomainException>(() => Quantity.Signed(-99_999_999_999_999.5m)).Message);
+        Assert.Equal(Messages.QtyTooLarge, Assert.Throws<DomainException>(() => Quantity.Rounded(99_999_999_999_999.5m)).Message);
+        Assert.Equal(Messages.QtyTooLarge, Assert.Throws<DomainException>(() => Quantity.Signed(Limits.MaxBaseQuantity).Plus(Quantity.Signed(0.5m))).Message);
+    }
+
     [Fact]
     public void Signed_TrailingZerosAreNotDecimals()
     {

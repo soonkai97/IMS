@@ -110,6 +110,33 @@ public class StockBalanceTests
         Assert.Equal(5m, balance.QtyOnHand);
     }
 
+    // ----- The balance may use the whole decimal(18,4) column, not only the range of a document line -----
+    // A line is capped at Limits.MaxBaseQuantity (99,999,999,999,999) but the column holds up to 99,999,999,999,999.9999, so a balance that already sits between the two must still take stock in.
+    [Fact]
+    public void Receive_OntoABalanceAboveTheLineLimit_Succeeds()
+    {
+        var balance = NewBalance(1, Limits.MaxBaseQuantity, 2m);
+        balance.Receive(0.5m, 2m);                       // 99,999,999,999,999.5: both receipts are accepted
+
+        balance.Receive(0.4m, 3m);
+
+        Assert.Equal(99_999_999_999_999.9m, balance.QtyOnHand);
+        Assert.Equal(2m, balance.AvgCost);               // 0.4 units at 3 move the average by far less than the tenth decimal
+    }
+
+    [Fact]
+    public void Receive_OntoANegativeBalanceBeyondTheLineLimit_Succeeds()
+    {
+        var balance = StockBalance.OpenFor(1, 1);
+        balance.Issue(Limits.MaxBaseQuantity, allowNegative: true);
+        balance.Issue(0.5m, allowNegative: true);        // -99,999,999,999,999.5
+
+        balance.Receive(0.4m, 3m);
+
+        Assert.Equal(-99_999_999_999_999.1m, balance.QtyOnHand);
+        Assert.Equal(3m, balance.AvgCost);               // an empty or negative stock takes the new cost (BR-05)
+    }
+
     // ----- Issue -----
     [Fact]
     public void Issue_ReturnsCurrentAverageCostAndReducesQuantity()
