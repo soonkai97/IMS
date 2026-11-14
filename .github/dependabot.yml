@@ -8,6 +8,17 @@ updates:
     groups:
       # One pull request per week for all .NET packages instead of one per package per project.
       dotnet: { patterns: ["*"] }
+    ignore:
+      # The platform packages move together with the target framework (net10.0 today). Moving to the next major
+      # is an owner decision (ROADMAP), not a weekly bump: a mixed 10/11 set is not supported.
+      - dependency-name: "Microsoft.AspNetCore.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.EntityFrameworkCore*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.Extensions.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "System.Security.Cryptography.Pkcs"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: npm
     directory: /web
     schedule: { interval: weekly }
@@ -22,3 +33,12 @@ updates:
     directory: /
     schedule: { interval: monthly }
     commit-message: { prefix: "build(deps)" }
+    ignore:
+      # CI does not build the images, so a green check proves nothing here. Base images follow the target framework
+      # (net10.0, SDK pinned in global.json) and the Node range in web/package.json engines (22 or 24 LTS, not 25).
+      - dependency-name: "dotnet/sdk"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "dotnet/aspnet"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
