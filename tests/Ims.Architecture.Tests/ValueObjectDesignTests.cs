@@ -156,7 +156,9 @@ public class ValueObjectDesignTests
 
         public struct MutableField : IValueObject
         {
+#pragma warning disable CS0649 // never assigned: the fixture only needs the mutable field to exist
             public int Scale;
+#pragma warning restore CS0649
         }
 
         public sealed record PrivateSetterBackingField : IValueObject
