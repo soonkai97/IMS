@@ -8,7 +8,7 @@ namespace Ims.Architecture.Tests;
 
 /// <summary>
 /// DDD-11a, docs/architecture/ddd-roadmap.md 2.5: an event handler runs inside the locked transaction of a use case (or after it), so it never takes a lock of its own: the use case already holds
-/// its locks in the global order, and a lock taken from a handler could break that order. No handler exists yet; the rule is proved on synthetic handlers so it is not vacuous.
+/// its locks in the global order, and a lock taken from a handler could break that order. SalesOrderAuditSubscriber (DDD-11b) is the first handler; the rule is also proved on synthetic handlers so it is not vacuous.
 /// </summary>
 public class EventHandlerDesignTests
 {
@@ -70,7 +70,7 @@ public class EventHandlerDesignTests
 
     /// <summary>
     /// The after-commit queue is flushed by <c>UnitOfWork</c> (after <c>ExecuteAsync</c> commits, or after a bare save). A transaction opened anywhere else would commit without flushing it, so no code under src
-    /// opens one but the unit of work and the context's own audit save.
+    /// opens one (<c>BeginTransaction</c>, <c>UseTransaction</c>, <c>TransactionScope</c>) but the unit of work and the context's own audit save.
     /// </summary>
     [Fact]
     public void NoTransactionIsOpenedOutsideTheUnitOfWork()
@@ -78,7 +78,7 @@ public class EventHandlerDesignTests
         var opening = SourceFiles.All.Where(f => OpensATransaction(f.Root)).ToList();
         Assert.Contains(opening, f => f.RelativePath == MayOpenATransaction[0]);   // the rule is not vacuous
 
-        Verify.NoOffenders(opening.Select(f => f.RelativePath).Except(MayOpenATransaction), "BeginTransaction may be called only in UnitOfWork and AppDbContext (an after-commit queue is flushed by the unit of work):");
+        Verify.NoOffenders(opening.Select(f => f.RelativePath).Except(MayOpenATransaction), "A transaction (BeginTransaction, UseTransaction, TransactionScope) may be opened only in UnitOfWork and AppDbContext (an after-commit queue is flushed by the unit of work):");
     }
 
     [Theory]
@@ -96,6 +96,13 @@ public class EventHandlerDesignTests
     [InlineData("class C { void M() { var t = new TransactionScopeOptions(); } }", false)]
     public void TheTransactionRule_FindsACallThatOpensOne(string code, bool found) => Assert.Equal(found, OpensATransaction(CSharpSyntaxTree.ParseText(code).GetRoot()));
 
-    private static bool OpensATransaction(SyntaxNode root) => root.DescendantNodes().OfType<InvocationExpressionSyntax>()
-        .Any(i => (i.Expression is MemberAccessExpressionSyntax member ? member.Name.Identifier.Text : (i.Expression as IdentifierNameSyntax)?.Identifier.Text) is "BeginTransaction" or "BeginTransactionAsync");
+    /// <summary>
+    /// A call that opens a transaction or joins one that something else opened: <c>BeginTransaction</c>, <c>BeginTransactionAsync</c>, <c>UseTransaction</c>, <c>UseTransactionAsync</c> and <c>new TransactionScope(...)</c>
+    /// (an ambient transaction commits without the unit of work flushing the after-commit queue just the same).
+    /// </summary>
+    private static bool OpensATransaction(SyntaxNode root) =>
+        root.DescendantNodes().OfType<InvocationExpressionSyntax>()
+            .Any(i => (i.Expression is MemberAccessExpressionSyntax member ? member.Name.Identifier.Text : (i.Expression as IdentifierNameSyntax)?.Identifier.Text) is "BeginTransaction" or "BeginTransactionAsync" or "UseTransaction" or "UseTransactionAsync")
+        || root.DescendantNodes().OfType<ObjectCreationExpressionSyntax>()
+            .Any(c => (c.Type is QualifiedNameSyntax qualified ? qualified.Right.Identifier.Text : (c.Type as IdentifierNameSyntax)?.Identifier.Text) == "TransactionScope");
 }

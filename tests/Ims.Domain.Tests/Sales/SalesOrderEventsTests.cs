@@ -62,7 +62,7 @@ public class SalesOrderEventsTests
 
         var created = Only<SalesOrderCreated>(order);
         Assert.Equal(Number, created.No);
-        Assert.Equal(new SalesOrderSummary(SalesOrderStatus.Draft, WarehouseId: 1, CustomerId: 200, LineCount: 2, SellingAmount: Money.Rounded(60m)), created.Summary);
+        Assert.Equal(new SalesOrderSummary(SalesOrderStatus.Draft, WarehouseId: 1, CustomerId: 200, LineCount: 2, SellingAmount: 60m), created.Summary);
     }
 
     [Theory]
@@ -88,8 +88,8 @@ public class SalesOrderEventsTests
 
         var updated = Only<SalesOrderUpdated>(order);
         Assert.Equal(Number, updated.No);
-        Assert.Equal(new SalesOrderSummary(SalesOrderStatus.Draft, 1, 200, LineCount: 1, SellingAmount: Money.Rounded(50m)), updated.Before);
-        Assert.Equal(new SalesOrderSummary(SalesOrderStatus.Draft, 1, 200, LineCount: 3, SellingAmount: Money.Rounded(12m)), updated.After);
+        Assert.Equal(new SalesOrderSummary(SalesOrderStatus.Draft, 1, 200, LineCount: 1, SellingAmount: 50m), updated.Before);
+        Assert.Equal(new SalesOrderSummary(SalesOrderStatus.Draft, 1, 200, LineCount: 3, SellingAmount: 12m), updated.After);
     }
 
     [Fact]
@@ -115,9 +115,9 @@ public class SalesOrderEventsTests
 
         var events = order.DomainEvents.Cast<SalesOrderUpdated>().ToList();
         Assert.Equal(2, events.Count);
-        Assert.Equal((Money.Rounded(50m), Money.Rounded(100m)), (events[0].Before.SellingAmount, events[0].After.SellingAmount));
+        Assert.Equal((50m, 100m), (events[0].Before.SellingAmount, events[0].After.SellingAmount));
         Assert.Equal(events[0].After, events[1].Before);
-        Assert.Equal(Money.Rounded(150m), events[1].After.SellingAmount);
+        Assert.Equal(150m, events[1].After.SellingAmount);
     }
 
     // ----- the workflow -----

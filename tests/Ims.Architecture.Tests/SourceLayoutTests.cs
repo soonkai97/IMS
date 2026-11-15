@@ -6,7 +6,7 @@ namespace Ims.Architecture.Tests;
 /// <summary>One public type per file and the folder-per-feature layout, so the tree stays navigable as the system grows.</summary>
 public class SourceLayoutTests
 {
-    private static readonly string[] FeatureFolders = ["Contracts", "Services", "Specifications", "UseCases", "Validators"];
+    private static readonly string[] FeatureFolders = ["Contracts", "EventHandlers", "Services", "Specifications", "UseCases", "Validators"];
     private static readonly string[] DomainFolders = ["Models", "Rules", "Services", "Events", "Exceptions", "Constants"];
 
     [Fact]
@@ -37,7 +37,7 @@ public class SourceLayoutTests
         Verify.NoOffenders(offenders, "A file must be named after the type it declares:");
     }
 
-    // ----- Application: Features/<Feature>/<Contracts|Services|Specifications|UseCases|Validators>/... -----
+    // ----- Application: Features/<Feature>/<Contracts|EventHandlers|Services|Specifications|UseCases|Validators>/... -----
     [Fact]
     public void ApplicationFeatures_FollowFeatureFolderLayout()
     {
