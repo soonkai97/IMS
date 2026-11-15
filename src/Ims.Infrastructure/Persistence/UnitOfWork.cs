@@ -22,6 +22,7 @@ public sealed class UnitOfWork(AppDbContext db, DomainEventDispatcher events) : 
         if (events.IsRunning) throw new InvalidOperationException(DomainEventDispatcher.HandlerSaved);
 
         var ambient = db.Database.CurrentTransaction is not null;
+        var queuedBefore = events.QueuedCount;
         int saved;
         try
         {
@@ -30,18 +31,18 @@ public sealed class UnitOfWork(AppDbContext db, DomainEventDispatcher events) : 
         }
         catch (DbUpdateConcurrencyException e)
         {
-            if (!ambient) events.Discard();
+            events.DiscardFrom(queuedBefore); // what this save queued was never written, even if the body catches the failure and commits
             throw new ConcurrencyException(Messages.ConcurrencyConflict, e);
         }
         catch (DbUpdateException e) when (IsRetriable(e))
         {
             // A unique key raced (document number, balance row), or this transaction was the deadlock victim.
-            if (!ambient) events.Discard();
+            events.DiscardFrom(queuedBefore);
             throw new ConcurrencyException(Messages.ConcurrencyConflict, e);
         }
         catch
         {
-            if (!ambient) events.Discard();
+            events.DiscardFrom(queuedBefore);
             throw;
         }
 
@@ -52,6 +53,9 @@ public sealed class UnitOfWork(AppDbContext db, DomainEventDispatcher events) : 
 
     public async Task<T> ExecuteAsync<T>(Func<Task<T>> work, CancellationToken ct = default)
     {
+        // A handler runs inside the dispatcher: a transaction of its own would drop the queued after-commit handlers (the retry loop resets the queue).
+        if (events.IsRunning) throw new InvalidOperationException(DomainEventDispatcher.HandlerExecuted);
+
         // Already inside a transaction (nested use): join it, the outer scope owns commit, retry and the after-commit handlers.
         if (db.Database.CurrentTransaction is not null) return await work();
 

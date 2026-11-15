@@ -23,6 +23,7 @@ public sealed class DomainEventDispatcher(AppDbContext db, IServiceProvider serv
     public const int MaxRounds = 100;
 
     internal const string HandlerSaved = "An event handler must not save: the dispatcher runs inside the save, and the handler's staged changes are written by it.";
+    internal const string HandlerExecuted = "An event handler must not run a transaction: the dispatcher runs inside the save, and a transaction of its own would drop the after-commit handlers that are queued.";
     internal const string HandlerDispatched = "An event handler must not dispatch events: the dispatcher is already running.";
     internal const string TooManyRounds = "Domain event handlers raised events for more than 100 rounds in one save; a handler raises an event for each event it handles.";
 
@@ -48,6 +49,7 @@ public sealed class DomainEventDispatcher(AppDbContext db, IServiceProvider serv
 
                 foreach (var (_, domainEvent) in raised)
                 {
+                    ct.ThrowIfCancellationRequested();
                     var invoker = Invokers.GetOrAdd(domainEvent.GetType(), CreateInvoker);
                     await invoker.HandleAsync(services, domainEvent, ct);
                     invoker.QueueAfterCommit(services, domainEvent, _afterCommit);
@@ -62,6 +64,15 @@ public sealed class DomainEventDispatcher(AppDbContext db, IServiceProvider serv
 
     /// <summary>Drops the queued after-commit handlers: the attempt was rolled back or the use case failed, so nothing it raised happened.</summary>
     internal void Discard() => _afterCommit.Clear();
+
+    /// <summary>How many after-commit handlers are queued; a save notes it before it dispatches.</summary>
+    internal int QueuedCount => _afterCommit.Count;
+
+    /// <summary>Drops what a save that failed queued, and keeps what the saves before it in the same transaction queued: the body may catch the failure and go on to commit.</summary>
+    internal void DiscardFrom(int queuedBefore)
+    {
+        if (_afterCommit.Count > queuedBefore) _afterCommit.RemoveRange(queuedBefore, _afterCommit.Count - queuedBefore);
+    }
 
     /// <summary>
     /// Runs the queued after-commit handlers once, in the order the events were raised, with no cancellation (the work is committed). It never throws: a failure is logged and the next handler still runs.
