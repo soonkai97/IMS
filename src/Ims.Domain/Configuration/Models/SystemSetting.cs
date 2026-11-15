@@ -35,17 +35,19 @@ public sealed class SystemSetting : AuditableEntity, IAggregateRoot
     }
 
     /// <summary>
-    /// Turns the module of this row on or off and raises <see cref="ModuleSwitched"/> with the state it had (a value that is not exactly "true" is off). The state it already has changes nothing and raises nothing.
+    /// Turns the module <paramref name="moduleCode"/> on or off through its row and raises <see cref="ModuleSwitched"/> with the state it had (a value that is not exactly "true" is off). The code is the catalog's, given by the
+    /// caller, never read back from the stored key: the database finds the row by key without regard to case, so a row edited by hand may spell the key differently, and the event and the audit row name the module as they always did.
+    /// The state it already has changes nothing and raises nothing.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The row is not the switch of a module: no code path does that.</exception>
+    /// <exception cref="InvalidOperationException">The row is not the switch of that module (its key differs by more than case): no code path does that.</exception>
     public void SwitchModule(string moduleCode, bool enabled, Reason reason, int rolesRegainingGrants)
     {
-        if (!Key.StartsWith(SettingKeys.ModulePrefix, StringComparison.Ordinal)) throw new InvalidOperationException($"The setting {Key} is not the switch of a module.");
+        if (!string.Equals(Key, SettingKeys.ForModule(moduleCode), StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException($"The setting {Key} is not the switch of the module {moduleCode}.");
         var before = SettingValues.IsTrue(Value);
         if (before == enabled) return;
 
         Value = SettingValues.From(enabled);
-        Raise(new ModuleSwitched(Key[SettingKeys.ModulePrefix.Length..], before, enabled, reason.Text, rolesRegainingGrants));
+        Raise(new ModuleSwitched(moduleCode, before, enabled, reason.Text, rolesRegainingGrants));
     }
 
     public void ChangeValue(string value) => Value = value;
