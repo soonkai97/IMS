@@ -5,7 +5,6 @@ import {
   Observable,
   Subject,
   catchError,
-  defer,
   finalize,
   map,
   of,
@@ -18,8 +17,7 @@ import {
   throwIfEmpty,
   timer
 } from 'rxjs';
-import { AuthClient, AuthResult, ChangePasswordRequest, LoginRequest, UserInfo } from '@ims/api';
-import { handledInline } from '@ims/core/http';
+import { AuthResult, ChangePasswordRequest, LoginRequest, UserInfo } from '@ims/api';
 import { HTTP_STATUS, isApiError } from '@ims/models';
 import { ApiCommand } from '@ims/utils';
 import {
@@ -31,11 +29,9 @@ import {
   SESSION_PASSWORD_CHANGED_REASON,
   SESSION_REASON_PARAM
 } from '../constants/identity.const';
+import { AuthStore } from './auth.store';
 import { removeLegacyRefreshToken } from './legacy-refresh-token';
 import { clearDrafts } from './session-draft-storage';
-
-/** The refresh token travels in an HttpOnly cookie; the body of refresh and logout stays empty. */
-const COOKIE_ONLY_BODY = { refreshToken: undefined } as const;
 
 const REQUEST_TIMEOUT_STATUS = 408;
 const FIRST_SERVER_ERROR_STATUS = 500;
@@ -87,7 +83,7 @@ function retryDelayMs(error: unknown, attempt: number): number {
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly authClient = inject(AuthClient);
+  private readonly store = inject(AuthStore);
   private readonly router = inject(Router);
 
   private accessToken: string | undefined;
@@ -113,12 +109,12 @@ export class AuthService {
 
   readonly login = new ApiCommand<LoginRequest, UserInfo>(credentials =>
     // The sign-in banner shows every answer (401 sentence, lockout, rate limit, server, network), so none raises a toast.
-    this.authClient.login(credentials, handledInline()).pipe(
+    this.store.login.call(credentials).pipe(
       tap(result => {
         this.sessionChanged.next();
         this.acceptTokens(result);
       }),
-      switchMap(() => this.authClient.me()),
+      switchMap(() => this.store.me.call({ inline: false })),
       tap(user => this.$currentUser.set(user))
     )
   );
@@ -130,8 +126,8 @@ export class AuthService {
    */
   readonly changePassword = new ApiCommand<ChangePasswordRequest, void>(
     request =>
-      this.authClient
-        .changePassword(request, handledInline())
+      this.store.changePassword
+        .call(request)
         .pipe(tap(() => this.endSession(false, SESSION_PASSWORD_CHANGED_REASON))),
     true
   );
@@ -164,7 +160,7 @@ export class AuthService {
    * answer that comes after the session ended or changed is dropped.
    */
   reloadUser(): Observable<UserInfo | undefined> {
-    return defer(() => this.authClient.me(handledInline())).pipe(
+    return this.store.me.call({ inline: true }).pipe(
       takeUntil(this.sessionChanged),
       tap(user => {
         if (this.accessToken !== undefined) {
@@ -176,7 +172,7 @@ export class AuthService {
   }
 
   logout(): Observable<void> {
-    return this.authClient.logout(COOKIE_ONLY_BODY).pipe(
+    return this.store.logout.call().pipe(
       catchError(() => EMPTY),
       finalize(() => this.endSession(false))
     );
@@ -221,7 +217,7 @@ export class AuthService {
       return this.refreshInFlight;
     }
     const startedAt = Date.now();
-    this.refreshInFlight = defer(() => this.authClient.refresh(COOKIE_ONLY_BODY)).pipe(
+    this.refreshInFlight = this.store.refresh.call().pipe(
       // App start (endSessionOnFailure false) never waits: an offline start must reach the login page at once.
       retry({
         count: endSessionOnFailure ? REFRESH_RETRY.attempts : 0,

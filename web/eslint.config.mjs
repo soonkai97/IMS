@@ -19,6 +19,44 @@ const ROLE_NAME_ALLOWED_FILES = [
   '**/settings.component.ts'
 ];
 
+// Every call to the API goes through a feature store action (`QueryLoader` for reads, `ApiCommand` for writes; docs/architecture/frontend.md
+// section 2). So a generated `*Client` (and Angular's `HttpClient`) may only be imported by a store or a spec (the generated lib
+// itself is ignored above and imports no client). This list is the whole allow-list: a new entry is a visible diff and needs a reason.
+// Patterns start with `**/`: each lib lints with its own eslint.config.mjs, so a path from the repo's web/ folder would not match.
+const API_CALL_ALLOWED_FILES = [
+  '**/*.store.ts', // the only place that injects a generated client
+  '**/*.spec.ts' // specs provide fakes for the clients
+];
+
+// The one `fetch` in the app: the bootstrap config.json read, which runs before the app (and its HttpClient) exists.
+const RAW_HTTP_ALLOWED_FILES = ['**/*.spec.ts', '**/config/app-config.ts'];
+
+const ANIMATION_IMPORT_PATTERN = {
+  group: ['@angular/animations*', '@angular/platform-browser/animations*'],
+  message: 'Use CSS transitions, animate.enter and animate.leave (docs/conventions/scss-design.md).'
+};
+
+const API_CALL_IMPORT_RESTRICTIONS = {
+  paths: [
+    {
+      name: '@angular/common/http',
+      importNames: ['HttpClient'],
+      message:
+        'Do not call the API from here: put the call in a feature store action (QueryLoader or ApiCommand in a *.store.ts).'
+    }
+  ],
+  patterns: [
+    ANIMATION_IMPORT_PATTERN,
+    {
+      group: ['@ims/api'],
+      importNamePattern: '^[A-Z][A-Za-z0-9]*Client$',
+      allowTypeImports: false,
+      message:
+        'Do not call the API from here: put the call in a feature store action (QueryLoader or ApiCommand in a *.store.ts) and use the store. Only *.store.ts may import a generated *Client.'
+    }
+  ]
+};
+
 // Decorator inputs, outputs, queries and host members: use input(), output(), model(), viewChild() and the host metadata.
 const LEGACY_DECORATOR_SELECTORS = [
   {
@@ -85,18 +123,8 @@ export default [
         { type: 'element', prefix: 'app', style: 'kebab-case' }
       ],
       // @angular/animations is deprecated in Angular 22 and not a dependency (it is only a test-time peer of Spectator).
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['@angular/animations*', '@angular/platform-browser/animations*'],
-              message:
-                'Use CSS transitions, animate.enter and animate.leave (docs/conventions/scss-design.md).'
-            }
-          ]
-        }
-      ],
+      // Stores, specs and the generated lib are outside the API-call block below, so the animations ban is all they get here.
+      'no-restricted-imports': ['error', { patterns: [ANIMATION_IMPORT_PATTERN] }],
       '@angular-eslint/no-input-rename': 'off',
       '@angular-eslint/no-output-rename': 'off',
       '@angular-eslint/prefer-on-push-component-change-detection': 'error',
@@ -133,6 +161,34 @@ export default [
           selector: 'Literal[value=/^(Admin|Owner|Supervisor|WarehouseStaff|Clerk)$/]',
           message:
             'Do not branch on a role name. Ask PermissionService.$profile() (permission codes).'
+        }
+      ]
+    }
+  },
+  {
+    // No direct API call from a component, container, guard, resolver, view-service or plain service: only a store action calls the
+    // API (docs/architecture/frontend.md section 2). Proven by scripts/lint-guards.test.mjs.
+    files: ['**/*.ts'],
+    ignores: API_CALL_ALLOWED_FILES,
+    rules: {
+      'no-restricted-imports': ['error', API_CALL_IMPORT_RESTRICTIONS]
+    }
+  },
+  {
+    files: ['**/*.ts'],
+    ignores: RAW_HTTP_ALLOWED_FILES,
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'fetch',
+          message:
+            'Do not call the API with fetch: put the call in a feature store action (QueryLoader or ApiCommand in a *.store.ts).'
+        },
+        {
+          name: 'XMLHttpRequest',
+          message:
+            'Do not call the API with XMLHttpRequest: put the call in a feature store action (QueryLoader or ApiCommand in a *.store.ts).'
         }
       ]
     }

@@ -7,4 +7,4 @@ export * from './lib/rules/stale-document';
 export * from './lib/services/documents.store';
 export * from './lib/services/list-scope.preference';
 export * from './lib/services/returns.store';
-export * from './lib/services/stock-availability.service';
+export * from './lib/services/stock-availability.store';

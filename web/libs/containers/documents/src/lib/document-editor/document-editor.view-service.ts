@@ -8,7 +8,7 @@ import {
   LineGroup,
   LineValue,
   LinesArray,
-  StockAvailabilityService,
+  StockAvailabilityStore,
   computeTotals,
   createLineGroup,
   lineFromDocument,
@@ -52,7 +52,7 @@ export interface AddedLine {
  */
 @Injectable()
 export class DocumentEditorViewService {
-  private readonly availability = inject(StockAvailabilityService);
+  private readonly availability = inject(StockAvailabilityStore);
   private readonly catalog = inject(CatalogStore);
 
   readonly header = new FormGroup({
@@ -180,7 +180,7 @@ export class DocumentEditorViewService {
 
   /** Re-reads on-hand quantities of an issue's lines after the warehouse changed. */
   refreshAvailability(warehouseId: PublicId): Observable<ReadonlyMap<PublicId, number>> {
-    return this.availability.bySearch(warehouseId, '').pipe(
+    return this.availability.bySearch.call({ warehouseId, search: '' }).pipe(
       tap(stock => {
         for (const group of this.lines.controls) {
           group.controls.available.setValue(stock.get(group.controls.productId.value) ?? 0);

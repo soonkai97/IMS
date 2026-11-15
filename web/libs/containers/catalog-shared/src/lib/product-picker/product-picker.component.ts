@@ -24,7 +24,7 @@ import {
 import { ProductDto, ProductLookupResult } from '@ims/api';
 import { AppQtyPipe, I18nService, TranslatePipe } from '@ims/core/i18n';
 import { ProductsStore } from '@ims/features/catalog';
-import { StockAvailabilityService } from '@ims/features/documents';
+import { StockAvailabilityStore } from '@ims/features/documents';
 import { MIN_SEARCH_LENGTH, PublicId, SEARCH_DEBOUNCE_MS } from '@ims/models';
 import { UiSearchInputComponent, UiSkeletonComponent } from '@ims/ui';
 
@@ -51,7 +51,7 @@ interface ResultItem {
   styleUrl: './product-picker.component.scss'
 })
 export class ProductPickerComponent {
-  private readonly availability = inject(StockAvailabilityService);
+  private readonly availability = inject(StockAvailabilityStore);
   private readonly destroyRef = inject(DestroyRef);
   private readonly i18n = inject(I18nService);
   private readonly products = inject(ProductsStore);
@@ -135,8 +135,8 @@ export class ProductPickerComponent {
       switchMap(page =>
         warehouseId === null
           ? of(page.items.map(product => ({ product, available: null })))
-          : this.availability
-              .bySearch(warehouseId, term)
+          : this.availability.bySearch
+              .call({ warehouseId, search: term })
               .pipe(
                 switchMap(stock =>
                   of(
@@ -168,8 +168,8 @@ export class ProductPickerComponent {
     if (warehouseId === null) {
       return of<PickedProduct>({ product, available: null });
     }
-    return this.availability
-      .forProduct(warehouseId, product.id)
+    return this.availability.forProduct
+      .call({ warehouseId, productId: product.id })
       .pipe(switchMap(available => of<PickedProduct>({ product, available })));
   }
 }
