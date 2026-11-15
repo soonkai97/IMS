@@ -8,12 +8,12 @@ namespace Ims.Domain.Tests.Stock;
 /// </summary>
 internal static class SelfReviewTable
 {
-    internal enum Kind { Ordinary, CustomerReturn, SupplierReturn }
+    internal enum Kind { Ordinary, OrdinaryIssue, CustomerReturn, SupplierReturn }
 
     internal sealed record Case(bool SettingOn, Kind Kind, bool SameUser)
     {
         public int Reviewer => SameUser ? Submitter : Approver;
-        public bool Allowed => !SameUser || (SettingOn && Kind == Kind.Ordinary);
+        public bool Allowed => !SameUser || (SettingOn && Kind is Kind.Ordinary or Kind.OrdinaryIssue);
         public override string ToString() => $"setting {(SettingOn ? "on" : "off")}, {Kind}, {(SameUser ? "the submitter" : "another reviewer")}";
     }
 
@@ -29,10 +29,11 @@ internal static class SelfReviewTable
         var doc = kind switch
         {
             Kind.Ordinary => NewReceipt(ReturnableTable.Id, (NewProduct(), 5m, 2m)),
+            Kind.OrdinaryIssue => NewIssue(ReturnableTable.Id, (NewProduct(), 5m)),
             Kind.CustomerReturn => StockDocument.CreateReturn(ReturnableTable.PostedSale(), Creator, Now).WithId(ReturnableTable.Id),
             _ => StockDocument.CreateReturn(ReturnableTable.Posted(NewReceipt(ReturnableTable.Original, (NewProduct(), 5m, 2m))), Creator, Now).WithId(ReturnableTable.Id),
         };
-        if (kind != Kind.Ordinary) doc.AddLines([NewLine(NewProduct(), doc.Type, 1m)]);
+        if (kind is Kind.CustomerReturn or Kind.SupplierReturn) doc.AddLines([NewLine(NewProduct(), doc.Type, 1m)]);
         doc.Submit(Submitter, requiresApproval: true, Now);
         return doc;
     }

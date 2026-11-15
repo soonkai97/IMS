@@ -13,7 +13,8 @@ internal static class ShortStockTable
 
     internal enum Outcome { Refused, NoOverride, Override }
 
-    internal sealed record Case(DocumentType Type, bool NegativeAllowed, decimal OnHand, bool RulesRequireApproval)
+    /// <param name="HasRow">Whether a balance row is stored for the product: no row means zero on hand, and so does a stored 0 row; a stored row can also be negative (negative stock was allowed once).</param>
+    internal sealed record Case(DocumentType Type, bool NegativeAllowed, decimal OnHand, bool RulesRequireApproval, bool HasRow = true)
     {
         public bool IsShort => OnHand < Needed;
 
@@ -22,14 +23,25 @@ internal static class ShortStockTable
 
         public bool GoesToAnApprover => RulesRequireApproval || Expected == Outcome.Override;
         public StockDocument Document() => Type == DocumentType.Issue ? NewIssue(ReturnableTable.Id, (NewProduct(), Needed)) : NewReceipt(ReturnableTable.Id, (NewProduct(), Needed, 2m));
-        public IReadOnlyDictionary<int, decimal> OnHandByProduct() => OnHand > 0 ? new Dictionary<int, decimal> { [1] = OnHand } : new Dictionary<int, decimal>();
-        public override string ToString() => $"{Type}, negative stock {(NegativeAllowed ? "allowed" : "not allowed")}, {OnHand} on hand of {Needed}, rules {(RulesRequireApproval ? "ask" : "do not ask")} for approval";
+        public IReadOnlyDictionary<int, decimal> OnHandByProduct() => HasRow ? new Dictionary<int, decimal> { [1] = OnHand } : new Dictionary<int, decimal>();
+
+        /// <summary>The balance rows the repository holds for the product: none, or one with the stored quantity (a negative one is made the way posting makes it, by issuing past zero).</summary>
+        public IReadOnlyList<StockBalance> Balances()
+        {
+            if (!HasRow) return [];
+            var balance = NewBalance(1, Math.Max(OnHand, 0m), 2m);
+            if (OnHand < 0) balance.Issue(-OnHand, allowNegative: true);
+            return [balance];
+        }
+
+        public override string ToString() =>
+            $"{Type}, negative stock {(NegativeAllowed ? "allowed" : "not allowed")}, {(HasRow ? OnHand.ToString() : "no row")} on hand of {Needed}, rules {(RulesRequireApproval ? "ask" : "do not ask")} for approval";
     }
 
     internal static IEnumerable<Case> All() =>
         from type in new[] { DocumentType.Issue, DocumentType.Receipt }
         from negative in new[] { false, true }
-        from onHand in new[] { 0m, 4.9999m, Needed, 50m }
+        from stock in new (decimal OnHand, bool HasRow)[] { (0m, false), (0m, true), (-3m, true), (4.9999m, true), (Needed, true), (50m, true) }
         from rules in new[] { false, true }
-        select new Case(type, negative, onHand, rules);
+        select new Case(type, negative, stock.OnHand, rules, stock.HasRow);
 }

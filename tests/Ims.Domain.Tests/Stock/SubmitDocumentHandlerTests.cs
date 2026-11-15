@@ -21,7 +21,7 @@ public class SubmitDocumentHandlerTests
         var c = All().ElementAt(index);
         var doc = c.Document();
         var journal = new Journal();
-        var balances = new FakeRepository<StockBalance>(c.OnHand > 0 ? [NewBalance(1, c.OnHand, 2m)] : [], journal, readNote: "balances");
+        var balances = new FakeRepository<StockBalance>(c.Balances(), journal, readNote: "balances");
         var checks = new NoLinkChecks(journal);
         var access = new OpenAccess();
         var handler = new SubmitDocumentHandler(new FakeRepository<StockDocument>([doc], journal), new FakeApprovals(journal, c.RulesRequireApproval), checks, new StockAvailability(balances), checks, checks, checks,
