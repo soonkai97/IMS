@@ -7,11 +7,22 @@ namespace Ims.Domain;
 public abstract class AggregateRoot : PublicEntity, IAggregateRoot
 {
     private readonly List<IDomainEvent> _events = [];
+    private readonly List<RaisedEvent> _raised = [];
 
     public IReadOnlyList<IDomainEvent> DomainEvents => _events;
 
-    public void ClearDomainEvents() => _events.Clear();
+    public IReadOnlyList<RaisedEvent> RaisedEvents => _raised;
 
-    /// <summary>Records a fact about a change that has just been made. Only the root itself can call it.</summary>
-    protected void Raise(IDomainEvent domainEvent) => _events.Add(domainEvent);
+    public void ClearDomainEvents()
+    {
+        _events.Clear();
+        _raised.Clear();
+    }
+
+    /// <summary>Records a fact about a change that has just been made. Only the root itself can call it. The event gets the next number of the process-wide sequence.</summary>
+    protected void Raise(IDomainEvent domainEvent)
+    {
+        _events.Add(domainEvent);
+        _raised.Add(RaisedEvent.Stamp(domainEvent));
+    }
 }
