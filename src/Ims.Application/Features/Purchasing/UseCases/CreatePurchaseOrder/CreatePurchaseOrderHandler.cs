@@ -5,7 +5,7 @@ namespace Ims.Application.Features.Purchasing;
 
 public sealed class CreatePurchaseOrderHandler(IRepository<PurchaseOrder> orders, IReadRepository<Warehouse> warehouses, IReadRepository<Partner> partners,
     IDocumentNumbering numbering, IPurchaseOrderLineBuilder lineBuilder, IPurchaseOrderAccess access, IPurchaseOrderReader reader, ICallerPermissions caller,
-    ICurrentUser current, IClock clock, ITransactionLocker locker, IModuleSwitches switches, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreatePurchaseOrderCommand, PurchaseOrderDto>
+    ICurrentUser current, IClock clock, ITransactionLocker locker, IModuleSwitches switches, IUnitOfWork uow) : ICommandHandler<CreatePurchaseOrderCommand, PurchaseOrderDto>
 {
     public async Task<PurchaseOrderDto> HandleAsync(CreatePurchaseOrderCommand cmd, CancellationToken ct)
     {
@@ -27,19 +27,9 @@ public sealed class CreatePurchaseOrderHandler(IRepository<PurchaseOrder> orders
             order.ReplaceLines(await lineBuilder.BuildAsync(r.Lines, ct));
 
             orders.Add(order);
-            audit.Record(AuditActions.PurchaseOrderCreated, AuditEntities.PurchaseOrder, order.No, after: Summary(order));
             await uow.SaveChangesAsync(ct);
             return order.PublicId;
         }, ct);
         return await reader.GetAsync(publicId, ct);
     }
-
-    internal static Dictionary<string, object?> Summary(PurchaseOrder order) => new()
-    {
-        [nameof(order.Status)] = order.Status,
-        [nameof(order.WarehouseId)] = order.WarehouseId,
-        [nameof(order.SupplierId)] = order.SupplierId,
-        [nameof(order.Lines)] = order.Lines.Count,
-        [AuditFields.Amount] = order.TotalAmount
-    };
 }

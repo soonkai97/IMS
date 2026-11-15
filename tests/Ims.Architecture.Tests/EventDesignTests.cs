@@ -17,6 +17,10 @@ public class EventDesignTests
         "SalesOrderCreated", "SalesOrderUpdated", "SalesOrderSubmitted", "SalesOrderApproved", "SalesOrderRejected", "SalesOrderRecalled", "SalesOrderCancelled", "SalesOrderClosed",
         // DDD-13: the price list
         "PriceListCreated", "PriceListUpdated", "PriceListCustomerSet", "PriceListDeleted",
+        // DDD-12: the purchase order
+        "PurchaseOrderCreated", "PurchaseOrderUpdated", "PurchaseOrderSubmitted", "PurchaseOrderApproved", "PurchaseOrderRejected", "PurchaseOrderRecalled", "PurchaseOrderCancelled", "PurchaseOrderClosed",
+        // DDD-14: the module switch
+        "ModuleSwitched",
     ];
 
     // ---- The rules over the real assemblies ----

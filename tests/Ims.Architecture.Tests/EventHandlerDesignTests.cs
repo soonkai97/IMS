@@ -29,6 +29,11 @@ public class EventHandlerDesignTests
         public Task HandleAsync(SomethingHappened domainEvent, CancellationToken ct) { _ = audit; _ = locker; return Task.CompletedTask; }
     }
 
+    private sealed class SavingAfterCommit(IUnitOfWork uow) : IAfterCommitHandler<SomethingHappened>
+    {
+        public Task HandleAsync(SomethingHappened domainEvent, CancellationToken ct) => uow.SaveChangesAsync(ct);
+    }
+
     private sealed class NotAHandler(ITransactionLocker locker)
     {
         public ITransactionLocker Locker { get; } = locker;
@@ -62,6 +67,40 @@ public class EventHandlerDesignTests
     {
         Assert.Equal(isHandler, IsEventHandler(type));
         Assert.Equal(takesLocker, TakesTheLocker(type));
+    }
+
+    // ----- an after-commit handler holds no unit of work -----
+
+    private static bool IsAfterCommitHandler(Type type) =>
+        type is { IsClass: true, IsAbstract: false } && type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IAfterCommitHandler<>));
+
+    private static bool TakesTheUnitOfWork(Type type) => type
+        .GetConstructors(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
+        .SelectMany(c => c.GetParameters())
+        .Any(p => typeof(IUnitOfWork).IsAssignableFrom(p.ParameterType));
+
+    /// <summary>
+    /// An after-commit handler runs once the transaction has committed, for an effect that must never roll the business change back (DDD-14: dropping the cached module switches). What it would write is never
+    /// committed: the dispatcher refuses a save and a transaction from a handler (the flush logs the refusal and goes on), so the work would be silently lost. An effect that must be written belongs in an in-transaction handler.
+    /// </summary>
+    [Fact]
+    public void NoAfterCommitHandler_TakesTheUnitOfWork()
+    {
+        var found = Layers.TypesOf(Layers.Application).Concat(Layers.TypesOf(Layers.Infrastructure)).Where(IsAfterCommitHandler).ToList();
+        Assert.Contains(found, t => t.Name == "ModuleSwitchedCacheInvalidator");   // the rule is not vacuous
+
+        Verify.NoOffenders(found.Where(TakesTheUnitOfWork).Select(t => t.FullName!), "An after-commit handler takes IUnitOfWork (what it saved would never be written; stage it in an in-transaction handler):");
+    }
+
+    [Theory]
+    [InlineData(typeof(CleanInTransaction), false, false)]
+    [InlineData(typeof(LockingAfterCommit), true, false)]
+    [InlineData(typeof(SavingAfterCommit), true, true)]
+    [InlineData(typeof(NotAHandler), false, false)]
+    public void TheUnitOfWorkRule_RecognisesAnAfterCommitHandlerAndAUnitOfWorkInItsConstructor(Type type, bool isAfterCommit, bool takesUnitOfWork)
+    {
+        Assert.Equal(isAfterCommit, IsAfterCommitHandler(type));
+        Assert.Equal(takesUnitOfWork, TakesTheUnitOfWork(type));
     }
 
     // ----- a transaction is opened by the unit of work only -----
