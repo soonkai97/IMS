@@ -65,6 +65,20 @@ public class SalesOrderEventsTests
         Assert.Equal(new SalesOrderSummary(SalesOrderStatus.Draft, WarehouseId: 1, CustomerId: 200, LineCount: 2, SellingAmount: Money.Rounded(60m)), created.Summary);
     }
 
+    [Theory]
+    [InlineData("12", "12")]
+    [InlineData("12.5", "12.5")]
+    [InlineData("12.50", "12.50")]
+    public void The_summary_keeps_the_scale_of_the_amount_as_computed_because_the_audit_row_prints_a_decimal_as_it_is(string price, string printed)
+    {
+        var order = SalesOrder.Create(NewWarehouse(), NewCustomer(), null, Maker, Now);
+        order.AssignNumber(Number);
+
+        order.ReplaceLines([Line(price: decimal.Parse(price, System.Globalization.CultureInfo.InvariantCulture), qty: 1m)]);
+
+        Assert.Equal(printed, Convert.ToString(Only<SalesOrderCreated>(order).Summary.SellingAmount, System.Globalization.CultureInfo.InvariantCulture));
+    }
+
     [Fact]
     public void Replacing_the_lines_of_a_draft_raises_Updated_with_the_summary_before_and_after()
     {

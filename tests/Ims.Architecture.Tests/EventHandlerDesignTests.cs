@@ -87,6 +87,13 @@ public class EventHandlerDesignTests
     [InlineData("class C { void M(SqlConnection c) { c.BeginTransaction(); } }", true)]
     [InlineData("class C { void M() { var name = \"BeginTransaction\"; /* BeginTransaction() */ } }", false)]
     [InlineData("class C { void M(IUnitOfWork uow) { uow.ExecuteAsync(() => null); } }", false)]
+    [InlineData("class C { void M() { using var scope = new TransactionScope(); scope.Complete(); } }", true)]
+    [InlineData("class C { void M() { using var scope = new System.Transactions.TransactionScope(TransactionScopeOption.Required); } }", true)]
+    [InlineData("class C { void M() { using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled); } }", true)]
+    [InlineData("class C { void M(DbContext db, DbTransaction tx) { db.Database.UseTransaction(tx); } }", true)]
+    [InlineData("class C { async Task M(DbContext db, DbTransaction tx) { await db.Database.UseTransactionAsync(tx, ct); } }", true)]
+    [InlineData("class C { void M() { var name = \"TransactionScope\"; var other = \"UseTransaction\"; /* new TransactionScope() */ } }", false)]
+    [InlineData("class C { void M() { var t = new TransactionScopeOptions(); } }", false)]
     public void TheTransactionRule_FindsACallThatOpensOne(string code, bool found) => Assert.Equal(found, OpensATransaction(CSharpSyntaxTree.ParseText(code).GetRoot()));
 
     private static bool OpensATransaction(SyntaxNode root) => root.DescendantNodes().OfType<InvocationExpressionSyntax>()
