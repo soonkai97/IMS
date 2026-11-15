@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Users;
 
 public sealed class UpdateUserHandler(IRepository<User> users, IReadRepository<Role> roles, IIdMap<Warehouse> warehouseIds, IRepository<RefreshToken> tokens, IPasswordHasher hasher,
-    ICurrentUser current, IClock clock, ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<UpdateUserCommand, UserDto>
+    ICurrentUser current, IClock clock, ITransactionLocker locker, IUnitOfWork uow) : ICommandHandler<UpdateUserCommand, UserDto>
 {
     public Task<UserDto> HandleAsync(UpdateUserCommand cmd, CancellationToken ct)
     {
@@ -24,21 +24,17 @@ public sealed class UpdateUserHandler(IRepository<User> users, IReadRepository<R
             UserContainment.CheckAssignment(role, wanted, current);
 
             // Nobody may lock the system out of administration: not themselves, and not the last active administrator (a person whose role holds the whole administration core, whatever the role is called).
-            // The Domain decides (AdministratorContinuityPolicy); the other administrators are looked for, under the roles lock taken above, only when the policy says the answer depends on them: not for a person who locks themselves out, not for a write that takes nobody away.
+            // The other administrators are looked for (under the roles lock taken above) only when the policy says the answer depends on them: not for a person who locks themselves out, not for a write that takes nobody away.
             var administersAfter = r.IsActive && role.Administers;
             var isSelf = user.Id == current.UserId;
             var another = AdministratorContinuityPolicy.UserSaveNeedsAnotherAdministrator(user.IsAdministrator, administersAfter, isSelf)
                 && await users.AnyAsync(new ActiveAdministratorsSpec(exceptUserId: user.Id), ct);
             AdministratorContinuityRefusals.ThrowIfRefused(AdministratorContinuityPolicy.ForUserSave(user.IsAdministrator, administersAfter, isSelf, another));
 
-            var before = new { user.Username, Role = user.Role.Code, user.AllWarehouses, user.IsActive, Warehouses = user.Warehouses.Select(w => w.WarehouseId).ToList() };
             var allWarehouses = UserWarehouses.ResolveAllWarehouses(r.AllWarehouses, user.AllWarehouses, current);
             var endSessions = (user.IsActive && !r.IsActive) || !string.IsNullOrEmpty(r.Password);
 
-            user.UpdateProfile(r.Username, r.Email, r.DisplayName, role, r.IsActive);
-            if (passwordHash is not null) user.ChangePasswordHash(passwordHash);
-            user.SetAllWarehouses(allWarehouses);
-            user.AssignWarehouses(wanted);
+            user.Update(r.Username, r.Email, r.DisplayName, role, r.IsActive, allWarehouses, wanted, passwordHash);   // raises UserUpdated: the subscriber writes the audit row
 
             // A deactivation or a new password ends every session: the refresh tokens are revoked so nobody can renew. A changed role or scope does not: the rights ride in
             // the access token, so they apply at the next refresh (within AccessTokenMinutes plus the clock skew), and nobody is signed out for being promoted or demoted.
@@ -48,7 +44,6 @@ public sealed class UpdateUserHandler(IRepository<User> users, IReadRepository<R
                 foreach (var token in await tokens.ListAsync(new ActiveRefreshTokensOfUserSpec(user.Id, now), ct)) token.Revoke(now);
             }
 
-            audit.Record(AuditActions.UserUpdated, AuditEntities.User, user.PublicId.ToString(), before, new { user.Username, Role = role.Code, AllWarehouses = allWarehouses, user.IsActive, Warehouses = wanted });
             await uow.SaveChangesAsync(ct);
             return await UserMapping.ToDtoAsync(user, warehouseIds, ct);
         }, ct);

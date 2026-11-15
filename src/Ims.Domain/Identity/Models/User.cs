@@ -1,6 +1,10 @@
 namespace Ims.Domain;
 
-public sealed class User : PublicEntity
+/// <summary>
+/// A person who signs in (ADR roles-permissions): profile, one role, warehouse scope and the lockout counters of AUTH-01. It is an aggregate root (DDD-15): <see cref="MarkCreated"/> and <see cref="Update"/> raise an event
+/// after a valid change, which a subscriber turns into the audit row. No event carries a password, a hash or a token.
+/// </summary>
+public sealed class User : AggregateRoot
 {
     public static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(Limits.LockoutMinutes);
 
@@ -49,6 +53,27 @@ public sealed class User : PublicEntity
         Role = role;
         RoleId = role.Id;
         IsActive = isActive;
+    }
+
+    /// <summary>
+    /// Announces that the user was created: raises <see cref="UserCreated"/>. The factory raises nothing on purpose. The use case writes the row first and announces after, so the row-level audit row of the new user
+    /// (written by that first save) keeps the place before the business row that the subscriber stages at the second, the order the audit trail of a create has always had.
+    /// </summary>
+    public void MarkCreated() => Raise(new UserCreated(PublicId, Username, Role.Code, AllWarehouses));
+
+    /// <summary>
+    /// Saves the profile, role, active state, scope and warehouses of the user, and a new password hash when one is given, and raises <see cref="UserUpdated"/> with the state before and after (never the hash). A save
+    /// that the profile rules refuse (a blank name, an unknown or inactive role) changes nothing and raises nothing. Raised whether or not anything changed: the audit row of a user save was always written.
+    /// <paramref name="warehouseIds"/> is also what the event reports as the warehouses after the save, in the order given.
+    /// </summary>
+    public void Update(string username, string email, string displayName, Role role, bool isActive, bool allWarehouses, IReadOnlyList<int> warehouseIds, string? passwordHash)
+    {
+        var before = new UserSummary(Username, Role.Code, AllWarehouses, IsActive, _warehouses.Select(w => w.WarehouseId).ToList());
+        UpdateProfile(username, email, displayName, role, isActive);
+        if (passwordHash is not null) ChangePasswordHash(passwordHash);
+        SetAllWarehouses(allWarehouses);
+        AssignWarehouses(warehouseIds);
+        Raise(new UserUpdated(PublicId, before, new UserSummary(Username, Role.Code, AllWarehouses, IsActive, warehouseIds.ToList())));
     }
 
     public void ChangePasswordHash(string passwordHash) => PasswordHash = passwordHash;

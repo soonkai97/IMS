@@ -33,6 +33,9 @@ internal sealed class IdentityStore<T>(IEnumerable<T> rows, Journal journal) : I
 {
     private readonly List<T> _rows = rows.ToList();
 
+    /// <summary>What was staged through <c>Add</c>: the audit rows a subscriber wrote.</summary>
+    public List<T> Added { get; } = [];
+
     public Task<T?> FirstOrDefaultAsync(ISpecification<T> specification, CancellationToken cancellationToken = default) => Task.FromResult(specification.Evaluate(_rows).FirstOrDefault());
 
     public Task<TResult?> FirstOrDefaultAsync<TResult>(ISpecification<T, TResult> specification, CancellationToken cancellationToken = default) => Task.FromResult(specification.Evaluate(_rows).FirstOrDefault());
@@ -49,8 +52,8 @@ internal sealed class IdentityStore<T>(IEnumerable<T> rows, Journal journal) : I
         return Task.FromResult(specification.Evaluate(_rows).ToList());
     }
 
-    public void Add(T entity) => throw new NotSupportedException();
-    public void AddRange(IEnumerable<T> entities) => throw new NotSupportedException();
+    public void Add(T entity) => Added.Add(entity);
+    public void AddRange(IEnumerable<T> entities) => Added.AddRange(entities);
     public void Remove(T entity) => throw new NotSupportedException();
     public void RemoveRange(IEnumerable<T> entities) => throw new NotSupportedException();
     public Task<List<T>> ListAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();

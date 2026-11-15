@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Users;
 
 public sealed class CreateUserHandler(IRepository<User> users, IReadRepository<Role> roles, IIdMap<Warehouse> warehouseIds, IPasswordHasher hasher, ICurrentUser current, ITransactionLocker locker,
-    IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreateUserCommand, UserDto>
+    IUnitOfWork uow) : ICommandHandler<CreateUserCommand, UserDto>
 {
     public Task<UserDto> HandleAsync(CreateUserCommand cmd, CancellationToken ct)
     {
@@ -21,8 +21,8 @@ public sealed class CreateUserHandler(IRepository<User> users, IReadRepository<R
 
             var user = User.Create(r.Username, r.Email, r.DisplayName, role, passwordHash, warehouses, r.IsActive, allWarehouses);
             users.Add(user);
-            await uow.SaveChangesAsync(ct);
-            audit.Record(AuditActions.UserCreated, AuditEntities.User, user.PublicId.ToString(), after: new { user.Username, Role = role.Code, user.AllWarehouses });
+            await uow.SaveChangesAsync(ct);   // the user and its row-level audit row are written first, as they always were
+            user.MarkCreated();                // then the user announces itself: the subscriber stages the user.created row for the second save, after the row-level row
             await uow.SaveChangesAsync(ct);
             return await UserMapping.ToDtoAsync(user, warehouseIds, ct);
         }, ct);
