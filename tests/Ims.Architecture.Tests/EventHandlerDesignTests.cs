@@ -1,5 +1,8 @@
 using Ims.Application;
 using Ims.Domain;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Ims.Architecture.Tests;
 
@@ -60,4 +63,32 @@ public class EventHandlerDesignTests
         Assert.Equal(isHandler, IsEventHandler(type));
         Assert.Equal(takesLocker, TakesTheLocker(type));
     }
+
+    // ----- a transaction is opened by the unit of work only -----
+
+    private static readonly string[] MayOpenATransaction = ["Ims.Infrastructure/Persistence/UnitOfWork.cs", "Ims.Infrastructure/Persistence/AppDbContext.cs"];
+
+    /// <summary>
+    /// The after-commit queue is flushed by <c>UnitOfWork</c> (after <c>ExecuteAsync</c> commits, or after a bare save). A transaction opened anywhere else would commit without flushing it, so no code under src
+    /// opens one but the unit of work and the context's own audit save.
+    /// </summary>
+    [Fact]
+    public void NoTransactionIsOpenedOutsideTheUnitOfWork()
+    {
+        var opening = SourceFiles.All.Where(f => OpensATransaction(f.Root)).ToList();
+        Assert.Contains(opening, f => f.RelativePath == MayOpenATransaction[0]);   // the rule is not vacuous
+
+        Verify.NoOffenders(opening.Select(f => f.RelativePath).Except(MayOpenATransaction), "BeginTransaction may be called only in UnitOfWork and AppDbContext (an after-commit queue is flushed by the unit of work):");
+    }
+
+    [Theory]
+    [InlineData("class C { async Task M(DbContext db) { await using var tx = await db.Database.BeginTransactionAsync(ct); } }", true)]
+    [InlineData("class C { void M(DbContext db) { db.Database.BeginTransaction(); } }", true)]
+    [InlineData("class C { void M(SqlConnection c) { c.BeginTransaction(); } }", true)]
+    [InlineData("class C { void M() { var name = \"BeginTransaction\"; /* BeginTransaction() */ } }", false)]
+    [InlineData("class C { void M(IUnitOfWork uow) { uow.ExecuteAsync(() => null); } }", false)]
+    public void TheTransactionRule_FindsACallThatOpensOne(string code, bool found) => Assert.Equal(found, OpensATransaction(CSharpSyntaxTree.ParseText(code).GetRoot()));
+
+    private static bool OpensATransaction(SyntaxNode root) => root.DescendantNodes().OfType<InvocationExpressionSyntax>()
+        .Any(i => (i.Expression is MemberAccessExpressionSyntax member ? member.Name.Identifier.Text : (i.Expression as IdentifierNameSyntax)?.Identifier.Text) is "BeginTransaction" or "BeginTransactionAsync");
 }

@@ -57,12 +57,12 @@ public sealed class DomainEventDispatchTests(ApiFixture fixture) : IAsyncLifetim
     private static SalesOrderLine OneLine(Product product) => SalesOrderLine.Create(product, 5m, null, 10m, null);
 
     /// <summary>A new Draft with one line, tracked as Added: raises <see cref="SalesOrderCreated"/>. Its row is written by the next save.</summary>
-    private async Task<SalesOrder> StageOrderAsync(IServiceProvider sp, string no, bool track = true)
+    private async Task<SalesOrder> StageOrderAsync(IServiceProvider sp, string no, bool track = true, string? remark = null)
     {
         var db = sp.GetRequiredService<AppDbContext>();
         var warehouse = await db.Set<Warehouse>().SingleAsync(w => w.Id == _warehouseId);
         var customer = await db.Set<Partner>().SingleAsync(c => c.Id == _customerId);
-        var order = SalesOrder.Create(warehouse, customer, null, 1, DateTime.UtcNow);
+        var order = SalesOrder.Create(warehouse, customer, remark, 1, DateTime.UtcNow);
         order.AssignNumber(no);
         order.ReplaceLines([OneLine(await LoadProductAsync(sp, _productId))]);
         if (track) Track(sp, order);
@@ -373,5 +373,159 @@ public sealed class DomainEventDispatchTests(ApiFixture fixture) : IAsyncLifetim
 
         Assert.Equal(0, await OrdersAsync(no));
         Assert.Empty(_probe.AfterCommit);
+    }
+
+    // ----- review of PR 284 -----
+
+    /// <summary>A Draft with one line that is already committed; what the probe saw while it was created is forgotten.</summary>
+    private async Task<string> CommittedOrderAsync()
+    {
+        var no = NewNo();
+        await RunAsync(async sp =>
+        {
+            await StageOrderAsync(sp, no);
+            await sp.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
+        });
+        _probe.InTransaction.Clear();
+        _probe.AfterCommit.Clear();
+        return no;
+    }
+
+    private static async Task<SalesOrder> LoadOrderAsync(IServiceProvider sp, string no) =>
+        await sp.GetRequiredService<AppDbContext>().Set<SalesOrder>().Include(o => o.Lines).SingleAsync(o => o.No == no);
+
+    private Task<int> SubmittedAsync(string no) => fixture.Database.ScalarAsync<int>("SELECT COUNT(*) FROM SalesOrder WHERE No = @n AND SubmittedBy IS NOT NULL", ("@n", no));
+
+    private Task ChangeBehindTheBackAsync(string no) => fixture.Database.ExecuteAsync("UPDATE SalesOrder SET Remark = 'changed by another request' WHERE No = @n", ("@n", no));
+
+    [Fact]
+    public async Task A_handler_that_runs_a_transaction_of_its_own_throws_instead_of_dropping_the_queued_after_commit_items()
+    {
+        var (first, second) = (NewNo(), NewNo());
+        _probe.OnInTransaction = async (e, sp) =>
+        {
+            if (e is SalesOrderCreated c && c.No == second) await sp.GetRequiredService<IUnitOfWork>().ExecuteAsync(() => Task.FromResult(0));
+        };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => RunAsync(async sp =>
+        {
+            await StageOrderAsync(sp, first);
+            await StageOrderAsync(sp, second);
+            await sp.GetRequiredService<IUnitOfWork>().SaveChangesAsync();   // a bare save: the handler of the second event asks for a transaction
+        }));
+
+        Assert.Equal(0, await OrdersAsync(first));
+        Assert.Equal(0, await OrdersAsync(second));
+        Assert.Empty(_probe.AfterCommit);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_save_that_failed_inside_a_transaction_queues_nothing_for_after_commit_even_if_the_body_goes_on_and_commits(bool databaseRejects)
+    {
+        var (first, second, good) = (NewNo(), NewNo(), NewNo());
+        if (!databaseRejects) _probe.OnInTransaction = (e, _) => e is SalesOrderCreated c && c.No == second ? throw new InvalidOperationException("the handler failed") : Task.CompletedTask;
+
+        await RunAsync(async sp =>
+        {
+            var uow = sp.GetRequiredService<IUnitOfWork>();
+            await uow.ExecuteAsync(async () =>
+            {
+                await StageOrderAsync(sp, first);
+                await StageOrderAsync(sp, second, remark: databaseRejects ? new string('x', 5000) : null);   // too long for the column: the database refuses the save
+                try
+                {
+                    await uow.SaveChangesAsync();
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or DbUpdateException)
+                {
+                    sp.GetRequiredService<AppDbContext>().ChangeTracker.Clear();   // the body gives up on those two orders and goes on
+                }
+                await StageOrderAsync(sp, good);
+                await uow.SaveChangesAsync();
+                return 0;
+            });
+        });
+
+        Assert.Equal([good], _probe.AfterCommit.OfType<SalesOrderCreated>().Select(e => e.No).ToList());   // nothing for the orders that were never written
+        Assert.Equal(1, await OrdersAsync(good));
+        Assert.Equal(0, await OrdersAsync(first));
+        Assert.Equal(0, await OrdersAsync(second));
+    }
+
+    [Fact]
+    public async Task A_bare_save_that_loses_a_concurrency_race_after_the_events_were_taken_delivers_nothing_after_commit()
+    {
+        var no = await CommittedOrderAsync();
+        SalesOrder? order = null;
+
+        await Assert.ThrowsAsync<ConcurrencyException>(() => RunAsync(async sp =>
+        {
+            order = await LoadOrderAsync(sp, no);
+            await ChangeBehindTheBackAsync(no);
+            Submit(order);
+            await sp.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
+        }));
+
+        Assert.Equal(["SalesOrderSubmitted"], _probe.InTransaction.Select(e => e.GetType().Name).ToList());   // the in-transaction handler saw it, inside the save that then failed
+        Assert.Empty(_probe.AfterCommit);                                                                      // the save never committed
+        Assert.Empty(order!.DomainEvents);                                                                     // taken: the aggregate keeps nothing
+        Assert.Equal(0, await SubmittedAsync(no));
+    }
+
+    [Fact]
+    public async Task A_use_case_that_loses_a_concurrency_race_is_retried_and_delivers_after_commit_once()
+    {
+        var no = await CommittedOrderAsync();
+        var attempts = 0;
+
+        await RunAsync(async sp =>
+        {
+            var uow = sp.GetRequiredService<IUnitOfWork>();
+            await uow.ExecuteAsync(async () =>
+            {
+                attempts++;
+                var order = await LoadOrderAsync(sp, no);   // loaded inside the body, so every attempt starts from the database
+                if (attempts == 1) await ChangeBehindTheBackAsync(no);
+                Submit(order);
+                await uow.SaveChangesAsync();
+                return 0;
+            });
+        });
+
+        Assert.Equal(2, attempts);
+        Assert.Equal(2, _probe.InTransaction.OfType<SalesOrderSubmitted>().Count());
+        Assert.Single(_probe.AfterCommit.OfType<SalesOrderSubmitted>());
+        Assert.Equal(1, await SubmittedAsync(no));
+    }
+
+    [Fact]
+    public async Task A_cancelled_token_stops_the_dispatch_before_the_next_event_and_nothing_is_written_or_delivered()
+    {
+        var (first, second) = (NewNo(), NewNo());
+        using var cancellation = new CancellationTokenSource();
+        _probe.OnInTransaction = (_, _) =>
+        {
+            cancellation.Cancel();
+            return Task.CompletedTask;
+        };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => RunAsync(async sp =>
+        {
+            var uow = sp.GetRequiredService<IUnitOfWork>();
+            await uow.ExecuteAsync(async () =>
+            {
+                await StageOrderAsync(sp, first);
+                await StageOrderAsync(sp, second);
+                await uow.SaveChangesAsync(cancellation.Token);
+                return 0;
+            }, cancellation.Token);
+        }));
+
+        Assert.Single(_probe.InTransaction);   // the handler of the second event never ran
+        Assert.Empty(_probe.AfterCommit);
+        Assert.Equal(0, await OrdersAsync(first));
+        Assert.Equal(0, await OrdersAsync(second));
     }
 }
