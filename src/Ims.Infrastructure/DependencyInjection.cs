@@ -57,7 +57,8 @@ public static class DependencyInjection
         // Open generics: one registration serves every aggregate. Both interfaces resolve to the same scoped instance type.
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped(typeof(IReadRepository<>), typeof(Repository<>));
-        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+        services.AddScoped<DomainEventDispatcher>(); // the unit of work uses the same instance as the use cases that ask for the interface
+        services.AddScoped<IDomainEventDispatcher>(sp => sp.GetRequiredService<DomainEventDispatcher>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IStockSummaryReader, EfStockSummaryReader>();
         services.AddScoped<ILowStockReader, EfLowStockReader>();
