@@ -14,12 +14,12 @@ namespace Ims.Architecture.Tests;
 public class AggregateRootTests
 {
     /// <summary>Roots that derive from <c>AggregateRoot</c> or implement <c>IAggregateRoot</c> and raise events.</summary>
-    private static readonly string[] Roots = ["SalesOrder"];
+    private static readonly string[] Roots = ["SalesOrder", "Role", "User"];
 
     /// <summary>Roots of section 2.2 that raise events in a later slice (DDD-12 to DDD-17 and DDD-24). The slice that adds their events moves each name to <see cref="Roots"/>.</summary>
     private static readonly string[] RootsToCome =
     [
-        "PurchaseOrder", "PriceList", "StockDocument", "StockBalance", "DocumentSequence", "SystemSetting", "Role", "User", "ApprovalRule", "Product",
+        "PurchaseOrder", "PriceList", "StockDocument", "StockBalance", "DocumentSequence", "SystemSetting", "ApprovalRule", "Product",
     ];
 
     /// <summary>Small roots: "no events planned" in section 2.2. They stay plain entities.</summary>
