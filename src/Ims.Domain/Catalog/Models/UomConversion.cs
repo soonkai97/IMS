@@ -21,7 +21,7 @@ public sealed class UomConversion : Entity
         return c;
     }
 
-    public void ChangeFactor(decimal factor)
+    internal void ChangeFactor(decimal factor)
     {
         Factor = ConversionFactor.Of(factor).Value; // above zero, else ConversionFactorInvalid; the column still holds a decimal
     }

@@ -116,7 +116,7 @@ public sealed class SalesOrder : AggregateRoot
 
     public void EnsureEditable()
     {
-        if (Status != SalesOrderStatus.Draft)
+        if (!IsEditable)
             throw new DomainException(Messages.SalesOrderNotEditable(No, Status));
     }
 
@@ -130,6 +130,12 @@ public sealed class SalesOrder : AggregateRoot
     public bool CanBeDelivered => Status == SalesOrderStatus.Approved;
 
     public SalesOrderActionContext ActionContext => new(Status, RequiresApproval, IsLarge, CreatedBy, SubmittedBy);
+
+    /// <summary>Whose it is to take back: the one rule of <see cref="DocumentOwnership"/>, given who last changed the row.</summary>
+    public DocumentOwnership Ownership => new(CreatedBy, SubmittedBy, RecRevisor, Status == SalesOrderStatus.Draft);
+
+    /// <summary>Only a Draft can be changed (header and lines). What a caller answers to a change of any other state is its own mapping: <see cref="EnsureEditable"/> says 400, an update handler says 409.</summary>
+    public bool IsEditable => Status == SalesOrderStatus.Draft;
 
     /// <summary>
     /// Sends a Draft on. Every line needs a price above 0 (a draft may hold 0.00, a 0.00 order would pass every amount threshold unseen, plan D15). When an approval rule fired

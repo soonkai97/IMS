@@ -14,7 +14,7 @@ public sealed class UpdatePurchaseOrderHandler(IRepository<PurchaseOrder> orders
         access.EnsureInScope(order.WarehouseId);
         version.EnsureCurrent(order.PublicId, order.No, order, cmd.IfMatch);
         // A state the order is no longer in is a conflict (409), not a bad field: the plan asks for it, and the web reloads the order on a 409.
-        if (order.Status != PurchaseOrderStatus.Draft) throw new ConflictException(Messages.PurchaseOrderNotEditable(order.No, order.Status));
+        if (!order.IsEditable) throw new ConflictException(Messages.PurchaseOrderNotEditable(order.No, order.Status));
         if (order.WarehouseId != await warehouseIds.ToInternalOrNoRowAsync(cmd.Data.WarehouseId, ct)) throw new ValidationException(Messages.WarehouseCannotChange);
 
         var supplier = await partners.FirstOrDefaultAsync(new ByPublicIdSpec<Partner>(cmd.Data.SupplierId), ct) ?? throw new ValidationException(Messages.PartnerMissing);
