@@ -68,11 +68,11 @@ public class AggregateRootTests
     }
 
     [Fact]
-    public void TheContract_IsTheListAndTheClear_AndNothingElse()
+    public void TheContract_IsTheListTheSequencedListAndTheClear_AndNothingElse()
     {
         var members = typeof(IAggregateRoot).GetMembers().Select(m => m.Name).Order().ToList();
 
-        Assert.Equal(new[] { "ClearDomainEvents", "DomainEvents", "get_DomainEvents" }, members);
+        Assert.Equal(new[] { "ClearDomainEvents", "DomainEvents", "RaisedEvents", "get_DomainEvents", "get_RaisedEvents" }.Order().ToList(), members);
     }
 
     // ---- The classification ----

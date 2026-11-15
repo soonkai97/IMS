@@ -9,6 +9,9 @@ public interface IAggregateRoot
     /// <summary>The events raised since the root was loaded or last cleared, oldest first. Read-only: only the root raises them.</summary>
     IReadOnlyList<IDomainEvent> DomainEvents { get; }
 
+    /// <summary>The same events with the number each was given when it was raised, oldest first. One counter serves every aggregate, so sorting by it restores the order across aggregates.</summary>
+    IReadOnlyList<RaisedEvent> RaisedEvents { get; }
+
     /// <summary>Forgets the events once they have been taken (by the unit of work after it handed them to their subscribers).</summary>
     void ClearDomainEvents();
 }

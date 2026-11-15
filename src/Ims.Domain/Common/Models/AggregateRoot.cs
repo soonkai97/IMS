@@ -10,6 +10,8 @@ public abstract class AggregateRoot : PublicEntity, IAggregateRoot
 
     public IReadOnlyList<IDomainEvent> DomainEvents => _events;
 
+    public IReadOnlyList<RaisedEvent> RaisedEvents => [];
+
     public void ClearDomainEvents() => _events.Clear();
 
     /// <summary>Records a fact about a change that has just been made. Only the root itself can call it.</summary>
