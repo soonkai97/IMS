@@ -6,7 +6,7 @@ namespace Ims.Application.Features.Roles;
 /// user cannot be given the role between the count and the change.
 /// </summary>
 public sealed class UpdateRoleHandler(IRepository<Role> roles, IReadRepository<User> users, IRoleUsageReader usage, IRoleReader reader, IRoleVersion version, ICurrentUser current,
-    ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<UpdateRoleCommand, RoleDto>
+    ITransactionLocker locker, IUnitOfWork uow) : ICommandHandler<UpdateRoleCommand, RoleDto>
 {
     public Task<RoleDto> HandleAsync(UpdateRoleCommand cmd, CancellationToken ct) => uow.ExecuteAsync(async () =>
     {
@@ -16,12 +16,10 @@ public sealed class UpdateRoleHandler(IRepository<Role> roles, IReadRepository<U
         await RoleContainment.CheckEditableAsync(role, users, current, ct);
         version.EnsureCurrent(role, cmd.IfMatch);
 
-        var before = new { role.Name, role.Description, role.IsActive };
         var wasActive = role.IsActive;
         var active = r.IsActive ?? wasActive;
-        // The aggregate decides first what a system role allows, so that refusal is not hidden by the in-use count below.
-        role.UpdateText(name, r.Description ?? role.Description);
-        role.SetActive(active);
+        // The aggregate decides first what a system role allows, so that refusal is not hidden by the in-use count below; it raises RoleUpdated with the state before and after.
+        role.Update(name, r.Description ?? role.Description, active);
         if (await roles.AnyAsync(new RoleNameTakenSpec(name, role.Id), ct)) throw new ConflictException(Messages.RoleNameTaken(name));
         if (!active && wasActive)
         {
@@ -29,7 +27,6 @@ public sealed class UpdateRoleHandler(IRepository<Role> roles, IReadRepository<U
             if ((await usage.CountUsersAsync([role.Id], ct)).GetValueOrDefault(role.Id) is > 0 and var inUse) throw new ConflictException(Messages.RoleInUse(inUse));
         }
 
-        audit.Record(AuditActions.RoleUpdated, AuditEntities.Role, role.PublicId.ToString(), before, new { role.Code, role.Name, role.Description, role.IsActive });
         await uow.SaveChangesAsync(ct);
         return (await reader.FindAsync(role.PublicId, ct))!;
     }, ct);

@@ -11,7 +11,7 @@ namespace Ims.Application.Features.Roles;
 /// those grants (<see cref="ModulePermissions.Merge"/>), they are neither added nor removed in the reply and the audit event, and the <c>Requires</c> closure is checked on the merged set.
 /// </summary>
 public sealed class ReplaceRolePermissionsHandler(IRepository<Role> roles, IReadRepository<User> users, IRoleReader reader, IRoleVersion version, ICurrentUser current, ITransactionLocker locker,
-    IModuleSwitches modules, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<ReplaceRolePermissionsCommand, RolePermissionsResult>
+    IModuleSwitches modules, IUnitOfWork uow) : ICommandHandler<ReplaceRolePermissionsCommand, RolePermissionsResult>
 {
     public Task<RolePermissionsResult> HandleAsync(ReplaceRolePermissionsCommand cmd, CancellationToken ct) => uow.ExecuteAsync(async () =>
     {
@@ -27,17 +27,15 @@ public sealed class ReplaceRolePermissionsHandler(IRepository<Role> roles, IRead
         var wanted = ModulePermissions.Merge(submitted, role.Grants.Select(g => g.PermissionCode), enabled);
 
         var administered = role.Administers;
-        // The aggregate decides first what a system role allows (the Administrator role is locked), so that refusal is not hidden by the checks below.
+        // The aggregate decides first what a system role allows (the Administrator role is locked), so that refusal is not hidden by the checks below; it raises RolePermissionsChanged when the set is not the same.
         var (added, removed) = role.SetPermissions(wanted);
         // The closure is checked on the merged set: a hidden grant whose required permission the editor just took away is refused, naming both. Nothing is saved when it throws.
         if (PermissionCatalog.FirstMissingRequirement(wanted) is var (needing, required)) throw new DomainException(Messages.PermissionNeedsAnother(needing, required));
-        if (administered && !Role.HoldsAdminCore(wanted))
-            await AdministrabilityGuard.EnsureAnotherAsync(users, new ActiveAdministratorsSpec(exceptRoleId: role.Id), ct);
-        if (added.Count > 0 || removed.Count > 0)
-        {
-            audit.Record(AuditActions.RolePermissionsChanged, AuditEntities.Role, role.PublicId.ToString(), new { role.Code, Removed = removed }, new { role.Code, Added = added });
-            await uow.SaveChangesAsync(ct);
-        }
+        // The system keeps an active administrator: the other administrators are looked for (under the roles lock taken above) only when the policy says the answer depends on them.
+        var holdsCore = Role.HoldsAdminCore(wanted);
+        var another = AdministratorContinuityPolicy.RoleChangeNeedsAnotherAdministrator(administered, holdsCore) && await users.AnyAsync(new ActiveAdministratorsSpec(exceptRoleId: role.Id), ct);
+        AdministratorContinuityRefusals.ThrowIfRefused(AdministratorContinuityPolicy.ForRoleChange(administered, holdsCore, another));
+        if (added.Count > 0 || removed.Count > 0) await uow.SaveChangesAsync(ct);
         return new RolePermissionsResult((await reader.FindAsync(role.PublicId, ct))!, added, removed);
     }, ct);
 }

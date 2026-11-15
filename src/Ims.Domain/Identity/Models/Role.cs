@@ -5,8 +5,9 @@ namespace Ims.Domain;
 /// A named set of permissions that a user holds (ADR roles-permissions 2.2, lean scope: one role per user). The five system roles are seeded by the migration with
 /// the permissions of <see cref="SystemRoleDefaults"/>; the code is the stable text a role is known by and never
 /// changes. The permissions are code strings of <see cref="PermissionCatalog"/>, not rows of a permission table.
+/// It is an aggregate root (DDD-15): <see cref="Create"/>, <see cref="Update"/>, <see cref="SetPermissions"/> and <see cref="Delete"/> raise an event after a valid change, which a subscriber turns into the audit row.
 /// </summary>
-public sealed class Role : PublicEntity
+public sealed class Role : AggregateRoot
 {
     private Role() { }
 
@@ -47,16 +48,19 @@ public sealed class Role : PublicEntity
     public static bool IsPlainText(string text) => text.All(c => !char.IsControl(c) &&
         CharUnicodeInfo.GetUnicodeCategory(c) is not (UnicodeCategory.Format or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator));
 
-    public static Role Create(string code, string name, string? description, bool isSystem, IEnumerable<string> permissionCodes)
+    /// <param name="copiedFrom">The code of the role this one is a copy of, when it is one: the audit row of the create names it.</param>
+    public static Role Create(string code, string name, string? description, bool isSystem, IEnumerable<string> permissionCodes, string? copiedFrom = null)
     {
         if (string.IsNullOrWhiteSpace(code) || code.Trim().Length > Limits.RoleMaxLength) throw new DomainException(Messages.RoleCodeInvalid);
         var role = new Role { Code = code.Trim(), IsSystem = isSystem };
         role.SetText(name, description);
-        foreach (var permission in permissionCodes.Distinct(StringComparer.Ordinal))
+        var codes = permissionCodes.ToList();
+        foreach (var permission in codes.Distinct(StringComparer.Ordinal))
         {
             if (!PermissionCatalog.IsKnown(permission)) throw new DomainException(Messages.UnknownPermission(permission));
             role._grants.Add(RolePermission.For(permission));
         }
+        role.Raise(new RoleCreated(role.PublicId, role.Code, role.Name, InCatalogOrder(codes), copiedFrom));
         return role;
     }
 
@@ -65,6 +69,18 @@ public sealed class Role : PublicEntity
     {
         if (IsSystem) throw new LockedRoleException(Messages.SystemRoleProtected);
         SetText(name, description);
+    }
+
+    /// <summary>
+    /// Renames the role, changes its description and activates or deactivates it, in that order (a system role is refused at the first step, so that is not hidden by what follows), and raises <see cref="RoleUpdated"/>
+    /// with the text and state before and after. The event is raised whether or not anything changed: the audit row of an update was always written. Whether anyone still holds a role that is deactivated is the caller's question.
+    /// </summary>
+    public void Update(string name, string? description, bool active)
+    {
+        var before = new RoleSummary(Name, Description, IsActive);
+        UpdateText(name, description);
+        SetActive(active);
+        Raise(new RoleUpdated(PublicId, Code, before, new RoleSummary(Name, Description, IsActive)));
     }
 
     private void SetText(string name, string? description)
@@ -104,14 +120,18 @@ public sealed class Role : PublicEntity
         var added = wanted.Except(held.Select(g => g.PermissionCode), StringComparer.Ordinal).ToList();
         foreach (var code in added) _grants.Add(RolePermission.For(code));
 
-        return (InCatalogOrder(added), InCatalogOrder(removed.Select(g => g.PermissionCode)));
+        var (addedInOrder, removedInOrder) = (InCatalogOrder(added), InCatalogOrder(removed.Select(g => g.PermissionCode)));
+        if (addedInOrder.Count > 0 || removedInOrder.Count > 0) Raise(new RolePermissionsChanged(PublicId, Code, addedInOrder, removedInOrder));
+        return (addedInOrder, removedInOrder);
     }
 
-    /// <summary>Deletes the role (soft). Its grants stay as rows, hidden with it. Whether anyone still holds it is the caller's question to ask first.</summary>
+    /// <summary>Deletes the role (soft) and raises <see cref="RoleDeleted"/>. Its grants stay as rows, hidden with it. Whether anyone still holds it is the caller's question to ask first.</summary>
     public void Delete()
     {
         if (IsSystem) throw new LockedRoleException(Messages.SystemRoleProtected);
+        var permissions = InCatalogOrder(Grants.Select(g => g.PermissionCode));
         MarkDeleted();
+        Raise(new RoleDeleted(PublicId, Code, Name, permissions));
     }
 
     private static IReadOnlyList<string> InCatalogOrder(IEnumerable<string> codes) => PermissionCatalog.InOrder(codes);

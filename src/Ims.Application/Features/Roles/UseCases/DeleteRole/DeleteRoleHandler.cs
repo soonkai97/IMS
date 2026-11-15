@@ -6,7 +6,7 @@ namespace Ims.Application.Features.Roles;
 /// between and be left with a role that is gone (a user of a deleted role would vanish from the user list and could not sign in). The refusal says how many users hold the role, not who.
 /// The grants stay as rows, hidden with the role: nothing reads a grant without its role.
 /// </summary>
-public sealed class DeleteRoleHandler(IRepository<Role> roles, IReadRepository<User> users, IRoleUsageReader usage, ICurrentUser current, ITransactionLocker locker, IUnitOfWork uow, IAuditTrail audit)
+public sealed class DeleteRoleHandler(IRepository<Role> roles, IReadRepository<User> users, IRoleUsageReader usage, ICurrentUser current, ITransactionLocker locker, IUnitOfWork uow)
     : ICommandHandler<DeleteRoleCommand, Unit>
 {
     public Task<Unit> HandleAsync(DeleteRoleCommand cmd, CancellationToken ct) => uow.ExecuteAsync(async () =>
@@ -14,11 +14,10 @@ public sealed class DeleteRoleHandler(IRepository<Role> roles, IReadRepository<U
         var role = await roles.FirstOrDefaultAsync(new RoleForUpdateSpec(cmd.Id), ct) ?? throw new NotFoundException(Messages.RoleNotFound);
         await RoleContainment.CheckEditableAsync(role, users, current, ct);
 
-        role.Delete();   // the aggregate refuses a system role first, so that is not hidden by the in-use count
+        role.Delete();   // the aggregate refuses a system role first, so that is not hidden by the in-use count; it raises RoleDeleted
         await locker.LockRolesAsync(ct);
-        if ((await usage.CountUsersAsync([role.Id], ct)).GetValueOrDefault(role.Id) is > 0 and var inUse) throw new ConflictException(Messages.RoleInUse(inUse));
+        if ((await usage.CountUsersAsync([role.Id], ct)).GetValueOrDefault(role.Id) is > 0 and var inUse) throw new ConflictException(Messages.RoleInUse(inUse));   // the use case fails: the event is discarded with it
 
-        audit.Record(AuditActions.RoleDeleted, AuditEntities.Role, role.PublicId.ToString(), new { role.Code, role.Name, Permissions = PermissionCatalog.InOrder(role.Grants.Select(g => g.PermissionCode)) });
         await uow.SaveChangesAsync(ct);
         return Unit.Value;
     }, ct);
