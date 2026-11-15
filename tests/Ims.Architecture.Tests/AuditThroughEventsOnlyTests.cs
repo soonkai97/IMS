@@ -6,14 +6,14 @@ namespace Ims.Architecture.Tests;
 
 /// <summary>
 /// A business audit row comes from a domain event that a subscriber turns into <c>audit.Record(...)</c> (ddd-roadmap section 2.4, 2.5, 5), not from a call in a handler or an Application service. This is a ratchet:
-/// the number of <c>audit.Record(</c> calls in <c>Features/*/UseCases</c> and <c>Features/*/Services</c> is committed and may only go down, one slice at a time. It is 43 since DDD-11b: the 51 calls of the
-/// roadmap minus the eight sales-order handler calls that <c>SalesOrderAuditSubscriber</c> took over (the subscribers sit in <c>Features/*/EventHandlers</c> and are not counted). The final allow-list is
+/// the number of <c>audit.Record(</c> calls in <c>Features/*/UseCases</c> and <c>Features/*/Services</c> is committed and may only go down, one slice at a time. It was 43 after DDD-11b (the 51 calls of the
+/// roadmap minus the eight sales-order handler calls that <c>SalesOrderAuditSubscriber</c> took over) and is 42 since DDD-14, which took the one call of <c>SwitchModuleHandler</c> over with <c>ModuleSwitchAuditSubscriber</c> (the subscribers sit in <c>Features/*/EventHandlers</c> and are not counted). The final allow-list is
 /// import, attachment and logout, each of which is not an aggregate transition. A detector over fixture code proves the count is not vacuous.
 /// </summary>
 public class AuditThroughEventsOnlyTests
 {
     /// <summary>The calls that remain. Lower it when a slice moves calls to a subscriber; a count above it is a new call that should be an event, a count below it means the slice forgot to lower this number.</summary>
-    private const int Baseline = 43;
+    private const int Baseline = 42;
 
     private static readonly string[] CountedFolders = ["UseCases", "Services"];
 
@@ -53,6 +53,22 @@ public class AuditThroughEventsOnlyTests
         var subscriber = SourceFiles.All.Single(f => f.RelativePath == "Ims.Application/Features/Sales/EventHandlers/SalesOrderAuditSubscriber.cs");
 
         Assert.NotEmpty(AuditCalls.In(subscriber.Root));
+    }
+
+    [Fact]
+    public void TheSubscriberOfTheModuleSwitch_StagesItsRowWithTheSameLiteral()
+    {
+        var subscriber = SourceFiles.All.Single(f => f.RelativePath == "Ims.Application/Features/Modules/EventHandlers/ModuleSwitchAuditSubscriber.cs");
+
+        Assert.NotEmpty(AuditCalls.In(subscriber.Root));
+    }
+
+    [Fact]
+    public void TheModuleSwitchHandler_NoLongerStagesAnAuditRow()
+    {
+        var handler = SourceFiles.All.Single(f => f.RelativePath == "Ims.Application/Features/Modules/UseCases/SwitchModule/SwitchModuleHandler.cs");
+
+        Assert.Empty(AuditCalls.In(handler.Root));
     }
 
     [Theory]
