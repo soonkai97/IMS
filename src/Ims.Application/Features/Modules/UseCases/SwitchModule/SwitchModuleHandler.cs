@@ -40,7 +40,7 @@ public sealed class SwitchModuleHandler(IRepository<SystemSetting> settings, IRe
         else await EnsureNothingWouldBeOrphanedAsync(module, ct);
 
         if (row is null) settings.Add(SystemSetting.CreateModuleSwitch(module.Code, wanted, why, regaining));
-        else row.SwitchModule(wanted, why, regaining);
+        else row.SwitchModule(module.Code, wanted, why, regaining);
         await uow.SaveChangesAsync(ct); // the audit subscriber runs inside this save; the cache is dropped after the transaction commits
         return ModuleSwitchResult.From(ModuleDto.From(module, wanted), regaining);
     }, ct);

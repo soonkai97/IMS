@@ -27,7 +27,7 @@ public class SystemSettingModuleSwitchTests
     {
         var setting = SystemSetting.Create(SettingKeys.ForModule(ModuleCodes.Sales), stored);
 
-        setting.SwitchModule(enabled, Why("Not selling this quarter"), rolesRegainingGrants: enabled ? 3 : 0);
+        setting.SwitchModule(ModuleCodes.Sales, enabled, Why("Not selling this quarter"), rolesRegainingGrants: enabled ? 3 : 0);
 
         Assert.Equal(SettingValues.From(enabled), setting.Value);
         var raised = Assert.IsType<ModuleSwitched>(Assert.Single(setting.DomainEvents));
@@ -40,8 +40,8 @@ public class SystemSettingModuleSwitchTests
         var on = SystemSetting.Create(SettingKeys.ForModule(ModuleCodes.Sales), SettingValues.True);
         var off = SystemSetting.Create(SettingKeys.ForModule(ModuleCodes.Sales), SettingValues.False);
 
-        on.SwitchModule(enabled: true, Why(), rolesRegainingGrants: 1);
-        off.SwitchModule(enabled: false, Why(), rolesRegainingGrants: 0);
+        on.SwitchModule(ModuleCodes.Sales, enabled: true, Why(), rolesRegainingGrants: 1);
+        off.SwitchModule(ModuleCodes.Sales, enabled: false, Why(), rolesRegainingGrants: 0);
 
         Assert.Equal((SettingValues.True, SettingValues.False), (on.Value, off.Value));
         Assert.Empty(on.DomainEvents);
@@ -54,9 +54,34 @@ public class SystemSettingModuleSwitchTests
     {
         var setting = SystemSetting.Create(SettingKeys.AllowNegativeStock, SettingValues.False);
 
-        Assert.Throws<InvalidOperationException>(() => setting.SwitchModule(enabled: true, Why(), rolesRegainingGrants: 0));
+        Assert.Throws<InvalidOperationException>(() => setting.SwitchModule(ModuleCodes.Sales, enabled: true, Why(), rolesRegainingGrants: 0));
 
         Assert.Equal(SettingValues.False, setting.Value);
+        Assert.Empty(setting.DomainEvents);
+    }
+
+    [Theory]
+    [InlineData("module.sales")]   // a row edited by hand: the database finds it by key without regard to case
+    [InlineData("Module.SALES")]
+    [InlineData("MODULE.Sales")]
+    public void ARowWhoseKeyDiffersOnlyInCase_IsSwitchedWithoutError_AndTheEventNamesTheModuleByItsCatalogCode(string storedKey)
+    {
+        var setting = SystemSetting.Create(storedKey, SettingValues.False);
+
+        setting.SwitchModule(ModuleCodes.Sales, enabled: true, Why(), rolesRegainingGrants: 1);
+
+        Assert.Equal(SettingValues.True, setting.Value);
+        var raised = Assert.IsType<ModuleSwitched>(Assert.Single(setting.DomainEvents));
+        Assert.Equal(new ModuleSwitched(ModuleCodes.Sales, EnabledBefore: false, EnabledAfter: true, "Go live on Monday", RolesRegainingGrants: 1), raised);
+    }
+
+    [Fact]
+    public void ARowOfAnotherModule_IsRefused()
+    {
+        var setting = SystemSetting.Create(SettingKeys.ForModule(ModuleCodes.Purchasing), SettingValues.False);
+
+        Assert.Throws<InvalidOperationException>(() => setting.SwitchModule(ModuleCodes.Sales, enabled: true, Why(), rolesRegainingGrants: 0));
+
         Assert.Empty(setting.DomainEvents);
     }
 
@@ -79,9 +104,9 @@ public class SystemSettingModuleSwitchTests
         var a = SystemSetting.Create(SettingKeys.ForModule(ModuleCodes.Sales), SettingValues.False);
         var b = SystemSetting.Create(SettingKeys.ForModule(ModuleCodes.Purchasing), SettingValues.False);
 
-        a.SwitchModule(enabled: true, Why(), rolesRegainingGrants: 0);
-        b.SwitchModule(enabled: true, Why(), rolesRegainingGrants: 0);
-        a.SwitchModule(enabled: false, Why(), rolesRegainingGrants: 0);
+        a.SwitchModule(ModuleCodes.Sales, enabled: true, Why(), rolesRegainingGrants: 0);
+        b.SwitchModule(ModuleCodes.Purchasing, enabled: true, Why(), rolesRegainingGrants: 0);
+        a.SwitchModule(ModuleCodes.Sales, enabled: false, Why(), rolesRegainingGrants: 0);
 
         Assert.Equal(2, a.RaisedEvents.Count);
         Assert.True(a.RaisedEvents[0].Sequence < b.RaisedEvents[0].Sequence);

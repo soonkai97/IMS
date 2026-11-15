@@ -38,7 +38,7 @@ public sealed class SystemSetting : AuditableEntity, IAggregateRoot
     /// Turns the module of this row on or off and raises <see cref="ModuleSwitched"/> with the state it had (a value that is not exactly "true" is off). The state it already has changes nothing and raises nothing.
     /// </summary>
     /// <exception cref="InvalidOperationException">The row is not the switch of a module: no code path does that.</exception>
-    public void SwitchModule(bool enabled, Reason reason, int rolesRegainingGrants)
+    public void SwitchModule(string moduleCode, bool enabled, Reason reason, int rolesRegainingGrants)
     {
         if (!Key.StartsWith(SettingKeys.ModulePrefix, StringComparison.Ordinal)) throw new InvalidOperationException($"The setting {Key} is not the switch of a module.");
         var before = SettingValues.IsTrue(Value);
