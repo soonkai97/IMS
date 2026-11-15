@@ -139,6 +139,9 @@ public sealed class StockDocument : PublicEntity
     /// <summary>The facts <see cref="DocumentActionPolicy"/> needs to say what a user may do with this document.</summary>
     public DocumentActionContext ActionContext => new(Status, RequiresApproval, IsLarge, CreatedBy, SubmittedBy);
 
+    /// <summary>Whose it is to take back: the one rule of <see cref="DocumentOwnership"/>, given who last changed the row.</summary>
+    public DocumentOwnership Ownership => new(CreatedBy, SubmittedBy, RecRevisor, Status == DocumentStatus.Draft);
+
     /// <summary>Opens a new Draft. The number is assigned separately because allocation needs the database (BR-11).</summary>
     public static StockDocument Create(DocumentType type, Warehouse warehouse, Partner? partner, IssuePurpose? purpose,
         string? remark, int createdBy, DateTime now)

@@ -40,7 +40,7 @@ public sealed class PurchaseOrderAccess(ICurrentUser current) : IPurchaseOrderAc
         // Whoever submitted it. Once recalled an order no longer names its submitter, so the person who made the Draft or last changed it (the recall itself did) counts too:
         // their retry is the same request again. Anyone else is refused in every status, so the answer does not tell what state the order is in.
         var me = current.UserId;
-        var mine = order.SubmittedBy == me || (order.Status == PurchaseOrderStatus.Draft && (order.CreatedBy == me || order.RecRevisor == me));
+        var mine = order.Ownership.IsMine(me);
         if (!mine || !current.Rights().Has(Permissions.PoManage))
             throw new ForbiddenException(Messages.PurchaseOrderOwnRecallOnly);
     }

@@ -136,7 +136,7 @@ public sealed class StockDocumentLine : Entity
     /// a unit with a factor like 0.666667 can add up to a base quantity a little above the original's (three returns of 1 against an issue of 3 = 2.0001 against 2.0000); <see cref="ReturnBaseAlignment"/> gives the
     /// line that completes the original line the remainder and never lets the sum pass it. A customer return is valued again at its fixed cost.
     /// </summary>
-    public void RebaseTo(decimal baseQty)
+    internal void RebaseTo(decimal baseQty)
     {
         if (ReturnOfLineNo is null || baseQty <= 0m || baseQty == BaseQty) return;
         BaseQty = baseQty;

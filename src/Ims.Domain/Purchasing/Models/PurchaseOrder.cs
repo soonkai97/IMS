@@ -64,6 +64,12 @@ public sealed class PurchaseOrder : PublicEntity
 
     public PurchaseOrderActionContext ActionContext => new(Status, RequiresApproval, IsLarge, CreatedBy, SubmittedBy);
 
+    /// <summary>Whose it is to take back: the one rule of <see cref="DocumentOwnership"/>, given who last changed the row.</summary>
+    public DocumentOwnership Ownership => new(CreatedBy, SubmittedBy, RecRevisor, Status == PurchaseOrderStatus.Draft);
+
+    /// <summary>Only a Draft can be changed (header and lines). What a caller answers to a change of any other state is its own mapping: <see cref="EnsureEditable"/> says 400, an update handler says 409.</summary>
+    public bool IsEditable => Status == PurchaseOrderStatus.Draft;
+
     /// <summary>Opens a new Draft. The number is assigned separately because allocation needs the database (BR-11).</summary>
     public static PurchaseOrder Create(Warehouse warehouse, Partner supplier, string? remark, int createdBy, DateTime now)
     {
@@ -113,7 +119,7 @@ public sealed class PurchaseOrder : PublicEntity
 
     public void EnsureEditable()
     {
-        if (Status != PurchaseOrderStatus.Draft)
+        if (!IsEditable)
             throw new DomainException(Messages.PurchaseOrderNotEditable(No, Status));
     }
 

@@ -40,7 +40,7 @@ public sealed class DocumentAccess(ICurrentUser current) : IDocumentAccess, IApp
         // Whoever submitted it. Once recalled a document no longer names its submitter, so the person who made the Draft or who last changed it
         // (the recall itself did) counts too: their retry is the same request again. Anyone else is refused, whatever state the document is in.
         var me = current.UserId;
-        var mine = document.SubmittedBy == me || (document.Status == DocumentStatus.Draft && (document.CreatedBy == me || document.RecRevisor == me));
+        var mine = document.Ownership.IsMine(me);
         if (!mine || !current.Rights().Has(Permissions.DocumentCreate))
             throw new ForbiddenException(Messages.OwnRecallOnly);
     }
