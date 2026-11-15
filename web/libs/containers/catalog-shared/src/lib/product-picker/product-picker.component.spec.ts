@@ -2,7 +2,7 @@ import { createComponentFactory, mockProvider, Spectator } from '@ngneat/spectat
 import { of, throwError } from 'rxjs';
 import { ProductDto, ProductLookupResult } from '@ims/api';
 import { ProductsStore } from '@ims/features/catalog';
-import { StockAvailabilityService } from '@ims/features/documents';
+import { StockAvailabilityStore } from '@ims/features/documents';
 import { PickedProduct, ProductPickerComponent } from './product-picker.component';
 
 const WIDGET = {
@@ -18,7 +18,7 @@ describe('ProductPickerComponent exact-code lookup (scanner, Enter)', () => {
   const picked: PickedProduct[] = [];
   const createComponent = createComponentFactory({
     component: ProductPickerComponent,
-    providers: [mockProvider(ProductsStore), mockProvider(StockAvailabilityService)]
+    providers: [mockProvider(ProductsStore), mockProvider(StockAvailabilityStore)]
   });
   const products = () => spectator.inject(ProductsStore);
 
@@ -80,7 +80,7 @@ describe('ProductPickerComponent keyboard and scanner path (NV-03, NV-04, NV-15)
   let spectator: Spectator<ProductPickerComponent>;
   const createComponent = createComponentFactory({
     component: ProductPickerComponent,
-    providers: [mockProvider(ProductsStore), mockProvider(StockAvailabilityService)]
+    providers: [mockProvider(ProductsStore), mockProvider(StockAvailabilityStore)]
   });
 
   beforeEach(() => {
@@ -133,7 +133,7 @@ describe('ProductPickerComponent result buttons (WCAG 2.5.3 Label in Name)', () 
   let spectator: Spectator<ProductPickerComponent>;
   const createComponent = createComponentFactory({
     component: ProductPickerComponent,
-    providers: [mockProvider(ProductsStore), mockProvider(StockAvailabilityService)]
+    providers: [mockProvider(ProductsStore), mockProvider(StockAvailabilityStore)]
   });
 
   beforeEach(() => {

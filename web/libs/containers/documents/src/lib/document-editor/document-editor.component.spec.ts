@@ -29,7 +29,7 @@ import { PageTitleService, unsavedChangesGuard } from '@ims/core/navigation';
 import { ConfirmService, ToastService } from '@ims/core/notification';
 import { SystemSettingsStore } from '@ims/core/settings';
 import { CatalogStore, ProductsStore } from '@ims/features/catalog';
-import { DocumentsStore, ReturnsStore, StockAvailabilityService } from '@ims/features/documents';
+import { DocumentsStore, ReturnsStore, StockAvailabilityStore } from '@ims/features/documents';
 import { PurchaseOrdersStore } from '@ims/features/purchasing';
 import { SalesOrdersStore } from '@ims/features/sales';
 import { StockStore } from '@ims/features/stock';
@@ -209,7 +209,10 @@ describe('DocumentEditorPageComponent', () => {
         useValue: { ensureLoaded: jest.fn(), $unitCodes: signal(new Map()) }
       },
       { provide: ProductsStore, useValue: { lookup } },
-      { provide: StockAvailabilityService, useValue: { bySearch: jest.fn(() => of(new Map())) } },
+      {
+        provide: StockAvailabilityStore,
+        useValue: { bySearch: { call: jest.fn(() => of(new Map())) } }
+      },
       {
         provide: DocumentsStore,
         useFactory: () => ({

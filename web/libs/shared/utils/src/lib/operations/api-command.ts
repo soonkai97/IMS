@@ -40,6 +40,15 @@ export class ApiCommand<Arg, Result> {
     });
   }
 
+  /**
+   * Like `run`, but a failure is re-thrown to the caller after it is recorded. For a composite action (the session refresh with its
+   * retry, a call whose failure the caller maps to its own answer) that must see the error. Lazy: every subscription sends the
+   * request again (so `retry` works) and it is never throttled by `exclusive`: the caller owns that decision.
+   */
+  call(arg: Arg): Observable<Result> {
+    return defer(() => this.execute(arg)).pipe(trackOperation(this.$operation));
+  }
+
   reset(): void {
     this.$operation.set(IDLE_OPERATION);
   }

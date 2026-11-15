@@ -1,8 +1,10 @@
+import { HttpContext } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { createServiceFactory, mockProvider, SpectatorService } from '@ngneat/spectator/jest';
 import { Subject, firstValueFrom, of, throwError } from 'rxjs';
 import { AuthClient, AuthResult, UserInfo } from '@ims/api';
+import { isHandledInline } from '@ims/core/http';
 import { LEGACY_REFRESH_TOKEN_STORAGE_KEY, REFRESH_RETRY } from '../constants/identity.const';
 import { AuthService } from './auth.service';
 import { SessionDraftService } from './session-draft.service';
@@ -58,6 +60,43 @@ describe('AuthService', () => {
     expect(spectator.service.token).toBe('a1');
     expect(spectator.service.$isAuthenticated()).toBe(true);
     expect(localStorage.length).toBe(0);
+  });
+
+  it('login sends the credentials first, then reads the user; the sign-in banner shows the login answers, the user read has no marker', async () => {
+    const order: string[] = [];
+    client().login.mockImplementation(() => {
+      order.push('login');
+      return of(authResult('a1'));
+    });
+    client().me.mockImplementation(() => {
+      order.push('me');
+      return of(USER);
+    });
+
+    await firstValueFrom(spectator.service.login.run({ username: 'staff', password: 'x' }));
+
+    expect(order).toEqual(['login', 'me']);
+    const [body, context] = client().login.mock.calls[0];
+    expect(body).toEqual({ username: 'staff', password: 'x' });
+    expect(isHandledInline(context as HttpContext, 401)).toBe(true);
+    expect(client().me.mock.calls[0]).toEqual([]);
+    expect(spectator.service.$user()).toBe(USER);
+  });
+
+  it('a failed sign-in is shown by the screen (operation failure) and leaves no session', async () => {
+    client().login.mockReturnValue(throwError(() => ({ status: 401 })));
+
+    const emitted = await firstValueFrom(
+      spectator.service.login.run({ username: 'staff', password: 'x' }),
+      {
+        defaultValue: 'none'
+      }
+    );
+
+    expect(emitted).toBe('none');
+    expect(spectator.service.login.$isFailed()).toBe(true);
+    expect(spectator.service.token).toBeUndefined();
+    expect(client().me).not.toHaveBeenCalled();
   });
 
   it('shares ONE refresh call between concurrent callers and sends no token in the body', async () => {
@@ -435,6 +474,7 @@ describe('AuthService', () => {
 
       expect(spectator.service.$user()?.permissions).toContain('returns.create');
       expect(client().refresh).toHaveBeenCalledTimes(1);
+      expect(isHandledInline(client().me.mock.calls[0][0] as HttpContext, 500)).toBe(true);
     });
 
     it('keeps the old info, and does not fail, when the call fails', async () => {
@@ -509,6 +549,9 @@ describe('AuthService', () => {
 
       expect(client().changePassword).toHaveBeenCalledTimes(1);
       expect(client().changePassword.mock.calls[0][0]).toEqual(request);
+      expect(isHandledInline(client().changePassword.mock.calls[0][1] as HttpContext, 400)).toBe(
+        true
+      );
       expect(spectator.service.token).toBeUndefined();
       expect(spectator.service.$isAuthenticated()).toBe(false);
       expect(spectator.service.$sessionExpired()).toBe(false);

@@ -42,6 +42,53 @@ describe('ApiCommand', () => {
     expect(command.$operation().error?.detail).toBe('Stock moved.');
   });
 
+  describe('call (a failure the caller must see)', () => {
+    it('records loading then success and emits the result once, like run', () => {
+      const gate = new Subject<number>();
+      const command = new ApiCommand<string, number>(() => gate);
+      const values: number[] = [];
+
+      command.call('x').subscribe(value => values.push(value));
+      expect(command.$operation().status).toBe(API_STATUS.Loading);
+
+      gate.next(3);
+      gate.complete();
+
+      expect(values).toEqual([3]);
+      expect(command.$operation().status).toBe(API_STATUS.Success);
+    });
+
+    it('records the failure AND re-throws it, so a composite action can decide what the failure means', async () => {
+      const command = new ApiCommand<void, number>(() => throwError(() => API_ERROR));
+
+      await expect(firstValueFrom(command.call())).rejects.toBe(API_ERROR);
+
+      expect(command.$operation().status).toBe(API_STATUS.Failure);
+      expect(command.$operation().error?.detail).toBe('Stock moved.');
+    });
+
+    it('runs the call again on every subscription (a retry re-sends the request)', () => {
+      const execute = jest.fn(() => of(1));
+      const command = new ApiCommand<void, number>(execute);
+      const call$ = command.call();
+
+      call$.subscribe();
+      call$.subscribe();
+
+      expect(execute).toHaveBeenCalledTimes(2);
+    });
+
+    it('is never throttled by the exclusive flag of run: the caller owns that decision', () => {
+      const execute = jest.fn(() => new Subject<number>());
+      const command = new ApiCommand<void, number>(execute, true);
+
+      command.call().subscribe();
+      command.call().subscribe();
+
+      expect(execute).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('exclusive (NR-07)', () => {
     it('sends one request for two calls in the same tick and for a second call while the first runs', () => {
       const gate = new Subject<number>();
