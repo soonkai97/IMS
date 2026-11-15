@@ -24,11 +24,12 @@ public sealed class UpdateUserHandler(IRepository<User> users, IReadRepository<R
             UserContainment.CheckAssignment(role, wanted, current);
 
             // Nobody may lock the system out of administration: not themselves, and not the last active administrator (a person whose role holds the whole administration core, whatever the role is called).
-            if (user.IsAdministrator && !(r.IsActive && role.Administers))
-            {
-                if (user.Id == current.UserId) throw new ConflictException(Messages.CannotLockOutSelf);
-                await AdministrabilityGuard.EnsureAnotherAsync(users, new ActiveAdministratorsSpec(exceptUserId: user.Id), ct);
-            }
+            // The Domain decides (AdministratorContinuityPolicy); the other administrators are looked for, under the roles lock taken above, only when the policy says the answer depends on them: not for a person who locks themselves out, not for a write that takes nobody away.
+            var administersAfter = r.IsActive && role.Administers;
+            var isSelf = user.Id == current.UserId;
+            var another = AdministratorContinuityPolicy.UserSaveNeedsAnotherAdministrator(user.IsAdministrator, administersAfter, isSelf)
+                && await users.AnyAsync(new ActiveAdministratorsSpec(exceptUserId: user.Id), ct);
+            AdministratorContinuityRefusals.ThrowIfRefused(AdministratorContinuityPolicy.ForUserSave(user.IsAdministrator, administersAfter, isSelf, another));
 
             var before = new { user.Username, Role = user.Role.Code, user.AllWarehouses, user.IsActive, Warehouses = user.Warehouses.Select(w => w.WarehouseId).ToList() };
             var allWarehouses = UserWarehouses.ResolveAllWarehouses(r.AllWarehouses, user.AllWarehouses, current);
