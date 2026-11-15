@@ -31,8 +31,10 @@ public sealed class ReplaceRolePermissionsHandler(IRepository<Role> roles, IRead
         var (added, removed) = role.SetPermissions(wanted);
         // The closure is checked on the merged set: a hidden grant whose required permission the editor just took away is refused, naming both. Nothing is saved when it throws.
         if (PermissionCatalog.FirstMissingRequirement(wanted) is var (needing, required)) throw new DomainException(Messages.PermissionNeedsAnother(needing, required));
-        if (administered && !Role.HoldsAdminCore(wanted))
-            await AdministrabilityGuard.EnsureAnotherAsync(users, new ActiveAdministratorsSpec(exceptRoleId: role.Id), ct);
+        // The system keeps an active administrator: the other administrators are looked for (under the roles lock taken above) only when the policy says the answer depends on them.
+        var holdsCore = Role.HoldsAdminCore(wanted);
+        var another = AdministratorContinuityPolicy.RoleChangeNeedsAnotherAdministrator(administered, holdsCore) && await users.AnyAsync(new ActiveAdministratorsSpec(exceptRoleId: role.Id), ct);
+        AdministratorContinuityRefusals.ThrowIfRefused(AdministratorContinuityPolicy.ForRoleChange(administered, holdsCore, another));
         if (added.Count > 0 || removed.Count > 0)
         {
             audit.Record(AuditActions.RolePermissionsChanged, AuditEntities.Role, role.PublicId.ToString(), new { role.Code, Removed = removed }, new { role.Code, Added = added });
