@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
 public sealed class SubmitPurchaseOrderHandler(IRepository<PurchaseOrder> orders, IApprovalEvaluator approvals, IPurchaseOrderAccess access, IPurchaseOrderReader reader,
-    IDocumentVersion version, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<SubmitPurchaseOrderCommand, PurchaseOrderDto>
+    IDocumentVersion version, ICurrentUser current, IClock clock, IUnitOfWork uow) : ICommandHandler<SubmitPurchaseOrderCommand, PurchaseOrderDto>
 {
     public async Task<PurchaseOrderDto> HandleAsync(SubmitPurchaseOrderCommand cmd, CancellationToken ct)
     {
@@ -13,16 +13,7 @@ public sealed class SubmitPurchaseOrderHandler(IRepository<PurchaseOrder> orders
 
         // The order is tested at its total at cost and its total base quantity against the rules of its type, and released at once when none fires.
         var assessment = await approvals.AssessAsync(DocumentType.PurchaseOrder, order.TotalQty, order.TotalAmount, ct);
-        var before = order.Status;
         order.Submit(current.UserId, assessment.Required, assessment.IsLarge, clock.UtcNow);
-        audit.Record(AuditActions.PurchaseOrderSubmitted, AuditEntities.PurchaseOrder, order.No, new { Status = before },
-            new Dictionary<string, object?>
-            {
-                [nameof(order.Status)] = order.Status,
-                [nameof(order.RequiresApproval)] = order.RequiresApproval,
-                [nameof(order.IsLarge)] = order.IsLarge,
-                [AuditFields.Amount] = assessment.Amount
-            });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);
     }

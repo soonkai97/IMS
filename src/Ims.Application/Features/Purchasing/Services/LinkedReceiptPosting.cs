@@ -34,7 +34,7 @@ public sealed class LinkedReceiptPosting(IReadRepository<PurchaseOrder> orders, 
     {
         if (state is not LinkedPosting { FullyReceived: true, Order: var order }) return;
         var before = order.Status;
-        order.CloseReceived(current.UserId, clock.UtcNow);
+        order.CloseReceived(current.UserId, document.No, clock.UtcNow);
         audit.Record(AuditActions.PurchaseOrderClosed, AuditEntities.PurchaseOrder, order.No, new { Status = before },
             new { order.Status, order.CloseKind, Receipt = document.No });
     }

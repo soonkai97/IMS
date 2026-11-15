@@ -14,7 +14,7 @@ public class PurchaseOrderCloseTests
         order.ReplaceLines([PurchaseOrderLine.Create(NewProduct(), 5m, null, 2m, null)]);
         if (status == PurchaseOrderStatus.Cancelled) order.Cancel(null);
         if (status is PurchaseOrderStatus.Approved or PurchaseOrderStatus.Closed) order.Submit(11, requiresApproval: false, isLarge: false, Now);
-        if (status == PurchaseOrderStatus.Closed) order.CloseReceived(Poster, Now);
+        if (status == PurchaseOrderStatus.Closed) order.CloseReceived(Poster, "RCV-WH1-2601-0001", Now);
         return order;
     }
 
@@ -23,7 +23,7 @@ public class PurchaseOrderCloseTests
     {
         var order = Order(PurchaseOrderStatus.Approved);
 
-        order.CloseReceived(Poster, Now);
+        order.CloseReceived(Poster, "RCV-WH1-2601-0001", Now);
 
         Assert.Equal((PurchaseOrderStatus.Closed, PurchaseOrderCloseKind.Received, (int?)Poster, (DateTime?)Now, (string?)null), (order.Status, order.CloseKind, order.ClosedBy, order.ClosedAt, order.CloseReason));
         Assert.False(order.CanBeReceived);
@@ -62,6 +62,6 @@ public class PurchaseOrderCloseTests
         var order = Order(status);
 
         Assert.Equal(Messages.PurchaseOrderCannotClose(status), Assert.Throws<DomainException>(() => order.CloseShort("Supplier ships no more", Poster, Now)).Message);
-        Assert.Equal(Messages.PurchaseOrderCannotClose(status), Assert.Throws<DomainException>(() => order.CloseReceived(Poster, Now)).Message);
+        Assert.Equal(Messages.PurchaseOrderCannotClose(status), Assert.Throws<DomainException>(() => order.CloseReceived(Poster, "RCV-WH1-2601-0001", Now)).Message);
     }
 }

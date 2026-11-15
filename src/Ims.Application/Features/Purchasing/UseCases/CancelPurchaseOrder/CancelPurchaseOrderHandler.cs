@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
 public sealed class CancelPurchaseOrderHandler(IRepository<PurchaseOrder> orders, IPurchaseOrderReceiving receiving, IPurchaseOrderAccess access, IPurchaseOrderReader reader, IDocumentVersion version,
-    ITransactionLocker locker, ICurrentUser current, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CancelPurchaseOrderCommand, PurchaseOrderDto>
+    ITransactionLocker locker, ICurrentUser current, IUnitOfWork uow) : ICommandHandler<CancelPurchaseOrderCommand, PurchaseOrderDto>
 {
     public async Task<PurchaseOrderDto> HandleAsync(CancelPurchaseOrderCommand cmd, CancellationToken ct)
     {
@@ -16,9 +16,7 @@ public sealed class CancelPurchaseOrderHandler(IRepository<PurchaseOrder> orders
             version.EnsureCurrent(order.PublicId, order.No, order, cmd.IfMatch);
             if (order.Status == PurchaseOrderStatus.Approved) await EnsureNoReceiptAsync(order, ct); // a Draft or Submitted order has no receipt: none can be made before approval
 
-            var before = order.Status;
             order.Cancel(cmd.Data.Reason, byAnotherUser: order.CreatedBy != current.UserId);
-            audit.Record(AuditActions.PurchaseOrderCancelled, AuditEntities.PurchaseOrder, order.No, new { Status = before }, new { order.Status, Reason = order.CancelReason });
             await uow.SaveChangesAsync(ct);
             return true;
         }, ct);
