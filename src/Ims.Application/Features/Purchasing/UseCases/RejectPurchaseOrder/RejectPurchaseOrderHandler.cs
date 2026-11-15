@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
 public sealed class RejectPurchaseOrderHandler(IRepository<PurchaseOrder> orders, IApprovalEvaluator approvals, ISystemSettings settings, IPurchaseOrderAccess access,
-    IPurchaseOrderReader reader, IDocumentVersion version, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<RejectPurchaseOrderCommand, PurchaseOrderDto>
+    IPurchaseOrderReader reader, IDocumentVersion version, ICurrentUser current, IClock clock, IUnitOfWork uow) : ICommandHandler<RejectPurchaseOrderCommand, PurchaseOrderDto>
 {
     public async Task<PurchaseOrderDto> HandleAsync(RejectPurchaseOrderCommand cmd, CancellationToken ct)
     {
@@ -17,9 +17,7 @@ public sealed class RejectPurchaseOrderHandler(IRepository<PurchaseOrder> orders
             await approvals.ReviewRefusalAsync(DocumentType.PurchaseOrder, order.IsLarge, order.TotalQty, order.TotalAmount, ct) is { } refusal)
             throw new ForbiddenException(refusal);
 
-        var before = order.Status;
         order.Reject(cmd.Data.Reason, current.UserId, (await settings.GetAsync(ct)).AllowSelfApproval, clock.UtcNow);
-        audit.Record(AuditActions.PurchaseOrderRejected, AuditEntities.PurchaseOrder, order.No, new { Status = before }, new { order.Status, Reason = order.RejectionReason });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);
     }

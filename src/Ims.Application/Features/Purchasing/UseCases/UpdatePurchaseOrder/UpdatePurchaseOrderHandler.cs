@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Purchasing;
 
 public sealed class UpdatePurchaseOrderHandler(IRepository<PurchaseOrder> orders, IReadRepository<Partner> partners, IPurchaseOrderLineBuilder lineBuilder,
-    IPurchaseOrderAccess access, IPurchaseOrderReader reader, ICallerPermissions caller, IDocumentVersion version, IIdMap<Warehouse> warehouseIds, IUnitOfWork uow, IAuditTrail audit)
+    IPurchaseOrderAccess access, IPurchaseOrderReader reader, ICallerPermissions caller, IDocumentVersion version, IIdMap<Warehouse> warehouseIds, IUnitOfWork uow)
     : ICommandHandler<UpdatePurchaseOrderCommand, PurchaseOrderDto>
 {
     public async Task<PurchaseOrderDto> HandleAsync(UpdatePurchaseOrderCommand cmd, CancellationToken ct)
@@ -18,11 +18,9 @@ public sealed class UpdatePurchaseOrderHandler(IRepository<PurchaseOrder> orders
         if (order.WarehouseId != await warehouseIds.ToInternalOrNoRowAsync(cmd.Data.WarehouseId, ct)) throw new ValidationException(Messages.WarehouseCannotChange);
 
         var supplier = await partners.FirstOrDefaultAsync(new ByPublicIdSpec<Partner>(cmd.Data.SupplierId), ct) ?? throw new ValidationException(Messages.PartnerMissing);
-        var before = CreatePurchaseOrderHandler.Summary(order);
         order.UpdateHeader(supplier, cmd.Data.Remark);
         order.ReplaceLines(await lineBuilder.BuildAsync(cmd.Data.Lines, ct));
 
-        audit.Record(AuditActions.PurchaseOrderUpdated, AuditEntities.PurchaseOrder, order.No, before, CreatePurchaseOrderHandler.Summary(order));
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);
     }
