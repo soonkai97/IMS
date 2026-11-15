@@ -42,7 +42,8 @@ public sealed class PriceList : AggregateRoot
         return list;
     }
 
-    /// <summary>The name, whether it is the default list, and its customer (null clears it). The default list is for everyone, so it has no customer. Raises nothing by itself: the edit is complete when <see cref="ReplaceItems"/> follows.</summary>
+    /// <summary>The name, whether it is the default list, and its customer (null clears it). The default list is for everyone, so it has no customer. Raises nothing by itself: it only keeps the header as it was until <see cref="ReplaceItems"/> completes the edit.</summary>
+    /// <remarks>A caller MUST call <see cref="ReplaceItems"/> in the same save, or no <see cref="PriceListUpdated"/> is raised and no audit row is written for the edit (pinned by <c>Updating_the_header_alone_raises_nothing_the_event_comes_with_the_items</c>).</remarks>
     public void Update(string name, bool isDefault, Partner? customer)
     {
         _summaryBeforeEdit ??= Summary();
