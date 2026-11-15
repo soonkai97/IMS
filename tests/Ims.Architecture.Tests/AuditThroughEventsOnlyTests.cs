@@ -6,14 +6,15 @@ namespace Ims.Architecture.Tests;
 
 /// <summary>
 /// A business audit row comes from a domain event that a subscriber turns into <c>audit.Record(...)</c> (ddd-roadmap section 2.4, 2.5, 5), not from a call in a handler or an Application service. This is a ratchet:
-/// the number of <c>audit.Record(</c> calls in <c>Features/*/UseCases</c> and <c>Features/*/Services</c> is committed and may only go down, one slice at a time. It is 35 since DDD-12: the 51 calls of the roadmap, minus the eight sales-order handler calls that <c>SalesOrderAuditSubscriber</c> took over (DDD-11b, 43) and the eight purchase-order handler calls
-/// that <c>PurchaseOrderAuditSubscriber</c> took over (the subscribers sit in <c>Features/*/EventHandlers</c> and are not counted). The final allow-list is
+/// the number of <c>audit.Record(</c> calls in <c>Features/*/UseCases</c> and <c>Features/*/Services</c> is committed and may only go down, one slice at a time. It was 43 after DDD-11b (the 51 calls of the
+/// roadmap minus the eight sales-order handler calls that <c>SalesOrderAuditSubscriber</c> took over), 42 after DDD-14 (the one call of <c>SwitchModuleHandler</c>, taken over by <c>ModuleSwitchAuditSubscriber</c>) and is 34 since DDD-12, which took over
+/// the eight purchase-order handler calls with <c>PurchaseOrderAuditSubscriber</c> (the subscribers sit in <c>Features/*/EventHandlers</c> and are not counted). The final allow-list is
 /// import, attachment and logout, each of which is not an aggregate transition. A detector over fixture code proves the count is not vacuous.
 /// </summary>
 public class AuditThroughEventsOnlyTests
 {
     /// <summary>The calls that remain. Lower it when a slice moves calls to a subscriber; a count above it is a new call that should be an event, a count below it means the slice forgot to lower this number.</summary>
-    private const int Baseline = 35;
+    private const int Baseline = 34;
 
     private static readonly string[] CountedFolders = ["UseCases", "Services"];
 
@@ -65,6 +66,22 @@ public class AuditThroughEventsOnlyTests
 
         Assert.NotEmpty(calls);
         Assert.All(calls, c => Assert.StartsWith("audit.Record(", c.ToString()));
+    }
+
+    [Fact]
+    public void TheSubscriberOfTheModuleSwitch_StagesItsRowWithTheSameLiteral()
+    {
+        var subscriber = SourceFiles.All.Single(f => f.RelativePath == "Ims.Application/Features/Modules/EventHandlers/ModuleSwitchAuditSubscriber.cs");
+
+        Assert.NotEmpty(AuditCalls.In(subscriber.Root));
+    }
+
+    [Fact]
+    public void TheModuleSwitchHandler_NoLongerStagesAnAuditRow()
+    {
+        var handler = SourceFiles.All.Single(f => f.RelativePath == "Ims.Application/Features/Modules/UseCases/SwitchModule/SwitchModuleHandler.cs");
+
+        Assert.Empty(AuditCalls.In(handler.Root));
     }
 
     [Theory]
