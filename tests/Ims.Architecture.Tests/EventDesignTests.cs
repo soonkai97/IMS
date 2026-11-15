@@ -15,6 +15,8 @@ public class EventDesignTests
     [
         // DDD-06: the sales order
         "SalesOrderCreated", "SalesOrderUpdated", "SalesOrderSubmitted", "SalesOrderApproved", "SalesOrderRejected", "SalesOrderRecalled", "SalesOrderCancelled", "SalesOrderClosed",
+        // DDD-14: the module switch
+        "ModuleSwitched",
     ];
 
     // ---- The rules over the real assemblies ----
