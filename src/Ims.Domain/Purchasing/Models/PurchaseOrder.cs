@@ -6,7 +6,7 @@ namespace Ims.Domain;
 /// (or straight to Approved when no rule fires), Submitted -> Draft by a rejection or a recall, and Draft, Submitted or Approved -> Cancelled. Closing (automatic and short) comes with the
 /// receipts (PL2.5). Totals are computed from the lines, never stored.
 /// </summary>
-public sealed class PurchaseOrder : PublicEntity
+public sealed class PurchaseOrder : AggregateRoot
 {
     private PurchaseOrder() { }
 
@@ -203,7 +203,7 @@ public sealed class PurchaseOrder : PublicEntity
     /// Closes an Approved order because every line is fully received (plan D5): called by posting, in the same transaction as the receipt that brought in the last quantity. The poster is recorded;
     /// there is no reason to give. A reversal of a receipt later never reopens it.
     /// </summary>
-    public void CloseReceived(int userId, DateTime utcNow)
+    public void CloseReceived(int userId, string receiptNo, DateTime utcNow)
     {
         if (Status != PurchaseOrderStatus.Approved)
             throw new DomainException(Messages.PurchaseOrderCannotClose(Status));
