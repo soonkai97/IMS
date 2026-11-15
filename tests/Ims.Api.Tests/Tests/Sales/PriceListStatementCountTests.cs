@@ -35,11 +35,11 @@ public class PriceListStatementCountTests(ApiFixture fixture) : IAsyncLifetime
     private static readonly Dictionary<string, (int Commands, int Writes)> Frozen = new()
     {
         [CreateEmpty] = (7, 2),
-        [CreateThree] = (9, 3),
-        [UpdateThree] = (10, 5),
+        [CreateThree] = (10, 3),
+        [UpdateThree] = (11, 5),
         [UpdateSame] = (10, 1),
         [SetCustomer] = (8, 2),
-        [Delete] = (4, 5),
+        [Delete] = (5, 5),
     };
 
     [Fact]

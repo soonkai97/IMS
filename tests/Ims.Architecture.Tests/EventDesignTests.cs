@@ -15,6 +15,8 @@ public class EventDesignTests
     [
         // DDD-06: the sales order
         "SalesOrderCreated", "SalesOrderUpdated", "SalesOrderSubmitted", "SalesOrderApproved", "SalesOrderRejected", "SalesOrderRecalled", "SalesOrderCancelled", "SalesOrderClosed",
+        // DDD-13: the price list
+        "PriceListCreated", "PriceListUpdated", "PriceListCustomerSet", "PriceListDeleted",
     ];
 
     // ---- The rules over the real assemblies ----

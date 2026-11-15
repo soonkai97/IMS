@@ -68,6 +68,7 @@ public static class DependencyInjection
         services.AddScoped<IDocumentTextMatcher, EfDocumentTextMatcher>();
         services.AddScoped<ITransactionLocker, SqlTransactionLocker>();
         services.AddScoped<IRoleUsageReader, EfRoleUsageReader>();
+        services.AddScoped<IPriceListLabelReader, EfPriceListLabelReader>();
         services.AddScoped<IReceivedQuantityReader, EfReceivedQuantityReader>();
         services.AddScoped<IDeliveredQuantityReader, EfDeliveredQuantityReader>();
         services.AddScoped<IReturnedQuantityReader, EfReturnedQuantityReader>();
