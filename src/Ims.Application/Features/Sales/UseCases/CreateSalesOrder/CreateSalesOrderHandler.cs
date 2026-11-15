@@ -5,7 +5,7 @@ namespace Ims.Application.Features.Sales;
 
 public sealed class CreateSalesOrderHandler(IRepository<SalesOrder> orders, IReadRepository<Warehouse> warehouses, IReadRepository<Partner> partners,
     IDocumentNumbering numbering, ISalesOrderLineBuilder lineBuilder, ISalesOrderAccess access, ISalesOrderReader reader,
-    ICurrentUser current, IClock clock, ITransactionLocker locker, IModuleSwitches switches, IUnitOfWork uow, IAuditTrail audit, ISalesOrderPriceAudit prices) : ICommandHandler<CreateSalesOrderCommand, SalesOrderDto>
+    ICurrentUser current, IClock clock, ITransactionLocker locker, IModuleSwitches switches, IUnitOfWork uow, IDomainEventDispatcher events, ISalesOrderPriceAudit prices) : ICommandHandler<CreateSalesOrderCommand, SalesOrderDto>
 {
     public async Task<SalesOrderDto> HandleAsync(CreateSalesOrderCommand cmd, CancellationToken ct)
     {
@@ -25,20 +25,12 @@ public sealed class CreateSalesOrderHandler(IRepository<SalesOrder> orders, IRea
             order.ReplaceLines(await lineBuilder.BuildAsync(r.Lines, ct));
 
             orders.Add(order);
-            audit.Record(AuditActions.SalesOrderCreated, AuditEntities.SalesOrder, order.No, after: Summary(order));
+            // The audit row of the create is staged by SalesOrderAuditSubscriber when the event is dispatched. Dispatch now, not at the save: the price-change row below must come after it (Created, then PriceChanged).
+            await events.DispatchAsync(ct);
             await prices.RecordAsync(order, [], null, ct);
             await uow.SaveChangesAsync(ct);
             return order.PublicId;
         }, ct);
         return await reader.GetAsync(publicId, ct);
     }
-
-    internal static Dictionary<string, object?> Summary(SalesOrder order) => new()
-    {
-        [nameof(order.Status)] = order.Status,
-        [nameof(order.WarehouseId)] = order.WarehouseId,
-        [nameof(order.CustomerId)] = order.CustomerId,
-        [nameof(order.Lines)] = order.Lines.Count,
-        [AuditFields.SellingAmount] = order.TotalSellingAmount
-    };
 }

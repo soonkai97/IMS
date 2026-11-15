@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
 public sealed class RecallSalesOrderHandler(IRepository<SalesOrder> orders, ISalesOrderAccess access, ISalesOrderReader reader, IDocumentVersion version,
-    IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<RecallSalesOrderCommand, SalesOrderDto>
+    IUnitOfWork uow) : ICommandHandler<RecallSalesOrderCommand, SalesOrderDto>
 {
     public async Task<SalesOrderDto> HandleAsync(RecallSalesOrderCommand cmd, CancellationToken ct)
     {
@@ -16,9 +16,7 @@ public sealed class RecallSalesOrderHandler(IRepository<SalesOrder> orders, ISal
         if (order.IsPlainDraft) return await reader.GetAsync(cmd.Id, ct);
 
         version.EnsureCurrent(order.PublicId, order.No, order, cmd.IfMatch);
-        var before = new { order.Status, order.RequiresApproval };
         order.Recall();
-        audit.Record(AuditActions.SalesOrderRecalled, AuditEntities.SalesOrder, order.No, before, new { order.Status });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);
     }

@@ -4,7 +4,7 @@ namespace Ims.Application.Features.Sales;
 
 /// <summary>Closes an Approved order short: what is still to go out will not go (plan D7). Only once something was delivered: with nothing delivered the order is cancelled instead (cancel keeps its own authority). Same lock as posting a delivery and cancelling, so it cannot interleave with either.</summary>
 public sealed class CloseSalesOrderHandler(IRepository<SalesOrder> orders, IReadRepository<StockDocument> documents, IDeliveredQuantityReader delivered, ISalesOrderAccess access, ISalesOrderReader reader,
-    IDocumentVersion version, ITransactionLocker locker, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CloseSalesOrderCommand, SalesOrderDto>
+    IDocumentVersion version, ITransactionLocker locker, ICurrentUser current, IClock clock, IUnitOfWork uow) : ICommandHandler<CloseSalesOrderCommand, SalesOrderDto>
 {
     public async Task<SalesOrderDto> HandleAsync(CloseSalesOrderCommand cmd, CancellationToken ct)
     {
@@ -26,9 +26,7 @@ public sealed class CloseSalesOrderHandler(IRepository<SalesOrder> orders, IRead
             }
 
             access.EnsureMayClose(order, anythingDelivered);
-            var before = order.Status;
             order.CloseShort(cmd.Data.Reason, current.UserId, clock.UtcNow);
-            audit.Record(AuditActions.SalesOrderClosed, AuditEntities.SalesOrder, order.No, new { Status = before }, new { order.Status, order.CloseKind, Reason = order.CloseReason });
             await uow.SaveChangesAsync(ct);
             return true;
         }, ct);

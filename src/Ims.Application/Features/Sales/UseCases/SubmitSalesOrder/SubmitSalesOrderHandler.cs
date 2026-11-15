@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
 public sealed class SubmitSalesOrderHandler(IRepository<SalesOrder> orders, IApprovalEvaluator approvals, ISalesOrderAccess access, ISalesOrderReader reader,
-    IDocumentVersion version, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<SubmitSalesOrderCommand, SalesOrderDto>
+    IDocumentVersion version, ICurrentUser current, IClock clock, IUnitOfWork uow) : ICommandHandler<SubmitSalesOrderCommand, SalesOrderDto>
 {
     public async Task<SalesOrderDto> HandleAsync(SubmitSalesOrderCommand cmd, CancellationToken ct)
     {
@@ -13,16 +13,7 @@ public sealed class SubmitSalesOrderHandler(IRepository<SalesOrder> orders, IApp
 
         // The order is tested at its total at cost and its total base quantity against the rules of its type, and released at once when none fires.
         var assessment = await approvals.AssessAsync(DocumentType.SalesOrder, order.TotalQty, order.TotalSellingAmount, ct);
-        var before = order.Status;
         order.Submit(current.UserId, assessment.Required, assessment.IsLarge, clock.UtcNow);
-        audit.Record(AuditActions.SalesOrderSubmitted, AuditEntities.SalesOrder, order.No, new { Status = before },
-            new Dictionary<string, object?>
-            {
-                [nameof(order.Status)] = order.Status,
-                [nameof(order.RequiresApproval)] = order.RequiresApproval,
-                [nameof(order.IsLarge)] = order.IsLarge,
-                [AuditFields.SellingAmount] = assessment.Amount
-            });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);
     }

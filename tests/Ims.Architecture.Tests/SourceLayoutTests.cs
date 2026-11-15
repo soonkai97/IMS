@@ -6,7 +6,7 @@ namespace Ims.Architecture.Tests;
 /// <summary>One public type per file and the folder-per-feature layout, so the tree stays navigable as the system grows.</summary>
 public class SourceLayoutTests
 {
-    private static readonly string[] FeatureFolders = ["Contracts", "Services", "Specifications", "UseCases", "Validators"];
+    private static readonly string[] FeatureFolders = ["Contracts", "EventHandlers", "Services", "Specifications", "UseCases", "Validators"];
     private static readonly string[] DomainFolders = ["Models", "Rules", "Services", "Events", "Exceptions", "Constants"];
 
     [Fact]
@@ -37,18 +37,28 @@ public class SourceLayoutTests
         Verify.NoOffenders(offenders, "A file must be named after the type it declares:");
     }
 
-    // ----- Application: Features/<Feature>/<Contracts|Services|Specifications|UseCases|Validators>/... -----
+    // ----- Application: Features/<Feature>/<Contracts|EventHandlers|Services|Specifications|UseCases|Validators>/... -----
     [Fact]
     public void ApplicationFeatures_FollowFeatureFolderLayout()
     {
         var offenders = SourceFiles.In("Ims.Application")
             .Where(f => f.Segments.Length > 1 && f.Segments[1] == "Features")
-            .Where(f => f.Segments.Length < 5 || !FeatureFolders.Contains(f.Segments[3]))
+            .Where(f => !InFeatureFolder(f.Segments))
             .Select(f => f.RelativePath);
 
         Verify.NoOffenders(offenders,
             $"Files under Features must live in Features/<Feature>/<{string.Join("|", FeatureFolders)}>/:");
     }
+
+    [Theory]
+    [InlineData("Ims.Application/Features/Sales/EventHandlers/SalesOrderAuditSubscriber.cs", true)]   // DDD-11b: the first subscriber folder
+    [InlineData("Ims.Application/Features/Sales/UseCases/CreateSalesOrder/CreateSalesOrderHandler.cs", true)]
+    [InlineData("Ims.Application/Features/Sales/Services/SalesDeliveryPosting.cs", true)]
+    [InlineData("Ims.Application/Features/Sales/Subscribers/SalesOrderAuditSubscriber.cs", false)]
+    [InlineData("Ims.Application/Features/Sales/SalesOrderAuditSubscriber.cs", false)]
+    public void TheFeatureFolderRule_KnowsTheEventHandlersFolder(string relativePath, bool allowed) => Assert.Equal(allowed, InFeatureFolder(relativePath.Split('/')));
+
+    private static bool InFeatureFolder(string[] segments) => segments.Length >= 5 && FeatureFolders.Contains(segments[3]);
 
     [Fact]
     public void ApplicationFeatures_NamespaceMatchesTheFeatureFolder()

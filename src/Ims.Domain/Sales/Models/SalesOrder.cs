@@ -112,7 +112,7 @@ public sealed class SalesOrder : AggregateRoot
     }
 
     /// <summary>What the audit row of a create or an update prints about the order.</summary>
-    private SalesOrderSummary Summary() => new(Status, WarehouseId, CustomerId, _lines.Count, Money.Rounded(TotalSellingAmount));
+    private SalesOrderSummary Summary() => new(Status, WarehouseId, CustomerId, _lines.Count, TotalSellingAmount);
 
     public void EnsureEditable()
     {

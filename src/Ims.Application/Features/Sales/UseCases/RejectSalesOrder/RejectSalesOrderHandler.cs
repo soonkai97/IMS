@@ -3,7 +3,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
 public sealed class RejectSalesOrderHandler(IRepository<SalesOrder> orders, IApprovalEvaluator approvals, ISystemSettings settings, ISalesOrderAccess access,
-    ISalesOrderReader reader, IDocumentVersion version, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<RejectSalesOrderCommand, SalesOrderDto>
+    ISalesOrderReader reader, IDocumentVersion version, ICurrentUser current, IClock clock, IUnitOfWork uow) : ICommandHandler<RejectSalesOrderCommand, SalesOrderDto>
 {
     public async Task<SalesOrderDto> HandleAsync(RejectSalesOrderCommand cmd, CancellationToken ct)
     {
@@ -17,9 +17,7 @@ public sealed class RejectSalesOrderHandler(IRepository<SalesOrder> orders, IApp
             await approvals.ReviewRefusalAsync(DocumentType.SalesOrder, order.IsLarge, order.TotalQty, order.TotalSellingAmount, ct) is { } refusal)
             throw new ForbiddenException(refusal);
 
-        var before = order.Status;
         order.Reject(cmd.Data.Reason, current.UserId, (await settings.GetAsync(ct)).AllowSelfApproval, clock.UtcNow);
-        audit.Record(AuditActions.SalesOrderRejected, AuditEntities.SalesOrder, order.No, new { Status = before }, new { order.Status, Reason = order.RejectionReason });
         await uow.SaveChangesAsync(ct);
         return await reader.GetAsync(cmd.Id, ct);
     }
