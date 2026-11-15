@@ -2,7 +2,7 @@ using Ims.Domain;
 namespace Ims.Application.Features.Sales;
 
 public sealed class CreatePriceListHandler(IRepository<PriceList> lists, IReadRepository<Partner> partners, IPriceListItemBuilder builder, IPriceListUniqueness uniqueness, IPriceListReader reader,
-    IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<CreatePriceListCommand, PriceListDto>
+    IUnitOfWork uow) : ICommandHandler<CreatePriceListCommand, PriceListDto>
 {
     public async Task<PriceListDto> HandleAsync(CreatePriceListCommand cmd, CancellationToken ct)
     {
@@ -12,12 +12,10 @@ public sealed class CreatePriceListHandler(IRepository<PriceList> lists, IReadRe
             var r = cmd.Data;
             var customer = r.CustomerId is { } id ? await partners.FirstOrDefaultAsync(new ByPublicIdSpec<Partner>(id), ct) ?? throw new ValidationException(Messages.PartnerMissing) : null;
             var list = PriceList.Create(r.Name, r.IsDefault, customer);
-            var built = await builder.BuildAsync(r.Items, null, ct);
-            list.ReplaceItems(built.Items);
+            list.ReplaceItems(await builder.BuildAsync(r.Items, null, ct));
             await uniqueness.EnsureAsync(list, ct);
 
             lists.Add(list);
-            audit.Record(AuditActions.PriceListCreated, AuditEntities.PriceList, list.PublicId.ToString(), after: ListAudit.Summary(list, [], built));
             await uow.SaveChangesAsync(ct);
             return list.PublicId;
         }, ct);

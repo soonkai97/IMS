@@ -5,7 +5,7 @@ namespace Ims.Application.Features.Sales;
 /// <summary>Loads the products and units a price list save names (public ids, one query each for the whole list); the items themselves (usable product, convertible unit, price limits) are built by the domain.</summary>
 public sealed class PriceListItemBuilder(IReadRepository<Product> products, IReadRepository<Uom> uoms, IIdMap<Uom> uomIds) : IPriceListItemBuilder, IAppService
 {
-    public async Task<BuiltPriceListItems> BuildAsync(IReadOnlyList<PriceListItemInput> inputs, IReadOnlySet<(int ProductId, int UomId)>? existing, CancellationToken ct)
+    public async Task<IReadOnlyList<PriceListItem>> BuildAsync(IReadOnlyList<PriceListItemInput> inputs, IReadOnlySet<(int ProductId, int UomId)>? existing, CancellationToken ct)
     {
         var byId = (await products.ListAsync(new ProductsForLinesSpec(inputs.Select(i => i.ProductId).Distinct().ToList()), ct)).ToDictionary(p => p.PublicId);
 
@@ -35,6 +35,6 @@ public sealed class PriceListItemBuilder(IReadRepository<Product> products, IRea
             }
         }
         if (errors.Count > 0) throw new ValidationException(errors.First().Value[0], errors);
-        return new BuiltPriceListItems(items, byId.Values.ToDictionary(p => p.Id, p => p.Sku), codes);
+        return items;
     }
 }
