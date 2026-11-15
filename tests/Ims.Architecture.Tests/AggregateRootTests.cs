@@ -14,12 +14,12 @@ namespace Ims.Architecture.Tests;
 public class AggregateRootTests
 {
     /// <summary>Roots that derive from <c>AggregateRoot</c> or implement <c>IAggregateRoot</c> and raise events.</summary>
-    private static readonly string[] Roots = ["SalesOrder", "SystemSetting"];
+    private static readonly string[] Roots = ["SalesOrder", "PurchaseOrder", "SystemSetting"];
 
     /// <summary>Roots of section 2.2 that raise events in a later slice (DDD-12 to DDD-17 and DDD-24). The slice that adds their events moves each name to <see cref="Roots"/>.</summary>
     private static readonly string[] RootsToCome =
     [
-        "PurchaseOrder", "PriceList", "StockDocument", "StockBalance", "DocumentSequence", "Role", "User", "ApprovalRule", "Product",
+        "PriceList", "StockDocument", "StockBalance", "DocumentSequence", "Role", "User", "ApprovalRule", "Product",
     ];
 
     /// <summary>Small roots: "no events planned" in section 2.2. They stay plain entities.</summary>
@@ -140,6 +140,7 @@ public class AggregateRootTests
 
         var raising = SourceFiles.All.Where(f => RaiseRules.Calls(f.Root).Any()).ToList();
         Assert.Contains(raising, f => f.RelativePath == "Ims.Domain/Sales/Models/SalesOrder.cs");   // the rule is not vacuous
+        Assert.Contains(raising, f => f.RelativePath == "Ims.Domain/Purchasing/Models/PurchaseOrder.cs");   // DDD-12: the second root raises its events too
 
         var offenders = raising.Where(f => !RaiseRules.DeclaresOnly(f.Root, rootNames)).Select(f => f.RelativePath);
 

@@ -41,7 +41,7 @@ public class OrderEditableTests
         var order = PurchaseOrderIn(status);
         var journal = new Journal();
         var handler = new UpdatePurchaseOrderHandler(new FakeRepository<PurchaseOrder>([order], journal), null!, null!, new PurchaseScope(journal), null!, new AllowAll(), new RecordingVersion(journal),
-            new StopAtWarehouse<Warehouse>(journal), null!, null!);
+            new StopAtWarehouse<Warehouse>(journal), null!);
         var request = new PurchaseOrderSaveRequest(Guid.NewGuid(), Guid.NewGuid(), null, []);
 
         var thrown = await Record.ExceptionAsync(() => handler.HandleAsync(new UpdatePurchaseOrderCommand(order.PublicId, request, "token"), CancellationToken.None));

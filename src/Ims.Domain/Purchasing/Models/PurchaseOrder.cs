@@ -6,7 +6,12 @@ namespace Ims.Domain;
 /// (or straight to Approved when no rule fires), Submitted -> Draft by a rejection or a recall, and Draft, Submitted or Approved -> Cancelled. Closing (automatic and short) comes with the
 /// receipts (PL2.5). Totals are computed from the lines, never stored.
 /// </summary>
-public sealed class PurchaseOrder : PublicEntity
+/// <remarks>
+/// An aggregate root (<see cref="AggregateRoot"/>, DDD-12): every change that the audit trail records raises one event once the change is made, carrying what the audit row prints (<c>Purchasing/Events</c>);
+/// a refused change raises nothing. <c>PurchaseOrderAuditSubscriber</c> writes the rows. The edit of a Draft is two calls (<see cref="UpdateHeader"/>, then <see cref="ReplaceLines"/>) and one audit row, so it is
+/// one event, raised by the second.
+/// </remarks>
+public sealed class PurchaseOrder : AggregateRoot
 {
     private PurchaseOrder() { }
 
@@ -38,6 +43,9 @@ public sealed class PurchaseOrder : PublicEntity
     public string? CloseReason { get; private set; }
 
     private readonly List<PurchaseOrderLine> _lines = [];
+
+    /// <summary>The summary before <see cref="UpdateHeader"/> changed the header, kept until <see cref="ReplaceLines"/> completes the edit and raises <see cref="PurchaseOrderUpdated"/> with it. Not a column.</summary>
+    private PurchaseOrderSummary? _summaryBeforeEdit;
 
     /// <summary>Read-only view: lines change only through <see cref="ReplaceLines"/>, and only while the order is a Draft.</summary>
     public IReadOnlyList<PurchaseOrderLine> Lines => _lines;
@@ -100,6 +108,7 @@ public sealed class PurchaseOrder : PublicEntity
     {
         EnsureEditable();
         supplier.EnsureUsableAsSupplier();
+        _summaryBeforeEdit ??= Summary();
         Supplier = supplier;
         SupplierId = supplier.Id;
         Remark = remark;
@@ -112,10 +121,17 @@ public sealed class PurchaseOrder : PublicEntity
         var replacement = lines.ToList();
         if (replacement.Count == 0) throw new DomainException(Messages.AddLine);
         if (replacement.Count > Limits.MaxDocumentLines) throw new DomainException(Messages.TooManyLines(Limits.MaxDocumentLines));
+        var isNew = _lines.Count == 0; // a Draft always has lines once it is created, so no lines yet means the create is being completed
+        var before = _summaryBeforeEdit ?? Summary();
         for (var i = 0; i < replacement.Count; i++) replacement[i].Number(i + 1);
         _lines.Clear();
         _lines.AddRange(replacement);
+        _summaryBeforeEdit = null;
+        Raise(isNew ? new PurchaseOrderCreated(No, Summary()) : new PurchaseOrderUpdated(No, before, Summary()));
     }
+
+    /// <summary>What the audit row of a create or an update prints about the order.</summary>
+    private PurchaseOrderSummary Summary() => new(Status, WarehouseId, SupplierId, _lines.Count, TotalAmount);
 
     public void EnsureEditable()
     {
@@ -134,6 +150,7 @@ public sealed class PurchaseOrder : PublicEntity
         if (Lines.Where(l => l.UnitPrice <= 0).Select(l => l.LineNo).ToList() is { Count: > 0 } unpriced)
             throw new DomainException(Messages.PurchaseOrderLinesNeedPrice(unpriced));
 
+        var before = Status;
         SubmittedBy = userId;
         SubmittedAt = utcNow;
         RequiresApproval = requiresApproval;
@@ -143,6 +160,7 @@ public sealed class PurchaseOrder : PublicEntity
         RejectedAt = null;
         Status = requiresApproval ? PurchaseOrderStatus.Submitted : PurchaseOrderStatus.Approved;
         if (!requiresApproval) ApprovedAt = utcNow;
+        Raise(new PurchaseOrderSubmitted(No, before, Status, RequiresApproval, IsLarge, Money.Rounded(TotalAmount)));
     }
 
     /// <summary>Approves a Submitted order; not by the person who submitted it unless self-approval is allowed (BR-07). Who may is <see cref="PurchaseOrderActionPolicy"/>.</summary>
@@ -152,9 +170,11 @@ public sealed class PurchaseOrder : PublicEntity
             throw new DomainException(Messages.PurchaseOrderOnlySubmittedCanApprove(Status));
         BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, allowSelfApproval, Messages.PurchaseOrderSelfApproval));
 
+        var before = Status;
         Status = PurchaseOrderStatus.Approved;
         ApprovedBy = userId;
         ApprovedAt = utcNow;
+        Raise(new PurchaseOrderApproved(No, before, Status, IsLarge));
     }
 
     /// <summary>Returns a Submitted order to Draft with the (trimmed) reason and who returned it. A review like approving: not by the submitter unless self-approval is allowed.</summary>
@@ -165,11 +185,14 @@ public sealed class PurchaseOrder : PublicEntity
         var why = Reason.Required(reason, Messages.RejectReasonRequired);
         BusinessRules.Ensure(new SelfApprovalNotAllowedRule(SubmittedBy, userId, allowSelfApproval, Messages.PurchaseOrderSelfRejection));
 
+        var before = Status;
+        var trimmed = why.Text;
         Status = PurchaseOrderStatus.Draft;
-        RejectionReason = why.Text;
+        RejectionReason = trimmed;
         RejectedBy = userId;
         RejectedAt = utcNow;
         ClearSubmission();
+        Raise(new PurchaseOrderRejected(No, before, Status, trimmed));
     }
 
     /// <summary>Takes a Submitted order back to Draft so its submitter can fix it. Nothing was approved, so there is nothing to void; it is not a rejection (no reason is kept).</summary>
@@ -178,8 +201,11 @@ public sealed class PurchaseOrder : PublicEntity
         if (Status != PurchaseOrderStatus.Submitted)
             throw new DomainException(Messages.PurchaseOrderOnlySubmittedCanRecall(No, Status));
 
+        var before = Status;
+        var requiredApproval = RequiresApproval;
         Status = PurchaseOrderStatus.Draft;
         ClearSubmission();
+        Raise(new PurchaseOrderRecalled(No, before, requiredApproval, Status));
     }
 
     /// <summary>
@@ -195,19 +221,21 @@ public sealed class PurchaseOrder : PublicEntity
             reason = Reason.Required(reason, Messages.PurchaseOrderCancelReasonRequired).Text;
         }
         if (Status == PurchaseOrderStatus.Draft && byAnotherUser) reason = Reason.Of(reason, Messages.CancelOthersDraftReasonRequired).Text; // a holder of modules.manage clearing a departed creator draft says why
+        var before = Status;
         Status = PurchaseOrderStatus.Cancelled;
         CancelReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        Raise(new PurchaseOrderCancelled(No, before, Status, CancelReason));
     }
 
     /// <summary>
     /// Closes an Approved order because every line is fully received (plan D5): called by posting, in the same transaction as the receipt that brought in the last quantity. The poster is recorded;
-    /// there is no reason to give. A reversal of a receipt later never reopens it.
+    /// there is no reason to give. A reversal of a receipt later never reopens it. The receipt is named because the audit row of this close prints it.
     /// </summary>
-    public void CloseReceived(int userId, DateTime utcNow)
+    public void CloseReceived(int userId, string receiptNo, DateTime utcNow)
     {
         if (Status != PurchaseOrderStatus.Approved)
             throw new DomainException(Messages.PurchaseOrderCannotClose(Status));
-        MarkClosed(PurchaseOrderCloseKind.Received, null, userId, utcNow);
+        MarkClosed(PurchaseOrderCloseKind.Received, null, receiptNo, userId, utcNow);
     }
 
     /// <summary>Closes an Approved order short: what is still to come will not come. It needs a reason (at least <see cref="Limits.ReasonMinLength"/> characters once trimmed). Receipts already posted stay; the handler refuses while one is still open.</summary>
@@ -216,16 +244,18 @@ public sealed class PurchaseOrder : PublicEntity
         if (Status != PurchaseOrderStatus.Approved)
             throw new DomainException(Messages.PurchaseOrderCannotClose(Status));
         var why = Reason.Required(reason, Messages.PurchaseOrderCloseReasonRequired);
-        MarkClosed(PurchaseOrderCloseKind.Short, why.Text, userId, utcNow);
+        MarkClosed(PurchaseOrderCloseKind.Short, why.Text, null, userId, utcNow);
     }
 
-    private void MarkClosed(PurchaseOrderCloseKind kind, string? reason, int userId, DateTime utcNow)
+    private void MarkClosed(PurchaseOrderCloseKind kind, string? reason, string? receiptNo, int userId, DateTime utcNow)
     {
+        var before = Status;
         Status = PurchaseOrderStatus.Closed;
         CloseKind = kind;
         CloseReason = reason;
         ClosedBy = userId;
         ClosedAt = utcNow;
+        Raise(new PurchaseOrderClosed(No, before, Status, kind, reason, receiptNo));
     }
 
     /// <summary>The submit-time facts no longer describe a Draft; submitting again assesses the rules from scratch.</summary>

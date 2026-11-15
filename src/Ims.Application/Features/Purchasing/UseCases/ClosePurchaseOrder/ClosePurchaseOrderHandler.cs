@@ -4,7 +4,7 @@ namespace Ims.Application.Features.Purchasing;
 
 /// <summary>Closes an Approved order short: what is still to come will not come (plan D5). Only once something was received: with nothing received the order is cancelled instead (cancel keeps its own authority). Same lock as posting a receipt and cancelling, so it cannot interleave with either.</summary>
 public sealed class ClosePurchaseOrderHandler(IRepository<PurchaseOrder> orders, IPurchaseOrderReceiving receiving, IPurchaseOrderAccess access, IPurchaseOrderReader reader, IDocumentVersion version,
-    ITransactionLocker locker, ICurrentUser current, IClock clock, IUnitOfWork uow, IAuditTrail audit) : ICommandHandler<ClosePurchaseOrderCommand, PurchaseOrderDto>
+    ITransactionLocker locker, ICurrentUser current, IClock clock, IUnitOfWork uow) : ICommandHandler<ClosePurchaseOrderCommand, PurchaseOrderDto>
 {
     public async Task<PurchaseOrderDto> HandleAsync(ClosePurchaseOrderCommand cmd, CancellationToken ct)
     {
@@ -26,9 +26,7 @@ public sealed class ClosePurchaseOrderHandler(IRepository<PurchaseOrder> orders,
             }
 
             access.EnsureMayClose(order, anythingReceived);
-            var before = order.Status;
             order.CloseShort(cmd.Data.Reason, current.UserId, clock.UtcNow);
-            audit.Record(AuditActions.PurchaseOrderClosed, AuditEntities.PurchaseOrder, order.No, new { Status = before }, new { order.Status, order.CloseKind, Reason = order.CloseReason });
             await uow.SaveChangesAsync(ct);
             return true;
         }, ct);

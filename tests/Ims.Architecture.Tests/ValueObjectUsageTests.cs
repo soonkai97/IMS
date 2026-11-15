@@ -22,9 +22,11 @@ public class ValueObjectUsageTests
     /// 78 since DDD-11b (76 before, +2): <c>SalesOrderSummary.SellingAmount</c>, the property and the constructor parameter. The one exception, on purpose: the audit row of a create and of an update prints the amount at
     /// the scale it was computed in (12, 12.5, 12.50 are three different rows, pinned by <c>SalesOrderAuditRowsTests</c>), and a <c>Money</c> always has two places, so the event that carries the audit facts must carry the
     /// decimal. The two members go when an audit row may print two places (an owner decision: it changes stored rows); then lower this number by 2.
+    /// 80 since DDD-12 (78 before, +2): <c>PurchaseOrderSummary.Amount</c>, the property and the constructor parameter, for the same reason (the rows of a purchase-order create and update, pinned by <c>PurchaseOrderAuditRowsTests</c>,
+    /// print the amount as 12, 12.5 and 12.50, which a <c>Money</c> cannot carry). Same way back: an owner decision, then lower this number by 2 more.
     /// </para>
     /// </summary>
-    private const int PrimitiveBaseline = 78;
+    private const int PrimitiveBaseline = 80;
 
     // ---- ValueObjectsStayOffTheWire, over the real source ----
 
