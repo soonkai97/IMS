@@ -62,7 +62,7 @@ public class PriceListStatementCountTests(ApiFixture fixture) : IAsyncLifetime
     private async Task<Dictionary<string, Measure>> CycleAsync(ApiClient client, SqlStatementLog log)
     {
         var measured = new Dictionary<string, Measure>();
-        // The version token is read before the count starts: reading it is the caller's own request, not part of the use case measured.
+        // The version token each save needs is the one the last response carried, so no read of the list is counted with the save it belongs to.
         async Task<ApiResponse> MeasureAsync(string operation, Func<Task<ApiResponse>> request)
         {
             log.Clear();
@@ -71,7 +71,6 @@ public class PriceListStatementCountTests(ApiFixture fixture) : IAsyncLifetime
             Assert.True(response.IsSuccess, $"{operation}: HTTP {response.StatusCode}");
             return response;
         }
-        async Task<string> TokenAsync(Guid id) => (await client.PriceLists.GetAsync(id)).Data<PriceListDto>().ConcurrencyToken;
 
         var (a, b, c, d) = (await _s.NewProductAsync(), await _s.NewProductAsync(), await _s.NewProductAsync(), await _s.NewProductAsync());
         var customer = await _s.NewPartnerAsync();

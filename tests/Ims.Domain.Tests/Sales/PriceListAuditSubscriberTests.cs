@@ -107,7 +107,8 @@ public class PriceListAuditSubscriberTests
 
         Assert.Equal([Expected("price-list.created", null, Header("Wholesale", true, null, 3, "SKU-3 (PCS): added at 3.00", "SKU-1 (PCS): added at 12.50", "SKU-2 (CTN): added at 30.00"))], rows);
         var call = Assert.Single(_labels.Calls);
-        Assert.Equal(([3, 1, 2], [PcsId, CartonId]), (call.Products, call.Uoms));
+        Assert.Equal([3, 1, 2], call.Products);
+        Assert.Equal([PcsId, CartonId], call.Uoms);
     }
 
     [Fact]
